@@ -1321,7 +1321,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private MethodCompilationType _jitType;
-        private ulong _md,_module,_ip;
+        private ulong _md, _module, _ip;
         private uint _token;
         private ulong _mt;
 

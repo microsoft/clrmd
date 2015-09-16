@@ -196,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 // Start the segment search where you where last
                 int curIdx = _lastSegmentIdx;
-                for (; ;)
+                for (;;)
                 {
                     var segment = _segments[curIdx];
                     var offsetInSegment = (long)(objRef - segment.Start);

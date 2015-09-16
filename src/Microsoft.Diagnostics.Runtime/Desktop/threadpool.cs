@@ -264,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class DesktopNativeWorkItem : NativeWorkItem
     {
         private WorkItemKind _kind;
-        private ulong _callback,_data;
+        private ulong _callback, _data;
 
         public DesktopNativeWorkItem(DacpWorkRequestData result)
         {

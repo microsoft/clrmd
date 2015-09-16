@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return ret;
         }
 
-        PdbInfo _pdb;
+        private PdbInfo _pdb;
         /// <summary>
         /// Holds information about the pdb for the current PEFile
         /// </summary>
@@ -286,7 +286,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return new PEHeader(buffer, virt);
         }
 
-        
+
         private PEHeader(PEBuffer buffer, bool virt)
         {
             byte* ptr = buffer.Fetch(0, 0x300);
@@ -744,7 +744,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (fileVersionIdx >= 0)
             {
                 int valIdx = fileVersionIdx + fileVersionKey.Length;
-                for (; ; )
+                for (;;)
                 {
                     valIdx++;
                     if (valIdx >= dataAsString.Length)
@@ -797,7 +797,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
             return &_buffPtr[filePos - _buffPos];
         }
-        public byte *Buffer { get { return _buffPtr; } }
+        public byte* Buffer { get { return _buffPtr; } }
         public int Length { get { return _buffLen; } }
         public void Dispose()
         {

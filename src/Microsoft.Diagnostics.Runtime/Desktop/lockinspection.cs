@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         private DesktopGCHeap _heap;
         private DesktopRuntimeBase _runtime;
-        private ClrType _rwType,_rwsType;
+        private ClrType _rwType, _rwsType;
         private Dictionary<ulong, DesktopBlockingObject> _monitors = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ulong, DesktopBlockingObject> _locks = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ClrThread, DesktopBlockingObject> _joinLocks = new Dictionary<ClrThread, DesktopBlockingObject>();

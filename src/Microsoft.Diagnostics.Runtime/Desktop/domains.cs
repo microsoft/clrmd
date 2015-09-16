@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #region Private
         private Address _address;
         private string _name;
-        private int _id,_internalId;
+        private int _id, _internalId;
         private List<ClrModule> _modules = new List<ClrModule>();
         private DesktopRuntimeBase _runtime;
 

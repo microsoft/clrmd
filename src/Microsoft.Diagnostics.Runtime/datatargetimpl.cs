@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 _versions = versions.ToArray();
-                
+
                 Array.Sort(_versions);
                 return _versions;
             }
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _modules = sortedModules.ToArray();
             }
         }
-        
+
         public override void Dispose()
         {
             _dataReader.Close();
@@ -310,7 +310,7 @@ namespace Microsoft.Diagnostics.Runtime
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
             _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, delegate(ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
+            Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
         }
 
 
@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        ModuleInfo GetModule(ulong address)
+        private ModuleInfo GetModule(ulong address)
         {
             int min = 0, max = _modules.Length - 1;
 

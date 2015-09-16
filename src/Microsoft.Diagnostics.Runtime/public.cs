@@ -3033,7 +3033,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract IDataReader DataReader { get; }
 
-        SymbolLocator _symbolLocator = new SymbolLocator();
+        private SymbolLocator _symbolLocator = new SymbolLocator();
         /// <summary>
         /// Instance to manage the symbol path(s)
         /// </summary>

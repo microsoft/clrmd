@@ -880,7 +880,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrModule _mscorlib;
 
         private Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
-        private ClrInstanceField _firstChar,_stringLength;
+        private ClrInstanceField _firstChar, _stringLength;
         private LastObjectData _lastObjData;
         private LastObjectType _lastObjType;
         private ClrType[] _basicTypes;

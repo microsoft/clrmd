@@ -33,12 +33,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class DesktopModule : DesktopBaseModule
     {
-        private bool _reflection,_isPE;
-        private string _name,_assemblyName;
+        private bool _reflection, _isPE;
+        private string _name, _assemblyName;
         private DesktopRuntimeBase _runtime;
         private IMetadata _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
-        private Address _imageBase,_size;
+        private Address _imageBase, _size;
         private Address _metadataStart;
         private Address _metadataLength;
         private DebuggableAttribute.DebuggingModes? _debugMode;

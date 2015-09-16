@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        private ulong _ip,_sp;
+        private ulong _ip, _sp;
         private string _frameName;
         private ClrStackFrameType _type;
         private ClrMethod _method;

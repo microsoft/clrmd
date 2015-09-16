@@ -1,10 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+
 #pragma warning disable 1591
 #pragma warning disable 0067
 
@@ -229,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             return fileName + @"\" + buildTimeStamp.ToString("x") + imageSize.ToString("x") + @"\" + fileName;
         }
-        
+
         private static string GetIndexPath(string pdbSimpleName, Guid pdbIndexGuid, int pdbIndexAge)
         {
             return pdbSimpleName + @"\" + pdbIndexGuid.ToString().Replace("-", "") + pdbIndexAge.ToString("x") + @"\" + pdbSimpleName;
@@ -443,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private string GetPhysicalFileFromServer(string serverPath, string pdbIndexPath, string symbolCacheDir, bool returnContents=false)
+        private string GetPhysicalFileFromServer(string serverPath, string pdbIndexPath, string symbolCacheDir, bool returnContents = false)
         {
             if (string.IsNullOrEmpty(serverPath))
                 return null;
@@ -461,7 +465,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         var response = req.GetResponse();
                         using (var fromStream = response.GetResponseStream())
                         {
-
                             if (returnContents)
                             {
                                 TextReader reader = new StreamReader(fromStream);

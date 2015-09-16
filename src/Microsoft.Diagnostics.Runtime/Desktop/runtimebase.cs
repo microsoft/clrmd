@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Dictionary<Address, DesktopModule> _modules = new Dictionary<Address, DesktopModule>();
         private Dictionary<ulong, uint> _moduleSizes = null;
         private Dictionary<string, DesktopModule> _moduleFiles = null;
-        private DesktopAppDomain _system,_shared;
+        private DesktopAppDomain _system, _shared;
         private List<ClrAppDomain> _domains;
         private List<ClrThread> _threads;
         private DesktopGCHeap _heap;

@@ -314,7 +314,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IFieldData _field;
         private string _name;
-        private BaseDesktopHeapType _type,_containingType;
+        private BaseDesktopHeapType _type, _containingType;
         private FieldAttributes _attributes;
         private object _defaultValue;
         private DesktopGCHeap _heap;
