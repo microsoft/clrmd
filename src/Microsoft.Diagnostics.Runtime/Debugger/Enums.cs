@@ -9,37 +9,44 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum SymTag : uint
     {
-        Null,
-        Exe,
-        Compiland,
-        CompilandDetails,
-        CompilandEnv,
-        Function,
-        Block,
-        Data,
-        Annotation,
-        Label,
-        PublicSymbol,
-        UDT,
-        Enum,
-        FunctionType,
-        PointerType,
-        ArrayType,
-        BaseType,
-        Typedef,
-        BaseClass,
-        Friend,
-        FunctionArgType,
-        FuncDebugStart,
-        FuncDebugEnd,
-        UsingNamespace,
-        VTableShape,
-        VTable,
-        Custom,
-        Thunk,
-        CustomType,
-        ManagedType,
-        Dimension,
+        Null,                //  0
+        Exe,                 //  1
+        Compiland,           //  2
+        CompilandDetails,    //  3
+        CompilandEnv,        //  4
+        Function,            //  5
+        Block,               //  6
+        Data,                //  7
+        Annotation,          //  8
+        Label,               //  9
+        PublicSymbol,        // 10
+        UDT,                 // 11
+        Enum,                // 12
+        FunctionType,        // 13
+        PointerType,         // 14
+        ArrayType,           // 15
+        BaseType,            // 16
+        Typedef,             // 17
+        BaseClass,           // 18
+        Friend,              // 19
+        FunctionArgType,     // 20
+        FuncDebugStart,      // 21
+        FuncDebugEnd,        // 22
+        UsingNamespace,      // 23
+        VTableShape,         // 24
+        VTable,              // 25
+        Custom,              // 26
+        Thunk,               // 27
+        CustomType,          // 28
+        ManagedType,         // 29
+        Dimension,           // 30
+        CallSite,            // 31
+        InlineSite,          // 32
+        BaseInterface,       // 33
+        VectorType,          // 34
+        MatrixType,          // 35
+        HLSLType,            // 36
+        SymTagMax
     }
 
     public enum DEBUG_REQUEST : uint
@@ -460,6 +467,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [Flags]
     public enum DEBUG_EVENT : uint
     {
+        NONE = 0,
         BREAKPOINT = 1,
         EXCEPTION = 2,
         CREATE_THREAD = 4,
@@ -500,23 +508,23 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [Flags]
     public enum DEBUG_CDS_REFRESH : uint
     {
-        EVALUATE = 1,
-        EXECUTE = 2,
-        EXECUTECOMMANDFILE = 3,
-        ADDBREAKPOINT = 4,
-        REMOVEBREAKPOINT = 5,
-        WRITEVIRTUAL = 6,
-        WRITEVIRTUALUNCACHED = 7,
-        WRITEPHYSICAL = 8,
-        WRITEPHYSICAL2 = 9,
-        SETVALUE = 10,
-        SETVALUE2 = 11,
-        SETSCOPE = 12,
-        SETSCOPEFRAMEBYINDEX = 13,
+        EVALUATE                 =  1,
+        EXECUTE                  =  2,
+        EXECUTECOMMANDFILE       =  3,
+        ADDBREAKPOINT            =  4,
+        REMOVEBREAKPOINT         =  5,
+        WRITEVIRTUAL             =  6,
+        WRITEVIRTUALUNCACHED     =  7,
+        WRITEPHYSICAL            =  8,
+        WRITEPHYSICAL2           =  9,
+        SETVALUE                 = 10,
+        SETVALUE2                = 11,
+        SETSCOPE                 = 12,
+        SETSCOPEFRAMEBYINDEX     = 13,
         SETSCOPEFROMJITDEBUGINFO = 14,
-        SETSCOPEFROMSTOREDEVENT = 15,
-        INLINESTEP = 16,
-        INLINESTEP_PSEUDO = 17,
+        SETSCOPEFROMSTOREDEVENT  = 15,
+        INLINESTEP               = 16,
+        INLINESTEP_PSEUDO        = 17,
     }
 
     [Flags]

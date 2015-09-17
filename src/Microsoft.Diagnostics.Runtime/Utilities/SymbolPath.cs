@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
         /// <summary>
         /// Create a new symbol path which first search all machine local locations (either explicit location or symbol server cache locations)
-        /// folloed by all non-local symbol server.   This produces better behavior (If you can find it locally it will be fast)
+        /// followed by all non-local symbol server.   This produces better behavior (If you can find it locally it will be fast)
         /// </summary>
         public SymPath CacheFirst()
         {
