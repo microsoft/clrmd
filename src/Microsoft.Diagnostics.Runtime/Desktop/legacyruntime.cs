@@ -667,14 +667,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override IMethodDescData GetMDForIP(ulong ip)
         {
             IMethodDescData result = GetMethodDescData(DacRequests.METHODDESC_IP_DATA, ip);
-            if (result == null)
-            {
-                ulong methodDesc = GetMethodDescFromIp(ip);
-                if (methodDesc != 0)
-                {
-                    return GetMethodDescData(DacRequests.METHODDESC_DATA, ip);
-                }
-            }
+            if (result != null)
+                return result;
+            
+            ulong methodDesc = GetMethodDescFromIp(ip);
+            if (methodDesc != 0)
+                return GetMethodDescData(DacRequests.METHODDESC_DATA, ip);
+
             return null;
         }
 
