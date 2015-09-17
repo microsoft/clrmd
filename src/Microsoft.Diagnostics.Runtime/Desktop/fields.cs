@@ -220,7 +220,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override object GetValue(ClrAppDomain appDomain)
+        public override object GetValue(ClrAppDomain appDomain, bool convertStrings = true)
         {
             if (!HasSimpleValue)
                 return null;
@@ -233,9 +233,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
-                    return null;
+                    return convertStrings ? null : (object)(ulong)0;
 
                 addr = (ulong)val;
+                if (!convertStrings)
+                    return addr;
             }
 
             // Structs are stored as objects.
@@ -329,7 +331,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _type = (BaseDesktopHeapType)heap.GetGCHeapType(field.TypeMethodTable, 0);
         }
 
-        public override object GetValue(ClrAppDomain appDomain, ClrThread thread)
+        public override object GetValue(ClrAppDomain appDomain, ClrThread thread, bool convertStrings = true)
         {
             if (!HasSimpleValue)
                 return null;
@@ -344,9 +346,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
-                    return null;
+                    return convertStrings ? null : (object)(ulong)0;
 
                 addr = (ulong)val;
+                if (!convertStrings)
+                    return addr;
             }
 
             return _type.DesktopHeap.GetValueAtAddress(ElementType, addr);
@@ -590,7 +594,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrElementType _elementType = ClrElementType.Unknown;
         #endregion
 
-        public override object GetValue(Address objRef, bool interior = false)
+        public override object GetValue(Address objRef, bool interior = false, bool convertStrings = true)
         {
             if (!HasSimpleValue)
                 return null;
@@ -603,9 +607,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
-                    return null;
+                    return convertStrings ? null : (object)(ulong)0;
 
                 addr = (ulong)val;
+                if (!convertStrings)
+                    return addr;
             }
 
             return _type.DesktopHeap.GetValueAtAddress(ElementType, addr);
