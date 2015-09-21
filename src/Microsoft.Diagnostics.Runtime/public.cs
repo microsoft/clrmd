@@ -1086,7 +1086,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value of the field.</returns>
         virtual public object GetValue(Address objRef)
         {
-            return GetValue(objRef, false);
+            return GetValue(objRef, false, true);
         }
 
         /// <summary>
@@ -1097,8 +1097,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="interior">Whether the enclosing type of this field is a value class,
         /// and that value class is embedded in another object.</param>
         /// <returns>The value of the field.</returns>
-        abstract public object GetValue(Address objRef, bool interior);
+        virtual public object GetValue(Address objRef, bool interior)
+        {
+            return GetValue(objRef, interior, true);
+        }
 
+        /// <summary>
+        /// Returns the value of this field, optionally specifying if this field is
+        /// on a value class which is on the interior of another object.
+        /// </summary>
+        /// <param name="objRef">The object to get the field value for.</param>
+        /// <param name="interior">Whether the enclosing type of this field is a value class,
+        /// and that value class is embedded in another object.</param>
+        /// <param name="convertStrings">When true, the value of a string field will be 
+        /// returned as a System.String object; otherwise the address of the String object will be returned.</param>
+        /// <returns>The value of the field.</returns>
+        abstract public object GetValue(Address objRef, bool interior, bool convertStrings);
 
         /// <summary>
         /// Returns the address of the value of this field.  Equivalent to GetFieldAddress(objRef, false).
@@ -1160,7 +1174,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="appDomain">The AppDomain in which to get the value.</param>
         /// <returns>The value of this static field.</returns>
-        abstract public object GetValue(ClrAppDomain appDomain);
+        virtual public object GetValue(ClrAppDomain appDomain)
+        {
+            return GetValue(appDomain, true);
+        }
+
+        /// <summary>
+        /// Gets the value of the static field.
+        /// </summary>
+        /// <param name="appDomain">The AppDomain in which to get the value.</param>
+        /// <param name="convertStrings">When true, the value of a string field will be 
+        /// returned as a System.String object; otherwise the address of the String object will be returned.</param>
+        /// <returns>The value of this static field.</returns>
+        abstract public object GetValue(ClrAppDomain appDomain, bool convertStrings);
 
         /// <summary>
         /// Returns the address of the static field's value in memory.
@@ -1211,7 +1237,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="appDomain">The AppDomain in which to get the field's value.</param>
         /// <param name="thread">The thread on which to get the field's value.</param>
         /// <returns>The value of the field.</returns>
-        abstract public object GetValue(ClrAppDomain appDomain, ClrThread thread);
+        virtual public object GetValue(ClrAppDomain appDomain, ClrThread thread)
+        {
+            return GetValue(appDomain, thread, true);
+        }
+
+        /// <summary>
+        /// Gets the value of the field.
+        /// </summary>
+        /// <param name="appDomain">The AppDomain in which to get the field's value.</param>
+        /// <param name="thread">The thread on which to get the field's value.</param>
+        /// <param name="convertStrings">When true, the value of a string field will be 
+        /// returned as a System.String object; otherwise the address of the String object will be returned.</param>
+        /// <returns>The value of the field.</returns>
+        abstract public object GetValue(ClrAppDomain appDomain, ClrThread thread, bool convertStrings);
 
         /// <summary>
         /// Gets the address of the field.
