@@ -669,7 +669,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IMethodDescData result = GetMethodDescData(DacRequests.METHODDESC_IP_DATA, ip);
             if (result != null)
                 return result;
-            
+
             ulong methodDesc = GetMethodDescFromIp(ip);
             if (methodDesc != 0)
                 return GetMethodDescData(DacRequests.METHODDESC_DATA, ip);
@@ -1733,7 +1733,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public short wNumStaticFields;
         public uint dwClassDomainNeutralIndex;
         public uint dwAttrClass; // cached metadata
-        public uint token; // Metadata token    
+        public uint token; // Metadata token
 
         public ulong addrFirstField; // If non-null, you can retrieve more
 
@@ -2117,7 +2117,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public short wNumThreadStaticFields;
         public uint dwClassDomainNeutralIndex;
         public uint dwAttrClass; // cached metadata
-        public uint token; // Metadata token    
+        public uint token; // Metadata token
 
         public ulong addrFirstField; // If non-null, you can retrieve more
 

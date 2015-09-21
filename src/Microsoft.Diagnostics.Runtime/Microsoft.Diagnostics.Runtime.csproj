@@ -64,6 +64,7 @@
     <Compile Include="Debugger\IDebugClient3.cs" />
     <Compile Include="Debugger\IDebugClient4.cs" />
     <Compile Include="Debugger\IDebugClient5.cs" />
+    <Compile Include="Debugger\IDebugClient6.cs" />
     <Compile Include="Debugger\IDebugControl.cs" />
     <Compile Include="Debugger\IDebugControl2.cs" />
     <Compile Include="Debugger\IDebugControl3.cs" />
@@ -76,6 +77,7 @@
     <Compile Include="Debugger\IDebugDataSpaces4.cs" />
     <Compile Include="Debugger\IDebugEventCallbacks.cs" />
     <Compile Include="Debugger\IDebugEventCallbacksWide.cs" />
+    <Compile Include="Debugger\IDebugEventContextCallbacks.cs" />
     <Compile Include="Debugger\IDebugInputCallbacks.cs" />
     <Compile Include="Debugger\IDebugOutputCallbacks.cs" />
     <Compile Include="Debugger\IDebugOutputCallbacks2.cs" />

@@ -381,24 +381,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct WINDBG_EXTENSION_APIS32
-    {
-        public UInt32 nSize;
-        public IntPtr lpOutputRoutine;
-        public IntPtr lpGetExpressionRoutine;
-        public IntPtr lpGetSymbolRoutine;
-        public IntPtr lpDisasmRoutine;
-        public IntPtr lpCheckControlCRoutine;
-        public IntPtr lpReadProcessMemoryRoutine;
-        public IntPtr lpWriteProcessMemoryRoutine;
-        public IntPtr lpGetThreadContextRoutine;
-        public IntPtr lpSetThreadContextRoutine;
-        public IntPtr lpIoctlRoutine;
-        public IntPtr lpStackTraceRoutine;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct WINDBG_EXTENSION_APIS64
+    public struct WINDBG_EXTENSION_APIS/*32 or 64; both are defined the same in managed code*/
     {
         public UInt32 nSize;
         public IntPtr lpOutputRoutine;
@@ -1058,6 +1041,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct DEBUG_LAST_EVENT_INFO_EXIT_PROCESS
+    {
+        public uint ExitCode;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct DEBUG_LAST_EVENT_INFO_LOAD_MODULE
     {
         public ulong Base;
@@ -1075,5 +1064,26 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         public uint Error;
         public uint Level;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct DEBUG_LAST_EVENT_INFO
+    {
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_BREAKPOINT Breakpoint;
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_EXCEPTION Exception;
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_EXIT_THREAD ExitThread;
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_EXIT_PROCESS ExitProcess;
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_LOAD_MODULE LoadModule;
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_UNLOAD_MODULE UnloadModule;
+        [FieldOffset(0)] public DEBUG_LAST_EVENT_INFO_SYSTEM_ERROR SystemError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DEBUG_EVENT_CONTEXT
+    {
+        public uint Size;
+        public uint ProcessEngineId;
+        public uint ThreadEngineId;
+        public uint FrameEngineId;
     }
 }

@@ -248,7 +248,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
     /// <summary>
     /// A PEHeader is a reader of the data at the begining of a PEFile.    If the header bytes of a 
-    /// PEFile are read or mapped into memory, this class can parse it when given a poitner to it. 
+    /// PEFile are read or mapped into memory, this class can parse it when given a pointer to it.
     /// It can read both 32 and 64 bit PE files.  
     /// </summary>
     public unsafe sealed class PEHeader
