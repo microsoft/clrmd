@@ -2339,7 +2339,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return _dacLocation;
 
             SymbolLocator locator = _dataTarget.SymbolLocator;
-            return locator.DownloadBinary(DacInfo, false);
+            return locator.FindBinary(DacInfo, false);
         }
 
         /// <summary>
@@ -2357,7 +2357,7 @@ namespace Microsoft.Diagnostics.Runtime
             SymbolLocator locator = _dataTarget.SymbolLocator;
             ModuleInfo dac = DacInfo;
 
-            return locator.DownloadBinary(dac.FileName, dac.TimeStamp, dac.FileSize, false);
+            return locator.FindBinary(dac.FileName, dac.TimeStamp, dac.FileSize, false);
         }
 
 
