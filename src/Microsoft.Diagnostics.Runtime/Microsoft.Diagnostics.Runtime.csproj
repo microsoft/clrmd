@@ -130,6 +130,7 @@
     <Compile Include="Utilities\DumpReader.cs" />
     <Compile Include="Utilities\FileUtilities.cs" />
     <Compile Include="Utilities\pefile.cs" />
+    <Compile Include="Utilities\SymbolLocator.Async.cs" />
     <Compile Include="Utilities\SymbolLocator.cs" />
     <Compile Include="Utilities\SymbolPath.cs" />
     <Compile Include="Utilities\SymbolReader.cs" />

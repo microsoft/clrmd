@@ -14,20 +14,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// This class is a general purpose symbol locator and binary locator.
     /// </summary>
-    public abstract class SymbolLocator
+    public abstract partial class SymbolLocator
     {
         private static string[] s_microsoftSymbolServers = { "http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols" };
-        private List<SymPathElement> _symbolElements;
 
         /// <summary>
         /// The raw symbol path.  You should probably use the SymbolPath property instead.
         /// </summary>
-        protected string _symbolPath;
+        protected volatile string _symbolPath;
         /// <summary>
         /// The raw symbol cache.  You should probably use the SymbolCache property instead.
         /// </summary>
         /// 
-        protected string _symbolCache;
+        protected volatile string _symbolCache;
 
         /// <summary>
         /// Constructor.
@@ -102,8 +101,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (!string.IsNullOrEmpty(_symbolCache))
-                    return _symbolCache;
+                var cache = _symbolCache;
+                if (!string.IsNullOrEmpty(cache))
+                    return cache;
 
                 string tmp = Path.GetTempPath();
                 if (string.IsNullOrEmpty(tmp))
@@ -114,8 +114,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             set
             {
                 _symbolCache = value;
-                if (!string.IsNullOrEmpty(_symbolCache))
-                    Directory.CreateDirectory(_symbolCache);
+                if (!string.IsNullOrEmpty(value))
+                    Directory.CreateDirectory(value);
             }
         }
 
@@ -131,22 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             set
             {
-                _symbolElements = null;
                 _symbolPath = (value ?? "").Trim();
-            }
-        }
-
-        /// <summary>
-        /// This is the SymbolPath but split and cached into SymPathElements.
-        /// </summary>
-        protected List<SymPathElement> SymbolElements
-        {
-            get
-            {
-                if (_symbolElements == null)
-                    _symbolElements = SymPathElement.GetElements(_symbolPath);
-
-                return _symbolElements;
             }
         }
 
@@ -505,11 +490,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// Default implementation of a symbol locator.
     /// </summary>
-    public class DefaultSymbolLocator : SymbolLocator
+    public partial class DefaultSymbolLocator : SymbolLocator
     {
-        private Dictionary<BinaryEntry, string> _binCache = new Dictionary<BinaryEntry, string>();
-        private Dictionary<PdbEntry, string> _pdbCache = new Dictionary<PdbEntry, string>();
-        
         /// <summary>
         /// Default implementation of finding a pdb.
         /// </summary>
@@ -529,13 +511,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return pdbName;
             }
 
+            // Check to see if it's already cached.
             PdbEntry entry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            string result = null;
-            if (_pdbCache.TryGetValue(entry, out result))
+            string result = GetPdbEntry(entry);
+            if (result != null)
                 return result;
+            
 
             string pdbIndexPath = null;
-            foreach (SymPathElement element in SymbolElements)
+            foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
@@ -546,7 +530,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (targetPath != null)
                     {
                         Trace("Found pdb {0} from server '{1}' on path '{2}'.  Copied to '{3}'.", pdbSimpleName, element.Target, pdbIndexPath, targetPath);
-                        _pdbCache[entry] = targetPath;
+                        SetPdbEntry(entry, targetPath);
                         return targetPath;
                     }
                     else
@@ -559,7 +543,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string fullPath = Path.Combine(element.Target, pdbSimpleName);
                     if (ValidatePdb(fullPath, pdbIndexGuid, pdbIndexAge))
                     {
-                        _pdbCache[entry] = fullPath;
+                        SetPdbEntry(entry, fullPath);
                         return fullPath;
                     }
                 }
@@ -581,28 +565,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             string fullPath = fileName;
             fileName = Path.GetFileName(fullPath).ToLower();
-
-            BinaryEntry entry = new BinaryEntry(fileName, buildTimeStamp, imageSize);
-            string result;
-            if (_binCache.TryGetValue(entry, out result))
-            {
-                Debug.Assert(result != null);
-                if (File.Exists(result))
-                    return result;
-
-                _binCache.Remove(entry);
-            }
+            
+            // First see if we already have the result cached.
+            FileEntry entry = new FileEntry(fileName, buildTimeStamp, imageSize);
+            string result = GetFileEntry(entry);
+            if (result != null)
+                return result;
 
             // Test to see if the file is on disk.
             if (ValidateBinary(fullPath, buildTimeStamp, imageSize, checkProperties))
             {
-                _binCache[entry] = result;
-                return result;
+                SetFileEntry(entry, fullPath);
+                return fullPath;
             }
 
             // Finally, check the symbol paths.
             string exeIndexPath = null;
-            foreach (SymPathElement element in SymbolElements)
+            foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
@@ -612,7 +591,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? SymbolCache);
                     if (ValidateBinary(target, buildTimeStamp, imageSize, checkProperties))
                     {
-                        _binCache[entry] = target;
+                        SetFileEntry(entry, target);
                         return target;
                     }
                 }
@@ -621,7 +600,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string filePath = Path.Combine(element.Target, fileName);
                     if (ValidateBinary(filePath, buildTimeStamp, imageSize, checkProperties))
                     {
-                        _binCache[entry] = filePath;
+                        SetFileEntry(entry, filePath);
                         return filePath;
                     }
                 }
@@ -766,15 +745,60 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return fullDestPath;
         }
+
+        
+#if V2_SUPPORT
+        private Dictionary<FileEntry, string> _binCache = new Dictionary<FileEntry, string>();
+        private Dictionary<PdbEntry, string> _pdbCache = new Dictionary<PdbEntry, string>();
+
+        private string GetFileEntry(FileEntry entry)
+        {
+            string result;
+            if (!_binCache.TryGetValue(entry, out result))
+                return null;
+
+            Debug.Assert(result != null);
+            if (File.Exists(result))
+                return result;
+
+            _binCache.Remove(entry);
+            return null;
+        }
+
+        private void SetFileEntry(FileEntry entry, string value)
+        {
+            _binCache[entry] = value;
+        }
+
+
+        private string GetPdbEntry(PdbEntry entry)
+        {
+            string result;
+            if (!_pdbCache.TryGetValue(entry, out result))
+                return null;
+
+            Debug.Assert(result != null);
+            if (File.Exists(result))
+                return result;
+
+            _pdbCache.Remove(entry);
+            return null;
+        }
+
+        private void SetPdbEntry(PdbEntry entry, string value)
+        {
+            _pdbCache[entry] = value;
+        }
+#endif
     }
 
-    internal struct BinaryEntry : IEquatable<BinaryEntry>
+    internal struct FileEntry : IEquatable<FileEntry>
     {
         public string FileName;
         public int TimeStamp;
         public int FileSize;
 
-        public BinaryEntry(string filename, int timestamp, int filesize)
+        public FileEntry(string filename, int timestamp, int filesize)
         {
             FileName = filename;
             TimeStamp = timestamp;
@@ -788,10 +812,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public override bool Equals(object obj)
         {
-            return obj is BinaryEntry && Equals((BinaryEntry)obj);
+            return obj is FileEntry && Equals((FileEntry)obj);
         }
 
-        public bool Equals(BinaryEntry other)
+        public bool Equals(FileEntry other)
         {
             return FileName.Equals(other.FileName, StringComparison.OrdinalIgnoreCase) && TimeStamp == other.TimeStamp && FileSize == other.FileSize;
         }
