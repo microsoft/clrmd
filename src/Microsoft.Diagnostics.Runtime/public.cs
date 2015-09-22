@@ -3081,7 +3081,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_symbolLocator == null)
-                    _symbolLocator = new DefaultSymbolLocator;
+                    _symbolLocator = new DefaultSymbolLocator();
 
                 return _symbolLocator;
             }
