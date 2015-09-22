@@ -18,24 +18,24 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>bin\v2\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;V2_SUPPORT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
-    <DocumentationFile>bin\Debug\Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
+    <DocumentationFile>bin\v2\Debug\Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>bin\v2\Release\</OutputPath>
     <DefineConstants>TRACE;V2_SUPPORT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
-    <DocumentationFile>bin\Release\Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
+    <DocumentationFile>bin\v2\Release\Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Dia2Lib">
