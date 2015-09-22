@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             string tmpPath = CreateTempPath();
 
-            _locator = new SymbolLocator();
+            _locator = new DefaultSymbolLocator();
             _locator.SymbolCache = tmpPath;
         }
 

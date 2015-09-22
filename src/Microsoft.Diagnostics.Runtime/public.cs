@@ -3072,7 +3072,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract IDataReader DataReader { get; }
 
-        private SymbolLocator _symbolLocator = new SymbolLocator();
+        private SymbolLocator _symbolLocator;
         /// <summary>
         /// Instance to manage the symbol path(s)
         /// </summary>
@@ -3080,7 +3080,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
+                if (_symbolLocator == null)
+                    _symbolLocator = new DefaultSymbolLocator;
+
                 return _symbolLocator;
+            }
+            set
+            {
+                _symbolLocator = value;
             }
         }
 
