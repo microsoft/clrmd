@@ -17,9 +17,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public abstract class SymbolLocator
     {
         private static string[] s_microsoftSymbolServers = { "http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols" };
+        private List<SymPathElement> _symbolElements;
+
+        /// <summary>
+        /// The raw symbol path.  You should probably use the SymbolPath property instead.
+        /// </summary>
         protected string _symbolPath;
+        /// <summary>
+        /// The raw symbol cache.  You should probably use the SymbolCache property instead.
+        /// </summary>
+        /// 
         protected string _symbolCache;
-        protected List<SymPathElement> _symbolElements;
 
         /// <summary>
         /// Constructor.
@@ -128,6 +136,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
+        /// <summary>
+        /// This is the SymbolPath but split and cached into SymPathElements.
+        /// </summary>
+        protected List<SymPathElement> SymbolElements
+        {
+            get
+            {
+                if (_symbolElements == null)
+                    _symbolElements = SymPathElement.GetElements(_symbolPath);
+
+                return _symbolElements;
+            }
+        }
 
         /// <summary>
         /// Determines if a given pdb on disk matches a given Guid and age.
@@ -276,11 +297,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the pdb was copied to.</returns>
         public abstract string FindPdb(string pdbName, Guid pdbIndexGuid, int pdbIndexAge);
 
+        /// <summary>
+        /// Validates whether a pdb on disk matches the given Guid/revision.
+        /// </summary>
+        /// <param name="pdbName"></param>
+        /// <param name="guid"></param>
+        /// <param name="revision"></param>
+        /// <returns></returns>
         protected virtual bool ValidatePdb(string pdbName, Guid guid, int revision)
         {
             return PdbMatches(pdbName, guid, revision);
         }
 
+        /// <summary>
+        /// Validates whether a file on disk matches the properties we expect.
+        /// </summary>
+        /// <param name="fullPath">The full path on disk of a PEImage to inspect.</param>
+        /// <param name="buildTimeStamp">The build timestamp we expect to match.</param>
+        /// <param name="imageSize">The build image size we expect to match.</param>
+        /// <param name="checkProperties">Whether we should actually validate the imagesize/timestamp or not.</param>
+        /// <returns></returns>
         protected virtual bool ValidateBinary(string fullPath, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             if (string.IsNullOrEmpty(fullPath))
@@ -319,7 +355,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return false;
         }
 
-
+        /// <summary>
+        /// Copies a given stream to a file.
+        /// </summary>
+        /// <param name="stream">The stream of data to copy.</param>
+        /// <param name="fullSrcPath">The original source location of "stream".  This may be a URL or null.</param>
+        /// <param name="fullDestPath">The full destination path to copy the file to.</param>
+        /// <param name="size">A hint as to the length of the stream.  This may be 0 or negative if the length is unknown.</param>
+        /// <returns>True if the method successfully copied the file, false otherwise.</returns>
         protected virtual bool CopyStreamToFile(Stream stream, string fullSrcPath, string fullDestPath, long size)
         {
             Debug.Assert(stream != null);
@@ -371,6 +414,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
+        /// <summary>
+        /// Writes diagnostic messages about symbol loading to System.Diagnostics.Trace.  Figuring out symbol issues can be tricky,
+        /// so if you override methods in SymbolLocator, be sure to trace the information here.
+        /// </summary>
+        /// <param name="fmt"></param>
+        /// <param name="args"></param>
         protected void Trace(string fmt, params object[] args)
         {
             if (args != null && args.Length > 0)
@@ -592,16 +641,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return pdbSimpleName + @"\" + pdbIndexGuid.ToString().Replace("-", "") + pdbIndexAge.ToString("x") + @"\" + pdbSimpleName;
         }
 
-        private List<SymPathElement> SymbolElements
-        {
-            get
-            {
-                if (_symbolElements == null)
-                    _symbolElements = SymPathElement.GetElements(_symbolPath);
-
-                return _symbolElements;
-            }
-        }
         private string TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
         {
             Debug.Assert(!string.IsNullOrEmpty(cache));
