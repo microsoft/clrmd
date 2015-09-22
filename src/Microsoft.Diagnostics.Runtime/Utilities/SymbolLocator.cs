@@ -85,6 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     result.Append("SRV*");
                     result.Append(path);
+                    first = false;
                 }
 
                 return result.ToString();
