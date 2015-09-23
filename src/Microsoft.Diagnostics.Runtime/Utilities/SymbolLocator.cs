@@ -29,6 +29,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected volatile string _symbolCache;
 
         /// <summary>
+        /// A set of pdbs that we did not find when requested.  This set is SymbolLocator specific (not global
+        /// like successful downloads) and is cleared when we change the symbol path or cache.
+        /// </summary>
+        internal volatile HashSet<PdbEntry> _missingPdbs = new HashSet<PdbEntry>();
+
+        /// <summary>
+        /// A set of files that we did not find when requested.  This set is SymbolLocator specific (not global
+        /// like successful downloads) and is cleared when we change the symbol path or cache.
+        /// </summary>
+        internal volatile HashSet<FileEntry> _missingFiles = new HashSet<FileEntry>();
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         public SymbolLocator()
@@ -116,6 +128,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 _symbolCache = value;
                 if (!string.IsNullOrEmpty(value))
                     Directory.CreateDirectory(value);
+
+                SymbolPathOrCacheChanged();
             }
         }
 
@@ -132,6 +146,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             set
             {
                 _symbolPath = (value ?? "").Trim();
+
+                SymbolPathOrCacheChanged();
             }
         }
 
@@ -407,6 +423,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             System.Diagnostics.Trace.WriteLine(fmt, "symbols");
         }
 
+        /// <summary>
+        /// Called when changing the symbol file path or cache.
+        /// </summary>
+        protected virtual void SymbolPathOrCacheChanged()
+        {
+            _missingPdbs.Clear();
+            _missingFiles.Clear();
+        }
     }
 
 
@@ -439,7 +463,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string result = GetPdbEntry(entry);
             if (result != null)
                 return result;
-            
+
+            var missingPdbs = _missingPdbs;
+            if (IsMissing(missingPdbs, entry))
+                return null;
 
             string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
             foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
@@ -450,7 +477,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (targetPath != null)
                     {
                         Trace("Found pdb {0} from server '{1}' on path '{2}'.  Copied to '{3}'.", pdbSimpleName, element.Target, pdbIndexPath, targetPath);
-                        SetPdbEntry(entry, targetPath);
+                        SetPdbEntry(missingPdbs, entry, targetPath);
                         return targetPath;
                     }
                     else
@@ -463,12 +490,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string fullPath = Path.Combine(element.Target, pdbSimpleName);
                     if (ValidatePdb(fullPath, pdbIndexGuid, pdbIndexAge))
                     {
-                        SetPdbEntry(entry, fullPath);
+                        SetPdbEntry(missingPdbs, entry, fullPath);
                         return fullPath;
                     }
                 }
             }
-
+            
+            SetPdbEntry(missingPdbs, entry, null);
             return null;
         }
 
@@ -492,10 +520,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (result != null)
                 return result;
 
+            var missingFiles = _missingFiles;
+            if (IsMissing(missingFiles, entry))
+                return null;
+
             // Test to see if the file is on disk.
             if (ValidateBinary(fullPath, buildTimeStamp, imageSize, checkProperties))
             {
-                SetFileEntry(entry, fullPath);
+                SetFileEntry(missingFiles, entry, fullPath);
                 return fullPath;
             }
 
@@ -511,7 +543,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? SymbolCache);
                     if (ValidateBinary(target, buildTimeStamp, imageSize, checkProperties))
                     {
-                        SetFileEntry(entry, target);
+                        SetFileEntry(missingFiles, entry, target);
                         return target;
                     }
                 }
@@ -520,13 +552,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string filePath = Path.Combine(element.Target, fileName);
                     if (ValidateBinary(filePath, buildTimeStamp, imageSize, checkProperties))
                     {
-                        SetFileEntry(entry, filePath);
+                        SetFileEntry(missingFiles, entry, filePath);
                         return filePath;
                     }
                 }
             }
 
-            // Found nothing.
+            SetFileEntry(missingFiles, entry, null);
             return null;
         }
 
@@ -666,11 +698,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return fullDestPath;
         }
 
-        
+
 #if V2_SUPPORT
         private Dictionary<FileEntry, string> _binCache = new Dictionary<FileEntry, string>();
         private Dictionary<PdbEntry, string> _pdbCache = new Dictionary<PdbEntry, string>();
+        
 
+        private bool IsMissing<T>(HashSet<T> entries, T entry)
+        {
+            return entries.Contains(entry);
+        }
+        
         private string GetFileEntry(FileEntry entry)
         {
             string result;
@@ -685,9 +723,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private void SetFileEntry(FileEntry entry, string value)
+        private void SetFileEntry(HashSet<FileEntry> missing, FileEntry entry, string value)
         {
-            _binCache[entry] = value;
+            if (value == null)
+                missing.Add(entry);
+            else
+                _binCache[entry] = value;
         }
 
 
@@ -705,9 +746,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private void SetPdbEntry(PdbEntry entry, string value)
+        private void SetPdbEntry(HashSet<PdbEntry> missing, PdbEntry entry, string value)
         {
-            _pdbCache[entry] = value;
+            if (value == null)
+                missing.Add(entry);
+            else
+                _pdbCache[entry] = value;
         }
 #endif
     }

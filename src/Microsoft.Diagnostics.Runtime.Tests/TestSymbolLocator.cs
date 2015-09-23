@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
             {
-                if (directory.StartsWith(TempRoot))
+                if (directory.Contains(TempRoot))
                 {
                     try
                     {
@@ -73,6 +73,54 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Directory.CreateDirectory(path);
             return path;
         }
+        [TestMethod]
+        public void TestFindBinaryNegative()
+        {
+            SymbolLocator _locator = GetLocator();
+            string dac = _locator.FindBinary(WellKnownFile, WellKnownTimeStamp + 1, WellKnownImageSize + 1, false);
+            Assert.IsNull(dac);
+        }
+
+        [TestMethod]
+        public void TestFindPdbNegative()
+        {
+            SymbolLocator _locator = GetLocator();
+            string pdb = _locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge + 1);
+            Assert.IsNull(pdb);
+        }
+        [TestMethod]
+        public async Task TestFindBinaryAsyncNegative()
+        {
+            SymbolLocator _locator = GetLocator();
+
+            List<Task<string>> tasks = new List<Task<string>>();
+            for (int i = 0; i < 10; i++)
+                tasks.Add(_locator.FindBinaryAsync(WellKnownFile, WellKnownTimeStamp + 1, WellKnownImageSize + 1, false));
+            
+            // Ensure we got the same answer for everything.
+            foreach (var task in tasks)
+            {
+                string dac = await task;
+                Assert.IsNull(dac);
+            }
+        }
+
+        [TestMethod]
+        public async Task TestFindPdbAsyncNegative()
+        {
+            SymbolLocator _locator = GetLocator();
+
+            List<Task<string>> tasks = new List<Task<string>>();
+            for (int i = 0; i < 10; i++)
+                tasks.Add(_locator.FindPdbAsync(WellKnownPdb, WellKnownGuid, WellKnownAge + 1));
+            
+            // Ensure we got the same answer for everything.
+            foreach (var task in tasks)
+            {
+                string pdb = await task;
+                Assert.IsNull(pdb);
+            }
+        }
 
         [TestMethod]
         public void TestFindBinary()
@@ -95,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public async Task TestFindBinaryAsyncWorker()
+        public async Task TestFindBinaryAsync()
         {
             SymbolLocator _locator = GetLocator();
             Task<string> first = _locator.FindBinaryAsync(WellKnownFile, WellKnownTimeStamp, WellKnownImageSize, false);
@@ -110,8 +158,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.IsTrue(File.Exists(dac));
             new PEFile(dac).Dispose();  // This will throw if the image is invalid.
 
-            await Task.WhenAll(tasks);
-
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)
             {
@@ -122,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
         [TestMethod]
-        public async Task TestFindPdbAsyncWorker()
+        public async Task TestFindPdbAsync()
         {
             SymbolLocator _locator = GetLocator();
             Task<string> first = _locator.FindPdbAsync(WellKnownPdb, WellKnownGuid, WellKnownAge);

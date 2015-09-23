@@ -140,14 +140,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string simpleFilename = Path.GetFileName(fileName);
             FileEntry fileEntry = new FileEntry(simpleFilename, buildTimeStamp, imageSize);
 
-            Task<string> result = null;
+            var missingFiles = _missingFiles;
+
+            Task<string> task = null;
             lock (s_files)
             {
-                if (!s_files.TryGetValue(fileEntry, out result))
-                    result = s_files[fileEntry] = DownloadFileWorker(fileName, simpleFilename, buildTimeStamp, imageSize, checkProperties);
-            }
+                if (IsMissing(missingFiles, fileEntry))
+                    return null;
 
-            return await result;
+                if (!s_files.TryGetValue(fileEntry, out task))
+                    task = s_files[fileEntry] = DownloadFileWorker(fileName, simpleFilename, buildTimeStamp, imageSize, checkProperties);
+            }
+            
+            // If we failed to find the file, we need to clear out the empty task, since the user could
+            // change symbol paths and we need s_files to only contain positive results.
+            string result = await task;
+            if (result == null)
+                ClearFailedTask(s_files, task, missingFiles, fileEntry);
+
+            return result;
         }
 
         /// <summary>
@@ -166,14 +177,38 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string pdbSimpleName = Path.GetFileName(pdbName);
             PdbEntry pdbEntry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
 
-            Task<string> result = null;
+            var missingPdbs = _missingPdbs;
+
+            Task<string> task = null;
             lock (s_pdbs)
             {
-                if (!s_pdbs.TryGetValue(pdbEntry, out result))
-                    result = s_pdbs[pdbEntry] = DownloadPdbWorker(pdbName, pdbSimpleName, pdbIndexGuid, pdbIndexAge);
+                if (IsMissing(missingPdbs, pdbEntry))
+                    return null;
+
+                if (!s_pdbs.TryGetValue(pdbEntry, out task))
+                    task = s_pdbs[pdbEntry] = DownloadPdbWorker(pdbName, pdbSimpleName, pdbIndexGuid, pdbIndexAge);
             }
-            
-            return await result;
+
+            // If we failed to find the file, we need to clear out the empty task, since the user could
+            // change symbol paths and we need s_files to only contain positive results.
+            string result = await task;
+            if (result == null)
+                ClearFailedTask(s_pdbs, task, missingPdbs, pdbEntry);
+
+            return result;
+        }
+
+        private static void ClearFailedTask<T>(Dictionary<T, Task<string>> tasks, Task<string> task, HashSet<T> missingFiles, T fileEntry)
+        {
+            lock (tasks)
+            {
+                Task<string> tmp;
+                if (tasks.TryGetValue(fileEntry, out tmp) && tmp == task)
+                    tasks.Remove(fileEntry);
+
+                lock (missingFiles)
+                    missingFiles.Add(fileEntry);
+            }
         }
 
         private async Task<string> DownloadPdbWorker(string pdbFullPath, string pdbSimpleName, Guid pdbIndexGuid, int pdbIndexAge)
@@ -414,7 +449,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return server.StartsWith("http:", StringComparison.CurrentCultureIgnoreCase) || server.StartsWith("https:", StringComparison.CurrentCultureIgnoreCase);
         }
 
+        /// <summary>
+        /// Clear missing file/pdb cache
+        /// </summary>
+        protected override void SymbolPathOrCacheChanged()
+        {
+            _missingFiles = new HashSet<FileEntry>();
+            _missingPdbs = new HashSet<PdbEntry>();
+        }
+
+        private static bool IsMissing<T>(HashSet<T> entries, T entry)
+        {
+            lock (entries)
+                return entries.Contains(entry);
+        }
         
+
         /// <summary>
         /// Copies the given file from the input stream into fullDestPath.
         /// </summary>
@@ -486,16 +536,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private void SetFileEntry(FileEntry entry, string value)
+        private void SetFileEntry(HashSet<FileEntry> missingFiles, FileEntry entry, string value)
         {
-            lock (s_files)
+            if (value != null)
             {
-                if (!s_files.ContainsKey(entry))
+                lock (s_files)
                 {
-                    Task<string> task = new Task<string>(() => value);
-                    s_files[entry] = task;
-                    task.Start();
+                    if (!s_files.ContainsKey(entry))
+                    {
+                        Task<string> task = new Task<string>(() => value);
+                        s_files[entry] = task;
+                        task.Start();
+                    }
                 }
+            }
+            else
+            {
+                lock (missingFiles)
+                    missingFiles.Add(entry);
             }
         }
 
@@ -512,17 +570,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private void SetPdbEntry(PdbEntry entry, string value)
+        private void SetPdbEntry(HashSet<PdbEntry> missing, PdbEntry entry, string value)
         {
-            lock (s_pdbs)
+            if (value != null)
             {
-                if (!s_pdbs.ContainsKey(entry))
+                lock (s_pdbs)
                 {
-                    Task<string> task = new Task<string>(() => value);
-                    s_pdbs[entry] = task;
-                    task.Start();
+                    if (!s_pdbs.ContainsKey(entry))
+                    {
+                        Task<string> task = new Task<string>(() => value);
+                        s_pdbs[entry] = task;
+                        task.Start();
 
+                    }
                 }
+            }
+            else
+            {
+                lock (missing)
+                    missing.Add(entry);
             }
         }
     }
