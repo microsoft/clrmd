@@ -202,7 +202,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (module == null)
                 return null;
 
-            SymbolModule sym = SymbolLocator.LoadPdb(module);
+            string pdbFile = SymbolLocator.FindPdb(module);
+            if (pdbFile == null)
+                return null;
+
+            SymbolModule sym = FileLoader.LoadPdb(pdbFile);
             if (sym == null)
                 return null;
 
@@ -392,7 +396,15 @@ namespace Microsoft.Diagnostics.Runtime
             ModuleInfo info = GetModule(address);
             if (info != null)
             {
-                PEFile file = _dataTarget.SymbolLocator.LoadBinary(info.FileName, info.TimeStamp, info.FileSize, true);
+                string filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);
+                if (filePath == null)
+                {
+                    bytesRead = 0;
+                    return -1;
+                }
+                
+                // We do not put a using statement here to prevent needing to load/unload the binary over and over.
+                PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
                 if (file != null)
                 {
                     PEBuffer peBuffer = file.AllocBuff();
@@ -476,7 +488,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int GetMetadata(string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize)
         {
-            PEFile file = _dataTarget.SymbolLocator.LoadBinary(filename, imageTimestamp, imageSize, true);
+            string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
+            if (filePath == null)
+                return -1;
+
+            // We do not put a using statement here to prevent needing to load/unload the binary over and over.
+            PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
             if (file == null)
                 return -1;
 

@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override void LoadPdb(string path)
         {
-            _symbols = _runtime.DataTarget.SymbolLocator.LoadPdb(path);
+            _symbols = _runtime.DataTarget.FileLoader.LoadPdb(path);
         }
 
 
