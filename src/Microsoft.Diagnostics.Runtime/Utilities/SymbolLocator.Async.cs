@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (!s_pdbs.TryGetValue(pdbEntry, out result))
                     result = s_pdbs[pdbEntry] = DownloadPdbWorker(pdbName, pdbSimpleName, pdbIndexGuid, pdbIndexAge);
             }
-
+            
             return await result;
         }
 
@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 using (Stream stream = File.OpenRead(sourcePath))
                     await CopyStreamToFileAsync(stream, sourcePath, fullDestPath, stream.Length);
-
+                
                 return fullDestPath;
             }
             catch (Exception e)
@@ -275,23 +275,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (String.IsNullOrWhiteSpace(urlForServer))
                 return null;
 
+            // There are three ways symbol files can be indexed.  Start looking for each one.
+
+            // First, check for the compressed location.  This is the one we really want to download.
             string compressedFilePath = fileIndexPath.Substring(0, fileIndexPath.Length - 1) + "_";
             Task<string> compressedFilePathDownload = GetPhysicalFileFromServerAsync(urlForServer, compressedFilePath, Path.Combine(cache, compressedFilePath));
 
-            // There are three ways symbol files can be indexed.  Start looking for each one.
+            // Second, check if the raw file itself is indexed, uncompressed.
             Task<string> rawFileDownload = GetPhysicalFileFromServerAsync(urlForServer, fileIndexPath, fullDestPath);
 
-
+            // Last, check for a redirection link.
             string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
             Task<string> filePtrDownload = GetPhysicalFileFromServerAsync(urlForServer, filePtrSigPath, fullDestPath, returnContents: true);
+            
 
-            // First check if the raw file exists, if so, use it.
-            string result = await rawFileDownload;
-            if (result != null)
-                return result;
-
-            // Next, we'll check for a compressed file download.
-            result = await compressedFilePathDownload;
+            // Handle compressed download.
+            string result = await compressedFilePathDownload;
             if (result != null)
             {
                 try
@@ -311,8 +310,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
+            // Handle uncompressed download.
+            result = await rawFileDownload;
+            if (result != null)
+                return result;
 
-            // See if we have a file that tells us to redirect elsewhere. 
+            // Handle redirection case.
             var filePtrData = (await filePtrDownload ?? "").Trim();
             if (filePtrData.StartsWith("PATH:"))
                 filePtrData = filePtrData.Substring(5);
@@ -335,8 +338,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 Trace("Error resolving file.ptr: content '{0}' from '{1}'.", filePtrData, filePtrSigPath);
             }
-
-
+            
             return null;
         }
 
@@ -451,6 +453,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         try
                         {
+                            Trace("Copying '{0}' from '{1}' to '{2}'.", Path.GetFileName(fullDestPath), fullSrcPath, fullDestPath);
+
                             output = new FileStream(fullDestPath, FileMode.CreateNew);
                             s_copy[fullDestPath] = result = input.CopyToAsync(output);
                         }
@@ -487,7 +491,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             lock (s_files)
             {
                 if (!s_files.ContainsKey(entry))
-                    s_files[entry] = new Task<string>(() => value);
+                {
+                    Task<string> task = new Task<string>(() => value);
+                    s_files[entry] = task;
+                    task.Start();
+                }
             }
         }
 
@@ -509,7 +517,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             lock (s_pdbs)
             {
                 if (!s_pdbs.ContainsKey(entry))
-                    s_pdbs[entry] = new Task<string>(() => value);
+                {
+                    Task<string> task = new Task<string>(() => value);
+                    s_pdbs[entry] = task;
+                    task.Start();
+
+                }
             }
         }
     }
