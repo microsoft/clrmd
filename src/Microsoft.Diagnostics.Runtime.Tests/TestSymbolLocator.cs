@@ -20,7 +20,31 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         static readonly string WellKnownPdb = "clr.pdb";
         static readonly Guid WellKnownGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");
         static readonly int WellKnownAge = 2;
-        
+
+        static readonly string TempRoot = "clrmd_removeme_";
+
+        [ClassCleanup]
+        public static void ClassCleanup()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
+            {
+                if (directory.StartsWith(TempRoot))
+                {
+                    try
+                    {
+                        Directory.Delete(directory, true);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+            }
+
+        }
 
         private SymbolLocator GetLocator()
         {
@@ -43,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string path;
             do
             {
-                path = Path.Combine(Environment.CurrentDirectory, "clrmd_test_" + r.Next().ToString());
+                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next().ToString());
             } while (Directory.Exists(path));
 
             Directory.CreateDirectory(path);
