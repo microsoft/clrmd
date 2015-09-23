@@ -173,6 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     guid = session.globalScope.guid;
                     age = (int)session.globalScope.age;
+                    
                     return true;
                 }
                 catch (Exception)
@@ -182,10 +183,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 finally
                 {
                     if (source != null)
-                        Marshal.ReleaseComObject(source);
+                        Marshal.FinalReleaseComObject(source);
 
                     if (session != null)
-                        Marshal.ReleaseComObject(session);
+                        Marshal.FinalReleaseComObject(session);
                 }
             }
 
@@ -343,20 +344,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Copies a given stream to a file.
         /// </summary>
-        /// <param name="stream">The stream of data to copy.</param>
+        /// <param name="input">The stream of data to copy.</param>
         /// <param name="fullSrcPath">The original source location of "stream".  This may be a URL or null.</param>
         /// <param name="fullDestPath">The full destination path to copy the file to.</param>
         /// <param name="size">A hint as to the length of the stream.  This may be 0 or negative if the length is unknown.</param>
         /// <returns>True if the method successfully copied the file, false otherwise.</returns>
-        protected virtual bool CopyStreamToFile(Stream stream, string fullSrcPath, string fullDestPath, long size)
+        protected virtual void CopyStreamToFile(Stream input, string fullSrcPath, string fullDestPath, long size)
         {
-            Debug.Assert(stream != null);
+            Debug.Assert(input != null);
 
             try
             {
                 FileInfo fi = new FileInfo(fullDestPath);
                 if (fi.Exists && fi.Length == size)
-                    return true;
+                    return;
 
                 string folder = Path.GetDirectoryName(fullDestPath);
                 Directory.CreateDirectory(folder);
@@ -367,20 +368,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     file = new FileStream(fullDestPath, FileMode.OpenOrCreate);
                     byte[] buffer = new byte[2048];
                     int read;
-                    while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
                         file.Write(buffer, 0, read);
-                }
-                catch (IOException)
-                {
-                    return false;
                 }
                 finally
                 {
                     if (file != null)
                         file.Dispose();
                 }
-
-                return true;
             }
             catch (Exception e)
             {
@@ -395,7 +390,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
 
                 Trace("Encountered an error while attempting to copy '{0} to '{1}': {2}", fullSrcPath, fullDestPath, e.Message);
-                return false;
             }
         }
 
@@ -405,7 +399,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="fmt"></param>
         /// <param name="args"></param>
-        protected void Trace(string fmt, params object[] args)
+        protected static void Trace(string fmt, params object[] args)
         {
             if (args != null && args.Length > 0)
                 fmt = string.Format(fmt, args);
@@ -518,14 +512,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return result;
             
 
-            string pdbIndexPath = null;
+            string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
             foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
-                    if (pdbIndexPath == null)
-                        pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-
                     string targetPath = TryGetFileFromServer(element.Target, pdbIndexPath, element.Cache ?? SymbolCache);
                     if (targetPath != null)
                     {
