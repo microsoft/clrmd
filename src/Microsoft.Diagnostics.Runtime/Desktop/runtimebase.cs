@@ -284,40 +284,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         /// <summary>
-        /// The system domain in CLR.
-        /// </summary>
-        public DesktopAppDomain SystemDomain
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                if (_system == null)
-                    return null;
-
-                return _system;
-            }
-        }
-
-        /// <summary>
-        /// The shared domain in CLR.
-        /// </summary>
-        public DesktopAppDomain SharedDomain
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                if (_shared == null)
-                    return null;
-
-                return _shared;
-            }
-        }
-
-        /// <summary>
         /// Enumerates regions of memory which CLR has allocated with a description of what data
         /// resides at that location.  Note that this does not return every chunk of address space
         /// that CLR allocates.
