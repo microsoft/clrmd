@@ -148,6 +148,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
+        /// Whether this object has been disposed.
+        /// </summary>
+        public bool Disposed { get; private set; }
+
+        /// <summary>
         /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
         /// version tab a file's property page is populated with).  
         /// </summary>
@@ -202,6 +207,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _headerBuff.Dispose();
             if (_freeBuff != null)
                 _freeBuff.Dispose();
+
+            Disposed = true;
         }
 
         // TODO make public?

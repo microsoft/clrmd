@@ -407,77 +407,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             System.Diagnostics.Trace.WriteLine(fmt, "symbols");
         }
 
-        #region File Loading
-        private Dictionary<string, SymbolModule> _moduleCache = new Dictionary<string, SymbolModule>(StringComparer.OrdinalIgnoreCase);
-        private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
-        internal PEFile LoadBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true)
-        {
-            string result = FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
-            return LoadBinary(result);
-        }
-
-        internal PEFile LoadBinary(string fileName)
-        {
-            if (string.IsNullOrEmpty(fileName))
-                return null;
-
-            PEFile result;
-            if (_pefileCache.TryGetValue(fileName, out result))
-            {
-                // TODO: Add .Disposed property.
-                //if (!result.Disposed)
-                return result;
-            }
-
-            try
-            {
-                result = new PEFile(fileName);
-                _pefileCache[fileName] = result;
-            }
-            catch
-            {
-                Trace("Failed to load PEFile '{0}'.", fileName);
-            }
-
-            return result;
-        }
-
-        internal SymbolModule LoadPdb(string pdbPath)
-        {
-            if (string.IsNullOrEmpty(pdbPath))
-                return null;
-
-            SymbolModule result;
-            if (_moduleCache.TryGetValue(pdbPath, out result))
-            {
-                // TODO:  Add dispose on SymbolModule
-                //if (!result.Disposed)
-
-                return result;
-            }
-
-            result = new SymbolModule(new SymbolReader(null, null), pdbPath);
-            _moduleCache[pdbPath] = result;
-
-            return result;
-        }
-
-        internal SymbolModule LoadPdb(ModuleInfo module)
-        {
-            var pdb = module.Pdb;
-            if (pdb == null)
-                return null;
-
-            return LoadPdb(pdb.FileName, pdb.Guid, pdb.Revision);
-        }
-
-        internal SymbolModule LoadPdb(string pdbName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            // TODO: Should we not cache the result of this?
-            string pdb = FindPdb(pdbName, pdbIndexGuid, pdbIndexAge);
-            return LoadPdb(pdb);
-        }
-        #endregion
     }
 
 
@@ -838,6 +767,62 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool Equals(PdbEntry other)
         {
             return Revision == other.Revision && FileName.Equals(other.FileName, StringComparison.OrdinalIgnoreCase) && Guid == other.Guid;
+        }
+    }
+
+    internal class FileLoader
+    {
+        private Dictionary<string, SymbolModule> _moduleCache = new Dictionary<string, SymbolModule>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
+        
+
+        public PEFile LoadBinary(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return null;
+
+            PEFile result;
+            if (_pefileCache.TryGetValue(fileName, out result))
+            {
+                if (!result.Disposed)
+                    return result;
+
+                _pefileCache.Remove(fileName);
+            }
+
+            try
+            {
+                result = new PEFile(fileName);
+                _pefileCache[fileName] = result;
+            }
+            catch
+            {
+                result = null;
+            }
+
+            return result;
+        }
+
+        public SymbolModule LoadPdb(string pdbPath)
+        {
+            if (string.IsNullOrEmpty(pdbPath))
+                return null;
+
+            SymbolModule result;
+            if (_moduleCache.TryGetValue(pdbPath, out result))
+                return result;
+
+            try
+            {
+                result = new SymbolModule(new SymbolReader(null, null), pdbPath);
+                _moduleCache[pdbPath] = result;
+                return result;
+            }
+            catch
+            {
+            }
+
+            return null;
         }
     }
 }

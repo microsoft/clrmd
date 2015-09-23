@@ -3091,6 +3091,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        internal FileLoader FileLoader { get; } = new FileLoader();
+
         /// <summary>
         /// Returns true if the target process is a minidump, or otherwise might have limited memory.  If IsMinidump
         /// returns true, a greater range of functions may fail to return data due to the data not being present in
