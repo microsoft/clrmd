@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     guid = session.globalScope.guid;
                     age = (int)session.globalScope.age;
-                    
+
                     return true;
                 }
                 catch (Exception)
@@ -505,7 +505,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     }
                 }
             }
-            
+
             SetPdbEntry(missingPdbs, entry, null);
             return null;
         }
@@ -523,7 +523,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             string fullPath = fileName;
             fileName = Path.GetFileName(fullPath).ToLower();
-            
+
             // First see if we already have the result cached.
             FileEntry entry = new FileEntry(fileName, buildTimeStamp, imageSize);
             string result = GetFileEntry(entry);
@@ -711,7 +711,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-
 #if V2_SUPPORT
         private Dictionary<FileEntry, string> _binCache = new Dictionary<FileEntry, string>();
         private Dictionary<PdbEntry, string> _pdbCache = new Dictionary<PdbEntry, string>();
@@ -831,7 +830,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private Dictionary<string, SymbolModule> _moduleCache = new Dictionary<string, SymbolModule>(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
-        
+
 
         public PEFile LoadBinary(string fileName)
         {

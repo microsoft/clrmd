@@ -493,7 +493,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     byte[] buffer = new byte[8192];
                     int cnt = 0;
-                    for (;;)
+                    for (; ;)
                     {
                         int count = fromStream.Read(buffer, 0, buffer.Length);
                         if (count == 0)
@@ -1011,7 +1011,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int lineNum;
             // FEEFEE is some sort of illegal line number that is returned some time,  It is better to ignore it.  
             // and take the next valid line
-            for (;;)
+            for (; ;)
             {
                 lineNum = (int)sourceLoc.lineNumber;
                 if (lineNum != 0xFEEFEE)
@@ -1035,7 +1035,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             IDiaEnumSourceFiles sourceFiles;
             IDiaTable table = null;
             uint fetchCount = 0;
-            for (;;)
+            for (; ;)
             {
                 tables.Next(1, ref table, ref fetchCount);
                 if (fetchCount == 0)
@@ -1047,7 +1047,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             var ret = new List<SourceFile>();
             IDiaSourceFile sourceFile = null;
-            for (;;)
+            for (; ;)
             {
                 sourceFiles.Next(1, out sourceFile, out fetchCount);
                 if (fetchCount == 0)
@@ -1294,7 +1294,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             var curIdx = 0;
-            for (;;)
+            for (; ;)
             {
                 var sepIdx = BuildTimeFilePath.IndexOf('\\', curIdx);
                 if (sepIdx < 0)
