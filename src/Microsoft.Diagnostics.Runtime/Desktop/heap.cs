@@ -504,17 +504,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         yield return root;
         }
 
-
         internal string GetStringContents(Address strAddr)
         {
             if (strAddr == 0)
                 return null;
 
-            if (_firstChar == null || _stringLength == null)
+            if (!_initializedStringFields)
             {
                 _firstChar = StringType.GetFieldByName("m_firstChar");
                 _stringLength = StringType.GetFieldByName("m_stringLength");
 
+                if (_firstChar.Type == null)
+                    _firstChar = null;
+
+                if (_stringLength.Type == null)
+                    _stringLength = null;
+
+                _initializedStringFields = true;
                 //Debug.Assert(m_firstChar != null && m_stringLength != null);
                 //Debug.Assert(m_firstChar == null || m_firstChar.Offset + IntPtr.Size == m_runtime.GetStringFirstCharOffset());
                 //Debug.Assert(m_stringLength == null || m_stringLength.Offset + IntPtr.Size == m_runtime.GetStringLengthOffset());
@@ -881,6 +887,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
         private ClrInstanceField _firstChar, _stringLength;
+        bool _initializedStringFields = false;
         private LastObjectData _lastObjData;
         private LastObjectType _lastObjType;
         private ClrType[] _basicTypes;
