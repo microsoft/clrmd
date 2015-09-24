@@ -46,34 +46,68 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return DesktopVersion.v45; }
         }
 
+        ISOSHandleEnum _handleEnum;
+        List<ClrHandle> _handles;
+
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
+            if (_handles != null && _handleEnum == null)
+                return _handles;
+
+            return EnumerateHandleWorker();
+        }
+
+        private IEnumerable<ClrHandle> EnumerateHandleWorker()
+        {
+            // handles was fully populated already
+            if (_handles != null && _handleEnum == null)
+                yield break;
+
+            // Create _handleEnum if it's not already created.
             object tmp;
-            if (_sos.GetHandleEnum(out tmp) < 0)
-                return null;
+            if (_handleEnum == null)
+            {
+                if (_sos.GetHandleEnum(out tmp) < 0)
+                    yield break;
 
-            ISOSHandleEnum handleEnum = tmp as ISOSHandleEnum;
-            if (handleEnum == null)
-                return null;
+                _handleEnum = tmp as ISOSHandleEnum;
+                if (_handleEnum == null)
+                    yield break;
 
-            HandleData[] handles = new HandleData[1];
-            List<ClrHandle> res = new List<ClrHandle>();
-
+                _handles = new List<ClrHandle>();
+            }
+            
+            // We already partially enumerated handles before, start with them.
+            foreach (var handle in _handles)
+                yield return handle;
+            
+            HandleData[] handles = new HandleData[8];
             uint fetched = 0;
             do
             {
-                if (handleEnum.Next(1, handles, out fetched) != 0)
+                if (_handleEnum.Next((uint)handles.Length, handles, out fetched) < 0 || fetched <= 0)
                     break;
 
-                ClrHandle handle = new ClrHandle(this, GetHeap(), handles[0]);
-                res.Add(handle);
+                int curr = _handles.Count;
+                for (int i = 0; i < fetched; i++)
+                {
+                    ClrHandle handle = new ClrHandle(this, GetHeap(), handles[i]);
+                    _handles.Add(handle);
 
-                handle = handle.GetInteriorHandle();
-                if (handle != null)
-                    res.Add(handle);
-            } while (fetched == 1);
+                    handle = handle.GetInteriorHandle();
+                    if (handle != null)
+                    {
+                        _handles.Add(handle);
+                        yield return handle;
+                    }
+                }
 
-            return res;
+                for (int i = curr; i < _handles.Count; i++)
+                    yield return _handles[i];
+
+            } while (fetched > 0);
+
+            _handleEnum = null;
         }
 
         internal override IEnumerable<ClrRoot> EnumerateStackReferences(ClrThread thread, bool includeDead)

@@ -3763,6 +3763,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrAppDomain AppDomain { get; set; }
 
+        /// <summary>
+        /// ToString override.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return HandleType.ToString() + " " + (Type != null ? Type.Name : "");
+        }
+
         #region Internal
         internal ClrHandle()
         {

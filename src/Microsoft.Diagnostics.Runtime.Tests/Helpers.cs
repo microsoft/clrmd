@@ -33,7 +33,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        static readonly string TempRoot = "clrmd_removeme_";
+        internal static readonly string TempRoot = "clrmd_removeme_";
+        #endregion
+    }
+
+    [TestClass]
+    public class GlobalCleanup
+    {
 
         [AssemblyCleanup]
         public static void AssemblyCleanup()
@@ -43,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
             {
-                if (directory.Contains(TempRoot))
+                if (directory.Contains(Helpers.TempRoot))
                 {
                     try
                     {
@@ -56,7 +62,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             }
         }
-        #endregion
     }
 
     class Native

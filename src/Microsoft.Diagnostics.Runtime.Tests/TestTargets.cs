@@ -14,6 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     class TestTargets
     {
         public static TestTarget NestedException = new TestTarget("NestedException.cs");
+        public static TestTarget GCHandles = new TestTarget("GCHandles.cs");
     }
 
     class TestTarget
@@ -87,17 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 dbg.SecondChanceExceptionEvent += delegate (Debugger d, EXCEPTION_RECORD64 ex)
                 {
                     if (ex.ExceptionCode == (uint)ExceptionTypes.Clr)
-                    {
-                        string dump = GetMiniDumpName(executable);
-                        dbg.WriteDumpFile(dump, DEBUG_DUMP.SMALL);
-                        _miniDumpPath = dump;
-
-                        dump = GetFullDumpName(executable);
-                        dbg.WriteDumpFile(dump, DEBUG_DUMP.DEFAULT);
-                        _fullDumpPath = dump;
-
-                        dbg.TerminateProcess();
-                    }
+                        WriteDumps(dbg, executable);
                 };
 
                 DEBUG_STATUS status;
@@ -106,6 +97,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     status = dbg.ProcessEvents(0xffffffff);
                 } while (status != DEBUG_STATUS.NO_DEBUGGEE);
             }
+        }
+
+        private void WriteDumps(Debugger dbg, string exe)
+        {
+            string dump = GetMiniDumpName(exe);
+            dbg.WriteDumpFile(dump, DEBUG_DUMP.SMALL);
+            _miniDumpPath = dump;
+
+            dump = GetFullDumpName(exe);
+            dbg.WriteDumpFile(dump, DEBUG_DUMP.DEFAULT);
+            _fullDumpPath = dump;
+
+            dbg.TerminateProcess();
         }
 
         private static string GetMiniDumpName(string executable)

@@ -51,6 +51,10 @@
   </Choose>
   <ItemGroup>
     <Compile Include="Debugger.cs" />
+    <Compile Include="GCHandleTests.cs" />
+    <None Include="Targets\GCHandles.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="TestTargets.cs" />
     <Compile Include="Targets\NestedException.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
