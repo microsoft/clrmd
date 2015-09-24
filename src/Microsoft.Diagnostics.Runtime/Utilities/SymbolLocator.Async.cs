@@ -232,7 +232,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Func<string, bool> match = (file) => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
             string result = CheckLocalPaths(fileFullPath, fileSimpleName, cachePath, match);
             if (result != null)
+            {
+                Trace("Found '{0}' locally on path '{1}'.", fileSimpleName, result);
                 return result;
+            }
             
             result = await SearchSymbolServerForFile(fileSimpleName, fileIndexPath, match);
             return result;
@@ -368,7 +371,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     Trace("Error copying from file.ptr: content '{0}' from '{1}' to '{2}'.", filePtrData, filePtrSigPath, fullDestPath);
                 }
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(filePtrData))
             {
                 Trace("Error resolving file.ptr: content '{0}' from '{1}'.", filePtrData, filePtrSigPath);
             }
@@ -405,6 +408,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
                         await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength);
+                        Trace("Found '{0}' at '{1}'.  Copied to '{2}'.", Path.GetFileName(fileIndexPath), fullUri, fullDestPath);
                         return fullDestPath;
                     }
                 }

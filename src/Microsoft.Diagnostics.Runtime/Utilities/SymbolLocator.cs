@@ -345,7 +345,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         var header = pefile.Header;
                         if (!checkProperties || (header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize))
                         {
-                            Trace("Found '{0}' for file {1}.", fullPath, Path.GetFileName(fullPath));
+                            Trace("Found '{0}' at '{1}'.", Path.GetFileName(fullPath), fullPath);
                             return true;
                         }
                         else
