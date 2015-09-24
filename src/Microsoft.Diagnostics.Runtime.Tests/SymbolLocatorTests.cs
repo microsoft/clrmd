@@ -13,9 +13,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     [TestClass]
     public class SymbolLocatorTests
     {
-        static readonly string WellKnownFile = "mscordacwks_X86_X86_4.6.96.00.dll";
-        static readonly int WellKnownTimeStamp = 0x55b96946;
-        static readonly int WellKnownImageSize = 0x006a8000;
+        static public readonly string WellKnownDac = "mscordacwks_X86_X86_4.6.96.00.dll";
+        static public readonly int WellKnownDacTimeStamp = 0x55b96946;
+        static public readonly int WellKnownDacImageSize = 0x006a8000;
 
         static readonly string WellKnownPdb = "clr.pdb";
         static readonly Guid WellKnownGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");
@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestFindBinaryNegative()
         {
             SymbolLocator _locator = GetLocator();
-            string dac = _locator.FindBinary(WellKnownFile, WellKnownTimeStamp + 1, WellKnownImageSize + 1, false);
+            string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
             Assert.IsNull(dac);
         }
 
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindBinaryAsync(WellKnownFile, WellKnownTimeStamp + 1, WellKnownImageSize + 1, false));
+                tasks.Add(_locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false));
             
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestFindBinary()
         {
             SymbolLocator _locator = GetLocator();
-            string dac = _locator.FindBinary(WellKnownFile, WellKnownTimeStamp, WellKnownImageSize, false);
+            string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
             Assert.IsNotNull(dac);
             Assert.IsTrue(File.Exists(dac));
         }
@@ -109,11 +109,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public async Task TestFindBinaryAsync()
         {
             SymbolLocator _locator = GetLocator();
-            Task<string> first = _locator.FindBinaryAsync(WellKnownFile, WellKnownTimeStamp, WellKnownImageSize, false);
+            Task<string> first = _locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindBinaryAsync(WellKnownFile, WellKnownTimeStamp, WellKnownImageSize, false));
+                tasks.Add(_locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false));
 
             string dac = await first;
 

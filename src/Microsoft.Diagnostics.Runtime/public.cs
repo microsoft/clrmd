@@ -2315,10 +2315,17 @@ namespace Microsoft.Diagnostics.Runtime
         public ModuleInfo ModuleInfo { get; private set; }
 
         /// <summary>
+        /// Returns the location of the local dac on your machine which matches this version of Clr, or null
+        /// if one could not be found.
+        /// </summary>
+        public string LocalMatchingDac { get { return _dacLocation; } }
+
+        /// <summary>
         /// The location of the Dac on the local machine, if a matching Dac could be found.
         /// If this returns null it means that no matching Dac could be found, and you will
         /// need to make a symbol server request using DacInfo.
         /// </summary>
+        [Obsolete]
         public string TryGetDacLocation()
         {
             return _dacLocation;
@@ -2349,6 +2356,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// (and bypass the symbol server) if a matching dac exists locally on your computer.
         /// </summary>
         /// <returns>The local path (in the cache) of the dac if found, null otherwise.</returns>
+        [Obsolete("Use DataTarget.SymbolLocator.DownloadBinary(DacInfo) instead, or ignore this and use ClrInfo.CreateRuntime() with no parameters.")]
         public string TryDownloadDac()
         {
             if (_dacLocation != null)
@@ -2360,6 +2368,84 @@ namespace Microsoft.Diagnostics.Runtime
             return locator.FindBinary(dac.FileName, dac.TimeStamp, dac.FileSize, false);
         }
 
+        /// <summary>
+        /// Creates a runtime from the given Dac file on disk.
+        /// </summary>
+        public ClrRuntime CreateRuntime()
+        {
+            string dac = _dacLocation;
+            if (dac != null && !File.Exists(dac))
+                dac = null;
+
+            if (dac == null)
+                dac = _dataTarget.SymbolLocator.FindBinary(DacInfo);
+
+            if (!File.Exists(dac))
+                throw new FileNotFoundException(DacInfo.FileName);
+
+            if (IntPtr.Size != (int)_dataTarget.DataReader.GetPointerSize())
+                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
+
+            return ConstructRuntime(dac);
+        }
+
+        /// <summary>
+        /// Creates a runtime from the given Dac file on disk.
+        /// </summary>
+        /// <param name="dacFilename">A full path to the matching mscordacwks for this process.</param>
+        /// <param name="ignoreMismatch">Whether or not to ignore mismatches between </param>
+        /// <returns></returns>
+        public ClrRuntime CreateRuntime(string dacFilename, bool ignoreMismatch = false)
+        {
+            if (string.IsNullOrEmpty(dacFilename))
+                throw new ArgumentNullException("dacFilename");
+
+            if (!File.Exists(dacFilename))
+                throw new FileNotFoundException(dacFilename);
+
+            if (!ignoreMismatch)
+            {
+                int major, minor, revision, patch;
+                Desktop.NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
+                if (major != DacInfo.Version.Major || minor != DacInfo.Version.Minor || revision != DacInfo.Version.Revision || patch != DacInfo.Version.Patch)
+                    throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
+            }
+            
+            return ConstructRuntime(dacFilename);
+        }
+
+        private ClrRuntime ConstructRuntime(string dac)
+        {
+            if (IntPtr.Size != (int)_dataTarget.DataReader.GetPointerSize())
+                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
+
+            DacLibrary lib = new DacLibrary(_dataTarget, dac);
+
+            Desktop.DesktopVersion ver;
+            if (Flavor == ClrFlavor.CoreCLR)
+            {
+                return new Desktop.V45Runtime(_dataTarget, lib);
+            }
+            else if (Flavor == ClrFlavor.Native)
+            {
+                return new Native.NativeRuntime(_dataTarget, lib);
+            }
+            else if (Version.Major == 2)
+            {
+                ver = Desktop.DesktopVersion.v2;
+            }
+            else if (Version.Major == 4 && Version.Minor == 0 && Version.Patch < 10000)
+            {
+                ver = Desktop.DesktopVersion.v4;
+            }
+            else
+            {
+                // Assume future versions will all work on the newest runtime version.
+                return new Desktop.V45Runtime(_dataTarget, lib);
+            }
+
+            return new Desktop.LegacyRuntime(_dataTarget, lib, ver, Version.Patch);
+        }
 
         /// <summary>
         /// To string.
@@ -2370,7 +2456,7 @@ namespace Microsoft.Diagnostics.Runtime
             return Version.ToString();
         }
 
-        internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
+        internal ClrInfo(DataTargetImpl dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
         {
             Debug.Assert(dacInfo != null);
 
@@ -2387,7 +2473,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         private string _dacLocation;
-        private DataTarget _dataTarget;
+        private DataTargetImpl _dataTarget;
 
         /// <summary>
         /// IComparable.  Sorts the object by version.
@@ -3170,6 +3256,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Creates a runtime from the given Dac file on disk.
         /// </summary>
+        [Obsolete("Use ClrInfo.CreateRuntime() instead.")]
         public abstract ClrRuntime CreateRuntime(string dacFileName);
 
         /// <summary>

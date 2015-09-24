@@ -62,10 +62,9 @@ architecture as you currently are.
 ## Loading a crash dump
 
 To get started the first thing you need to do is to create a `DataTarget`. The
-`DataTarget` class represents a crash dump or live process you want to debug
-(though as of Beta 0.3, only crash dumps are supported). To create an instance
-of the `DataTarget` class, call one of the static functions on `DataTarget`.
-Here is the code to create a `DataTarget` from a crash dump:
+`DataTarget` class represents a crash dump or live process you want to debug.
+To create an instance of the `DataTarget` class, call one of the static functions
+on `DataTarget`.  Here is the code to create a `DataTarget` from a crash dump:
 
     using (DataTarget target = DataTarget.LoadCrashDump(@"c:\work\crash.dmp"))
     {
@@ -99,14 +98,27 @@ To enumerate the versions of CLR loaded into the target process, use
 
 Note that `target.ClrVersions` is an `IList<ClrInfo>`. We can have two copies of
 CLR loaded into the process in the side-by-side scenario (that is, both v2 and
-v4 loaded into the process at the same time).
+v4 loaded into the process at the same time).  `ClrInfo` also has information 
+about the version of the dac you need to debug this process.  In practice though,
+you should (hopefully) not need to manually download the dac.
 
-As you can see, ClrInfo has information which will help you track down the
-correct dac to load. Once you have found the correct location of the dac (or
-downloaded it from the symbol server), you then create an instance of ClrRuntime
-with the full path to the dac:
+The next step to getting useful information out of ClrMD is to construct an
+instance of the `ClrRuntime` class.  This class represents one CLR runtime
+in the process.  To create one of these classes, use `ClrInfo.CreateRuntime`
+and you will create the runtime for the selected version:
 
-    ClrRuntime runtime = target.CreateRuntime(@"C:\work\mscordacwks.dll");
+    ClrInfo runtimeInfo = dataTarget.ClrInfo[0];  // just using the first runtime
+    ClrRuntime runtime = runtimeInfo.CreateRuntime();
+
+You can also create a runtime from a dac location on disk if you know exactly
+where it is:
+
+    ClrInfo runtimeInfo = dataTarget.ClrInfo[0];  // just using the first runtime
+    ClrRuntime runtime = runtimeInfo.CreateRuntime(@"C:\work\mscordacwks.dll");
+
+Lastly, note that create runtime with no parameters is equivalent to checking
+`ClrInfo.LocalMatchingDac`, and if that is null, ClrMD will attempt to download
+the correct dac from the symbol server using `DataTarget.SymbolLocator.FindBinary`.
 
 We will cover what to actually do with a `ClrRuntime` object in the next few
 tutorials.
@@ -174,103 +186,6 @@ DataTarget itself has a finalzier (which calls `Dispose`), and this will be run
 if the process is terminated normally. However I highly recommend that your
 program eagerly call `Dispose` as soon as you are done using ClrMD on the
 process.
-
-## Getting the Dac from the Symbol Server
-
-ClrMD has a method for automatically downloading the dac from the public (or
-internal) symbol servers. With no parameters, the following code will attempt to
-download the correct dac from the public symbol server:
-
-    // We only care about one version of CLR for this example
-    ClrInfo clrVersion = dataTarget.ClrVersions[0];
-    string dacLocation = clrVersion.TryDownloadDac();
-
-This will download the Dac, store it in a cache in the user's AppData temp
-folder, returning the path on disk to the location of the Dac. You can this pass
-'dacLoation' to dataTarget.CreateRuntime. Note: This can fail if the dac isn't
-on the symbol server (or due to network problems), at which point this function
-will return null.
-
-You may want a bit more control over this though (such as not just downloading
-from the public symbol server, but also using microsoft's internal symbol
-servers. You may also specify where to cache the files. This is controled by the
-symbolPath parameter, and defaultLocalCache parameters. Here is an example, but
-please see the intellisense documentation on TryDownloadDac's overrides for
-further information these parameters and behavior:
-
-    string dacLocation = clrVersion.TryDownloadDac("SRV*http://symweb.corp.microsoft.com", @"c:\symcache");
-
-One last note, if your tool is shipped publically, you want to use the default
-public symbol server `SRV*http://msdl.microsoft.com/download/symbols`. If you
-are attempting to write a tool that takes advantage of the internal Microsoft
-symbol server, I would suggest using this code:
-
-    string dacLocation = clrVersion.TryDownloadDac(GetSymbolPath());
-
-Where `GetSymbolPath` is defined as:
-
-    static string GetSymbolPath()
-    {
-        string path = null;
-        if (ComputerNameExists("symweb.corp.microsoft.com"))
-            path = "SRV*http://symweb.corp.microsoft.com";   // Internal Microsoft location.
-        else
-            path = "SRV*http://msdl.microsoft.com/download/symbols";
-
-        if (ComputerNameExists("ddrps.corp.microsoft.com"))
-            path = path + ";" + @"SRV*\\ddrps.corp.microsoft.com\symbols";
-        if (ComputerNameExists("clrmain"))
-            path = path + ";" + @"SRV*\\clrmain\symbols";
-
-        return path;
-    }
-
-    public static bool ComputerNameExists(string computerName, int timeoutMSec = 700)
-    {
-        try
-        {
-            System.Net.IPHostEntry ipEntry = null;
-            var result = System.Net.Dns.BeginGetHostEntry(computerName, null, null);
-            if (result.AsyncWaitHandle.WaitOne(timeoutMSec))
-                ipEntry = System.Net.Dns.EndGetHostEntry(result);
-            if (ipEntry != null)
-                return true;
-        }
-        catch (Exception) { }
-        return false;
-    }
-
-This should find most symbols for internal builds when inside corpnet.
-
-## Putting it all together
-
-We have covered the building blocks of creating a `DataTarget` and a
-`ClrRuntime` instance. Here is everything all together:
-
-    static ClrRuntime CreateRuntime(DataTarget dataTarget, string dacLocation = null)
-    {
-
-        // Only care about one CLR in this example.
-        ClrInfo version = dataTarget.ClrVersions[0];
-        if (string.IsNullOrEmpty(dacLocation))
-        {
-            // TryDownloadDac will also check to see if you have the matching
-            // mscordacwks installed locally, so you don't need to also check
-            // TryGetDacLocation as well.
-            dacLocation = version.TryDownloadDac(GetSymbolPath());
-        }
-
-        if (string.IsNullOrEmpty(dacLocation) || !File.Exists(dacLocation))
-            throw new FileNotFoundException(string.Format("Could not find .Net Diagnostics Dll {0}", version.DacInfo.FileName));
-
-        return dataTarget.CreateRuntime(dacLocation);
-    }
-
-Calling this code is as simple as:
-
-    DataTarget target = DataTarget.LoadCrashDump(@"c:\test\crash.dmp");
-    ClrRuntime runtime = CreateRuntime(target);
-    // or: ClrRuntime runtime = CreateRuntime(target, @"c:\dac_cache\mscordacwks.dll");
 
 The next tutorial will cover some basic uses of the `ClrRuntime` class.
 

@@ -17,15 +17,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         // type names that are 8k+ long...
         private byte[] _buffer = new byte[1024 * 32];
         private DesktopVersion _version;
-        private int _minor;
+        private int _patch;
         #endregion
 
         #region Constructor
-        public LegacyRuntime(DataTargetImpl dt, DacLibrary lib, DesktopVersion version, int minor)
+        public LegacyRuntime(DataTargetImpl dt, DacLibrary lib, DesktopVersion version, int patch)
             : base(dt, lib)
         {
             _version = version;
-            _minor = minor;
+            _patch = patch;
 
             if (!GetCommonMethodTables(ref _commonMTs))
                 throw new ClrDiagnosticsException("Could not request common MethodTable list.", ClrDiagnosticsException.HR.DacError);
@@ -708,11 +708,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             IMethodDescData result;
-            if (_version == DesktopVersion.v4 || _minor > 4016)
+            if (_version == DesktopVersion.v4 || _patch > 4016)
             {
                 result = Request<IMethodDescData, V35MethodDescData>(request_id, addr);
             }
-            else if (_minor < 3053)
+            else if (_patch < 3053)
             {
                 result = Request<IMethodDescData, V2MethodDescData>(request_id, addr);
             }

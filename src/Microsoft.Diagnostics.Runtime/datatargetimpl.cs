@@ -115,6 +115,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
+        [Obsolete]
         public override ClrRuntime CreateRuntime(string dacFilename)
         {
             if (IntPtr.Size != (int)_dataReader.GetPointerSize())
