@@ -3399,6 +3399,16 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public IList<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
+        /// Give access to the System AppDomain
+        /// </summary>
+        abstract public ClrAppDomain SystemDomain { get; }
+
+        /// <summary>
+        /// Give access to the Shared AppDomain
+        /// </summary>
+        abstract public ClrAppDomain SharedDomain { get; }
+
+        /// <summary>
         /// Enumerates all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>

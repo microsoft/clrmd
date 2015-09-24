@@ -284,6 +284,34 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         /// <summary>
+        /// The address of the system domain in CLR.
+        /// </summary>
+        public override ClrAppDomain SystemDomain
+        {
+            get
+            {
+                if (_domains == null)
+                    InitDomains();
+
+                return _system;
+            }
+        }
+
+        /// <summary>
+        /// The address of the shared domain in CLR.
+        /// </summary>
+        public override ClrAppDomain SharedDomain
+        {
+            get
+            {
+                if (_domains == null)
+                    InitDomains();
+
+                return _shared;
+            }
+        }
+
+        /// <summary>
         /// Enumerates regions of memory which CLR has allocated with a description of what data
         /// resides at that location.  Note that this does not return every chunk of address space
         /// that CLR allocates.
