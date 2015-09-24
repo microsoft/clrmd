@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                ClrRuntime runtime = dt.CreateRuntime(dt.ClrVersions[0].TryDownloadDac());
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 TestProperties(runtime);
             }
         }
@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
             {
-                ClrRuntime runtime = dt.CreateRuntime(dt.ClrVersions[0].TryDownloadDac());
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 TestProperties(runtime);
             }
         }

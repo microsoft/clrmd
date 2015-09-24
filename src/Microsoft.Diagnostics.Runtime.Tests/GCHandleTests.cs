@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // This test makes sure I have a stable enumeration.
             using (DataTarget dt = TestTargets.GCHandles.LoadFullDump())
             {
-                ClrRuntime runtime = dt.CreateRuntime(dt.ClrVersions[0].TryDownloadDac());
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 List<ClrHandle> handles = new List<ClrHandle>();
                 
