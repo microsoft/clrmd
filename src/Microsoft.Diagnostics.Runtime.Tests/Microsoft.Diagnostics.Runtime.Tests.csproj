@@ -55,7 +55,11 @@
     <None Include="Targets\GCHandles.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Compile Include="HeapAndTypeTests.cs" />
     <Compile Include="RuntimeTests.cs" />
+    <Compile Include="Targets\Types.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
     <Compile Include="TestTargets.cs" />
     <Compile Include="Targets\NestedException.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

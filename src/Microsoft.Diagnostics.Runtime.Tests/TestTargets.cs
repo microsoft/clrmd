@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
         public static TestTarget NestedException = new TestTarget("NestedException.cs");
         public static TestTarget GCHandles = new TestTarget("GCHandles.cs");
+        public static TestTarget Types = new TestTarget("Types.cs");
     }
 
     class TestTarget

@@ -419,9 +419,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 List<ClrThread> threads = null;
                 ulong rwc = (ulong)field.GetValue(obj);
                 ClrType rwcArrayType = _heap.GetObjectType(rwc);
-                if (rwcArrayType != null && rwcArrayType.IsArray && rwcArrayType.ArrayComponentType != null)
+                if (rwcArrayType != null && rwcArrayType.IsArray && rwcArrayType.ComponentType != null)
                 {
-                    ClrType rwcType = rwcArrayType.ArrayComponentType;
+                    ClrType rwcType = rwcArrayType.ComponentType;
                     ClrInstanceField threadId = rwcType.GetFieldByName("threadid");
                     ClrInstanceField next = rwcType.GetFieldByName("next");
                     if (threadId != null && next != null)

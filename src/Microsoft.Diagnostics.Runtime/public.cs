@@ -817,7 +817,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the element referenced by the pointer.
         /// </summary>
-        virtual public ClrType PointerComponentType { get; internal set; }
+        virtual public ClrType ComponentType { get; internal set; }
 
         /// <summary>
         /// A type is an array if you can use the array operators below, Abstractly arrays are objects 
@@ -829,7 +829,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the elements in the array.  
         /// </summary>
-        virtual public ClrType ArrayComponentType { get; internal set; }
+        [Obsolete("Use ComponentType instead.")]
+        virtual public ClrType ArrayComponentType { get { return ComponentType; } internal set { ComponentType = value; } }
 
         /// <summary>
         /// If the type is an array, then GetArrayLength returns the number of elements in the array.  Undefined

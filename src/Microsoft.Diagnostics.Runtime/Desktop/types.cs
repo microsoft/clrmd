@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private void BuildName(string hint)
         {
             StringBuilder builder = new StringBuilder();
-            ClrType inner = PointerComponentType;
+            ClrType inner = ComponentType;
 
             builder.Append(inner != null ? inner.Name : GetElementTypeName(hint));
             builder.Append("*");
@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return false;
         }
 
-        public override ClrType PointerComponentType
+        public override ClrType ComponentType
         {
             get
             {
@@ -463,7 +463,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private void BuildName(string hint)
         {
             StringBuilder builder = new StringBuilder();
-            ClrType inner = ArrayComponentType;
+            ClrType inner = ComponentType;
 
             builder.Append(inner != null ? inner.Name : GetElementTypeName(hint));
             builder.Append("[");
@@ -536,7 +536,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return false;
         }
 
-        public override ClrType ArrayComponentType
+        public override ClrType ComponentType
         {
             get
             {
@@ -1500,7 +1500,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (_baseArrayOffset == 0)
             {
-                var componentType = ArrayComponentType;
+                var componentType = ComponentType;
 
                 IObjectData data = DesktopHeap.DesktopRuntime.GetObjectData(objRef);
                 if (data != null)
@@ -1531,7 +1531,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             ClrElementType cet = ClrElementType.Unknown;
-            var componentType = this.ArrayComponentType;
+            var componentType = this.ComponentType;
             if (componentType != null)
             {
                 cet = componentType.ElementType;

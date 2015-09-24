@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             FreeType = GetGCHeapType(DesktopRuntime.FreeMethodTable, 0, 0);
             ArrayType = GetGCHeapType(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
             ObjectType = GetGCHeapType(DesktopRuntime.ObjectMethodTable, 0, 0);
-            ArrayType.ArrayComponentType = ObjectType;
+            ArrayType.ComponentType = ObjectType;
             ((BaseDesktopHeapType)FreeType).DesktopModule = (DesktopModule)ObjectType.Module;
             StringType = GetGCHeapType(DesktopRuntime.StringMethodTable, 0, 0);
             ExceptionType = GetGCHeapType(DesktopRuntime.ExceptionMethodTable, 0, 0);
@@ -229,20 +229,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            if (obj != 0 && ret.ArrayComponentType == null && ret.IsArray)
+            if (obj != 0 && ret.ComponentType == null && ret.IsArray)
             {
                 IObjectData data = GetObjectData(obj);
                 if (data != null)
                 {
                     if (data.ElementTypeHandle != 0)
-                        ret.ArrayComponentType = GetGCHeapType(data.ElementTypeHandle, 0, 0);
+                        ret.ComponentType = GetGCHeapType(data.ElementTypeHandle, 0, 0);
 
-                    if (ret.ArrayComponentType == null && data.ElementType != ClrElementType.Unknown)
-                        ret.ArrayComponentType = GetBasicType(data.ElementType);
+                    if (ret.ComponentType == null && data.ElementType != ClrElementType.Unknown)
+                        ret.ComponentType = GetBasicType(data.ElementType);
                 }
                 else if (cmt != 0)
                 {
-                    ret.ArrayComponentType = GetGCHeapType(cmt, 0);
+                    ret.ComponentType = GetGCHeapType(cmt, 0);
                 }
             }
 
@@ -444,9 +444,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                             {
                                                 if (_userObjType.IsArray)
                                                 {
-                                                    if (_userObjType.ArrayComponentType != null)
+                                                    if (_userObjType.ComponentType != null)
                                                     {
-                                                        if (_userObjType.ArrayComponentType.ElementType == ClrElementType.Object)
+                                                        if (_userObjType.ComponentType.ElementType == ClrElementType.Object)
                                                         {
                                                             // report elements
                                                             int len = _userObjType.GetArrayLength(_userObj);
@@ -1104,7 +1104,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal BaseDesktopHeapType CreatePointerType(BaseDesktopHeapType innerType, ClrElementType clrElementType, string nameHint)
         {
             BaseDesktopHeapType result = new DesktopPointerType(this, (DesktopBaseModule)Mscorlib, clrElementType, 0, nameHint);
-            result.PointerComponentType = innerType;
+            result.ComponentType = innerType;
             return result;
         }
 
