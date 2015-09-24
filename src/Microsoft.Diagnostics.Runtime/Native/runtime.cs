@@ -74,6 +74,22 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
+        public override ClrAppDomain SharedDomain
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public override ClrAppDomain SystemDomain
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public override IList<ClrThread> Threads
         {
             get
