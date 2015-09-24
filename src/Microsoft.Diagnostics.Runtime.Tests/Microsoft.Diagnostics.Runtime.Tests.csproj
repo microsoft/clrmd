@@ -57,9 +57,9 @@
     </None>
     <Compile Include="HeapAndTypeTests.cs" />
     <Compile Include="RuntimeTests.cs" />
-    <Compile Include="Targets\Types.cs">
+    <None Include="Targets\Types.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
+    </None>
     <Compile Include="TestTargets.cs" />
     <Compile Include="Targets\NestedException.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
