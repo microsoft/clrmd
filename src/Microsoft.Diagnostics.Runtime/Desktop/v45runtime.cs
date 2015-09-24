@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ISOSDac _sos;
 
         #region Constructor
-        public V45Runtime(DataTargetImpl dt, DacLibrary lib)
-            : base(dt, lib)
+        public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+            : base(info, dt, lib)
         {
             if (!GetCommonMethodTables(ref _commonMTs))
                 throw new ClrDiagnosticsException("Could not request common MethodTable list.", ClrDiagnosticsException.HR.DacError);

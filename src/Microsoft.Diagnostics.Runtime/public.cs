@@ -2391,6 +2391,30 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Creates a runtime from a given IXClrDataProcess interface.  Used for debugger plugins.
+        /// </summary>
+        public ClrRuntime CreateRuntime(object clrDataProcess)
+        {
+            DacLibrary lib = new DacLibrary(_dataTarget, (IXCLRDataProcess)clrDataProcess);
+
+            // Figure out what version we are on.
+            if (clrDataProcess is Desktop.ISOSDac)
+            {
+                return new Desktop.V45Runtime(this, _dataTarget, lib);
+            }
+            else
+            {
+                byte[] buffer = new byte[System.Runtime.InteropServices.Marshal.SizeOf(typeof(Desktop.V2HeapDetails))];
+
+                int val = lib.DacInterface.Request(Desktop.DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+                if ((uint)val == (uint)0x80070057)
+                    return new Desktop.LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
+                else
+                    return new Desktop.LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v2, 3054);
+            }
+        }
+
+        /// <summary>
         /// Creates a runtime from the given Dac file on disk.
         /// </summary>
         /// <param name="dacFilename">A full path to the matching mscordacwks for this process.</param>
@@ -2425,11 +2449,11 @@ namespace Microsoft.Diagnostics.Runtime
             Desktop.DesktopVersion ver;
             if (Flavor == ClrFlavor.CoreCLR)
             {
-                return new Desktop.V45Runtime(_dataTarget, lib);
+                return new Desktop.V45Runtime(this, _dataTarget, lib);
             }
             else if (Flavor == ClrFlavor.Native)
             {
-                return new Native.NativeRuntime(_dataTarget, lib);
+                return new Native.NativeRuntime(this, _dataTarget, lib);
             }
             else if (Version.Major == 2)
             {
@@ -2442,10 +2466,10 @@ namespace Microsoft.Diagnostics.Runtime
             else
             {
                 // Assume future versions will all work on the newest runtime version.
-                return new Desktop.V45Runtime(_dataTarget, lib);
+                return new Desktop.V45Runtime(this, _dataTarget, lib);
             }
 
-            return new Desktop.LegacyRuntime(_dataTarget, lib, ver, Version.Patch);
+            return new Desktop.LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
         }
 
         /// <summary>
@@ -3263,6 +3287,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Creates a runtime from a given IXClrDataProcess interface.  Used for debugger plugins.
         /// </summary>
+        [Obsolete("Use ClrInfo.CreateRuntime(object) instead.")]
         public abstract ClrRuntime CreateRuntime(object clrDataProcess);
 
         /// <summary>
@@ -3336,6 +3361,11 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrRuntime
     {
+        /// <summary>
+        /// The ClrInfo of the current runtime.
+        /// </summary>
+        public ClrInfo ClrInfo { get; protected set; }
+
         /// <summary>
         /// Returns the DataTarget associated with this runtime.
         /// </summary>

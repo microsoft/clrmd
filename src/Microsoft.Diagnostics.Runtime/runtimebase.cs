@@ -21,11 +21,12 @@ namespace Microsoft.Diagnostics.Runtime
         protected IDataReader _dataReader;
         protected DataTargetImpl _dataTarget;
 
-        public RuntimeBase(DataTargetImpl dataTarget, DacLibrary lib)
+        public RuntimeBase(ClrInfo info, DataTargetImpl dataTarget, DacLibrary lib)
         {
             Debug.Assert(lib != null);
             Debug.Assert(lib.DacInterface != null);
 
+            ClrInfo = info;
             _dataTarget = dataTarget;
             _library = lib;
             _dacInterface = _library.DacInterface;

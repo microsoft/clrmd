@@ -21,8 +21,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #endregion
 
         #region Constructor
-        public LegacyRuntime(DataTargetImpl dt, DacLibrary lib, DesktopVersion version, int patch)
-            : base(dt, lib)
+        public LegacyRuntime(ClrInfo info, DataTargetImpl dt, DacLibrary lib, DesktopVersion version, int patch)
+            : base(info, dt, lib)
         {
             _version = version;
             _patch = patch;

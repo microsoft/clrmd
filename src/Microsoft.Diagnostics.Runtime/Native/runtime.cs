@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeAppDomain _domain;
         private int _dacRawVersion;
 
-        public NativeRuntime(DataTargetImpl dt, DacLibrary lib)
-            : base(dt, lib)
+        public NativeRuntime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+            : base(info, dt, lib)
         {
             byte[] tmp = new byte[sizeof(int)];
 

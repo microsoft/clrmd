@@ -140,11 +140,11 @@ namespace Microsoft.Diagnostics.Runtime
             DesktopVersion ver;
             if (isCoreClr)
             {
-                return new V45Runtime(this, lib);
+                return new V45Runtime(null, this, lib);
             }
             else if (isNative)
             {
-                return new Native.NativeRuntime(this, lib);
+                return new Native.NativeRuntime(null, this, lib);
             }
             else if (major == 2)
             {
@@ -157,12 +157,13 @@ namespace Microsoft.Diagnostics.Runtime
             else
             {
                 // Assume future versions will all work on the newest runtime version.
-                return new V45Runtime(this, lib);
+                return new V45Runtime(null, this, lib);
             }
 
-            return new LegacyRuntime(this, lib, ver, patch);
+            return new LegacyRuntime(null, this, lib, ver, patch);
         }
 
+        [Obsolete]
         public override ClrRuntime CreateRuntime(object clrDataProcess)
         {
             DacLibrary lib = new DacLibrary(this, (IXCLRDataProcess)clrDataProcess);
@@ -170,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Figure out what version we are on.
             if (clrDataProcess is ISOSDac)
             {
-                return new V45Runtime(this, lib);
+                return new V45Runtime(null, this, lib);
             }
             else
             {
@@ -178,9 +179,9 @@ namespace Microsoft.Diagnostics.Runtime
 
                 int val = lib.DacInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
                 if ((uint)val == (uint)0x80070057)
-                    return new LegacyRuntime(this, lib, DesktopVersion.v4, 10000);
+                    return new LegacyRuntime(null, this, lib, DesktopVersion.v4, 10000);
                 else
-                    return new LegacyRuntime(this, lib, DesktopVersion.v2, 3054);
+                    return new LegacyRuntime(null, this, lib, DesktopVersion.v2, 3054);
             }
         }
 

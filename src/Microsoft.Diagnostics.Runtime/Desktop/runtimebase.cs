@@ -564,8 +564,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopRuntimeBase(DataTargetImpl dt, DacLibrary lib)
-            : base(dt, lib)
+        internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+            : base(info, dt, lib)
         {
         }
 

@@ -23,5 +23,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 dt.ClrVersions.Single().CreateRuntime(badDac);
             }
         }
+
+        [TestMethod]
+        public void RuntimeClrInfo()
+        {
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
+            {
+                ClrInfo info = dt.ClrVersions.Single();
+                ClrRuntime runtime = info.CreateRuntime();
+
+                Assert.AreEqual(info, runtime.ClrInfo);
+            }
+        }
     }
 }
