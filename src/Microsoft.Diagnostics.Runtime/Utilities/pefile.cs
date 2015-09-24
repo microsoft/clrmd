@@ -146,6 +146,45 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return _pdb;
             }
         }
+        internal static bool TryGetIndexProperties(string filename, out int timestamp, out int filesize)
+        {
+            try
+            {
+                using (PEFile pefile = new PEFile(filename))
+                {
+                    var header = pefile.Header;
+                    timestamp = header.TimeDateStampSec;
+                    filesize = (int)header.SizeOfImage;
+                    return true;
+                }
+            }
+            catch
+            {
+                timestamp = 0;
+                filesize = 0;
+                return false;
+            }
+        }
+
+        internal static bool TryGetIndexProperties(Stream stream, bool virt, out int timestamp, out int filesize)
+        {
+            try
+            {
+                using (PEFile pefile = new PEFile(stream, virt))
+                {
+                    var header = pefile.Header;
+                    timestamp = header.TimeDateStampSec;
+                    filesize = (int)header.SizeOfImage;
+                    return true;
+                }
+            }
+            catch
+            {
+                timestamp = 0;
+                filesize = 0;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Whether this object has been disposed.

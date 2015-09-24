@@ -21,24 +21,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [TestMethod]
-        public void TestMinidumpExceptionProperties()
-        {
-            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                TestProperties(runtime);
-            }
-        }
-
-        private static void TestProperties(ClrRuntime runtime)
+        public static void TestProperties(ClrRuntime runtime)
         {
             ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
             ClrException ex = thread.CurrentException;
             Assert.IsNotNull(ex);
 
-            Assert.AreEqual("IOE Message", ex.Message);
-            Assert.AreEqual("System.InvalidOperationException", ex.Type.Name);
+            ExceptionTestData testData = TestTargets.NestedExceptionData;
+            Assert.AreEqual(testData.OuterExceptionMessage, ex.Message);
+            Assert.AreEqual(testData.OuterExceptionType, ex.Type.Name);
             Assert.IsNotNull(ex.Inner);
         }
     }

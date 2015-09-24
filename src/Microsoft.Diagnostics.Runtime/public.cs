@@ -2443,6 +2443,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (IntPtr.Size != (int)_dataTarget.DataReader.GetPointerSize())
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
+            
+            if (_dataTarget.IsMinidump)
+                _dataTarget.SymbolLocator.PrefetchBinary(ModuleInfo.FileName, (int)ModuleInfo.TimeStamp, (int)ModuleInfo.FileSize);
 
             DacLibrary lib = new DacLibrary(_dataTarget, dac);
 

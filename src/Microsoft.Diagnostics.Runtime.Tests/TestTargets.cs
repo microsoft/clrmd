@@ -11,9 +11,16 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
+    class ExceptionTestData
+    {
+        public readonly string OuterExceptionMessage = "IOE Message";
+        public readonly string OuterExceptionType = "System.InvalidOperationException";
+    }
+
     class TestTargets
     {
         public static TestTarget NestedException = new TestTarget("NestedException.cs");
+        public static ExceptionTestData NestedExceptionData = new ExceptionTestData();
         public static TestTarget GCHandles = new TestTarget("GCHandles.cs");
         public static TestTarget Types = new TestTarget("Types.cs");
     }

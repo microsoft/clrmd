@@ -437,6 +437,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _missingPdbs.Clear();
             _missingFiles.Clear();
         }
+
+        internal virtual void PrefetchBinary(string name, int timestamp, int imagesize)
+        {
+        }
     }
 
 

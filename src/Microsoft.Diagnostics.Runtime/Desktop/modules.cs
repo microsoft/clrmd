@@ -118,8 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return _runtime.DataTarget.SymbolLocator.FindPdb(pdbName, pdbGuid, rev);
         }
-
-
+        
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
         {
             Revision = runtime.Revision;
@@ -137,10 +136,30 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _address = address;
             _size = size;
 
-            // This is very expensive in the minidump case, as we may be heading out to the symbol server or
-            // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
             if (!runtime.DataReader.IsMinidump)
+            {
+                // This is very expensive in the minidump case, as we may be heading out to the symbol server or
+                // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
                 _metadata = data.LegacyMetaDataImport as IMetadata;
+            }
+            else
+            {
+                // If we are a minidump and metadata isn't mapped in, attempt to fetch this module from the symbol server
+                // on a background thread.
+#if !V2_SUPPORT
+                if (_isPE && _metadataStart != 0 && _metadataLength > 0)
+                {
+                    int read;
+                    byte[] tmp = new byte[1];
+                    if (!_runtime.DataReader.ReadMemory(_metadataStart, tmp, 1, out read) || read == 0)
+                    {
+                        int filesize, imagesize;
+                        if (PEFile.TryGetIndexProperties(new ReadVirtualStream(_runtime.DataReader, (long)data.ImageBase, (long)size), true, out imagesize, out filesize))
+                            _runtime.DataTarget.SymbolLocator.PrefetchBinary(Path.GetFileName(assemblyName), imagesize, filesize);
+                    }
+                }
+#endif
+            }
         }
 
         public override IEnumerable<ClrType> EnumerateTypes()

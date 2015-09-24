@@ -13,8 +13,14 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    class Helpers
+    static class Helpers
     {
+        public static ClrThread GetMainThread(this ClrRuntime runtime)
+        {
+            ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
+            return thread;
+        }
+
         public static string TestWorkingDirectory { get { return _workingPath.Value; } }
 
         #region Working Path Helpers

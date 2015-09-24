@@ -595,6 +595,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     missing.Add(entry);
             }
         }
+
+        internal override void PrefetchBinary(string name, int timestamp, int imagesize)
+        {
+            new Task(async () => await FindBinaryAsync(name, timestamp, imagesize, true)).Start();
+        }
     }
 
 
