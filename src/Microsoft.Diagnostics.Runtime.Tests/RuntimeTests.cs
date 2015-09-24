@@ -25,6 +25,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
+        public void CreationSpecificDac()
+        {
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
+            {
+                ClrInfo info = dt.ClrVersions.Single();
+                string dac = info.LocalMatchingDac;
+
+                Assert.IsNotNull(dac);
+
+                ClrRuntime runtime = info.CreateRuntime(dac);
+                Assert.IsNotNull(runtime);
+            }
+        }
+
+
+        [TestMethod]
         public void RuntimeClrInfo()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())

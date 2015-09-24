@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
                     dacInfo.FileSize = module.FileSize;
                     dacInfo.TimeStamp = module.TimeStamp;
                     dacInfo.FileName = dacFileName;
-
+                    dacInfo.Version = module.Version;
 
                     versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
                 }

@@ -2432,7 +2432,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 int major, minor, revision, patch;
                 Desktop.NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
-                if (major != DacInfo.Version.Major || minor != DacInfo.Version.Minor || revision != DacInfo.Version.Revision || patch != DacInfo.Version.Patch)
+                if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
             }
             
