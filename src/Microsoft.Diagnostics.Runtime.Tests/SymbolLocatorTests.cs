@@ -11,7 +11,7 @@ using System.Collections.Generic;
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     [TestClass]
-    public class TestSymbolLocator
+    public class SymbolLocatorTests
     {
         static readonly string WellKnownFile = "mscordacwks_X86_X86_4.6.96.00.dll";
         static readonly int WellKnownTimeStamp = 0x55b96946;
@@ -21,58 +21,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         static readonly Guid WellKnownGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");
         static readonly int WellKnownAge = 2;
 
-        static readonly string TempRoot = "clrmd_removeme_";
-
-        [ClassCleanup]
-        public static void ClassCleanup()
-        {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-
-            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
-            {
-                if (directory.Contains(TempRoot))
-                {
-                    try
-                    {
-                        Directory.Delete(directory, true);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-            }
-
-        }
-
         private SymbolLocator GetLocator()
         {
-            string tmpPath = CreateTempPath();
+            string tmpPath = Helpers.TestWorkingDirectory;
 
             SymbolLocator locator = new DefaultSymbolLocator();
             locator.SymbolCache = tmpPath;
 
             var sourceBase = new DirectoryInfo(Environment.CurrentDirectory).Parent.Parent.Parent;
             string msdiaPath = Path.Combine(sourceBase.FullName, "Microsoft.Diagnostics.Runtime", "Refs", IntPtr.Size == 4 ? "x86" : "amd64", "msdia120.dll");
-            IntPtr loadLibraryResult = Helpers.LoadLibraryEx(msdiaPath, 0, Helpers.LoadLibraryFlags.NoFlags);
+            IntPtr loadLibraryResult = Native.LoadLibraryEx(msdiaPath, 0, Native.LoadLibraryFlags.NoFlags);
             Assert.AreNotEqual(IntPtr.Zero, loadLibraryResult);
 
             return locator;
         }
 
-        private static string CreateTempPath()
-        {
-            Random r = new Random();
-            string path;
-            do
-            {
-                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next().ToString());
-            } while (Directory.Exists(path));
-
-            Directory.CreateDirectory(path);
-            return path;
-        }
         [TestMethod]
         public void TestFindBinaryNegative()
         {

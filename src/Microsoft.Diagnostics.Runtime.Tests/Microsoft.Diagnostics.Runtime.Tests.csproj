@@ -50,8 +50,14 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Debugger.cs" />
+    <Compile Include="TestTargets.cs" />
+    <Compile Include="Targets\NestedException.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="ExceptionTests.cs" />
     <Compile Include="Helpers.cs" />
-    <Compile Include="TestSymbolLocator.cs" />
+    <Compile Include="SymbolLocatorTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

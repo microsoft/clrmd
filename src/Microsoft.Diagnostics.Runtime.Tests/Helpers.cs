@@ -6,10 +6,60 @@ using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.CSharp;
+using System.CodeDom.Compiler;
+using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     class Helpers
+    {
+        public static string TestWorkingDirectory { get { return _workingPath.Value; } }
+
+        #region Working Path Helpers
+        static Lazy<string> _workingPath = new Lazy<string>(() => CreateWorkingPath(), true);
+        private static string CreateWorkingPath()
+        {
+            Random r = new Random();
+            string path;
+            do
+            {
+                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next().ToString());
+            } while (Directory.Exists(path));
+
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+
+        static readonly string TempRoot = "clrmd_removeme_";
+
+        [AssemblyCleanup]
+        public static void AssemblyCleanup()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
+            {
+                if (directory.Contains(TempRoot))
+                {
+                    try
+                    {
+                        Directory.Delete(directory, true);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+            }
+        }
+        #endregion
+    }
+
+    class Native
     {
         private const string Kernel32LibraryName = "kernel32.dll";
         [DllImportAttribute(Kernel32LibraryName, SetLastError = true)]
