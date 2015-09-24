@@ -37,6 +37,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
+        public void TestTimeoutNegative()
+        {
+            var locator = GetLocator();
+            locator.Timeout = 1;
+            locator.SymbolCache += "\\TestTimeoutNegative";
+
+            string pdb = locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge);
+            Assert.IsNull(pdb);
+        }
+
+        [TestMethod]
+        public void TestTimeout()
+        {
+            var locator = GetLocator();
+            locator.Timeout = 10000;
+            locator.SymbolCache += "\\TestTimeout";
+
+            string pdb = locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge);
+            Assert.IsNotNull(pdb);
+        }
+
+        [TestMethod]
         public void TestFindBinaryNegative()
         {
             SymbolLocator _locator = GetLocator();

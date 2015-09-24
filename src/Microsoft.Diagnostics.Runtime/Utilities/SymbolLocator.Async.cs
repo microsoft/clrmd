@@ -13,7 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     public abstract partial class SymbolLocator
     {
-
         /// <summary>
         /// Attempts to locate a binary via the symbol server.  This function will then copy the file
         /// locally to the symbol cache and return the location of the local file on disk.
@@ -397,6 +396,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     var req = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(fullUri);
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
+                    req.Timeout = Timeout;
                     var response = await req.GetResponseAsync();
                     using (var fromStream = response.GetResponseStream())
                     {

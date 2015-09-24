@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-
     /// <summary>
     /// This class is a general purpose symbol locator and binary locator.
     /// </summary>
@@ -27,6 +27,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// 
         protected volatile string _symbolCache;
+
+        /// <summary>
+        /// The timeout (in milliseconds) used when contacting each individual server.  This is not a total timeout for the entire
+        /// symbol server operation.
+        /// </summary>
+        public int Timeout { get; set; } = 60000;
 
         /// <summary>
         /// A set of pdbs that we did not find when requested.  This set is SymbolLocator specific (not global
@@ -578,11 +584,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (String.IsNullOrEmpty(urlForServer))
                 return null;
 
-            // Just try to fetch the file directly
-            var ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
-            if (ret != null)
-                return ret;
-
             var targetPath = Path.Combine(cache, fileIndexPath);
 
             // See if it is a compressed file by replacing the last character of the name with an _
@@ -606,6 +607,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         File.Delete(compressedFilePath);
                 }
             }
+
+            // Just try to fetch the file directly
+            var ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
+            if (ret != null)
+                return ret;
 
             // See if we have a file that tells us to redirect elsewhere. 
             var filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
@@ -641,61 +647,64 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return null;
 
             var fullDestPath = Path.Combine(symbolCacheDir, pdbIndexPath);
-            if (!File.Exists(fullDestPath))
-            {
-                if (serverPath.StartsWith("http:"))
-                {
-                    var fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
-                    try
-                    {
-                        var req = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(fullUri);
-                        req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
-                        var response = req.GetResponse();
-                        using (var fromStream = response.GetResponseStream())
-                        {
-                            if (returnContents)
-                            {
-                                TextReader reader = new StreamReader(fromStream);
-                                return reader.ReadToEnd();
-                            }
+            if (File.Exists(fullDestPath))
+                return fullDestPath;
 
-                            CopyStreamToFile(fromStream, fullUri, fullDestPath, response.ContentLength);
-                        }
-                    }
-                    catch (Exception e)
+            if (serverPath.StartsWith("http:"))
+            {
+                var fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
+                try
+                {
+                    var req = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(fullUri);
+                    req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
+                    req.Timeout = Timeout;
+                    var response = req.GetResponse();
+                    using (var fromStream = response.GetResponseStream())
                     {
-                        Trace("Probe of {0} failed: {1}", fullUri, e.Message);
-                        return null;
+                        if (returnContents)
+                        {
+                            TextReader reader = new StreamReader(fromStream);
+                            return reader.ReadToEnd();
+                        }
+
+                        CopyStreamToFile(fromStream, fullUri, fullDestPath, response.ContentLength);
+                        return fullDestPath;
                     }
                 }
-                else
+                catch (WebException)
                 {
-                    var fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
-                    if (!File.Exists(fullSrcPath))
-                        return null;
-
-                    if (returnContents)
-                    {
-                        try
-                        {
-                            return File.ReadAllText(fullSrcPath);
-                        }
-                        catch
-                        {
-                            return "";
-                        }
-                    }
-
-                    using (FileStream fs = File.OpenRead(fullSrcPath))
-                        CopyStreamToFile(fs, fullSrcPath, fullDestPath, fs.Length);
+                    // A timeout or 404.
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    Trace("Probe of {0} failed: {1}", fullUri, e.Message);
+                    return null;
                 }
             }
             else
             {
-                Trace("Found file {0} in cache.", fullDestPath);
-            }
+                var fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
+                if (!File.Exists(fullSrcPath))
+                    return null;
 
-            return fullDestPath;
+                if (returnContents)
+                {
+                    try
+                    {
+                        return File.ReadAllText(fullSrcPath);
+                    }
+                    catch
+                    {
+                        return "";
+                    }
+                }
+
+                using (FileStream fs = File.OpenRead(fullSrcPath))
+                    CopyStreamToFile(fs, fullSrcPath, fullDestPath, fs.Length);
+
+                return fullDestPath;
+            }
         }
 
 
