@@ -19,8 +19,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string badDac = dt.SymbolLocator.FindBinary(SymbolLocatorTests.WellKnownDac, SymbolLocatorTests.WellKnownDacTimeStamp, SymbolLocatorTests.WellKnownDacImageSize, false);
 
                 Assert.IsNotNull(badDac);
-
+                
                 dt.ClrVersions.Single().CreateRuntime(badDac);
+
+                if (dt.ClrVersions.Single().DacInfo.FileName.Equals(SymbolLocatorTests.WellKnownDac, StringComparison.OrdinalIgnoreCase))
+                    Assert.Inconclusive();
+
             }
         }
 
