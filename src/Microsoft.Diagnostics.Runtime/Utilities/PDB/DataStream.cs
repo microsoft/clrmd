@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         {
             get { return _contentSize; }
         }
-        
+
 
         internal int _contentSize;
         internal int[] _pages;

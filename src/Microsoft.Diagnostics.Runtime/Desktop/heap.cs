@@ -887,7 +887,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
         private ClrInstanceField _firstChar, _stringLength;
-        bool _initializedStringFields = false;
+        private bool _initializedStringFields = false;
         private LastObjectData _lastObjData;
         private LastObjectType _lastObjType;
         private ClrType[] _basicTypes;

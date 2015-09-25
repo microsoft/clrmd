@@ -2433,7 +2433,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
             }
-            
+
             return ConstructRuntime(dacFilename);
         }
 
@@ -2441,7 +2441,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (IntPtr.Size != (int)_dataTarget.DataReader.GetPointerSize())
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
-            
+
             if (_dataTarget.IsMinidump)
                 _dataTarget.SymbolLocator.PrefetchBinary(ModuleInfo.FileName, (int)ModuleInfo.TimeStamp, (int)ModuleInfo.FileSize);
 
@@ -4208,7 +4208,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The file and line number for the given offset.</returns>
         [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb")]
         virtual public SourceLocation GetSourceLocationForOffset(Address nativeOffset) { return null; }
-        
+
         /// <summary>
         /// Gets the ILOffset of the given address within this method.
         /// </summary>

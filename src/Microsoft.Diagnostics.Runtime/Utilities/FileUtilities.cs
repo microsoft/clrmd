@@ -211,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             string returnVal = "";
             int nextSlash = commonToSlashIndex;
-            for (;;)
+            for (; ;)
             {
                 if (nextSlash >= fullCurrentDirectory.Length)
                     break;

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         static internal readonly IComparer byAddress = new PdbFunctionsByAddress();
         static internal readonly IComparer byAddressAndToken = new PdbFunctionsByAddressAndToken();
         //static internal readonly IComparer byToken = new PdbFunctionsByToken();
-        
+
         internal uint slotToken;
         //internal string name;
         //internal string module;

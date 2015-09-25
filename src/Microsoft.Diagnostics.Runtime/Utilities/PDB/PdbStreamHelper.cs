@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         {
             return (size + PageSize - 1) / (PageSize);
         }
-        
+
         internal readonly int PageSize;
         internal readonly Stream Reader;
     }

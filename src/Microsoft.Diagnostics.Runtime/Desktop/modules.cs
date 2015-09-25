@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Address _address;
         private Address _assemblyAddress;
         private bool _typesLoaded;
-        
+
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
         {
             Revision = runtime.Revision;

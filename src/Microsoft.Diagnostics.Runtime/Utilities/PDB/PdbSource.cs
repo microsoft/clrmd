@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// Pdb source vendor
         /// </summary>
         public Guid Vendor { get; private set; }
-        
+
         /// <summary>
         /// Pdb algorithm id.
         /// </summary>

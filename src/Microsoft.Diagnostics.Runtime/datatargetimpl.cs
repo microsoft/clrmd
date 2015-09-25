@@ -387,7 +387,7 @@ namespace Microsoft.Diagnostics.Runtime
                     bytesRead = 0;
                     return -1;
                 }
-                
+
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
                 PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
                 if (file != null)

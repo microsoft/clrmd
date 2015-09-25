@@ -444,7 +444,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (value != null)
                     {
                         int startAt = 0;
-                        for (;;)
+                        for (; ;)
                         {
                             m = new Regex(@"%(\w+)%").Match(value, startAt);
                             if (!m.Success) break;

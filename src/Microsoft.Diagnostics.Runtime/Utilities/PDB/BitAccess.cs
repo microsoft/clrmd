@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             set { _offset = value; }
         }
         private int _offset;
-        
+
         internal void MinCapacity(int capacity)
         {
             if (_buffer.Length < capacity)
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 _offset++;
             }
         }
-        
+
         internal void ReadInt16(out short value)
         {
             value = (short)((_buffer[_offset + 0] & 0xFF) |
@@ -222,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             byte i;
             byte j;
             byte k;
-            
+
             ReadUInt32(out a);
             ReadUInt16(out b);
             ReadUInt16(out c);

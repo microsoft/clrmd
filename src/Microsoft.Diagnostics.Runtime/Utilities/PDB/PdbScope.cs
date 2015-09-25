@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// A list of namespaces used in this scope.
         /// </summary>
         public string[] UsedNamespaces { get; private set; }
-        
+
         /// <summary>
         /// The address of this scope.
         /// </summary>

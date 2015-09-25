@@ -5,7 +5,6 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-
     /// <summary>
     /// This class represents a constant value in source code, such as:
     ///     const int Foo = 3;

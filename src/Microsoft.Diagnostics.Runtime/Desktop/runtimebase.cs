@@ -792,7 +792,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 uint needed = 0;
                 res = method.GetILAddressMap(0, out needed, null);
-                
+
                 if (res == 0)
                 {
                     tmp = new ILToNativeMap[needed];

@@ -783,7 +783,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out] out UInt32 RegionsAvail
             );
 
-        [Obsolete( "Do not use: no longer implemented.", true )]
+        [Obsolete("Do not use: no longer implemented.", true)]
         [PreserveSig]
         new int GetSymbolEntryBySymbolEntry(
             [In, MarshalAs(UnmanagedType.LPStruct)] DEBUG_MODULE_AND_ID FromId,

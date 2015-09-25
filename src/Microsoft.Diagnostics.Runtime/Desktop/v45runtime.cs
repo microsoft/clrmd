@@ -46,8 +46,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return DesktopVersion.v45; }
         }
 
-        ISOSHandleEnum _handleEnum;
-        List<ClrHandle> _handles;
+        private ISOSHandleEnum _handleEnum;
+        private List<ClrHandle> _handles;
 
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
@@ -76,11 +76,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 _handles = new List<ClrHandle>();
             }
-            
+
             // We already partially enumerated handles before, start with them.
             foreach (var handle in _handles)
                 yield return handle;
-            
+
             HandleData[] handles = new HandleData[8];
             uint fetched = 0;
             do
@@ -104,7 +104,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 for (int i = curr; i < _handles.Count; i++)
                     yield return _handles[i];
-
             } while (fetched > 0);
 
             _handleEnum = null;
