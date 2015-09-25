@@ -115,21 +115,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (map == null)
                 return null;
 
+            int ilOffset = GetILOffset(nativeOffset);
+            return module.GetSourceInformation(MetadataToken, ilOffset);
+        }
+
+        public override int GetILOffset(ulong addr)
+        {
+            ILToNativeMap[] map = ILOffsetMap;
+            if (map == null)
+                return -1;
+
             int ilOffset = 0;
             if (map.Length > 1)
                 ilOffset = map[1].ILOffset;
 
             for (int i = 0; i < map.Length; ++i)
-            {
-                //bug bug: we dont use nativeOffset
-                if (map[i].StartAddress <= _ip && _ip <= map[i].EndAddress)
-                {
-                    ilOffset = map[i].ILOffset;
-                    break;
-                }
-            }
+                if (map[i].StartAddress <= addr && addr <= map[i].EndAddress)
+                    return map[i].ILOffset;
 
-            return module.GetSourceInformation(MetadataToken, ilOffset);
+            return ilOffset;
         }
 
         public override bool IsStatic
