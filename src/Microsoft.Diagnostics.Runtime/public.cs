@@ -4287,6 +4287,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns if this method is abstract.
         /// </summary>
         abstract public bool IsAbstract { get; }
+
+        /// <summary>
+        /// Returns whether this method is an instance constructor.
+        /// </summary>
+        virtual public bool IsConstructor { get { return Name == ".ctor"; } }
+
+        /// <summary>
+        /// Returns whether this method is a static constructor.
+        /// </summary>
+        virtual public bool IsClassConstructor { get { return Name == ".cctor"; } }
     }
 
     /// <summary>
