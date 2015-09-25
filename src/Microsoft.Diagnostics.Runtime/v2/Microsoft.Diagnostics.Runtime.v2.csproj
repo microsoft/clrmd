@@ -132,7 +132,6 @@
     <Compile Include="..\Utilities\pefile.cs" />
     <Compile Include="..\Utilities\SymbolLocator.cs" />
     <Compile Include="..\Utilities\SymbolPath.cs" />
-    <Compile Include="..\Utilities\PdbReader.cs" />
     <Compile Include="..\Utilities\PDB\BitAccess.cs" />
     <Compile Include="..\Utilities\PDB\BitSet.cs" />
     <Compile Include="..\Utilities\PDB\CvInfo.cs" />
@@ -151,6 +150,7 @@
     <Compile Include="..\Utilities\PDB\PdbLine.cs" />
     <Compile Include="..\Utilities\PDB\PdbLines.cs" />
     <Compile Include="..\Utilities\PDB\PdbReader.cs" />
+    <Compile Include="..\Utilities\PDB\PdbStreamHelper.cs" />
     <Compile Include="..\Utilities\PDB\PdbScope.cs" />
     <Compile Include="..\Utilities\PDB\PdbSlot.cs" />
     <Compile Include="..\Utilities\PDB\PdbSource.cs" />

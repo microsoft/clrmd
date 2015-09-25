@@ -142,11 +142,11 @@
     <Compile Include="Utilities\PDB\PdbFunction.cs" />
     <Compile Include="Utilities\PDB\PdbLine.cs" />
     <Compile Include="Utilities\PDB\PdbLines.cs" />
-    <Compile Include="Utilities\PDB\PdbReader.cs" />
+    <Compile Include="Utilities\PDB\PdbStreamHelper.cs" />
     <Compile Include="Utilities\PDB\PdbScope.cs" />
     <Compile Include="Utilities\PDB\PdbSlot.cs" />
     <Compile Include="Utilities\PDB\PdbSource.cs" />
-    <Compile Include="Utilities\PdbReader.cs" />
+    <Compile Include="Utilities\PDB\PdbReader.cs" />
     <Compile Include="Utilities\pefile.cs" />
     <Compile Include="Utilities\SymbolLocator.Async.cs" />
     <Compile Include="Utilities\SymbolLocator.cs" />

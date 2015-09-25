@@ -1,38 +1,90 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using System.IO;
+using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbStreamHelper
+    /// <summary>
+    /// An object that can map offsets in an IL stream to source locations and block scopes.
+    /// </summary>
+    public sealed class PdbReader :
+      IDisposable
     {
-        internal PdbStreamHelper(Stream reader, int pageSize)
+        private IEnumerable<PdbSource> _sources;
+        private Dictionary<uint, PdbFunction> _pdbFunctionMap = new Dictionary<uint, PdbFunction>();
+        private List<StreamReader> _sourceFilesOpenedByReader = new List<StreamReader>();
+        private int _ver;
+        private int _sig;
+        private int _age;
+        private Guid _guid;
+
+        /// <summary>
+        /// Allocates an object that can map some kinds of ILocation objects to IPrimarySourceLocation objects. 
+        /// For example, a PDB reader that maps offsets in an IL stream to source locations.
+        /// </summary>
+        public PdbReader(Stream pdbStream)
         {
-            this.PageSize = pageSize;
-            this.Reader = reader;
+            Init(pdbStream);
         }
 
-        internal void Seek(int page, int offset)
+        /// <summary>
+        /// Constructs a PdbReader from a path on disk.
+        /// </summary>
+        /// <param name="fileName">The pdb on disk to load.</param>
+        public PdbReader(string fileName)
         {
-            Reader.Seek(page * PageSize + offset, SeekOrigin.Begin);
+            using (FileStream fs = File.OpenRead(fileName))
+                Init(fs);
         }
 
-        internal void Read(byte[] bytes, int offset, int count)
+        private void Init(Stream pdbStream)
         {
-            Reader.Read(bytes, offset, count);
+            foreach (PdbFunction pdbFunction in PdbFile.LoadFunctions(pdbStream, true, out _ver, out _sig, out _age, out _guid, out _sources))
+                _pdbFunctionMap[pdbFunction.Token] = pdbFunction;
         }
 
-        internal int PagesFromSize(int size)
+        // TODO: public
+        internal IEnumerable<PdbSource> Sources { get { return _sources; } }
+
+        // TODO: public
+        internal IEnumerable<PdbFunction> Functions { get { return _pdbFunctionMap.Values; } }
+
+        public int Version { get { return _ver; } }
+        public Guid Signature { get { return _guid; } }
+        public int Age { get { return _age; } }
+
+        /// <summary>
+        /// Closes all of the source files that have been opened to provide the contents source locations corresponding to IL offsets.
+        /// </summary>
+        public void Dispose()
         {
-            return (size + PageSize - 1) / (PageSize);
+            this.Close();
+            GC.SuppressFinalize(this);
         }
 
-        //internal int PageSize {
-        //  get { return pageSize; }
-        //}
+        /// <summary>
+        /// Closes all of the source files that have been opened to provide the contents source locations corresponding to IL offsets.
+        /// </summary>
+        ~PdbReader()
+        {
+            this.Close();
+        }
 
-        internal readonly int PageSize;
-        internal readonly Stream Reader;
+        private void Close()
+        {
+            foreach (var source in _sourceFilesOpenedByReader)
+                source.Dispose();
+        }
+
+        
+        public PdbFunction GetPdbFunctionFor(uint methodToken)
+        {
+            PdbFunction result = null;
+            _pdbFunctionMap.TryGetValue(methodToken, out result);
+            return result;
+        }
     }
 }
