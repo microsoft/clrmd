@@ -224,12 +224,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return new ulong[0];
 
             int needed;
-            if (_sos.GetAssemblyList(appDomain, 0, null, out needed) < 0)
-                return null;
+            if (count <= 0)
+            {
+                if (_sos.GetAssemblyList(appDomain, 0, null, out needed) < 0)
+                    return new ulong[0];
 
-            ulong[] modules = new ulong[needed];
-            if (_sos.GetAssemblyList(appDomain, needed, modules, out needed) < 0)
-                return null;
+                count = needed;
+            }
+
+            ulong[] modules = new ulong[count];
+
+            if (_sos.GetAssemblyList(appDomain, modules.Length, modules, out needed) < 0)
+                return new ulong[0];
 
             return modules;
         }
@@ -343,9 +349,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IAppDomainData GetAppDomainData(ulong addr)
         {
-            LegacyAppDomainData data;
+            LegacyAppDomainData data = new LegacyAppDomainData(); ;
             if (_sos.GetAppDomainData(addr, out data) < 0)
-                return null;
+            {
+                // We can face an exception while walking domain data if we catch the process
+                // at a bad state.  As a workaround we will return partial data if data.Address
+                // and data.StubHeap are set.
+                if (data.Address != addr && data.StubHeap != 0)
+                    return null;
+            }
+
             return data;
         }
 
