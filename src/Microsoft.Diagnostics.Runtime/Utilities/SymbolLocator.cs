@@ -185,30 +185,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (File.Exists(filePath))
             {
-                Dia2Lib.IDiaDataSource source = null;
-                Dia2Lib.IDiaSession session = null;
                 try
                 {
-                    source = DiaLoader.GetDiaSourceObject();
-                    source.loadDataFromPdb(filePath);
-                    source.openSession(out session);
-
-                    guid = session.globalScope.guid;
-                    age = (int)session.globalScope.age;
+                    using (PdbReader reader = new PdbReader(filePath))
+                    {
+                        guid = reader.Signature;
+                        age = reader.Age;
+                    }
 
                     return true;
                 }
                 catch (Exception)
                 {
                     // TODO: This should be a more specific catch.
-                }
-                finally
-                {
-                    if (source != null)
-                        Marshal.FinalReleaseComObject(source);
-
-                    if (session != null)
-                        Marshal.FinalReleaseComObject(session);
                 }
             }
 
@@ -828,7 +817,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
     internal class FileLoader
     {
-        private Dictionary<string, SymbolModule> _moduleCache = new Dictionary<string, SymbolModule>(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
 
 
@@ -857,28 +845,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return result;
-        }
-
-        public SymbolModule LoadPdb(string pdbPath)
-        {
-            if (string.IsNullOrEmpty(pdbPath))
-                return null;
-
-            SymbolModule result;
-            if (_moduleCache.TryGetValue(pdbPath, out result))
-                return result;
-
-            try
-            {
-                result = new SymbolModule(new SymbolReader(null, null), pdbPath);
-                _moduleCache[pdbPath] = result;
-                return result;
-            }
-            catch
-            {
-            }
-
-            return null;
         }
     }
 }

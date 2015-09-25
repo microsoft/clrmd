@@ -90,35 +90,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sig;
         }
 
-        public override SourceLocation GetSourceLocationForOffset(Address nativeOffset)
-        {
-            ClrType type = Type;
-            if (type == null)
-                return null;
-
-            DesktopModule module = (DesktopModule)type.Module;
-            if (module == null)
-                return null;
-
-            if (!module.IsPdbLoaded)
-            {
-                string val = module.TryDownloadPdb();
-                if (val == null)
-                    return null;
-
-                module.LoadPdb(val);
-                if (!module.IsPdbLoaded)
-                    return null;
-            }
-
-            ILToNativeMap[] map = ILOffsetMap;
-            if (map == null)
-                return null;
-
-            int ilOffset = GetILOffset(nativeOffset);
-            return module.GetSourceInformation(MetadataToken, ilOffset);
-        }
-
         public override int GetILOffset(ulong addr)
         {
             ILToNativeMap[] map = ILOffsetMap;

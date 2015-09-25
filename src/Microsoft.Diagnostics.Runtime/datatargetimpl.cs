@@ -198,23 +198,6 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules;
         }
 
-        internal override string ResolveSymbol(ulong addr)
-        {
-            ModuleInfo module = FindModule(addr);
-            if (module == null)
-                return null;
-
-            string pdbFile = SymbolLocator.FindPdb(module);
-            if (pdbFile == null)
-                return null;
-
-            SymbolModule sym = FileLoader.LoadPdb(pdbFile);
-            if (sym == null)
-                return null;
-
-            return sym.FindNameForRva((uint)(addr - module.ImageBase));
-        }
-
         private ModuleInfo FindModule(ulong addr)
         {
             if (_modules == null)

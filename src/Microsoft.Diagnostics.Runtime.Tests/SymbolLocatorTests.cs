@@ -27,12 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             SymbolLocator locator = new DefaultSymbolLocator();
             locator.SymbolCache = tmpPath;
-
-            var sourceBase = new DirectoryInfo(Environment.CurrentDirectory).Parent.Parent.Parent;
-            string msdiaPath = Path.Combine(sourceBase.FullName, "Microsoft.Diagnostics.Runtime", "Refs", IntPtr.Size == 4 ? "x86" : "amd64", "msdia120.dll");
-            IntPtr loadLibraryResult = Native.LoadLibraryEx(msdiaPath, 0, Native.LoadLibraryFlags.NoFlags);
-            Assert.AreNotEqual(IntPtr.Zero, loadLibraryResult);
-
             return locator;
         }
 
