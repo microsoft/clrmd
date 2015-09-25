@@ -38,10 +38,6 @@
     <DocumentationFile>bin\Release\Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Dia2Lib">
-      <HintPath>Refs\Dia2Lib.dll</HintPath>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -129,11 +125,32 @@
     <Compile Include="Utilities\DirectoryUtilities.cs" />
     <Compile Include="Utilities\DumpReader.cs" />
     <Compile Include="Utilities\FileUtilities.cs" />
+    <Compile Include="Utilities\PDB\BitAccess.cs" />
+    <Compile Include="Utilities\PDB\BitSet.cs" />
+    <Compile Include="Utilities\PDB\CvInfo.cs" />
+    <Compile Include="Utilities\PDB\DataStream.cs" />
+    <Compile Include="Utilities\PDB\DbiDbgHdr.cs" />
+    <Compile Include="Utilities\PDB\DbiHeader.cs" />
+    <Compile Include="Utilities\PDB\DbiModuleInfo.cs" />
+    <Compile Include="Utilities\PDB\DbiSecCon.cs" />
+    <Compile Include="Utilities\PDB\MsfDirectory.cs" />
+    <Compile Include="Utilities\PDB\PdbConstant.cs" />
+    <Compile Include="Utilities\PDB\PdbDebugException.cs" />
+    <Compile Include="Utilities\PDB\PdbException.cs" />
+    <Compile Include="Utilities\PDB\PdbFile.cs" />
+    <Compile Include="Utilities\PDB\PdbFileHeader.cs" />
+    <Compile Include="Utilities\PDB\PdbFunction.cs" />
+    <Compile Include="Utilities\PDB\PdbSequencePoint.cs" />
+    <Compile Include="Utilities\PDB\PdbSequencePointCollection.cs" />
+    <Compile Include="Utilities\PDB\PdbStreamHelper.cs" />
+    <Compile Include="Utilities\PDB\PdbScope.cs" />
+    <Compile Include="Utilities\PDB\PdbSlot.cs" />
+    <Compile Include="Utilities\PDB\PdbSource.cs" />
+    <Compile Include="Utilities\PDB\PdbReader.cs" />
     <Compile Include="Utilities\pefile.cs" />
     <Compile Include="Utilities\SymbolLocator.Async.cs" />
     <Compile Include="Utilities\SymbolLocator.cs" />
     <Compile Include="Utilities\SymbolPath.cs" />
-    <Compile Include="Utilities\SymbolReader.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

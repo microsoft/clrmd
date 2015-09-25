@@ -790,7 +790,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (fileVersionIdx >= 0)
             {
                 int valIdx = fileVersionIdx + fileVersionKey.Length;
-                for (;;)
+                for (; ;)
                 {
                     valIdx++;
                     if (valIdx >= dataAsString.Length)

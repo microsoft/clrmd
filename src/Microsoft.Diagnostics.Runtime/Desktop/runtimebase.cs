@@ -775,7 +775,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ILToNativeMap[] GetILMap(Address ip)
         {
-            ILToNativeMap[] result = null;
+            List<ILToNativeMap> list = null;
+            ILToNativeMap[] tmp = null;
 
             ulong handle;
             int res = _dacInterface.StartEnumMethodInstancesByAddress(ip, null, out handle);
@@ -785,26 +786,54 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             object objMethod;
             res = _dacInterface.EnumMethodInstanceByAddress(ref handle, out objMethod);
 
-            if (res == 0)
+            while (res == 0)
             {
                 IXCLRDataMethodInstance method = (IXCLRDataMethodInstance)objMethod;
 
                 uint needed = 0;
                 res = method.GetILAddressMap(0, out needed, null);
-
+                
                 if (res == 0)
                 {
-                    result = new ILToNativeMap[needed];
-                    res = method.GetILAddressMap(needed, out needed, result);
+                    tmp = new ILToNativeMap[needed];
+                    res = method.GetILAddressMap(needed, out needed, tmp);
+
+                    for (int i = 0; i < tmp.Length; i++)
+                    {
+                        // There seems to be a bug in IL to native mappings where a throw statement
+                        // may end up with an end address lower than the start address.  This is a
+                        // workaround for that issue.
+                        if (tmp[i].StartAddress > tmp[i].EndAddress)
+                        {
+                            if (i + 1 == tmp.Length)
+                                tmp[i].EndAddress = tmp[i].StartAddress + 0x20;
+                            else
+                                tmp[i].EndAddress = tmp[i + 1].StartAddress - 1;
+                        }
+                    }
 
                     if (res != 0)
-                        result = null;
+                        tmp = null;
                 }
 
-                _dacInterface.EndEnumMethodInstancesByAddress(handle);
+                res = _dacInterface.EnumMethodInstanceByAddress(ref handle, out objMethod);
+                if (res == 0 && tmp != null)
+                {
+                    if (list == null)
+                        list = new List<ILToNativeMap>();
+
+                    list.AddRange(tmp);
+                }
             }
 
-            return result;
+            if (list != null)
+            {
+                list.AddRange(tmp);
+                return list.ToArray();
+            }
+
+            _dacInterface.EndEnumMethodInstancesByAddress(handle);
+            return tmp;
         }
 
         #endregion

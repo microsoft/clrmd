@@ -4,16 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Address = System.UInt64;
-using System.Text;
-using System.Collections;
 using System.IO;
-using System.Reflection;
-using Microsoft.Diagnostics.Runtime;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using Dia2Lib;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -45,79 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Address _address;
         private Address _assemblyAddress;
         private bool _typesLoaded;
-        private SymbolModule _symbols;
-        private PEFile _peFile;
-
-
-        public override SourceLocation GetSourceInformation(ClrMethod method, int ilOffset)
-        {
-            if (method == null)
-                throw new ArgumentNullException("method");
-
-            if (method.Type != null && method.Type.Module != this)
-                throw new InvalidOperationException("Method not in this module.");
-
-            return GetSourceInformation(method.MetadataToken, ilOffset);
-        }
-
-        public override SourceLocation GetSourceInformation(uint token, int ilOffset)
-        {
-            if (_symbols == null)
-                return null;
-
-            return _symbols.SourceLocationForManagedCode(token, ilOffset);
-        }
-
-        public override bool IsPdbLoaded { get { return _symbols != null; } }
-
-        public override bool IsMatchingPdb(string pdbPath)
-        {
-            if (_peFile == null)
-                _peFile = new PEFile(new ReadVirtualStream(_runtime.DataReader, (long)_imageBase, (long)_size), true);
-
-            string pdbName;
-            Guid pdbGuid;
-            int rev;
-            if (!_peFile.GetPdbSignature(out pdbName, out pdbGuid, out rev))
-                throw new ClrDiagnosticsException("Failed to get PDB signature from module.", ClrDiagnosticsException.HR.DataRequestError);
-
-            //todo: fix/release
-            IDiaDataSource source = DiaLoader.GetDiaSourceObject();
-            IDiaSession session;
-            source.loadDataFromPdb(pdbPath);
-            source.openSession(out session);
-            return pdbGuid == session.globalScope.guid;
-        }
-
-        public override void LoadPdb(string path)
-        {
-            _symbols = _runtime.DataTarget.FileLoader.LoadPdb(path);
-        }
-
-
-        public override object PdbInterface
-        {
-            get
-            {
-                if (_symbols == null)
-                    return null;
-
-                return _symbols.Session;
-            }
-        }
-
-        public override string TryDownloadPdb()
-        {
-            var dataTarget = _runtime.DataTarget;
-
-            string pdbName;
-            Guid pdbGuid;
-            int rev;
-            if (!_peFile.GetPdbSignature(out pdbName, out pdbGuid, out rev))
-                throw new ClrDiagnosticsException("Failed to get PDB signature from module.", ClrDiagnosticsException.HR.DataRequestError);
-
-            return _runtime.DataTarget.SymbolLocator.FindPdb(pdbName, pdbGuid, rev);
-        }
         
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
         {
@@ -434,40 +355,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override Address AssemblyId
         {
             get { return _id; }
-        }
-
-        public override bool IsPdbLoaded
-        {
-            get { return false; }
-        }
-
-        public override bool IsMatchingPdb(string pdbPath)
-        {
-            return false;
-        }
-
-        public override void LoadPdb(string path)
-        {
-        }
-
-        public override object PdbInterface
-        {
-            get { return null; }
-        }
-
-        public override string TryDownloadPdb()
-        {
-            return null;
-        }
-
-        public override SourceLocation GetSourceInformation(uint token, int ilOffset)
-        {
-            return null;
-        }
-
-        public override SourceLocation GetSourceInformation(ClrMethod method, int ilOffset)
-        {
-            return null;
         }
     }
 }

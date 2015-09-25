@@ -79,19 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return sb.ToString();
         }
-
-        public override SourceLocation GetFileAndLineNumber()
-        {
-            if (_type == ClrStackFrameType.Runtime)
-                return null;
-
-            ClrMethod method = Method;
-            if (method == null)
-                return null;
-
-            return method.GetSourceLocationForOffset(_ip - method.NativeCode);
-        }
-
+        
         public DesktopStackFrame(DesktopRuntimeBase runtime, ulong ip, ulong sp, ulong md)
         {
             _runtime = runtime;

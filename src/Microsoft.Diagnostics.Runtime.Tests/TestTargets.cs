@@ -33,9 +33,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private string _miniDumpPath;
         private string _fullDumpPath;
 
+        public string Executable { get { Init();  return _executable; } }
+        public string Pdb { get { Init(); return Path.ChangeExtension(_executable, "pdb"); } }
+
+        public string Source { get { return _source; } }
+
         public TestTarget(string source)
         {
-            _source = source;
+            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
         }
 
         public DataTarget LoadMiniDump()
@@ -62,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (_executable != null)
                     return;
 
-                string executable = CompileCSharp(Path.Combine("Targets", _source));
+                string executable = CompileCSharp(_source);
                 WriteCrashDumps(executable);
 
                 _executable = executable;

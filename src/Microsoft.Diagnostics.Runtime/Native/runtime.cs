@@ -270,13 +270,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _threads = threads.ToArray();
         }
 
-
-
-        internal string ResolveSymbol(ulong eetype)
-        {
-            return DataTarget.ResolveSymbol(eetype);
-        }
-
         #region Native Implementation
 
         internal override ClrAppDomain GetAppDomainByAddress(Address addr)

@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -158,66 +158,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Determines if a given pdb on disk matches a given Guid and age.
-        /// </summary>
-        /// <param name="filePath">The path on disk of a pdb to check.</param>
-        /// <param name="guid">The guid to compare to.</param>
-        /// <param name="age">The age to compare to.</param>
-        /// <returns>True if they match, false if they do not.</returns>
-        public static bool PdbMatches(string filePath, Guid guid, int age)
-        {
-            Guid fileGuid;
-            int fileAge;
-            if (!GetPdbInfo(filePath, out fileGuid, out fileAge))
-                return false;
-
-            return guid == fileGuid && age == fileAge;
-        }
-
-        /// <summary>
-        /// Returns the guid and age of a pdb on disk.
-        /// </summary>
-        /// <param name="filePath">The pdb on disk to load.</param>
-        /// <param name="guid">The guid of the pdb on disk.</param>
-        /// <param name="age">The age of the pdb on disk.</param>
-        /// <returns>True if the information was successfully loaded, false if the pdb could not be found or loaded.</returns>
-        public static bool GetPdbInfo(string filePath, out Guid guid, out int age)
-        {
-            if (File.Exists(filePath))
-            {
-                Dia2Lib.IDiaDataSource source = null;
-                Dia2Lib.IDiaSession session = null;
-                try
-                {
-                    source = DiaLoader.GetDiaSourceObject();
-                    source.loadDataFromPdb(filePath);
-                    source.openSession(out session);
-
-                    guid = session.globalScope.guid;
-                    age = (int)session.globalScope.age;
-                    
-                    return true;
-                }
-                catch (Exception)
-                {
-                    // TODO: This should be a more specific catch.
-                }
-                finally
-                {
-                    if (source != null)
-                        Marshal.FinalReleaseComObject(source);
-
-                    if (session != null)
-                        Marshal.FinalReleaseComObject(session);
-                }
-            }
-
-            guid = Guid.Empty;
-            age = 0;
-            return false;
-        }
-
-        /// <summary>
         /// Attempts to locate a binary via the symbol server.  This function will then copy the file
         /// locally to the symbol cache and return the location of the local file on disk.
         /// </summary>
@@ -310,11 +250,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="pdbName"></param>
         /// <param name="guid"></param>
-        /// <param name="revision"></param>
+        /// <param name="age"></param>
         /// <returns></returns>
-        protected virtual bool ValidatePdb(string pdbName, Guid guid, int revision)
+        protected virtual bool ValidatePdb(string pdbName, Guid guid, int age)
         {
-            return PdbMatches(pdbName, guid, revision);
+            try
+            {
+                Guid fileGuid;
+                int fileAge;
+                PdbReader.GetPdbProperties(pdbName, out fileGuid, out fileAge);
+
+                return guid == fileGuid && age == fileAge;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -505,7 +456,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     }
                 }
             }
-            
+
             SetPdbEntry(missingPdbs, entry, null);
             return null;
         }
@@ -523,7 +474,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             string fullPath = fileName;
             fileName = Path.GetFileName(fullPath).ToLower();
-            
+
             // First see if we already have the result cached.
             FileEntry entry = new FileEntry(fileName, buildTimeStamp, imageSize);
             string result = GetFileEntry(entry);
@@ -711,7 +662,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-
 #if V2_SUPPORT
         private Dictionary<FileEntry, string> _binCache = new Dictionary<FileEntry, string>();
         private Dictionary<PdbEntry, string> _pdbCache = new Dictionary<PdbEntry, string>();
@@ -829,9 +779,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
     internal class FileLoader
     {
-        private Dictionary<string, SymbolModule> _moduleCache = new Dictionary<string, SymbolModule>(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
-        
+
 
         public PEFile LoadBinary(string fileName)
         {
@@ -858,28 +807,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return result;
-        }
-
-        public SymbolModule LoadPdb(string pdbPath)
-        {
-            if (string.IsNullOrEmpty(pdbPath))
-                return null;
-
-            SymbolModule result;
-            if (_moduleCache.TryGetValue(pdbPath, out result))
-                return result;
-
-            try
-            {
-                result = new SymbolModule(new SymbolReader(null, null), pdbPath);
-                _moduleCache[pdbPath] = result;
-                return result;
-            }
-            catch
-            {
-            }
-
-            return null;
         }
     }
 }

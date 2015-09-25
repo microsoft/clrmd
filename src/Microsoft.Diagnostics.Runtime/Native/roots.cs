@@ -86,21 +86,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public void Callback(IntPtr token, ulong addr, ulong obj, int pinned, int interior)
         {
-            string name = name = _runtime.ResolveSymbol(addr);
-            if (name == null)
-            {
-                name = addr.ToString("X");
-            }
-            else
-            {
-                int index = name.IndexOf('!');
-                if (index >= 0)
-                    name = name.Substring(index + 1);
-
-                name = string.Format("{0:X}: {1}", addr, name);
-            }
-
-            name = "static var " + name;
+            // TODO:  Resolve name of addr.
+            string name = "static var " + addr.ToString();
             var type = _heap.GetObjectType(obj);
             Roots.Add(new NativeStaticVar(_runtime, addr, obj, type, name, interior != 0, pinned != 0));
         }

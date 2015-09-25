@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
-using Dia2Lib;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Address = System.UInt64;
 
@@ -1531,7 +1530,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// not have PDBs loaded).
         /// </summary>
         /// <returns>The file and line number for this stack frame, null if not found.</returns>
-        public abstract SourceLocation GetFileAndLineNumber();
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual SourceLocation GetFileAndLineNumber() { return null; }
 
         /// <summary>
         /// Returns the module name to use for building the stack trace.
@@ -1564,32 +1564,33 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A SourceLocation represents a point in the source code.  That is the file and the line number.  
     /// </summary>
+    [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
     public class SourceLocation
     {
         /// <summary>
         /// The source file for the code
         /// </summary>
-        public string FilePath { get { return _source.sourceFile.fileName; } }
+        public string FilePath { get { return null; } }
 
         /// <summary>
         /// The line number for the code.
         /// </summary>
-        public int LineNumber { get { return (int)_source.lineNumber; } }
+        public int LineNumber { get { return 0; } }
 
         /// <summary>
         /// The end line number of the location (if multiline this will be different from LineNumber).
         /// </summary>
-        public int LineNumberEnd { get { return (int)_source.lineNumberEnd; } }
+        public int LineNumberEnd { get { return 0; } }
 
         /// <summary>
         /// The start column of the source line.
         /// </summary>
-        public int ColStart { get { return (int)_source.columnNumber; } }
+        public int ColStart { get { return 0; } }
 
         /// <summary>
         /// The end column of the source line.
         /// </summary>
-        public int ColEnd { get { return (int)_source.columnNumberEnd; } }
+        public int ColEnd { get { return 0; } }
 
         /// <summary>
         /// Generates a human readable form of the source location.
@@ -1605,16 +1606,6 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 return string.Format("{0}:{1}-{2}", FilePath, line, lineEnd);
         }
-
-
-        #region private
-        internal SourceLocation(IDiaLineNumber source)
-        {
-            _source = source;
-        }
-
-        private IDiaLineNumber _source;
-        #endregion
     }
 
     /// <summary>
@@ -1918,7 +1909,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if ClrMD has loaded the the PDB for this module into memory.
         /// </summary>
-        public abstract bool IsPdbLoaded { get; }
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual bool IsPdbLoaded { get { return false; } }
 
         /// <summary>
         /// Determines whether a PDB on disk matches this module.  (Note that TryDownloadPdb
@@ -1927,20 +1919,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="pdbPath">The location of the PDB on disk.</param>
         /// <returns>True if the pdb matches, false otherwise.</returns>
-        public abstract bool IsMatchingPdb(string pdbPath);
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual bool IsMatchingPdb(string pdbPath) { return false; }
 
         /// <summary>
         /// Loads the pdb for this module.
         /// </summary>
         /// <param name="path">The path to the PDB on disk.</param>
-        public abstract void LoadPdb(string path);
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual void LoadPdb(string path) { }
 
         /// <summary>
         /// Attempts to download the PDB for this module from the symbol server.
         /// </summary>
         /// <returns>The path on disk of the downloaded PDB, or null if not found.</returns>
         [Obsolete("Use TryDownloadPdb() instead.")]
-        public virtual string TryDownloadPdb(ISymbolNotification notification) { return TryDownloadPdb(); }
+        public virtual string TryDownloadPdb(ISymbolNotification notification) { return null; }
 
         /// <summary>
         /// The ISymbolNotification to use if none is specified.
@@ -1952,12 +1946,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Attempts to download the PDB for this module from the symbol server.
         /// </summary>
         /// <returns>The path on disk of the downloaded PDB, or null if not found.</returns>
-        public abstract string TryDownloadPdb();
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual string TryDownloadPdb() { return null; }
 
         /// <summary>
         /// Returns the IDiaSession interface if the pdb is loaded for this module.
         /// </summary>
-        public abstract object PdbInterface { get; }
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual object PdbInterface { get { return null; } }
 
         /// <summary>
         /// Gets the source location of a given metadata token for a function and offset.
@@ -1965,7 +1961,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="mdMethodToken">A method def token (ClrMethod.MetadataToken).</param>
         /// <param name="ilOffset">The il offset to look up the source information.</param>
         /// <returns>The SourceLocation for the given IL offset, or null if no mapping exists.</returns>
-        public abstract SourceLocation GetSourceInformation(uint mdMethodToken, int ilOffset);
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual SourceLocation GetSourceInformation(uint mdMethodToken, int ilOffset) { return null; }
 
         /// <summary>
         /// Gets the source location of a given metadata token for a function and offset.
@@ -1973,7 +1970,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="method">The method to look up the source information.</param>
         /// <param name="ilOffset">The il offset to look up the source information.</param>
         /// <returns>The SourceLocation for the given IL offset, or null if no mapping exists.</returns>
-        public abstract SourceLocation GetSourceInformation(ClrMethod method, int ilOffset);
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
+        public virtual SourceLocation GetSourceInformation(ClrMethod method, int ilOffset) { return null; }
 
         /// <summary>
         /// Returns the name of the assembly that this module is defined in.
@@ -3308,8 +3306,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// IDisposable implementation.
         /// </summary>
         public abstract void Dispose();
-
-        abstract internal string ResolveSymbol(Address addr);
     }
 
 
@@ -4210,7 +4206,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="nativeOffset">The offset within the method (not the address in memory) of the instruction pointer.</param>
         /// <returns>The file and line number for the given offset.</returns>
-        abstract public SourceLocation GetSourceLocationForOffset(Address nativeOffset);
+        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb")]
+        virtual public SourceLocation GetSourceLocationForOffset(Address nativeOffset) { return null; }
+        
+        /// <summary>
+        /// Gets the ILOffset of the given address within this method.
+        /// </summary>
+        /// <param name="addr">The absolute address of the code (not a relative offset).</param>
+        /// <returns>The IL offset of the given address.</returns>
+        abstract public int GetILOffset(ulong addr);
 
         /// <summary>
         /// Returns the way this method was compiled.
@@ -4283,6 +4287,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns if this method is abstract.
         /// </summary>
         abstract public bool IsAbstract { get; }
+
+        /// <summary>
+        /// Returns whether this method is an instance constructor.
+        /// </summary>
+        virtual public bool IsConstructor { get { return Name == ".ctor"; } }
+
+        /// <summary>
+        /// Returns whether this method is a static constructor.
+        /// </summary>
+        virtual public bool IsClassConstructor { get { return Name == ".cctor"; } }
     }
 
     /// <summary>

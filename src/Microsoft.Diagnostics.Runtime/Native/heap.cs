@@ -118,14 +118,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 canonType = tmp;
             }
 
-            string name = NativeRuntime.ResolveSymbol(eeType);
-            if (string.IsNullOrEmpty(name))
-            {
-                name = NativeRuntime.ResolveSymbol(canonType);
-                if (name == null)
-                    name = string.Format("unknown type {0:x}", eeType);
-            }
-
+            // TODO:  NativeRuntime needs to resolve addresses into eetype names.
+            string name = string.Format("type names not impl {0:x}", eeType);
 
             int len = name.Length;
             if (name.EndsWith("::`vftable'"))
