@@ -21,6 +21,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         private int _age;
         private Guid _guid;
 
+
+        public static void GetPdbProperties(string pdbFile, out Guid signature, out int age)
+        {
+            BitAccess bits = new BitAccess(512 * 1024);
+            using (FileStream pdbStream = File.OpenRead(pdbFile))
+            {
+                PdbFileHeader header = new PdbFileHeader(pdbStream, bits);
+                PdbStreamHelper reader = new PdbStreamHelper(pdbStream, header.PageSize);
+                MsfDirectory dir = new MsfDirectory(reader, header, bits);
+
+                dir._streams[1].Read(reader, bits);
+
+                int ver, sig;
+                bits.ReadInt32(out ver);    //  0..3  Version
+                bits.ReadInt32(out sig);    //  4..7  Signature
+                bits.ReadInt32(out age);    //  8..11 Age
+                bits.ReadGuid(out signature);       // 12..27 GUID
+            }
+        }
+
         /// <summary>
         /// Allocates an object that can map some kinds of ILocation objects to IPrimarySourceLocation objects. 
         /// For example, a PDB reader that maps offsets in an IL stream to source locations.

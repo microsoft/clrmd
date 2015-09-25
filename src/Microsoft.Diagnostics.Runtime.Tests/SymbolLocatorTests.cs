@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -118,7 +119,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.IsNotNull(pdb);
             Assert.IsTrue(File.Exists(pdb));
 
-            Assert.IsTrue(SymbolLocator.PdbMatches(pdb, WellKnownGuid, WellKnownAge));
+            Assert.IsTrue(PdbMatches(pdb, WellKnownGuid, WellKnownAge));
+        }
+
+        static bool PdbMatches(string pdb, Guid guid, int age)
+        {
+            Guid fileGuid;
+            int fileAge;
+            PdbReader.GetPdbProperties(pdb, out fileGuid, out fileAge);
+
+            return guid == fileGuid && age == fileAge;
         }
 
         [TestMethod]
@@ -160,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             
             Assert.IsNotNull(pdb);
             Assert.IsTrue(File.Exists(pdb));
-            Assert.IsTrue(SymbolLocator.PdbMatches(pdb, WellKnownGuid, WellKnownAge));
+            Assert.IsTrue(PdbMatches(pdb, WellKnownGuid, WellKnownAge));
 
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)

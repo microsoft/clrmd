@@ -17,16 +17,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void PdbGuidAgeTest()
         {
             int pdbAge;
-            Guid pdbGuid;
+            Guid pdbSignature;
+            PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out pdbSignature, out pdbAge);
+            
+            // Ensure we get the same answer a different way.
             using (PdbReader pdbReader = new PdbReader(TestTargets.NestedException.Pdb))
             {
-                pdbAge = pdbReader.Age;
-                pdbGuid = pdbReader.Signature;
+                Assert.AreEqual(pdbAge, pdbReader.Age);
+                Assert.AreEqual(pdbSignature, pdbReader.Signature);
             }
 
+            // Ensure the PEFile has the same signature/age.
             using (PEFile peFile = new PEFile(TestTargets.NestedException.Executable))
             {
-                Assert.AreEqual(peFile.PdbInfo.Guid, pdbGuid);
+                Assert.AreEqual(peFile.PdbInfo.Guid, pdbSignature);
                 Assert.AreEqual(peFile.PdbInfo.Revision, pdbAge);
             }
         }
