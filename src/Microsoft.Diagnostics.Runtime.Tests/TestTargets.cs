@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public TestTarget(string source)
         {
-            _source = Path.Combine("Targets", source);
+            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
         }
 
         public DataTarget LoadMiniDump()

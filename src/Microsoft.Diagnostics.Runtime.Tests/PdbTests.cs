@@ -46,6 +46,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 HashSet<int> sourceLines = new HashSet<int>();
                 using (PdbReader reader = new PdbReader(TestTargets.NestedException.Pdb))
                 {
+                    Assert.IsTrue(TestTargets.NestedException.Source.Equals(reader.Sources.Single().Name, StringComparison.OrdinalIgnoreCase));
+
                     var functions = from frame in thread.StackTrace
                                             where frame.Kind != ClrStackFrameType.Runtime
                                             select reader.GetFunctionFromToken(frame.Method.MetadataToken);
@@ -57,7 +59,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         foreach (int line in sourceFile.Lines.Select(l => l.LineBegin))
                             sourceLines.Add(line);
                     }
-                    
                 }
 
 
@@ -67,6 +68,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     curr++;
                     if (line.Contains("/* seq */"))
                         Assert.IsTrue(sourceLines.Contains(curr));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void PdbMethodTest()
+        {
+            // Ensure all methods in our source file is in the pdb.
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrModule module = runtime.EnumerateModules().Where(m => m.Name.Equals(TestTargets.NestedException.Executable, StringComparison.OrdinalIgnoreCase)).Single();
+                ClrType type = module.GetTypeByName("Program");
+
+                using (PdbReader pdb = new PdbReader(TestTargets.NestedException.Pdb))
+                {
+                    foreach (ClrMethod method in type.Methods)
+                    {
+                        // ignore inherited methods and constructors
+                        if (method.Type != type || method.IsConstructor || method.IsClassConstructor)
+                            continue;
+
+                        Assert.IsNotNull(pdb.GetFunctionFromToken(method.MetadataToken));
+                    }
                 }
             }
         }

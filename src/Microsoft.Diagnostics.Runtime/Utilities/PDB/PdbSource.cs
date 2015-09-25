@@ -6,16 +6,16 @@ using System;
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     /// <summary>
-    /// The source of this pdb.
+    /// A source file in the program.
     /// </summary>
     public class PdbSource
     {
         /// <summary>
-        /// The name of the pdb source.
+        /// The name of the source file.
         /// </summary>
         public string Name { get; private set; }
         /// <summary>
-        /// The DocType for this pdb source.
+        /// The DocType for this source.
         /// </summary>
         public Guid DocType { get; private set; }
 
