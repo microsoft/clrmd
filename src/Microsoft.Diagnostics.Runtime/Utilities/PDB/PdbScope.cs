@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbScope
+    public class PdbScope
     {
         public PdbConstant[] constants;
         public PdbSlot[] slots;

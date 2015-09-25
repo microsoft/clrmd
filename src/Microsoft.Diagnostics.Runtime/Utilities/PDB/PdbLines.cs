@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbLines
+    public class PdbLines
     {
         public PdbSource file;
         public PdbLine[] lines;

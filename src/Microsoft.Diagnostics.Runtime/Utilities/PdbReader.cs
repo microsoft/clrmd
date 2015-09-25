@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// An object that can map offsets in an IL stream to source locations and block scopes.
     /// </summary>
-    internal sealed class PdbReader :
+    public sealed class PdbReader :
       IDisposable
     {
         private IEnumerable<PdbSource> _sources;
@@ -28,16 +28,30 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public PdbReader(Stream pdbStream)
         {
-#if NO
-      this.host = host;
-#endif
+            Init(pdbStream);
+        }
+
+        /// <summary>
+        /// Constructs a PdbReader from a path on disk.
+        /// </summary>
+        /// <param name="fileName">The pdb on disk to load.</param>
+        public PdbReader(string fileName)
+        {
+            using (FileStream fs = File.OpenRead(fileName))
+                Init(fs);
+        }
+
+        private void Init(Stream pdbStream)
+        {
             foreach (PdbFunction pdbFunction in PdbFile.LoadFunctions(pdbStream, true, out _ver, out _sig, out _age, out _guid, out _sources))
                 _pdbFunctionMap[pdbFunction.token] = pdbFunction;
         }
 
-        public IEnumerable<PdbSource> Sources { get { return _sources; } }
+        // TODO: public
+        internal IEnumerable<PdbSource> Sources { get { return _sources; } }
 
-        public IEnumerable<PdbFunction> Functions { get { return _pdbFunctionMap.Values; } }
+        // TODO: public
+        internal IEnumerable<PdbFunction> Functions { get { return _pdbFunctionMap.Values; } }
 
         public int Version { get { return _ver; } }
         public Guid Signature { get { return _guid; } }
@@ -66,6 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 source.Dispose();
         }
 
+        
         public PdbFunction GetPdbFunctionFor(uint methodToken)
         {
             PdbFunction result = null;

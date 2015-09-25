@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbFunction
+    public class PdbFunction
     {
         static internal readonly Guid msilMetaData = new Guid(unchecked((int)0xc6ea3fc9), 0x59b3, 0x49d6, 0xbc, 0x25,
                                                             0x09, 0x02, 0xbb, 0xab, 0xb4, 0x60);

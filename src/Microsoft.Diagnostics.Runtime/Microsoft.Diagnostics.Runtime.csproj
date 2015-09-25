@@ -151,7 +151,7 @@
     <Compile Include="Utilities\PDB\PdbScope.cs" />
     <Compile Include="Utilities\PDB\PdbSlot.cs" />
     <Compile Include="Utilities\PDB\PdbSource.cs" />
-    <Compile Include="Utilities\PDB\SourceLocationProvider.cs" />
+    <Compile Include="Utilities\PdbReader.cs" />
     <Compile Include="Utilities\pefile.cs" />
     <Compile Include="Utilities\SymbolLocator.Async.cs" />
     <Compile Include="Utilities\SymbolLocator.cs" />

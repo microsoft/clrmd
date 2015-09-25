@@ -3,7 +3,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal struct PdbLine
+    public struct PdbLine
     {
         public uint offset;
         public uint lineBegin;
@@ -18,6 +18,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             this.colBegin = colBegin;
             this.lineEnd = lineEnd;
             this.colEnd = colEnd;
+        }
+
+        public override string ToString()
+        {
+            if (lineBegin == lineEnd)
+                return string.Format("iloffs: {0} line: {1}", offset, lineBegin);
+
+            return string.Format("iloffs: {0} lines: {1}-{2}", offset, lineBegin, lineEnd);
         }
     }
 }

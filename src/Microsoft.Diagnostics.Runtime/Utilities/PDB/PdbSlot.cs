@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbSlot
+    public class PdbSlot
     {
         public uint slot;
         public string name;

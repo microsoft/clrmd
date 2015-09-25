@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbSource
+    public class PdbSource
     {
         //internal uint index;
         public string name;

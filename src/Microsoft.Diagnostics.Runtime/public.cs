@@ -4212,6 +4212,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The file and line number for the given offset.</returns>
         abstract public SourceLocation GetSourceLocationForOffset(Address nativeOffset);
 
+        abstract public int GetILOffset(ulong addr);
+
         /// <summary>
         /// Returns the way this method was compiled.
         /// </summary>

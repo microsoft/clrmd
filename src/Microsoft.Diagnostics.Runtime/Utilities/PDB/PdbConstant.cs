@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    internal class PdbConstant
+    public class PdbConstant
     {
         internal string name;
         internal uint token;
