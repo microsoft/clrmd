@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     {
                         PdbLines sourceFile = function.SequencePoints.Single();
 
-                        foreach (int line in sourceFile.lines.Select(l => l.lineBegin))
+                        foreach (int line in sourceFile.Lines.Select(l => l.LineBegin))
                             sourceLines.Add(line);
                     }
                     

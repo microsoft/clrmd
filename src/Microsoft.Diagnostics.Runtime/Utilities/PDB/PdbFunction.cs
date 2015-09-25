@@ -14,31 +14,41 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         static internal readonly IComparer byAddress = new PdbFunctionsByAddress();
         static internal readonly IComparer byAddressAndToken = new PdbFunctionsByAddressAndToken();
         //static internal readonly IComparer byToken = new PdbFunctionsByToken();
-
-        internal uint token;
+        
         internal uint slotToken;
         //internal string name;
         //internal string module;
         //internal ushort flags;
-
-        internal uint segment;
-        internal uint address;
         //internal uint length;
 
         //internal byte[] metadata;
-        public PdbScope[] scopes;
-        internal PdbSlot[] slots;
-        internal PdbConstant[] constants;
-        internal string[] usedNamespaces;
-        internal PdbLines[] lines;
-        internal ushort[]/*?*/ usingCounts;
-#if NO
-    internal IEnumerable<INamespaceScope>/*?*/ namespaceScopes;
-#endif
+        internal PdbSlot[] Slots;
+        internal PdbConstant[] Constants;
+        internal string[] Namespaces;
+        internal ushort[]/*?*/ UsingCounts;
         internal string/*?*/ iteratorClass;
-#if NO
-    internal List<ILocalScope>/*?*/ iteratorScopes;
-#endif
+
+        /// <summary>
+        /// Sequence points of this function.
+        /// </summary>
+        public PdbLines[] SequencePoints
+        {
+            get; internal set;
+        }
+
+        /// <summary>
+        /// Metadata token of this function.
+        /// </summary>
+        public uint Token { get; internal set; }
+
+        /// <summary>
+        /// The scopes of this function.
+        /// </summary>
+        public PdbScope[] Scopes { get; internal set; }
+
+
+        internal uint Segment { get; set; }
+        internal uint Address { get; set; }
 
         private static string StripNamespace(string module)
         {
@@ -49,8 +59,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
             return module;
         }
-
-        public uint Token { get { return token; } }
 
         internal static PdbFunction[] LoadManagedFunctions(/*string module,*/
                                                            BitAccess bits, uint limit,
@@ -217,12 +225,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal PdbFunction(/*string module, */ManProcSym proc, BitAccess bits)
         {
-            this.token = proc.token;
+            this.Token = proc.token;
             //this.module = module;
             //this.name = proc.name;
             //this.flags = proc.flags;
-            this.segment = proc.seg;
-            this.address = proc.off;
+            this.Segment = proc.seg;
+            this.Address = proc.off;
             //this.length = proc.len;
 
             if (proc.seg != 1)
@@ -248,13 +256,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             int slot = 0;
             int constant = 0;
             int usedNs = 0;
-            scopes = new PdbScope[scopeCount + scope];
-            slots = new PdbSlot[slotCount];
-            constants = new PdbConstant[constantCount];
-            usedNamespaces = new string[usedNamespacesCount];
+            Scopes = new PdbScope[scopeCount + scope];
+            Slots = new PdbSlot[slotCount];
+            Constants = new PdbConstant[constantCount];
+            Namespaces = new string[usedNamespacesCount];
 
             if (scope > 0)
-                scopes[0] = new PdbScope(this.address, proc.len, slots, constants, usedNamespaces);
+                Scopes[0] = new PdbScope(this.Address, proc.len, Slots, Constants, Namespaces);
 
             while (bits.Position < proc.end)
             {
@@ -316,24 +324,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                             bits.SkipCString(out block.name);
                             bits.Position = stop;
 
-                            scopes[scope++] = new PdbScope(this.address, block, bits, out slotToken);
+                            Scopes[scope++] = new PdbScope(this.Address, block, bits, out slotToken);
                             bits.Position = (int)block.end;
                             break;
                         }
 
                     case SYM.S_MANSLOT:
                         uint typind;
-                        slots[slot++] = new PdbSlot(bits, out typind);
+                        Slots[slot++] = new PdbSlot(bits, out typind);
                         bits.Position = stop;
                         break;
 
                     case SYM.S_MANCONSTANT:
-                        constants[constant++] = new PdbConstant(bits);
+                        Constants[constant++] = new PdbConstant(bits);
                         bits.Position = stop;
                         break;
 
                     case SYM.S_UNAMESPACE:
-                        bits.ReadCString(out usedNamespaces[usedNs++]);
+                        bits.ReadCString(out Namespaces[usedNs++]);
                         bits.Position = stop;
                         break;
 
@@ -364,11 +372,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             {
                 throw new PdbDebugException("Missing S_END");
             }
-        }
-
-        public PdbLines[] SequencePoints
-        {
-            get { return lines; }
         }
 
         private void ReadCustomMetadata(BitAccess bits)
@@ -406,32 +409,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         {
             uint numberOfLocals;
             bits.ReadUInt32(out numberOfLocals);
-#if NO
-      this.iteratorScopes = new List<ILocalScope>((int)numberOfLocals);
-      while (numberOfLocals-- > 0) {
-        uint ilStartOffset;
-        uint ilEndOffset;
-        bits.ReadUInt32(out ilStartOffset);
-        bits.ReadUInt32(out ilEndOffset);
-        this.iteratorScopes.Add(new PdbIteratorScope(ilStartOffset, ilEndOffset-ilStartOffset));
-      }
-#endif
         }
-
-        //private void ReadForwardedToModuleInfo(BitAccess bits) {
-        //}
-
-        //private void ReadForwardInfo(BitAccess bits) {
-        //}
 
         private void ReadUsingInfo(BitAccess bits)
         {
             ushort numberOfNamespaces;
             bits.ReadUInt16(out numberOfNamespaces);
-            this.usingCounts = new ushort[numberOfNamespaces];
+            this.UsingCounts = new ushort[numberOfNamespaces];
             for (ushort i = 0; i < numberOfNamespaces; i++)
             {
-                bits.ReadUInt16(out this.usingCounts[i]);
+                bits.ReadUInt16(out this.UsingCounts[i]);
             }
         }
 
@@ -442,19 +429,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 PdbFunction fx = (PdbFunction)x;
                 PdbFunction fy = (PdbFunction)y;
 
-                if (fx.segment < fy.segment)
+                if (fx.Segment < fy.Segment)
                 {
                     return -1;
                 }
-                else if (fx.segment > fy.segment)
+                else if (fx.Segment > fy.Segment)
                 {
                     return 1;
                 }
-                else if (fx.address < fy.address)
+                else if (fx.Address < fy.Address)
                 {
                     return -1;
                 }
-                else if (fx.address > fy.address)
+                else if (fx.Address > fy.Address)
                 {
                     return 1;
                 }
@@ -472,48 +459,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 PdbFunction fx = (PdbFunction)x;
                 PdbFunction fy = (PdbFunction)y;
 
-                if (fx.segment < fy.segment)
+                if (fx.Segment < fy.Segment)
                 {
                     return -1;
                 }
-                else if (fx.segment > fy.segment)
+                else if (fx.Segment > fy.Segment)
                 {
                     return 1;
                 }
-                else if (fx.address < fy.address)
+                else if (fx.Address < fy.Address)
                 {
                     return -1;
                 }
-                else if (fx.address > fy.address)
+                else if (fx.Address > fy.Address)
                 {
                     return 1;
                 }
                 else
                 {
-                    if (fx.token < fy.token)
+                    if (fx.Token < fy.Token)
                         return -1;
-                    else if (fx.token > fy.token)
+                    else if (fx.Token > fy.Token)
                         return 1;
                     else
                         return 0;
                 }
             }
         }
-
-        //internal class PdbFunctionsByToken : IComparer {
-        //  public int Compare(Object x, Object y) {
-        //    PdbFunction fx = (PdbFunction)x;
-        //    PdbFunction fy = (PdbFunction)y;
-
-        //    if (fx.token < fy.token) {
-        //      return -1;
-        //    } else if (fx.token > fy.token) {
-        //      return 1;
-        //    } else {
-        //      return 0;
-        //    }
-        //  }
-
-        //}
     }
 }

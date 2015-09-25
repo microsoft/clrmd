@@ -7,9 +7,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     public class PdbSlot
     {
-        public uint slot;
-        public string name;
-        public ushort flags;
+        public uint Slot { get; private set; }
+        public string Name { get; private set; }
+        public ushort Flags { get; private set; }
         //internal uint segment;
         //internal uint address;
 
@@ -24,9 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadUInt16(out slot.flags);
             bits.ReadCString(out slot.name);
 
-            this.slot = slot.index;
-            this.name = slot.name;
-            this.flags = slot.flags;
+            this.Slot = slot.index;
+            this.Name = slot.name;
+            this.Flags = slot.flags;
             //this.segment = slot.segCod;
             //this.address = slot.offCod;
 

@@ -7,33 +7,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     public class PdbScope
     {
-        public PdbConstant[] constants;
-        public PdbSlot[] slots;
-        public PdbScope[] scopes;
-        public string[] usedNamespaces;
+        public PdbConstant[] Constants { get; private set; }
+        public PdbSlot[] Slots { get; private set; }
+        public PdbScope[] Scopes { get; private set; }
+        public string[] UsedNamespaces { get; private set; }
 
         //internal uint segment;
-        public uint address;
-        public uint offset;
-        public uint length;
+        public uint Address { get; private set; }
+        public uint Offset { get; private set; }
+        public uint Length { get; private set; }
 
         internal PdbScope(uint address, uint length, PdbSlot[] slots, PdbConstant[] constants, string[] usedNamespaces)
         {
-            this.constants = constants;
-            this.slots = slots;
-            this.scopes = new PdbScope[0];
-            this.usedNamespaces = usedNamespaces;
-            this.address = address;
-            this.offset = 0;
-            this.length = length;
+            this.Constants = constants;
+            this.Slots = slots;
+            this.Scopes = new PdbScope[0];
+            this.UsedNamespaces = usedNamespaces;
+            this.Address = address;
+            this.Offset = 0;
+            this.Length = length;
         }
 
         internal PdbScope(uint funcOffset, BlockSym32 block, BitAccess bits, out uint typind)
         {
             //this.segment = block.seg;
-            this.address = block.off;
-            this.offset = block.off - funcOffset;
-            this.length = block.len;
+            this.Address = block.off;
+            this.Offset = block.off - funcOffset;
+            this.Length = block.len;
             typind = 0;
 
             int constantCount;
@@ -41,10 +41,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             int slotCount;
             int namespaceCount;
             PdbFunction.CountScopesAndSlots(bits, block.end, out constantCount, out scopeCount, out slotCount, out namespaceCount);
-            constants = new PdbConstant[constantCount];
-            scopes = new PdbScope[scopeCount];
-            slots = new PdbSlot[slotCount];
-            usedNamespaces = new string[namespaceCount];
+            Constants = new PdbConstant[constantCount];
+            Scopes = new PdbScope[scopeCount];
+            Slots = new PdbSlot[slotCount];
+            UsedNamespaces = new string[namespaceCount];
             int constant = 0;
             int scope = 0;
             int slot = 0;
@@ -75,17 +75,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                             bits.SkipCString(out sub.name);
 
                             bits.Position = stop;
-                            scopes[scope++] = new PdbScope(funcOffset, sub, bits, out typind);
+                            Scopes[scope++] = new PdbScope(funcOffset, sub, bits, out typind);
                             break;
                         }
 
                     case SYM.S_MANSLOT:
-                        slots[slot++] = new PdbSlot(bits, out typind);
+                        Slots[slot++] = new PdbSlot(bits, out typind);
                         bits.Position = stop;
                         break;
 
                     case SYM.S_UNAMESPACE:
-                        bits.ReadCString(out usedNamespaces[usedNs++]);
+                        bits.ReadCString(out UsedNamespaces[usedNs++]);
                         bits.Position = stop;
                         break;
 
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         break;
 
                     case SYM.S_MANCONSTANT:
-                        constants[constant++] = new PdbConstant(bits);
+                        Constants[constant++] = new PdbConstant(bits);
                         bits.Position = stop;
                         break;
 

@@ -7,26 +7,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     internal class MsfDirectory
     {
-        internal MsfDirectory(PdbReader reader, PdbFileHeader head, BitAccess bits)
+        internal MsfDirectory(PdbStreamHelper reader, PdbFileHeader head, BitAccess bits)
         {
-            int pages = reader.PagesFromSize(head.directorySize);
+            int pages = reader.PagesFromSize(head.DirectorySize);
 
             // 0..n in page of directory pages.
-            bits.MinCapacity(head.directorySize);
-            int directoryRootPages = head.directoryRoot.Length;
-            int pagesPerPage = head.pageSize / 4;
+            bits.MinCapacity(head.DirectorySize);
+            int directoryRootPages = head.DirectoryRoot.Length;
+            int pagesPerPage = head.PageSize / 4;
             int pagesToGo = pages;
             for (int i = 0; i < directoryRootPages; i++)
             {
                 int pagesInThisPage = pagesToGo <= pagesPerPage ? pagesToGo : pagesPerPage;
-                reader.Seek(head.directoryRoot[i], 0);
-                bits.Append(reader.reader, pagesInThisPage * 4);
+                reader.Seek(head.DirectoryRoot[i], 0);
+                bits.Append(reader.Reader, pagesInThisPage * 4);
                 pagesToGo -= pagesInThisPage;
             }
             bits.Position = 0;
 
-            DataStream stream = new DataStream(head.directorySize, bits, pages);
-            bits.MinCapacity(head.directorySize);
+            DataStream stream = new DataStream(head.DirectorySize, bits, pages);
+            bits.MinCapacity(head.DirectorySize);
             stream.Read(reader, bits);
 
             // 0..3 in directory pages
@@ -38,21 +38,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(sizes);
 
             // n..m
-            streams = new DataStream[count];
+            _streams = new DataStream[count];
             for (int i = 0; i < count; i++)
             {
                 if (sizes[i] <= 0)
                 {
-                    streams[i] = new DataStream();
+                    _streams[i] = new DataStream();
                 }
                 else
                 {
-                    streams[i] = new DataStream(sizes[i], bits,
+                    _streams[i] = new DataStream(sizes[i], bits,
                                                 reader.PagesFromSize(sizes[i]));
                 }
             }
         }
 
-        internal DataStream[] streams;
+        internal DataStream[] _streams;
     }
 }

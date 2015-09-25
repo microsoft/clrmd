@@ -7,13 +7,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     public class PdbLines
     {
-        public PdbSource file;
-        public PdbLine[] lines;
+        public PdbSource File { get; private set; }
+        public PdbLine[] Lines { get; private set; }
 
         internal PdbLines(PdbSource file, uint count)
         {
-            this.file = file;
-            this.lines = new PdbLine[count];
+            File = file;
+            Lines = new PdbLine[count];
         }
     }
 }

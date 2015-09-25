@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void Init(Stream pdbStream)
         {
             foreach (PdbFunction pdbFunction in PdbFile.LoadFunctions(pdbStream, true, out _ver, out _sig, out _age, out _guid, out _sources))
-                _pdbFunctionMap[pdbFunction.token] = pdbFunction;
+                _pdbFunctionMap[pdbFunction.Token] = pdbFunction;
         }
 
         // TODO: public

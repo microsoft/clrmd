@@ -7,20 +7,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     public class PdbConstant
     {
-        internal string name;
-        internal uint token;
-        internal object value;
+        public string Name { get; private set; }
+        public uint Token { get; private set; }
+        public object Value { get; private set; }
 
         internal PdbConstant(BitAccess bits)
         {
-            bits.ReadUInt32(out this.token);
+            uint token;
+            bits.ReadUInt32(out token);
+            this.Token = token;
             byte tag1;
             bits.ReadUInt8(out tag1);
             byte tag2;
             bits.ReadUInt8(out tag2);
             if (tag2 == 0)
             {
-                this.value = tag1;
+                this.Value = tag1;
             }
             else if (tag2 == 0x80)
             {
@@ -29,51 +31,51 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                     case 0x00: //sbyte
                         sbyte sb;
                         bits.ReadInt8(out sb);
-                        this.value = sb;
+                        this.Value = sb;
                         break;
                     case 0x01: //short
                         short s;
                         bits.ReadInt16(out s);
-                        this.value = s;
+                        this.Value = s;
                         break;
                     case 0x02: //ushort
                         ushort us;
                         bits.ReadUInt16(out us);
-                        this.value = us;
+                        this.Value = us;
                         break;
                     case 0x03: //int
                         int i;
                         bits.ReadInt32(out i);
-                        this.value = i;
+                        this.Value = i;
                         break;
                     case 0x04: //uint
                         uint ui;
                         bits.ReadUInt32(out ui);
-                        this.value = ui;
+                        this.Value = ui;
                         break;
                     case 0x05: //float
-                        this.value = bits.ReadFloat();
+                        this.Value = bits.ReadFloat();
                         break;
                     case 0x06: //double
-                        this.value = bits.ReadDouble();
+                        this.Value = bits.ReadDouble();
                         break;
                     case 0x09: //long
                         long sl;
                         bits.ReadInt64(out sl);
-                        this.value = sl;
+                        this.Value = sl;
                         break;
                     case 0x0a: //ulong
                         ulong ul;
                         bits.ReadUInt64(out ul);
-                        this.value = ul;
+                        this.Value = ul;
                         break;
                     case 0x10: //string
                         string str;
                         bits.ReadBString(out str);
-                        this.value = str;
+                        this.Value = str;
                         break;
                     case 0x19: //decimal
-                        this.value = bits.ReadDecimal();
+                        this.Value = bits.ReadDecimal();
                         break;
                     default:
                         //TODO: error
@@ -84,7 +86,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             {
                 //TODO: error
             }
+
+            string name;
             bits.ReadCString(out name);
+            Name = name;
         }
     }
 }

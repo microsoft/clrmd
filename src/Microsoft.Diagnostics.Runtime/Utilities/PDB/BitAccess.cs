@@ -46,11 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             set { _offset = value; }
         }
         private int _offset;
-
-        //internal void WriteBuffer(Stream stream, int count) {
-        //  stream.Write(buffer, 0, count);
-        //}
-
+        
         internal void MinCapacity(int capacity)
         {
             if (_buffer.Length < capacity)
@@ -67,27 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 _offset++;
             }
         }
-
-        //internal void WriteInt32(int value) {
-        //  buffer[offset + 0] = (byte)value;
-        //  buffer[offset + 1] = (byte)(value >> 8);
-        //  buffer[offset + 2] = (byte)(value >> 16);
-        //  buffer[offset + 3] = (byte)(value >> 24);
-        //  offset += 4;
-        //}
-
-        //internal void WriteInt32(int[] values) {
-        //  for (int i = 0; i < values.Length; i++) {
-        //    WriteInt32(values[i]);
-        //  }
-        //}
-
-        //internal void WriteBytes(byte[] bytes) {
-        //  for (int i = 0; i < bytes.Length; i++) {
-        //    buffer[offset++] = bytes[i];
-        //  }
-        //}
-
+        
         internal void ReadInt16(out short value)
         {
             value = (short)((_buffer[_offset + 0] & 0xFF) |
@@ -235,15 +211,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadGuid(out Guid guid)
         {
-#if FULL_CLR
-    uint a;
-    ushort b;
-    ushort c;
-#else
-            int a;
-            short b;
-            short c;
-#endif
+            uint a;
+            ushort b;
+            ushort c;
             byte d;
             byte e;
             byte f;
@@ -252,16 +222,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             byte i;
             byte j;
             byte k;
-
-#if FULL_CLR
-    ReadUInt32(out a);
-    ReadUInt16(out b);
-    ReadUInt16(out c);
-#else
-            ReadInt32(out a);
-            ReadInt16(out b);
-            ReadInt16(out c);
-#endif
+            
+            ReadUInt32(out a);
+            ReadUInt16(out b);
+            ReadUInt16(out c);
             ReadUInt8(out d);
             ReadUInt8(out e);
             ReadUInt8(out f);

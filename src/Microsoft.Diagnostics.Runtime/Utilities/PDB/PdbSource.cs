@@ -7,25 +7,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     public class PdbSource
     {
-        //internal uint index;
-        public string name;
-        public Guid doctype;
-        public Guid language;
-        public Guid vendor;
-        public Guid algorithmId;
-        public byte[] checksum;
-        public byte[] source;
+        public string Name { get; private set; }
+        public Guid DocType { get; private set; }
+        public Guid Language { get; private set; }
+        public Guid Vendor { get; private set; }
+        public Guid AlgorithmId { get; private set; }
+        public byte[] Checksum { get; private set; }
+        public byte[] Source { get; private set; }
 
-        public PdbSource(/*uint index, */string name, Guid doctype, Guid language, Guid vendor, Guid algorithmId, byte[] checksum, byte[] source)
+        public PdbSource(string name, Guid doctype, Guid language, Guid vendor, Guid algorithmId, byte[] checksum, byte[] source)
         {
-            //this.index = index;
-            this.name = name;
-            this.doctype = doctype;
-            this.language = language;
-            this.vendor = vendor;
-            this.algorithmId = algorithmId;
-            this.checksum = checksum;
-            this.source = source;
+            Name = name;
+            DocType = doctype;
+            Language = language;
+            Vendor = vendor;
+            AlgorithmId = algorithmId;
+            Checksum = checksum;
+            Source = source;
         }
     }
 }

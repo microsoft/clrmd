@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -54,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
     // Version 1.30 2/20/2000
     //| <include path='docs/doc[@for="IntHashTable"]/*' />
     internal class IntHashTable
-    {//: IEnumerable {
+    {
      /*
        Implementation Notes:
 
@@ -403,16 +402,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         // Inserts an entry into this hashtable. This method is called from the Set
         // and Add methods. If the add parameter is true and the given key already
         // exists in the hashtable, an exception is thrown.
-        private void Insert(int key, Object nvalue, bool add)
+        private void Insert(int key, object nvalue, bool add)
         {
             if (key < 0)
-            {
-                throw new ArgumentException("Argument_KeyLessThanZero");
-            }
+                throw new ArgumentException(nameof(key));
+
             if (nvalue == null)
-            {
-                throw new ArgumentNullException("nvalue", "ArgumentNull_Value");
-            }
+                throw new ArgumentNullException(nameof(nvalue));
+
             if (_count >= _loadsize)
             {
                 expand();
@@ -535,81 +532,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 seed += incr;
             } while (true);
         }
-
-        // Returns the number of associations in this hashtable.
-        //
-        //| <include path='docs/doc[@for="IntHashTable.Count"]/*' />
-        //internal int Count {
-        //  get { return count; }
-        //}
-
-        // Implements an enumerator for a hashtable. The enumerator uses the
-        // internal version number of the hashtabke to ensure that no modifications
-        // are made to the hashtable while an enumeration is in progress.
-        //private class IntHashTableEnumerator : IEnumerator {
-        //  private IntHashTable hashtable;
-        //  private int bucket;
-        //  private int version;
-        //  private bool current;
-        //  //private int currentKey;
-        //  private Object currentValue;
-
-        //  internal IntHashTableEnumerator(IntHashTable hashtable) {
-        //    this.hashtable = hashtable;
-        //    bucket = hashtable.buckets.Length;
-        //    version = hashtable.version;
-        //  }
-
-        //  public bool MoveNext() {
-        //    if (version != hashtable.version)
-        //      throw new InvalidOperationException("InvalidOperation_EnumFailedVersion");
-        //    while (bucket > 0) {
-        //      bucket--;
-        //      Object val = hashtable.buckets[bucket].val;
-        //      if (val != null) {
-        //        //currentKey = hashtable.buckets[bucket].key;
-        //        currentValue = val;
-        //        current = true;
-        //        return true;
-        //      }
-        //    }
-        //    current = false;
-        //    return false;
-        //  }
-
-        //  //internal int Key {
-        //  //  get {
-        //  //    if (current == false)
-        //  //      throw new InvalidOperationException("InvalidOperation_EnumOpCantHappen");
-        //  //    return currentKey;
-        //  //  }
-        //  //}
-
-        //  public Object Current {
-        //    get {
-        //      if (current == false)
-        //        throw new InvalidOperationException("InvalidOperation_EnumOpCantHappen");
-        //      return currentValue;
-        //    }
-        //  }
-
-        //  //public Object Value {
-        //  //  get {
-        //  //    if (version != hashtable.version)
-        //  //      throw new InvalidOperationException("InvalidOperation_EnumFailedVersion");
-        //  //    if (current == false)
-        //  //      throw new InvalidOperationException("InvalidOperation_EnumOpCantHappen");
-        //  //    return currentValue;
-        //  //  }
-        //  //}
-
-        //  public void Reset() {
-        //    if (version != hashtable.version) throw new InvalidOperationException("InvalidOperation_EnumFailedVersion");
-        //    current = false;
-        //    bucket = hashtable.buckets.Length;
-        //    //currentKey = -1;
-        //    currentValue = null;
-        //  }
-        //}
+        
     }
 }

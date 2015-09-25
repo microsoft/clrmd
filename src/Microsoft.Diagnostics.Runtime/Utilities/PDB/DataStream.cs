@@ -14,48 +14,48 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal DataStream(int contentSize, BitAccess bits, int count)
         {
-            this.contentSize = contentSize;
+            this._contentSize = contentSize;
             if (count > 0)
             {
-                this.pages = new int[count];
-                bits.ReadInt32(this.pages);
+                this._pages = new int[count];
+                bits.ReadInt32(this._pages);
             }
         }
 
-        internal void Read(PdbReader reader, BitAccess bits)
+        internal void Read(PdbStreamHelper reader, BitAccess bits)
         {
-            bits.MinCapacity(contentSize);
-            Read(reader, 0, bits.Buffer, 0, contentSize);
+            bits.MinCapacity(_contentSize);
+            Read(reader, 0, bits.Buffer, 0, _contentSize);
         }
 
-        internal void Read(PdbReader reader, int position,
+        internal void Read(PdbStreamHelper reader, int position,
                          byte[] bytes, int offset, int data)
         {
-            if (position + data > contentSize)
+            if (position + data > _contentSize)
             {
                 throw new PdbException("DataStream can't read off end of stream. " +
                                                "(pos={0},siz={1})",
                                        position, data);
             }
-            if (position == contentSize)
+            if (position == _contentSize)
             {
                 return;
             }
 
             int left = data;
-            int page = position / reader.pageSize;
-            int rema = position % reader.pageSize;
+            int page = position / reader.PageSize;
+            int rema = position % reader.PageSize;
 
             // First get remained of first page.
             if (rema != 0)
             {
-                int todo = reader.pageSize - rema;
+                int todo = reader.PageSize - rema;
                 if (todo > left)
                 {
                     todo = left;
                 }
 
-                reader.Seek(pages[page], rema);
+                reader.Seek(_pages[page], rema);
                 reader.Read(bytes, offset, todo);
 
                 offset += todo;
@@ -66,13 +66,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             // Now get the remaining pages.
             while (left > 0)
             {
-                int todo = reader.pageSize;
+                int todo = reader.PageSize;
                 if (todo > left)
                 {
                     todo = left;
                 }
 
-                reader.Seek(pages[page], 0);
+                reader.Seek(_pages[page], 0);
                 reader.Read(bytes, offset, todo);
 
                 offset += todo;
@@ -81,38 +81,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
         }
 
-        //private void AddPages(int page0, int count) {
-        //  if (pages == null) {
-        //    pages = new int[count];
-        //    for (int i = 0; i < count; i++) {
-        //      pages[i] = page0 + i;
-        //    }
-        //  } else {
-        //    int[] old = pages;
-        //    int used = old.Length;
-
-        //    pages = new int[used + count];
-        //    Array.Copy(old, pages, used);
-        //    for (int i = 0; i < count; i++) {
-        //      pages[used + i] = page0 + i;
-        //    }
-        //  }
-        //}
-
-        //internal int Pages {
-        //  get { return pages == null ? 0 : pages.Length; }
-        //}
-
         internal int Length
         {
-            get { return contentSize; }
+            get { return _contentSize; }
         }
+        
 
-        //internal int GetPage(int index) {
-        //  return pages[index];
-        //}
-
-        internal int contentSize;
-        internal int[] pages;
+        internal int _contentSize;
+        internal int[] _pages;
     }
 }
