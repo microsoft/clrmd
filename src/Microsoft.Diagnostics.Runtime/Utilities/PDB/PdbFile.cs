@@ -94,9 +94,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             return result;
         }
 
-        private static IntHashTable LoadNameStream(BitAccess bits)
+        private static Dictionary<int, string> LoadNameStream(BitAccess bits)
         {
-            IntHashTable ht = new IntHashTable();
+            Dictionary<int, string> ht = new Dictionary<int, string>();
 
             uint sig;
             int ver;
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         }
 
         private static void LoadManagedLines(PdbFunction[] funcs,
-                                     IntHashTable names,
+                                     Dictionary<int, string> names,
                                      BitAccess bits,
                                      MsfDirectory dir,
                                      Dictionary<string, int> nameIndex,
@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                             bits.ReadUInt8(out chk.len);
                             bits.ReadUInt8(out chk.type);
 
-                            string name = (string)names[(int)chk.name];
+                            string name = names[(int)chk.name];
                             PdbSource src;
                             if (!sources.TryGetValue(name.ToUpperInvariant(), out src))
                             {
@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         private static void LoadFuncsFromDbiModule(BitAccess bits,
                                            DbiModuleInfo info,
-                                           IntHashTable names,
+                                           Dictionary<int, string> names,
                                            List<PdbFunction> funcList,
                                            bool readStrings,
                                            MsfDirectory dir,
@@ -469,7 +469,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
 
             dir._streams[nameStream].Read(reader, bits);
-            IntHashTable names = LoadNameStream(bits);
+            Dictionary<int, string> names = LoadNameStream(bits);
 
             dir._streams[3].Read(reader, bits);
             LoadDbiStream(bits, out modules, out header, readAllStrings);

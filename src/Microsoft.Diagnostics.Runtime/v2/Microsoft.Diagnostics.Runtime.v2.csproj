@@ -141,7 +141,6 @@
     <Compile Include="..\Utilities\PDB\DbiHeader.cs" />
     <Compile Include="..\Utilities\PDB\DbiModuleInfo.cs" />
     <Compile Include="..\Utilities\PDB\DbiSecCon.cs" />
-    <Compile Include="..\Utilities\PDB\IntHashTable.cs" />
     <Compile Include="..\Utilities\PDB\MsfDirectory.cs" />
     <Compile Include="..\Utilities\PDB\PdbConstant.cs" />
     <Compile Include="..\Utilities\PDB\PdbDebugException.cs" />
