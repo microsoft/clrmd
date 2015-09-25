@@ -48,11 +48,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     var functions = from frame in thread.StackTrace
                                             where frame.Kind != ClrStackFrameType.Runtime
-                                            select reader.GetPdbFunctionFor(frame.Method.MetadataToken);
+                                            select reader.GetFunctionFromToken(frame.Method.MetadataToken);
 
                     foreach (PdbFunction function in functions)
                     {
-                        PdbLines sourceFile = function.SequencePoints.Single();
+                        PdbSequencePointCollection sourceFile = function.SequencePoints.Single();
 
                         foreach (int line in sourceFile.Lines.Select(l => l.LineBegin))
                             sourceLines.Add(line);

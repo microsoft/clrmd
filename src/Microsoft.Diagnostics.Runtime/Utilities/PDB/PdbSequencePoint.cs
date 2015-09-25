@@ -3,15 +3,37 @@
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
-    public struct PdbLine
+    /// <summary>
+    /// Represents a sequence point (multiple lines) in a source file.
+    /// </summary>
+    public struct PdbSequencePoint
     {
+        /// <summary>
+        /// The IL offset of this line.
+        /// </summary>
         public uint Offset { get; private set; }
+
+        /// <summary>
+        /// The first line of this sequence point.
+        /// </summary>
         public uint LineBegin { get; private set; }
+
+        /// <summary>
+        /// The last line of this sequence point.
+        /// </summary>
         public uint LineEnd { get; private set; }
+
+        /// <summary>
+        /// The first column of the first line of this sequence point.
+        /// </summary>
         public ushort ColBegin { get; private set; }
+
+        /// <summary>
+        /// The last column of the last line of this sequence point.
+        /// </summary>
         public ushort ColEnd { get; private set; }
 
-        internal PdbLine(uint offset, uint lineBegin, ushort colBegin, uint lineEnd, ushort colEnd)
+        internal PdbSequencePoint(uint offset, uint lineBegin, ushort colBegin, uint lineEnd, ushort colEnd)
         {
             Offset = offset;
             LineBegin = lineBegin;
@@ -20,6 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             ColEnd = colEnd;
         }
 
+        /// <summary>
+        /// ToString override.
+        /// </summary>
         public override string ToString()
         {
             if (LineBegin == LineEnd)

@@ -7,6 +7,9 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
+    /// <summary>
+    /// Represents a single function in a module.
+    /// </summary>
     public class PdbFunction
     {
         static internal readonly Guid msilMetaData = new Guid(unchecked((int)0xc6ea3fc9), 0x59b3, 0x49d6, 0xbc, 0x25,
@@ -31,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <summary>
         /// Sequence points of this function.
         /// </summary>
-        public PdbLines[] SequencePoints
+        public PdbSequencePointCollection[] SequencePoints
         {
             get; internal set;
         }

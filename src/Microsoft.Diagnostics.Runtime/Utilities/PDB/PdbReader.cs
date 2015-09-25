@@ -21,7 +21,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         private int _age;
         private Guid _guid;
 
-
+        /// <summary>
+        /// Gets the properties of a given pdb.  Throws IOException on error.
+        /// </summary>
+        /// <param name="pdbFile">The pdb file to load.</param>
+        /// <param name="signature">The signature of pdbFile.</param>
+        /// <param name="age">The age of pdbFile.</param>
         public static void GetPdbProperties(string pdbFile, out Guid signature, out int age)
         {
             BitAccess bits = new BitAccess(512 * 1024);
@@ -66,14 +71,29 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 _pdbFunctionMap[pdbFunction.Token] = pdbFunction;
         }
 
-        // TODO: public
-        internal IEnumerable<PdbSource> Sources { get { return _sources; } }
+        /// <summary>
+        /// A collection of all sources in this pdb.
+        /// </summary>
+        public IEnumerable<PdbSource> Sources { get { return _sources; } }
 
-        // TODO: public
+        /// <summary>
+        /// A collection of all functions in this pdb.
+        /// </summary>
         internal IEnumerable<PdbFunction> Functions { get { return _pdbFunctionMap.Values; } }
 
+        /// <summary>
+        /// The version of this PDB.
+        /// </summary>
         public int Version { get { return _ver; } }
+
+        /// <summary>
+        /// The Guid signature of this pdb.  Should be compared to the corresponding pdb signature in the matching PEFile.
+        /// </summary>
         public Guid Signature { get { return _guid; } }
+
+        /// <summary>
+        /// The age of this pdb.  Should be compared to the corresponding pdb age in the matching PEFile.
+        /// </summary>
         public int Age { get { return _age; } }
 
         /// <summary>
@@ -99,8 +119,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 source.Dispose();
         }
 
-        
-        public PdbFunction GetPdbFunctionFor(uint methodToken)
+        /// <summary>
+        /// Retreives a PdbFunction by its metadata token.
+        /// </summary>
+        /// <param name="methodToken"></param>
+        /// <returns></returns>
+        public PdbFunction GetFunctionFromToken(uint methodToken)
         {
             PdbFunction result = null;
             _pdbFunctionMap.TryGetValue(methodToken, out result);

@@ -284,7 +284,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                                 blocks++;
                             }
 
-                            func.SequencePoints = new PdbLines[blocks];
+                            func.SequencePoints = new PdbSequencePointCollection[blocks];
                             int block = 0;
 
                             bits.Position = begSym;
@@ -296,9 +296,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                                 bits.ReadUInt32(out file.linsiz);   // Size of payload.
 
                                 PdbSource src = (PdbSource)checks[(int)file.index];
-                                PdbLines tmp = new PdbLines(src, file.count);
+                                PdbSequencePointCollection tmp = new PdbSequencePointCollection(src, file.count);
                                 func.SequencePoints[block++] = tmp;
-                                PdbLine[] lines = tmp.Lines;
+                                PdbSequencePoint[] lines = tmp.Lines;
 
                                 int plin = bits.Position;
                                 int pcol = bits.Position + 8 * (int)file.count;
@@ -322,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                                         bits.ReadUInt16(out column.offColumnEnd);
                                     }
 
-                                    lines[i] = new PdbLine(line.offset,
+                                    lines[i] = new PdbSequencePoint(line.offset,
                                                            lineBegin,
                                                            column.offColumnStart,
                                                            lineBegin + delta,

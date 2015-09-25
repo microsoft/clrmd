@@ -5,10 +5,26 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
+
+    /// <summary>
+    /// This class represents a constant value in source code, such as:
+    ///     const int Foo = 3;
+    /// </summary>
     public class PdbConstant
     {
+        /// <summary>
+        /// The variable name of the constant.
+        /// </summary>
         public string Name { get; private set; }
+
+        /// <summary>
+        /// The metadata token of this constant.
+        /// </summary>
         public uint Token { get; private set; }
+
+        /// <summary>
+        /// The value of this constant.
+        /// </summary>
         public object Value { get; private set; }
 
         internal PdbConstant(BitAccess bits)

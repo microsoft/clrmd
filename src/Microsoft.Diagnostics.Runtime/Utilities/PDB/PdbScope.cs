@@ -5,16 +5,44 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
+    /// <summary>
+    /// Represents a scope within a function or class.
+    /// </summary>
     public class PdbScope
     {
+        /// <summary>
+        /// A list of constants defined in this scope.
+        /// </summary>
         public PdbConstant[] Constants { get; private set; }
-        public PdbSlot[] Slots { get; private set; }
-        public PdbScope[] Scopes { get; private set; }
-        public string[] UsedNamespaces { get; private set; }
 
-        //internal uint segment;
+        /// <summary>
+        /// A list of variable slots in this function.
+        /// </summary>
+        public PdbSlot[] Slots { get; private set; }
+
+        /// <summary>
+        /// A list of sub-scopes within this scope.
+        /// </summary>
+        public PdbScope[] Scopes { get; private set; }
+
+        /// <summary>
+        /// A list of namespaces used in this scope.
+        /// </summary>
+        public string[] UsedNamespaces { get; private set; }
+        
+        /// <summary>
+        /// The address of this scope.
+        /// </summary>
         public uint Address { get; private set; }
+
+        /// <summary>
+        /// The IL offset of this scope.
+        /// </summary>
         public uint Offset { get; private set; }
+
+        /// <summary>
+        /// The length of this scope.
+        /// </summary>
         public uint Length { get; private set; }
 
         internal PdbScope(uint address, uint length, PdbSlot[] slots, PdbConstant[] constants, string[] usedNamespaces)

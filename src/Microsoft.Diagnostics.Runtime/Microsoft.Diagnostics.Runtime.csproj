@@ -140,8 +140,8 @@
     <Compile Include="Utilities\PDB\PdbFile.cs" />
     <Compile Include="Utilities\PDB\PdbFileHeader.cs" />
     <Compile Include="Utilities\PDB\PdbFunction.cs" />
-    <Compile Include="Utilities\PDB\PdbLine.cs" />
-    <Compile Include="Utilities\PDB\PdbLines.cs" />
+    <Compile Include="Utilities\PDB\PdbSequencePoint.cs" />
+    <Compile Include="Utilities\PDB\PdbSequencePointCollection.cs" />
     <Compile Include="Utilities\PDB\PdbStreamHelper.cs" />
     <Compile Include="Utilities\PDB\PdbScope.cs" />
     <Compile Include="Utilities\PDB\PdbSlot.cs" />
