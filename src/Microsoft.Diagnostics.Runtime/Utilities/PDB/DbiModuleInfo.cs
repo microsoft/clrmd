@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -36,6 +37,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             //  throw new PdbException("Invalid DBI module. "+
             //                                 "(opened={0}, pad={1})", opened, pad1);
             //}
+        }
+
+        public override string ToString()
+        {
+            return Path.GetFileName(moduleName);
         }
 
         internal int opened;                 //  0..3

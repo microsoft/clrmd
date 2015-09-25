@@ -18,11 +18,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         static public readonly int WellKnownDacTimeStamp = 0x55b96946;
         static public readonly int WellKnownDacImageSize = 0x006a8000;
 
-        static readonly string WellKnownPdb = "clr.pdb";
-        static readonly Guid WellKnownGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");
-        static readonly int WellKnownAge = 2;
+        static public readonly string WellKnownNativePdb = "clr.pdb";
+        static public readonly Guid WellKnownNativePdbGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");
+        static public readonly int WellKnownNativePdbAge = 2;
 
-        private SymbolLocator GetLocator()
+        static internal SymbolLocator GetLocator()
         {
             string tmpPath = Helpers.TestWorkingDirectory;
 
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             locator.Timeout = 1;
             locator.SymbolCache += "\\TestTimeoutNegative";
 
-            string pdb = locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge);
+            string pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
             Assert.IsNull(pdb);
         }
 
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             locator.Timeout = 10000;
             locator.SymbolCache += "\\TestTimeout";
 
-            string pdb = locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge);
+            string pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
             Assert.IsNotNull(pdb);
         }
 
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestFindPdbNegative()
         {
             SymbolLocator _locator = GetLocator();
-            string pdb = _locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge + 1);
+            string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1);
             Assert.IsNull(pdb);
         }
         [TestMethod]
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindPdbAsync(WellKnownPdb, WellKnownGuid, WellKnownAge + 1));
+                tasks.Add(_locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1));
             
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)
@@ -115,11 +115,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestFindPdb()
         {
             SymbolLocator _locator = GetLocator();
-            string pdb = _locator.FindPdb(WellKnownPdb, WellKnownGuid, WellKnownAge);
+            string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
             Assert.IsNotNull(pdb);
             Assert.IsTrue(File.Exists(pdb));
 
-            Assert.IsTrue(PdbMatches(pdb, WellKnownGuid, WellKnownAge));
+            Assert.IsTrue(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
         }
 
         static bool PdbMatches(string pdb, Guid guid, int age)
@@ -160,17 +160,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public async Task TestFindPdbAsync()
         {
             SymbolLocator _locator = GetLocator();
-            Task<string> first = _locator.FindPdbAsync(WellKnownPdb, WellKnownGuid, WellKnownAge);
+            Task<string> first = _locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindPdbAsync(WellKnownPdb, WellKnownGuid, WellKnownAge));
+                tasks.Add(_locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
 
             string pdb = await first;
             
             Assert.IsNotNull(pdb);
             Assert.IsTrue(File.Exists(pdb));
-            Assert.IsTrue(PdbMatches(pdb, WellKnownGuid, WellKnownAge));
+            Assert.IsTrue(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
 
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)
