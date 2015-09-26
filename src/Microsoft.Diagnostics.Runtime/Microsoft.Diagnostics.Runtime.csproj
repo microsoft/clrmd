@@ -46,8 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="datatargetimpl.cs" />
-    <Compile Include="dbgengdatatarget.cs" />
+    <Compile Include="datatarget.cs" />
     <Compile Include="Debugger\Enums.cs" />
     <Compile Include="Debugger\IDebugAdvanced.cs" />
     <Compile Include="Debugger\IDebugAdvanced2.cs" />
@@ -106,21 +105,24 @@
     <Compile Include="Desktop\threads.cs" />
     <Compile Include="Desktop\types.cs" />
     <Compile Include="Desktop\v45runtime.cs" />
+    <Compile Include="modules.cs" />
     <Compile Include="dumpdatareader.cs" />
+    <Compile Include="heap.cs" />
     <Compile Include="heapbase.cs" />
     <Compile Include="internal.cs" />
-    <Compile Include="livedatatarget.cs" />
     <Compile Include="metadata.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="public.cs" />
+    <Compile Include="exception.cs" />
     <Compile Include="Native\dacprivate.cs" />
     <Compile Include="Native\heap.cs" />
     <Compile Include="Native\module.cs" />
     <Compile Include="Native\roots.cs" />
     <Compile Include="Native\runtime.cs" />
     <Compile Include="Native\types.cs" />
-    <Compile Include="runtimebase.cs" />
-    <Compile Include="sigparser.cs" />
+    <Compile Include="runtime.cs" />
+    <Compile Include="Utilities\sigparser.cs" />
+    <Compile Include="threads.cs" />
+    <Compile Include="types.cs" />
     <Compile Include="Utilities\command.cs" />
     <Compile Include="Utilities\DirectoryUtilities.cs" />
     <Compile Include="Utilities\DumpReader.cs" />

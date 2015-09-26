@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using Address = System.UInt64;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
