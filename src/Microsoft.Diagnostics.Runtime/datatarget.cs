@@ -644,6 +644,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// The result of an asynchronous memory read.  This is returned by an IDataReader
     /// when an async memory read is requested.
     /// </summary>
+    [Obsolete]
     public class AsyncMemoryReadResult
     {
         /// <summary>
@@ -781,6 +782,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if this data reader can read data out of the target process asynchronously.
         /// </summary>
+        [Obsolete]
         bool CanReadAsync { get; }
 
         /// <summary>
@@ -789,6 +791,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">The address of memory to read.</param>
         /// <param name="bytesRequested">The number of bytes to read.</param>
         /// <returns>A data structure containing an event to wait for as well as a new byte array to read from.</returns>
+        [Obsolete]
         AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested);
 
         /// <summary>
@@ -2241,11 +2244,13 @@ namespace Microsoft.Diagnostics.Runtime
                 s_needRelease = true;
         }
 
+        [Obsolete]
         public bool CanReadAsync
         {
             get { return false; }
         }
 
+        [Obsolete]
         public AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested)
         {
             throw new NotImplementedException();
@@ -2580,12 +2585,14 @@ namespace Microsoft.Diagnostics.Runtime
         private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
         #endregion
 
+        [Obsolete]
         public bool CanReadAsync
         {
             //todo
             get { return false; }
         }
 
+        [Obsolete]
         public AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested)
         {
             throw new NotImplementedException();
