@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,6 +54,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = info.CreateRuntime();
 
                 Assert.AreEqual(info, runtime.ClrInfo);
+            }
+        }
+
+        [TestMethod]
+        public void ModuleEnumerationTest()
+        {
+            // This test ensures that we enumerate all modules in the process exactly once.
+
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+                HashSet<string> expected = new HashSet<string>(new string[] { "mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
+                HashSet<ClrModule> modules = new HashSet<ClrModule>();
+
+                foreach (ClrModule module in runtime.EnumerateModules())
+                {
+                    Assert.IsTrue(expected.Contains(Path.GetFileName(module.FileName)));
+                    Assert.IsFalse(modules.Contains(module));
+                    modules.Add(module);
+                }
             }
         }
     }

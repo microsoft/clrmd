@@ -228,5 +228,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         [Obsolete("Use ApplicationBase instead.")]
         public virtual string AppBase { get { return ApplicationBase; } }
+
+        /// <summary>
+        /// To string override.
+        /// </summary>
+        /// <returns>The name of this AppDomain.</returns>
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }

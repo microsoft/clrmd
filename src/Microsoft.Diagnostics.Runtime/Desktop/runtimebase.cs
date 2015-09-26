@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
+using System.Linq;
 
 #pragma warning disable 649
 
@@ -26,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected CommonMethodTables _commonMTs;
         private Dictionary<Address, DesktopModule> _modules = new Dictionary<Address, DesktopModule>();
         private Dictionary<ulong, uint> _moduleSizes = null;
+        private ClrModule[] _moduleList = null;
         private Dictionary<string, DesktopModule> _moduleFiles = null;
         private DesktopAppDomain _system, _shared;
         private List<ClrAppDomain> _domains;
@@ -566,8 +568,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_domains == null)
                 InitDomains();
 
-            foreach (var module in _modules.Values)
-                yield return module;
+            if (_moduleList == null)
+            {
+                HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p=>(ClrModule)p));
+                _moduleList = modules.ToArray();
+            }
+
+            return _moduleList;
         }
 
         internal IEnumerable<ulong> EnumerateModules(IAppDomainData appDomain)
