@@ -50,6 +50,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="AppDomainTests.cs" />
     <Compile Include="Debugger.cs" />
     <Compile Include="GCHandleTests.cs" />
     <None Include="Targets\GCHandles.cs">
@@ -62,10 +63,16 @@
     <None Include="Targets\Types.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="TestTargets.cs" />
-    <Compile Include="Targets\NestedException.cs">
+    <None Include="Targets\SharedLibrary.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
+    </None>
+    <None Include="Targets\AppDomains.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <Compile Include="TestTargets.cs" />
+    <None Include="Targets\NestedException.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="ExceptionTests.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="SymbolLocatorTests.cs" />

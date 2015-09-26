@@ -23,69 +23,109 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static ExceptionTestData NestedExceptionData = new ExceptionTestData();
         public static TestTarget GCHandles = new TestTarget("GCHandles.cs");
         public static TestTarget Types = new TestTarget("Types.cs");
+        public static TestTarget AppDomains = new TestTarget("AppDomains.cs", NestedException);
     }
 
     class TestTarget
     {
+        static TestTarget _sharedLibrary = new TestTarget("SharedLibrary.cs", true);
+
+        private bool _isLibrary;
         private string _source;
         private string _executable;
         private object _sync = new object();
         private string _miniDumpPath;
         private string _fullDumpPath;
 
-        public string Executable { get { Init();  return _executable; } }
-        public string Pdb { get { Init(); return Path.ChangeExtension(_executable, "pdb"); } }
+        public string Executable
+        {
+            get
+            {
+                if (_executable == null)
+                    CompileSource();
+                return _executable;
+            }
+        }
+
+        public string Pdb
+        {
+            get
+            {
+                return Path.ChangeExtension(Executable, "pdb");
+            }
+        }
 
         public string Source { get { return _source; } }
 
         public TestTarget(string source)
         {
             _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
+            _isLibrary = false;
+        }
+
+        public TestTarget(string source, bool isLibrary)
+        {
+            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
+            _isLibrary = isLibrary;
+
+            if (_isLibrary)
+                _executable = CompileCSharp(_source, true);
+        }
+
+        public TestTarget(string source, params TestTarget[] required)
+        {
+            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
+            _isLibrary = false;
+
+            foreach (var item in required)
+                item.CompileSource();
         }
 
         public DataTarget LoadMiniDump()
         {
-            Init();
+            WriteCrashDumps();
 
             return DataTarget.LoadCrashDump(_miniDumpPath);
         }
 
         public DataTarget LoadFullDump()
         {
-            Init();
+            WriteCrashDumps();
 
             return DataTarget.LoadCrashDump(_fullDumpPath);
         }
 
-        void Init()
+        void CompileSource()
         {
             if (_executable != null)
                 return;
 
-            lock (_sync)
-            {
-                if (_executable != null)
-                    return;
-
-                string executable = CompileCSharp(_source);
-                WriteCrashDumps(executable);
-
-                _executable = executable;
-            }
+            _executable = CompileCSharp(_source, _isLibrary);
         }
 
 
-        private static string CompileCSharp(string source)
+        private static string CompileCSharp(string source, bool isLibrary)
         {
+            string extension = isLibrary ? "dll" : "exe";
             CSharpCodeProvider provider = new CSharpCodeProvider();
             CompilerParameters cp = new CompilerParameters();
             cp.ReferencedAssemblies.Add("system.dll");
-            cp.GenerateExecutable = true;
+            
+            if (isLibrary)
+            {
+                cp.GenerateExecutable = false;
+            }
+            else
+            {
+                cp.GenerateExecutable = true;
+                cp.ReferencedAssemblies.Add(_sharedLibrary.Executable);
+            }
+
             cp.GenerateInMemory = false;
             cp.CompilerOptions = IntPtr.Size == 4 ? "/platform:x86" : "/platform:amd64";
 
             cp.IncludeDebugInformation = true;
-            cp.OutputAssembly = Path.Combine(Helpers.TestWorkingDirectory, Path.ChangeExtension(Path.GetFileNameWithoutExtension(source), "exe"));
+            cp.OutputAssembly = Path.Combine(Helpers.TestWorkingDirectory, Path.ChangeExtension(Path.GetFileNameWithoutExtension(source), extension));
             CompilerResults cr = provider.CompileAssemblyFromFile(cp, source);
 
             Assert.AreEqual(0, cr.Errors.Count);
@@ -93,8 +133,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return cr.PathToAssembly;
         }
 
-        private void WriteCrashDumps(string executable)
+        private void WriteCrashDumps()
         {
+            if (_fullDumpPath != null)
+                return;
+
+            string executable = Executable;
             DebuggerStartInfo info = new DebuggerStartInfo();
             using (Debugger dbg = info.LaunchProcess(executable, Helpers.TestWorkingDirectory))
             {
@@ -109,6 +153,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     status = dbg.ProcessEvents(0xffffffff);
                 } while (status != DEBUG_STATUS.NO_DEBUGGEE);
+
+                Assert.IsNotNull(_miniDumpPath);
+                Assert.IsNotNull(_fullDumpPath);
             }
         }
 

@@ -5,7 +5,9 @@ class Program
 {
     public static void Main(string[] args)
     {
+        Foo foo = new Foo();
         Outer();    /* seq */
+        GC.KeepAlive(foo);
     }
 
     private static void Outer()

@@ -618,7 +618,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             _system = InitDomain(ads.SystemDomain);
+            _system.Name = "System Domain";
+
             _shared = InitDomain(ads.SharedDomain);
+            _shared.Name = "Shared Domain";
 
             _moduleFiles = null;
             _moduleSizes = null;
