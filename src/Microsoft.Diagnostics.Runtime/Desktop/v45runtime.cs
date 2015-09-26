@@ -232,24 +232,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 count = needed;
             }
 
+            // We ignore the return value here since modules might be partially
+            // filled even if GetAssemblyList hits an error.
             ulong[] modules = new ulong[count];
-
-            if (_sos.GetAssemblyList(appDomain, modules.Length, modules, out needed) < 0)
-                return new ulong[0];
+            _sos.GetAssemblyList(appDomain, modules.Length, modules, out needed);
 
             return modules;
         }
 
         internal override ulong[] GetModuleList(ulong assembly, int count)
         {
-            uint needed;
-            if (_sos.GetAssemblyModuleList(assembly, 0, null, out needed) < 0)
-                return null;
+            uint needed = (uint)count;
 
+            if (count <= 0)
+            {
+                if (_sos.GetAssemblyModuleList(assembly, 0, null, out needed) < 0)
+                    return new ulong[0];
+            }
+
+            // We ignore the return value here since modules might be partially
+            // filled even if GetAssemblyList hits an error.
             ulong[] modules = new ulong[needed];
-            if (_sos.GetAssemblyModuleList(assembly, needed, modules, out needed) < 0)
-                return null;
-
+            _sos.GetAssemblyModuleList(assembly, needed, modules, out needed);
             return modules;
         }
 
