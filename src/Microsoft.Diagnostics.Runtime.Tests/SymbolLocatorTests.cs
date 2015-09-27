@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void TestTimeoutNegative()
+        public void SymbolLocatorTimeoutNegativeTest()
         {
             var locator = GetLocator();
             locator.Timeout = 1;
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void TestTimeout()
+        public void SymbolLocatorTimeoutTest()
         {
             var locator = GetLocator();
             locator.Timeout = 10000;
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void TestFindBinaryNegative()
+        public void FindBinaryNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
             string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
@@ -62,14 +62,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void TestFindPdbNegative()
+        public void FindPdbNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
             string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1);
             Assert.IsNull(pdb);
         }
         [TestMethod]
-        public async Task TestFindBinaryAsyncNegative()
+        public async Task FindBinaryAsyncNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
 
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public async Task TestFindPdbAsyncNegative()
+        public async Task FindPdbAsyncNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
 
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void TestFindBinary()
+        public void FindBinaryTest()
         {
             SymbolLocator _locator = GetLocator();
             string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void TestFindPdb()
+        public void FindPdbTest()
         {
             SymbolLocator _locator = GetLocator();
             string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public async Task TestFindBinaryAsync()
+        public async Task FindBinaryAsyncTest()
         {
             SymbolLocator _locator = GetLocator();
             Task<string> first = _locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
         [TestMethod]
-        public async Task TestFindPdbAsync()
+        public async Task FindPdbAsyncTest()
         {
             SymbolLocator _locator = GetLocator();
             Task<string> first = _locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);

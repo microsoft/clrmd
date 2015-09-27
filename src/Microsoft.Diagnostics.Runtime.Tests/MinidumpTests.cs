@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
         [TestMethod]
-        public void TestMinidumpExceptionProperties()
+        public void MinidumpExceptionPropertiesTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
             {

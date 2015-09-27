@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
 
         [TestMethod]
-        public void TestExceptionProperties()
+        public void ExceptionPropertyTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
