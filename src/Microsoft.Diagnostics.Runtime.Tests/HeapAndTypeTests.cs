@@ -83,5 +83,44 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual(types[0], typeFromModule);
             }
         }
+
+        [TestMethod]
+        public void VariableRootTest()
+        {
+            // Test to make sure that a specific static and local variable exist.
+
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                var fooRoots = from root in heap.EnumerateRoots()
+                               where root.Type.Name == "Foo"
+                               select root;
+
+                ClrRoot staticRoot = fooRoots.Where(r => r.Kind == GCRootKind.StaticVar).Single();
+                Assert.IsTrue(staticRoot.Name.Contains("s_foo"));
+
+                ClrRoot localVarRoot = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).Single();
+
+                ClrThread thread = runtime.GetMainThread();
+                ClrStackFrame main = thread.GetFrame("Main");
+                ClrStackFrame inner = thread.GetFrame("Inner");
+
+                ulong low = thread.StackBase;
+                ulong high = thread.StackLimit;
+
+                // Account for different platform stack direction.
+                if (low > high)
+                {
+                    ulong tmp = low;
+                    low = high;
+                    high = tmp;
+                }
+
+
+                Assert.IsTrue(low <= localVarRoot.Address && localVarRoot.Address <= high);
+            }
+        }
     }
 }

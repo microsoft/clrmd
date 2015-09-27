@@ -21,6 +21,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return thread;
         }
 
+        public static ClrStackFrame GetFrame(this ClrThread thread, string functionName)
+        {
+            return thread.StackTrace.Where(sf => sf.Method != null ? sf.Method.Name == functionName : false).Single();
+        }
+
         public static string TestWorkingDirectory { get { return _workingPath.Value; } }
 
         #region Working Path Helpers

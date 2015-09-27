@@ -1,23 +1,22 @@
 ﻿using System;
 
-class Foo
-{
-    int i;
-    string s;
-    bool b;
-    float f;
-    object o;
-}
-
 class Types
 {
+    static Foo s_foo = new Foo();
+
+
     public static void Main(string[] args)
     {
         Foo f = new Foo();
         Foo[] foos = new Foo[] { f };
 
-        throw new Exception();
+        Inner();
 
         GC.KeepAlive(foos);
+    }
+
+    private static void Inner()
+    {
+        throw new Exception();
     }
 }
