@@ -474,6 +474,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal const int SSRVOPT_DWORDPTR = 0x004;
         internal const int SSRVOPT_GUIDPTR = 0x0008;
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymFindFileInPathW(
@@ -490,6 +493,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             );
 
         // Useful for the findCallback parameter of SymFindFileInPathW
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymSrvGetFileIndexesW(
@@ -499,6 +505,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ref int val2,
             int flags);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymInitializeW(
@@ -506,11 +515,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string UserSearchPath,
             [MarshalAs(UnmanagedType.Bool)] bool fInvadeProcess);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymCleanup(
             IntPtr hProcess);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         internal static extern ulong SymLoadModuleExW(
             IntPtr hProcess,
@@ -523,12 +538,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             uint Flags
          );
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymUnloadModule64(
             IntPtr hProcess,
             ulong BaseOfDll);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymGetLineFromAddrW64(
@@ -538,6 +559,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ref IMAGEHLP_LINE64 Line
         );
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymFromAddrW(
@@ -596,6 +620,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             public UInt64 Address;
         };
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SymRegisterCallbackW64(
@@ -659,11 +686,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SYMOPT_UNDNAME = 0x00000002,
         };
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         internal static extern SymOptions SymSetOptions(
             SymOptions SymOptions
             );
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         internal static extern SymOptions SymGetOptions();
 
@@ -672,6 +705,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal const int MAX_PATH = 260;
 
         // Src Server API
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         internal static extern bool SymGetSourceFileW(
             IntPtr hProcess,
@@ -681,6 +717,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             StringBuilder filePathRet,
             int filePathRetSize);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurityAttribute]
         internal static extern IntPtr SymSetHomeDirectoryW(
              IntPtr hProcess,
