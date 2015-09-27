@@ -146,6 +146,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _mapping[domain] = domainModule;
         }
 
+        public override IEnumerable<ClrAppDomain> EnumerateAppDomains()
+        {
+            return _mapping.Keys;
+        }
+
         internal override ulong GetDomainModule(ClrAppDomain domain)
         {
             _runtime.InitDomains();
@@ -281,6 +286,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         private static uint s_id = 0;
         private uint _id = s_id++;
+        
+        public override IEnumerable<ClrAppDomain> EnumerateAppDomains()
+        {
+            return new ClrAppDomain[0];
+        }
 
         public override string AssemblyName
         {
