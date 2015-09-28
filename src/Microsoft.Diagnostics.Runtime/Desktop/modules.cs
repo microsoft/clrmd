@@ -94,11 +94,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             bool hasToken = type.MetadataToken != 0 && type.MetadataToken != uint.MaxValue;
 
+            uint token = ~0xff000000 & type.MetadataToken;
+
             foreach (MethodTableTokenPair pair in mtList)
             {
                 if (hasToken)
                 {
-                    if (pair.Token == type.MetadataToken)
+                    if (pair.Token == token)
                         return pair.MethodTable;
                 }
                 else

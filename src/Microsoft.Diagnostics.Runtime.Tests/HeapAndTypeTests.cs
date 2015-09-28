@@ -150,8 +150,59 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     }
 
                     Assert.AreEqual(type.TypeHandle, typeFromHeap.TypeHandle);
-                    Assert.AreEqual(type, typeFromHeap);
+                    Assert.AreSame(type, typeFromHeap);
                 }
+            }
+        }
+
+        [TestMethod]
+        public void EnumerateTypeHandleTest()
+        {
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                ulong[] fooObjects = (from obj in heap.EnumerateObjects()
+                                      let t = heap.GetObjectType(obj)
+                                      where t.Name == "Foo"
+                                      select obj).ToArray();
+
+                // There are exactly two Foo objects in the process, one in each app domain.
+                // They will have different method tables.
+                Assert.AreEqual(2, fooObjects.Length);
+
+
+                ClrType fooType = heap.GetObjectType(fooObjects[0]);
+                Assert.AreSame(fooType, heap.GetObjectType(fooObjects[1]));
+                
+
+                ClrRoot appDomainsFoo = (from root in heap.EnumerateRoots(true)
+                                         where root.Kind == GCRootKind.StaticVar && root.Type == fooType
+                                         select root).Single();
+
+                ulong nestedExceptionFoo = fooObjects.Where(obj => obj != appDomainsFoo.Object).Single();
+                ClrType nestedExceptionFooType = heap.GetObjectType(nestedExceptionFoo);
+
+                Assert.AreSame(nestedExceptionFooType, appDomainsFoo.Type);
+
+                ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedExceptionFoo);
+                ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Object);
+
+                // These are in different domains and should have different type handles:
+                Assert.AreNotEqual(nestedExceptionFooMethodTable, appDomainsFooMethodTable);
+
+                // The TypeHandle returned by ClrType should always be the method table that lives in the "first"
+                // AppDomain (in order of ClrAppDomain.Id).
+                Assert.AreEqual(appDomainsFooMethodTable, fooType.TypeHandle);
+
+                // Ensure that we enumerate two type handles and that they match the method tables we have above.
+                ulong[] typeHandleEnumeration = fooType.EnumerateTypeHandles().ToArray();
+                Assert.AreEqual(2, typeHandleEnumeration.Length);
+
+                // These also need to be enumerated in ClrAppDomain.Id order
+                Assert.AreEqual(appDomainsFooMethodTable, typeHandleEnumeration[0]);
+                Assert.AreEqual(nestedExceptionFooMethodTable, typeHandleEnumeration[1]);
             }
         }
     }
