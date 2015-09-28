@@ -313,6 +313,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public bool IsSingleDomain
+        {
+            get
+            {
+                if (_domains == null)
+                    InitDomains();
+
+                return _domains.Count == 1;
+            }
+        }
+
         /// <summary>
         /// Enumerates regions of memory which CLR has allocated with a description of what data
         /// resides at that location.  Note that this does not return every chunk of address space
@@ -871,7 +882,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IFieldData GetFieldData(Address fieldDesc);
         internal abstract IMetadata GetMetadataImport(Address module);
         internal abstract IObjectData GetObjectData(Address objRef);
-        internal abstract IList<Address> GetMethodTableList(Address module);
+        internal abstract IList<MethodTableTokenPair> GetMethodTableList(Address module);
         internal abstract IDomainLocalModuleData GetDomainLocalModule(Address appDomain, Address id);
         internal abstract ICCWData GetCCWData(Address ccw);
         internal abstract IRCWData GetRCWData(Address rcw);
@@ -900,6 +911,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #endregion
 
 
+    }
+
+
+    internal struct MethodTableTokenPair
+    {
+        public ulong MethodTable { get; set; }
+        public uint Token { get; set; }
+
+        public MethodTableTokenPair(ulong methodTable, uint token)
+        {
+            MethodTable = methodTable;
+            Token = token;
+        }
     }
 
     internal class MemoryRegion : ClrMemoryRegion

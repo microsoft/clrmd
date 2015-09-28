@@ -15,6 +15,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     static class Helpers
     {
+        public static IEnumerable<T> Unique<T>(this IEnumerable<T> self)
+        {
+            HashSet<T> set = new HashSet<T>();
+            foreach (T t in self)
+                set.Add(t);
+
+            return set;
+        }
 
         public static ClrAppDomain GetDomainByName(this ClrRuntime runtime, string domainName)
         {

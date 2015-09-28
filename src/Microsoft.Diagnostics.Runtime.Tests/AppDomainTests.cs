@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void AssertModuleDoesntContainDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
-            ClrAppDomain[] moduleDomains = module.EnumerateAppDomains().ToArray();
+            IList<ClrAppDomain> moduleDomains = module.AppDomains;
 
             foreach (ClrAppDomain domain in domainList)
                 Assert.IsFalse(moduleDomains.Contains(domain));
@@ -52,12 +52,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void AssertModuleContainsDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
-            ClrAppDomain[] moduleDomains = module.EnumerateAppDomains().ToArray();
+            IList<ClrAppDomain> moduleDomains = module.AppDomains;
             
             foreach (ClrAppDomain domain in domainList)
                 Assert.IsTrue(moduleDomains.Contains(domain));
 
-            Assert.AreEqual(domainList.Length, moduleDomains.Length);
+            Assert.AreEqual(domainList.Length, moduleDomains.Count);
         }
 
         [TestMethod]

@@ -67,9 +67,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _size = module.FileSize;
         }
 
-        public override IEnumerable<ClrAppDomain> EnumerateAppDomains()
+        public override IList<ClrAppDomain> AppDomains
         {
-            return new ClrAppDomain[] { _runtime.AppDomains[0] };
+            get
+            {
+                return new ClrAppDomain[] { _runtime.AppDomains[0] };
+            }
         }
 
         public override string AssemblyName

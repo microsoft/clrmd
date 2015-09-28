@@ -23,13 +23,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            FreeType = GetGCHeapType(DesktopRuntime.FreeMethodTable, 0, 0);
-            ArrayType = GetGCHeapType(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
-            ObjectType = GetGCHeapType(DesktopRuntime.ObjectMethodTable, 0, 0);
-            ArrayType.ComponentType = ObjectType;
+            FreeType = GetTypeByTypeHandle(DesktopRuntime.FreeMethodTable, 0, 0);
+            ObjectType = GetTypeByTypeHandle(DesktopRuntime.ObjectMethodTable, 0, 0);
+            ArrayType = GetTypeByTypeHandle(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
+            Debug.Assert(ArrayType.ComponentType == ObjectType);
             ((BaseDesktopHeapType)FreeType).DesktopModule = (DesktopModule)ObjectType.Module;
-            StringType = GetGCHeapType(DesktopRuntime.StringMethodTable, 0, 0);
-            ExceptionType = GetGCHeapType(DesktopRuntime.ExceptionMethodTable, 0, 0);
+            StringType = GetTypeByTypeHandle(DesktopRuntime.StringMethodTable, 0, 0);
+            ExceptionType = GetTypeByTypeHandle(DesktopRuntime.ExceptionMethodTable, 0, 0);
 
             InitSegments(runtime);
         }
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 cmt = 0;
             }
 
-            ClrType type = GetGCHeapType(mt, cmt, objRef);
+            ClrType type = GetTypeByTypeHandle(mt, cmt, objRef);
             _lastObjType.Address = objRef;
             _lastObjType.Type = type;
 
@@ -131,16 +131,44 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return null;
         }
-
-        internal ClrType GetGCHeapType(ulong mt, ulong cmt)
+        
+        public override ClrType GetTypeByTypeHandle(ulong mt, ulong cmt)
         {
-            return GetGCHeapType(mt, cmt, 0);
+            return GetTypeByTypeHandle(mt, cmt, 0);
         }
 
-        internal ClrType GetGCHeapType(ulong mt, ulong cmt, ulong obj)
+        internal ClrType GetTypeByTypeHandle(ulong mt, ulong cmt, ulong obj)
         {
             if (mt == 0)
                 return null;
+            
+            ClrType componentType = null;
+            if (mt == DesktopRuntime.ArrayMethodTable)
+            {
+                if (cmt != 0)
+                {
+                    componentType = GetTypeByTypeHandle(cmt, 0);
+                    if (componentType != null)
+                    {
+                        cmt = componentType.TypeHandle;
+                    }
+                    else if (obj != 0)
+                    {
+                        componentType = TryGetComponentType(cmt, obj);
+                        if (componentType != null)
+                            cmt = componentType.TypeHandle;
+                    }
+                }
+                else
+                {
+                    componentType = ObjectType;
+                    cmt = ObjectType.TypeHandle;
+                }
+            }
+            else
+            {
+                cmt = 0;
+            }
 
             TypeHandle hnd = new TypeHandle(mt, cmt);
             ClrType ret = null;
@@ -217,10 +245,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
                         return null;
+                    
+                    ret = new DesktopHeapType(typeName, module, token, mt, mtData, this);
+                    ret.ComponentType = componentType;
 
                     index = _types.Count;
-                    ret = new DesktopHeapType(typeName, module, token, mt, mtData, this, index);
-
+                    ((DesktopHeapType)ret).SetIndex(index);
                     _indices[hnd] = index;
                     _typeEntry[modEnt] = index;
                     _types.Add(ret);
@@ -230,23 +260,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             if (obj != 0 && ret.ComponentType == null && ret.IsArray)
-            {
-                IObjectData data = GetObjectData(obj);
-                if (data != null)
-                {
-                    if (data.ElementTypeHandle != 0)
-                        ret.ComponentType = GetGCHeapType(data.ElementTypeHandle, 0, 0);
-
-                    if (ret.ComponentType == null && data.ElementType != ClrElementType.Unknown)
-                        ret.ComponentType = GetBasicType(data.ElementType);
-                }
-                else if (cmt != 0)
-                {
-                    ret.ComponentType = GetGCHeapType(cmt, 0);
-                }
-            }
+                ret.ComponentType = TryGetComponentType(cmt, obj);
 
             return ret;
+        }
+
+        private ClrType TryGetComponentType(ulong cmt, ulong obj)
+        {
+            ClrType result = null;
+            IObjectData data = GetObjectData(obj);
+            if (data != null)
+            {
+                if (data.ElementTypeHandle != 0)
+                    result = GetTypeByTypeHandle(data.ElementTypeHandle, 0, 0);
+
+                if (result == null && data.ElementType != ClrElementType.Unknown)
+                    result = GetBasicType(data.ElementType);
+            }
+            else if (cmt != 0)
+            {
+                result = GetTypeByTypeHandle(cmt, 0);
+            }
+
+            return result;
         }
 
         private static StringBuilder GetTypeNameFromToken(DesktopModule module, uint token)
@@ -616,12 +652,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 var mtList = DesktopRuntime.GetMethodTableList(module);
                 if (mtList != null)
                 {
-                    foreach (ulong mt in mtList)
+                    foreach (var pair in mtList)
                     {
-                        if (mt != arrayMt)
+                        if (pair.MethodTable != arrayMt)
                         {
                             // prefetch element type, as this also can load types
-                            var type = GetGCHeapType(mt, 0, 0);
+                            var type = GetTypeByTypeHandle(pair.MethodTable, 0, 0);
                             if (type != null)
                             {
                                 ClrElementType cet = type.ElementType;

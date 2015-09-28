@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
-                
+
                 foreach (ulong obj in heap.EnumerateObjects())
                 {
                     var type = heap.GetObjectType(obj);
@@ -120,6 +120,38 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
                 Assert.IsTrue(low <= localVarRoot.Address && localVarRoot.Address <= high);
+            }
+        }
+
+        [TestMethod]
+        public void TypeHandleHeapEnumeration()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj)).Unique())
+                {
+                    Assert.AreNotEqual(0, type.TypeHandle);
+
+                    ClrType typeFromHeap;
+                    
+                    if (type.IsArray)
+                    {
+                        ClrType componentType = type.ComponentType;
+                        Assert.IsNotNull(componentType);
+                        
+                        typeFromHeap = heap.GetTypeByTypeHandle(type.TypeHandle, componentType.TypeHandle);
+                    }
+                    else
+                    {
+                        typeFromHeap = heap.GetTypeByTypeHandle(type.TypeHandle);
+                    }
+
+                    Assert.AreEqual(type.TypeHandle, typeFromHeap.TypeHandle);
+                    Assert.AreEqual(type, typeFromHeap);
+                }
             }
         }
     }

@@ -40,9 +40,22 @@ namespace Microsoft.Diagnostics.Runtime.Native
             get { return _types.Count; }
         }
 
+        [Obsolete]
         public override ClrType GetTypeByIndex(int index)
         {
             return _types[index];
+        }
+
+        public override ClrType GetTypeByTypeHandle(ulong typeHandle, ulong component)
+        {
+            if (component != 0)
+                return null;
+
+            int index;
+            if (_indices.TryGetValue(typeHandle, out index))
+                return _types[index];
+
+            return null;
         }
 
         private NativeModule FindMrtModule()

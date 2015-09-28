@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns a list of all AppDomains this module is loaded into.  Please note that unlike
         /// ClrRuntime.AppDomains, this list may include the shared AppDomain.
         /// </summary>
-        public abstract IEnumerable<ClrAppDomain> EnumerateAppDomains();
+        public abstract IList<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
         /// Returns the name of the assembly that this module is defined in.

@@ -49,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="index">The type to get.</param>
         /// <returns>The ClrType of that index.</returns>
+        [Obsolete]
         abstract public ClrType GetTypeByIndex(int index);
 
         /// <summary>
@@ -58,6 +59,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The ClrType matching 'name', null if the type was not found, and undefined if more than one
         /// type shares the same name.</returns>
         abstract public ClrType GetTypeByName(string name);
+
+        /// <summary>
+        /// Retrieves the given type by its TypeHandle/ComponentTypeHandle pair.
+        /// </summary>
+        /// <param name="typeHandle">The ClrType.TypeHandle for the requested type.</param>
+        /// <param name="componentTypeHandle">The ClrType.ComponentTypeHandle for the requested type.</param>
+        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        abstract public ClrType GetTypeByTypeHandle(ulong typeHandle, ulong componentTypeHandle);
+
+        /// <summary>
+        /// Retrieves the given type by its TypeHandle/ComponentTypeHandle pair.  Note this is only valid if
+        /// the given ClrType.ComponentTypeHandle is 0.
+        /// </summary>
+        /// <param name="typeHandle">The ClrType.TypeHandle for the requested type.</param>
+        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        virtual public ClrType GetTypeByTypeHandle(ulong typeHandle)
+        {
+            return GetTypeByTypeHandle(typeHandle, 0);
+        }
 
         /// <summary>
         /// Returns the max index.
