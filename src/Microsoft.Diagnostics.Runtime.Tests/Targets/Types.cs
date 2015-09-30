@@ -2,7 +2,14 @@
 
 class Types
 {
+    static object s_one = new object();
+    static object s_two = new object();
+    static object s_three = new object();
+
+    static object[] s_array = new object[] { s_one, s_two, s_three };
+
     static Foo s_foo = new Foo();
+
 
 
     public static void Main(string[] args)

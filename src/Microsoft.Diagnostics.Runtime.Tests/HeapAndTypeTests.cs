@@ -178,8 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         Assert.AreNotEqual(0ul, mt);
                         Assert.AreEqual(type.TypeHandle, mt);
                         
-                        // TODO:  This doesn't quite work yet.
-                        //Assert.AreSame(type, heap.GetTypeByTypeHandle(mt, cmt));
+                        Assert.AreSame(type, heap.GetTypeByTypeHandle(mt, cmt));
                     }
                     else
                     {
@@ -251,6 +250,38 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 // These also need to be enumerated in ClrAppDomain.Id order
                 Assert.AreEqual(appDomainsFooMethodTable, typeHandleEnumeration[0]);
                 Assert.AreEqual(nestedExceptionFooMethodTable, typeHandleEnumeration[1]);
+            }
+        }
+
+        [TestMethod]
+        public void ArrayReferenceEnumeration()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                ClrAppDomain domain = runtime.AppDomains.Single();
+
+                ClrModule typesModule = runtime.GetModule("types.exe");
+                ClrType type = heap.GetTypeByName("Types");
+
+
+                ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
+                ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
+                ulong s_two = (ulong)type.GetStaticFieldByName("s_two").GetValue(domain);
+                ulong s_three = (ulong)type.GetStaticFieldByName("s_three").GetValue(domain);
+
+                ClrType arrayType = heap.GetObjectType(s_array);
+
+                List<ulong> objs = new List<ulong>();
+                arrayType.EnumerateRefsOfObject(s_array, (obj, offs) => objs.Add(obj));
+
+
+                Assert.AreEqual(3, objs.Count);
+                Assert.IsTrue(objs.Contains(s_one));
+                Assert.IsTrue(objs.Contains(s_two));
+                Assert.IsTrue(objs.Contains(s_three));
             }
         }
     }

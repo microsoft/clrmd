@@ -224,7 +224,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrHeap GetHeap(TextWriter diagnosticLog)
         {
             if (_heap == null)
-                _heap = new DesktopGCHeap(this, diagnosticLog);
+            {
+                if (ClrInfo.Version.Major > 4 || (ClrInfo.Version.Major == 4 && ClrInfo.Version.Minor >= 6))
+                    _heap = new V46GCHeap(this, null);
+                else
+                    _heap = new LegacyGCHeap(this, null);
+            }
 
             return _heap;
         }
@@ -232,7 +237,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrHeap GetHeap()
         {
             if (_heap == null)
-                _heap = new DesktopGCHeap(this, null);
+            {
+                if (ClrInfo.Version.Major > 4 || (ClrInfo.Version.Major == 4 && ClrInfo.Version.Minor >= 6))
+                    _heap = new V46GCHeap(this, null);
+                else
+                    _heap = new LegacyGCHeap(this, null);
+            }
 
             return _heap;
         }
