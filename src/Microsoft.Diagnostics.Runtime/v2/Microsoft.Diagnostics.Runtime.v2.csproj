@@ -112,7 +112,6 @@
     <Compile Include="..\modules.cs" />
     <Compile Include="..\dumpdatareader.cs" />
     <Compile Include="..\heap.cs" />
-    <Compile Include="..\heapbase.cs" />
     <Compile Include="..\internal.cs" />
     <Compile Include="..\metadata.cs" />
     <Compile Include="..\Properties\AssemblyInfo.cs" />
