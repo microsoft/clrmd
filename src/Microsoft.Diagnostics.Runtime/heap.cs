@@ -23,6 +23,32 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrType GetObjectType(Address objRef);
 
         /// <summary>
+        /// Attempts to retrieve the TypeHandle and component TypeHandle from the given object.
+        /// Note that this some ClrTypes cannot be uniquely determined by TypeHandle alone.  In
+        /// Desktop CLR, arrays of reference types all use the same TypeHandle.  To uniquely
+        /// determine an array of referneces you must also have its component type.
+        /// Note this function has undefined behavior if you do not pass a valid object reference
+        /// to it.
+        /// </summary>
+        /// <param name="obj">The object to get the type handle of.</param>
+        /// <param name="typeHandle">The type handle for the given object.</param>
+        /// <param name="componentTypeHandle">The component type handle of the given object.</param>
+        /// <returns>True if typeHandle was filled, false if we failed to read memory.</returns>
+        abstract public bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle);
+
+        /// <summary>
+        /// Attempts to retrieve the TypeHandle from the given object.
+        /// Note that this some ClrTypes cannot be uniquely determined by TypeHandle alone.  In
+        /// Desktop CLR, arrays of reference types all use the same TypeHandle.  To uniquely
+        /// determine an array of referneces you must also have its component type.
+        /// Note this function has undefined behavior if you do not pass a valid object reference
+        /// to it.
+        /// </summary>
+        /// <param name="obj">The object to get the type handle of.</param>
+        /// <returns>The TypeHandle of the object, or 0 if the address could not be read from.</returns>
+        abstract public ulong GetTypeHandle(ulong obj);
+
+        /// <summary>
         /// Returns a  wrapper around a System.Exception object (or one of its subclasses).
         /// </summary>
         virtual public ClrException GetExceptionObject(Address objRef) { return null; }

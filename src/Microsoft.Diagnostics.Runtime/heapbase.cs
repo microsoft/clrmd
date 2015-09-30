@@ -27,6 +27,15 @@ namespace Microsoft.Diagnostics.Runtime
             _pointerSize = runtime.PointerSize;
         }
 
+        public override ulong GetTypeHandle(ulong obj)
+        {
+            ulong mt;
+            if (!MemoryReader.ReadPtr(obj, out mt))
+                return 0;
+
+            return mt;
+        }
+
         public override bool ReadPointer(Address addr, out Address value)
         {
             if (MemoryReader.Contains(addr))

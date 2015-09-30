@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrElementType _elementType;
         protected uint _token;
         private IList<ClrInterface> _interfaces;
-        public bool Shared { get; protected set; }
+        public bool Shared { get; internal set; }
         internal abstract ulong GetModuleAddress(ClrAppDomain domain);
 
 
@@ -724,7 +724,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (Shared || ((DesktopRuntimeBase)Heap.GetRuntime()).IsSingleDomain)
                     _cachedTypeHandle = _handle;
                 else
-                    _cachedTypeHandle = EnumerateTypeHandles().First();
+                {
+                    _cachedTypeHandle = EnumerateTypeHandles().FirstOrDefault();
+                    if (_cachedTypeHandle == 0)
+                        _cachedTypeHandle = _handle;
+                }
 
                 Debug.Assert(_cachedTypeHandle != 0);
                 return _cachedTypeHandle;

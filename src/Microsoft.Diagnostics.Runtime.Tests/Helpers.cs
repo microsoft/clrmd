@@ -13,9 +13,9 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    static class Helpers
+    public static class Helpers
     {
-        public static IEnumerable<T> Unique<T>(this IEnumerable<T> self)
+        public static HashSet<T> Unique<T>(this IEnumerable<T> self)
         {
             HashSet<T> set = new HashSet<T>();
             foreach (T t in self)

@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj)).Unique())
                 {
-                    Assert.AreNotEqual(0, type.TypeHandle);
+                    Assert.AreNotEqual(0ul, type.TypeHandle);
 
                     ClrType typeFromHeap;
                     
@@ -152,6 +152,54 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.AreEqual(type.TypeHandle, typeFromHeap.TypeHandle);
                     Assert.AreSame(type, typeFromHeap);
                 }
+            }
+        }
+
+        [TestMethod]
+        public void GetObjectTypeHandleTest()
+        {
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                int i = 0;
+                foreach (ulong obj in heap.EnumerateObjects())
+                {
+                    i++;
+                    ClrType type = heap.GetObjectType(obj);
+
+                    if (type.IsArray)
+                    {
+                        ulong mt, cmt;
+                        bool result = heap.TryGetTypeHandle(obj, out mt, out cmt);
+
+                        Assert.IsTrue(result);
+                        Assert.AreNotEqual(0ul, mt);
+                        Assert.AreEqual(type.TypeHandle, mt);
+                        
+                        // TODO:  This doesn't quite work yet.
+                        //Assert.AreSame(type, heap.GetTypeByTypeHandle(mt, cmt));
+                    }
+                    else
+                    {
+                        ulong mt = heap.GetTypeHandle(obj);
+                        
+                        Assert.AreNotEqual(0ul, mt);
+                        Assert.IsTrue(type.EnumerateTypeHandles().Contains(mt));
+
+                        Assert.AreSame(type, heap.GetTypeByTypeHandle(mt));
+                        Assert.AreSame(type, heap.GetTypeByTypeHandle(mt, 0));
+
+                        ulong mt2, cmt;
+                        bool res = heap.TryGetTypeHandle(obj, out mt2, out cmt);
+
+                        Assert.IsTrue(res);
+                        Assert.AreEqual(mt, mt2);
+                        Assert.AreEqual(0ul, cmt);
+                    }
+                }
+
             }
         }
 

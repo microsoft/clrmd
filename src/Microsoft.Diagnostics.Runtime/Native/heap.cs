@@ -33,6 +33,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
             InitSegments(runtime);
         }
 
+        public override bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle)
+        {
+            throw new NotImplementedException();
+        }
+
         public override ClrRuntime GetRuntime() { return NativeRuntime; }
 
         public override int TypeIndexLimit

@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Prepopulate a few important method tables.
             FreeType = GetTypeByTypeHandle(DesktopRuntime.FreeMethodTable, 0, 0);
+            ((DesktopHeapType)FreeType).Shared = true;
             ObjectType = GetTypeByTypeHandle(DesktopRuntime.ObjectMethodTable, 0, 0);
             ArrayType = GetTypeByTypeHandle(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
             Debug.Assert(ArrayType.ComponentType == ObjectType);
@@ -57,6 +58,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             return new DesktopException(objRef, (BaseDesktopHeapType)type);
+        }
+
+
+
+        public override bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle)
+        {
+            componentTypeHandle = 0;
+            if (!ReadPointer(obj, out typeHandle))
+                return false;
+
+            if (typeHandle == DesktopRuntime.ArrayMethodTable)
+                if (!ReadPointer(obj + (ulong)(IntPtr.Size * 2), out componentTypeHandle))
+                    return false;
+
+            return true;
         }
 
         public override ClrType GetObjectType(Address objRef)
