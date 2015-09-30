@@ -37,7 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Address _metadataStart;
         private Address _metadataLength;
         private DebuggableAttribute.DebuggingModes? _debugMode;
-        private Address _address;
         private Address _assemblyAddress;
         private bool _typesLoaded;
         ClrAppDomain[] _appDomainList;
@@ -56,7 +55,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _metadataStart = data.MetdataStart;
             _metadataLength = data.MetadataLength;
             _assemblyAddress = data.Assembly;
-            _address = address;
             _size = size;
 
             if (!runtime.DataReader.IsMinidump)
@@ -119,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override IEnumerable<ClrType> EnumerateTypes()
         {
             var heap = (DesktopGCHeap)_runtime.GetHeap();
-            var mtList = _runtime.GetMethodTableList(_address);
+            var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
             if (_typesLoaded)
             {
                 foreach (var type in heap.EnumerateTypes())
@@ -241,11 +239,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 return _size;
             }
-        }
-
-        internal void SetImageSize(Address size)
-        {
-            _size = size;
         }
 
 
