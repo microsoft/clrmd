@@ -12,7 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
     internal class NativeHeap : HeapBase
     {
         internal NativeRuntime NativeRuntime { get; set; }
-        internal TextWriter Log { get; set; }
         private ulong _lastObj;
         private ClrType _lastType;
         private Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
@@ -21,10 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeModule _mrtModule;
         private NativeType _free;
 
-        internal NativeHeap(NativeRuntime runtime, NativeModule[] modules, TextWriter log)
+        internal NativeHeap(NativeRuntime runtime, NativeModule[] modules)
             : base(runtime)
         {
-            Log = log;
             NativeRuntime = runtime;
             _modules = modules;
             _mrtModule = FindMrtModule();

@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (string.IsNullOrEmpty(workingDirectory))
                 workingDirectory = Environment.CurrentDirectory;
 
-            string env = null; // GetEnvironment();
+            string env = GetEnvironment();
             DEBUG_CREATE_PROCESS_OPTIONS options = new DEBUG_CREATE_PROCESS_OPTIONS();
             options.CreateFlags = (DEBUG_CREATE_PROCESS)1;
             int hr = client.CreateProcessAndAttach2(0, commandLine, ref options, (uint)Marshal.SizeOf(typeof(DEBUG_CREATE_PROCESS_OPTIONS)), workingDirectory, env, 0, DEBUG_ATTACH.DEFAULT);
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private string GetEnvironment()
         {
             if (m_environment.Count == 0)
-                return "\0";
+                return null;
 
             StringBuilder sb = new StringBuilder();
             foreach (string key in m_environment.Keys)
