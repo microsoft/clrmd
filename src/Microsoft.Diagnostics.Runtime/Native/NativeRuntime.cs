@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         internal ClrAppDomain GetRhAppDomain()
         {
             if (_domain == null)
-                _domain = new NativeAppDomain(NativeModules);
+                _domain = new NativeAppDomain(this, NativeModules);
 
             return _domain;
         }

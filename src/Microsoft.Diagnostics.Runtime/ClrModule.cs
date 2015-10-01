@@ -199,6 +199,11 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrAppDomain
     {
         /// <summary>
+        /// Gets the runtime associated with this ClrAppDomain.
+        /// </summary>
+        public abstract ClrRuntime Runtime { get; }
+
+        /// <summary>
         /// Address of the AppDomain.
         /// </summary>
         public abstract Address Address { get; }

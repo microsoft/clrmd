@@ -135,6 +135,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class DesktopThread : ClrThread
     {
+        public override ClrRuntime Runtime
+        {
+            get
+            {
+                return _runtime;
+            }
+        }
+
         public override Address Address
         {
             get { return _address; }
