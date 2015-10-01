@@ -313,6 +313,13 @@ namespace Microsoft.Diagnostics.Runtime
         virtual public ClrModule Module { get { return null; } }
 
         /// <summary>
+        /// Returns a method based on its token.
+        /// </summary>
+        /// <param name="token">The token of the method to return.</param>
+        /// <returns>A ClrMethod for the given token, null if no such methodDesc exists.</returns>
+        internal abstract ClrMethod GetMethod(uint token);
+
+        /// <summary>
         /// Returns the ElementType of this Type.  Can return ELEMENT_TYPE_VOID on error.
         /// </summary>
         virtual public ClrElementType ElementType { get { return ClrElementType.Unknown; } internal set { throw new NotImplementedException(); } }
@@ -1096,6 +1103,24 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrMethod
     {
+        /// <summary>
+        /// Retrieves the first method handle in EnumerateMethodHandles().  MethodHandles
+        /// are unique to an Method/AppDomain pair, so when there are multiple domains
+        /// there will be multiple MethodHandles for a method.  Note that MethodHandle
+        /// corresponds to a MethodDesc in desktop Clr.
+        /// </summary>
+        abstract public ulong MethodHandle { get; }
+
+        /// <summary>
+        /// Enumerates all method handles for this method in the process.  MethodHandles
+        /// are unique to an Method/AppDomain pair, so when there are multiple domains
+        /// there will be multiple MethodHandles for a method.  Note that MethodHandle
+        /// corresponds to a MethodDesc in desktop Clr.
+        /// </summary>
+        /// <returns>An enumeration of method handles in the process for this given
+        /// method.</returns>
+        abstract public IEnumerable<ulong> EnumerateMethodHandles();
+
         /// <summary>
         /// The name of the method.  For example, "void System.Foo.Bar(object o, int i)" would return "Bar".
         /// </summary>

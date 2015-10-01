@@ -78,7 +78,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// which have been collected and will be imminently finalized.)
         /// </summary>
         abstract public IEnumerable<Address> EnumerateFinalizerQueue();
-
+        
+        /// <summary>
+        /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
+        /// </summary>
+        /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
+        /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
+        abstract public ClrMethod GetMethodFromHandle(Address methodHandle);
 
         /// <summary>
         /// Returns the CCW data associated with the given address.  This is used when looking at stowed

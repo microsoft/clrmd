@@ -49,6 +49,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _token = token;
         }
 
+        internal override ClrMethod GetMethod(uint token)
+        {
+            return null;
+        }
+
         internal DesktopGCHeap DesktopHeap { get; set; }
         internal DesktopBaseModule DesktopModule { get; set; }
 
@@ -450,6 +455,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 BuildName(nameHint);
         }
 
+        internal override ClrMethod GetMethod(uint token)
+        {
+            return null;
+        }
+
         public override ulong TypeHandle
         {
             get
@@ -760,9 +770,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 domains = Module.AppDomains;
                 _typeHandles = new ulong[domains.Count];
             }
-            
-            if (_typeHandles == null)
-                _typeHandles = new ulong[domains.Count];
             
             for (int i = 0; i < _typeHandles.Length; i++)
             {
@@ -1488,6 +1495,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return value;
         }
 
+        internal override ClrMethod GetMethod(uint token)
+        {
+            return Methods.Where(m => m.MetadataToken == token).FirstOrDefault();
+        }
 
         public override IList<ClrMethod> Methods
         {
@@ -1982,6 +1993,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             return DesktopHeap.GetTypeByTypeHandle(methodTable, 0, obj);
+        }
+
+        internal void InitMethodHandles()
+        {
+            var runtime = DesktopHeap.DesktopRuntime;
+            foreach (ulong methodTable in EnumerateTypeHandles())
+            {
+                foreach (ulong methodDesc in runtime.GetMethodDescList(methodTable))
+                {
+                    IMethodDescData data = runtime.GetMethodDescData(methodDesc);
+                    DesktopMethod method = (DesktopMethod)GetMethod(data.MDToken);
+                    if (method.Type != this)
+                        continue;
+                    method.AddMethodHandle(methodDesc);
+                }
+            }
         }
 
         private string _name;

@@ -327,6 +327,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public override ClrMethod GetMethodFromHandle(ulong methodHandle)
+        {
+            if (methodHandle == 0)
+                return null;
+
+            IMethodDescData methodDesc = GetMethodDescData(methodHandle);
+            if (methodDesc == null)
+                return null;
+
+            ClrType type = GetHeap().GetTypeByTypeHandle(methodDesc.MethodTable);
+            if (type == null)
+                return null;
+
+            return type.GetMethod(methodDesc.MDToken);
+        }
+
         /// <summary>
         /// Enumerates regions of memory which CLR has allocated with a description of what data
         /// resides at that location.  Note that this does not return every chunk of address space

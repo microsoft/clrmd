@@ -7,4 +7,8 @@
     object o;
 
     public string FooString = "Foo string";
+
+    public void Bar() { }
+    public void Baz() { }
+    public int Baz(int i) { return i; }
 }

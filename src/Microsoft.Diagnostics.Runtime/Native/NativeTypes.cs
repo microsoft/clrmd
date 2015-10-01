@@ -31,6 +31,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _containsPointers = mtData.ContainsPointers;
         }
 
+        internal override ClrMethod GetMethod(uint token)
+        {
+            return null;
+        }
+
         public override ulong TypeHandle
         {
             get

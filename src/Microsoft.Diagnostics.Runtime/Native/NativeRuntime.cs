@@ -31,6 +31,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsException.HR.DacError);
         }
 
+        public override ClrMethod GetMethodFromHandle(ulong methodHandle)
+        {
+            return null;
+        }
+
         protected override void InitApi()
         {
             if (_sos == null)
