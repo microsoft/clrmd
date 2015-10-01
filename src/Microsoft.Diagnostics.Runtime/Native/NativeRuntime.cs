@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         public override ClrHeap GetHeap()
         {
             if (_heap == null)
-                _heap = new NativeHeap(this, NativeModules, null);
+                _heap = new NativeHeap(this, NativeModules);
 
             return _heap;
         }
@@ -55,10 +55,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
         public override ClrHeap GetHeap(System.IO.TextWriter log)
         {
             if (_heap == null)
-                _heap = new NativeHeap(this, NativeModules, log);
-            else
-                _heap.Log = log;
-
+                _heap = new NativeHeap(this, NativeModules);
+            
             return _heap;
         }
 

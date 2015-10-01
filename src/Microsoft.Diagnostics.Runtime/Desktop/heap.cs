@@ -13,11 +13,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal abstract class DesktopGCHeap : HeapBase
     {
-        public DesktopGCHeap(DesktopRuntimeBase runtime, TextWriter log)
+        public DesktopGCHeap(DesktopRuntimeBase runtime)
             : base(runtime)
         {
             DesktopRuntime = runtime;
-            _log = log;
             _types = new List<ClrType>(1000);
             Revision = runtime.Revision;
 
@@ -481,10 +480,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     foreach (Address module in DesktopRuntime.EnumerateModules(adData))
                         modules.Add(module);
                 }
-                else if (_log != null)
-                {
-                    _log.WriteLine("Error: Could not get appdomain information from Appdomain {0:x}.  Skipping.", ad);
-                }
             }
 
             ulong arrayMt = DesktopRuntime.ArrayMethodTable;
@@ -505,10 +500,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             }
                         }
                     }
-                }
-                else if (_log != null)
-                {
-                    _log.WriteLine("Error: Could not get method table list for module {0:x}.  Skipping.", module);
                 }
             }
         }
@@ -756,7 +747,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
         #region private
-        private TextWriter _log;
         protected List<ClrType> _types;
         protected Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
         private Dictionary<ArrayRankHandle, BaseDesktopHeapType> _arrayTypes;
@@ -1467,8 +1457,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private LastObjectType _lastObjType = new LastObjectType();
         private Dictionary<TypeHandle, int> _indices = new Dictionary<TypeHandle, int>(TypeHandle.EqualityComparer);
 
-        public LegacyGCHeap(DesktopRuntimeBase runtime, TextWriter log)
-            : base(runtime, log)
+        public LegacyGCHeap(DesktopRuntimeBase runtime)
+            : base(runtime)
         {
 
         }
@@ -1662,8 +1652,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private LastObjectType _lastObjType = new LastObjectType();
         private Dictionary<Address, int> _indices = new Dictionary<Address, int>();
         
-        public V46GCHeap(DesktopRuntimeBase runtime, TextWriter log)
-            : base(runtime, log)
+        public V46GCHeap(DesktopRuntimeBase runtime)
+            : base(runtime)
         {
 
         }

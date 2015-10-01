@@ -232,9 +232,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_heap == null)
             {
                 if (ClrInfo.Version.Major > 4 || (ClrInfo.Version.Major == 4 && ClrInfo.Version.Minor >= 6))
-                    _heap = new V46GCHeap(this, null);
+                    _heap = new V46GCHeap(this);
                 else
-                    _heap = new LegacyGCHeap(this, null);
+                    _heap = new LegacyGCHeap(this);
             }
 
             return _heap;
