@@ -1581,6 +1581,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return bytesRead;
         }
 
+        [Obsolete]
         public virtual void ReadMemory(AsyncMemoryReadResult result)
         {
             EnsureValid();

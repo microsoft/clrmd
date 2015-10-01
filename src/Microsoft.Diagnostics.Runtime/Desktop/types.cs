@@ -473,6 +473,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return 0;
         }
 
+        [Obsolete]
         public override int Index
         {
             get { return -1; }
@@ -797,6 +798,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        [Obsolete]
         public override int Index
         {
             get { return _index; }
@@ -1834,8 +1836,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _containsPointers = mtData.ContainsPointers;
             _hasMethods = mtData.NumMethods > 0;
         }
-
-        [Obsolete]
+        
         internal void SetIndex(int index)
         {
             _index = index;

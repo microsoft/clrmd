@@ -51,6 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return _heap;
         }
 
+        [Obsolete]
         public override ClrHeap GetHeap(System.IO.TextWriter log)
         {
             if (_heap == null)
