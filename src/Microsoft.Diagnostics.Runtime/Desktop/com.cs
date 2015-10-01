@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     ClrType type = null;
                     if (interfaces[i].MethodTable != 0)
-                        type = _heap.GetGCHeapType(interfaces[i].MethodTable, 0);
+                        type = _heap.GetTypeByTypeHandle(interfaces[i].MethodTable, 0);
 
                     _interfaces.Add(new DesktopInterfaceData(type, interfaces[i].InterfacePtr));
                 }
@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     ClrType type = null;
                     if (interfaces[i].MethodTable != 0)
-                        type = _heap.GetGCHeapType(interfaces[i].MethodTable, 0);
+                        type = _heap.GetTypeByTypeHandle(interfaces[i].MethodTable, 0);
 
                     _interfaces.Add(new DesktopInterfaceData(type, interfaces[i].InterfacePtr));
                 }

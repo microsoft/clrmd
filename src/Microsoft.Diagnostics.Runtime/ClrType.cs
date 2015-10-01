@@ -228,7 +228,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The index of this type.
         /// </summary>
+        [Obsolete("Use ClrType.TypeHandle instead.")]
         abstract public int Index { get; }
+
+        /// <summary>
+        /// Retrieves the first type handle in EnumerateTypeHandles().  TypeHandles
+        /// are unique to an AppDomain/Type pair, so when there are multiple domains
+        /// there will be multiple TypeHandles for a class.  Note that TypeHandle
+        /// corresponds to a MethodTable in desktop Clr.
+        /// </summary>
+        abstract public ulong TypeHandle { get; }
+
+        /// <summary>
+        /// Enumerates all type handles for this type in the process.  TypeHandles
+        /// are unique to an AppDomain/Type pair, so when there are multiple domains
+        /// there may be multiple type handles.  Note that even if a type could be
+        /// used in an AppDomain, that does not mean we actually have a TypeHandle
+        /// if the type hasn't been used yet.
+        /// </summary>
+        /// <returns>An enumeration of type handles in the process for this given
+        /// type.</returns>
+        abstract public IEnumerable<ulong> EnumerateTypeHandles();
 
         /// <summary>
         /// Returns the metadata token of this type.

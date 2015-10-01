@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _attrs = attrs;
             _token = mdData.MDToken;
             var heap = (DesktopGCHeap)runtime.GetHeap();
-            _type = heap.GetGCHeapType(mdData.MethodTable, 0);
+            _type = heap.GetTypeByTypeHandle(mdData.MethodTable, 0);
         }
 
         public override string Name

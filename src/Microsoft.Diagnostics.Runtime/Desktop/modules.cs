@@ -8,6 +8,7 @@ using Address = System.UInt64;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -36,9 +37,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Address _metadataStart;
         private Address _metadataLength;
         private DebuggableAttribute.DebuggingModes? _debugMode;
-        private Address _address;
         private Address _assemblyAddress;
         private bool _typesLoaded;
+        ClrAppDomain[] _appDomainList;
 
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
         {
@@ -54,7 +55,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _metadataStart = data.MetdataStart;
             _metadataLength = data.MetadataLength;
             _assemblyAddress = data.Assembly;
-            _address = address;
             _size = size;
 
             if (!runtime.DataReader.IsMinidump)
@@ -83,10 +83,41 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+
+
+        internal ulong GetMTForDomain(ClrAppDomain domain, DesktopHeapType type)
+        {
+            DesktopGCHeap heap = null;
+            var mtList = _runtime.GetMethodTableList(_mapping[domain]);
+
+            bool hasToken = type.MetadataToken != 0 && type.MetadataToken != uint.MaxValue;
+
+            uint token = ~0xff000000 & type.MetadataToken;
+
+            foreach (MethodTableTokenPair pair in mtList)
+            {
+                if (hasToken)
+                {
+                    if (pair.Token == token)
+                        return pair.MethodTable;
+                }
+                else
+                {
+                    if (heap == null)
+                        heap = (DesktopGCHeap)_runtime.GetHeap();
+
+                    if (heap.GetTypeByTypeHandle(pair.MethodTable, 0) == type)
+                        return pair.MethodTable;
+                }
+            }
+
+            return 0;
+        }
+
         public override IEnumerable<ClrType> EnumerateTypes()
         {
             var heap = (DesktopGCHeap)_runtime.GetHeap();
-            var mtList = _runtime.GetMethodTableList(_address);
+            var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
             if (_typesLoaded)
             {
                 foreach (var type in heap.EnumerateTypes())
@@ -97,12 +128,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (mtList != null)
                 {
-                    foreach (ulong mt in mtList)
+                    foreach (var pair in mtList)
                     {
+                        ulong mt = pair.MethodTable;
                         if (mt != _runtime.ArrayMethodTable)
                         {
                             // prefetch element type, as this also can load types
-                            var type = heap.GetGCHeapType(mt, 0, 0);
+                            var type = heap.GetTypeByTypeHandle(mt, 0, 0);
                             if (type != null)
                                 yield return type;
                         }
@@ -144,6 +176,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             DesktopAppDomain appDomain = (DesktopAppDomain)domain;
             _mapping[domain] = domainModule;
+        }
+
+        public override IList<ClrAppDomain> AppDomains
+        {
+            get
+            {
+                if (_appDomainList == null)
+                {
+                    _appDomainList = new ClrAppDomain[_mapping.Keys.Count];
+                    _appDomainList = _mapping.Keys.ToArray();
+                    Array.Sort(_appDomainList, (d, d2) => d.Id.CompareTo(d2.Id));
+                }
+
+                return _appDomainList;
+            }
         }
 
         internal override ulong GetDomainModule(ClrAppDomain domain)
@@ -192,11 +239,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 return _size;
             }
-        }
-
-        internal void SetImageSize(Address size)
-        {
-            _size = size;
         }
 
 
@@ -281,6 +323,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         private static uint s_id = 0;
         private uint _id = s_id++;
+
+        public override IList<ClrAppDomain> AppDomains
+        {
+            get
+            {
+                return new ClrAppDomain[0];
+            }
+        }
 
         public override string AssemblyName
         {

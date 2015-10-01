@@ -11,13 +11,13 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    class ExceptionTestData
+    public class ExceptionTestData
     {
         public readonly string OuterExceptionMessage = "IOE Message";
         public readonly string OuterExceptionType = "System.InvalidOperationException";
     }
 
-    class TestTargets
+    public class TestTargets
     {
         public static TestTarget NestedException = new TestTarget("NestedException.cs");
         public static ExceptionTestData NestedExceptionData = new ExceptionTestData();
@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget AppDomains = new TestTarget("AppDomains.cs", NestedException);
     }
 
-    class TestTarget
+    public class TestTarget
     {
         static TestTarget _sharedLibrary = new TestTarget("SharedLibrary.cs", true);
 

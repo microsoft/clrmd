@@ -9,6 +9,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopAppDomain : ClrAppDomain
     {
+        public override ClrRuntime Runtime
+        {
+            get
+            {
+                return _runtime;
+            }
+        }
+
         /// <summary>
         /// Address of the AppDomain.
         /// </summary>

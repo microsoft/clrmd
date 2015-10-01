@@ -152,6 +152,11 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrThread
     {
         /// <summary>
+        /// Gets the runtime associated with this thread.
+        /// </summary>
+        public abstract ClrRuntime Runtime { get; }
+
+        /// <summary>
         /// The suspension state of the thread according to the runtime.
         /// </summary>
         public abstract GcMode GcMode { get; }

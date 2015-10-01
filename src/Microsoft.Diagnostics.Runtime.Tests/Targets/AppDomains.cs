@@ -5,10 +5,9 @@ using System.Threading;
 
 class Program
 {
+    static Foo s_foo = new Foo();
     static void Main(string[] args)
     {
-        Foo foo = new Foo();
-
         string codebase = Assembly.GetExecutingAssembly().CodeBase;
 
         if (codebase.StartsWith("file://"))
@@ -20,7 +19,5 @@ class Program
 
         while (true)
             Thread.Sleep(250);
-
-        GC.KeepAlive(foo);
     }
 }

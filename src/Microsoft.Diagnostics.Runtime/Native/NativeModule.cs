@@ -10,10 +10,20 @@ namespace Microsoft.Diagnostics.Runtime.Native
 {
     internal class NativeAppDomain : ClrAppDomain
     {
-        private IList<ClrModule> _modules;
-
-        public NativeAppDomain(IList<ClrModule> modules)
+        public override ClrRuntime Runtime
         {
+            get
+            {
+                return _runtime;
+            }
+        }
+
+        private IList<ClrModule> _modules;
+        private ClrRuntime _runtime;
+
+        public NativeAppDomain(ClrRuntime runtime, IList<ClrModule> modules)
+        {
+            _runtime = runtime;
             _modules = modules;
         }
 
@@ -65,6 +75,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _filename = module.FileName;
             _imageBase = module.ImageBase;
             _size = module.FileSize;
+        }
+
+        public override IList<ClrAppDomain> AppDomains
+        {
+            get
+            {
+                return new ClrAppDomain[] { _runtime.AppDomains[0] };
+            }
         }
 
         public override string AssemblyName

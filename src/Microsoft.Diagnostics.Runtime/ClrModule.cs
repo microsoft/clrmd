@@ -16,6 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrModule
     {
+        #region Obsolete
         /// <summary>
         /// Returns true if ClrMD has loaded the the PDB for this module into memory.
         /// </summary>
@@ -82,6 +83,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The SourceLocation for the given IL offset, or null if no mapping exists.</returns>
         [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
         public virtual SourceLocation GetSourceInformation(ClrMethod method, int ilOffset) { return null; }
+        #endregion
+
+        /// <summary>
+        /// Returns a list of all AppDomains this module is loaded into.  Please note that unlike
+        /// ClrRuntime.AppDomains, this list may include the shared AppDomain.
+        /// </summary>
+        public abstract IList<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
         /// Returns the name of the assembly that this module is defined in.
@@ -190,6 +198,11 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrAppDomain
     {
+        /// <summary>
+        /// Gets the runtime associated with this ClrAppDomain.
+        /// </summary>
+        public abstract ClrRuntime Runtime { get; }
+
         /// <summary>
         /// Address of the AppDomain.
         /// </summary>

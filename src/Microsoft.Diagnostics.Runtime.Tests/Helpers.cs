@@ -13,8 +13,31 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    static class Helpers
+    public static class Helpers
     {
+        public static HashSet<T> Unique<T>(this IEnumerable<T> self)
+        {
+            HashSet<T> set = new HashSet<T>();
+            foreach (T t in self)
+                set.Add(t);
+
+            return set;
+        }
+
+        public static ClrAppDomain GetDomainByName(this ClrRuntime runtime, string domainName)
+        {
+            return runtime.AppDomains.Where(ad => ad.Name == domainName).Single();
+        }
+
+        public static ClrModule GetModule(this ClrRuntime runtime, string filename)
+        {
+            return (from module in runtime.EnumerateModules()
+                    let file = Path.GetFileName(module.FileName)
+                    where file.Equals(filename, StringComparison.OrdinalIgnoreCase)
+                    select module).Single();
+        }
+
+
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
             ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();

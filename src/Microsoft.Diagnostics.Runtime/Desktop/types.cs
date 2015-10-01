@@ -5,6 +5,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Address = System.UInt64;
@@ -37,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrElementType _elementType;
         protected uint _token;
         private IList<ClrInterface> _interfaces;
-        public bool Shared { get; protected set; }
+        public bool Shared { get; internal set; }
         internal abstract ulong GetModuleAddress(ClrAppDomain domain);
 
 
@@ -182,12 +183,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrModule Module { get { return DesktopModule; } }
 
+        public override ulong TypeHandle
+        {
+            get
+            {
+                // We have no good way of finding this value, unfortunately
+                return 0;
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateTypeHandles()
+        {
+            return new ulong[] { TypeHandle };
+        }
 
         internal override Address GetModuleAddress(ClrAppDomain domain)
         {
             return 0;
         }
 
+        [Obsolete]
         public override int Index
         {
             get { return -1; }
@@ -435,6 +450,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 BuildName(nameHint);
         }
 
+        public override ulong TypeHandle
+        {
+            get
+            {
+                // Unfortunately this is a "fake" type (we constructed it because we could not
+                // get the real type from the dac APIs).  So we have nothing we can return here.
+                return 0;
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateTypeHandles()
+        {
+            return new ulong[] { TypeHandle };
+        }
+
         public override ClrModule Module { get { return DesktopModule; } }
 
 
@@ -443,6 +473,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return 0;
         }
 
+        [Obsolete]
         public override int Index
         {
             get { return -1; }
@@ -681,6 +712,76 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class DesktopHeapType : BaseDesktopHeapType
     {
+        ulong _cachedTypeHandle;
+        ulong[] _typeHandles;
+
+        public override ulong TypeHandle
+        {
+            get
+            {
+                if (_cachedTypeHandle != 0)
+                    return _cachedTypeHandle;
+
+                if (Shared || ((DesktopRuntimeBase)Heap.Runtime).IsSingleDomain)
+                    _cachedTypeHandle = _handle;
+                else
+                {
+                    _cachedTypeHandle = EnumerateTypeHandles().FirstOrDefault();
+                    if (_cachedTypeHandle == 0)
+                        _cachedTypeHandle = _handle;
+                }
+
+                Debug.Assert(_cachedTypeHandle != 0);
+                return _cachedTypeHandle;
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateTypeHandles()
+        {
+            if (_typeHandles == null && (Shared || ((DesktopRuntimeBase)Heap.Runtime).IsSingleDomain))
+            {
+                if (_cachedTypeHandle == 0)
+                    _cachedTypeHandle = _handle;
+                
+                Debug.Assert(_cachedTypeHandle != 0);
+                _typeHandles = new ulong[] { _cachedTypeHandle };
+
+                return _typeHandles;
+            }
+
+            return FillAndEnumerateTypeHandles();
+        }
+
+        private IEnumerable<ulong> FillAndEnumerateTypeHandles()
+        {
+            IList<ClrAppDomain> domains = null;
+            if (_typeHandles == null)
+            {
+                domains = Module.AppDomains;
+                _typeHandles = new ulong[domains.Count];
+            }
+            
+            if (_typeHandles == null)
+                _typeHandles = new ulong[domains.Count];
+            
+            for (int i = 0; i < _typeHandles.Length; i++)
+            {
+                if (_typeHandles[i] == 0)
+                {
+                    if (domains == null)
+                        domains = Module.AppDomains;
+
+                    ulong value = ((DesktopModule)DesktopModule).GetMTForDomain(domains[i], this);
+                    _typeHandles[i] = value != 0 ? value : ulong.MaxValue;
+                }
+
+                if (_typeHandles[i] == ulong.MaxValue)
+                    continue;
+
+                yield return _typeHandles[i];
+            }
+        }
+
         public override ClrElementType ElementType
         {
             get
@@ -697,6 +798,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        [Obsolete]
         public override int Index
         {
             get { return _index; }
@@ -1480,7 +1582,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_parent == 0)
                     return null;
 
-                return DesktopHeap.GetGCHeapType(_parent, 0, 0);
+                return DesktopHeap.GetTypeByTypeHandle(_parent, 0, 0);
             }
         }
 
@@ -1721,11 +1823,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return builder.ToString();
         }
 
-        internal DesktopHeapType(string typeName, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap, int index)
+        internal DesktopHeapType(string typeName, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap)
             : base(heap, module, token)
         {
             _name = typeName;
-            _index = index;
 
             _handle = mt;
             Shared = mtData.Shared;
@@ -1734,6 +1835,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _componentSize = mtData.ComponentSize;
             _containsPointers = mtData.ContainsPointers;
             _hasMethods = mtData.NumMethods > 0;
+        }
+        
+        internal void SetIndex(int index)
+        {
+            _index = index;
         }
 
         private void InitFlags()
@@ -1875,7 +1981,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 methodTable = (ulong)(long)ptrField.GetValue(field.GetAddress(obj, false), true);
             }
 
-            return DesktopHeap.GetGCHeapType(methodTable, 0, obj);
+            return DesktopHeap.GetTypeByTypeHandle(methodTable, 0, obj);
         }
 
         private string _name;

@@ -482,14 +482,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return data;
         }
 
-        internal override IList<ulong> GetMethodTableList(ulong module)
+        internal override IList<MethodTableTokenPair> GetMethodTableList(ulong module)
         {
-            List<ulong> mts = new List<ulong>();
+            List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
             int res = _sos.TraverseModuleMap(0, module, new ModuleMapTraverse(delegate (uint index, ulong mt, IntPtr token)
-                { mts.Add(mt); }),
+                { mts.Add(new MethodTableTokenPair(mt, index)); }),
                 IntPtr.Zero);
 
-            return (res < 0) ? null : mts;
+            return mts;
         }
 
         internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)

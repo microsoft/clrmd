@@ -31,6 +31,20 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _containsPointers = mtData.ContainsPointers;
         }
 
+        public override ulong TypeHandle
+        {
+            get
+            {
+                return _eeType;
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateTypeHandles()
+        {
+            return new ulong[] { _eeType };
+        }
+
+        [Obsolete]
         public override int Index
         {
             get { return _index; }
