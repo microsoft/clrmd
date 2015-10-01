@@ -9,29 +9,8 @@ using System.Threading.Tasks;
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     [TestClass]
-    public class HeapAndTypeTests
+    public class TypeTests
     {
-        [TestMethod]
-        public void HeapEnumeration()
-        {
-            // Simply test that we can enumerate the heap.
-
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.GetHeap();
-
-                int count = 0;
-                foreach (ulong obj in heap.EnumerateObjects())
-                {
-                    Assert.IsNotNull(heap.GetObjectType(obj));
-                    count++;
-                }
-
-                Assert.IsTrue(count > 0);
-            }
-        }
-
         [TestMethod]
         public void ComponentType()
         {

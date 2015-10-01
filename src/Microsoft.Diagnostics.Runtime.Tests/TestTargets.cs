@@ -11,6 +11,12 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
+    public enum GCMode
+    {
+        Workstation,
+        Server
+    }
+
     public class ExceptionTestData
     {
         public readonly string OuterExceptionMessage = "IOE Message";
@@ -34,8 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private string _source;
         private string _executable;
         private object _sync = new object();
-        private string _miniDumpPath;
-        private string _fullDumpPath;
+        private string[] _miniDumpPath = new string[2];
+        private string[] _fullDumpPath = new string[2];
 
         public string Executable
         {
@@ -81,18 +87,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 item.CompileSource();
         }
 
-        public DataTarget LoadMiniDump()
+        public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
         {
-            WriteCrashDumps();
+            WriteCrashDumps(gc);
 
-            return DataTarget.LoadCrashDump(_miniDumpPath);
+            return DataTarget.LoadCrashDump(_miniDumpPath[(int)gc]);
         }
 
-        public DataTarget LoadFullDump()
+        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
         {
-            WriteCrashDumps();
+            WriteCrashDumps(gc);
 
-            return DataTarget.LoadCrashDump(_fullDumpPath);
+            return DataTarget.LoadCrashDump(_fullDumpPath[(int)gc]);
         }
 
         void CompileSource()
@@ -133,19 +139,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return cr.PathToAssembly;
         }
 
-        private void WriteCrashDumps()
+        private void WriteCrashDumps(GCMode gc)
         {
-            if (_fullDumpPath != null)
+            if (_fullDumpPath[(int)gc] != null)
                 return;
 
             string executable = Executable;
             DebuggerStartInfo info = new DebuggerStartInfo();
+            if (gc == GCMode.Server)
+                info.SetEnvironmentVariable("COMPlus_BuildFlavor", "svr");
+
             using (Debugger dbg = info.LaunchProcess(executable, Helpers.TestWorkingDirectory))
             {
                 dbg.SecondChanceExceptionEvent += delegate (Debugger d, EXCEPTION_RECORD64 ex)
                 {
                     if (ex.ExceptionCode == (uint)ExceptionTypes.Clr)
-                        WriteDumps(dbg, executable);
+                        WriteDumps(dbg, executable, gc);
                 };
 
                 DEBUG_STATUS status;
@@ -154,33 +163,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     status = dbg.ProcessEvents(0xffffffff);
                 } while (status != DEBUG_STATUS.NO_DEBUGGEE);
 
-                Assert.IsNotNull(_miniDumpPath);
-                Assert.IsNotNull(_fullDumpPath);
+                Assert.IsNotNull(_miniDumpPath[(int)gc]);
+                Assert.IsNotNull(_fullDumpPath[(int)gc]);
             }
         }
 
-        private void WriteDumps(Debugger dbg, string exe)
+        private void WriteDumps(Debugger dbg, string exe, GCMode gc)
         {
-            string dump = GetMiniDumpName(exe);
+            string dump = GetMiniDumpName(exe, gc);
             dbg.WriteDumpFile(dump, DEBUG_DUMP.SMALL);
-            _miniDumpPath = dump;
+            _miniDumpPath[(int)gc] = dump;
 
-            dump = GetFullDumpName(exe);
+            dump = GetFullDumpName(exe, gc);
             dbg.WriteDumpFile(dump, DEBUG_DUMP.DEFAULT);
-            _fullDumpPath = dump;
+            _fullDumpPath[(int)gc] = dump;
 
             dbg.TerminateProcess();
         }
 
-        private static string GetMiniDumpName(string executable)
+        private static string GetMiniDumpName(string executable, GCMode gc)
         {
             string basePath = Path.Combine(Path.GetDirectoryName(executable), Path.GetFileNameWithoutExtension(executable));
-            return basePath + "_mini.dmp";
+            basePath += gc == GCMode.Workstation ? "_wks" : "_svr";
+            basePath += "_mini.dmp";
+            return basePath;
         }
-        private static string GetFullDumpName(string executable)
+        private static string GetFullDumpName(string executable, GCMode gc)
         {
             string basePath = Path.Combine(Path.GetDirectoryName(executable), Path.GetFileNameWithoutExtension(executable));
-            return basePath + "_full.dmp";
+            basePath += gc == GCMode.Workstation ? "_wks" : "_svr";
+            basePath += "_full.dmp";
+            return basePath;
         }
     }
 }
