@@ -38,7 +38,13 @@ namespace Microsoft.Diagnostics.Runtime.Native
             throw new NotImplementedException();
         }
 
-        public override ClrRuntime GetRuntime() { return NativeRuntime; }
+        public override ClrRuntime Runtime
+        {
+            get
+            {
+                return NativeRuntime;
+            }
+        }
 
         public override int TypeIndexLimit
         {

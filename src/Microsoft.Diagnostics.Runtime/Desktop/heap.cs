@@ -39,9 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return DesktopRuntime.Revision;
         }
 
-        public override ClrRuntime GetRuntime()
+        public override ClrRuntime Runtime
         {
-            return DesktopRuntime;
+            get
+            {
+                return DesktopRuntime;
+            }
         }
 
         public override ClrException GetExceptionObject(Address objRef)

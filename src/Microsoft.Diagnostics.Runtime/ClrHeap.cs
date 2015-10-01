@@ -57,7 +57,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the runtime associated with this heap.
         /// </summary>
-        virtual public ClrRuntime GetRuntime() { return null; }
+        [Obsolete("Use the Runtime property instead.")]
+        virtual public ClrRuntime GetRuntime() { return Runtime; }
+
+        /// <summary>
+        /// Returns the runtime associated with this heap.
+        /// </summary>
+        abstract public ClrRuntime Runtime { get; }
 
         /// <summary>
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
@@ -705,7 +711,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (MemoryReader.Contains(addr))
                 return MemoryReader.ReadPtr(addr, out value);
 
-            return GetRuntime().ReadPointer(addr, out value);
+            return Runtime.ReadPointer(addr, out value);
         }
 
         internal int Revision { get; set; }
@@ -750,7 +756,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override ClrType GetTypeByName(string name)
         {
-            foreach (var module in GetRuntime().EnumerateModules())
+            foreach (var module in Runtime.EnumerateModules())
             {
                 var type = module.GetTypeByName(name);
                 if (type != null)

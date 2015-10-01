@@ -722,7 +722,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_cachedTypeHandle != 0)
                     return _cachedTypeHandle;
 
-                if (Shared || ((DesktopRuntimeBase)Heap.GetRuntime()).IsSingleDomain)
+                if (Shared || ((DesktopRuntimeBase)Heap.Runtime).IsSingleDomain)
                     _cachedTypeHandle = _handle;
                 else
                 {
@@ -738,7 +738,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateTypeHandles()
         {
-            if (_typeHandles == null && (Shared || ((DesktopRuntimeBase)Heap.GetRuntime()).IsSingleDomain))
+            if (_typeHandles == null && (Shared || ((DesktopRuntimeBase)Heap.Runtime).IsSingleDomain))
             {
                 if (_cachedTypeHandle == 0)
                     _cachedTypeHandle = _handle;
