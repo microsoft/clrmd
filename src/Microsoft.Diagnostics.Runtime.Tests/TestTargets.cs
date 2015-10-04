@@ -134,6 +134,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             cp.OutputAssembly = Path.Combine(Helpers.TestWorkingDirectory, Path.ChangeExtension(Path.GetFileNameWithoutExtension(source), extension));
             CompilerResults cr = provider.CompileAssemblyFromFile(cp, source);
 
+            if (cr.Errors.Count > 0 && System.Diagnostics.Debugger.IsAttached)
+                System.Diagnostics.Debugger.Break();
+
             Assert.AreEqual(0, cr.Errors.Count);
 
             return cr.PathToAssembly;

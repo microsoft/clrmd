@@ -115,12 +115,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.AreNotEqual(0ul, type.TypeHandle);
 
                     ClrType typeFromHeap;
-                    
+
                     if (type.IsArray)
                     {
                         ClrType componentType = type.ComponentType;
                         Assert.IsNotNull(componentType);
-                        
+
                         typeFromHeap = heap.GetTypeByTypeHandle(type.TypeHandle, componentType.TypeHandle);
                     }
                     else
@@ -156,13 +156,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         Assert.IsTrue(result);
                         Assert.AreNotEqual(0ul, mt);
                         Assert.AreEqual(type.TypeHandle, mt);
-                        
+
                         Assert.AreSame(type, heap.GetTypeByTypeHandle(mt, cmt));
                     }
                     else
                     {
                         ulong mt = heap.GetTypeHandle(obj);
-                        
+
                         Assert.AreNotEqual(0ul, mt);
                         Assert.IsTrue(type.EnumerateTypeHandles().Contains(mt));
 
@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 ClrType fooType = heap.GetObjectType(fooObjects[0]);
                 Assert.AreSame(fooType, heap.GetObjectType(fooObjects[1]));
-                
+
 
                 ClrRoot appDomainsFoo = (from root in heap.EnumerateRoots(true)
                                          where root.Kind == GCRootKind.StaticVar && root.Type == fooType
@@ -230,6 +230,44 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual(appDomainsFooMethodTable, typeHandleEnumeration[0]);
                 Assert.AreEqual(nestedExceptionFooMethodTable, typeHandleEnumeration[1]);
             }
+        }
+
+        [TestMethod]
+        public void FieldNameAndValueTests()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                ClrAppDomain domain = runtime.AppDomains.Single();
+
+                ClrType fooType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
+                ulong obj = (ulong)runtime.GetModule("types.exe").GetTypeByName("Types").GetStaticFieldByName("s_foo").GetValue(runtime.AppDomains.Single());
+
+                Assert.AreSame(fooType, heap.GetObjectType(obj));
+
+                TestFieldNameAndValue(fooType, obj, "i", 42);
+                TestFieldNameAndValue(fooType, obj, "s", "string");
+                TestFieldNameAndValue(fooType, obj, "b", true);
+                TestFieldNameAndValue(fooType, obj, "f", 4.2f);
+                TestFieldNameAndValue(fooType, obj, "d", 8.4);
+            }
+        }
+
+        public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
+        {
+            ClrInstanceField field = type.GetFieldByName(name);
+            Assert.IsNotNull(field);
+            Assert.AreEqual(name, field.Name);
+
+            object v = field.GetValue(obj);
+            Assert.IsNotNull(v);
+            Assert.IsInstanceOfType(v, typeof(T));
+
+            Assert.AreEqual(value, (T)v);
+
+            return field;
         }
     }
 

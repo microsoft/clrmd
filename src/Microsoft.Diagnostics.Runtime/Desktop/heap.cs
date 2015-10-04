@@ -390,6 +390,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _firstChar = StringType.GetFieldByName("m_firstChar");
                 _stringLength = StringType.GetFieldByName("m_stringLength");
 
+                // .Type being null can happen in minidumps.  In that case we will fall back to
+                // hardcoded values and hope they don't get out of date.
                 if (_firstChar.Type == null)
                     _firstChar = null;
 
@@ -397,9 +399,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _stringLength = null;
 
                 _initializedStringFields = true;
-                //Debug.Assert(m_firstChar != null && m_stringLength != null);
-                //Debug.Assert(m_firstChar == null || m_firstChar.Offset + IntPtr.Size == m_runtime.GetStringFirstCharOffset());
-                //Debug.Assert(m_stringLength == null || m_stringLength.Offset + IntPtr.Size == m_runtime.GetStringLengthOffset());
             }
 
             int length = 0;
