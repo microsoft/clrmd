@@ -327,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ClrMethod GetMethodFromHandle(ulong methodHandle)
+        public override ClrMethod GetMethodByHandle(ulong methodHandle)
         {
             if (methodHandle == 0)
                 return null;

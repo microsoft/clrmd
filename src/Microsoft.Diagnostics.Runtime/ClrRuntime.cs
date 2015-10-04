@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
         /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
-        abstract public ClrMethod GetMethodFromHandle(Address methodHandle);
+        abstract public ClrMethod GetMethodByHandle(Address methodHandle);
 
         /// <summary>
         /// Returns the CCW data associated with the given address.  This is used when looking at stowed
