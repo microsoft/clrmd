@@ -1441,7 +1441,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #endregion
     }
 
-    class ModuleEntry
+    struct ModuleEntry
     {
         public ClrModule Module;
         public uint Token;
@@ -1763,9 +1763,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);
                     _indices[mt] = index;
-                    _typeEntry[modEnt] = index;
-                    _types.Add(ret);
 
+                    // Arrays share a common token, so it's not helpful to look them up here.
+                    if (!ret.IsArray)
+                        _typeEntry[modEnt] = index;
+
+                    _types.Add(ret);
                     Debug.Assert(_types[index] == ret);
                 }
             }
