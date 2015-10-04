@@ -925,7 +925,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrHeap Heap { get { return DesktopHeap; } }
         public override string ToString()
         {
-            return "<GCHeapType Name=\"" + Name + "\">";
+            return Name;
         }
 
         public override bool HasSimpleValue { get { return ElementType != ClrElementType.Struct; } }

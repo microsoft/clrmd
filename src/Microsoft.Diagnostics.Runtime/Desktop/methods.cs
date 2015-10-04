@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         public override string ToString()
         {
-            return string.Format("<ClrMethod signature='{0}' />", _sig);
+            return _sig;
         }
 
         internal static DesktopMethod Create(DesktopRuntimeBase runtime, IMetadata metadata, IMethodDescData mdData)
