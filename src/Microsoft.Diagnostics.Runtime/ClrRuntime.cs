@@ -203,6 +203,28 @@ namespace Microsoft.Diagnostics.Runtime
                 evt(this);
         }
 
+        /// <summary>
+        /// Whether or not the runtime has component method tables for arrays.  This is an extra field in
+        /// array objects on the heap, which was removed in v4.6 of desktop clr.
+        /// </summary>
+        internal bool HasArrayComponentMethodTables
+        {
+            get
+            {
+                if (ClrInfo.Flavor == ClrFlavor.Desktop)
+                {
+                    VersionInfo version = ClrInfo.Version;
+                    if (version.Major > 4)
+                        return false;
+
+                    if (version.Major == 4 && version.Minor >= 6)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
         internal static bool IsPrimitive(ClrElementType cet)
         {
             return cet >= ClrElementType.Boolean && cet <= ClrElementType.Double

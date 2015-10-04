@@ -1622,10 +1622,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
                 else if (componentType != null)
                 {
-                    if (componentType.IsObjectReference)
-                        _baseArrayOffset = IntPtr.Size * 3;
-                    else
+                    if (!componentType.IsObjectReference || !Heap.Runtime.HasArrayComponentMethodTables)
                         _baseArrayOffset = IntPtr.Size * 2;
+                    else
+                        _baseArrayOffset = IntPtr.Size * 3;
                 }
                 else
                 {

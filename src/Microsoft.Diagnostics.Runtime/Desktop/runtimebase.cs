@@ -231,10 +231,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (_heap == null)
             {
-                if (ClrInfo.Version.Major > 4 || (ClrInfo.Version.Major == 4 && ClrInfo.Version.Minor >= 6))
-                    _heap = new V46GCHeap(this);
-                else
+                if (HasArrayComponentMethodTables)
                     _heap = new LegacyGCHeap(this);
+                else
+                    _heap = new V46GCHeap(this);
             }
 
             return _heap;

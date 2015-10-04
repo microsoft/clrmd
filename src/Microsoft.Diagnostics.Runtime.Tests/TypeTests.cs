@@ -231,6 +231,65 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual(nestedExceptionFooMethodTable, typeHandleEnumeration[1]);
             }
         }
+    }
+
+    [TestClass]
+    public class ArrayTests
+    {
+        [TestMethod]
+        public void ArrayOffsetsTest()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                ClrAppDomain domain = runtime.AppDomains.Single();
+
+                ClrModule typesModule = runtime.GetModule("types.exe");
+                ClrType type = heap.GetTypeByName("Types");
+                
+                ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
+                ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
+                ulong s_two = (ulong)type.GetStaticFieldByName("s_two").GetValue(domain);
+                ulong s_three = (ulong)type.GetStaticFieldByName("s_three").GetValue(domain);
+
+                ulong[] expected = new ulong[] { s_one, s_two, s_three };
+
+                ClrType arrayType = heap.GetObjectType(s_array);
+
+                for (int i = 0; i < expected.Length; i++)
+                {
+                    Assert.AreEqual(expected[i], (ulong)arrayType.GetArrayElementValue(s_array, i));
+
+                    ulong address = arrayType.GetArrayElementAddress(s_array, i);
+                    ulong value = dt.DataReader.ReadPointerUnsafe(address);
+
+                    Assert.IsNotNull(address);
+                    Assert.AreEqual(expected[i], value);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void ArrayLengthTest()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                ClrAppDomain domain = runtime.AppDomains.Single();
+
+                ClrModule typesModule = runtime.GetModule("types.exe");
+                ClrType type = heap.GetTypeByName("Types");
+                
+                ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
+                ClrType arrayType = heap.GetObjectType(s_array);
+
+                Assert.AreEqual(3, arrayType.GetArrayLength(s_array));
+            }
+        }
 
         [TestMethod]
         public void ArrayReferenceEnumeration()
@@ -256,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 List<ulong> objs = new List<ulong>();
                 arrayType.EnumerateRefsOfObject(s_array, (obj, offs) => objs.Add(obj));
 
-
+                // We do not guarantee the order in which these are enumerated.
                 Assert.AreEqual(3, objs.Count);
                 Assert.IsTrue(objs.Contains(s_one));
                 Assert.IsTrue(objs.Contains(s_two));
