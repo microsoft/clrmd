@@ -654,24 +654,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _domains.Add(appDomain);
             }
 
-            _system = InitDomain(ads.SystemDomain);
-            _system.Name = "System Domain";
-
-            _shared = InitDomain(ads.SharedDomain);
-            _shared.Name = "Shared Domain";
+            _system = InitDomain(ads.SystemDomain, "System Domain");
+            _shared = InitDomain(ads.SharedDomain, "Shared Domain");
 
             _moduleFiles = null;
             _moduleSizes = null;
         }
 
-        private DesktopAppDomain InitDomain(ulong domain)
+        private DesktopAppDomain InitDomain(ulong domain, string name = null)
         {
             ulong[] bases = new ulong[1];
             IAppDomainData domainData = GetAppDomainData(domain);
             if (domainData == null)
                 return null;
 
-            DesktopAppDomain appDomain = new DesktopAppDomain(this, domainData, GetAppDomaminName(domain));
+            DesktopAppDomain appDomain = new DesktopAppDomain(this, domainData, name ?? GetAppDomaminName(domain));
 
             if (domainData.AssemblyCount > 0)
             {

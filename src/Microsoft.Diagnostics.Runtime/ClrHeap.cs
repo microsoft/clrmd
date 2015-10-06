@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="index">The type to get.</param>
         /// <returns>The ClrType of that index.</returns>
         [Obsolete]
-        abstract public ClrType GetTypeByIndex(int index);
+        virtual public ClrType GetTypeByIndex(int index) { return null; }
 
         /// <summary>
         /// Looks up a type by name.

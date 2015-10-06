@@ -40,7 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
         public override string Name
         {
             get { return "default domain"; }
-            internal set { }
         }
 
         public override IList<ClrModule> Modules

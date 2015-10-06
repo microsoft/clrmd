@@ -216,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The name of the AppDomain, as specified when the domain was created.
         /// </summary>
-        public abstract string Name { get; internal set; }
+        public abstract string Name { get; }
 
         /// <summary>
         /// Returns a list of modules loaded into this AppDomain.

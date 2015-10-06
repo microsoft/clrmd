@@ -229,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The index of this type.
         /// </summary>
         [Obsolete("Use ClrType.TypeHandle instead.")]
-        abstract public int Index { get; }
+        virtual public int Index { get { return 0; } }
 
         /// <summary>
         /// Retrieves the first type handle in EnumerateTypeHandles().  TypeHandles
@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="token">The token of the method to return.</param>
         /// <returns>A ClrMethod for the given token, null if no such methodDesc exists.</returns>
-        internal abstract ClrMethod GetMethod(uint token);
+        internal virtual ClrMethod GetMethod(uint token) { return null; }
 
         /// <summary>
         /// Returns the ElementType of this Type.  Can return ELEMENT_TYPE_VOID on error.
