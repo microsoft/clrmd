@@ -653,18 +653,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if this field is a primitive (int, float, etc), false otherwise.
         /// </summary>
         /// <returns>True if this field is a primitive (int, float, etc), false otherwise.</returns>
+        [Obsolete("This will be replaced with a property.  To implement yourself, check if ElementType is not a Struct, String, Class, Array, SZArray, or Object.")]
         virtual public bool IsPrimitive() { return ClrRuntime.IsPrimitive(ElementType); }
 
         /// <summary>
         /// Returns true if this field is a ValueClass (struct), false otherwise.
         /// </summary>
         /// <returns>True if this field is a ValueClass (struct), false otherwise.</returns>
+        [Obsolete("This will be replaced with a property.  To implement yourself, check if ElementType is Struct.")]
         virtual public bool IsValueClass() { return ClrRuntime.IsValueClass(ElementType); }
 
         /// <summary>
         /// Returns true if this field is an object reference, false otherwise.
         /// </summary>
         /// <returns>True if this field is an object reference, false otherwise.</returns>
+        [Obsolete("This will be replaced with a property.  To implement yourself, check if ElementType is String, Class, Array, SZArray, or Object.")]
         virtual public bool IsObjectReference() { return ClrRuntime.IsObjectReference(ElementType); }
 
         /// <summary>
