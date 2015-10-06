@@ -360,6 +360,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private const int VS_FIXEDFILEINFO_size = 0x34;
         public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbgeng.dll")]
         internal static extern uint DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -374,12 +377,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll")]
         internal static extern IntPtr ImageDirectoryEntryToData(IntPtr mapping, bool mappedAsImage, short directoryEntry, out uint size);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll")]
         public static extern IntPtr ImageRvaToVa(IntPtr mapping, IntPtr baseAddr, uint rva, IntPtr lastRvaSection);
 
+#if !V2_SUPPORT
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+#endif
         [DllImport("dbghelp.dll")]
         public static extern IntPtr ImageNtHeader(IntPtr imageBase);
 
