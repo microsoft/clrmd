@@ -404,7 +404,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             throw new NotImplementedException();
         }
 
-        public override CcwData GetCcwDataFromAddress(Address addr)
+        public override CcwData GetCcwDataByAddress(Address addr)
         {
             throw new NotImplementedException();
         }

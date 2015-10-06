@@ -92,7 +92,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
         /// <returns>The CcwData describing the given CCW, or null.</returns>
-        public abstract CcwData GetCcwDataFromAddress(ulong addr);
+        [Obsolete("Use GetCcwDataByAddress instead.")]
+        public virtual CcwData GetCcwDataFromAddress(ulong addr) { return GetCcwDataByAddress(addr); }
+
+        /// <summary>
+        /// Returns the CCW data associated with the given address.  This is used when looking at stowed
+        /// exceptions in CLR.
+        /// </summary>
+        /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
+        /// <returns>The CcwData describing the given CCW, or null.</returns>
+        public abstract CcwData GetCcwDataByAddress(ulong addr);
 
         /// <summary>
         /// Read data out of the target process.

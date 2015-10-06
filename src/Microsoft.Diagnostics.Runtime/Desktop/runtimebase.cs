@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return res;
         }
 
-        public override CcwData GetCcwDataFromAddress(Address addr)
+        public override CcwData GetCcwDataByAddress(Address addr)
         {
             var ccw = GetCCWData(addr);
             if (ccw == null)
