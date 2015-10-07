@@ -74,7 +74,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _filename = module.FileName;
             _imageBase = module.ImageBase;
             _size = module.FileSize;
+            Pdb = module.Pdb;
         }
+
+        public PdbInfo Pdb { get; private set; }
 
         public override IList<ClrAppDomain> AppDomains
         {
