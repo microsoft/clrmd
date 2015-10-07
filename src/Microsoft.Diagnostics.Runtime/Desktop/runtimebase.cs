@@ -336,7 +336,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (methodDesc == null)
                 return null;
 
-            ClrType type = GetHeap().GetTypeByTypeHandle(methodDesc.MethodTable);
+            ClrType type = GetHeap().GetTypeByMethodTable(methodDesc.MethodTable);
             if (type == null)
                 return null;
 

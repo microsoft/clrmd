@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (heap == null)
                         heap = (DesktopGCHeap)_runtime.GetHeap();
 
-                    if (heap.GetTypeByTypeHandle(pair.MethodTable, 0) == type)
+                    if (heap.GetTypeByMethodTable(pair.MethodTable, 0) == type)
                         return pair.MethodTable;
                 }
             }
@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (mt != _runtime.ArrayMethodTable)
                         {
                             // prefetch element type, as this also can load types
-                            var type = heap.GetTypeByTypeHandle(mt, 0, 0);
+                            var type = heap.GetTypeByMethodTable(mt, 0, 0);
                             if (type != null)
                                 yield return type;
                         }

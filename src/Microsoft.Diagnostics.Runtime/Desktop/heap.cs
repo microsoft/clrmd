@@ -21,14 +21,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            FreeType = GetTypeByTypeHandle(DesktopRuntime.FreeMethodTable, 0, 0);
+            FreeType = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
             ((DesktopHeapType)FreeType).Shared = true;
-            ObjectType = GetTypeByTypeHandle(DesktopRuntime.ObjectMethodTable, 0, 0);
-            ArrayType = GetTypeByTypeHandle(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
+            ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0);
+            ArrayType = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
             ArrayType.ComponentType =  ObjectType;
             ((BaseDesktopHeapType)FreeType).DesktopModule = (DesktopModule)ObjectType.Module;
-            StringType = GetTypeByTypeHandle(DesktopRuntime.StringMethodTable, 0, 0);
-            ExceptionType = GetTypeByTypeHandle(DesktopRuntime.ExceptionMethodTable, 0, 0);
+            StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
+            ExceptionType = GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0);
 
             InitSegments(runtime);
         }
@@ -63,14 +63,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
 
-        public override bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle)
+        public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
         {
-            componentTypeHandle = 0;
-            if (!ReadPointer(obj, out typeHandle))
+            componentMethodTable = 0;
+            if (!ReadPointer(obj, out methodTable))
                 return false;
 
-            if (typeHandle == DesktopRuntime.ArrayMethodTable)
-                if (!ReadPointer(obj + (ulong)(IntPtr.Size * 2), out componentTypeHandle))
+            if (methodTable == DesktopRuntime.ArrayMethodTable)
+                if (!ReadPointer(obj + (ulong)(IntPtr.Size * 2), out componentMethodTable))
                     return false;
 
             return true;
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
         
-        internal abstract ClrType GetTypeByTypeHandle(ulong mt, ulong cmt, ulong obj);
+        internal abstract ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj);
 
 
         protected ClrType TryGetComponentType(ulong obj, ulong cmt)
@@ -112,14 +112,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (data != null)
             {
                 if (data.ElementTypeHandle != 0)
-                    result = GetTypeByTypeHandle(data.ElementTypeHandle, 0, 0);
+                    result = GetTypeByMethodTable(data.ElementTypeHandle, 0, 0);
 
                 if (result == null && data.ElementType != ClrElementType.Unknown)
                     result = GetBasicType(data.ElementType);
             }
             else if (cmt != 0)
             {
-                result = GetTypeByTypeHandle(cmt, 0);
+                result = GetTypeByMethodTable(cmt, 0);
             }
 
             return result;
@@ -492,7 +492,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (pair.MethodTable != arrayMt)
                         {
                             // prefetch element type, as this also can load types
-                            var type = GetTypeByTypeHandle(pair.MethodTable, 0, 0);
+                            var type = GetTypeByMethodTable(pair.MethodTable, 0, 0);
                             if (type != null)
                             {
                                 ClrElementType cet = type.ElementType;
@@ -1459,15 +1459,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public LegacyGCHeap(DesktopRuntimeBase runtime)
             : base(runtime)
         {
-
         }
 
-        public override ClrType GetTypeByTypeHandle(ulong mt, ulong cmt)
+        public override bool HasComponentMethodTables
         {
-            return GetTypeByTypeHandle(mt, cmt, 0);
+            get
+            {
+                return true;
+            }
         }
 
-        internal override ClrType GetTypeByTypeHandle(ulong mt, ulong cmt, ulong obj)
+        public override ClrType GetTypeByMethodTable(ulong mt, ulong cmt)
+        {
+            return GetTypeByMethodTable(mt, cmt, 0);
+        }
+
+        internal override ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj)
         {
             if (mt == 0)
                 return null;
@@ -1477,22 +1484,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (cmt != 0)
                 {
-                    componentType = GetTypeByTypeHandle(cmt, 0);
+                    componentType = GetTypeByMethodTable(cmt, 0);
                     if (componentType != null)
                     {
-                        cmt = componentType.TypeHandle;
+                        cmt = componentType.MethodTable;
                     }
                     else if (obj != 0)
                     {
                         componentType = TryGetComponentType(obj, cmt);
                         if (componentType != null)
-                            cmt = componentType.TypeHandle;
+                            cmt = componentType.MethodTable;
                     }
                 }
                 else
                 {
                     componentType = ObjectType;
-                    cmt = ObjectType.TypeHandle;
+                    cmt = ObjectType.MethodTable;
                 }
             }
             else
@@ -1637,7 +1644,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 cmt = 0;
             }
 
-            ClrType type = GetTypeByTypeHandle(mt, cmt, objRef);
+            ClrType type = GetTypeByMethodTable(mt, cmt, objRef);
             _lastObjType.Address = objRef;
             _lastObjType.Type = type;
 
@@ -1685,19 +1692,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if ((((int)mt) & 3) != 0)
                 mt &= ~3UL;
             
-            ClrType type = GetTypeByTypeHandle(mt, 0, objRef);
+            ClrType type = GetTypeByMethodTable(mt, 0, objRef);
             _lastObjType.Address = objRef;
             _lastObjType.Type = type;
 
             return type;
         }
 
-        public override ClrType GetTypeByTypeHandle(ulong mt, ulong cmt)
+        public override ClrType GetTypeByMethodTable(ulong mt, ulong cmt)
         {
-            return GetTypeByTypeHandle(mt, 0, 0);
+            return GetTypeByMethodTable(mt, 0, 0);
         }
 
-        internal override ClrType GetTypeByTypeHandle(ulong mt, ulong _, ulong obj)
+        internal override ClrType GetTypeByMethodTable(ulong mt, ulong _, ulong obj)
         {
             if (mt == 0)
                 return null;

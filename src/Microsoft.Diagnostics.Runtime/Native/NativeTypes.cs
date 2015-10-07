@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return null;
         }
 
-        public override ulong TypeHandle
+        public override ulong MethodTable
         {
             get
             {
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        public override IEnumerable<ulong> EnumerateTypeHandles()
+        public override IEnumerable<ulong> EnumerateMethodTables()
         {
             return new ulong[] { _eeType };
         }

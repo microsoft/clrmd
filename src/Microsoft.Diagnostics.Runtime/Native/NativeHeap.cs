@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             InitSegments(runtime);
         }
 
-        public override bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle)
+        public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
         {
             throw new NotImplementedException();
         }
@@ -55,13 +55,13 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return _types[index];
         }
 
-        public override ClrType GetTypeByTypeHandle(ulong typeHandle, ulong component)
+        public override ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable)
         {
-            if (component != 0)
+            if (componentMethodTable != 0)
                 return null;
 
             int index;
-            if (_indices.TryGetValue(typeHandle, out index))
+            if (_indices.TryGetValue(methodTable, out index))
                 return _types[index];
 
             return null;

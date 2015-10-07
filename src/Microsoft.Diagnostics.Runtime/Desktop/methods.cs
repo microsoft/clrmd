@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _attrs = attrs;
             _token = mdData.MDToken;
             var heap = runtime.GetHeap();
-            _type = (DesktopHeapType)heap.GetTypeByTypeHandle(mdData.MethodTable, 0);
+            _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
         }
 
         public override string Name
