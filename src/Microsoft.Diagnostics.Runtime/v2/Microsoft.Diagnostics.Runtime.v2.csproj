@@ -113,6 +113,7 @@
     <Compile Include="..\Desktop\v45runtime.cs" />
     <Compile Include="..\ClrModule.cs" />
     <Compile Include="..\DumpDataReader.cs" />
+    <Compile Include="..\ISymbolResolver.cs" />
     <Compile Include="..\ClrHeap.cs" />
     <Compile Include="..\internal.cs" />
     <Compile Include="..\metadata.cs" />
