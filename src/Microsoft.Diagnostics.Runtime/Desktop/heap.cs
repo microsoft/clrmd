@@ -805,6 +805,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _types[index];
         }
 
+        [Obsolete]
         public override int TypeIndexLimit
         {
             get { return _types.Count; }

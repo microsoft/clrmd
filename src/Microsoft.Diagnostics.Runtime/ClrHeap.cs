@@ -122,6 +122,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the max index.
         /// </summary>
+        [Obsolete]
         abstract public int TypeIndexLimit { get; }
 
         /// <summary>

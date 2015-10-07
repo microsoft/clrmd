@@ -44,6 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
+        [Obsolete]
         public override int TypeIndexLimit
         {
             get { return _types.Count; }
