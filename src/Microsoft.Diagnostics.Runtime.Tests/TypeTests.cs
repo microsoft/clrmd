@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
 
-                foreach (ulong obj in heap.EnumerateObjects())
+                foreach (ulong obj in heap.EnumerateObjectAddresses())
                 {
                     var type = heap.GetObjectType(obj);
                     Assert.IsNotNull(type);
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
 
-                ClrType[] types = (from obj in heap.EnumerateObjects()
+                ClrType[] types = (from obj in heap.EnumerateObjectAddresses()
                                    let t = heap.GetObjectType(obj)
                                    where t.Name == TypeName
                                    select t).ToArray();
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
 
-                foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj)).Unique())
+                foreach (ClrType type in heap.EnumerateObjectAddresses().Select(obj => heap.GetObjectType(obj)).Unique())
                 {
                     Assert.AreNotEqual(0ul, type.MethodTable);
 
@@ -143,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrHeap heap = runtime.GetHeap();
 
                 int i = 0;
-                foreach (ulong obj in heap.EnumerateObjects())
+                foreach (ulong obj in heap.EnumerateObjectAddresses())
                 {
                     i++;
                     ClrType type = heap.GetObjectType(obj);
@@ -189,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
 
-                ulong[] fooObjects = (from obj in heap.EnumerateObjects()
+                ulong[] fooObjects = (from obj in heap.EnumerateObjectAddresses()
                                       let t = heap.GetObjectType(obj)
                                       where t.Name == "Foo"
                                       select obj).ToArray();

@@ -168,7 +168,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// for easier use in linq queries.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
-        abstract public IEnumerable<Address> EnumerateObjects();
+        abstract public IEnumerable<Address> EnumerateObjectAddresses();
+
+        /// <summary>
+        /// Enumerates all objects on the heap.  This is equivalent to enumerating all segments then walking
+        /// each object with ClrSegment.FirstObject, ClrSegment.NextObject, but in a simple enumerator
+        /// for easier use in linq queries.
+        /// </summary>
+        /// <returns>An enumerator for all objects on the heap.</returns>
+        [Obsolete("Use EnumerateObjectAddresses")]
+        virtual public IEnumerable<Address> EnumerateObjects() { return EnumerateObjectAddresses(); }
 
         /// <summary>
         /// TotalHeapSize is defined as the sum of the length of all segments.  
@@ -858,7 +867,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
-        public override IEnumerable<Address> EnumerateObjects()
+        public override IEnumerable<Address> EnumerateObjectAddresses()
         {
             if (Revision != GetRuntimeRevision())
                 ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
