@@ -112,6 +112,7 @@
     <Compile Include="..\Desktop\types.cs" />
     <Compile Include="..\Desktop\v45runtime.cs" />
     <Compile Include="..\ClrModule.cs" />
+    <Compile Include="..\ClrAppDomain.cs" />
     <Compile Include="..\DumpDataReader.cs" />
     <Compile Include="..\ISymbolResolver.cs" />
     <Compile Include="..\ClrHeap.cs" />
