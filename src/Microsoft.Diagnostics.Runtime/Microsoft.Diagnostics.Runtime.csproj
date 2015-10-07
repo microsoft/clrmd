@@ -125,9 +125,7 @@
     <Compile Include="ClrThread.cs" />
     <Compile Include="ClrType.cs" />
     <Compile Include="Utilities\command.cs" />
-    <Compile Include="Utilities\DirectoryUtilities.cs" />
     <Compile Include="Utilities\DumpReader.cs" />
-    <Compile Include="Utilities\FileUtilities.cs" />
     <Compile Include="Utilities\PDB\BitAccess.cs" />
     <Compile Include="Utilities\PDB\BitSet.cs" />
     <Compile Include="Utilities\PDB\CvInfo.cs" />

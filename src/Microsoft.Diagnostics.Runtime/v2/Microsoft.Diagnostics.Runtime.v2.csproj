@@ -129,9 +129,7 @@
     <Compile Include="..\ClrThread.cs" />
     <Compile Include="..\Utilities\sigparser.cs" />
     <Compile Include="..\Utilities\command.cs" />
-    <Compile Include="..\Utilities\DirectoryUtilities.cs" />
     <Compile Include="..\Utilities\DumpReader.cs" />
-    <Compile Include="..\Utilities\FileUtilities.cs" />
     <Compile Include="..\Utilities\pefile.cs" />
     <Compile Include="..\Utilities\SymbolLocator.cs" />
     <Compile Include="..\Utilities\SymbolPath.cs" />
