@@ -44,18 +44,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _methodHandles.Add(methodDesc);
         }
 
-        public override ulong MethodHandle
+        public override ulong MethodDesc
         {
             get
             {
                 if (_methodHandles != null && _methodHandles[0] != 0)
                     return _methodHandles[0];
 
-                return EnumerateMethodHandles().FirstOrDefault();
+                return EnumerateMethodDescs().FirstOrDefault();
             }
         }
 
-        public override IEnumerable<ulong> EnumerateMethodHandles()
+        public override IEnumerable<ulong> EnumerateMethodDescs()
         {
             if (_methodHandles == null)
                 _type.InitMethodHandles();

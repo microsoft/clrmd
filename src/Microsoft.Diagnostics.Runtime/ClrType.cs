@@ -1106,22 +1106,21 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrMethod
     {
         /// <summary>
-        /// Retrieves the first method handle in EnumerateMethodHandles().  MethodHandles
+        /// Retrieves the first MethodDesc in EnumerateMethodDescs().  For single
+        /// AppDomain programs this is the only MethodDesc.  MethodDescs
         /// are unique to an Method/AppDomain pair, so when there are multiple domains
-        /// there will be multiple MethodHandles for a method.  Note that MethodHandle
-        /// corresponds to a MethodDesc in desktop Clr.
+        /// there will be multiple MethodDescs for a method.
         /// </summary>
-        abstract public ulong MethodHandle { get; }
+        abstract public ulong MethodDesc { get; }
 
         /// <summary>
-        /// Enumerates all method handles for this method in the process.  MethodHandles
+        /// Enumerates all method descs for this method in the process.  MethodDescs
         /// are unique to an Method/AppDomain pair, so when there are multiple domains
-        /// there will be multiple MethodHandles for a method.  Note that MethodHandle
-        /// corresponds to a MethodDesc in desktop Clr.
+        /// there will be multiple MethodDescs for a method.
         /// </summary>
         /// <returns>An enumeration of method handles in the process for this given
         /// method.</returns>
-        abstract public IEnumerable<ulong> EnumerateMethodHandles();
+        abstract public IEnumerable<ulong> EnumerateMethodDescs();
 
         /// <summary>
         /// The name of the method.  For example, "void System.Foo.Bar(object o, int i)" would return "Bar".

@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
-                methodDescs = method.EnumerateMethodHandles().ToArray();
+                methodDescs = method.EnumerateMethodDescs().ToArray();
 
                 Assert.AreEqual(2, methodDescs.Length);
             }
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
-                methodDesc = method.EnumerateMethodHandles().Single();
+                methodDesc = method.EnumerateMethodDescs().Single();
 
                 Assert.AreNotEqual(0ul, methodDesc);
             }
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
-                Assert.AreEqual(methodDesc, method.EnumerateMethodHandles().Single());
+                Assert.AreEqual(methodDesc, method.EnumerateMethodDescs().Single());
             }
         }
     }
