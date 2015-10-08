@@ -123,6 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return res;
         }
 
+
         public override CcwData GetCcwDataByAddress(Address addr)
         {
             var ccw = GetCCWData(addr);
@@ -898,6 +899,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IFieldData GetFieldData(Address fieldDesc);
         internal abstract IMetadata GetMetadataImport(Address module);
         internal abstract IObjectData GetObjectData(Address objRef);
+        internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
         internal abstract IList<MethodTableTokenPair> GetMethodTableList(Address module);
         internal abstract IDomainLocalModuleData GetDomainLocalModule(Address appDomain, Address id);
         internal abstract ICCWData GetCCWData(Address ccw);

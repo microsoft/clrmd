@@ -57,6 +57,23 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ulong GetMethodTable(ulong obj);
 
         /// <summary>
+        /// Retrieves the EEClass from the given MethodTable.  EEClasses do not exist on
+        /// .Net Native. 
+        /// </summary>
+        /// <param name="methodTable">The MethodTable to get the EEClass from.</param>
+        /// <returns>The EEClass for the given MethodTable, 0 if methodTable is invalid or
+        /// does not exist.</returns>
+        virtual public ulong GetEEClassByMethodTable(ulong methodTable) { return 0; }
+
+        /// <summary>
+        /// Retrieves the MethodTable associated with the given EEClass.
+        /// </summary>
+        /// <param name="eeclass">The eeclass to get the method table from.</param>
+        /// <returns>The MethodTable for the given EEClass, 0 if eeclass is invalid
+        /// or does not exist.</returns>
+        virtual public ulong GetMethodTableByEEClass(ulong eeclass) { return 0; }
+
+        /// <summary>
         /// Returns a  wrapper around a System.Exception object (or one of its subclasses).
         /// </summary>
         virtual public ClrException GetExceptionObject(Address objRef) { return null; }

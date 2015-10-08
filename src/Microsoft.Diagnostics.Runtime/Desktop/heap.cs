@@ -62,6 +62,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
+        public override ulong GetEEClassByMethodTable(ulong methodTable)
+        {
+            if (methodTable == 0)
+                return 0;
+
+            IMethodTableData mtData = DesktopRuntime.GetMethodTableData(methodTable);
+            if (mtData == null)
+                return 0;
+
+            return mtData.EEClass;
+        }
+
+        public override ulong GetMethodTableByEEClass(ulong eeclass)
+        {
+            if (eeclass == 0)
+                return 0;
+
+            return DesktopRuntime.GetMethodTableByEEClass(eeclass);
+        }
 
         public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
         {

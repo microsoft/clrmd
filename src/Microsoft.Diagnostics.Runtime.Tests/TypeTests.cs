@@ -103,6 +103,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
+        public void EETypeTest()
+        {
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                HashSet<ulong> methodTables = (from obj in heap.EnumerateObjectAddresses()
+                                               let type = heap.GetObjectType(obj)
+                                               where !type.IsFree
+                                               select heap.GetMethodTable(obj)).Unique();
+
+                Assert.IsFalse(methodTables.Contains(0));
+
+                foreach (ulong mt in methodTables)
+                {
+                    ClrType type = heap.GetTypeByMethodTable(mt);
+                    ulong eeclass = heap.GetEEClassByMethodTable(mt);
+                    Assert.AreNotEqual(0ul, eeclass);
+
+                    Assert.AreNotEqual(0ul, heap.GetMethodTableByEEClass(eeclass));
+                }
+            }
+        }
+
+        [TestMethod]
         public void MethodTableHeapEnumeration()
         {
             using (DataTarget dt = TestTargets.Types.LoadFullDump())

@@ -289,6 +289,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return data;
         }
 
+        internal override ulong GetMethodTableByEEClass(ulong eeclass)
+        {
+            ulong value;
+            if (_sos.GetMethodTableForEEClass(eeclass, out value) != 0)
+                return 0;
+
+            return value;
+        }
+
         internal override IGCInfo GetGCInfo()
         {
             LegacyGCInfo gcInfo;
