@@ -162,7 +162,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
-        virtual public IEnumerable<Address> EnumerateFinalizableObjects() { throw new NotImplementedException(); }
+        virtual public IEnumerable<Address> EnumerateFinalizableObjectAddresses() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Enumerates all finalizable objects on the heap.
+        /// </summary>
+        [Obsolete("Use EnumerateFinalizableObjectAddresses")]
+        virtual public IEnumerable<Address> EnumerateFinalizableObjects() { return EnumerateFinalizableObjectAddresses(); }
 
         /// <summary>
         /// Enumerates all managed locks in the process.  That is anything using System.Monitor either explictly
