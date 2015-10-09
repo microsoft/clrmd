@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             BaseDesktopHeapType baseType = BaseType as BaseDesktopHeapType;
             List<ClrInterface> interfaces = baseType != null ? new List<ClrInterface>(baseType.Interfaces) : null;
-            IMetadata import = DesktopModule.GetMetadataImport();
+            ICorDebug.IMetadataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
                 _interfaces = DesktopHeap.EmptyInterfaceList;
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
 
-        private ClrInterface GetInterface(IMetadata import, int mdIFace)
+        private ClrInterface GetInterface(ICorDebug.IMetadataImport import, int mdIFace)
         {
             StringBuilder builder = new StringBuilder(1024);
             int extends, cnt;
@@ -1101,7 +1101,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 throw new InvalidOperationException("Type is not an Enum.");
 
             _enumData = new EnumData();
-            IMetadata import = null;
+            ICorDebug.IMetadataImport import = null;
             if (DesktopModule != null)
                 import = DesktopModule.GetMetadataImport();
 
@@ -1340,7 +1340,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ulong nextField = fieldInfo.FirstField;
             int i = 0;
 
-            IMetadata import = null;
+            ICorDebug.IMetadataImport import = null;
             if (nextField != 0 && DesktopModule != null)
                 import = DesktopModule.GetMetadataImport();
 
@@ -1431,7 +1431,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_methods != null)
                     return _methods;
 
-                IMetadata metadata = null;
+                ICorDebug.IMetadataImport metadata = null;
                 if (DesktopModule != null)
                     metadata = DesktopModule.GetMetadataImport();
 
@@ -1782,7 +1782,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if ((int)_attributes != 0 || DesktopModule == null)
                 return;
 
-            IMetadata import = DesktopModule.GetMetadataImport();
+            ICorDebug.IMetadataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
                 _attributes = (TypeAttributes)0x70000000;

@@ -474,13 +474,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return data;
         }
 
-        internal override IMetadata GetMetadataImport(ulong module)
+        internal override ICorDebug.IMetadataImport GetMetadataImport(ulong module)
         {
             object obj = null;
             if (module == 0 || _sos.GetModule(module, out obj) < 0)
                 return null;
 
-            return obj as IMetadata;
+            return obj as ICorDebug.IMetadataImport;
         }
 
         internal override IObjectData GetObjectData(ulong objRef)
