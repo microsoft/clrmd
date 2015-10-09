@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     }
 
     // Wrapper for ICLRMetaHost.  Used to find information about runtimes.
-    public sealed class CLRMetaHost
+    sealed class CLRMetaHost
     {
         private ICLRMetaHost m_metaHost;
 
@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     }
 
     // Wrapper for ICLRRuntimeInfo.  Represents information about a CLR install instance.
-    public sealed class CLRRuntimeInfo
+    sealed class CLRRuntimeInfo
     {
         public CLRRuntimeInfo(System.Object clrRuntimeInfo)
         {
@@ -304,6 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             m_runtimeInfo.GetVersionString(sb, ref verStrLength);
             return sb.ToString();
         }
+
         public string GetRuntimeDirectory()
         {
             StringBuilder sb = new StringBuilder();
@@ -315,6 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
                 Marshal.ThrowExceptionForHR(ret);
             return sb.ToString();
         }
+
         public ICorDebug GetLegacyICorDebugInterface()
         {
             Guid ifaceId = typeof(ICorDebug).GUID;
