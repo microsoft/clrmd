@@ -839,6 +839,16 @@ namespace Microsoft.Diagnostics.Runtime
         protected IDataReader _dataReader;
         protected DataTargetImpl _dataTarget;
 
+        protected ICorDebug.ICorDebugProcess _corDebugProcess;
+        internal ICorDebug.ICorDebugProcess CorDebugProcess
+        {
+            get
+            {
+                if (_corDebugProcess == null)
+                    _corDebugProcess = ICorDebug.CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, _library.DacDataTarget, _dataTarget.FileLoader);
+            }
+        }
+
         public RuntimeBase(ClrInfo info, DataTargetImpl dataTarget, DacLibrary lib)
         {
             Debug.Assert(lib != null);

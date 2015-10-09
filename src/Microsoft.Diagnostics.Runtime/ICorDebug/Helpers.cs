@@ -56,15 +56,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             return rawDebuggingAPI;
         }
 
-        public static ICorDebugProcess CreateICorDebugProcess(ClrRuntime runtime)
+        public static ICorDebugProcess CreateICorDebugProcess(ulong baseAddress, ICorDebugDataTarget dataTarget, ICLRDebuggingLibraryProvider libraryProvider)
         {
-            ulong baseAddress = runtime.ClrInfo.ModuleInfo.ImageBase;
             Debug.Assert(baseAddress != 0);
-
-            ICLRDebuggingLibraryProvider libraryProvider = runtime.DataTarget.FileLoader;
-            ICorDebugDataTarget dataTarget = runtime.DataTarget.DataReader as ICorDebugDataTarget;
-            if (dataTarget == null)
-                throw new Exception("DataReader does not implement ICorDebugDataTarget.");
             
             Version version;
             ClrDebuggingProcessFlags flags;

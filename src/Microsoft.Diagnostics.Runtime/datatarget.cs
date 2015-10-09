@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -1391,10 +1392,12 @@ namespace Microsoft.Diagnostics.Runtime
     {
         #region Variables
         private IntPtr _library;
-        private IDacDataTarget _dacDataTarget;
+        private DacDataTarget _dacDataTarget;
         private IXCLRDataProcess _dac;
         private ISOSDac _sos;
         #endregion
+
+        public DacDataTarget DacDataTarget { get { return _dacDataTarget; } }
 
         public IXCLRDataProcess DacInterface { get { return _dac; } }
 
@@ -1447,7 +1450,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
     }
 
-    internal class DacDataTarget : IDacDataTarget, IMetadataLocator
+    internal class DacDataTarget : IDacDataTarget, IMetadataLocator, ICorDebug.ICorDebugDataTarget
     {
         private DataTargetImpl _dataTarget;
         private IDataReader _dataReader;
@@ -1461,6 +1464,41 @@ namespace Microsoft.Diagnostics.Runtime
             Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
         }
 
+
+        public CorDebugPlatform GetPlatform()
+        {
+            var arch = _dataReader.GetArchitecture();
+
+            switch (arch)
+            {
+                case Architecture.Amd64:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_AMD64;
+
+                case Architecture.X86:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_X86;
+
+                case Architecture.Arm:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM;
+
+                default:
+                    throw new Exception();
+            }
+        }
+
+        public uint ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
+        {
+            int read;
+            if (ReadVirtual(address, buffer, (int)bytesRequested, out read) >= 0)
+                return (uint)read;
+
+            throw new Exception();
+        }
+
+        void ICorDebugDataTarget.GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
+        {
+            if (!_dataReader.GetThreadContext(threadId, contextFlags, contextSize, context))
+                throw new Exception();
+        }
 
         public void GetMachineType(out IMAGE_FILE_MACHINE machineType)
         {
