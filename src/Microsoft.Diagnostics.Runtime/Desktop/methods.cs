@@ -2,6 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using Address = System.UInt64;
 
@@ -11,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         public override string ToString()
         {
-            return string.Format("<ClrMethod signature='{0}' />", _sig);
+            return _sig;
         }
 
         internal static DesktopMethod Create(DesktopRuntimeBase runtime, IMetadata metadata, IMethodDescData mdData)
@@ -31,6 +34,33 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return new DesktopMethod(runtime, mdData.MethodDesc, mdData, attrs);
         }
+        
+        List<ulong> _methodHandles;
+        internal void AddMethodHandle(ulong methodDesc)
+        {
+            if (_methodHandles == null)
+                _methodHandles = new List<ulong>(1);
+
+            _methodHandles.Add(methodDesc);
+        }
+
+        public override ulong MethodDesc
+        {
+            get
+            {
+                if (_methodHandles != null && _methodHandles[0] != 0)
+                    return _methodHandles[0];
+
+                return EnumerateMethodDescs().FirstOrDefault();
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateMethodDescs()
+        {
+            if (_methodHandles == null)
+                _type.InitMethodHandles();
+            return _methodHandles;
+        }
 
         internal static ClrMethod Create(DesktopRuntimeBase runtime, IMethodDescData mdData)
         {
@@ -49,8 +79,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _jit = mdData.JITType;
             _attrs = attrs;
             _token = mdData.MDToken;
-            var heap = (DesktopGCHeap)runtime.GetHeap();
-            _type = heap.GetTypeByTypeHandle(mdData.MethodTable, 0);
+            var heap = runtime.GetHeap();
+            _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
         }
 
         public override string Name
@@ -206,6 +236,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private MethodCompilationType _jit;
         private MethodAttributes _attrs;
         private DesktopRuntimeBase _runtime;
-        private ClrType _type;
+        private DesktopHeapType _type;
     }
 }

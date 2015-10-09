@@ -31,6 +31,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsException.HR.DacError);
         }
 
+        public override ClrMethod GetMethodByHandle(ulong methodHandle)
+        {
+            return null;
+        }
+
         protected override void InitApi()
         {
             if (_sos == null)
@@ -399,7 +404,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             throw new NotImplementedException();
         }
 
-        public override CcwData GetCcwDataFromAddress(Address addr)
+        public override CcwData GetCcwDataByAddress(Address addr)
         {
             throw new NotImplementedException();
         }

@@ -112,7 +112,9 @@
     <Compile Include="..\Desktop\types.cs" />
     <Compile Include="..\Desktop\v45runtime.cs" />
     <Compile Include="..\ClrModule.cs" />
+    <Compile Include="..\ClrAppDomain.cs" />
     <Compile Include="..\DumpDataReader.cs" />
+    <Compile Include="..\ISymbolResolver.cs" />
     <Compile Include="..\ClrHeap.cs" />
     <Compile Include="..\internal.cs" />
     <Compile Include="..\metadata.cs" />
@@ -129,9 +131,7 @@
     <Compile Include="..\ClrThread.cs" />
     <Compile Include="..\Utilities\sigparser.cs" />
     <Compile Include="..\Utilities\command.cs" />
-    <Compile Include="..\Utilities\DirectoryUtilities.cs" />
     <Compile Include="..\Utilities\DumpReader.cs" />
-    <Compile Include="..\Utilities\FileUtilities.cs" />
     <Compile Include="..\Utilities\pefile.cs" />
     <Compile Include="..\Utilities\SymbolLocator.cs" />
     <Compile Include="..\Utilities\SymbolPath.cs" />

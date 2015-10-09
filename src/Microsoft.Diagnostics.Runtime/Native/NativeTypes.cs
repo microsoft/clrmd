@@ -31,7 +31,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _containsPointers = mtData.ContainsPointers;
         }
 
-        public override ulong TypeHandle
+        internal override ClrMethod GetMethod(uint token)
+        {
+            return null;
+        }
+
+        public override ulong MethodTable
         {
             get
             {
@@ -39,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        public override IEnumerable<ulong> EnumerateTypeHandles()
+        public override IEnumerable<ulong> EnumerateMethodTables()
         {
             return new ulong[] { _eeType };
         }

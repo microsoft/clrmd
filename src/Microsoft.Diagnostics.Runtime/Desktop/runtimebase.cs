@@ -123,7 +123,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return res;
         }
 
-        public override CcwData GetCcwDataFromAddress(Address addr)
+
+        public override CcwData GetCcwDataByAddress(Address addr)
         {
             var ccw = GetCCWData(addr);
             if (ccw == null)
@@ -231,10 +232,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (_heap == null)
             {
-                if (ClrInfo.Version.Major > 4 || (ClrInfo.Version.Major == 4 && ClrInfo.Version.Minor >= 6))
-                    _heap = new V46GCHeap(this);
-                else
+                if (HasArrayComponentMethodTables)
                     _heap = new LegacyGCHeap(this);
+                else
+                    _heap = new V46GCHeap(this);
             }
 
             return _heap;
@@ -325,6 +326,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 return _domains.Count == 1;
             }
+        }
+
+        public override ClrMethod GetMethodByHandle(ulong methodHandle)
+        {
+            if (methodHandle == 0)
+                return null;
+
+            IMethodDescData methodDesc = GetMethodDescData(methodHandle);
+            if (methodDesc == null)
+                return null;
+
+            ClrType type = GetHeap().GetTypeByMethodTable(methodDesc.MethodTable);
+            if (type == null)
+                return null;
+
+            return type.GetMethod(methodDesc.MDToken);
         }
 
         /// <summary>
@@ -638,24 +655,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _domains.Add(appDomain);
             }
 
-            _system = InitDomain(ads.SystemDomain);
-            _system.Name = "System Domain";
-
-            _shared = InitDomain(ads.SharedDomain);
-            _shared.Name = "Shared Domain";
+            _system = InitDomain(ads.SystemDomain, "System Domain");
+            _shared = InitDomain(ads.SharedDomain, "Shared Domain");
 
             _moduleFiles = null;
             _moduleSizes = null;
         }
 
-        private DesktopAppDomain InitDomain(ulong domain)
+        private DesktopAppDomain InitDomain(ulong domain, string name = null)
         {
             ulong[] bases = new ulong[1];
             IAppDomainData domainData = GetAppDomainData(domain);
             if (domainData == null)
                 return null;
 
-            DesktopAppDomain appDomain = new DesktopAppDomain(this, domainData, GetAppDomaminName(domain));
+            DesktopAppDomain appDomain = new DesktopAppDomain(this, domainData, name ?? GetAppDomaminName(domain));
 
             if (domainData.AssemblyCount > 0)
             {
@@ -885,6 +899,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IFieldData GetFieldData(Address fieldDesc);
         internal abstract IMetadata GetMetadataImport(Address module);
         internal abstract IObjectData GetObjectData(Address objRef);
+        internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
         internal abstract IList<MethodTableTokenPair> GetMethodTableList(Address module);
         internal abstract IDomainLocalModuleData GetDomainLocalModule(Address appDomain, Address id);
         internal abstract ICCWData GetCCWData(Address ccw);

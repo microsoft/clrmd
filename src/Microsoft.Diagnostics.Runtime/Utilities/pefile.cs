@@ -335,6 +335,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private PEHeader(PEBuffer buffer, bool virt)
         {
+            _virt = virt;
+
             byte* ptr = buffer.Fetch(0, 0x300);
             _dosHeader = (IMAGE_DOS_HEADER*)ptr;
             _ntHeader = (IMAGE_NT_HEADERS*)((byte*)ptr + _dosHeader->e_lfanew);

@@ -78,7 +78,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// which have been collected and will be imminently finalized.)
         /// </summary>
         abstract public IEnumerable<Address> EnumerateFinalizerQueue();
-
+        
+        /// <summary>
+        /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
+        /// </summary>
+        /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
+        /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
+        abstract public ClrMethod GetMethodByHandle(Address methodHandle);
 
         /// <summary>
         /// Returns the CCW data associated with the given address.  This is used when looking at stowed
@@ -86,7 +92,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
         /// <returns>The CcwData describing the given CCW, or null.</returns>
-        public abstract CcwData GetCcwDataFromAddress(ulong addr);
+        [Obsolete("Use GetCcwDataByAddress instead.")]
+        public virtual CcwData GetCcwDataFromAddress(ulong addr) { return GetCcwDataByAddress(addr); }
+
+        /// <summary>
+        /// Returns the CCW data associated with the given address.  This is used when looking at stowed
+        /// exceptions in CLR.
+        /// </summary>
+        /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
+        /// <returns>The CcwData describing the given CCW, or null.</returns>
+        public abstract CcwData GetCcwDataByAddress(ulong addr);
 
         /// <summary>
         /// Read data out of the target process.
@@ -195,6 +210,28 @@ namespace Microsoft.Diagnostics.Runtime
             var evt = RuntimeFlushed;
             if (evt != null)
                 evt(this);
+        }
+
+        /// <summary>
+        /// Whether or not the runtime has component method tables for arrays.  This is an extra field in
+        /// array objects on the heap, which was removed in v4.6 of desktop clr.
+        /// </summary>
+        internal bool HasArrayComponentMethodTables
+        {
+            get
+            {
+                if (ClrInfo.Flavor == ClrFlavor.Desktop)
+                {
+                    VersionInfo version = ClrInfo.Version;
+                    if (version.Major > 4)
+                        return false;
+
+                    if (version.Major == 4 && version.Minor >= 6)
+                        return false;
+                }
+
+                return true;
+            }
         }
 
         internal static bool IsPrimitive(ClrElementType cet)

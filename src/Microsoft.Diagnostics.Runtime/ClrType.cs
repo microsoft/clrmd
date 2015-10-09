@@ -228,27 +228,26 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The index of this type.
         /// </summary>
-        [Obsolete("Use ClrType.TypeHandle instead.")]
-        abstract public int Index { get; }
+        [Obsolete("Use ClrType.MethodTable instead.")]
+        virtual public int Index { get { return 0; } }
 
         /// <summary>
-        /// Retrieves the first type handle in EnumerateTypeHandles().  TypeHandles
+        /// Retrieves the first type handle in EnumerateMethodTables().  MethodTables
         /// are unique to an AppDomain/Type pair, so when there are multiple domains
-        /// there will be multiple TypeHandles for a class.  Note that TypeHandle
-        /// corresponds to a MethodTable in desktop Clr.
+        /// there will be multiple MethodTable for a class.
         /// </summary>
-        abstract public ulong TypeHandle { get; }
+        abstract public ulong MethodTable { get; }
 
         /// <summary>
-        /// Enumerates all type handles for this type in the process.  TypeHandles
+        /// Enumerates all MethodTable for this type in the process.  MethodTable
         /// are unique to an AppDomain/Type pair, so when there are multiple domains
-        /// there may be multiple type handles.  Note that even if a type could be
-        /// used in an AppDomain, that does not mean we actually have a TypeHandle
-        /// if the type hasn't been used yet.
+        /// there may be multiple MethodTable.  Note that even if a type could be
+        /// used in an AppDomain, that does not mean we actually have a MethodTable
+        /// if the type hasn't been created yet.
         /// </summary>
-        /// <returns>An enumeration of type handles in the process for this given
+        /// <returns>An enumeration of MethodTable in the process for this given
         /// type.</returns>
-        abstract public IEnumerable<ulong> EnumerateTypeHandles();
+        abstract public IEnumerable<ulong> EnumerateMethodTables();
 
         /// <summary>
         /// Returns the metadata token of this type.
@@ -311,6 +310,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the module this type is defined in.
         /// </summary>
         virtual public ClrModule Module { get { return null; } }
+
+        /// <summary>
+        /// Returns a method based on its token.
+        /// </summary>
+        /// <param name="token">The token of the method to return.</param>
+        /// <returns>A ClrMethod for the given token, null if no such methodDesc exists.</returns>
+        internal virtual ClrMethod GetMethod(uint token) { return null; }
 
         /// <summary>
         /// Returns the ElementType of this Type.  Can return ELEMENT_TYPE_VOID on error.
@@ -646,18 +652,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if this field is a primitive (int, float, etc), false otherwise.
         /// </summary>
         /// <returns>True if this field is a primitive (int, float, etc), false otherwise.</returns>
+        [Obsolete("This will be replaced with a property.  To implement yourself, check if ElementType is not a Struct, String, Class, Array, SZArray, or Object.")]
         virtual public bool IsPrimitive() { return ClrRuntime.IsPrimitive(ElementType); }
 
         /// <summary>
         /// Returns true if this field is a ValueClass (struct), false otherwise.
         /// </summary>
         /// <returns>True if this field is a ValueClass (struct), false otherwise.</returns>
+        [Obsolete("This will be replaced with a property.  To implement yourself, check if ElementType is Struct.")]
         virtual public bool IsValueClass() { return ClrRuntime.IsValueClass(ElementType); }
 
         /// <summary>
         /// Returns true if this field is an object reference, false otherwise.
         /// </summary>
         /// <returns>True if this field is an object reference, false otherwise.</returns>
+        [Obsolete("This will be replaced with a property.  To implement yourself, check if ElementType is String, Class, Array, SZArray, or Object.")]
         virtual public bool IsObjectReference() { return ClrRuntime.IsObjectReference(ElementType); }
 
         /// <summary>
@@ -1096,6 +1105,23 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrMethod
     {
+        /// <summary>
+        /// Retrieves the first MethodDesc in EnumerateMethodDescs().  For single
+        /// AppDomain programs this is the only MethodDesc.  MethodDescs
+        /// are unique to an Method/AppDomain pair, so when there are multiple domains
+        /// there will be multiple MethodDescs for a method.
+        /// </summary>
+        abstract public ulong MethodDesc { get; }
+
+        /// <summary>
+        /// Enumerates all method descs for this method in the process.  MethodDescs
+        /// are unique to an Method/AppDomain pair, so when there are multiple domains
+        /// there will be multiple MethodDescs for a method.
+        /// </summary>
+        /// <returns>An enumeration of method handles in the process for this given
+        /// method.</returns>
+        abstract public IEnumerable<ulong> EnumerateMethodDescs();
+
         /// <summary>
         /// The name of the method.  For example, "void System.Foo.Bar(object o, int i)" would return "Bar".
         /// </summary>

@@ -162,6 +162,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return RequestAddrList(DacRequests.APPDOMAIN_LIST, count);
         }
 
+        internal override ulong GetMethodTableByEEClass(ulong eeclass)
+        {
+            if (eeclass == 0)
+                return 0;
+
+            IEEClassData classData;
+            if (CLRVersion == DesktopVersion.v2)
+                classData = Request<IEEClassData, V2EEClassData>(DacRequests.EECLASS_DATA, eeclass);
+            else
+                classData = Request<IEEClassData, V4EEClassData>(DacRequests.EECLASS_DATA, eeclass);
+
+            if (classData == null)
+                return 0;
+
+            return classData.Module;
+        }
+
         internal override IMethodTableData GetMethodTableData(ulong addr)
         {
             return Request<IMethodTableData, LegacyMethodTableData>(DacRequests.METHODTABLE_DATA, addr);

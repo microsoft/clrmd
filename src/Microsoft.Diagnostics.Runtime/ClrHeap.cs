@@ -24,30 +24,54 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrType GetObjectType(Address objRef);
 
         /// <summary>
-        /// Attempts to retrieve the TypeHandle and component TypeHandle from the given object.
-        /// Note that this some ClrTypes cannot be uniquely determined by TypeHandle alone.  In
-        /// Desktop CLR, arrays of reference types all use the same TypeHandle.  To uniquely
-        /// determine an array of referneces you must also have its component type.
-        /// Note this function has undefined behavior if you do not pass a valid object reference
-        /// to it.
+        /// Returns whether this version of CLR has component MethodTables.  Component MethodTables were removed from
+        /// desktop CLR in v4.6, and do not exist at all on .Net Native.  If this method returns false, all componet
+        /// MethodTables will be 0, and expected to be 0 when an argument to a function.
         /// </summary>
-        /// <param name="obj">The object to get the type handle of.</param>
-        /// <param name="typeHandle">The type handle for the given object.</param>
-        /// <param name="componentTypeHandle">The component type handle of the given object.</param>
-        /// <returns>True if typeHandle was filled, false if we failed to read memory.</returns>
-        abstract public bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle);
+        virtual public bool HasComponentMethodTables { get { return true; } }
 
         /// <summary>
-        /// Attempts to retrieve the TypeHandle from the given object.
-        /// Note that this some ClrTypes cannot be uniquely determined by TypeHandle alone.  In
-        /// Desktop CLR, arrays of reference types all use the same TypeHandle.  To uniquely
+        /// Attempts to retrieve the MethodTable and component MethodTable from the given object.
+        /// Note that this some ClrTypes cannot be uniquely determined by MethodTable alone.  In
+        /// Desktop CLR (prior to v4.6), arrays of reference types all use the same MethodTable but
+        /// also carry a second MethodTable (called the component MethodTable) to determine the
+        /// array element types. Note this function has undefined behavior if you do not pass a
+        /// valid object reference to it.
+        /// </summary>
+        /// <param name="obj">The object to get the MethodTable of.</param>
+        /// <param name="methodTable">The MethodTable for the given object.</param>
+        /// <param name="componentMethodTable">The component MethodTable of the given object.</param>
+        /// <returns>True if methodTable was filled, false if we failed to read memory.</returns>
+        abstract public bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable);
+
+        /// <summary>
+        /// Attempts to retrieve the MethodTable from the given object.
+        /// Note that this some ClrTypes cannot be uniquely determined by MethodTable alone.  In
+        /// Desktop CLR, arrays of reference types all use the same MethodTable.  To uniquely
         /// determine an array of referneces you must also have its component type.
         /// Note this function has undefined behavior if you do not pass a valid object reference
         /// to it.
         /// </summary>
-        /// <param name="obj">The object to get the type handle of.</param>
-        /// <returns>The TypeHandle of the object, or 0 if the address could not be read from.</returns>
-        abstract public ulong GetTypeHandle(ulong obj);
+        /// <param name="obj">The object to get the MethodTablee of.</param>
+        /// <returns>The MethodTable of the object, or 0 if the address could not be read from.</returns>
+        abstract public ulong GetMethodTable(ulong obj);
+
+        /// <summary>
+        /// Retrieves the EEClass from the given MethodTable.  EEClasses do not exist on
+        /// .Net Native. 
+        /// </summary>
+        /// <param name="methodTable">The MethodTable to get the EEClass from.</param>
+        /// <returns>The EEClass for the given MethodTable, 0 if methodTable is invalid or
+        /// does not exist.</returns>
+        virtual public ulong GetEEClassByMethodTable(ulong methodTable) { return 0; }
+
+        /// <summary>
+        /// Retrieves the MethodTable associated with the given EEClass.
+        /// </summary>
+        /// <param name="eeclass">The eeclass to get the method table from.</param>
+        /// <returns>The MethodTable for the given EEClass, 0 if eeclass is invalid
+        /// or does not exist.</returns>
+        virtual public ulong GetMethodTableByEEClass(ulong eeclass) { return 0; }
 
         /// <summary>
         /// Returns a  wrapper around a System.Exception object (or one of its subclasses).
@@ -83,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="index">The type to get.</param>
         /// <returns>The ClrType of that index.</returns>
         [Obsolete]
-        abstract public ClrType GetTypeByIndex(int index);
+        virtual public ClrType GetTypeByIndex(int index) { return null; }
 
         /// <summary>
         /// Looks up a type by name.
@@ -94,27 +118,28 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrType GetTypeByName(string name);
 
         /// <summary>
-        /// Retrieves the given type by its TypeHandle/ComponentTypeHandle pair.
+        /// Retrieves the given type by its MethodTable/ComponentMethodTable pair.
         /// </summary>
-        /// <param name="typeHandle">The ClrType.TypeHandle for the requested type.</param>
-        /// <param name="componentTypeHandle">The ClrType.ComponentTypeHandle for the requested type.</param>
+        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
+        /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
-        abstract public ClrType GetTypeByTypeHandle(ulong typeHandle, ulong componentTypeHandle);
+        abstract public ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable);
 
         /// <summary>
-        /// Retrieves the given type by its TypeHandle/ComponentTypeHandle pair.  Note this is only valid if
-        /// the given ClrType.ComponentTypeHandle is 0.
+        /// Retrieves the given type by its MethodTable/ComponentMethodTable pair.  Note this is only valid if
+        /// the given type's component MethodTable is 0.
         /// </summary>
-        /// <param name="typeHandle">The ClrType.TypeHandle for the requested type.</param>
+        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
-        virtual public ClrType GetTypeByTypeHandle(ulong typeHandle)
+        virtual public ClrType GetTypeByMethodTable(ulong methodTable)
         {
-            return GetTypeByTypeHandle(typeHandle, 0);
+            return GetTypeByMethodTable(methodTable, 0);
         }
 
         /// <summary>
         /// Returns the max index.
         /// </summary>
+        [Obsolete]
         abstract public int TypeIndexLimit { get; }
 
         /// <summary>
@@ -160,7 +185,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// for easier use in linq queries.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
-        abstract public IEnumerable<Address> EnumerateObjects();
+        abstract public IEnumerable<Address> EnumerateObjectAddresses();
+
+        /// <summary>
+        /// Enumerates all objects on the heap.  This is equivalent to enumerating all segments then walking
+        /// each object with ClrSegment.FirstObject, ClrSegment.NextObject, but in a simple enumerator
+        /// for easier use in linq queries.
+        /// </summary>
+        /// <returns>An enumerator for all objects on the heap.</returns>
+        [Obsolete("Use EnumerateObjectAddresses")]
+        virtual public IEnumerable<Address> EnumerateObjects() { return EnumerateObjectAddresses(); }
 
         /// <summary>
         /// TotalHeapSize is defined as the sum of the length of all segments.  
@@ -697,7 +731,7 @@ namespace Microsoft.Diagnostics.Runtime
             _pointerSize = runtime.PointerSize;
         }
 
-        public override ulong GetTypeHandle(ulong obj)
+        public override ulong GetMethodTable(ulong obj)
         {
             ulong mt;
             if (!MemoryReader.ReadPtr(obj, out mt))
@@ -850,7 +884,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
-        public override IEnumerable<Address> EnumerateObjects()
+        public override IEnumerable<Address> EnumerateObjectAddresses()
         {
             if (Revision != GetRuntimeRevision())
                 ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());

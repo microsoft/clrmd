@@ -15,6 +15,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public static class Helpers
     {
+        public static ClrMethod GetMethod(this ClrType type, string name)
+        {
+            return GetMethods(type, name).Single();
+        }
+
+        public static IEnumerable<ClrMethod> GetMethods(this ClrType type, string name)
+        {
+            return type.Methods.Where(m => m.Name == name);
+        }
+
         public static HashSet<T> Unique<T>(this IEnumerable<T> self)
         {
             HashSet<T> set = new HashSet<T>();

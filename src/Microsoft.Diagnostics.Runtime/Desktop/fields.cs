@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _field = field;
             _name = name;
             _attributes = attributes;
-            _type = (BaseDesktopHeapType)heap.GetTypeByTypeHandle(field.TypeMethodTable, 0);
+            _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(field.TypeMethodTable, 0);
             _defaultValue = defaultValue;
             _heap = heap;
 
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _field = field;
             _name = name;
-            _type = (BaseDesktopHeapType)heap.GetTypeByTypeHandle(field.TypeMethodTable, 0);
+            _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(field.TypeMethodTable, 0);
         }
 
         public override object GetValue(ClrAppDomain appDomain, ClrThread thread, bool convertStrings = true)
@@ -468,7 +468,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             ulong mt = data.TypeMethodTable;
             if (mt != 0)
-                _type = (BaseDesktopHeapType)heap.GetTypeByTypeHandle(mt, 0);
+                _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(mt, 0);
 
             if (_type == null)
             {

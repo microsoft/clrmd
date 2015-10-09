@@ -4,6 +4,7 @@
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using Address = System.UInt64;
 
@@ -19,19 +20,27 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeModule[] _modules;
         private NativeModule _mrtModule;
         private NativeType _free;
+        private ISymbolProvider _symProvider;
+        private Dictionary<NativeModule, ISymbolResolver> _resolvers = new Dictionary<NativeModule, ISymbolResolver>();
 
         internal NativeHeap(NativeRuntime runtime, NativeModule[] modules)
             : base(runtime)
         {
             NativeRuntime = runtime;
             _modules = modules;
+
+            _symProvider = runtime.DataTarget.SymbolProvider;
+            if (_symProvider == null)
+                throw new InvalidOperationException("You must set DataTarget.SymbolProvider to enumerate the heap on a .Net Native runtime.");
+
             _mrtModule = FindMrtModule();
 
             CreateFreeType();
             InitSegments(runtime);
+
         }
 
-        public override bool TryGetTypeHandle(ulong obj, out ulong typeHandle, out ulong componentTypeHandle)
+        public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
         {
             throw new NotImplementedException();
         }
@@ -44,6 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
+        [Obsolete]
         public override int TypeIndexLimit
         {
             get { return _types.Count; }
@@ -55,13 +65,13 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return _types[index];
         }
 
-        public override ClrType GetTypeByTypeHandle(ulong typeHandle, ulong component)
+        public override ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable)
         {
-            if (component != 0)
+            if (componentMethodTable != 0)
                 return null;
 
             int index;
-            if (_indices.TryGetValue(typeHandle, out index))
+            if (_indices.TryGetValue(methodTable, out index))
                 return _types[index];
 
             return null;
@@ -140,9 +150,34 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 canonType = tmp;
             }
 
-            // TODO:  NativeRuntime needs to resolve addresses into eetype names.
-            string name = string.Format("type names not impl {0:x}", eeType);
 
+            NativeModule module = FindContainingModule(eeType);
+            if (module == null && canonType != 0)
+                module = FindContainingModule(canonType);
+
+            string name = null;
+            if (module != null)
+            {
+                Debug.Assert(module.ImageBase < eeType);
+
+                PdbInfo pdb = module.Pdb;
+
+                if (pdb != null)
+                {
+                    ISymbolResolver resolver;
+                    if (!_resolvers.TryGetValue(module, out resolver))
+                        _resolvers[module] = resolver = _symProvider.GetSymbolResolver(pdb.FileName, pdb.Guid, pdb.Revision);
+
+                    name = resolver?.GetSymbolNameByRVA((uint)(eeType - module.ImageBase));
+                }
+            }
+
+            if (name == null)
+            {
+                string moduleName = module != null ? Path.GetFileNameWithoutExtension(module.FileName) : "UNKNWON";
+                name = string.Format("{0}_{1:x}", moduleName, eeType);
+            }
+            
             int len = name.Length;
             if (name.EndsWith("::`vftable'"))
                 len -= 11;
@@ -152,10 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (isArray)
                 name += "[]";
-
-            NativeModule module = FindContainingModule(eeType);
-            if (module == null && canonType != 0)
-                module = FindContainingModule(canonType);
+            
 
             if (module == null)
                 module = _mrtModule;
