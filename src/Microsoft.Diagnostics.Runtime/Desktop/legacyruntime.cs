@@ -375,12 +375,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Request<IObjectData, LegacyObjectData>(DacRequests.OBJECT_DATA, objRef);
         }
 
-        internal override IMetadata GetMetadataImport(ulong module)
+        internal override ICorDebug.IMetadataImport GetMetadataImport(ulong module)
         {
             IModuleData data = GetModuleData(module);
 
             if (data != null && data.LegacyMetaDataImport != null)
-                return data.LegacyMetaDataImport as IMetadata;
+                return data.LegacyMetaDataImport as ICorDebug.IMetadataImport;
 
             return null;
         }

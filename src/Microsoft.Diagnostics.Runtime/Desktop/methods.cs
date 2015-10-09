@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sig;
         }
 
-        internal static DesktopMethod Create(DesktopRuntimeBase runtime, IMetadata metadata, IMethodDescData mdData)
+        internal static DesktopMethod Create(DesktopRuntimeBase runtime, ICorDebug.IMetadataImport metadata, IMethodDescData mdData)
         {
             if (mdData == null)
                 return null;

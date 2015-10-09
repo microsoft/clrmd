@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal Address ModuleId { get; set; }
 
-        internal virtual IMetadata GetMetadataImport()
+        internal virtual ICorDebug.IMetadataImport GetMetadataImport()
         {
             return null;
         }
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool _reflection, _isPE;
         private string _name, _assemblyName;
         private DesktopRuntimeBase _runtime;
-        private IMetadata _metadata;
+        private ICorDebug.IMetadataImport _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
         private Address _imageBase, _size;
         private Address _metadataStart;
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 // This is very expensive in the minidump case, as we may be heading out to the symbol server or
                 // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
-                _metadata = data.LegacyMetaDataImport as IMetadata;
+                _metadata = data.LegacyMetaDataImport as ICorDebug.IMetadataImport;
             }
             else
             {
@@ -211,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return 0;
         }
 
-        internal override IMetadata GetMetadataImport()
+        internal override ICorDebug.IMetadataImport GetMetadataImport()
         {
             if (Revision != _runtime.Revision)
                 ClrDiagnosticsException.ThrowRevisionError(Revision, _runtime.Revision);
@@ -271,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private void InitDebugAttributes()
         {
-            IMetadata metadata = GetMetadataImport();
+            ICorDebug.IMetadataImport metadata = GetMetadataImport();
             if (metadata == null)
             {
                 _debugMode = DebuggableAttribute.DebuggingModes.None;
