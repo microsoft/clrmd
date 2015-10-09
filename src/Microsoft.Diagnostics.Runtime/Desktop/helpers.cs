@@ -374,27 +374,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         [DllImport("kernel32.dll")]
         internal static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 
-
-
-
-#if !V2_SUPPORT
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-#endif
-        [DllImport("dbghelp.dll")]
-        internal static extern IntPtr ImageDirectoryEntryToData(IntPtr mapping, bool mappedAsImage, short directoryEntry, out uint size);
-
-#if !V2_SUPPORT
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-#endif
-        [DllImport("dbghelp.dll")]
-        public static extern IntPtr ImageRvaToVa(IntPtr mapping, IntPtr baseAddr, uint rva, IntPtr lastRvaSection);
-
-#if !V2_SUPPORT
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-#endif
-        [DllImport("dbghelp.dll")]
-        public static extern IntPtr ImageNtHeader(IntPtr imageBase);
-
         internal static bool IsEqualFileVersion(string file, VersionInfo version)
         {
             int major, minor, revision, patch;

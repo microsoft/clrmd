@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
 
-        public override IEnumerable<ulong> EnumerateFinalizableObjects()
+        public override IEnumerable<ulong> EnumerateFinalizableObjectAddresses()
         {
             SubHeap[] heaps;
             if (DesktopRuntime.GetHeaps(out heaps))

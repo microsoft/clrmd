@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         }
 
         public override IEnumerable<ClrType> EnumerateTypes() { return null; }
-        public override IEnumerable<Address> EnumerateFinalizableObjects() { throw new NotImplementedException(); }
+        public override IEnumerable<Address> EnumerateFinalizableObjectAddresses() { throw new NotImplementedException(); }
         public override IEnumerable<BlockingObject> EnumerateBlockingObjects() { throw new NotImplementedException(); }
         public override ClrException GetExceptionObject(Address objRef) { throw new NotImplementedException(); }
 
