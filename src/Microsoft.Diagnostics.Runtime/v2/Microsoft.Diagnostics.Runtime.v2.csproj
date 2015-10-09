@@ -96,6 +96,10 @@
     <Compile Include="..\Debugger\IDebugSystemObjects2.cs" />
     <Compile Include="..\Debugger\IDebugSystemObjects3.cs" />
     <Compile Include="..\Debugger\Structs.cs" />
+    <Compile Include="..\ICorDebug\Helpers.cs" />
+    <Compile Include="..\ICorDebug\ICorDebugWrappers.cs" />
+    <Compile Include="..\ICorDebug\IMetadataImport.cs" />
+    <Compile Include="..\ICorDebug\IMetaHostWrappers.cs" />
     <Compile Include="..\Desktop\com.cs" />
     <Compile Include="..\DacInterfaces.cs" />
     <Compile Include="..\Desktop\lockinspection.cs" />
@@ -117,7 +121,6 @@
     <Compile Include="..\ISymbolResolver.cs" />
     <Compile Include="..\ClrHeap.cs" />
     <Compile Include="..\internal.cs" />
-    <Compile Include="..\metadata.cs" />
     <Compile Include="..\Properties\AssemblyInfo.cs" />
     <Compile Include="..\ClrException.cs" />
     <Compile Include="..\Native\NativeDac.cs" />

@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     }
 
     // Wrapper for ICLRMetaHost.  Used to find information about runtimes.
-    public sealed class CLRMetaHost
+    sealed class CLRMetaHost
     {
         private ICLRMetaHost m_metaHost;
 
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             IEnumUnknown enumRuntimes;
 
             using (ProcessSafeHandle hProcess = NativeMethods.OpenProcess(
-                /**
+                /*
                 (int)(NativeMethods.ProcessAccessOptions.ProcessVMRead |
                                                                         NativeMethods.ProcessAccessOptions.ProcessQueryInformation |
                                                                         NativeMethods.ProcessAccessOptions.ProcessDupHandle |
@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     }
 
     // Wrapper for ICLRRuntimeInfo.  Represents information about a CLR install instance.
-    public sealed class CLRRuntimeInfo
+    sealed class CLRRuntimeInfo
     {
         public CLRRuntimeInfo(System.Object clrRuntimeInfo)
         {
@@ -304,6 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             m_runtimeInfo.GetVersionString(sb, ref verStrLength);
             return sb.ToString();
         }
+
         public string GetRuntimeDirectory()
         {
             StringBuilder sb = new StringBuilder();
@@ -315,24 +316,12 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
                 Marshal.ThrowExceptionForHR(ret);
             return sb.ToString();
         }
+
         public ICorDebug GetLegacyICorDebugInterface()
         {
             Guid ifaceId = typeof(ICorDebug).GUID;
             Guid clsId = s_ClsIdClrDebuggingLegacy;
             return (ICorDebug)m_runtimeInfo.GetInterface(ref clsId, ref ifaceId);
-        }
-
-        public ICLRProfiling GetProfilingInterface()
-        {
-            Guid ifaceId = typeof(ICLRProfiling).GUID;
-            Guid clsId = s_ClsIdClrProfiler;
-            return (ICLRProfiling)m_runtimeInfo.GetInterface(ref clsId, ref ifaceId);
-        }
-        public IMetaDataDispenser GetIMetaDataDispenser()
-        {
-            Guid ifaceId = typeof(ICLRProfiling).GUID;
-            Guid clsId = s_ClsIdClrProfiler;
-            return (IMetaDataDispenser)m_runtimeInfo.GetInterface(ref clsId, ref ifaceId);
         }
 
         #region private 
@@ -519,6 +508,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// such as mscordbi.dll and mscordacwks.dll</param>
         /// <param name="maxDebuggerSupportedVersion">The highest version of the CLR/debugging libraries which
         /// the caller can support</param>
+        /// <param name="riidProcess"></param>
         /// <param name="process">The CLR's debugging interface or null if no debugger was detected</param>
         /// <param name="version">The version of the CLR detected or null if no CLR was detected</param>
         /// <param name="flags">Flags which have additional information about the CLR.

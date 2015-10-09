@@ -58,7 +58,29 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public static ICorDebugProcess CreateICorDebugProcess(ClrRuntime runtime)
         {
-            throw new NotImplementedException();
+            ulong baseAddress = runtime.ClrInfo.ModuleInfo.ImageBase;
+            Debug.Assert(baseAddress != 0);
+
+            ICLRDebuggingLibraryProvider libraryProvider = runtime.DataTarget.FileLoader;
+            ICorDebugDataTarget dataTarget = runtime.DataTarget.DataReader as ICorDebugDataTarget;
+            if (dataTarget == null)
+                throw new Exception("DataReader does not implement ICorDebugDataTarget.");
+            
+            Version version;
+            ClrDebuggingProcessFlags flags;
+            ICorDebugProcess process;
+            int errorCode = new CLRDebugging().TryOpenVirtualProcess(baseAddress, dataTarget, libraryProvider, new Version(4, 6, 0x7fff, 0x7fff), out version, out flags, out process);
+            if (errorCode < 0)
+            {
+                if (((errorCode != -2146231228) && (errorCode != -2146231226)) && (errorCode != -2146231225))
+                {
+                    Marshal.ThrowExceptionForHR(errorCode);
+                }
+
+                process = null;
+            }
+            
+            return process;
         }
 
         /// <summary>

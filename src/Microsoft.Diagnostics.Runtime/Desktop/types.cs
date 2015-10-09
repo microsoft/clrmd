@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             BaseDesktopHeapType baseType = BaseType as BaseDesktopHeapType;
             List<ClrInterface> interfaces = baseType != null ? new List<ClrInterface>(baseType.Interfaces) : null;
-            IMetadataImport import = DesktopModule.GetMetadataImport();
+            ICorDebug.IMetadataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
                 _interfaces = DesktopHeap.EmptyInterfaceList;

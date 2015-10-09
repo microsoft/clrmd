@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -777,12 +778,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
     }
 
-    internal class FileLoader
+    internal class FileLoader : ICorDebug.ICLRDebuggingLibraryProvider
     {
         private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
+        private DataTarget _dataTarget;
+        
+        public FileLoader(DataTarget dt)
+        {
+            _dataTarget = dt;
+        }
 
-
-        public PEFile LoadBinary(string fileName)
+        public PEFile LoadPEFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
                 return null;
@@ -807,6 +813,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return result;
+        }
+
+        public int ProvideLibrary([In, MarshalAs(UnmanagedType.LPWStr)] string fileName, int timestamp, int sizeOfImage, out IntPtr hModule)
+        {
+            string result = _dataTarget.SymbolLocator.FindBinary(fileName, timestamp, sizeOfImage, false);
+            if (result == null)
+            {
+                hModule = IntPtr.Zero;
+                return -1;
+            }
+
+            hModule = NativeMethods.LoadLibrary(result);
+            return 0;
         }
     }
 }

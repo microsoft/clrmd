@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!ignoreMismatch)
             {
                 int major, minor, revision, patch;
-                Desktop.NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
+                NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
             }
@@ -1011,7 +1011,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ISymbolProvider SymbolProvider { get; set; }
 
-        internal FileLoader FileLoader { get; } = new FileLoader();
+        FileLoader _fileLoader;
+        internal FileLoader FileLoader
+        {
+            get
+            {
+                if (_fileLoader == null)
+                    _fileLoader = new FileLoader(this);
+
+                return _fileLoader;
+            }
+        }
 
         /// <summary>
         /// Returns true if the target process is a minidump, or otherwise might have limited memory.  If IsMinidump
@@ -1538,7 +1548,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
+                PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
                 if (file != null)
                 {
                     PEBuffer peBuffer = file.AllocBuff();
@@ -1627,7 +1637,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return -1;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
+            PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
             if (file == null)
                 return -1;
 
