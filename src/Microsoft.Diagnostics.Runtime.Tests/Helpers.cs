@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrModule GetModule(this ClrRuntime runtime, string filename)
         {
-            return (from module in runtime.EnumerateModules()
+            return (from module in runtime.Modules
                     let file = Path.GetFileName(module.FileName)
                     where file.Equals(filename, StringComparison.OrdinalIgnoreCase)
                     select module).Single();
@@ -59,9 +59,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return thread.StackTrace.Where(sf => sf.Method != null ? sf.Method.Name == functionName : false).Single();
         }
 
-        public static string TestWorkingDirectory { get { return _workingPath.Value; } }
+        public static string TestWorkingDirectory { get { return _userSetWorkingPath ?? _workingPath.Value; } set { Debug.Assert(!_workingPath.IsValueCreated); _userSetWorkingPath = value; } }
 
         #region Working Path Helpers
+        static string _userSetWorkingPath = null;
         static Lazy<string> _workingPath = new Lazy<string>(() => CreateWorkingPath(), true);
         private static string CreateWorkingPath()
         {

@@ -1009,7 +1009,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (_mscorlib == null)
                 {
-                    foreach (ClrModule module in DesktopRuntime.EnumerateModules())
+                    foreach (ClrModule module in DesktopRuntime.Modules)
                     {
                         if (module.Name.Contains("mscorlib"))
                         {

@@ -802,7 +802,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override ClrType GetTypeByName(string name)
         {
-            foreach (var module in Runtime.EnumerateModules())
+            foreach (var module in Runtime.Modules)
             {
                 var type = module.GetTypeByName(name);
                 if (type != null)

@@ -594,18 +594,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override IEnumerable<ClrModule> EnumerateModules()
+        public override IList<ClrModule> Modules
         {
-            if (_domains == null)
-                InitDomains();
-
-            if (_moduleList == null)
+            get
             {
-                HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p=>(ClrModule)p));
-                _moduleList = modules.ToArray();
-            }
+                if (_domains == null)
+                    InitDomains();
 
-            return _moduleList;
+                if (_moduleList == null)
+                {
+                    HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p => (ClrModule)p));
+                    _moduleList = modules.ToArray();
+                }
+
+                return _moduleList;
+            }
         }
 
         internal IEnumerable<ulong> EnumerateModules(IAppDomainData appDomain)

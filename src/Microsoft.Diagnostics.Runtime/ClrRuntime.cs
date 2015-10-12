@@ -185,7 +185,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all modules in the process.
         /// </summary>
         /// <returns>An enumeration of modules.</returns>
-        public abstract IEnumerable<ClrModule> EnumerateModules();
+        [Obsolete("Use the Modules property instead.")]
+        public virtual IEnumerable<ClrModule> EnumerateModules() { return Modules; }
+
+
+        /// <summary>
+        /// A list of all modules loaded into the process.
+        /// </summary>
+        public abstract IList<ClrModule> Modules { get; }
 
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
