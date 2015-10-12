@@ -34,8 +34,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private List<ClrThread> _threads;
         private DesktopGCHeap _heap;
         private DesktopThreadPool _threadpool;
-        internal int Revision { get; set; }
+        private ErrorModule _errorModule;
         #endregion
+
+        internal int Revision { get; set; }
+
+        public ErrorModule ErrorModule
+        {
+            get
+            {
+                if (_errorModule == null)
+                    _errorModule = new ErrorModule(this);
+
+                return _errorModule;
+            }
+        }
 
         public override IEnumerable<int> EnumerateGCThreads()
         {

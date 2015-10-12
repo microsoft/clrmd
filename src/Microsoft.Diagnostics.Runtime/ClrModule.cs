@@ -81,6 +81,11 @@ namespace Microsoft.Diagnostics.Runtime
         #endregion
 
         /// <summary>
+        /// Gets the runtime which contains this module.
+        /// </summary>
+        public abstract ClrRuntime Runtime { get; }
+
+        /// <summary>
         /// Returns a list of all AppDomains this module is loaded into.  Please note that unlike
         /// ClrRuntime.AppDomains, this list may include the shared AppDomain.
         /// </summary>
@@ -186,5 +191,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             return Name;
         }
+
+        /// <summary>
+        /// Returns the pdb information for this module.
+        /// </summary>
+        public abstract PdbInfo Pdb { get; }
     }
 }
