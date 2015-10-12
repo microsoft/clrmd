@@ -12,6 +12,40 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class TypeTests
     {
         [TestMethod]
+        public void ArrayComponentTypeTest()
+        {
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                // Ensure that we always have a component for every array type.
+                foreach (ulong obj in heap.EnumerateObjectAddresses())
+                {
+                    ClrType type = heap.GetObjectType(obj);
+                    Assert.IsTrue(!type.IsArray || type.ComponentType != null);
+
+                    foreach (var field in type.Fields)
+                    {
+                        Assert.IsNotNull(field.Type);
+                        Assert.IsTrue(!field.Type.IsArray || field.Type.ComponentType != null);
+                        Assert.AreSame(heap, field.Type.Heap);
+                    }
+                }
+
+
+                foreach (ClrModule module in runtime.EnumerateModules())
+                {
+                    foreach (ClrType type in module.EnumerateTypes())
+                    {
+                        Assert.IsTrue(!type.IsArray || type.ComponentType != null);
+                        Assert.AreSame(heap, type.Heap);
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
         public void ComponentType()
         {
             // Simply test that we can enumerate the heap.

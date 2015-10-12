@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Address = System.UInt64;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -459,7 +460,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-
         public DesktopInstanceField(DesktopGCHeap heap, IFieldData data, string name, FieldAttributes attributes, IntPtr sig, int sigLen)
         {
             _name = name;
@@ -484,6 +484,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     res = res && sigParser.SkipCustomModifiers();
                     res = res && sigParser.GetElemType(out etype);
+
+
+                    // Generic instantiation
+                    if (etype == 0x15)
+                        res = res && sigParser.GetElemType(out etype);
 
                     if (res)
                     {
@@ -527,6 +532,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             _type = heap.CreatePointerType(innerType, type, null);
                         }
+                        else
+                        {
+                            // If it's a class or struct, then try to get the token
+                            int token = 0;
+                            if (etype == 0x11 || etype == 0x12)
+                                res = res && sigParser.GetToken(out token);
+
+                            if (token != 0)
+                                _type = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
+
+                            if (_type == null)
+                                if ((_type = (BaseDesktopHeapType)heap.GetBasicType((ClrElementType)etype)) == null)
+                                    _type = heap.ErrorType;
+                        }
                     }
                 }
 
@@ -536,6 +555,41 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else if (ElementType != ClrElementType.Class)
             {
                 _type.ElementType = ElementType;
+            }
+
+            if (_type.IsArray && _type.ComponentType == null)
+            {
+                if (sig != IntPtr.Zero && sigLen > 0)
+                {
+                    SigParser sigParser = new SigParser(sig, sigLen);
+
+                    bool res;
+                    int sigType, etype = 0;
+
+                    if (res = sigParser.GetCallingConvInfo(out sigType))
+                        Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
+
+                    res = res && sigParser.SkipCustomModifiers();
+                    res = res && sigParser.GetElemType(out etype);
+                    
+                    res = res && sigParser.GetElemType(out etype);
+
+                    // Generic instantiation
+                    if (etype == 0x15)
+                        res = res && sigParser.GetElemType(out etype);
+
+                    // If it's a class or struct, then try to get the token
+                    int token = 0;
+                    if (etype == 0x11 || etype == 0x12)
+                        res = res && sigParser.GetToken(out token);
+                    
+                    if (token != 0)
+                        _type.ComponentType = heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
+                    
+                    else if (_type.ComponentType == null)
+                        if ((_type.ComponentType = heap.GetBasicType((ClrElementType)etype)) == null)
+                            _type.ComponentType = heap.ErrorType;
+                }
             }
         }
 
@@ -679,6 +733,197 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             throw new Exception("Unexpected element type.");
+        }
+    }
+
+    class ErrorType : BaseDesktopHeapType
+    {
+        public ErrorType(DesktopGCHeap heap)
+            : base(heap, new ErrorModule(), 0)
+        {
+        }
+
+        public override int BaseSize
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public override ClrType BaseType
+        {
+            get
+            {
+                return DesktopHeap.ObjectType;
+            }
+        }
+
+        public override int ElementSize
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public override ClrHeap Heap
+        {
+            get
+            {
+                return DesktopHeap;
+            }
+        }
+
+        public override IList<ClrInterface> Interfaces
+        {
+            get
+            {
+                return new ClrInterface[0];
+            }
+        }
+
+        public override bool IsAbstract
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsFinalizable
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsInterface
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsInternal
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsPrivate
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsProtected
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsPublic
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsSealed
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override uint MetadataToken
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public override ulong MethodTable
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public override string Name
+        {
+            get
+            {
+                return "ERROR";
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateMethodTables()
+        {
+            return new ulong[0];
+        }
+
+        public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
+        {
+        }
+
+        public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
+        {
+        }
+
+        public override ulong GetArrayElementAddress(ulong objRef, int index)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override object GetArrayElementValue(ulong objRef, int index)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override int GetArrayLength(ulong objRef)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override ClrInstanceField GetFieldByName(string name)
+        {
+            return null;
+        }
+
+        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
+        {
+            childField = null;
+            childFieldOffset = 0;
+            return false;
+        }
+
+        public override ulong GetSize(ulong objRef)
+        {
+            return 0;
+        }
+
+        public override ClrStaticField GetStaticFieldByName(string name)
+        {
+            return null;
+        }
+
+        internal override ulong GetModuleAddress(ClrAppDomain domain)
+        {
+            return 0;
         }
     }
 }
