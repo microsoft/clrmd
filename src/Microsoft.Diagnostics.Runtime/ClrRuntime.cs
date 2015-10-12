@@ -77,8 +77,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects
         /// which have been collected and will be imminently finalized.)
         /// </summary>
-        abstract public IEnumerable<Address> EnumerateFinalizerQueue();
-        
+        abstract public IEnumerable<Address> EnumerateFinalizerQueueObjectAddresses();
+
+        /// <summary>
+        /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects
+        /// which have been collected and will be imminently finalized.)
+        /// </summary>
+        [Obsolete("Use EnumerateFinalizerQueueObjectAddresses")]
+        virtual public IEnumerable<Address> EnumerateFinalizerQueue() { return EnumerateFinalizerQueueObjectAddresses(); }
+
         /// <summary>
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
         /// </summary>
@@ -973,7 +980,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public override IEnumerable<Address> EnumerateFinalizerQueue()
+        public override IEnumerable<Address> EnumerateFinalizerQueueObjectAddresses()
         {
             SubHeap[] heaps;
             if (GetHeaps(out heaps))

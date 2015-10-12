@@ -580,7 +580,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all objects on the segment.
         /// </summary>
-        abstract public IEnumerable<ulong> EnumerateObjects();
+        abstract public IEnumerable<ulong> EnumerateObjectAddresses();
+
+        /// <summary>
+        /// Enumerates all objects on the segment.
+        /// </summary>
+        [Obsolete("Use EnumerateObjectAddresses.")]
+        virtual public IEnumerable<ulong> EnumerateObjects() { return EnumerateObjectAddresses(); }
 
         /// <summary>
         /// Returns the generation of an object in this segment.
@@ -980,7 +986,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override Address Gen2Length { get { return Gen1Start - Start; } }
 
 
-        public override IEnumerable<Address> EnumerateObjects()
+        public override IEnumerable<Address> EnumerateObjectAddresses()
         {
             for (ulong obj = FirstObject; obj != 0; obj = NextObject(obj))
                 yield return obj;

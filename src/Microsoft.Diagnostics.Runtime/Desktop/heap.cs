@@ -385,7 +385,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Finalization Queue
-            foreach (Address objAddr in DesktopRuntime.EnumerateFinalizerQueue())
+            foreach (Address objAddr in DesktopRuntime.EnumerateFinalizerQueueObjectAddresses())
                 if (objAddr != 0)
                 {
                     ClrType type = GetObjectType(objAddr);
