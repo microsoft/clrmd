@@ -10,7 +10,7 @@ class Types
 
     static Foo s_foo = new Foo();
 
-
+    static object s_i = 42;
 
     public static void Main(string[] args)
     {

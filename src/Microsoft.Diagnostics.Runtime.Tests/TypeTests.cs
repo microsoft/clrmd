@@ -12,6 +12,31 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class TypeTests
     {
         [TestMethod]
+        public void IntegerObjectClrType()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                ClrStaticField field = runtime.GetModule("types.exe").GetTypeByName("Types").GetStaticFieldByName("s_i");
+
+                ulong addr = (ulong)field.GetValue(runtime.AppDomains.Single());
+                ClrType type = heap.GetObjectType(addr);
+                Assert.IsTrue(type.IsPrimitive);
+                Assert.IsFalse(type.IsObjectReference);
+                Assert.IsFalse(type.IsValueClass);
+
+                object value = type.GetValue(addr);
+                Assert.AreEqual("42", value.ToString());
+                Assert.IsInstanceOfType(value, typeof(int));
+                Assert.AreEqual(42, (int)value);
+
+                Assert.IsTrue(heap.EnumerateObjectAddresses().Contains(addr));
+            }
+        }
+
+        [TestMethod]
         public void ArrayComponentTypeTest()
         {
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
