@@ -822,7 +822,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get
             {
                 if (DesktopModule == null)
-                    return new ErrorModule();
+                    return DesktopHeap.DesktopRuntime.ErrorModule;
+
                 return DesktopModule;
             }
         }

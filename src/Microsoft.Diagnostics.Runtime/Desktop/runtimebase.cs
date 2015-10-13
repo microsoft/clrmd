@@ -34,8 +34,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private List<ClrThread> _threads;
         private DesktopGCHeap _heap;
         private DesktopThreadPool _threadpool;
-        internal int Revision { get; set; }
+        private ErrorModule _errorModule;
         #endregion
+
+        internal int Revision { get; set; }
+
+        public ErrorModule ErrorModule
+        {
+            get
+            {
+                if (_errorModule == null)
+                    _errorModule = new ErrorModule(this);
+
+                return _errorModule;
+            }
+        }
 
         public override IEnumerable<int> EnumerateGCThreads()
         {
@@ -594,18 +607,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override IEnumerable<ClrModule> EnumerateModules()
+        public override IList<ClrModule> Modules
         {
-            if (_domains == null)
-                InitDomains();
-
-            if (_moduleList == null)
+            get
             {
-                HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p=>(ClrModule)p));
-                _moduleList = modules.ToArray();
-            }
+                if (_domains == null)
+                    InitDomains();
 
-            return _moduleList;
+                if (_moduleList == null)
+                {
+                    HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p => (ClrModule)p));
+                    _moduleList = modules.ToArray();
+                }
+
+                return _moduleList;
+            }
         }
 
         internal IEnumerable<ulong> EnumerateModules(IAppDomainData appDomain)

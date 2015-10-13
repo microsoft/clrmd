@@ -14,6 +14,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal abstract class DesktopBaseModule : ClrModule
     {
+        protected DesktopRuntimeBase _runtime;
+
+        public override ClrRuntime Runtime
+        {
+            get
+            {
+                return _runtime;
+            }
+        }
+
         internal abstract Address GetDomainModule(ClrAppDomain appDomain);
 
         internal Address ModuleId { get; set; }
@@ -24,13 +34,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public int Revision { get; set; }
+
+        public DesktopBaseModule(DesktopRuntimeBase runtime)
+        {
+            _runtime = runtime;
+        }
     }
 
     internal class DesktopModule : DesktopBaseModule
     {
+        static PdbInfo s_failurePdb = new PdbInfo();
+
         private bool _reflection, _isPE;
         private string _name, _assemblyName;
-        private DesktopRuntimeBase _runtime;
         private IMetadata _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
         private Address _imageBase, _size;
@@ -40,12 +56,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Address _assemblyAddress;
         private bool _typesLoaded;
         ClrAppDomain[] _appDomainList;
+        PdbInfo _pdb;
 
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
+            : base(runtime)
         {
             Revision = runtime.Revision;
             _imageBase = data.ImageBase;
-            _runtime = runtime;
             _assemblyName = assemblyName;
             _isPE = data.IsPEFile;
             _reflection = data.IsReflection || string.IsNullOrEmpty(name) || !name.Contains("\\");
@@ -83,6 +100,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public override PdbInfo Pdb
+        {
+            get
+            {
+                if (_pdb == null)
+                {
+                    try
+                    {
+                        using (PEFile pefile = new PEFile(new ReadVirtualStream(_runtime.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000)), true))
+                        {
+                            _pdb = pefile.PdbInfo ?? s_failurePdb;
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                return _pdb != s_failurePdb ? _pdb : null;
+            }
+        }
 
 
         internal ulong GetMTForDomain(ClrAppDomain domain, DesktopHeapType type)
@@ -323,6 +361,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         private static uint s_id = 0;
         private uint _id = s_id++;
+
+        public ErrorModule(DesktopRuntimeBase runtime)
+            : base(runtime)
+        {
+        }
+
+        public override PdbInfo Pdb
+        {
+            get
+            {
+                return null;
+            }
+        }
 
         public override IList<ClrAppDomain> AppDomains
         {

@@ -25,11 +25,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public class TestTargets
     {
-        public static TestTarget NestedException = new TestTarget("NestedException.cs");
+        static Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
+        static Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
+        static Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
+        static Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs", NestedException));
+
+        public static TestTarget NestedException { get { return _nestedException.Value; } }
         public static ExceptionTestData NestedExceptionData = new ExceptionTestData();
-        public static TestTarget GCHandles = new TestTarget("GCHandles.cs");
-        public static TestTarget Types = new TestTarget("Types.cs");
-        public static TestTarget AppDomains = new TestTarget("AppDomains.cs", NestedException);
+        public static TestTarget GCHandles { get { return _gcHandles.Value; } }
+        public static TestTarget Types { get { return _types.Value; } }
+        public static TestTarget AppDomains { get { return _appDomains.Value; } }
     }
 
     public class TestTarget
@@ -62,20 +67,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         public string Source { get { return _source; } }
-
-        public TestTarget(string source)
-        {
-            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
-            _isLibrary = false;
-        }
-
-        public TestTarget(string source, bool isLibrary)
+        
+        public TestTarget(string source, bool isLibrary = false)
         {
             _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
             _isLibrary = isLibrary;
-
-            if (_isLibrary)
-                _executable = CompileCSharp(_source, true);
         }
 
         public TestTarget(string source, params TestTarget[] required)
@@ -89,6 +85,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
         {
+            string path = GetMiniDumpName(Executable, gc);
+            if (File.Exists(path))
+                return DataTarget.LoadCrashDump(path);
+
             WriteCrashDumps(gc);
 
             return DataTarget.LoadCrashDump(_miniDumpPath[(int)gc]);
@@ -96,6 +96,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
         {
+            string path = GetFullDumpName(Executable, gc);
+            if (File.Exists(path))
+                return DataTarget.LoadCrashDump(path);
+
             WriteCrashDumps(gc);
 
             return DataTarget.LoadCrashDump(_fullDumpPath[(int)gc]);
@@ -106,13 +110,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (_executable != null)
                 return;
 
-            _executable = CompileCSharp(_source, _isLibrary);
+            // Don't recompile if it's there.
+            string destination = GetOutputAssembly();
+            if (!File.Exists(destination))
+                _executable = CompileCSharp(_source, destination, _isLibrary);
+            else
+                _executable = destination;
         }
 
-
-        private static string CompileCSharp(string source, bool isLibrary)
+        private string GetOutputAssembly()
         {
-            string extension = isLibrary ? "dll" : "exe";
+            string extension = _isLibrary ? "dll" : "exe";
+            return Path.Combine(Helpers.TestWorkingDirectory, Path.ChangeExtension(Path.GetFileNameWithoutExtension(_source), extension));
+        }
+
+        private static string CompileCSharp(string source, string destination, bool isLibrary)
+        {
             CSharpCodeProvider provider = new CSharpCodeProvider();
             CompilerParameters cp = new CompilerParameters();
             cp.ReferencedAssemblies.Add("system.dll");
@@ -131,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             cp.CompilerOptions = IntPtr.Size == 4 ? "/platform:x86" : "/platform:amd64";
 
             cp.IncludeDebugInformation = true;
-            cp.OutputAssembly = Path.Combine(Helpers.TestWorkingDirectory, Path.ChangeExtension(Path.GetFileNameWithoutExtension(source), extension));
+            cp.OutputAssembly = destination;
             CompilerResults cr = provider.CompileAssemblyFromFile(cp, source);
 
             if (cr.Errors.Count > 0 && System.Diagnostics.Debugger.IsAttached)

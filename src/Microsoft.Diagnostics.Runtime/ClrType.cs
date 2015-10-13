@@ -622,7 +622,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return string.Format("HeapType {0}", Name);
+            return Name;
         }
     }
 

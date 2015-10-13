@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 HashSet<string> expected = new HashSet<string>(new string[] { "mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
                 HashSet<ClrModule> modules = new HashSet<ClrModule>();
 
-                foreach (ClrModule module in runtime.EnumerateModules())
+                foreach (ClrModule module in runtime.Modules)
                 {
                     Assert.IsTrue(expected.Contains(Path.GetFileName(module.FileName)));
                     Assert.IsFalse(modules.Contains(module));

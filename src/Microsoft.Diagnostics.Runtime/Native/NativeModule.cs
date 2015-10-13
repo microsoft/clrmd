@@ -66,6 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private string _filename;
         private Address _imageBase;
         private Address _size;
+        private PdbInfo _pdb;
 
         public NativeModule(NativeRuntime runtime, ModuleInfo module)
         {
@@ -74,10 +75,18 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _filename = module.FileName;
             _imageBase = module.ImageBase;
             _size = module.FileSize;
-            Pdb = module.Pdb;
+            _pdb = module.Pdb;
         }
 
-        public PdbInfo Pdb { get; private set; }
+        public override ClrRuntime Runtime
+        {
+            get
+            {
+                return _runtime;
+            }
+        }
+
+        public override PdbInfo Pdb { get { return _pdb; } }
 
         public override IList<ClrAppDomain> AppDomains
         {

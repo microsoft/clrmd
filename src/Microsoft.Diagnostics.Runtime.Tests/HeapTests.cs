@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.AreEqual(0ul, seg.Gen1Length);
                 }
 
-                foreach (ulong obj in seg.EnumerateObjects())
+                foreach (ulong obj in seg.EnumerateObjectAddresses())
                 {
                     ClrSegment curr = heap.GetSegmentByAddress(obj);
                     Assert.AreSame(seg, curr);

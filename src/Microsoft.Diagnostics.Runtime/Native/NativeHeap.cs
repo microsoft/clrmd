@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             // Finalizer Queue.
             ClrAppDomain domain = NativeRuntime.AppDomains[0];
-            foreach (ulong obj in NativeRuntime.EnumerateFinalizerQueue())
+            foreach (ulong obj in NativeRuntime.EnumerateFinalizerQueueObjectAddresses())
             {
                 ClrType type = GetObjectType(obj);
                 if (type == null)

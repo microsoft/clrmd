@@ -183,12 +183,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrModule GetMscorlib()
         {
-            foreach (ClrModule module in _runtime.EnumerateModules())
+            foreach (ClrModule module in _runtime.Modules)
                 if (module.AssemblyName.Contains("mscorlib.dll"))
                     return module;
 
             // Uh oh, this shouldn't have happened.  Let's look more carefully (slowly).
-            foreach (ClrModule module in _runtime.EnumerateModules())
+            foreach (ClrModule module in _runtime.Modules)
                 if (module.AssemblyName.ToLower().Contains("mscorlib"))
                     return module;
 
