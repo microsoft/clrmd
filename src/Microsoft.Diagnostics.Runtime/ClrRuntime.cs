@@ -1043,11 +1043,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private bool IsInSegment(ClrSegment seg, Address p)
-        {
-            return seg.Start <= p && p <= seg.End;
-        }
-
         #region Abstract
         internal abstract IEnumerable<ClrStackFrame> EnumerateStackFrames(uint osThreadId);
         internal abstract ulong GetFirstThread();
@@ -1442,26 +1437,6 @@ namespace Microsoft.Diagnostics.Runtime
                 value = (ulong)BitConverter.ToUInt32(_dataBuffer, 0);
             else
                 value = (ulong)BitConverter.ToUInt64(_dataBuffer, 0);
-
-            return true;
-        }
-
-        public bool ReadPtr(ulong addr, out long value)
-        {
-            int ptrSize = (int)PointerSize;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, ptrSize, out read))
-            {
-                value = 0xcccccccc;
-                return false;
-            }
-
-            Debug.Assert(read == ptrSize);
-
-            if (ptrSize == 4)
-                value = (long)BitConverter.ToInt32(_dataBuffer, 0);
-            else
-                value = (long)BitConverter.ToInt64(_dataBuffer, 0);
 
             return true;
         }
