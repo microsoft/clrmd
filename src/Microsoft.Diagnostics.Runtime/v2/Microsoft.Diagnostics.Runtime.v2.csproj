@@ -124,6 +124,7 @@
     <Compile Include="..\Native\NativeModule.cs" />
     <Compile Include="..\Native\NativeRoots.cs" />
     <Compile Include="..\Native\NativeRuntime.cs" />
+    <Compile Include="..\Native\NativeThread.cs" />
     <Compile Include="..\Native\NativeTypes.cs" />
     <Compile Include="..\ClrRuntime.cs" />
     <Compile Include="..\ClrType.cs" />

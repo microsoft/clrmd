@@ -116,11 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             OnRuntimeFlushed();
             throw new NotImplementedException();
         }
-
-        internal override IEnumerable<ClrStackFrame> EnumerateStackFrames(uint osThreadId)
-        {
-            throw new NotImplementedException();
-        }
+        
         override public ClrThreadPool GetThreadPool() { throw new NotImplementedException(); }
 
         internal ClrAppDomain GetRhAppDomain()
@@ -256,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             IThreadData thread = GetThread(tsData.FirstThread);
             for (int i = 0; thread != null; i++)
             {
-                threads.Add(new DesktopThread(this, thread, addr, tsData.Finalizer == addr));
+                threads.Add(new NativeThread(this, thread, addr, tsData.Finalizer == addr));
 
                 addr = thread.Next;
                 thread = GetThread(addr);
