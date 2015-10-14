@@ -846,6 +846,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_corDebugProcess == null)
                     _corDebugProcess = ICorDebug.CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, _library.DacDataTarget, _dataTarget.FileLoader);
+
+                return _corDebugProcess;
             }
         }
 
@@ -1045,7 +1047,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         #region Abstract
-        internal abstract IEnumerable<ClrStackFrame> EnumerateStackFrames(uint osThreadId);
         internal abstract ulong GetFirstThread();
         internal abstract IThreadData GetThread(ulong addr);
         internal abstract IHeapDetails GetSvrHeapDetails(ulong addr);

@@ -562,6 +562,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         #region Internal Functions
+        protected ClrThread GetThreadByStackAddress(ulong address)
+        {
+            Debug.Assert(address != 0);
+            foreach (ClrThread thread in _threads)
+            {
+                ulong min = thread.StackBase;
+                ulong max = thread.StackLimit;
+
+                if (min > max)
+                {
+                    ulong tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+
+                if (min <= address && address <= max)
+                    return thread;
+            }
+
+            return null;
+        }
+
         internal uint GetExceptionMessageOffset()
         {
             if (PointerSize == 8)
@@ -741,12 +763,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        internal override IEnumerable<ClrStackFrame> EnumerateStackFrames(uint osThreadId)
+        internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
             IXCLRDataProcess proc = GetClrDataProcess();
             object tmp;
 
-            int res = proc.GetTaskByOSThreadID(osThreadId, out tmp);
+            int res = proc.GetTaskByOSThreadID(thread.OSThreadId, out tmp);
             if (res < 0)
                 yield break;
 
@@ -804,7 +826,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                 }
 
-                DesktopStackFrame frame = GetStackFrame(res, ip, sp, frameVtbl);
+                DesktopStackFrame frame = GetStackFrame(thread, res, ip, sp, frameVtbl);
                 yield return frame;
             } while (stackWalk.Next() == 0);
         }
@@ -912,7 +934,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract string GetNameForMD(Address md);
         internal abstract IMethodDescData GetMethodDescData(Address md);
         internal abstract uint GetMetadataToken(Address mt);
-        protected abstract DesktopStackFrame GetStackFrame(int res, ulong ip, ulong sp, ulong frameVtbl);
+        protected abstract DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong sp, ulong frameVtbl);
         internal abstract IList<ClrStackFrame> GetExceptionStackTrace(Address obj, ClrType type);
         internal abstract string GetAssemblyName(Address assembly);
         internal abstract string GetAppBase(Address appDomain);

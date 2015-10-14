@@ -515,7 +515,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return token;
         }
 
-        protected override DesktopStackFrame GetStackFrame(int res, ulong ip, ulong sp, ulong frameVtbl)
+        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong sp, ulong frameVtbl)
         {
             DesktopStackFrame frame;
             ClearBuffer();
@@ -531,12 +531,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (mdData != null)
                     method = DesktopMethod.Create(this, mdData);
 
-                frame = new DesktopStackFrame(this, sp, frameName, method);
+                frame = new DesktopStackFrame(this, thread, sp, frameName, method);
             }
             else
             {
                 ulong md = GetMethodDescFromIp(ip);
-                frame = new DesktopStackFrame(this, ip, sp, md);
+                frame = new DesktopStackFrame(this, thread, ip, sp, md);
             }
 
             return frame;
@@ -595,6 +595,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // Skip size and header
             dataPtr += (ulong)(IntPtr.Size * 2);
 
+            DesktopThread thread = null;
             for (int i = 0; i < (int)count; ++i)
             {
                 ulong ip, sp, md;
@@ -604,8 +605,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     break;
                 if (!ReadPointer(dataPtr + (ulong)(2 * IntPtr.Size), out md))
                     break;
+                
+                if (i == 0)
+                    thread = (DesktopThread)GetThreadByStackAddress(sp);
 
-                result.Add(new DesktopStackFrame(this, ip, sp, md));
+                result.Add(new DesktopStackFrame(this, thread, ip, sp, md));
 
                 dataPtr += (ulong)elementSize;
             }
