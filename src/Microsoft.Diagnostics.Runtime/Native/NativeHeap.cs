@@ -53,18 +53,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        [Obsolete]
-        public override int TypeIndexLimit
-        {
-            get { return _types.Count; }
-        }
-
-        [Obsolete]
-        public override ClrType GetTypeByIndex(int index)
-        {
-            return _types[index];
-        }
-
         public override ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable)
         {
             if (componentMethodTable != 0)

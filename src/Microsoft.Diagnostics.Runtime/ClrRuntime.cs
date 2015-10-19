@@ -80,13 +80,6 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public IEnumerable<Address> EnumerateFinalizerQueueObjectAddresses();
 
         /// <summary>
-        /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects
-        /// which have been collected and will be imminently finalized.)
-        /// </summary>
-        [Obsolete("Use EnumerateFinalizerQueueObjectAddresses")]
-        virtual public IEnumerable<Address> EnumerateFinalizerQueue() { return EnumerateFinalizerQueueObjectAddresses(); }
-
-        /// <summary>
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
@@ -99,28 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
         /// <returns>The CcwData describing the given CCW, or null.</returns>
-        [Obsolete("Use GetCcwDataByAddress instead.")]
-        public virtual CcwData GetCcwDataFromAddress(ulong addr) { return GetCcwDataByAddress(addr); }
-
-        /// <summary>
-        /// Returns the CCW data associated with the given address.  This is used when looking at stowed
-        /// exceptions in CLR.
-        /// </summary>
-        /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
-        /// <returns>The CcwData describing the given CCW, or null.</returns>
         public abstract CcwData GetCcwDataByAddress(ulong addr);
-
-        /// <summary>
-        /// Read data out of the target process.
-        /// </summary>
-        /// <param name="address">The address to start the read from.</param>
-        /// <param name="buffer">The buffer to write memory to.</param>
-        /// <param name="bytesRequested">How many bytes to read (must be less than/equal to buffer.Length)</param>
-        /// <param name="bytesRead">The number of bytes actually read out of the process.  This will be less than
-        /// bytes requested if the request falls off the end of an allocation.</param>
-        /// <returns>False if the memory is not readable (free or no read permission), true if *some* memory was read.</returns>
-        [Obsolete("Use ReadMemory instead.")]
-        abstract public bool ReadVirtual(Address address, byte[] buffer, int bytesRequested, out int bytesRead);
 
 
         /// <summary>
@@ -157,12 +129,6 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrHeap GetHeap();
 
         /// <summary>
-        /// Gets the GC heap of the process.
-        /// </summary>
-        [Obsolete]
-        abstract public ClrHeap GetHeap(TextWriter diagnosticLog);
-
-        /// <summary>
         /// Returns data on the CLR thread pool for this runtime.
         /// </summary>
         virtual public ClrThreadPool GetThreadPool() { throw new NotImplementedException(); }
@@ -180,13 +146,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// given instruction pointer is not within any managed method.
         /// </summary>
         abstract public ClrMethod GetMethodByAddress(Address ip);
-
-        /// <summary>
-        /// Enumerates all modules in the process.
-        /// </summary>
-        /// <returns>An enumeration of modules.</returns>
-        [Obsolete("Use the Modules property instead.")]
-        public virtual IEnumerable<ClrModule> EnumerateModules() { return Modules; }
 
 
         /// <summary>
@@ -521,18 +480,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The the type of the Object.
         /// </summary>
         public ClrType Type { get; set; }
-
-        /// <summary>
-        /// Whether the handle is strong (roots the object) or not.
-        /// </summary>
-        [Obsolete("Use IsStrong instead.")]
-        public bool Strong
-        {
-            get
-            {
-                return IsStrong;
-            }
-        }
 
         /// <summary>
         /// Whether the handle is strong (roots the object) or not.
@@ -1279,13 +1226,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
-
-        [Obsolete]
-        public override bool ReadVirtual(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
-        }
-
 
         private byte[] _dataBuffer = new byte[8];
         public bool ReadByte(Address addr, out byte value)

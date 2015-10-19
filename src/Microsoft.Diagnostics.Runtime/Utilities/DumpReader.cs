@@ -1580,33 +1580,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return bytesRead;
         }
-
-        [Obsolete]
-        public virtual void ReadMemory(AsyncMemoryReadResult result)
-        {
-            EnsureValid();
-
-            byte[] buffer = new byte[result.BytesRequested];
-            bool acquired = false;
-            try
-            {
-                // Don't actually do anything if we failed to acquire the read lock
-                acquired = AcquireReadLock();
-                if (acquired)
-                    result.BytesRead = ReadPartialMemory(result.Address, buffer, buffer.Length);
-                else
-                    result.BytesRead = 0;
-            }
-            finally
-            {
-                if (acquired)
-                    ReleaseReadLock();
-            }
-
-            result.Result = buffer;
-            result.Complete.Set();
-        }
-
+        
 #pragma warning disable 0420
         private volatile bool _disposing;
         private volatile int _lock = 0;

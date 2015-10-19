@@ -56,15 +56,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return _heap;
         }
 
-        [Obsolete]
-        public override ClrHeap GetHeap(System.IO.TextWriter log)
-        {
-            if (_heap == null)
-                _heap = new NativeHeap(this, NativeModules);
-            
-            return _heap;
-        }
-
         public override int PointerSize
         {
             get { return IntPtr.Size; }

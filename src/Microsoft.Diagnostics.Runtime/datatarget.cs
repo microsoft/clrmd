@@ -73,13 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// This is a reduced CLR used in other projects.
         /// </summary>
         CoreCLR = 1,
-
-        /// <summary>
-        /// Same as .Net Native.  This is obsolete and will be removed. Use ClrFlavor.Native instead.
-        /// </summary>
-        [Obsolete("Use Native instead.")]
-        Redhawk = 2,
-
+        
         /// <summary>
         /// Used for .Net Native.
         /// </summary>
@@ -117,55 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// if one could not be found.
         /// </summary>
         public string LocalMatchingDac { get { return _dacLocation; } }
-
-        /// <summary>
-        /// The location of the Dac on the local machine, if a matching Dac could be found.
-        /// If this returns null it means that no matching Dac could be found, and you will
-        /// need to make a symbol server request using DacInfo.
-        /// </summary>
-        [Obsolete]
-        public string TryGetDacLocation()
-        {
-            return _dacLocation;
-        }
-
-        /// <summary>
-        /// Attemps to download the matching dac for this runtime from the symbol server.  Note that this command
-        /// does not attempt to inspect or parse _NT_SYMBOL_PATH, so if you want to use that as a "default", you
-        /// need to add that path to the sympath parameter manually.  This function will return a local dac location
-        /// (and bypass the symbol server) if a matching dac exists locally on your computer.
-        /// </summary>
-        /// <param name="notification">A notification callback (null ok).</param>
-        /// <returns>The local path (in the cache) of the dac if found, null otherwise.</returns>
-        [Obsolete]
-        public string TryDownloadDac(ISymbolNotification notification)
-        {
-            if (_dacLocation != null)
-                return _dacLocation;
-
-            SymbolLocator locator = _dataTarget.SymbolLocator;
-            return locator.FindBinary(DacInfo, false);
-        }
-
-        /// <summary>
-        /// Attemps to download the matching dac for this runtime from the symbol server.  Note that this command
-        /// does not attempt to inspect or parse _NT_SYMBOL_PATH, so if you want to use that as a "default", you
-        /// need to add that path to the sympath parameter manually.  This function will return a local dac location
-        /// (and bypass the symbol server) if a matching dac exists locally on your computer.
-        /// </summary>
-        /// <returns>The local path (in the cache) of the dac if found, null otherwise.</returns>
-        [Obsolete("Use DataTarget.SymbolLocator.DownloadBinary(DacInfo) instead, or ignore this and use ClrInfo.CreateRuntime() with no parameters.")]
-        public string TryDownloadDac()
-        {
-            if (_dacLocation != null)
-                return _dacLocation;
-
-            SymbolLocator locator = _dataTarget.SymbolLocator;
-            ModuleInfo dac = DacInfo;
-
-            return locator.FindBinary(dac.FileName, dac.TimeStamp, dac.FileSize, false);
-        }
-
+        
         /// <summary>
         /// Creates a runtime from the given Dac file on disk.
         /// </summary>
@@ -641,85 +587,6 @@ namespace Microsoft.Diagnostics.Runtime
     }
 
     /// <summary>
-    /// The result of an asynchronous memory read.  This is returned by an IDataReader
-    /// when an async memory read is requested.
-    /// </summary>
-    [Obsolete]
-    public class AsyncMemoryReadResult
-    {
-        /// <summary>
-        /// A wait handle which is signaled when the read operation is complete.
-        /// Complete must be assigned a valid EventWaitHandle before this object is
-        /// returned by ReadMemoryAsync, and Complete must be signaled after the
-        /// request is completed.
-        /// </summary>
-        public virtual EventWaitHandle Complete { get; set; }
-
-        /// <summary>
-        /// The address to read from.  Address must be assigned to before this objct is
-        /// returned by ReadMemoryAsync.
-        /// </summary>
-        public virtual ulong Address { get; set; }
-
-        /// <summary>
-        /// The number of bytes requested in this async read.  BytesRequested must be
-        /// assigned to before this objct is returned by ReadMemoryAsync.
-        /// </summary>
-        public virtual int BytesRequested { get; set; }
-
-        /// <summary>
-        /// The actual number of bytes read out of the data target.  This must be
-        /// assigned to before Complete is signaled.
-        /// </summary>
-        public virtual int BytesRead { get { return _read; } set { _read = value; } }
-
-        /// <summary>
-        /// The result of the memory read.  This must be assigned to before Complete is
-        /// signaled.
-        /// </summary>
-        public virtual byte[] Result { get { return _result; } set { _result = value; } }
-
-        /// <summary>
-        /// Empty constructor, no properties/fields assigned.
-        /// </summary>
-        public AsyncMemoryReadResult()
-        {
-        }
-
-        /// <summary>
-        /// Constructor.  Assigns Address, BytesRequested, and Complete.  (Uses a ManualResetEvent
-        /// for Complete).
-        /// </summary>
-        /// <param name="addr">The address of the memory read.</param>
-        /// <param name="requested">The number of bytes requested.</param>
-        public AsyncMemoryReadResult(ulong addr, int requested)
-        {
-            Address = addr;
-            BytesRequested = requested;
-            Complete = new ManualResetEvent(false);
-        }
-
-        /// <summary>
-        /// To string.
-        /// </summary>
-        /// <returns>The memory range requested.</returns>
-        public override string ToString()
-        {
-            return string.Format("[{0:x}, {1:x}]", Address, Address + (uint)BytesRequested);
-        }
-
-        /// <summary>
-        /// The amount read, backing variable for BytesRead.
-        /// </summary>
-        protected volatile int _read;
-
-        /// <summary>
-        /// The actual data buffer, backing variable for Result.
-        /// </summary>
-        protected volatile byte[] _result;
-    }
-
-    /// <summary>
     /// An interface for reading data out of the target process.
     /// </summary>
     public interface IDataReader
@@ -778,22 +645,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
         /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
         bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead);
-
-        /// <summary>
-        /// Returns true if this data reader can read data out of the target process asynchronously.
-        /// </summary>
-        [Obsolete]
-        bool CanReadAsync { get; }
-
-        /// <summary>
-        /// Reads memory from the target process asynchronously.  Only called if CanReadAsync returns true.
-        /// </summary>
-        /// <param name="address">The address of memory to read.</param>
-        /// <param name="bytesRequested">The number of bytes to read.</param>
-        /// <returns>A data structure containing an event to wait for as well as a new byte array to read from.</returns>
-        [Obsolete]
-        AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested);
-
+        
         /// <summary>
         /// Returns true if the data target is a minidump (or otherwise may not contain full heap data).
         /// </summary>
@@ -1021,46 +873,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsMinidump { get; }
 
         /// <summary>
-        /// Sets the symbol path for ClrMD.
-        /// </summary>
-        /// <param name="path">This should be in the format that Windbg/dbgeng expects with the '.sympath' command.</param>
-        [Obsolete("Use SymbolLocator.SymbolPath instead.")]
-        public void SetSymbolPath(string path)
-        {
-            SymbolLocator.SymbolPath = path;
-        }
-
-        /// <summary>
-        /// Clears the symbol path.
-        /// </summary>
-        [Obsolete("Use SymbolLocator.SymbolPath instead.")]
-        public void ClearSymbolPath()
-        {
-            SymbolLocator.SymbolPath = "";
-        }
-
-        /// <summary>
-        /// Appends 'path' to the symbol path.
-        /// </summary>
-        /// <param name="path">The location to add.</param>
-        [Obsolete("Use SymbolLocator.SymbolPath instead.")]
-        public void AppendSymbolPath(string path)
-        {
-            string temp = SymbolLocator.SymbolPath + ";" + path;
-            SymbolLocator.SymbolPath = temp.Replace(";;", ";");
-        }
-
-        /// <summary>
-        /// Returns the current symbol path.
-        /// </summary>
-        /// <returns>The symbol path.</returns>
-        [Obsolete("Use SymbolLocator.SymbolPath instead.")]
-        public string GetSymbolPath()
-        {
-            return SymbolLocator.SymbolPath;
-        }
-
-        /// <summary>
         /// Returns the architecture of the target process or crash dump.
         /// </summary>
         public abstract Architecture Architecture { get; }
@@ -1088,18 +900,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead);
 
         /// <summary>
-        /// Creates a runtime from the given Dac file on disk.
-        /// </summary>
-        [Obsolete("Use ClrInfo.CreateRuntime() instead.")]
-        public abstract ClrRuntime CreateRuntime(string dacFileName);
-
-        /// <summary>
-        /// Creates a runtime from a given IXClrDataProcess interface.  Used for debugger plugins.
-        /// </summary>
-        [Obsolete("Use ClrInfo.CreateRuntime(object) instead.")]
-        public abstract ClrRuntime CreateRuntime(object clrDataProcess);
-
-        /// <summary>
         /// Returns the IDebugClient interface associated with this datatarget.  (Will return null if the
         /// user attached passively.)
         /// </summary>
@@ -1114,53 +914,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// IDisposable implementation.
         /// </summary>
         public abstract void Dispose();
-    }
-
-
-    /// <summary>
-    /// Interface for receiving callback notifications when downloading symbol files.
-    /// </summary>
-    [Obsolete]
-    public interface ISymbolNotification
-    {
-        /// <summary>
-        /// Symbol lookup was initiated, but found in a cache without needing to fetch it
-        /// from the symbol path.
-        /// </summary>
-        /// <param name="localPath">The location of the file on disk.</param>
-        void FoundSymbolInCache(string localPath);
-
-        /// <summary>
-        /// Called when attempting to resolve a location (either local or remote), but we did
-        /// not find the file.
-        /// </summary>
-        /// <param name="url">The path/url attempted.</param>
-        void ProbeFailed(string url);
-
-        /// <summary>
-        /// We found the symbol on the symbol path.
-        /// </summary>
-        /// <param name="url">Where we found the symbol from.</param>
-        void FoundSymbolOnPath(string url);
-
-        /// <summary>
-        /// Called periodically when downloading the symbol from the symbol server.
-        /// </summary>
-        /// <param name="bytesDownloaded">The total bytes downloaded thus far.</param>
-        void DownloadProgress(int bytesDownloaded);
-
-        /// <summary>
-        /// Called when the download is complete.
-        /// </summary>
-        /// <param name="localPath">Where the file was placed.</param>
-        /// <param name="requiresDecompression">True if the file requires us to decompress it (done automatically).</param>
-        void DownloadComplete(string localPath, bool requiresDecompression);
-
-        /// <summary>
-        /// Called when the file is finished decompressing.
-        /// </summary>
-        /// <param name="localPath">The location of the resulting decompressed file.</param>
-        void DecompressionComplete(string localPath);
     }
 
     internal class DataTargetImpl : DataTarget
@@ -1262,76 +1015,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
-        }
-
-        [Obsolete]
-        public override ClrRuntime CreateRuntime(string dacFilename)
-        {
-            if (IntPtr.Size != (int)_dataReader.GetPointerSize())
-                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
-
-            if (string.IsNullOrEmpty(dacFilename))
-                throw new ArgumentNullException("dacFilename");
-
-            if (!File.Exists(dacFilename))
-                throw new FileNotFoundException(dacFilename);
-
-            DacLibrary lib = new DacLibrary(this, dacFilename);
-
-            // TODO: There has to be a better way to determine this is coreclr.
-            string dacFileNoExt = Path.GetFileNameWithoutExtension(dacFilename).ToLower();
-            bool isCoreClr = dacFileNoExt.Contains("mscordaccore");
-            bool isNative = dacFileNoExt.Contains("mrt100dac");
-
-            int major, minor, revision, patch;
-            bool res = NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
-
-            DesktopVersion ver;
-            if (isCoreClr)
-            {
-                return new V45Runtime(null, this, lib);
-            }
-            else if (isNative)
-            {
-                return new Native.NativeRuntime(null, this, lib);
-            }
-            else if (major == 2)
-            {
-                ver = DesktopVersion.v2;
-            }
-            else if (major == 4 && minor == 0 && patch < 10000)
-            {
-                ver = DesktopVersion.v4;
-            }
-            else
-            {
-                // Assume future versions will all work on the newest runtime version.
-                return new V45Runtime(null, this, lib);
-            }
-
-            return new LegacyRuntime(null, this, lib, ver, patch);
-        }
-
-        [Obsolete]
-        public override ClrRuntime CreateRuntime(object clrDataProcess)
-        {
-            DacLibrary lib = new DacLibrary(this, (IXCLRDataProcess)clrDataProcess);
-
-            // Figure out what version we are on.
-            if (clrDataProcess is ISOSDac)
-            {
-                return new V45Runtime(null, this, lib);
-            }
-            else
-            {
-                byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
-
-                int val = lib.DacInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
-                if ((uint)val == (uint)0x80070057)
-                    return new LegacyRuntime(null, this, lib, DesktopVersion.v4, 10000);
-                else
-                    return new LegacyRuntime(null, this, lib, DesktopVersion.v2, 3054);
-            }
         }
 
         public override IDebugClient DebuggerInterface
@@ -2250,19 +1933,6 @@ namespace Microsoft.Diagnostics.Runtime
                 s_needRelease = true;
         }
 
-        [Obsolete]
-        public bool CanReadAsync
-        {
-            get { return false; }
-        }
-
-        [Obsolete]
-        public AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested)
-        {
-            throw new NotImplementedException();
-        }
-
-
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
             uint id = 0;
@@ -2590,21 +2260,7 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
         #endregion
-
-        [Obsolete]
-        public bool CanReadAsync
-        {
-            //todo
-            get { return false; }
-        }
-
-        [Obsolete]
-        public AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested)
-        {
-            throw new NotImplementedException();
-        }
-
-
+        
         private enum ThreadAccess : int
         {
             THREAD_ALL_ACCESS = (0x1F03FF),

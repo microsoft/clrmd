@@ -48,13 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             return new ulong[] { _eeType };
         }
-
-        [Obsolete]
-        public override int Index
-        {
-            get { return _index; }
-        }
-
+        
         public override ClrModule Module
         {
             get

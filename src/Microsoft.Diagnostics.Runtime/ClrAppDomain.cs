@@ -47,13 +47,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string ApplicationBase { get; }
 
         /// <summary>
-        /// Returns the base directory for this AppDomain.  This may return null if the targeted runtime does
-        /// not support enumerating this information.
-        /// </summary>
-        [Obsolete("Use ApplicationBase instead.")]
-        public virtual string AppBase { get { return ApplicationBase; } }
-
-        /// <summary>
         /// To string override.
         /// </summary>
         /// <returns>The name of this AppDomain.</returns>

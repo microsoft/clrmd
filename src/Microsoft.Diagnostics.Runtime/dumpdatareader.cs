@@ -253,17 +253,6 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool CanReadAsync
-        {
-            get { return false; }
-        }
-
-        [Obsolete]
-        public AsyncMemoryReadResult ReadMemoryAsync(ulong address, int bytesRequested)
-        {
-            return null;
-        }
-
         public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
             throw new NotImplementedException();

@@ -62,15 +62,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrMethod Method { get; }
 
         /// <summary>
-        /// Returns the source file and line number of the location represented by this stack frame.
-        /// This will return null if the location cannot be determined (or the module containing it does
-        /// not have PDBs loaded).
-        /// </summary>
-        /// <returns>The file and line number for this stack frame, null if not found.</returns>
-        [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
-        public virtual SourceLocation GetFileAndLineNumber() { return null; }
-
-        /// <summary>
         /// Returns the module name to use for building the stack trace.
         /// </summary>
         public virtual string ModuleName
@@ -97,54 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public static string UnknownModuleName = "UNKNOWN";
     }
-
-    /// <summary>
-    /// A SourceLocation represents a point in the source code.  That is the file and the line number.  
-    /// </summary>
-    [Obsolete("Use Microsoft.Diagnostics.Utilities.Pdb classes instead.")]
-    public class SourceLocation
-    {
-        /// <summary>
-        /// The source file for the code
-        /// </summary>
-        public string FilePath { get { return null; } }
-
-        /// <summary>
-        /// The line number for the code.
-        /// </summary>
-        public int LineNumber { get { return 0; } }
-
-        /// <summary>
-        /// The end line number of the location (if multiline this will be different from LineNumber).
-        /// </summary>
-        public int LineNumberEnd { get { return 0; } }
-
-        /// <summary>
-        /// The start column of the source line.
-        /// </summary>
-        public int ColStart { get { return 0; } }
-
-        /// <summary>
-        /// The end column of the source line.
-        /// </summary>
-        public int ColEnd { get { return 0; } }
-
-        /// <summary>
-        /// Generates a human readable form of the source location.
-        /// </summary>
-        /// <returns>File:Line-Line</returns>
-        public override string ToString()
-        {
-            int line = LineNumber;
-            int lineEnd = LineNumberEnd;
-
-            if (line == lineEnd)
-                return string.Format("{0}:{1}", FilePath, line);
-            else
-                return string.Format("{0}:{1}-{2}", FilePath, line, lineEnd);
-        }
-    }
-
+    
     /// <summary>
     /// Represents a managed thread in the target process.  Note this does not wrap purely native threads
     /// in the target process (that is, threads which have never run managed code before).
