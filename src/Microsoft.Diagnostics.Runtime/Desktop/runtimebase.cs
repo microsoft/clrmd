@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
 
@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         #region Variables
         protected CommonMethodTables _commonMTs;
+        private Dictionary<uint, ICorDebug.ICorDebugThread> _corDebugThreads;
         private Dictionary<Address, DesktopModule> _modules = new Dictionary<Address, DesktopModule>();
         private Dictionary<ulong, uint> _moduleSizes = null;
         private ClrModule[] _moduleList = null;
@@ -144,6 +145,40 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             return new DesktopCCWData((DesktopGCHeap)GetHeap(), addr, ccw);
+        }
+
+        internal ICorDebugThread GetCorDebugThread(uint osid)
+        {
+            if (_corDebugThreads == null)
+            {
+                _corDebugThreads = new Dictionary<uint, ICorDebugThread>();
+                
+                ICorDebugProcess process = CorDebugProcess;
+                if (process == null)
+                    return null;
+
+                ICorDebugThreadEnum threadEnum;
+                process.EnumerateThreads(out threadEnum);
+
+                uint fetched;
+                ICorDebugThread[] threads = new ICorDebugThread[1];
+                while (threadEnum.Next(1, threads, out fetched) == 0 && fetched == 1)
+                {
+                    try
+                    {
+                        uint id;
+                        threads[0].GetID(out id);
+                        _corDebugThreads[id] = threads[0];
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            ICorDebugThread result;
+            _corDebugThreads.TryGetValue(osid, out result);
+            return result;
         }
 
         public override IList<ClrAppDomain> AppDomains

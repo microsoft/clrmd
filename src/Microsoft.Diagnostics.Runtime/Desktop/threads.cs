@@ -3,7 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text;
 using Address = System.UInt64;
 
@@ -155,6 +155,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        internal ICorDebugThread CorDebugThread
+        {
+            get
+            {
+                return DesktopRuntime.GetCorDebugThread(OSThreadId);
+            }
+        }
+
         public override ClrRuntime Runtime
         {
             get
@@ -288,6 +296,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         
         private DesktopRuntimeBase _runtime;
+        private ICorDebugThread _corDebugThread;
+        private bool _corDebugThreadLoaded;
     }
 
     internal class LocalVarRoot : ClrRoot
