@@ -819,39 +819,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 yield break;
 
             IXCLRDataStackWalk stackWalk = (IXCLRDataStackWalk)tmp;
-
             byte[] ulongBuffer = new byte[8];
-            byte[] context = new byte[PointerSize == 4 ? 716 : 1232];
-
-            int ip_offset = 184;
-            int sp_offset = 196;
-
-            if (PointerSize == 8)
-            {
-                ip_offset = 248;
-                sp_offset = 152;
-            }
-
+            byte[] context = ContextHelper.Context;
             do
             {
                 uint size;
-                res = stackWalk.GetContext(0x1003f, (uint)context.Length, out size, context);
+                res = stackWalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, context);
                 if (res < 0 || res == 1)
                     break;
 
-                ulong ip, sp;
-
-                if (PointerSize == 4)
-                {
-                    ip = BitConverter.ToUInt32(context, ip_offset);
-                    sp = BitConverter.ToUInt32(context, sp_offset);
-                }
-                else
-                {
-                    ip = BitConverter.ToUInt64(context, ip_offset);
-                    sp = BitConverter.ToUInt64(context, sp_offset);
-                }
-
+                ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
 
                 res = stackWalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
 

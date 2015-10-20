@@ -51,6 +51,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public ICorDebugILFrame CordbFrame { get; internal set; }
+
         public override string ToString()
         {
             if (_type == ClrStackFrameType.ManagedMethod)
@@ -267,60 +269,44 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     _stackTrace = frames.ToArray();
                 }
-
-                InitLocalData();
+                
                 return _stackTrace;
             }
         }
 
-        internal void InitLocalData()
+        internal unsafe void InitLocalData()
         {
-            ICorDebugThread thread = CorDebugThread;
-            
-            ICorDebugChainEnum chainEnum;
-            thread.EnumerateChains(out chainEnum);
+            if (_corDebugInit)
+                return;
 
-            uint fetched;
-            ICorDebugChain[] chains = new ICorDebugChain[1];
-            while (chainEnum.Next((uint)chains.Length, chains, out fetched) == 0 && fetched == 1)
+            _corDebugInit = true;
+
+            ICorDebugThread3 thread = (ICorDebugThread3)CorDebugThread;
+            ICorDebugStackWalk stackwalk;
+            thread.CreateStackWalk(out stackwalk);
+
+            do
             {
-                int managed;
-                chains[0].IsManaged(out managed);
-                if (managed == 0)
+                ICorDebugFrame frame;
+                stackwalk.GetFrame(out frame);
+
+                ICorDebugILFrame ilFrame = frame as ICorDebugILFrame;
+                if (ilFrame == null)
                     continue;
 
-                ICorDebugFrameEnum frameEnum;
-                chains[0].EnumerateFrames(out frameEnum);
+                byte[] context = ContextHelper.Context;
 
-                ICorDebugFrame[] frames = new ICorDebugFrame[1];
-                while (frameEnum.Next((uint)frames.Length, frames, out fetched) == 0 && fetched == 1)
-                {
-                    ICorDebugFrame frame = frames[0] as ICorDebugFrame;
+                uint size;
+                fixed (byte *ptr = context)
+                    stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, new IntPtr(ptr));
+                
+                ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
 
-                    ulong start, stop;
-                    frame.GetStackRange(out start, out stop);
-
-                    if (start >= stop)
-                    {
-                        ulong tmp = start;
-                        start = stop;
-                        stop = tmp;
-                    }
-
-                    ClrStackFrame[] result = _stackTrace.Where(frm => start <= frm.StackPointer && frm.StackPointer <= stop).ToArray();
-
-
-                    ICorDebugILFrame ilFrame = frames[0] as ICorDebugILFrame;
-
-                    CorDebugMappingResult mappingResult;
-                    uint ilOffset;
-                    ilFrame.GetIP(out ilOffset, out mappingResult);
-
-                    //ulong sp;
-                    
-                }
-            }
-
+                DesktopStackFrame result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
+                if (result != null)
+                    result.CordbFrame = ilFrame;
+            } while (stackwalk.Next() == 0);
         }
 
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace()
@@ -348,6 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         
         private DesktopRuntimeBase _runtime;
+        private bool _corDebugInit;
     }
 
     internal class LocalVarRoot : ClrRoot
