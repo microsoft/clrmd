@@ -480,6 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (module == 0 || _sos.GetModule(module, out obj) < 0)
                 return null;
 
+            RegisterComObjectForRelease(obj);
             return obj as IMetadata;
         }
 

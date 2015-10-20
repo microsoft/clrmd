@@ -756,63 +756,77 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (res < 0)
                 yield break;
 
-            IXCLRDataTask task = (IXCLRDataTask)tmp;
-            res = task.CreateStackWalk(0xf, out tmp);
-            if (res < 0)
-                yield break;
-
-            IXCLRDataStackWalk stackWalk = (IXCLRDataStackWalk)tmp;
-
-            byte[] ulongBuffer = new byte[8];
-            byte[] context = new byte[PointerSize == 4 ? 716 : 1232];
-            byte[] name = new byte[256];
-
-            int ip_offset = 184;
-            int sp_offset = 196;
-
-            if (PointerSize == 8)
+            IXCLRDataTask task = null;
+            IXCLRDataStackWalk stackwalk = null;
+            try
             {
-                ip_offset = 248;
-                sp_offset = 152;
-            }
 
-            do
-            {
-                uint size;
-                res = stackWalk.GetContext(0x1003f, (uint)context.Length, out size, context);
-                if (res < 0 || res == 1)
-                    break;
+                task = (IXCLRDataTask)tmp;
+                res = task.CreateStackWalk(0xf, out tmp);
+                if (res < 0)
+                    yield break;
 
-                ulong ip, sp;
+                stackwalk = (IXCLRDataStackWalk)tmp;
 
-                if (PointerSize == 4)
+                byte[] ulongBuffer = new byte[8];
+                byte[] context = new byte[PointerSize == 4 ? 716 : 1232];
+                byte[] name = new byte[256];
+
+                int ip_offset = 184;
+                int sp_offset = 196;
+
+                if (PointerSize == 8)
                 {
-                    ip = BitConverter.ToUInt32(context, ip_offset);
-                    sp = BitConverter.ToUInt32(context, sp_offset);
-                }
-                else
-                {
-                    ip = BitConverter.ToUInt64(context, ip_offset);
-                    sp = BitConverter.ToUInt64(context, sp_offset);
+                    ip_offset = 248;
+                    sp_offset = 152;
                 }
 
-
-                res = stackWalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
-
-                ulong frameVtbl = 0;
-                if (res >= 0)
+                do
                 {
-                    frameVtbl = BitConverter.ToUInt64(ulongBuffer, 0);
-                    if (frameVtbl != 0)
+                    uint size;
+                    res = stackwalk.GetContext(0x1003f, (uint)context.Length, out size, context);
+                    if (res < 0 || res == 1)
+                        break;
+
+                    ulong ip, sp;
+
+                    if (PointerSize == 4)
                     {
-                        sp = frameVtbl;
-                        ReadPointer(sp, out frameVtbl);
+                        ip = BitConverter.ToUInt32(context, ip_offset);
+                        sp = BitConverter.ToUInt32(context, sp_offset);
                     }
-                }
+                    else
+                    {
+                        ip = BitConverter.ToUInt64(context, ip_offset);
+                        sp = BitConverter.ToUInt64(context, sp_offset);
+                    }
 
-                DesktopStackFrame frame = GetStackFrame(res, ip, sp, frameVtbl);
-                yield return frame;
-            } while (stackWalk.Next() == 0);
+
+                    res = stackwalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
+
+                    ulong frameVtbl = 0;
+                    if (res >= 0)
+                    {
+                        frameVtbl = BitConverter.ToUInt64(ulongBuffer, 0);
+                        if (frameVtbl != 0)
+                        {
+                            sp = frameVtbl;
+                            ReadPointer(sp, out frameVtbl);
+                        }
+                    }
+
+                    DesktopStackFrame frame = GetStackFrame(res, ip, sp, frameVtbl);
+                    yield return frame;
+                } while (stackwalk.Next() == 0);
+            }
+            finally
+            {
+                if (task != null)
+                    Marshal.FinalReleaseComObject(task);
+
+                if (stackwalk != null)
+                    Marshal.FinalReleaseComObject(stackwalk);
+            }
         }
 
 

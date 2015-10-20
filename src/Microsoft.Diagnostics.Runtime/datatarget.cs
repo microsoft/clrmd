@@ -1067,8 +1067,9 @@ namespace Microsoft.Diagnostics.Runtime
         private IDacDataTarget _dacDataTarget;
         private IXCLRDataProcess _dac;
         private ISOSDac _sos;
+        HashSet<object> _release = new HashSet<object>();
         #endregion
-
+        
         public IXCLRDataProcess DacInterface { get { return _dac; } }
 
         public ISOSDac SOSInterface
@@ -1113,8 +1114,18 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);
         }
 
+        public void AddToReleaseList(object obj)
+        {
+            Debug.Assert(Marshal.IsComObject(obj));
+            _release.Add(obj);
+        }
+
         ~DacLibrary()
         {
+            Marshal.FinalReleaseComObject(_dac);
+            foreach (object obj in _release)
+                Marshal.FinalReleaseComObject(obj);
+
             if (_library != IntPtr.Zero)
                 NativeMethods.FreeLibrary(_library);
         }

@@ -823,6 +823,18 @@ namespace Microsoft.Diagnostics.Runtime
             _dataReader = dataTarget.DataReader;
         }
 
+        public void RegisterComObjectForRelease(object o)
+        {
+            if (o != null)
+                _library.AddToReleaseList(o);
+        }
+
+        public void RegisterIModuleForRelease(IModuleData module)
+        {
+            if (module != null)
+                RegisterComObjectForRelease(module.LegacyMetaDataImport);
+        }
+
         public override DataTarget DataTarget
         {
             get { return _dataTarget; }

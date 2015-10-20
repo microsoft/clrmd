@@ -269,10 +269,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (addr == 0)
                 return null;
 
+            IModuleData result = null;
             if (CLRVersion == DesktopVersion.v2)
-                return Request<IModuleData, V2ModuleData>(DacRequests.MODULE_DATA, addr);
+                result = Request<IModuleData, V2ModuleData>(DacRequests.MODULE_DATA, addr);
+            else
+                result = Request<IModuleData, V4ModuleData>(DacRequests.MODULE_DATA, addr);
 
-            return Request<IModuleData, V4ModuleData>(DacRequests.MODULE_DATA, addr);
+            // Only needed in legacy runtime since v4.5 and on do not return this interface.
+            RegisterIModuleForRelease(result);
+            return result;
         }
 
         internal override ulong GetModuleForMT(ulong mt)
@@ -378,6 +383,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override IMetadata GetMetadataImport(ulong module)
         {
             IModuleData data = GetModuleData(module);
+            RegisterIModuleForRelease(data);
 
             if (data != null && data.LegacyMetaDataImport != null)
                 return data.LegacyMetaDataImport as IMetadata;
