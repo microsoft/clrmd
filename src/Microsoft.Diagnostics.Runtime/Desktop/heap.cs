@@ -820,18 +820,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        [Obsolete]
-        public override ClrType GetTypeByIndex(int index)
-        {
-            return _types[index];
-        }
-
-        [Obsolete]
-        public override int TypeIndexLimit
-        {
-            get { return _types.Count; }
-        }
-
         internal ClrType GetBasicType(ClrElementType elType)
         {
             // Early out without having to construct the array.

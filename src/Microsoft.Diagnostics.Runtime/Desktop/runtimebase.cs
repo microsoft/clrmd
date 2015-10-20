@@ -231,16 +231,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-
-        /// <summary>
-        /// Gets the GC heap of the process.
-        /// </summary>
-        [Obsolete]
-        public override ClrHeap GetHeap(TextWriter diagnosticLog)
-        {
-            return GetHeap();
-        }
-
         public override ClrHeap GetHeap()
         {
             if (_heap == null)

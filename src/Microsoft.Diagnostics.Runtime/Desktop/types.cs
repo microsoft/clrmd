@@ -206,13 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             return 0;
         }
-
-        [Obsolete]
-        public override int Index
-        {
-            get { return -1; }
-        }
-
+        
         public override string Name
         {
             get
@@ -482,13 +476,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             return 0;
         }
-
-        [Obsolete]
-        public override int Index
-        {
-            get { return -1; }
-        }
-
+        
         public override string Name
         {
             get
@@ -808,12 +796,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 _elementType = value;
             }
-        }
-
-        [Obsolete]
-        public override int Index
-        {
-            get { return _index; }
         }
 
         public override string Name { get { return _name; } }
@@ -1436,71 +1418,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             _fields.Sort((a, b) => a.Offset.CompareTo(b.Offset));
         }
-
-        [Obsolete()]
-        public override bool TryGetFieldValue(ulong obj, ICollection<string> fields, out object value)
-        {
-            // todo:  There's probably a better way of implementing GetFieldValue/TryGetFieldValue
-            //        than simply wrapping this in a try/catch.
-            try
-            {
-                value = GetFieldValue(obj, fields);
-                return true;
-            }
-            catch
-            {
-                value = null;
-                return false;
-            }
-        }
-
-        [Obsolete()]
-        public override object GetFieldValue(ulong obj, ICollection<string> fields)
-        {
-            ClrType type = this;
-            ClrInstanceField field = null;
-
-            object value = obj;
-            bool inner = false;
-
-            int i = 0;
-            int lastElement = fields.Count - 1;
-            foreach (string name in fields)
-            {
-                if (type == null)
-                    throw new Exception(string.Format("Could not get type information for field {0}.", name));
-
-                field = type.GetFieldByName(name);
-                if (field == null)
-                    throw new Exception(string.Format("Type {0} does not contain field {1}.", type.Name, name));
-
-                if (field.HasSimpleValue)
-                {
-                    value = field.GetValue((ulong)value, inner);
-                    if (i != lastElement)
-                    {
-                        if (DesktopRuntimeBase.IsObjectReference(field.ElementType))
-                            obj = (ulong)value;
-                        else
-                            throw new Exception(string.Format("Field {0}.{1} is not an object reference.", type.Name, name));
-                    }
-
-                    inner = false;
-                }
-                else
-                {
-                    obj = field.GetAddress(obj, inner);
-                    value = obj;
-                    inner = true;
-                }
-
-                type = field.Type;
-                i++;
-            }
-
-            return value;
-        }
-
+        
         internal override ClrMethod GetMethod(uint token)
         {
             return Methods.Where(m => m.MetadataToken == token).FirstOrDefault();

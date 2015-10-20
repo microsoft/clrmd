@@ -22,94 +22,94 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             CacheEntryHeap
         }
 
-        private List<MemoryRegion> _mRegions = new List<MemoryRegion>();
-        private DesktopRuntimeBase.LoaderHeapTraverse _mDelegate;
-        private ClrMemoryRegionType _mType;
-        private ulong _mAppDomain;
-        private DesktopRuntimeBase _mRuntime;
+        private List<MemoryRegion> _regions = new List<MemoryRegion>();
+        private DesktopRuntimeBase.LoaderHeapTraverse _delegate;
+        private ClrMemoryRegionType _type;
+        private ulong _appDomain;
+        private DesktopRuntimeBase _runtime;
         #endregion
 
         public AppDomainHeapWalker(DesktopRuntimeBase runtime)
         {
-            _mRuntime = runtime;
-            _mDelegate = new DesktopRuntimeBase.LoaderHeapTraverse(VisitOneHeap);
+            _runtime = runtime;
+            _delegate = new DesktopRuntimeBase.LoaderHeapTraverse(VisitOneHeap);
         }
 
         public IEnumerable<MemoryRegion> EnumerateHeaps(IAppDomainData appDomain)
         {
             Debug.Assert(appDomain != null);
-            _mAppDomain = appDomain.Address;
-            _mRegions.Clear();
+            _appDomain = appDomain.Address;
+            _regions.Clear();
 
             // Standard heaps.
-            _mType = ClrMemoryRegionType.LowFrequencyLoaderHeap;
-            _mRuntime.TraverseHeap(appDomain.LowFrequencyHeap, _mDelegate);
+            _type = ClrMemoryRegionType.LowFrequencyLoaderHeap;
+            _runtime.TraverseHeap(appDomain.LowFrequencyHeap, _delegate);
 
-            _mType = ClrMemoryRegionType.HighFrequencyLoaderHeap;
-            _mRuntime.TraverseHeap(appDomain.HighFrequencyHeap, _mDelegate);
+            _type = ClrMemoryRegionType.HighFrequencyLoaderHeap;
+            _runtime.TraverseHeap(appDomain.HighFrequencyHeap, _delegate);
 
-            _mType = ClrMemoryRegionType.StubHeap;
-            _mRuntime.TraverseHeap(appDomain.StubHeap, _mDelegate);
+            _type = ClrMemoryRegionType.StubHeap;
+            _runtime.TraverseHeap(appDomain.StubHeap, _delegate);
 
             // Stub heaps.
-            _mType = ClrMemoryRegionType.IndcellHeap;
-            _mRuntime.TraverseStubHeap(_mAppDomain, (int)InternalHeapTypes.IndcellHeap, _mDelegate);
+            _type = ClrMemoryRegionType.IndcellHeap;
+            _runtime.TraverseStubHeap(_appDomain, (int)InternalHeapTypes.IndcellHeap, _delegate);
 
-            _mType = ClrMemoryRegionType.LookupHeap;
-            _mRuntime.TraverseStubHeap(_mAppDomain, (int)InternalHeapTypes.LookupHeap, _mDelegate);
+            _type = ClrMemoryRegionType.LookupHeap;
+            _runtime.TraverseStubHeap(_appDomain, (int)InternalHeapTypes.LookupHeap, _delegate);
 
-            _mType = ClrMemoryRegionType.ResolveHeap;
-            _mRuntime.TraverseStubHeap(_mAppDomain, (int)InternalHeapTypes.ResolveHeap, _mDelegate);
+            _type = ClrMemoryRegionType.ResolveHeap;
+            _runtime.TraverseStubHeap(_appDomain, (int)InternalHeapTypes.ResolveHeap, _delegate);
 
-            _mType = ClrMemoryRegionType.DispatchHeap;
-            _mRuntime.TraverseStubHeap(_mAppDomain, (int)InternalHeapTypes.DispatchHeap, _mDelegate);
+            _type = ClrMemoryRegionType.DispatchHeap;
+            _runtime.TraverseStubHeap(_appDomain, (int)InternalHeapTypes.DispatchHeap, _delegate);
 
-            _mType = ClrMemoryRegionType.CacheEntryHeap;
-            _mRuntime.TraverseStubHeap(_mAppDomain, (int)InternalHeapTypes.CacheEntryHeap, _mDelegate);
+            _type = ClrMemoryRegionType.CacheEntryHeap;
+            _runtime.TraverseStubHeap(_appDomain, (int)InternalHeapTypes.CacheEntryHeap, _delegate);
 
-            return _mRegions;
+            return _regions;
         }
 
         public IEnumerable<MemoryRegion> EnumerateModuleHeaps(IAppDomainData appDomain, ulong addr)
         {
             Debug.Assert(appDomain != null);
-            _mAppDomain = appDomain.Address;
-            _mRegions.Clear();
+            _appDomain = appDomain.Address;
+            _regions.Clear();
 
             if (addr == 0)
-                return _mRegions;
+                return _regions;
 
-            IModuleData module = _mRuntime.GetModuleData(addr);
+            IModuleData module = _runtime.GetModuleData(addr);
             if (module != null)
             {
-                _mType = ClrMemoryRegionType.ModuleThunkHeap;
-                _mRuntime.TraverseHeap(module.ThunkHeap, _mDelegate);
+                _type = ClrMemoryRegionType.ModuleThunkHeap;
+                _runtime.TraverseHeap(module.ThunkHeap, _delegate);
 
-                _mType = ClrMemoryRegionType.ModuleLookupTableHeap;
-                _mRuntime.TraverseHeap(module.LookupTableHeap, _mDelegate);
+                _type = ClrMemoryRegionType.ModuleLookupTableHeap;
+                _runtime.TraverseHeap(module.LookupTableHeap, _delegate);
             }
 
-            return _mRegions;
+            return _regions;
         }
 
         public IEnumerable<MemoryRegion> EnumerateJitHeap(ulong heap)
         {
-            _mAppDomain = 0;
-            _mRegions.Clear();
+            _appDomain = 0;
+            _regions.Clear();
 
-            _mType = ClrMemoryRegionType.JitLoaderCodeHeap;
-            _mRuntime.TraverseHeap(heap, _mDelegate);
+            _type = ClrMemoryRegionType.JitLoaderCodeHeap;
+            _runtime.TraverseHeap(heap, _delegate);
 
-            return _mRegions;
+            return _regions;
         }
 
         #region Helper Functions
         private void VisitOneHeap(ulong address, IntPtr size, int isCurrent)
         {
-            if (_mAppDomain == 0)
-                _mRegions.Add(new MemoryRegion(_mRuntime, address, (ulong)size.ToInt64(), _mType));
+            if (_appDomain == 0)
+                _regions.Add(new MemoryRegion(_runtime, address, (ulong)size.ToInt64(), _type));
             else
-                _mRegions.Add(new MemoryRegion(_mRuntime, address, (ulong)size.ToInt64(), _mType, _mAppDomain));
+                _regions.Add(new MemoryRegion(_runtime, address, (ulong)size.ToInt64(), _type, _appDomain));
         }
         #endregion
 

@@ -81,12 +81,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the runtime associated with this heap.
         /// </summary>
-        [Obsolete("Use the Runtime property instead.")]
-        virtual public ClrRuntime GetRuntime() { return Runtime; }
-
-        /// <summary>
-        /// Returns the runtime associated with this heap.
-        /// </summary>
         abstract public ClrRuntime Runtime { get; }
 
         /// <summary>
@@ -100,14 +94,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Equivalent to EnumerateRoots(true).
         /// </summary>
         abstract public IEnumerable<ClrRoot> EnumerateRoots();
-
-        /// <summary>
-        /// Returns a type by its index.
-        /// </summary>
-        /// <param name="index">The type to get.</param>
-        /// <returns>The ClrType of that index.</returns>
-        [Obsolete]
-        virtual public ClrType GetTypeByIndex(int index) { return null; }
 
         /// <summary>
         /// Looks up a type by name.
@@ -137,12 +123,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the max index.
-        /// </summary>
-        [Obsolete]
-        abstract public int TypeIndexLimit { get; }
-
-        /// <summary>
         /// Enumerate the roots in the process.
         /// </summary>
         /// <param name="enumerateStatics">True if we should enumerate static variables.  Enumerating with statics 
@@ -163,12 +143,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
         virtual public IEnumerable<Address> EnumerateFinalizableObjectAddresses() { throw new NotImplementedException(); }
-
-        /// <summary>
-        /// Enumerates all finalizable objects on the heap.
-        /// </summary>
-        [Obsolete("Use EnumerateFinalizableObjectAddresses")]
-        virtual public IEnumerable<Address> EnumerateFinalizableObjects() { return EnumerateFinalizableObjectAddresses(); }
 
         /// <summary>
         /// Enumerates all managed locks in the process.  That is anything using System.Monitor either explictly
@@ -192,15 +166,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
         abstract public IEnumerable<Address> EnumerateObjectAddresses();
-
-        /// <summary>
-        /// Enumerates all objects on the heap.  This is equivalent to enumerating all segments then walking
-        /// each object with ClrSegment.FirstObject, ClrSegment.NextObject, but in a simple enumerator
-        /// for easier use in linq queries.
-        /// </summary>
-        /// <returns>An enumerator for all objects on the heap.</returns>
-        [Obsolete("Use EnumerateObjectAddresses")]
-        virtual public IEnumerable<Address> EnumerateObjects() { return EnumerateObjectAddresses(); }
 
         /// <summary>
         /// TotalHeapSize is defined as the sum of the length of all segments.  
@@ -487,18 +452,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The address of the end of memory reserved for the segment, but not committed.
         /// </summary>
-        [Obsolete("Use ReservedEnd instead", false)]
-        virtual public Address Reserved { get { return ReservedEnd; } }
-
-        /// <summary>
-        /// The address of the end of memory committed for the segment (this may be longer than Length).
-        /// </summary>
-        [Obsolete("Use CommittedEnd instead", false)]
-        virtual public Address Committed { get { return CommittedEnd; } }
-
-        /// <summary>
-        /// The address of the end of memory reserved for the segment, but not committed.
-        /// </summary>
         virtual public Address ReservedEnd { get { return 0; } }
 
         /// <summary>
@@ -527,22 +480,10 @@ namespace Microsoft.Diagnostics.Runtime
         virtual public bool IsLarge { get { return false; } }
 
         /// <summary>
-        /// Obsolete
-        /// </summary>
-        [Obsolete("Use IsLarge instead.")]
-        virtual public bool Large { get { return IsLarge; } }
-
-        /// <summary>
         /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1
         /// objects).
         /// </summary>
         virtual public bool IsEphemeral { get { return false; } }
-
-        /// <summary>
-        /// Obsolete.
-        /// </summary>
-        [Obsolete("Use IsEphemeral instead.")]
-        virtual public bool Ephemeral { get { return IsEphemeral; } }
 
         /// <summary>
         /// Ephemeral heap sements have geneation 0 and 1 in them.  Gen 1 is always above Gen 2 and
@@ -581,12 +522,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects on the segment.
         /// </summary>
         abstract public IEnumerable<ulong> EnumerateObjectAddresses();
-
-        /// <summary>
-        /// Enumerates all objects on the segment.
-        /// </summary>
-        [Obsolete("Use EnumerateObjectAddresses.")]
-        virtual public IEnumerable<ulong> EnumerateObjects() { return EnumerateObjectAddresses(); }
 
         /// <summary>
         /// Returns the generation of an object in this segment.
