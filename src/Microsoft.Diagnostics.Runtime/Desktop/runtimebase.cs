@@ -822,7 +822,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             byte[] ulongBuffer = new byte[8];
             byte[] context = new byte[PointerSize == 4 ? 716 : 1232];
-            byte[] name = new byte[256];
 
             int ip_offset = 184;
             int sp_offset = 196;
