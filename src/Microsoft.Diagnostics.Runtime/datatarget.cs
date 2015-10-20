@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -174,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!ignoreMismatch)
             {
                 int major, minor, revision, patch;
-                Desktop.NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
+                NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
             }
@@ -863,7 +864,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ISymbolProvider SymbolProvider { get; set; }
 
-        internal FileLoader FileLoader { get; } = new FileLoader();
+        FileLoader _fileLoader;
+        internal FileLoader FileLoader
+        {
+            get
+            {
+                if (_fileLoader == null)
+                    _fileLoader = new FileLoader(this);
+
+                return _fileLoader;
+            }
+        }
 
         /// <summary>
         /// Returns true if the target process is a minidump, or otherwise might have limited memory.  If IsMinidump
@@ -1064,10 +1075,12 @@ namespace Microsoft.Diagnostics.Runtime
     {
         #region Variables
         private IntPtr _library;
-        private IDacDataTarget _dacDataTarget;
+        private DacDataTarget _dacDataTarget;
         private IXCLRDataProcess _dac;
         private ISOSDac _sos;
         #endregion
+
+        public DacDataTarget DacDataTarget { get { return _dacDataTarget; } }
 
         public IXCLRDataProcess DacInterface { get { return _dac; } }
 
@@ -1120,7 +1133,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
     }
 
-    internal class DacDataTarget : IDacDataTarget, IMetadataLocator
+    internal class DacDataTarget : IDacDataTarget, IMetadataLocator, ICorDebug.ICorDebugDataTarget
     {
         private DataTargetImpl _dataTarget;
         private IDataReader _dataReader;
@@ -1134,6 +1147,41 @@ namespace Microsoft.Diagnostics.Runtime
             Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
         }
 
+
+        public CorDebugPlatform GetPlatform()
+        {
+            var arch = _dataReader.GetArchitecture();
+
+            switch (arch)
+            {
+                case Architecture.Amd64:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_AMD64;
+
+                case Architecture.X86:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_X86;
+
+                case Architecture.Arm:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM;
+
+                default:
+                    throw new Exception();
+            }
+        }
+
+        public uint ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
+        {
+            int read;
+            if (ReadVirtual(address, buffer, (int)bytesRequested, out read) >= 0)
+                return (uint)read;
+
+            throw new Exception();
+        }
+
+        void ICorDebugDataTarget.GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
+        {
+            if (!_dataReader.GetThreadContext(threadId, contextFlags, contextSize, context))
+                throw new Exception();
+        }
 
         public void GetMachineType(out IMAGE_FILE_MACHINE machineType)
         {
@@ -1221,7 +1269,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
+                PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
                 if (file != null)
                 {
                     PEBuffer peBuffer = file.AllocBuff();
@@ -1310,7 +1358,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return -1;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEFile file = _dataTarget.FileLoader.LoadBinary(filePath);
+            PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
             if (file == null)
                 return -1;
 

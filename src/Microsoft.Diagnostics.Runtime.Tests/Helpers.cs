@@ -1,15 +1,10 @@
 ﻿
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Microsoft.CSharp;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {

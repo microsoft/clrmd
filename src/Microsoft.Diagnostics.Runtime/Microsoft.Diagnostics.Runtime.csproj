@@ -111,11 +111,15 @@
     <Compile Include="ClrModule.cs" />
     <Compile Include="DumpDataReader.cs" />
     <Compile Include="ClrHeap.cs" />
+    <Compile Include="ICorDebug\ICorDebugHelpers.cs" />
+    <Compile Include="ICorDebug\ICorDebugWrappers.cs" />
+    <Compile Include="ICorDebug\IMetaHostWrappers.cs" />
+    <Compile Include="ICorDebug\IMetadataImport.cs" />
     <Compile Include="internal.cs" />
     <Compile Include="ISymbolResolver.cs" />
-    <Compile Include="metadata.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ClrException.cs" />
+    <Compile Include="Native\NativeThread.cs" />
     <Compile Include="Native\NativeDac.cs" />
     <Compile Include="Native\NativeHeap.cs" />
     <Compile Include="Native\NativeModule.cs" />

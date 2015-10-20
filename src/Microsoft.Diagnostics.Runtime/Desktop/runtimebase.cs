@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
 
@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         #region Variables
         protected CommonMethodTables _commonMTs;
+        private Dictionary<uint, ICorDebug.ICorDebugThread> _corDebugThreads;
         private Dictionary<Address, DesktopModule> _modules = new Dictionary<Address, DesktopModule>();
         private Dictionary<ulong, uint> _moduleSizes = null;
         private ClrModule[] _moduleList = null;
@@ -144,6 +145,40 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             return new DesktopCCWData((DesktopGCHeap)GetHeap(), addr, ccw);
+        }
+
+        internal ICorDebugThread GetCorDebugThread(uint osid)
+        {
+            if (_corDebugThreads == null)
+            {
+                _corDebugThreads = new Dictionary<uint, ICorDebugThread>();
+                
+                ICorDebugProcess process = CorDebugProcess;
+                if (process == null)
+                    return null;
+
+                ICorDebugThreadEnum threadEnum;
+                process.EnumerateThreads(out threadEnum);
+
+                uint fetched;
+                ICorDebugThread[] threads = new ICorDebugThread[1];
+                while (threadEnum.Next(1, threads, out fetched) == 0 && fetched == 1)
+                {
+                    try
+                    {
+                        uint id;
+                        threads[0].GetID(out id);
+                        _corDebugThreads[id] = threads[0];
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            ICorDebugThread result;
+            _corDebugThreads.TryGetValue(osid, out result);
+            return result;
         }
 
         public override IList<ClrAppDomain> AppDomains
@@ -565,6 +600,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         #region Internal Functions
+        protected ClrThread GetThreadByStackAddress(ulong address)
+        {
+            Debug.Assert(address != 0);
+            foreach (ClrThread thread in _threads)
+            {
+                ulong min = thread.StackBase;
+                ulong max = thread.StackLimit;
+
+                if (min > max)
+                {
+                    ulong tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+
+                if (min <= address && address <= max)
+                    return thread;
+            }
+
+            return null;
+        }
+
         internal uint GetExceptionMessageOffset()
         {
             if (PointerSize == 8)
@@ -747,12 +804,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        internal override IEnumerable<ClrStackFrame> EnumerateStackFrames(uint osThreadId)
+        internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
             IXCLRDataProcess proc = GetClrDataProcess();
             object tmp;
 
-            int res = proc.GetTaskByOSThreadID(osThreadId, out tmp);
+            int res = proc.GetTaskByOSThreadID(thread.OSThreadId, out tmp);
             if (res < 0)
                 yield break;
 
@@ -762,40 +819,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 yield break;
 
             IXCLRDataStackWalk stackWalk = (IXCLRDataStackWalk)tmp;
-
             byte[] ulongBuffer = new byte[8];
-            byte[] context = new byte[PointerSize == 4 ? 716 : 1232];
-            byte[] name = new byte[256];
-
-            int ip_offset = 184;
-            int sp_offset = 196;
-
-            if (PointerSize == 8)
-            {
-                ip_offset = 248;
-                sp_offset = 152;
-            }
-
+            byte[] context = ContextHelper.Context;
             do
             {
                 uint size;
-                res = stackWalk.GetContext(0x1003f, (uint)context.Length, out size, context);
+                res = stackWalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, context);
                 if (res < 0 || res == 1)
                     break;
 
-                ulong ip, sp;
-
-                if (PointerSize == 4)
-                {
-                    ip = BitConverter.ToUInt32(context, ip_offset);
-                    sp = BitConverter.ToUInt32(context, sp_offset);
-                }
-                else
-                {
-                    ip = BitConverter.ToUInt64(context, ip_offset);
-                    sp = BitConverter.ToUInt64(context, sp_offset);
-                }
-
+                ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
 
                 res = stackWalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
 
@@ -810,7 +844,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                 }
 
-                DesktopStackFrame frame = GetStackFrame(res, ip, sp, frameVtbl);
+                DesktopStackFrame frame = GetStackFrame(thread, res, ip, sp, frameVtbl);
                 yield return frame;
             } while (stackWalk.Next() == 0);
         }
@@ -903,7 +937,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract ulong GetModuleForMT(ulong mt);
         internal abstract IFieldInfo GetFieldInfo(Address mt);
         internal abstract IFieldData GetFieldData(Address fieldDesc);
-        internal abstract IMetadata GetMetadataImport(Address module);
+        internal abstract ICorDebug.IMetadataImport GetMetadataImport(Address module);
         internal abstract IObjectData GetObjectData(Address objRef);
         internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
         internal abstract IList<MethodTableTokenPair> GetMethodTableList(Address module);
@@ -918,7 +952,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract string GetNameForMD(Address md);
         internal abstract IMethodDescData GetMethodDescData(Address md);
         internal abstract uint GetMetadataToken(Address mt);
-        protected abstract DesktopStackFrame GetStackFrame(int res, ulong ip, ulong sp, ulong frameVtbl);
+        protected abstract DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong sp, ulong frameVtbl);
         internal abstract IList<ClrStackFrame> GetExceptionStackTrace(Address obj, ClrType type);
         internal abstract string GetAssemblyName(Address assembly);
         internal abstract string GetAppBase(Address appDomain);

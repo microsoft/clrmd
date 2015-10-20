@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (module == null)
                 return null;
 
-            IMetadata meta = module.GetMetadataImport();
+            ICorDebug.IMetadataImport meta = module.GetMetadataImport();
             if (meta == null)
                 return null;
 
