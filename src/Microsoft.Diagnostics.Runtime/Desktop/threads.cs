@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text;
 using Address = System.UInt64;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -267,8 +268,59 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _stackTrace = frames.ToArray();
                 }
 
+                InitLocalData();
                 return _stackTrace;
             }
+        }
+
+        internal void InitLocalData()
+        {
+            ICorDebugThread thread = CorDebugThread;
+            
+            ICorDebugChainEnum chainEnum;
+            thread.EnumerateChains(out chainEnum);
+
+            uint fetched;
+            ICorDebugChain[] chains = new ICorDebugChain[1];
+            while (chainEnum.Next((uint)chains.Length, chains, out fetched) == 0 && fetched == 1)
+            {
+                int managed;
+                chains[0].IsManaged(out managed);
+                if (managed == 0)
+                    continue;
+
+                ICorDebugFrameEnum frameEnum;
+                chains[0].EnumerateFrames(out frameEnum);
+
+                ICorDebugFrame[] frames = new ICorDebugFrame[1];
+                while (frameEnum.Next((uint)frames.Length, frames, out fetched) == 0 && fetched == 1)
+                {
+                    ICorDebugFrame frame = frames[0] as ICorDebugFrame;
+
+                    ulong start, stop;
+                    frame.GetStackRange(out start, out stop);
+
+                    if (start >= stop)
+                    {
+                        ulong tmp = start;
+                        start = stop;
+                        stop = tmp;
+                    }
+
+                    ClrStackFrame[] result = _stackTrace.Where(frm => start <= frm.StackPointer && frm.StackPointer <= stop).ToArray();
+
+
+                    ICorDebugILFrame ilFrame = frames[0] as ICorDebugILFrame;
+
+                    CorDebugMappingResult mappingResult;
+                    uint ilOffset;
+                    ilFrame.GetIP(out ilOffset, out mappingResult);
+
+                    //ulong sp;
+                    
+                }
+            }
+
         }
 
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace()
@@ -296,8 +348,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         
         private DesktopRuntimeBase _runtime;
-        private ICorDebugThread _corDebugThread;
-        private bool _corDebugThreadLoaded;
     }
 
     internal class LocalVarRoot : ClrRoot
