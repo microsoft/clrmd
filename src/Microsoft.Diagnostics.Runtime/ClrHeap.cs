@@ -19,6 +19,13 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrHeap
     {
         /// <summary>
+        /// When ClrMD cannot determine the type of an object (either because the address is invalid or
+        /// we encountered an error looking up the object's type), then we return a ClrType which indicates
+        /// there was an error.  This property returns that type.
+        /// </summary>
+        abstract public ClrType ErrorType { get; }
+
+        /// <summary>
         /// And the ability to take an address of an object and fetch its type (The type alows further exploration)
         /// </summary>
         abstract public ClrType GetObjectType(Address objRef);

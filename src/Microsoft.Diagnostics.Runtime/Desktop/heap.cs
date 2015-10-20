@@ -25,11 +25,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ((DesktopHeapType)FreeType).Shared = true;
             ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0);
             ArrayType = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
-            ArrayType.ComponentType =  ObjectType;
+            ArrayType.ComponentType = ObjectType;
             ((BaseDesktopHeapType)FreeType).DesktopModule = (DesktopModule)ObjectType.Module;
             StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
             ExceptionType = GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0);
-            ErrorType = new ErrorType(this);
+            DesktopErrorType = new ErrorType(this);
 
             InitSegments(runtime);
         }
@@ -121,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return null;
         }
-        
+
         internal abstract ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj);
 
 
@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 }
                             }
                         }
-                    NextStatic:;
+                        NextStatic:;
                     }
 
                     // Thread statics
@@ -412,10 +412,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
-                if (_firstChar.Type == ErrorType)
+                if (_firstChar.Type == DesktopErrorType)
                     _firstChar = null;
 
-                if (_stringLength.Type == ErrorType)
+                if (_stringLength.Type == DesktopErrorType)
                     _stringLength = null;
 
                 _initializedStringFields = true;
@@ -778,10 +778,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool _loadedTypes = false;
         #endregion
 
+        public override ClrType ErrorType { get { return DesktopErrorType; } }
+
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
-        internal BaseDesktopHeapType ErrorType { get; private set; }
+        internal BaseDesktopHeapType DesktopErrorType { get; private set; }
         internal ClrType ObjectType { get; private set; }
         internal ClrType StringType { get; private set; }
         internal ClrType ValueType { get; private set; }
@@ -1493,7 +1495,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj)
         {
             if (mt == 0)
-                return null;
+                return ErrorType;
 
             ClrType componentType = null;
             if (mt == DesktopRuntime.ArrayMethodTable)
@@ -1539,7 +1541,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 // with an ArrayComponentType set to System.Object.
                 uint token = DesktopRuntime.GetMetadataToken(mt);
                 if (token == 0xffffffff)
-                    return null;
+                    return ErrorType;
 
                 ModuleEntry modEnt = new ModuleEntry(ArrayType.Module, token);
 
@@ -1561,7 +1563,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 bool isFree = mt == DesktopRuntime.FreeMethodTable;
                 if (token == 0xffffffff && !isFree)
-                    return null;
+                    return ErrorType;
 
                 // Dynamic functions/modules
                 uint tokenEnt = token;
@@ -1597,7 +1599,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
-                        return null;
+                        return ErrorType;
 
                     ret = new DesktopHeapType(typeName, module, token, mt, mtData, this);
                     ret.ComponentType = componentType;
@@ -1621,6 +1623,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType GetObjectType(Address objRef)
         {
+            if (objRef == 0)
+                return null;
+
             ulong mt, cmt = 0;
 
             if (_lastObjType.Address == objRef)
@@ -1630,13 +1635,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (cache.Contains(objRef))
             {
                 if (!cache.ReadPtr(objRef, out mt))
-                    return null;
+                    return ErrorType;
             }
             else if (DesktopRuntime.MemoryReader.Contains(objRef))
             {
                 cache = DesktopRuntime.MemoryReader;
                 if (!cache.ReadPtr(objRef, out mt))
-                    return null;
+                    return ErrorType;
             }
             else
             {
@@ -1653,7 +1658,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (cache == null)
                     cmt = DesktopRuntime.DataReader.ReadPointerUnsafe(objRef + elemenTypeOffset);
                 else if (!cache.ReadPtr(objRef + elemenTypeOffset, out cmt))
-                    return null;
+                    return ErrorType;
             }
             else
             {
@@ -1682,6 +1687,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType GetObjectType(Address objRef)
         {
+            if (objRef == 0)
+                return null;
+
             ulong mt;
 
             if (_lastObjType.Address == objRef)
@@ -1691,13 +1699,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (cache.Contains(objRef))
             {
                 if (!cache.ReadPtr(objRef, out mt))
-                    return null;
+                    return ErrorType;
             }
             else if (DesktopRuntime.MemoryReader.Contains(objRef))
             {
                 cache = DesktopRuntime.MemoryReader;
                 if (!cache.ReadPtr(objRef, out mt))
-                    return null;
+                    return ErrorType;
             }
             else
             {
@@ -1723,7 +1731,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override ClrType GetTypeByMethodTable(ulong mt, ulong _, ulong obj)
         {
             if (mt == 0)
-                return null;
+                return ErrorType;
 
             ClrType ret = null;
 
@@ -1742,7 +1750,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 bool isFree = mt == DesktopRuntime.FreeMethodTable;
                 if (token == 0xffffffff && !isFree)
-                    return null;
+                    return ErrorType;
 
                 // Dynamic functions/modules
                 uint tokenEnt = token;
@@ -1778,7 +1786,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
-                        return null;
+                        return ErrorType;
 
                     ret = new DesktopHeapType(typeName, module, token, mt, mtData, this);
                     

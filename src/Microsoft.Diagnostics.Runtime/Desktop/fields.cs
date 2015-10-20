@@ -544,7 +544,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             if (_type == null)
                                 if ((_type = (BaseDesktopHeapType)heap.GetBasicType((ClrElementType)etype)) == null)
-                                    _type = heap.ErrorType;
+                                    _type = heap.DesktopErrorType;
                         }
                     }
                 }
@@ -588,7 +588,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     
                     else if (_type.ComponentType == null)
                         if ((_type.ComponentType = heap.GetBasicType((ClrElementType)etype)) == null)
-                            _type.ComponentType = heap.ErrorType;
+                            _type.ComponentType = heap.DesktopErrorType;
                 }
             }
         }
