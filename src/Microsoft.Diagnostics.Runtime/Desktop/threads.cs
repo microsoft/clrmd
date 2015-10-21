@@ -40,6 +40,66 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _frameName; }
         }
 
+        public override IList<ClrValue> Arguments
+        {
+            get
+            {
+                if (_arguments != null)
+                    return _arguments;
+
+                if (CordbFrame == null)
+                    _thread.InitLocalData();
+
+                if (CordbFrame == null)
+                    return new ClrValue[0];
+
+                ICorDebugValueEnum valueEnum;
+                CordbFrame.EnumerateArguments(out valueEnum);
+
+                _arguments = GetValueList(valueEnum);
+                return _arguments;
+            }
+        }
+
+        public override IList<ClrValue> Locals
+        {
+            get
+            {
+                if (_locals != null)
+                    return _locals;
+
+                if (CordbFrame == null)
+                    _thread.InitLocalData();
+
+                if (CordbFrame == null)
+                    return new ClrValue[0];
+
+                ICorDebugValueEnum valueEnum;
+                CordbFrame.EnumerateLocalVariables(out valueEnum);
+
+                _locals = GetValueList(valueEnum);
+                return _locals;
+            }
+        }
+
+        private ClrValue[] GetValueList(ICorDebugValueEnum valueEnum)
+        {
+            uint count;
+            valueEnum.GetCount(out count);
+
+            ClrValue[] result = new ClrValue[count];
+            ICorDebugValue[] tmp = new ICorDebugValue[1];
+            uint fetched;
+            int i = 0;
+            while (i < result.Length && valueEnum.Next(1, tmp, out fetched) >= 0 && fetched == 1)
+            {
+                result[i] = new CorDebugValue(_runtime, tmp[0], i);
+                i++;
+            }
+
+            return result;
+        }
+
         public override ClrMethod Method
         {
             get
@@ -146,6 +206,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrMethod _method;
         private DesktopRuntimeBase _runtime;
         private DesktopThread _thread;
+        private ClrValue[] _arguments;
+        private ClrValue[] _locals;
     }
 
     internal class DesktopThread : ThreadBase

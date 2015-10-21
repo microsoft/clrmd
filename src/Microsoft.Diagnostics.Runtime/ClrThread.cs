@@ -35,6 +35,16 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrStackFrame
     {
         /// <summary>
+        /// Returns the arguments for this stack frame.
+        /// </summary>
+        public abstract IList<ClrValue> Arguments { get; }
+
+        /// <summary>
+        /// Returns the locals for this stack frame.
+        /// </summary>
+        public abstract IList<ClrValue> Locals { get; }
+
+        /// <summary>
         /// Returns the thread this stack frame came from.
         /// </summary>
         public abstract ClrThread Thread { get; }
