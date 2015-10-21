@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             get { throw new NotImplementedException(); }
         }
 
-        public override object MetadataImport
+        public override ICorDebug.IMetadataImport MetadataImport
         {
             get { throw new NotImplementedException(); }
         }

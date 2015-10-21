@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The IMetaDataImport interface for this module.  Note that this API does not provide a
         /// wrapper for IMetaDataImport.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
-        public abstract object MetadataImport { get; }
+        public abstract ICorDebug.IMetadataImport MetadataImport { get; }
 
         /// <summary>
         /// The debugging attributes for this module.

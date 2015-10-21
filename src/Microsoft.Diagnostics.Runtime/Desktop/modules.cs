@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _metadataLength; }
         }
 
-        public override object MetadataImport
+        public override ICorDebug.IMetadataImport MetadataImport
         {
             get { return GetMetadataImport(); }
         }
@@ -433,7 +433,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return 0; }
         }
 
-        public override object MetadataImport
+        public override ICorDebug.IMetadataImport MetadataImport
         {
             get { return null; }
         }
