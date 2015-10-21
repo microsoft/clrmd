@@ -63,6 +63,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             return module;
         }
 
+        /// <summary>
+        /// Locates a PdbScope by its IL offset.
+        /// </summary>
+        /// <param name="ilOffset">The offset in the function to find the scope for.</param>
+        /// <returns>The scope if one was found, null if none match it.</returns>
+        public PdbScope FindScopeByILOffset(uint ilOffset)
+        {
+            foreach (PdbScope scope in Scopes)
+                if (scope.Offset <= ilOffset && ilOffset <= scope.Offset + scope.Length)
+                    return scope;
+
+            return null;
+        }
+
         internal static PdbFunction[] LoadManagedFunctions(/*string module,*/
                                                            BitAccess bits, uint limit,
                                                            bool readStrings)

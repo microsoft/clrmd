@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
+using System.Text;
 
 class Program
 {
@@ -31,10 +33,83 @@ class Program
                     {
                         FileAndLineNumber info = frame.GetSourceLocation();
                         Console.WriteLine("{0,12:x} {1,12:x} {2} [{3} @ {4}]", frame.InstructionPointer, frame.StackPointer, frame.DisplayString, info.File, info.Line);
+                        if (frame.Arguments.Count > 0)
+                        {
+                            List<string> paramNames = GetParameterNames(frame);
+
+                            Console.WriteLine("Arguments:");
+                            for (int i = 0; i < frame.Arguments.Count; i++)
+                                Console.WriteLine("    {0} = {1}", paramNames[i], frame.Arguments[i]);
+
+                            Console.WriteLine();
+                        }
+
+
+                        if (frame.Locals.Count > 0)
+                        {
+                            List<string> localNames = GetLocalNames(frame, info);
+
+                            Console.WriteLine("Locals:");
+                            for (int i = 0; i < frame.Locals.Count; i++)
+                                Console.WriteLine("    {0} = {1}", localNames[i], frame.Locals[i]);
+
+                            Console.WriteLine();
+                        }
                     }
                 }
             }
         }
+    }
+
+    private static List<string> GetLocalNames(ClrStackFrame frame, FileAndLineNumber info)
+    {
+        List<string> localNames;
+        string pdbPath = frame.Runtime.DataTarget.SymbolLocator.FindPdb(frame.Module.Pdb);
+        if (pdbPath == null)
+        {
+            localNames = new List<string>(from i in Enumerable.Range(0, frame.Locals.Count) select string.Format("local_{0}", i));
+        }
+        else
+        {
+            PdbReader pdb = new PdbReader(pdbPath);
+
+            PdbFunction function = pdb.GetFunctionFromToken(frame.Method.MetadataToken);
+            PdbScope scope = function.FindScopeByILOffset(info.ILOffset);
+
+            localNames = new List<string>(scope.GetRecursiveSlots().Select(s => s.Name));
+        }
+
+        return localNames;
+    }
+
+    private static List<string> GetParameterNames(ClrStackFrame frame)
+    {
+        IMetadataImport imd = frame.Module.MetadataImport;
+
+
+        List<string> paramNames = new List<string>(frame.Arguments.Count);
+        IntPtr paramEnum = IntPtr.Zero;
+        uint fetched = 0;
+        int paramDef;
+        imd.EnumParams(ref paramEnum, (int)frame.Method.MetadataToken, out paramDef, 1, out fetched);
+
+        StringBuilder sb = new StringBuilder(64);
+        while (fetched == 1)
+        {
+            int pmd;
+            uint pulSequence, pchName, pdwAttr, pdwCPlusTypeFlag, pcchValue;
+            IntPtr ppValue;
+
+            imd.GetParamProps(paramDef, out pmd, out pulSequence, sb, (uint)sb.Capacity, out pchName, out pdwAttr, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
+
+            paramNames.Add(sb.ToString());
+            sb.Clear();
+
+            imd.EnumParams(ref paramEnum, (int)frame.Method.MetadataToken, out paramDef, 1, out fetched);
+        }
+
+        imd.CloseEnum(paramEnum);
+        return paramNames;
     }
 }
 
@@ -42,10 +117,21 @@ struct FileAndLineNumber
 {
     public string File;
     public int Line;
+    public uint ILOffset;
 }
 
 static class Extensions
 {
+    public static IEnumerable<PdbSlot> GetRecursiveSlots(this PdbScope scope)
+    {
+        foreach (PdbSlot slot in scope.Slots)
+            yield return slot;
+
+        foreach (PdbScope innerScope in scope.Scopes)
+            foreach (PdbSlot slot in innerScope.GetRecursiveSlots())
+                yield return slot;
+    }
+
     static Dictionary<PdbInfo, PdbReader> s_pdbReaders = new Dictionary<PdbInfo, PdbReader>();
     public static FileAndLineNumber GetSourceLocation(this ClrStackFrame frame)
     {
@@ -73,6 +159,7 @@ static class Extensions
                 {
                     nearest.File = sequenceCollection.File.Name;
                     nearest.Line = (int)point.LineBegin;
+                    nearest.ILOffset = point.Offset;
                 }
             }
         }

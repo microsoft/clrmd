@@ -58,6 +58,14 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrObject(obj, obj != 0 ? heap.GetObjectType(obj) : heap.ErrorType);
         }
 
+
+        public override string ToString()
+        {
+            if (!ClrRuntime.IsObjectReference(ElementType))
+                throw new NotImplementedException();
+
+            return AsObject().Address.ToString("x");
+        }
         // TODO: This implementation not finished.
     }
 
