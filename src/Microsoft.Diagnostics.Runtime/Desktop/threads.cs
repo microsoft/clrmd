@@ -12,6 +12,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopStackFrame : ClrStackFrame
     {
+        public override ClrRuntime Runtime
+        {
+            get
+            {
+                return _runtime;
+            }
+        }
+
         public override ClrThread Thread
         {
             get

@@ -35,6 +35,11 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrStackFrame
     {
         /// <summary>
+        /// Returns the runtime associated with this frame.
+        /// </summary>
+        public abstract ClrRuntime Runtime { get; }
+
+        /// <summary>
         /// Returns the arguments for this stack frame.
         /// </summary>
         public abstract IList<ClrValue> Arguments { get; }
@@ -75,6 +80,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// stack marker does not have a managed method associated with it.
         /// </summary>
         public abstract ClrMethod Method { get; }
+
+        /// <summary>
+        /// Returns the module this frame is associated with.
+        /// </summary>
+        public virtual ClrModule Module { get { return Method?.Type?.Module; } }
 
         /// <summary>
         /// Returns the module name to use for building the stack trace.
