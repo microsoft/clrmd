@@ -813,43 +813,55 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (res < 0)
                 yield break;
 
-            IXCLRDataTask task = (IXCLRDataTask)tmp;
-            res = task.CreateStackWalk(0xf, out tmp);
-            if (res < 0)
-                yield break;
+            IXCLRDataTask task = null;
+            IXCLRDataStackWalk stackwalk = null;
 
-            IXCLRDataStackWalk stackWalk = (IXCLRDataStackWalk)tmp;
-            byte[] ulongBuffer = new byte[8];
-            byte[] context = ContextHelper.Context;
-            do
+            try
             {
-                uint size;
-                res = stackWalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, context);
-                if (res < 0 || res == 1)
-                    break;
+                task = (IXCLRDataTask)tmp;
+                res = task.CreateStackWalk(0xf, out tmp);
+                if (res < 0)
+                    yield break;
 
-                ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
-
-                res = stackWalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
-
-                ulong frameVtbl = 0;
-                if (res >= 0)
+                stackwalk = (IXCLRDataStackWalk)tmp;
+                byte[] ulongBuffer = new byte[8];
+                byte[] context = ContextHelper.Context;
+                do
                 {
-                    frameVtbl = BitConverter.ToUInt64(ulongBuffer, 0);
-                    if (frameVtbl != 0)
+                    uint size;
+                    res = stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, context);
+                    if (res < 0 || res == 1)
+                        break;
+
+                    ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                    ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+
+                    res = stackwalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
+
+                    ulong frameVtbl = 0;
+                    if (res >= 0)
                     {
-                        sp = frameVtbl;
-                        ReadPointer(sp, out frameVtbl);
+                        frameVtbl = BitConverter.ToUInt64(ulongBuffer, 0);
+                        if (frameVtbl != 0)
+                        {
+                            sp = frameVtbl;
+                            ReadPointer(sp, out frameVtbl);
+                        }
                     }
-                }
 
-                DesktopStackFrame frame = GetStackFrame(thread, res, ip, sp, frameVtbl);
-                yield return frame;
-            } while (stackWalk.Next() == 0);
+                    DesktopStackFrame frame = GetStackFrame(thread, res, ip, sp, frameVtbl);
+                    yield return frame;
+                } while (stackwalk.Next() == 0);
+            }
+            finally
+            {
+                if (task != null)
+                    Marshal.FinalReleaseComObject(task);
+
+                if (stackwalk != null)
+                    Marshal.FinalReleaseComObject(stackwalk);
+            }
         }
-
-
 
         internal ILToNativeMap[] GetILMap(Address ip)
         {
