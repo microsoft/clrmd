@@ -840,6 +840,17 @@ namespace Microsoft.Diagnostics.Runtime
             get { return _dataTarget; }
         }
 
+        public void RegisterForRelease(object o)
+        {
+            if (o != null)
+                _library.AddToReleaseList(o);
+        }
+
+        public void RegisterForRelease(IModuleData module)
+        {
+            RegisterForRelease(module?.LegacyMetaDataImport);
+        }
+
         public IDataReader DataReader
         {
             get { return _dataReader; }

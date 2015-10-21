@@ -480,6 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (module == 0 || _sos.GetModule(module, out obj) < 0)
                 return null;
 
+            RegisterForRelease(obj);
             return obj as ICorDebug.IMetadataImport;
         }
 

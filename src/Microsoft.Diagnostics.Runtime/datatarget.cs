@@ -1078,6 +1078,7 @@ namespace Microsoft.Diagnostics.Runtime
         private DacDataTarget _dacDataTarget;
         private IXCLRDataProcess _dac;
         private ISOSDac _sos;
+        private HashSet<object> _release = new HashSet<object>();
         #endregion
 
         public DacDataTarget DacDataTarget { get { return _dacDataTarget; } }
@@ -1128,8 +1129,20 @@ namespace Microsoft.Diagnostics.Runtime
 
         ~DacLibrary()
         {
+            foreach (object obj in _release)
+                Marshal.FinalReleaseComObject(obj);
+
+            if (_dac != null)
+                Marshal.FinalReleaseComObject(_dac);
+
             if (_library != IntPtr.Zero)
                 NativeMethods.FreeLibrary(_library);
+        }
+
+        internal void AddToReleaseList(object obj)
+        {
+            Debug.Assert(Marshal.IsComObject(obj));
+            _release.Add(obj);
         }
     }
 
