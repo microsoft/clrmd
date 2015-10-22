@@ -40,6 +40,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         }
 
+        internal override string GetStringContents(ulong addr)
+        {
+            throw new NotImplementedException();
+        }
+
         public override ClrType ErrorType
         {
             get

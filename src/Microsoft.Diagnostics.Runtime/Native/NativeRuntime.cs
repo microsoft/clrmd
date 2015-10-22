@@ -12,7 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
     internal class NativeRuntime : RuntimeBase
     {
         private ISOSNative _sos;
-        private NativeHeap _heap;
         private ClrThread[] _threads;
         private NativeModule[] _modules;
         private NativeAppDomain _domain;

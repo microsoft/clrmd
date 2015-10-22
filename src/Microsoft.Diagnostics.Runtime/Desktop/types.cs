@@ -1525,11 +1525,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Debug.Assert(IsArray);
 
-            uint res;
-            if (!DesktopHeap.DesktopRuntime.ReadDword(objRef + (uint)DesktopHeap.DesktopRuntime.PointerSize, out res))
-                res = 0;
-
-            return (int)res;
+            return DesktopHeap.GetArrayLength(objRef);
         }
 
         public override Address GetArrayElementAddress(Address objRef, int index)

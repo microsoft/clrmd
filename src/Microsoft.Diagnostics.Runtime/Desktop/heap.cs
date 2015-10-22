@@ -400,7 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         yield return root;
         }
 
-        internal string GetStringContents(Address strAddr)
+        internal override string GetStringContents(Address strAddr)
         {
             if (strAddr == 0)
                 return null;

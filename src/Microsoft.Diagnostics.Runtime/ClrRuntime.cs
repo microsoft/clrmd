@@ -799,6 +799,18 @@ namespace Microsoft.Diagnostics.Runtime
         private MemoryReader _cache;
         protected IDataReader _dataReader;
         protected DataTargetImpl _dataTarget;
+        protected HeapBase _heap;
+
+        protected HeapBase HeapBase
+        {
+            get
+            {
+                if (_heap == null)
+                    GetHeap();
+
+                return _heap;
+            }
+        }
 
         protected ICorDebug.ICorDebugProcess _corDebugProcess;
         internal ICorDebug.ICorDebugProcess CorDebugProcess
@@ -1278,6 +1290,36 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
+        public bool ReadBoolean(ulong addr, out bool value)
+        {
+            int read = 0;
+            if (!ReadMemory(addr, _dataBuffer, 1, out read))
+            {
+                value = false;
+                return false;
+            }
+
+            Debug.Assert(read == 1);
+
+            value = _dataBuffer[0] != 0;
+            return true;
+        }
+
+        public bool ReadChar(ulong addr, out char value)
+        {
+            int read = 0;
+            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out read))
+            {
+                value = '\0';
+                return false;
+            }
+
+            Debug.Assert(read == sizeof(char));
+
+            value = BitConverter.ToChar(_dataBuffer, 0);
+            return true;
+        }
+
         public bool ReadDword(ulong addr, out int value)
         {
             value = 0;
@@ -1328,6 +1370,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             value = BitConverter.ToDouble(_dataBuffer, 0);
             return true;
+        }
+
+        public bool ReadString(ulong addr, out string value)
+        {
+            value = HeapBase.GetStringContents(addr);
+            return value != null;
         }
 
 
@@ -1399,6 +1447,44 @@ namespace Microsoft.Diagnostics.Runtime
                 value = (ulong)BitConverter.ToUInt32(_dataBuffer, 0);
             else
                 value = (ulong)BitConverter.ToUInt64(_dataBuffer, 0);
+
+            return true;
+        }
+
+        public bool ReadPointer(ulong addr, out IntPtr value)
+        {
+            int read = 0;
+            if (!ReadMemory(addr, _dataBuffer, IntPtr.Size, out read))
+            {
+                value = IntPtr.Zero;
+                return false;
+            }
+
+            Debug.Assert(read == IntPtr.Size);
+
+            if (IntPtr.Size == 4)
+                value = new IntPtr(BitConverter.ToInt32(_dataBuffer, 0));
+            else
+                value = new IntPtr(BitConverter.ToInt64(_dataBuffer, 0));
+
+            return true;
+        }
+
+        public bool ReadPointer(ulong addr, out UIntPtr value)
+        {
+            int read = 0;
+            if (!ReadMemory(addr, _dataBuffer, IntPtr.Size, out read))
+            {
+                value = UIntPtr.Zero;
+                return false;
+            }
+
+            Debug.Assert(read == UIntPtr.Size);
+
+            if (UIntPtr.Size == 4)
+                value = new UIntPtr(BitConverter.ToUInt32(_dataBuffer, 0));
+            else
+                value = new UIntPtr(BitConverter.ToUInt64(_dataBuffer, 0));
 
             return true;
         }

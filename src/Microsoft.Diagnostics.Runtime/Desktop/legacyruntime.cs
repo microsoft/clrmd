@@ -578,17 +578,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_stackTrace == 0)
                 return result;
-
-            var heap = TryGetHeap();
-            ClrType stackTraceType = heap.GetObjectType(_stackTrace);
-
-            if (stackTraceType == null)
-                stackTraceType = heap.ArrayType;
-
-            if (!stackTraceType.IsArray)
-                return result;
-
-            int len = stackTraceType.GetArrayLength(_stackTrace);
+            
+            int len = HeapBase.GetArrayLength(_stackTrace);
             if (len == 0)
                 return result;
 

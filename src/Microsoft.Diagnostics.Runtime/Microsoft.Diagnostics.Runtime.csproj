@@ -119,6 +119,7 @@
     <Compile Include="ICorDebug\IMetadataImport.cs" />
     <Compile Include="internal.cs" />
     <Compile Include="ISymbolResolver.cs" />
+    <Compile Include="MemoryReadException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ClrException.cs" />
     <Compile Include="Native\NativeThread.cs" />

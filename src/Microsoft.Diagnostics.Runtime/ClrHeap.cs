@@ -691,7 +691,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (!MemoryReader.ReadPtr(obj, out mt))
                 return 0;
 
-            return mt;
+            return mt & ~(ulong)1;
+        }
+
+        internal int GetArrayLength(ulong objRef)
+        {
+            uint res;
+            if (!MemoryReader.ReadDword(objRef + (uint)IntPtr.Size, out res))
+                res = 0;
+
+            return (int)res;
         }
 
         public override bool ReadPointer(Address addr, out Address value)
@@ -884,6 +893,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
             return null;
         }
+
+        internal abstract string GetStringContents(ulong addr);
     }
 
 

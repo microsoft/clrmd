@@ -33,7 +33,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private DesktopAppDomain _system, _shared;
         private List<ClrAppDomain> _domains;
         private List<ClrThread> _threads;
-        private DesktopGCHeap _heap;
         private DesktopThreadPool _threadpool;
         private ErrorModule _errorModule;
         #endregion
@@ -61,12 +60,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     yield return (int)thread;
             }
         }
-
-        internal DesktopGCHeap TryGetHeap()
-        {
-            return _heap;
-        }
-
 
         /// <summary>
         /// Returns the version of the target process (v2, v4, v45)
