@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The runtime associated with this value.
         /// </summary>
-        public virtual ClrRuntime Runtime { get; }
+        public virtual ClrRuntime Runtime { get { return _runtime; } }
 
         #region Converters
         public virtual ClrObject AsObject()
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual bool AsBoolean()
         {
-            if (ElementType == ClrElementType.Boolean || ElementType == ClrElementType.Int8 || ElementType == ClrElementType.UInt8)
+            if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a boolean.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual byte AsByte()
         {
-            if (ElementType == ClrElementType.Boolean || ElementType == ClrElementType.Int8 || ElementType == ClrElementType.UInt8)
+            if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a byte.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual sbyte AsSByte()
         {
-            if (ElementType == ClrElementType.Boolean || ElementType == ClrElementType.Int8 || ElementType == ClrElementType.UInt8)
+            if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a byte.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual char AsChar()
         {
-            if (ElementType == ClrElementType.Char || ElementType == ClrElementType.Int16 || ElementType == ClrElementType.UInt16)
+            if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a char.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -121,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual short AsInt16()
         {
-            if (ElementType == ClrElementType.Char || ElementType == ClrElementType.Int16 || ElementType == ClrElementType.UInt16)
+            if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a short.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual ushort AsUInt16()
         {
-            if (ElementType == ClrElementType.Char || ElementType == ClrElementType.Int16 || ElementType == ClrElementType.UInt16)
+            if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a short.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual int AsInt32()
         {
-            if (ElementType == ClrElementType.Int32 || ElementType == ClrElementType.UInt32)
+            if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
                 throw new InvalidOperationException("Value is not an integer.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual uint AsUInt32()
         {
-            if (ElementType == ClrElementType.Int32 || ElementType == ClrElementType.UInt32)
+            if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
                 throw new InvalidOperationException("Value is not a long.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual ulong AsUInt64()
         {
-            if (ElementType == ClrElementType.UInt64 || ElementType == ClrElementType.Int64)
+            if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
                 throw new InvalidOperationException("Value is not a long.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
         public virtual long AsInt64()
         {
-            if (ElementType == ClrElementType.UInt64 || ElementType == ClrElementType.Int64)
+            if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
                 throw new InvalidOperationException("Value is not a long.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -205,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual float AsFloat()
         {
-            if (ElementType == ClrElementType.Float)
+            if (ElementType != ClrElementType.Float)
                 throw new InvalidOperationException("Value is not a float.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual double AsDouble()
         {
-            if (ElementType == ClrElementType.Double)
+            if (ElementType != ClrElementType.Double)
                 throw new InvalidOperationException("Value is not a double.");
 
             ClrHeap heap = Runtime.GetHeap();
@@ -233,19 +233,26 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual string AsString()
         {
-            if (ElementType == ClrElementType.String || (ClrRuntime.IsObjectReference(ElementType) && _runtime.GetHeap().GetObjectType(Address).IsString))
+            if (ElementType != ClrElementType.String && (!ClrRuntime.IsObjectReference(ElementType) || !_runtime.GetHeap().GetObjectType(Address).IsString))
                 throw new InvalidOperationException("Value is not a string.");
-            
-            string result;
-            if (!_runtime.ReadString(Address, out result))
+
+            ulong str;
+            if (!_runtime.ReadPointer(Address, out str))
                 throw new MemoryReadException(Address);
+
+            if (str == 0)
+                return null;
+
+            string result;
+            if (!_runtime.ReadString(str, out result))
+                throw new MemoryReadException(str);
 
             return result;
         }
 
         public virtual IntPtr AsIntPtr()
         {
-            if (ElementType == ClrElementType.Pointer || ElementType == ClrElementType.FunctionPointer || ElementType == ClrElementType.NativeInt || ElementType == ClrElementType.NativeUInt)
+            if (ElementType != ClrElementType.Pointer && ElementType != ClrElementType.FunctionPointer && ElementType != ClrElementType.NativeInt && ElementType != ClrElementType.NativeUInt)
                 throw new InvalidOperationException("Value is not a pointer.");
 
             IntPtr result;
@@ -257,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual UIntPtr AsUIntPtr()
         {
-            if (ElementType == ClrElementType.Pointer || ElementType == ClrElementType.FunctionPointer || ElementType == ClrElementType.NativeInt || ElementType == ClrElementType.NativeUInt)
+            if (ElementType != ClrElementType.Pointer && ElementType != ClrElementType.FunctionPointer && ElementType != ClrElementType.NativeInt && ElementType != ClrElementType.NativeUInt)
                 throw new InvalidOperationException("Value is not a pointer.");
 
             UIntPtr result;
