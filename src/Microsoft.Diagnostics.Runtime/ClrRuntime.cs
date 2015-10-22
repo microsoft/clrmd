@@ -1308,7 +1308,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadChar(ulong addr, out char value)
         {
             int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(char), out read))
             {
                 value = '\0';
                 return false;

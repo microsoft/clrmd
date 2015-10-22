@@ -29,12 +29,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         static Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
         static Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
         static Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs", NestedException));
+        static Lazy<TestTarget> _localVariables = new Lazy<TestTarget>(() => new TestTarget("LocalVariables.cs", NestedException));
 
         public static TestTarget NestedException { get { return _nestedException.Value; } }
         public static ExceptionTestData NestedExceptionData = new ExceptionTestData();
         public static TestTarget GCHandles { get { return _gcHandles.Value; } }
         public static TestTarget Types { get { return _types.Value; } }
         public static TestTarget AppDomains { get { return _appDomains.Value; } }
+        public static TestTarget LocalVariables { get { return _localVariables.Value; } }
     }
 
     public class TestTarget

@@ -56,11 +56,15 @@
     <Compile Include="Debugger.cs" />
     <Compile Include="GCHandleTests.cs" />
     <Compile Include="StackTests.cs" />
+    <Compile Include="ValueTests.cs" />
     <None Include="Targets\GCHandles.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Compile Include="HeapTests.cs" />
     <Compile Include="MethodTests.cs" />
+    <None Include="Targets\LocalVariables.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="TypeTests.cs" />
     <Compile Include="MinidumpTests.cs" />
     <Compile Include="ModuleTests.cs" />

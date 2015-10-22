@@ -122,14 +122,23 @@ struct FileAndLineNumber
 
 static class Extensions
 {
-    public static IEnumerable<PdbSlot> GetRecursiveSlots(this PdbScope scope)
+    public static IEnumerable<PdbSlot> GetRecursiveSlots(this PdbScope scope, List<PdbSlot> results = null)
     {
+        if (results == null)
+            results = new List<PdbSlot>();
+
         foreach (PdbSlot slot in scope.Slots)
-            yield return slot;
+        {
+            while (results.Count <= slot.Slot)
+                results.Add(null);
+
+            results[(int)slot.Slot] = slot;
+        }
 
         foreach (PdbScope innerScope in scope.Scopes)
-            foreach (PdbSlot slot in innerScope.GetRecursiveSlots())
-                yield return slot;
+            innerScope.GetRecursiveSlots(results);
+
+        return results;
     }
 
     static Dictionary<PdbInfo, PdbReader> s_pdbReaders = new Dictionary<PdbInfo, PdbReader>();

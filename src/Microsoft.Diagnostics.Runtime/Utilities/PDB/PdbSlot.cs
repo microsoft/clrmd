@@ -46,5 +46,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
             typind = slot.typind;
         }
+
+        /// <summary>
+        /// Simply returns Name.
+        /// </summary>
+        /// <returns>Name</returns>
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }
