@@ -685,6 +685,8 @@ namespace Microsoft.Diagnostics.Runtime
             _pointerSize = runtime.PointerSize;
         }
 
+        public abstract ClrType GetBasicType(ClrElementType elType);
+
         public override ulong GetMethodTable(ulong obj)
         {
             ulong mt;
@@ -895,6 +897,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         internal abstract string GetStringContents(ulong addr);
+        internal abstract ClrType GetTypeByToken(ClrModule module, uint token);
     }
 
 

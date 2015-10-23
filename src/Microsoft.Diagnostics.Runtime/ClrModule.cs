@@ -127,5 +127,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the pdb information for this module.
         /// </summary>
         public abstract PdbInfo Pdb { get; }
+
+        /// <summary>
+        /// Returns a given type by its metadata token.
+        /// </summary>
+        /// <param name="token">The metadata token to resolve.</param>
+        /// <returns>A ClrType for the given metadata token.</returns>
+        public abstract ClrType GetTypeByToken(uint token);
     }
 }

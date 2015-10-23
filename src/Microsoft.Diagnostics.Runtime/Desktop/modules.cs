@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public DesktopBaseModule(DesktopRuntimeBase runtime)
         {
             _runtime = runtime;
-    }
+        }
     }
 
     internal class DesktopModule : DesktopBaseModule
@@ -155,7 +155,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override IEnumerable<ClrType> EnumerateTypes()
         {
             var heap = (DesktopGCHeap)_runtime.GetHeap();
-            var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
             if (_typesLoaded)
             {
                 foreach (var type in heap.EnumerateTypes())
@@ -164,6 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
+                var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
                 if (mtList != null)
                 {
                     foreach (var pair in mtList)
@@ -342,6 +342,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public override ClrType GetTypeByToken(uint token)
+        {
+            return _runtime.HeapBase.GetTypeByToken(this, token);
+        }
+
         public override ClrType GetTypeByName(string name)
         {
             foreach (ClrType type in EnumerateTypes())
@@ -456,6 +461,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override Address AssemblyId
         {
             get { return _id; }
+        }
+
+        public override ClrType GetTypeByToken(uint token)
+        {
+            return Runtime.GetHeap().ErrorType;
         }
     }
 }

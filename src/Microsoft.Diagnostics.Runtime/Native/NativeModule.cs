@@ -174,6 +174,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
             throw new NotImplementedException();
         }
 
+        public override ClrType GetTypeByToken(uint token)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Address AssemblyId
         {
             get { throw new NotImplementedException(); }

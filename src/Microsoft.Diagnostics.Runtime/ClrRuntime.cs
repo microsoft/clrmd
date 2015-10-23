@@ -801,7 +801,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected DataTargetImpl _dataTarget;
         protected HeapBase _heap;
 
-        protected HeapBase HeapBase
+        public HeapBase HeapBase
         {
             get
             {

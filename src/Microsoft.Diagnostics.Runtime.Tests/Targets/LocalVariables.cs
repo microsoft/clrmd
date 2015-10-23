@@ -6,7 +6,8 @@ class Program
 {
     public static void Main(string[] args)
     {
-        object o = new object();
+        object o = new Foo();
+        Struct s = new Struct(1);
         Outer();
         GC.KeepAlive(o);
     }

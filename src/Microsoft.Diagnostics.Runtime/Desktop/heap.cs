@@ -96,10 +96,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return true;
         }
 
+        
 
-        internal ClrType GetGCHeapTypeFromModuleAndToken(ulong moduleAddr, uint token)
+        internal override ClrType GetTypeByToken(ClrModule module, uint token)
         {
-            DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
             ModuleEntry modEnt = new ModuleEntry(module, token);
             int index;
 
@@ -822,7 +822,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal ClrType GetBasicType(ClrElementType elType)
+        public override ClrType GetBasicType(ClrElementType elType)
         {
             // Early out without having to construct the array.
             if (_basicTypes == null)

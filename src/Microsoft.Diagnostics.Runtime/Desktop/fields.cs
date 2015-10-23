@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             int token;
                             sigParser.GetToken(out token);
-                            BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(field.Module, Convert.ToUInt32(token));
+                            BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetTypeByToken(heap.DesktopRuntime.GetModule(field.Module), Convert.ToUInt32(token));
 
                             if (innerType == null)
                             {
@@ -523,7 +523,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             int token;
                             sigParser.GetToken(out token);
-                            BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, Convert.ToUInt32(token));
+                            BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetTypeByToken(heap.DesktopRuntime.GetModule(data.Module), Convert.ToUInt32(token));
 
                             if (innerType == null)
                             {
@@ -540,7 +540,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 res = res && sigParser.GetToken(out token);
 
                             if (token != 0)
-                                _type = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
+                                _type = (BaseDesktopHeapType)heap.GetTypeByToken(heap.DesktopRuntime.GetModule(data.Module), (uint)token);
 
                             if (_type == null)
                                 if ((_type = (BaseDesktopHeapType)heap.GetBasicType((ClrElementType)etype)) == null)
@@ -584,7 +584,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         res = res && sigParser.GetToken(out token);
                     
                     if (token != 0)
-                        _type.ComponentType = heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
+                        _type.ComponentType = heap.GetTypeByToken(heap.DesktopRuntime.GetModule(data.Module), (uint)token);
                     
                     else if (_type.ComponentType == null)
                         if ((_type.ComponentType = heap.GetBasicType((ClrElementType)etype)) == null)

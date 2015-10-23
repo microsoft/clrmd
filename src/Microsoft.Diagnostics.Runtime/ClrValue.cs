@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 #pragma warning disable 1591
 
@@ -54,10 +55,24 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                //todo
-                return null;
+                HeapBase heap = _runtime.HeapBase;
+                ClrElementType el = ElementType;
+
+                if (ClrRuntime.IsPrimitive(el))
+                    return heap.GetBasicType(el);
+
+                if (ClrRuntime.IsObjectReference(el))
+                    return AsObject().Type;
+
+                return GetStructElementType();
             }
         }
+
+        /// <summary>
+        /// Obtains the element type when ElementType is a struct.
+        /// </summary>
+        /// <returns>The ClrType of this value, or ClrHeap.ErrorType if it could not be obtained.</returns>
+        protected abstract ClrType GetStructElementType();
 
         #region Converters
         public virtual ClrObject AsObject()
@@ -348,6 +363,38 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return _elementType.Value;
             }
+        }
+
+        protected override ClrType GetStructElementType()
+        {
+            try
+            {
+                var value = (ICorDebug.ICorDebugValue2)_value;
+
+                ICorDebug.ICorDebugType type;
+                value.GetExactType(out type);
+
+                ICorDebug.ICorDebugClass cls;
+                type.GetClass(out cls);
+
+                uint token;
+                cls.GetToken(out token);
+
+                ICorDebug.ICorDebugModule module;
+                cls.GetModule(out module);
+
+                ulong imageBase;
+                module.GetBaseAddress(out imageBase);
+
+                ClrModule clrModule = Runtime.Modules.Where(m => m.ImageBase == imageBase).SingleOrDefault();
+                if (clrModule != null)
+                    return clrModule.GetTypeByToken(token);
+            }
+            catch
+            {
+            }
+
+            return Runtime.GetHeap().ErrorType;
         }
 
         public CorDebugValue(RuntimeBase runtime, ICorDebug.ICorDebugValue value, int index)

@@ -78,13 +78,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrThread thread = runtime.GetMainThread();
                 ClrStackFrame frame = thread.GetFrame("Main");
 
-                ClrValue value = frame.GetLocal("Foo");
+                ClrValue value = frame.GetLocal("o");
                 ClrObject obj = value.AsObject();
                 Assert.IsTrue(obj.IsValid);
                 Assert.IsFalse(obj.IsNull);
                 Assert.AreEqual("Foo", obj.Type.Name);
                 Assert.AreSame(obj.Type, value.Type);
                 Assert.AreSame(heap.GetObjectType(obj.Address), value.Type);
+            }
+        }
+
+        [TestMethod]
+        public void StructVariableTest()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+                ClrThread thread = runtime.GetMainThread();
+                ClrStackFrame frame = thread.GetFrame("Main");
+
+                ClrValue value = frame.GetLocal("s");
+                Assert.AreEqual("Struct", value.Type.Name);
             }
         }
     }

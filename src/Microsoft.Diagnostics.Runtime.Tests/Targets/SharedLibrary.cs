@@ -13,3 +13,23 @@
     public void Baz() { }
     public int Baz(int i) { return i; }
 }
+
+public struct Struct
+{
+    int i;
+    string s;
+    bool b;
+    float f;
+    double d;
+    object o;
+
+    public Struct(int p)
+    {
+        i = 42;
+        s = "string";
+        b = true;
+        f = 4.2f;
+        d = 8.4;
+        o = new object();
+    }
+}

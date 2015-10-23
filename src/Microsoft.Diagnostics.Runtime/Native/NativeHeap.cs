@@ -40,6 +40,16 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         }
 
+        internal override ClrType GetTypeByToken(ClrModule module, uint token)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override ClrType GetBasicType(ClrElementType elType)
+        {
+            throw new NotImplementedException();
+        }
+
         internal override string GetStringContents(ulong addr)
         {
             throw new NotImplementedException();
