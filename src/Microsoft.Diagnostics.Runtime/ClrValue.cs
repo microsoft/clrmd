@@ -47,6 +47,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual ClrRuntime Runtime { get { return _runtime; } }
 
+        /// <summary>
+        /// Returns the type of this value.
+        /// </summary>
+        public virtual ClrType Type
+        {
+            get
+            {
+                //todo
+                return null;
+            }
+        }
+
         #region Converters
         public virtual ClrObject AsObject()
         {

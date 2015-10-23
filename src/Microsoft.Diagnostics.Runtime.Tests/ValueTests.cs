@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class ValueTests
     {
         [TestMethod]
-        public void PrimitiveConversionTest()
+        public void PrimitiveVariableConversionTest()
         {
             using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
             {
@@ -65,6 +65,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 value = frame.GetLocal("uptr");
                 Assert.AreEqual(new UIntPtr(0x43434343), value.AsUIntPtr());
+            }
+        }
+
+        [TestMethod]
+        public void ObjectVariableTest()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+                ClrThread thread = runtime.GetMainThread();
+                ClrStackFrame frame = thread.GetFrame("Main");
+
+                ClrValue value = frame.GetLocal("Foo");
+                ClrObject obj = value.AsObject();
+                Assert.IsTrue(obj.IsValid);
+                Assert.IsFalse(obj.IsNull);
+                Assert.AreEqual("Foo", obj.Type.Name);
+                Assert.AreSame(obj.Type, value.Type);
+                Assert.AreSame(heap.GetObjectType(obj.Address), value.Type);
             }
         }
     }
