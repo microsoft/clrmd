@@ -8,7 +8,7 @@
     object o = new object();
 
     public string FooString = "Foo string";
-
+    
     public void Bar() { }
     public void Baz() { }
     public int Baz(int i) { return i; }
@@ -22,8 +22,30 @@ public struct Struct
     float f;
     double d;
     object o;
+    InnerStruct inner;
 
     public Struct(int p)
+    {
+        i = 42;
+        s = "string";
+        b = true;
+        f = 4.2f;
+        d = 8.4;
+        o = new object();
+        inner = new InnerStruct(p);
+    }
+}
+
+public struct InnerStruct
+{
+    int i;
+    string s;
+    bool b;
+    float f;
+    double d;
+    object o;
+
+    public InnerStruct(int p)
     {
         i = 42;
         s = "string";

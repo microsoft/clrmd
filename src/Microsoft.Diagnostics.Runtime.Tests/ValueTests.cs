@@ -100,6 +100,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 ClrValue value = frame.GetLocal("s");
                 Assert.AreEqual("Struct", value.Type.Name);
+
+                CheckStruct(value);
+            }
+        }
+
+        private static void CheckStruct(ClrValue value)
+        {
+            Assert.AreEqual(42, value.GetField("i").AsInt32());
+            Assert.AreEqual("string", value.GetField("s").AsString());
+            Assert.AreEqual(true, value.GetField("b").AsBoolean());
+            Assert.AreEqual(4.2f, value.GetField("f").AsFloat());
+            Assert.AreEqual(8.4, value.GetField("d").AsDouble());
+            Assert.AreEqual("System.Object", value.GetField("o").AsObject().Type.Name);
+        }
+
+        [TestMethod]
+        public void InteriorStructTest()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+                ClrThread thread = runtime.GetMainThread();
+                ClrStackFrame frame = thread.GetFrame("Main");
+
+                ClrValue value = frame.GetLocal("s");
+                Assert.AreEqual("Struct", value.Type.Name);
+                CheckStruct(value);
+
+                value = value.GetField("inner");
+                CheckStruct(value);
             }
         }
     }

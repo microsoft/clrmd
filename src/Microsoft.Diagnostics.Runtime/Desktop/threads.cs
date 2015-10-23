@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             int i = 0;
             while (i < result.Length && valueEnum.Next(1, tmp, out fetched) >= 0 && fetched == 1)
             {
-                result[i] = new CorDebugValue(_runtime, tmp[0], i);
+                result[i] = new CorDebugValue(_runtime, tmp[0]);
                 i++;
             }
 

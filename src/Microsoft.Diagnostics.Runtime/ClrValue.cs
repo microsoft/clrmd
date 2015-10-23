@@ -36,6 +36,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong Address { get; }
 
         /// <summary>
+        /// Returns whether Address is an interior value.
+        /// </summary>
+        public abstract bool Interior { get; }
+
+        /// <summary>
         /// Returns the element type of this value.
         /// </summary>
         public abstract ClrElementType ElementType { get; }
@@ -322,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (field == null)
                 throw new ArgumentException(string.Format("Field '{0}' does not exist in type '{1}'.", name, Type.Name));
 
-            ulong addr = field.GetAddress(Address);
+            ulong addr = field.GetAddress(Address, Interior);
             return new ClrValueImpl(_runtime, addr, field);
         }
 
@@ -342,6 +347,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrType _type;
         private ulong _address;
         private ulong _obj;
+        private bool _interior;
 
         public override int Size
         {
@@ -359,6 +365,14 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public override bool Interior
+        {
+            get
+            {
+                return _interior;
+            }
+        }
+
         public override ClrElementType ElementType
         {
             get
@@ -372,6 +386,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             _address = address;
             _type = field.Type;
+            _interior = field.IsValueClass;
 
             if (_type.IsObjectReference)
             {
@@ -388,7 +403,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_type.IsObjectReference)
                 throw new InvalidOperationException("Value is not an object.");
 
-            return new ClrObject(_address, _type);
+            return new ClrObject(_obj, _type);
         }
 
         public override ClrType Type
@@ -410,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime
         ICorDebug.ICorDebugValue _value;
         int? _size;
         ulong? _address;
-        ClrElementType? _elementType;
+        ClrElementType _elementType;
 
         public override int Size
         {
@@ -424,6 +439,14 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 return _size.Value;
+            }
+        }
+
+        public override bool Interior
+        {
+            get
+            {
+                return _elementType == ClrElementType.Struct;
             }
         }
 
@@ -446,14 +469,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (!_elementType.HasValue)
-                {
-                    ICorDebug.CorElementType element;
-                    _value.GetType(out element);
-                    _elementType = (ClrElementType)element;
-                }
-
-                return _elementType.Value;
+                return _elementType;
             }
         }
 
@@ -489,10 +505,14 @@ namespace Microsoft.Diagnostics.Runtime
             return Runtime.GetHeap().ErrorType;
         }
 
-        public CorDebugValue(RuntimeBase runtime, ICorDebug.ICorDebugValue value, int index)
+        public CorDebugValue(RuntimeBase runtime, ICorDebug.ICorDebugValue value)
             : base(runtime)
         {
             _value = value;
+
+            ICorDebug.CorElementType el;
+            value.GetType(out el);
+            _elementType = (ClrElementType)el;
         }
     }
 }
