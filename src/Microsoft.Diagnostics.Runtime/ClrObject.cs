@@ -75,6 +75,25 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrObject(obj, type);
         }
 
+        /// <summary>
+        /// Gets the given field in this object
+        /// </summary>
+        /// <param name="name">The name of the field.</param>
+        /// <returns>The value of the field.</returns>
+        public ClrValue GetField(string name)
+        {
+            ClrInstanceField field = _type.GetFieldByName(name);
+            if (field == null)
+                throw new ArgumentException(string.Format("Type '{0}' does not contain a field named '{1}'", _type.Name, fieldName));
+            
+            ulong addr = Address;
+            ulong fieldAddr = field.GetAddress(addr);
+            if (fieldAddr == 0)
+                throw new MemoryReadException(addr);
+
+            return new ClrValueImpl(fieldAddr, field);
+        }
+
         // TODO:  This implementation not finished.
     }
 }

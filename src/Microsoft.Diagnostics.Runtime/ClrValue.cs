@@ -15,18 +15,10 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly RuntimeBase _runtime;
 
-        internal ClrValue(RuntimeBase runtime, int index)
+        internal ClrValue(RuntimeBase runtime)
         {
             _runtime = runtime;
-            Index = index;
         }
-
-        /// <summary>
-        /// The index of this value.  The meaning of this property is determined by the context in which
-        /// you obtained it.  For example, for local variables and method arguments, this is the IL index
-        /// for that variable.
-        /// </summary>
-        public int Index { get; protected set; }
 
         /// <summary>
         /// Returns the size of the value.
@@ -302,6 +294,33 @@ namespace Microsoft.Diagnostics.Runtime
         }
         #endregion
 
+        public virtual ClrValue GetField(string name)
+        {
+            ClrElementType el = ElementType;
+            if (ClrRuntime.IsPrimitive(el))
+            {
+                // Primitives only have one field, named m_value.
+                if (name != "m_value")
+                    throw new ArgumentException(string.Format("Field '{0}' does not exist in type '{1}'.", name, Type.Name));
+
+                // Getting m_value is the same as this ClrValue...
+                return this;
+            }
+
+            if (ClrRuntime.IsObjectReference(el))
+                return AsObject().GetField(name);
+
+            Debug.Assert(ClrRuntime.IsValueClass(el));
+
+            ClrType type = Type;
+            ClrInstanceField field = type.GetFieldByName(name);
+            if (field == null)
+                throw new ArgumentException(string.Format("Field '{0}' does not exist in type '{1}'.", name, Type.Name));
+
+            ulong addr = field.GetAddress(Address);
+            return new ClrValueImpl(addr, field);
+        }
+
         public override string ToString()
         {
             if (!ClrRuntime.IsObjectReference(ElementType))
@@ -311,6 +330,75 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         // TODO: This implementation not finished.
+    }
+
+    internal class ClrValueImpl : ClrValue
+    {
+        private ClrElementType _elementType;
+        private ClrType _type;
+        private ulong _address;
+        private ulong _obj;
+
+        public override int Size
+        {
+            get
+            {
+                return _type.IsObjectReference ? (int)_type.GetSize(_obj) : _type.BaseSize;
+            }
+        }
+
+        public override ulong Address
+        {
+            get
+            {
+                return _address;
+            }
+        }
+
+        public override ClrElementType ElementType
+        {
+            get
+            {
+                return _type.ElementType;
+            }
+        }
+
+        public ClrValueImpl(RuntimeBase runtime, ulong address, ClrInstanceField field)
+            : base(runtime)
+        {
+            _address = address;
+            _type = field.Type;
+
+            if (_type.IsObjectReference)
+            {
+                var heap = _type.Heap;
+                if (!heap.ReadPointer(address, out _obj))
+                    throw new MemoryReadException(address);
+
+                _type = heap.GetObjectType(_obj);
+            }
+        }
+
+        public override ClrObject AsObject()
+        {
+            if (!_type.IsObjectReference)
+                throw new InvalidOperationException("Value is not an object.");
+
+            return new ClrObject(_address, _type);
+        }
+
+        public override ClrType Type
+        {
+            get
+            {
+                return _type;
+            }
+        }
+
+        protected override ClrType GetStructElementType()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     internal class CorDebugValue : ClrValue
@@ -398,7 +486,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public CorDebugValue(RuntimeBase runtime, ICorDebug.ICorDebugValue value, int index)
-            : base(runtime, index)
+            : base(runtime)
         {
             _value = value;
         }
