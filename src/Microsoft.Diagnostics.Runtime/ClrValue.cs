@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return this;
             }
 
-            if (ClrRuntime.IsObjectReference(el))
+            if (ClrRuntime.IsObjectReference(el) || !Interior)
                 return AsObject().GetField(name);
 
             Debug.Assert(ClrRuntime.IsValueClass(el));
@@ -400,8 +400,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override ClrObject AsObject()
         {
-            if (!_type.IsObjectReference)
-                throw new InvalidOperationException("Value is not an object.");
+            if (Interior)
+                throw new InvalidOperationException("Value is an interior pointer, not an object.");
 
             return new ClrObject(_obj, _type);
         }

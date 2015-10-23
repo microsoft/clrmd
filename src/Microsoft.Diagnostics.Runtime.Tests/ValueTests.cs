@@ -129,6 +129,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual("Struct", value.Type.Name);
                 CheckStruct(value);
 
+                value = value.GetField("middle");
+                CheckStruct(value);
+
                 value = value.GetField("inner");
                 CheckStruct(value);
             }

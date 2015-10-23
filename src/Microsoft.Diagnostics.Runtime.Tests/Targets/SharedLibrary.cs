@@ -22,7 +22,7 @@ public struct Struct
     float f;
     double d;
     object o;
-    InnerStruct inner;
+    MiddleStruct middle;
 
     public Struct(int p)
     {
@@ -32,9 +32,34 @@ public struct Struct
         f = 4.2f;
         d = 8.4;
         o = new object();
+        middle = new MiddleStruct(p);
+    }
+}
+
+
+public struct MiddleStruct
+{
+    int i;
+    string s;
+    bool b;
+    float f;
+    double d;
+    object o;
+    object inner;
+
+    public MiddleStruct(int p)
+    {
+        i = 42;
+        s = "string";
+        b = true;
+        f = 4.2f;
+        d = 8.4;
+        o = new object();
+
         inner = new InnerStruct(p);
     }
 }
+
 
 public struct InnerStruct
 {
