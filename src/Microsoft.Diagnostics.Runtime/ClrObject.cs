@@ -84,14 +84,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrInstanceField field = _type.GetFieldByName(name);
             if (field == null)
-                throw new ArgumentException(string.Format("Type '{0}' does not contain a field named '{1}'", _type.Name, fieldName));
+                throw new ArgumentException(string.Format("Type '{0}' does not contain a field named '{1}'", _type.Name, name));
             
             ulong addr = Address;
             ulong fieldAddr = field.GetAddress(addr);
             if (fieldAddr == 0)
                 throw new MemoryReadException(addr);
 
-            return new ClrValueImpl(fieldAddr, field);
+            return new ClrValueImpl(_type.Heap.Runtime, fieldAddr, field);
         }
 
         // TODO:  This implementation not finished.

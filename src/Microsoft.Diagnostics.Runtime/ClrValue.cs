@@ -15,6 +15,11 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly RuntimeBase _runtime;
 
+        internal ClrValue(ClrRuntime runtime)
+        {
+            _runtime = (RuntimeBase)runtime;
+        }
+
         internal ClrValue(RuntimeBase runtime)
         {
             _runtime = runtime;
@@ -318,7 +323,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException(string.Format("Field '{0}' does not exist in type '{1}'.", name, Type.Name));
 
             ulong addr = field.GetAddress(Address);
-            return new ClrValueImpl(addr, field);
+            return new ClrValueImpl(_runtime, addr, field);
         }
 
         public override string ToString()
@@ -334,7 +339,6 @@ namespace Microsoft.Diagnostics.Runtime
 
     internal class ClrValueImpl : ClrValue
     {
-        private ClrElementType _elementType;
         private ClrType _type;
         private ulong _address;
         private ulong _obj;
@@ -363,7 +367,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ClrValueImpl(RuntimeBase runtime, ulong address, ClrInstanceField field)
+        public ClrValueImpl(ClrRuntime runtime, ulong address, ClrInstanceField field)
             : base(runtime)
         {
             _address = address;
