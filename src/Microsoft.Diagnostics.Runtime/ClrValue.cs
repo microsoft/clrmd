@@ -41,6 +41,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool Interior { get; }
 
         /// <summary>
+        /// Returns whether this value is null (or otherwise cannot be accessed).
+        /// </summary>
+        public virtual bool IsNull { get { return Address == 0; } }
+
+        /// <summary>
         /// Returns the element type of this value.
         /// </summary>
         public abstract ClrElementType ElementType { get; }
@@ -96,8 +101,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a boolean.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             bool result;
             if (!_runtime.ReadBoolean(Address, out result))
                 throw new MemoryReadException(Address);
@@ -109,8 +112,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a byte.");
-
-            ClrHeap heap = Runtime.GetHeap();
 
             byte result;
             if (!_runtime.ReadByte(Address, out result))
@@ -124,8 +125,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a byte.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             sbyte result;
             if (!_runtime.ReadByte(Address, out result))
                 throw new MemoryReadException(Address);
@@ -137,8 +136,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a char.");
-
-            ClrHeap heap = Runtime.GetHeap();
 
             char result;
             if (!_runtime.ReadChar(Address, out result))
@@ -153,8 +150,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a short.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             short result;
             if (!_runtime.ReadShort(Address, out result))
                 throw new MemoryReadException(Address);
@@ -168,8 +163,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a short.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             ushort result;
             if (!_runtime.ReadShort(Address, out result))
                 throw new MemoryReadException(Address);
@@ -181,8 +174,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
                 throw new InvalidOperationException("Value is not an integer.");
-
-            ClrHeap heap = Runtime.GetHeap();
 
             int result;
             if (!_runtime.ReadDword(Address, out result))
@@ -196,8 +187,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
                 throw new InvalidOperationException("Value is not a long.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             uint result;
             if (!_runtime.ReadDword(Address, out result))
                 throw new MemoryReadException(Address);
@@ -210,8 +199,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
                 throw new InvalidOperationException("Value is not a long.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             ulong result;
             if (!_runtime.ReadQword(Address, out result))
                 throw new MemoryReadException(Address);
@@ -222,8 +209,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
                 throw new InvalidOperationException("Value is not a long.");
-
-            ClrHeap heap = Runtime.GetHeap();
 
             long result;
             if (!_runtime.ReadQword(Address, out result))
@@ -237,8 +222,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Float)
                 throw new InvalidOperationException("Value is not a float.");
 
-            ClrHeap heap = Runtime.GetHeap();
-
             float result;
             if (!_runtime.ReadFloat(Address, out result))
                 throw new MemoryReadException(Address);
@@ -250,8 +233,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (ElementType != ClrElementType.Double)
                 throw new InvalidOperationException("Value is not a double.");
-
-            ClrHeap heap = Runtime.GetHeap();
 
             double result;
             if (!_runtime.ReadFloat(Address, out result))
@@ -304,6 +285,37 @@ namespace Microsoft.Diagnostics.Runtime
         }
         #endregion
 
+        /// <summary>
+        /// Gets an object reference field from ClrObject.  Any field which is a subclass of System.Object
+        /// </summary>
+        /// <param name="fieldName">The name of the field to retrieve.</param>
+        /// <returns></returns>
+        public ClrObject GetObjectField(string fieldName)
+        {
+            ClrType type = Type;
+            ClrInstanceField field = type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+
+            if (!field.IsObjectReference)
+                throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
+            
+            if (IsNull)
+                throw new NullReferenceException();
+
+            ClrHeap heap = Type.Heap;
+            type = heap.ErrorType;
+
+            ulong addr = field.GetAddress(Address, Interior);
+            ulong obj;
+
+            if (heap.ReadPointer(addr, out obj) && obj != 0)
+                type = heap.GetObjectType(obj);
+
+            Debug.Assert(type != null);
+            return new ClrObject(obj, type);
+        }
+
         public virtual ClrValue GetField(string name)
         {
             ClrElementType el = ElementType;
@@ -329,6 +341,32 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong addr = field.GetAddress(Address, Interior);
             return new ClrValueImpl(_runtime, addr, field);
+        }
+
+        /// <summary>
+        /// Gets the value of a boolean field in this type.
+        /// </summary>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <returns>A boolean for the value.</returns>
+        public bool GetBooleanField(string fieldName)
+        {
+            ClrType type = Type;
+            ClrInstanceField field = type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+
+            if (field.ElementType != ClrElementType.Boolean)
+                throw new InvalidOperationException($"Field '{field.Type.Name}.{field.Name}' is not a boolean.");
+            
+            if (IsNull)
+                throw new NullReferenceException();
+
+            ulong address = field.GetAddress(Address);
+            bool result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadBoolean(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
         }
 
         public override string ToString()

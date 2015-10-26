@@ -57,11 +57,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrInstanceField field = _type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException(string.Format("Type '{0}' does not contain a field named '{1}'", _type.Name, fieldName));
+                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsObjectReference)
-                throw new ArgumentException(string.Format("Field '{0}.{1}' is not an object reference.", _type.Name, fieldName));
-            
+                throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not an object reference.");
+
+            if (IsNull)
+                throw new NullReferenceException();
+
             ClrHeap heap = _type.Heap;
             ClrType type = heap.ErrorType;
 
@@ -78,20 +81,48 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the given field in this object
         /// </summary>
-        /// <param name="name">The name of the field.</param>
+        /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of the field.</returns>
-        public ClrValue GetField(string name)
+        public ClrValue GetField(string fieldName)
         {
-            ClrInstanceField field = _type.GetFieldByName(name);
+            ClrInstanceField field = _type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException(string.Format("Type '{0}' does not contain a field named '{1}'", _type.Name, name));
+                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
             
+            if (IsNull)
+                throw new NullReferenceException();
+
             ulong addr = Address;
             ulong fieldAddr = field.GetAddress(addr);
             if (fieldAddr == 0)
                 throw new MemoryReadException(addr);
 
             return new ClrValueImpl(_type.Heap.Runtime, fieldAddr, field);
+        }
+
+        /// <summary>
+        /// Gets the value of a boolean field in this type.
+        /// </summary>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <returns>A boolean for the value.</returns>
+        public bool GetBooleanField(string fieldName)
+        {
+            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+
+            if (field.ElementType != ClrElementType.Boolean)
+                throw new InvalidOperationException($"Field '{field.Type.Name}.{field.Name}' is not a boolean.");
+
+            if (IsNull)
+                throw new NullReferenceException();
+            
+            ulong address = field.GetAddress(Address);
+            bool result;
+            if (!((RuntimeBase)_type.Heap.Runtime).ReadBoolean(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
         }
 
         // TODO:  This implementation not finished.

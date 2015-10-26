@@ -6,6 +6,7 @@
     float f = 4.2f;
     double d = 8.4;
     object o = new object();
+    Struct st = new Struct(1);
 
     public string FooString = "Foo string";
     

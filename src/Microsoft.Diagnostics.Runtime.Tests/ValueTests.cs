@@ -88,6 +88,34 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
+
+
+        [TestMethod]
+        public void GetFieldTests()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+                ClrThread thread = runtime.GetMainThread();
+                ClrStackFrame frame = thread.GetFrame("Main");
+
+                ClrValue value = frame.GetLocal("o");
+                Assert.AreEqual("Foo", value.Type.Name);  // Ensure we have the right object.
+
+                ClrObject obj = value.AsObject();
+                Assert.IsTrue(obj.GetBooleanField("b"));
+
+                ClrValue val = obj.GetField("st").GetField("middle").GetField("inner");
+                Assert.IsTrue(val.GetField("b").AsBoolean());
+                Assert.IsTrue(val.GetBooleanField("b"));
+                
+                obj = obj.GetField("st").GetField("middle").GetObjectField("inner");
+                Assert.IsTrue(obj.GetField("b").AsBoolean());
+                Assert.IsTrue(obj.GetBooleanField("b"));
+            }
+        }
+
         [TestMethod]
         public void StructVariableTest()
         {
