@@ -283,12 +283,14 @@ namespace Microsoft.Diagnostics.Runtime
         }
         #endregion
 
+        #region Field Access
+
         /// <summary>
         /// Gets an object reference field from ClrObject.  Any field which is a subclass of System.Object
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <returns></returns>
-        public ClrObject GetObjectField(string fieldName)
+        public ClrObject GetObject(string fieldName)
         {
             ClrType type = Type;
             ClrInstanceField field = type.GetFieldByName(fieldName);
@@ -297,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!field.IsObjectReference)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
-            
+
             if (IsNull)
                 throw new NullReferenceException();
 
@@ -342,30 +344,373 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the value of a boolean field in this type.
+        /// Gets a boolean field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
         /// </summary>
-        /// <param name="fieldName">The name of the field.</param>
-        /// <returns>A boolean for the value.</returns>
-        public bool GetBooleanField(string fieldName)
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public bool GetBoolean(string fieldName)
         {
-            ClrType type = Type;
-            ClrInstanceField field = type.GetFieldByName(fieldName);
-            if (field == null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
-            if (field.ElementType != ClrElementType.Boolean)
-                throw new InvalidOperationException($"Field '{field.Type.Name}.{field.Name}' is not a boolean.");
-            
-            if (IsNull)
-                throw new NullReferenceException();
-
-            ulong address = field.GetAddress(Address);
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Boolean, "bool", out type);
             bool result;
             if (!((RuntimeBase)type.Heap.Runtime).ReadBoolean(address, out result))
                 throw new MemoryReadException(address);
 
             return result;
         }
+        /// <summary>
+        /// Gets a byte field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public byte GetByte(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.UInt8, "byte", out type);
+            byte result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadByte(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets a signed byte field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public sbyte GetSByte(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Int8, "sbyte", out type);
+            sbyte result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadByte(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets a character field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public char GetChar(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Char, "char", out type);
+            char result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadChar(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a short field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public short GetInt16(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Int16, "short", out type);
+            short result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadShort(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets an unsigned short field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public ushort GetUInt16(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.UInt16, "ushort", out type);
+            ushort result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadShort(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a int field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public int GetInt32(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Int32, "int", out type);
+            int result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadDword(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets a uint field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public uint GetUInt32(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.UInt32, "uint", out type);
+            uint result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadDword(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a long field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public long GetInt64(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Int64, "long", out type);
+            long result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadQword(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a ulong field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public ulong GetUInt64(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.UInt64, "ulong", out type);
+            ulong result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadQword(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a float field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public float GetFloat(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Float, "float", out type);
+            float result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadFloat(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a double field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public double GetDouble(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.Double, "double", out type);
+            double result;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadFloat(address, out result))
+                throw new MemoryReadException(address);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a string field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public string GetString(string fieldName)
+        {
+            ClrType type;
+            ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string", out type);
+            ulong str;
+            RuntimeBase runtime = (RuntimeBase)type.Heap.Runtime;
+
+            if (!runtime.ReadPointer(address, out str))
+                throw new MemoryReadException(address);
+
+            string result;
+            if (!runtime.ReadString(str, out result))
+                throw new MemoryReadException(str);
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets a pointer field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public IntPtr GetIntPtr(string fieldName)
+        {
+            ClrType type = Type;
+            ClrInstanceField field = type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+
+            if (field.ElementType != ClrElementType.NativeInt && field.ElementType != ClrElementType.Pointer && field.ElementType != ClrElementType.FunctionPointer)
+                throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not a pointer.");
+
+            if (IsNull)
+                throw new NullReferenceException();
+
+            ulong address = field.GetAddress(Address);
+            ulong value;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadPointer(address, out value))
+                throw new MemoryReadException(address);
+
+            return new IntPtr((long)value);
+        }
+
+
+        /// <summary>
+        /// Gets an unsigned pointer field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
+        public UIntPtr GetUIntPtr(string fieldName)
+        {
+            ClrType type = Type;
+            ClrInstanceField field = type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+
+            if (field.ElementType != ClrElementType.NativeUInt && field.ElementType != ClrElementType.Pointer && field.ElementType != ClrElementType.FunctionPointer)
+                throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not a pointer.");
+
+            if (IsNull)
+                throw new NullReferenceException();
+
+            ulong address = field.GetAddress(Address);
+            ulong value;
+            if (!((RuntimeBase)type.Heap.Runtime).ReadPointer(address, out value))
+                throw new MemoryReadException(address);
+
+            return new UIntPtr((ulong)value);
+        }
+
+
+        private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName, out ClrType type)
+        {
+            type = Type;
+            ClrInstanceField field = type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+
+            if (field.ElementType != element)
+                throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
+
+            if (IsNull)
+                throw new NullReferenceException();
+
+            ulong address = field.GetAddress(Address, Interior);
+            return address;
+        }
+        #endregion
 
         public override string ToString()
         {
@@ -374,8 +719,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             return AsObject().Address.ToString("x");
         }
-
-        // TODO: This implementation not finished.
     }
 
     internal class ClrValueImpl : ClrValue

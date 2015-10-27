@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 
-#pragma warning disable 1591
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -54,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <returns></returns>
-        public ClrObject GetObjectField(string fieldName)
+        public ClrObject GetObject(string fieldName)
         {
             ClrInstanceField field = _type.GetFieldByName(fieldName);
             if (field == null)
@@ -102,10 +100,15 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the value of a boolean field in this type.
+        /// Gets a boolean field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
         /// </summary>
-        /// <param name="fieldName">The name of the field.</param>
-        /// <returns>A boolean for the value.</returns>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public bool GetBoolean(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Boolean, "bool");
@@ -116,6 +119,16 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+        /// <summary>
+        /// Gets a byte field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public byte GetByte(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.UInt8, "byte");
@@ -126,6 +139,16 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+        /// <summary>
+        /// Gets a signed byte field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public sbyte GetSByte(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Int8, "sbyte");
@@ -136,6 +159,16 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+        /// <summary>
+        /// Gets a character field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public char GetChar(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Char, "char");
@@ -147,6 +180,16 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
+        /// <summary>
+        /// Gets a short field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public short GetInt16(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Int16, "short");
@@ -158,6 +201,16 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
+        /// <summary>
+        /// Gets an unsigned short field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public ushort GetUInt16(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.UInt16, "ushort");
@@ -167,7 +220,18 @@ namespace Microsoft.Diagnostics.Runtime
 
             return result;
         }
-        
+
+
+        /// <summary>
+        /// Gets a int field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public int GetInt32(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Int32, "int");
@@ -178,6 +242,16 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+        /// <summary>
+        /// Gets a uint field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public uint GetUInt32(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.UInt32, "uint");
@@ -188,6 +262,17 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Gets a long field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public long GetInt64(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Int64, "long");
@@ -198,6 +283,17 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Gets a ulong field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public ulong GetUInt64(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.UInt64, "ulong");
@@ -208,6 +304,17 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Gets a float field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public float GetFloat(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Float, "float");
@@ -218,6 +325,17 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Gets a double field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public double GetDouble(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.Double, "double");
@@ -228,6 +346,17 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Gets a string field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public string GetString(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
@@ -244,6 +373,17 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Gets a pointer field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public IntPtr GetIntPtr(string fieldName)
         {
             ClrInstanceField field = _type.GetFieldByName(fieldName);
@@ -264,6 +404,17 @@ namespace Microsoft.Diagnostics.Runtime
             return new IntPtr((long)value);
         }
 
+
+        /// <summary>
+        /// Gets an unsigned pointer field from the object.  Note that the type must match exactly, as this method
+        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
+        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
+        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
+        /// the value of this field out of the data target.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <returns>The value of the given field.</returns>
         public UIntPtr GetUIntPtr(string fieldName)
         {
             ClrInstanceField field = _type.GetFieldByName(fieldName);
@@ -300,7 +451,5 @@ namespace Microsoft.Diagnostics.Runtime
             return address;
         }
         #endregion
-
-        // TODO:  This implementation not finished.
     }
 }

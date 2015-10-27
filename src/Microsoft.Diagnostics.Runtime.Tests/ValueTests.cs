@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual((short)0x4242, obj.GetInt16("sh"));
                 Assert.AreEqual((ushort)0x4343, obj.GetUInt16("ush"));
                 Assert.AreEqual(0x424242ul, obj.GetUInt64("ulng"));
-                Assert.AreEqual(0x434343l, obj.GetInt64("lng"));
+                Assert.AreEqual(0x434343L, obj.GetInt64("lng"));
             }
         }
 
@@ -137,9 +137,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 ClrValue val = obj.GetField("st").GetField("middle").GetField("inner");
                 Assert.IsTrue(val.GetField("b").AsBoolean());
-                Assert.IsTrue(val.GetBooleanField("b"));
+                Assert.IsTrue(val.GetBoolean("b"));
                 
-                obj = obj.GetField("st").GetField("middle").GetObjectField("inner");
+                obj = obj.GetField("st").GetField("middle").GetObject("inner");
                 Assert.IsTrue(obj.GetField("b").AsBoolean());
                 Assert.IsTrue(obj.GetBoolean("b"));
             }
