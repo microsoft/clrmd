@@ -69,7 +69,36 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
-        public void ObjectVariableTest()
+        public void ObjectFieldTest()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+                ClrStackFrame frame = runtime.GetMainThread().GetFrame("Main");
+
+                ClrValue value = frame.GetLocal("o");
+                ClrObject obj = value.AsObject();
+                Assert.AreEqual("Foo", obj.Type.Name);
+
+                Assert.AreEqual(42, obj.GetInt32("i"));
+                Assert.AreEqual(0x42u, obj.GetUInt32("ui"));
+                Assert.AreEqual("string", obj.GetString("s"));
+                Assert.AreEqual(true, obj.GetBoolean("b"));
+                Assert.AreEqual(4.2f, obj.GetFloat("f"));
+                Assert.AreEqual(8.4, obj.GetDouble("d"));
+                Assert.AreEqual('c', obj.GetChar("c"));
+                Assert.AreEqual(0x12, obj.GetByte("by"));
+                Assert.AreEqual((sbyte)0x13, obj.GetSByte("sby"));
+                Assert.AreEqual((short)0x4242, obj.GetInt16("sh"));
+                Assert.AreEqual((ushort)0x4343, obj.GetUInt16("ush"));
+                Assert.AreEqual(0x424242ul, obj.GetUInt64("ulng"));
+                Assert.AreEqual(0x434343l, obj.GetInt64("lng"));
+            }
+        }
+
+        [TestMethod]
+        public void ObjectLocalVariableTest()
         {
             using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
             {
@@ -104,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual("Foo", value.Type.Name);  // Ensure we have the right object.
 
                 ClrObject obj = value.AsObject();
-                Assert.IsTrue(obj.GetBooleanField("b"));
+                Assert.IsTrue(obj.GetBoolean("b"));
 
                 ClrValue val = obj.GetField("st").GetField("middle").GetField("inner");
                 Assert.IsTrue(val.GetField("b").AsBoolean());
@@ -112,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 
                 obj = obj.GetField("st").GetField("middle").GetObjectField("inner");
                 Assert.IsTrue(obj.GetField("b").AsBoolean());
-                Assert.IsTrue(obj.GetBooleanField("b"));
+                Assert.IsTrue(obj.GetBoolean("b"));
             }
         }
 

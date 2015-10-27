@@ -1,6 +1,14 @@
 ﻿public class Foo
 {
+    char c = 'c';
+    byte by = 0x12;
+    sbyte sby = 0x13;
     int i = 42;
+    uint ui = 0x42;
+    short sh = 0x4242;
+    ushort ush = 0x4343;
+    long lng = 0x434343;
+    ulong ulng = 0x424242;
     string s = "string";
     bool b = true;
     float f = 4.2f;
