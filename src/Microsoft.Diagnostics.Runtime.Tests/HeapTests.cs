@@ -20,9 +20,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrHeap heap = runtime.GetHeap();
 
                 int count = 0;
-                foreach (ulong obj in heap.EnumerateObjectAddresses())
+                foreach (ClrObject obj in heap.EnumerateObjects())
                 {
-                    Assert.IsNotNull(heap.GetObjectType(obj));
+                    Assert.IsNotNull(obj.Type);
+                    Assert.AreNotSame(heap.ErrorType, obj.Type);
+                    Assert.IsTrue(obj.Size > 0);
                     count++;
                 }
 

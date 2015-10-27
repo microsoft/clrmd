@@ -285,6 +285,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             return 0;
         }
+
+        public override ClrObject GetObject(ulong address)
+        {
+            return new ClrObject(address, GetObjectType(address));
+        }
     }
 
 

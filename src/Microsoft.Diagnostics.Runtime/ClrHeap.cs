@@ -31,6 +31,13 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrType GetObjectType(Address objRef);
 
         /// <summary>
+        /// Returns a ClrObject for the given object address.
+        /// </summary>
+        /// <param name="address">The address of an object</param>
+        /// <returns>A ClrObject for the given address.</returns>
+        abstract public ClrObject GetObject(ulong address);
+
+        /// <summary>
         /// Returns whether this version of CLR has component MethodTables.  Component MethodTables were removed from
         /// desktop CLR in v4.6, and do not exist at all on .Net Native.  If this method returns false, all componet
         /// MethodTables will be 0, and expected to be 0 when an argument to a function.
@@ -175,6 +182,12 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public IEnumerable<Address> EnumerateObjectAddresses();
 
         /// <summary>
+        /// Enumerates all objects on the heap.
+        /// </summary>
+        /// <returns>An enumeration of all objects on the heap.</returns>
+        abstract public IEnumerable<ClrObject> EnumerateObjects();
+
+        /// <summary>
         /// TotalHeapSize is defined as the sum of the length of all segments.  
         /// </summary>
         abstract public ulong TotalHeapSize { get; }
@@ -250,6 +263,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="value">The pointer value.</param>
         /// <returns>True if we successfully read the value, false if addr is not mapped into the process space.</returns>
         public abstract bool ReadPointer(Address addr, out Address value);
+
     }
 
     /// <summary>
@@ -467,17 +481,26 @@ namespace Microsoft.Diagnostics.Runtime
         virtual public Address CommittedEnd { get { return 0; } }
 
         /// <summary>
-        /// If it is possible to move from one object to the 'next' object in the segment. 
-        /// Then FirstObject returns the first object in the heap (or null if it is not
-        /// possible to walk the heap.
+        /// Returns the first object's address on this segment.
         /// </summary>
-        virtual public Address FirstObject { get { return 0; } }
+        virtual public Address FirstObjectAddress { get { return 0; } }
+
+        /// <summary>
+        /// Returns the first object on this segment.
+        /// </summary>
+        public abstract ClrObject FirstObject { get; }
 
         /// <summary>
         /// Given an object on the segment, return the 'next' object in the segment.  Returns
         /// 0 when there are no more objects.   (Or enumeration is not possible)  
         /// </summary>
         virtual public Address NextObject(Address objRef) { return 0; }
+
+        /// <summary>
+        /// Returns the next object given an object on this segment.  Returns an object with
+        /// IsNull set to true when reaching the end of this segment.
+        /// </summary>
+        public abstract ClrObject GetNextObject(ClrObject obj);
 
         /// <summary>
         /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
@@ -857,7 +880,23 @@ namespace Microsoft.Diagnostics.Runtime
             for (int i = 0; i < _segments.Length; ++i)
             {
                 var seg = _segments[i];
-                for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
+                for (ulong obj = seg.FirstObjectAddress; obj != 0; obj = seg.NextObject(obj))
+                {
+                    _lastSegmentIdx = i;
+                    yield return obj;
+                }
+            }
+        }
+        
+        public override IEnumerable<ClrObject> EnumerateObjects()
+        {
+            if (Revision != GetRuntimeRevision())
+                ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+
+            for (int i = 0; i < _segments.Length; ++i)
+            {
+                var seg = _segments[i];
+                for (ClrObject obj = seg.FirstObject; !obj.IsNull; obj = seg.GetNextObject(obj))
                 {
                     _lastSegmentIdx = i;
                     yield return obj;
@@ -944,11 +983,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<Address> EnumerateObjectAddresses()
         {
-            for (ulong obj = FirstObject; obj != 0; obj = NextObject(obj))
+            for (ulong obj = FirstObjectAddress; obj != 0; obj = NextObject(obj))
                 yield return obj;
         }
 
-        public override Address FirstObject
+        public override ClrObject FirstObject
+        {
+            get
+            {
+                return _heap.GetObject(FirstObjectAddress);
+            }
+        }
+
+        public override Address FirstObjectAddress
         {
             get
             {
@@ -959,29 +1006,29 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public override Address NextObject(Address addr)
+        public override ClrObject GetNextObject(ClrObject obj)
         {
-            if (addr >= CommittedEnd)
-                return 0;
+            if (obj.IsNull)
+                return obj;
 
             uint minObjSize = (uint)_clr.PointerSize * 3;
 
-            ClrType type = _heap.GetObjectType(addr);
+            ClrType type = obj.Type;
             if (type == null)
-                return 0;
+                return new ClrObject(0, _heap.ErrorType);
 
-            ulong size = type.GetSize(addr);
+            ulong size = obj.Size;
             size = Align(size, _large);
             if (size < minObjSize)
                 size = minObjSize;
 
             // Move to the next object
-            addr += size;
+            ulong addr = obj.Address + size;
 
             // Check to make sure a GC didn't cause "count" to be invalid, leading to too large
             // of an object
             if (addr >= End)
-                return 0;
+                return new ClrObject(0, _heap.ErrorType);
 
             // Ensure we aren't at the start of an alloc context
             ulong tmp;
@@ -991,16 +1038,23 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // Only if there's data corruption:
                 if (addr >= tmp)
-                    return 0;
+                    return new ClrObject(0, _heap.ErrorType);
 
                 // Otherwise:
                 addr = tmp;
 
                 if (addr >= End)
-                    return 0;
+                    return new ClrObject(0, _heap.ErrorType);
             }
 
-            return addr;
+            type = _heap.GetObjectType(addr);
+            return new ClrObject(addr, type);
+        }
+
+        public override Address NextObject(Address addr)
+        {
+            ClrObject obj = Heap.GetObject(addr);
+            return GetNextObject(obj).Address;
         }
 
         #region private

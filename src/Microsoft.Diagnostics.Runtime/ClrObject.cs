@@ -11,6 +11,14 @@ namespace Microsoft.Diagnostics.Runtime
         private ulong _address;
         private ClrType _type;
 
+        internal static ClrObject Create(ulong address, ClrType type)
+        {
+            ClrObject obj = new ClrObject();
+            obj._address = address;
+            obj._type = type;
+            return obj;
+        }
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -45,6 +53,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// during heap corruption, or if we simply encountered an error and could not determine its type.
         /// </summary>
         public bool IsValid { get { return _type != _type.Heap.ErrorType; } }
+
+        /// <summary>
+        /// Gets the size of the object.
+        /// </summary>
+        public ulong Size { get { return _type.GetSize(Address); } }
 
         #region Fields
         /// <summary>

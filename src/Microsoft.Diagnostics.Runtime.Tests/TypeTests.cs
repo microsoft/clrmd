@@ -169,10 +169,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
 
-                HashSet<ulong> methodTables = (from obj in heap.EnumerateObjectAddresses()
-                                               let type = heap.GetObjectType(obj)
-                                               where !type.IsFree
-                                               select heap.GetMethodTable(obj)).Unique();
+                HashSet<ulong> methodTables = (from obj in heap.EnumerateObjects()
+                                               where !obj.Type.IsFree
+                                               select heap.GetMethodTable(obj.Address)).Unique();
 
                 Assert.IsFalse(methodTables.Contains(0));
 
@@ -274,30 +273,29 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.GetHeap();
 
-                ulong[] fooObjects = (from obj in heap.EnumerateObjectAddresses()
-                                      let t = heap.GetObjectType(obj)
-                                      where t.Name == "Foo"
-                                      select obj).ToArray();
+                ClrObject[] fooObjects = (from obj in heap.EnumerateObjects()
+                                        where obj.Type.Name == "Foo"
+                                        select obj).ToArray();
 
                 // There are exactly two Foo objects in the process, one in each app domain.
                 // They will have different method tables.
                 Assert.AreEqual(2, fooObjects.Length);
 
 
-                ClrType fooType = heap.GetObjectType(fooObjects[0]);
-                Assert.AreSame(fooType, heap.GetObjectType(fooObjects[1]));
+                ClrType fooType = fooObjects[0].Type; // heap.GetObjectType(fooObjects[0]);
+                Assert.AreSame(fooType, fooObjects[1].Type);
 
 
                 ClrRoot appDomainsFoo = (from root in heap.EnumerateRoots(true)
                                          where root.Kind == GCRootKind.StaticVar && root.Type == fooType
                                          select root).Single();
 
-                ulong nestedExceptionFoo = fooObjects.Where(obj => obj != appDomainsFoo.Object).Single();
-                ClrType nestedExceptionFooType = heap.GetObjectType(nestedExceptionFoo);
+                ClrObject nestedExceptionFoo = fooObjects.Where(obj => obj.Address != appDomainsFoo.Object).Single();
+                ClrType nestedExceptionFooType = nestedExceptionFoo.Type;
 
                 Assert.AreSame(nestedExceptionFooType, appDomainsFoo.Type);
 
-                ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedExceptionFoo);
+                ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedExceptionFoo.Address);
                 ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Object);
 
                 // These are in different domains and should have different type handles:

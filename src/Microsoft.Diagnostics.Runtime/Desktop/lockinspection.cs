@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // First, enumerate all thinlocks on the heap.
             foreach (var seg in _heap.Segments)
             {
-                for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
+                for (ulong obj = seg.FirstObjectAddress; obj != 0; obj = seg.NextObject(obj))
                 {
                     ClrType type = _heap.GetObjectType(obj);
                     if (IsReaderWriterLock(obj, type))
