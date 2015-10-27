@@ -2,14 +2,28 @@
 
 #pragma warning disable 0219
 
+class NullRefTest
+{
+    public NullRefInner NullValue;
+    public NullRefInner SetValue = new NullRefInner();
+}
+
+class NullRefInner
+{
+    public int i = 42;
+}
+
 class Program
 {
     public static void Main(string[] args)
     {
-        object o = new Foo();
+        object foo = new Foo();
+        NullRefTest containsnullref = new NullRefTest();
+
         Struct s = new Struct(1);
         Outer();
-        GC.KeepAlive(o);
+        GC.KeepAlive(foo);
+        GC.KeepAlive(containsnullref);
     }
 
     private static void Outer()

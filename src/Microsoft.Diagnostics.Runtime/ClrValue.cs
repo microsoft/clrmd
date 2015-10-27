@@ -85,6 +85,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (!ClrRuntime.IsObjectReference(ElementType))
                 throw new InvalidOperationException("Value is not an object.");
 
+            if (IsNull)
+                throw new NullReferenceException();
+
             ClrHeap heap = Runtime.GetHeap();
 
             ulong obj;

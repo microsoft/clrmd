@@ -11,6 +11,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class ValueTests
     {
         [TestMethod]
+        public void NullValueOkTest()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrValue fooObject = runtime.GetMainThread().GetFrame("Main").GetLocal("containsnullref");
+
+                
+                // GetOrDefault
+            }
+        }
+
+        [TestMethod]
         public void PrimitiveVariableConversionTest()
         {
             using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
@@ -77,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrHeap heap = runtime.GetHeap();
                 ClrStackFrame frame = runtime.GetMainThread().GetFrame("Main");
 
-                ClrValue value = frame.GetLocal("o");
+                ClrValue value = frame.GetLocal("foo");
                 ClrObject obj = value.AsObject();
                 Assert.AreEqual("Foo", obj.Type.Name);
 
@@ -107,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrThread thread = runtime.GetMainThread();
                 ClrStackFrame frame = thread.GetFrame("Main");
 
-                ClrValue value = frame.GetLocal("o");
+                ClrValue value = frame.GetLocal("foo");
                 ClrObject obj = value.AsObject();
                 Assert.IsTrue(obj.IsValid);
                 Assert.IsFalse(obj.IsNull);
@@ -129,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrThread thread = runtime.GetMainThread();
                 ClrStackFrame frame = thread.GetFrame("Main");
 
-                ClrValue value = frame.GetLocal("o");
+                ClrValue value = frame.GetLocal("foo");
                 Assert.AreEqual("Foo", value.Type.Name);  // Ensure we have the right object.
 
                 ClrObject obj = value.AsObject();
