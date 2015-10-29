@@ -63,6 +63,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
+        public override ClrType NullType
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
         {
             throw new NotImplementedException();

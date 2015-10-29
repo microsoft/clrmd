@@ -736,11 +736,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
     }
 
-    class ErrorType : BaseDesktopHeapType
+    class SpecialType : BaseDesktopHeapType
     {
-        public ErrorType(DesktopGCHeap heap)
+        private string _name;
+
+        public SpecialType(DesktopGCHeap heap, string name)
             : base(heap, heap.DesktopRuntime.ErrorModule, 0)
         {
+            _name = name;
         }
 
         public override int BaseSize
@@ -867,7 +870,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return "ERROR";
+                return _name;
             }
         }
 

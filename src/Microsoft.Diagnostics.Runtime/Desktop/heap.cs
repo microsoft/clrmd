@@ -29,7 +29,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ((BaseDesktopHeapType)FreeType).DesktopModule = (DesktopModule)ObjectType.Module;
             StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
             ExceptionType = GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0);
-            DesktopErrorType = new ErrorType(this);
+
+            DesktopErrorType = new SpecialType(this, "ERROR");
+            DesktopNullType = new SpecialType(this, "null");
 
             InitSegments(runtime);
         }
@@ -779,11 +781,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #endregion
 
         public override ClrType ErrorType { get { return DesktopErrorType; } }
+        public override ClrType NullType { get { return DesktopNullType; } }
 
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
         internal BaseDesktopHeapType DesktopErrorType { get; private set; }
+        internal BaseDesktopHeapType DesktopNullType { get; private set; }
         internal ClrType ObjectType { get; private set; }
         internal ClrType StringType { get; private set; }
         internal ClrType ValueType { get; private set; }

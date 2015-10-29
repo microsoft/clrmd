@@ -26,6 +26,11 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrType ErrorType { get; }
 
         /// <summary>
+        /// When ClrMD needs to hand out a ClrType for a null object (such as ClrValue.GetObject on a field which is null).
+        /// </summary>
+        abstract public ClrType NullType { get; }
+
+        /// <summary>
         /// And the ability to take an address of an object and fetch its type (The type alows further exploration)
         /// </summary>
         abstract public ClrType GetObjectType(Address objRef);
