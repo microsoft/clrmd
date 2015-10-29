@@ -984,7 +984,7 @@ namespace Microsoft.Diagnostics.Runtime
                         continue;
 
                     string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), "mscordacwks.dll");
-                    if (!File.Exists(dacLocation) || !NativeMethods.IsEqualFileVersion(module.FileName, module.Version))
+                    if (!File.Exists(dacLocation) || !NativeMethods.IsEqualFileVersion(dacLocation, module.Version))
                         dacLocation = null;
 
                     ClrFlavor flavor;
