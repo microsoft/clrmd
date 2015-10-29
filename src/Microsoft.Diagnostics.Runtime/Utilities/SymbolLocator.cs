@@ -286,7 +286,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (!checkProperties)
                 {
-                    Trace("Found '{0}' for file {1}.", fullPath, Path.GetFileName(fullPath));
                     return true;
                 }
 
@@ -297,7 +296,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         var header = pefile.Header;
                         if (!checkProperties || (header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize))
                         {
-                            Trace("Found '{0}' at '{1}'.", Path.GetFileName(fullPath), fullPath);
                             return true;
                         }
                         else
@@ -378,7 +376,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (args != null && args.Length > 0)
                 fmt = string.Format(fmt, args);
 
-            System.Diagnostics.Trace.WriteLine(fmt, "symbols");
+            System.Diagnostics.Trace.WriteLine(fmt, "Microsoft.Diagnostics.Runtime.SymbolLocator");
         }
 
         /// <summary>
@@ -452,8 +450,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string fullPath = Path.Combine(element.Target, pdbSimpleName);
                     if (ValidatePdb(fullPath, pdbIndexGuid, pdbIndexAge))
                     {
+                        Trace($"Found pdb '{pdbSimpleName}' at '{fullPath}'.");
                         SetPdbEntry(missingPdbs, entry, fullPath);
                         return fullPath;
+                    }
+                    else
+                    {
+                        Trace($"Mismatched pdb found at '{fullPath}'.");
                     }
                 }
             }
@@ -503,8 +506,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         exeIndexPath = GetIndexPath(fileName, buildTimeStamp, imageSize);
 
                     string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? SymbolCache);
-                    if (ValidateBinary(target, buildTimeStamp, imageSize, checkProperties))
+                    if (target == null)
                     {
+                        Trace($"Server '{element.Target}' did not have file '{Path.GetFileName(fileName)}' with timestamp={buildTimeStamp:x} and filesize={imageSize:x}.");
+                    }
+                    else if (ValidateBinary(target, buildTimeStamp, imageSize, checkProperties))
+                    {
+                        Trace($"Found '{fileName}' on server '{element.Target}'.  Copied to '{target}'.");
                         SetFileEntry(missingFiles, entry, target);
                         return target;
                     }
@@ -514,6 +522,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string filePath = Path.Combine(element.Target, fileName);
                     if (ValidateBinary(filePath, buildTimeStamp, imageSize, checkProperties))
                     {
+                        Trace($"Found '{fileName}' at '{filePath}'.");
                         SetFileEntry(missingFiles, entry, filePath);
                         return filePath;
                     }

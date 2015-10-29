@@ -334,6 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     // Decompress it
                     Command.Run("Expand " + Command.Quote(result) + " " + Command.Quote(fullDestPath));
+                    Trace($"Found '{Path.GetFileName(fileIndexPath)}' on server '{urlForServer}'.  Copied to '{fullDestPath}'.");
                     return fullDestPath;
                 }
                 catch (Exception e)
@@ -350,7 +351,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // Handle uncompressed download.
             result = await rawFileDownload;
             if (result != null)
+            {
+                Trace($"Found '{Path.GetFileName(fileIndexPath)}' on server '{urlForServer}'.  Copied to '{result}'.");
                 return result;
+            }
 
             // Handle redirection case.
             var filePtrData = (await filePtrDownload ?? "").Trim();
@@ -364,6 +368,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     using (FileStream input = File.OpenRead(filePtrData))
                         await CopyStreamToFileAsync(input, filePtrSigPath, fullDestPath, input.Length);
 
+                    Trace($"Found '{Path.GetFileName(fileIndexPath)}' on server '{urlForServer}'.  Copied to '{fullDestPath}'.");
                     return fullDestPath;
                 }
                 catch (Exception)
@@ -376,6 +381,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Trace("Error resolving file.ptr: content '{0}' from '{1}'.", filePtrData, filePtrSigPath);
             }
 
+            Trace($"No file matching '{Path.GetFileName(fileIndexPath)}' found on server '{urlForServer}'.");
             return null;
         }
 
