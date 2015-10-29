@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual uint AsUInt32()
         {
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
-                throw new InvalidOperationException("Value is not a long.");
+                throw new InvalidOperationException("Value is not an integer.");
 
             uint result;
             if (!_runtime.ReadDword(Address, out result))
