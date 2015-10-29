@@ -61,10 +61,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         #region GetField
         /// <summary>
-        /// Gets an object reference field from ClrObject.  Any field which is a subclass of System.Object
+        /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
+        /// not exist in the object.  Throws NullReferenceException if IsNull is true.
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
-        /// <returns></returns>
+        /// <returns>A ClrObject of the given field.</returns>
         public ClrObject GetObject(string fieldName)
         {
             if (IsNull)
@@ -78,20 +79,18 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not an object reference.");
 
             ClrHeap heap = _type.Heap;
-            ClrType type = heap.ErrorType;
-
+            
             ulong addr = field.GetAddress(_address);
             ulong obj;
+            if (!heap.ReadPointer(addr, out obj))
+                throw new MemoryReadException(addr);
 
-            if (heap.ReadPointer(addr, out obj) && obj != 0)
-                type = heap.GetObjectType(obj);
-
-            Debug.Assert(type != null);
+            ClrType type = heap.GetObjectType(obj);
             return new ClrObject(obj, type);
         }
 
         /// <summary>
-        /// Gets the given field in this object
+        /// Gets the given field in this object.
         /// </summary>
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of the field.</returns>
@@ -475,7 +474,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject GetObjectOrNull(string fieldName)
         {
             if (IsNull)
-                return new ClrObject(0, Type.Heap.ErrorType);
+                return new ClrObject(0, Type.Heap.NullType);
 
             ClrInstanceField field = _type.GetFieldByName(fieldName);
             if (field == null)
@@ -485,15 +484,14 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not an object reference.");
 
             ClrHeap heap = _type.Heap;
-            ClrType type = heap.ErrorType;
 
             ulong addr = field.GetAddress(_address);
             ulong obj;
 
-            if (heap.ReadPointer(addr, out obj) && obj != 0)
-                type = heap.GetObjectType(obj);
+            if (!heap.ReadPointer(addr, out obj))
+                throw new MemoryReadException(addr);
 
-            Debug.Assert(type != null);
+            ClrType type = heap.GetObjectType(obj);
             return new ClrObject(obj, type);
         }
 

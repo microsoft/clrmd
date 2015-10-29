@@ -1020,7 +1020,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrType type = obj.Type;
             if (type == null)
-                return new ClrObject(0, _heap.ErrorType);
+                return new ClrObject(0, _heap.NullType);
 
             ulong size = obj.Size;
             size = Align(size, _large);
@@ -1033,7 +1033,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Check to make sure a GC didn't cause "count" to be invalid, leading to too large
             // of an object
             if (addr >= End)
-                return new ClrObject(0, _heap.ErrorType);
+                return new ClrObject(0, _heap.NullType);
 
             // Ensure we aren't at the start of an alloc context
             ulong tmp;
@@ -1043,13 +1043,13 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // Only if there's data corruption:
                 if (addr >= tmp)
-                    return new ClrObject(0, _heap.ErrorType);
+                    return new ClrObject(0, _heap.NullType);
 
                 // Otherwise:
                 addr = tmp;
 
                 if (addr >= End)
-                    return new ClrObject(0, _heap.ErrorType);
+                    return new ClrObject(0, _heap.NullType);
             }
 
             type = _heap.GetObjectType(addr);

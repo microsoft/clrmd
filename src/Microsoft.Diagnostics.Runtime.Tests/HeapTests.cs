@@ -24,11 +24,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     Assert.IsNotNull(obj.Type);
                     Assert.AreNotSame(heap.ErrorType, obj.Type);
+                    Assert.AreNotSame(heap.NullType, obj.Type);
                     Assert.IsTrue(obj.Size > 0);
                     count++;
                 }
 
                 Assert.IsTrue(count > 0);
+            }
+        }
+
+        [TestMethod]
+        public void SpecialTypes()
+        {
+            // Simply test that we can enumerate the heap.
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                Assert.AreSame(heap.ErrorType, heap.GetObjectType(0x123));
+                Assert.AreSame(heap.NullType, heap.GetObjectType(0));
             }
         }
 

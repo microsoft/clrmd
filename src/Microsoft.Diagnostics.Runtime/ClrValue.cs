@@ -32,6 +32,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong Address { get; }
 
         /// <summary>
+        /// Returns the result of ReadPointer(Address) if this value is an object.
+        /// </summary>
+        protected abstract ulong Object { get; }
+
+        /// <summary>
         /// Returns whether Address is an interior value.
         /// </summary>
         public abstract bool Interior { get; }
@@ -39,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns whether this value is null (or otherwise cannot be accessed).
         /// </summary>
-        public virtual bool IsNull { get { return Address == 0; } }
+        public virtual bool IsNull { get { return Address == 0 || (ClrRuntime.IsObjectReference(ElementType) && Object == 0); } }
 
         /// <summary>
         /// Returns the element type of this value.
@@ -94,11 +99,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.GetHeap();
 
-            ulong obj;
-            if (!heap.ReadPointer(Address, out obj))
-                throw new MemoryReadException(Address);
-
-            return new ClrObject(obj, obj != 0 ? heap.GetObjectType(obj) : heap.ErrorType);
+            ulong obj = Object;
+            return new ClrObject(obj, obj != 0 ? heap.GetObjectType(obj) : heap.NullType);
         }
 
         /// <summary>
@@ -376,6 +378,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrObject GetObject(string fieldName)
         {
+            if (IsNull)
+                throw new NullReferenceException();
+
             ClrType type = Type;
             ClrInstanceField field = type.GetFieldByName(fieldName);
             if (field == null)
@@ -384,20 +389,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (!field.IsObjectReference)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
 
-            if (IsNull)
-                throw new NullReferenceException();
-
             ClrHeap heap = Type.Heap;
-            type = heap.ErrorType;
 
-            ulong addr = field.GetAddress(Address, Interior);
+            ulong addr = ClrRuntime.IsObjectReference(ElementType) ? Object : Address;
+            addr = field.GetAddress(addr, Interior);
             ulong obj;
 
-            if (heap.ReadPointer(addr, out obj) && obj != 0)
-                type = heap.GetObjectType(obj);
-
-            Debug.Assert(type != null);
-            return new ClrObject(obj, type);
+            if (!heap.ReadPointer(addr, out obj))
+                throw new MemoryReadException(addr);
+            
+            return new ClrObject(obj, heap.GetObjectType(obj));
         }
 
         /// <summary>
@@ -789,6 +790,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName, out ClrType type)
         {
+            if (IsNull)
+                throw new NullReferenceException();
+
             type = Type;
             ClrInstanceField field = type.GetFieldByName(fieldName);
             if (field == null)
@@ -797,10 +801,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (field.ElementType != element)
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
 
-            if (IsNull)
-                throw new NullReferenceException();
-
-            ulong address = field.GetAddress(Address, Interior);
+            ulong address = ClrRuntime.IsObjectReference(ElementType) ? Object : Address;
+            address = field.GetAddress(address, Interior);
             return address;
         }
         #endregion
@@ -872,6 +874,14 @@ namespace Microsoft.Diagnostics.Runtime
         private ulong _address;
         private ulong _obj;
         private bool _interior;
+
+        protected override ulong Object
+        {
+            get
+            {
+                return _obj;
+            }
+        }
 
         public override int Size
         {
@@ -956,7 +966,25 @@ namespace Microsoft.Diagnostics.Runtime
         ICorDebug.ICorDebugValue _value;
         int? _size;
         ulong? _address;
+        ulong? _object;
         ClrElementType _elementType;
+
+        protected override ulong Object
+        {
+            get
+            {
+                if (!_object.HasValue)
+                {
+                    ulong obj;
+                    if (!Runtime.ReadPointer(Address, out obj))
+                        throw new MemoryReadException(Address);
+
+                    _object = obj;
+                }
+
+                return _object.Value;
+            }
+        }
 
         public override int Size
         {

@@ -92,9 +92,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrStackFrame frame = runtime.GetMainThread().GetFrame("Main");
 
                 ClrValue value = frame.GetLocal("foo");
+                Assert.AreEqual(42, value.GetInt32("i"));
+                Assert.AreEqual(0x42u, value.GetUInt32("ui"));
+                Assert.AreEqual("string", value.GetString("s"));
+                Assert.AreEqual(true, value.GetBoolean("b"));
+                Assert.AreEqual(4.2f, value.GetFloat("f"));
+                Assert.AreEqual(8.4, value.GetDouble("d"));
+                Assert.AreEqual('c', value.GetChar("c"));
+                Assert.AreEqual(0x12, value.GetByte("by"));
+                Assert.AreEqual((sbyte)0x13, value.GetSByte("sby"));
+                Assert.AreEqual((short)0x4242, value.GetInt16("sh"));
+                Assert.AreEqual((ushort)0x4343, value.GetUInt16("ush"));
+                Assert.AreEqual(0x424242ul, value.GetUInt64("ulng"));
+                Assert.AreEqual(0x434343L, value.GetInt64("lng"));
+
                 ClrObject obj = value.AsObject();
                 Assert.AreEqual("Foo", obj.Type.Name);
-
                 Assert.AreEqual(42, obj.GetInt32("i"));
                 Assert.AreEqual(0x42u, obj.GetUInt32("ui"));
                 Assert.AreEqual("string", obj.GetString("s"));

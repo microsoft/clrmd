@@ -1631,7 +1631,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrType GetObjectType(Address objRef)
         {
             if (objRef == 0)
-                return null;
+                return NullType;
 
             ulong mt, cmt = 0;
 
@@ -1703,7 +1703,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrType GetObjectType(Address objRef)
         {
             if (objRef == 0)
-                return null;
+                return NullType;
 
             ulong mt;
 
