@@ -17,9 +17,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrValue fooObject = runtime.GetMainThread().GetFrame("Main").GetLocal("containsnullref");
-
                 
-                // GetOrDefault
+                Assert.AreEqual(42, fooObject.GetObject("SetValue").GetInt32("i"));
+                Assert.IsTrue(fooObject.GetObject("NullValue").IsNull);
+                Assert.IsNull(fooObject.GetObject("NullValue").GetInt32OrNull("i"));
             }
         }
 

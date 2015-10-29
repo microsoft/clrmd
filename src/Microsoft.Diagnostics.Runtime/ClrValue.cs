@@ -922,6 +922,13 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public ClrValueImpl(ClrHeap heap)
+            : base(heap.Runtime)
+        {
+            _address = 0;
+            _type = heap.NullType;
+        }
+
         public override ClrObject AsObject()
         {
             if (Interior)
