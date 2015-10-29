@@ -2,8 +2,6 @@
 using System.Diagnostics;
 using System.Linq;
 
-#pragma warning disable 1591
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -80,6 +78,12 @@ namespace Microsoft.Diagnostics.Runtime
         protected abstract ClrType GetStructElementType();
 
         #region Converters
+
+        /// <summary>
+        /// Returns a ClrObject for this value.
+        /// </summary>
+        /// <returns>A ClrObject for this value.  If the value is null, then ClrObject.IsNull will the true and ClrObject.Type
+        /// will equal ClrHeap.ErrorType.</returns>
         public virtual ClrObject AsObject()
         {
             if (!ClrRuntime.IsObjectReference(ElementType))
@@ -97,6 +101,10 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrObject(obj, obj != 0 ? heap.GetObjectType(obj) : heap.ErrorType);
         }
 
+        /// <summary>
+        /// Converts the value to a boolean.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a boolean.</returns>
         public virtual bool AsBoolean()
         {
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
@@ -109,6 +117,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a byte.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a byte.</returns>
         public virtual byte AsByte()
         {
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
@@ -121,6 +134,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a sbyte.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a sbyte.</returns>
         public virtual sbyte AsSByte()
         {
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
@@ -133,6 +151,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a char.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a char.</returns>
         public virtual char AsChar()
         {
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
@@ -146,6 +169,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
+
+        /// <summary>
+        /// Converts the value to a short.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a boolean.</returns>
         public virtual short AsInt16()
         {
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
@@ -159,6 +187,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
+
+        /// <summary>
+        /// Converts the value to a ushort.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a boolean.</returns>
         public virtual ushort AsUInt16()
         {
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
@@ -171,6 +204,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to an int.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as an int.</returns>
         public virtual int AsInt32()
         {
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
@@ -183,6 +221,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a uint.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a uint.</returns>
         public virtual uint AsUInt32()
         {
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
@@ -195,6 +238,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a ulong.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a ulong.</returns>
         public virtual ulong AsUInt64()
         {
             if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
@@ -206,6 +254,13 @@ namespace Microsoft.Diagnostics.Runtime
 
             return result;
         }
+
+
+
+        /// <summary>
+        /// Converts the value to a long.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a long.</returns>
         public virtual long AsInt64()
         {
             if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
@@ -218,6 +273,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a float.
+        /// </summary>
+        /// <returns>This value as a float.</returns>
         public virtual float AsFloat()
         {
             if (ElementType != ClrElementType.Float)
@@ -230,6 +290,12 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+
+        /// <summary>
+        /// Converts the value to a double.
+        /// </summary>
+        /// <returns>This value as a double.</returns>
         public virtual double AsDouble()
         {
             if (ElementType != ClrElementType.Double)
@@ -242,9 +308,14 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a raw string.  This method will throw an InvalidOperationException if the target value is not a string.
+        /// </summary>
+        /// <returns>The string contents of this value.</returns>
         public virtual string AsString()
         {
-            if (ElementType != ClrElementType.String && (!ClrRuntime.IsObjectReference(ElementType) || !_runtime.GetHeap().GetObjectType(Address).IsString))
+            if (ElementType != ClrElementType.String && (!ClrRuntime.IsObjectReference(ElementType) || !Type.IsString))
                 throw new InvalidOperationException("Value is not a string.");
 
             ulong str;
@@ -261,6 +332,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to an IntPtr.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as an IntPtr.</returns>
         public virtual IntPtr AsIntPtr()
         {
             if (ElementType != ClrElementType.Pointer && ElementType != ClrElementType.FunctionPointer && ElementType != ClrElementType.NativeInt && ElementType != ClrElementType.NativeUInt)
@@ -273,6 +349,11 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+
+        /// <summary>
+        /// Converts the value to a UIntPtr.  Note that this method is a conversion, not a cast.  Similarly sized data will be converted.
+        /// </summary>
+        /// <returns>This value as a UIntPtr.</returns>
         public virtual UIntPtr AsUIntPtr()
         {
             if (ElementType != ClrElementType.Pointer && ElementType != ClrElementType.FunctionPointer && ElementType != ClrElementType.NativeInt && ElementType != ClrElementType.NativeUInt)
@@ -319,6 +400,11 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrObject(obj, type);
         }
 
+        /// <summary>
+        /// Retrieves a field from this value.
+        /// </summary>
+        /// <param name="name">The name of the field.</param>
+        /// <returns>A ClrValue representing this field.</returns>
         public virtual ClrValue GetField(string name)
         {
             ClrElementType el = ElementType;
@@ -337,13 +423,17 @@ namespace Microsoft.Diagnostics.Runtime
 
             Debug.Assert(ClrRuntime.IsValueClass(el));
 
+            ulong address = Address;
+            if (address == 0)
+                throw new NullReferenceException();
+
             ClrType type = Type;
             ClrInstanceField field = type.GetFieldByName(name);
             if (field == null)
                 throw new ArgumentException(string.Format("Field '{0}' does not exist in type '{1}'.", name, Type.Name));
 
-            ulong addr = field.GetAddress(Address, Interior);
-            return new ClrValueImpl(_runtime, addr, field);
+            ulong result = field.GetAddress(address, Interior);
+            return new ClrValueImpl(_runtime, result, field);
         }
 
         /// <summary>
@@ -715,12 +805,64 @@ namespace Microsoft.Diagnostics.Runtime
         }
         #endregion
 
+        /// <summary>
+        /// ToString implementation.
+        /// </summary>
+        /// <returns>A string value of this type.</returns>
         public override string ToString()
         {
-            if (!ClrRuntime.IsObjectReference(ElementType))
-                throw new NotImplementedException();
+            ClrElementType element = ElementType;
 
-            return AsObject().Address.ToString("x");
+            if (element == ClrElementType.String)
+                return AsString();
+
+            if (ClrRuntime.IsObjectReference(element))
+                return AsObject().Address.ToString("x");
+
+            if (ClrRuntime.IsValueClass(ElementType))
+                return $"{Type.Name} @{Address:x}";
+
+            switch (element)
+            {
+                case ClrElementType.Boolean:
+                    return AsBoolean().ToString();
+
+                case ClrElementType.Int8:
+                case ClrElementType.UInt8:
+                    return AsByte().ToString();
+
+                case ClrElementType.Char:
+                    return AsChar().ToString();
+
+                case ClrElementType.UInt16:
+                case ClrElementType.Int16:
+                    return AsInt16().ToString();
+
+                case ClrElementType.Int32:
+                case ClrElementType.UInt32:
+                    return AsInt32().ToString();
+
+                case ClrElementType.Int64:
+                case ClrElementType.UInt64:
+                    return AsInt64().ToString();
+
+                case ClrElementType.Pointer:
+                case ClrElementType.FunctionPointer:
+                case ClrElementType.NativeInt:
+                    return AsIntPtr().ToInt64().ToString("x");
+
+                case ClrElementType.NativeUInt:
+                    return AsUIntPtr().ToUInt64().ToString("x");
+
+                case ClrElementType.Float:
+                    return AsFloat().ToString();
+
+                case ClrElementType.Double:
+                    return AsDouble().ToString();
+
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 
