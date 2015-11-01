@@ -44,6 +44,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 value = frame.GetLocal("s");
                 Assert.AreEqual("hello world", value.AsString());
 
+                value = frame.GetLocal("st");
+                Assert.AreEqual(42, value.GetInt32("i"));
+
 
                 frame = thread.GetFrame("Middle");
 

@@ -56,6 +56,7 @@ class Program
     {
         bool b = true;
         char c = 'c';
+        Struct st = new Struct(1);
         if (b)
         {
             string s = "hello world";
