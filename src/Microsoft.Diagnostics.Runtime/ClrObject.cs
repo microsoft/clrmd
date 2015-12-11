@@ -77,6 +77,15 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrValueImpl(_type.Heap.Runtime, Address + (uint)IntPtr.Size, _type, true);
         }
 
+        /// <summary>
+        /// Convenience function to convert to a ClrValue.
+        /// </summary>
+        /// <returns>A ClrValue representing this ClrObject.</returns>
+        public ClrValue AsClrValue()
+        {
+            return new ClrValueImpl(_type.Heap.Runtime, Address, _type, false);
+        }
+
         #region GetField
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does

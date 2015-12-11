@@ -48,6 +48,29 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
+        public void AsClrValueTest()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                var ints = (from item in heap.EnumerateObjects()
+                            where item.Type.ElementType == ClrElementType.Int32
+                            select item);
+
+                foreach (ClrObject obj in ints)
+                {
+                    int val = (int)obj.Type.GetValue(obj.Address);
+                    ClrValue tmp = obj.AsClrValue();
+
+                    int clrValue = tmp.AsInt32();
+                    Assert.AreEqual(val, clrValue);
+                }
+            }
+        }
+
+        [TestMethod]
         public void PrimitiveVariableConversionTest()
         {
             using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())

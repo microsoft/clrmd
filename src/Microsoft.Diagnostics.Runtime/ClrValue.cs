@@ -112,9 +112,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a boolean.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             bool result;
-            if (!_runtime.ReadBoolean(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadBoolean(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -129,9 +130,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a byte.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             byte result;
-            if (!_runtime.ReadByte(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadByte(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -146,9 +148,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Boolean && ElementType != ClrElementType.Int8 && ElementType != ClrElementType.UInt8)
                 throw new InvalidOperationException("Value is not a byte.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             sbyte result;
-            if (!_runtime.ReadByte(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadByte(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -163,9 +166,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a char.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             char result;
-            if (!_runtime.ReadChar(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadChar(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -181,9 +185,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a short.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             short result;
-            if (!_runtime.ReadShort(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadShort(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -199,9 +204,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Char && ElementType != ClrElementType.Int16 && ElementType != ClrElementType.UInt16)
                 throw new InvalidOperationException("Value is not a short.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             ushort result;
-            if (!_runtime.ReadShort(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadShort(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -216,9 +222,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
                 throw new InvalidOperationException("Value is not an integer.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             int result;
-            if (!_runtime.ReadDword(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadDword(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -233,9 +240,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Int32 && ElementType != ClrElementType.UInt32)
                 throw new InvalidOperationException("Value is not an integer.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             uint result;
-            if (!_runtime.ReadDword(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadDword(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -250,9 +258,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
                 throw new InvalidOperationException("Value is not a long.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             ulong result;
-            if (!_runtime.ReadQword(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadQword(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -268,9 +277,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.UInt64 && ElementType != ClrElementType.Int64)
                 throw new InvalidOperationException("Value is not a long.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             long result;
-            if (!_runtime.ReadQword(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadQword(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -285,9 +295,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Float)
                 throw new InvalidOperationException("Value is not a float.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             float result;
-            if (!_runtime.ReadFloat(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadFloat(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -303,9 +314,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Double)
                 throw new InvalidOperationException("Value is not a double.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             double result;
-            if (!_runtime.ReadFloat(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadFloat(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -344,9 +356,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Pointer && ElementType != ClrElementType.FunctionPointer && ElementType != ClrElementType.NativeInt && ElementType != ClrElementType.NativeUInt)
                 throw new InvalidOperationException("Value is not a pointer.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             IntPtr result;
-            if (!_runtime.ReadPointer(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadPointer(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -361,9 +374,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ElementType != ClrElementType.Pointer && ElementType != ClrElementType.FunctionPointer && ElementType != ClrElementType.NativeInt && ElementType != ClrElementType.NativeUInt)
                 throw new InvalidOperationException("Value is not a pointer.");
 
+            ulong address = Interior ? Address : Address + (uint)IntPtr.Size;
             UIntPtr result;
-            if (!_runtime.ReadPointer(Address, out result))
-                throw new MemoryReadException(Address);
+            if (!_runtime.ReadPointer(address, out result))
+                throw new MemoryReadException(address);
 
             return result;
         }
@@ -920,7 +934,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             _address = address;
             _type = field.Type;
-            _interior = field.IsValueClass;
+            _interior = !field.IsObjectReference;
 
             if (_type.IsObjectReference)
             {
@@ -1024,7 +1038,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                return _elementType == ClrElementType.Struct;
+                return !ClrRuntime.IsObjectReference(_elementType);
             }
         }
 
