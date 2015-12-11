@@ -932,6 +932,25 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public ClrValueImpl(ClrRuntime runtime, ulong address, ClrType type, bool interior)
+            : base(runtime)
+        {
+            _address = address;
+            _type = type;
+            _interior = interior;
+
+            Debug.Assert(!interior || !type.IsObjectReference);
+
+            if (_type.IsObjectReference)
+            {
+                var heap = _type.Heap;
+                if (!heap.ReadPointer(address, out _obj))
+                    throw new MemoryReadException(address);
+
+                _type = heap.GetObjectType(_obj);
+            }
+        }
+
         public ClrValueImpl(ClrHeap heap)
             : base(heap.Runtime)
         {

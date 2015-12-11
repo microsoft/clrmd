@@ -59,6 +59,24 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ulong Size { get { return _type.GetSize(Address); } }
 
+        /// <summary>
+        /// Returns whether this object is actually a boxed primitive or struct.
+        /// </summary>
+        public bool IsBoxed { get { return !_type.IsObjectReference; } }
+
+        /// <summary>
+        /// Unboxes a primitive or struct value and returns its corresponding ClrValue.
+        /// Throws an InvalidOperationException if IsBoxed is false.
+        /// </summary>
+        /// <returns>A ClrValue of the primitive/struct that was unboxed.</returns>
+        public ClrValue Unbox()
+        {
+            if (!IsBoxed)
+                throw new InvalidOperationException("Attempted to unbox a reference type.");
+
+            return new ClrValueImpl(_type.Heap.Runtime, Address + (uint)IntPtr.Size, _type, true);
+        }
+
         #region GetField
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
