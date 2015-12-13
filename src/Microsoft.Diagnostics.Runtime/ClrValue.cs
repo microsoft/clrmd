@@ -22,6 +22,44 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns whether this object is an array or not.
+        /// </summary>
+        public bool IsArray { get { return Type.IsArray; } }
+
+        /// <summary>
+        /// Returns the count of elements in this array, or throws InvalidOperatonException if this object is not an array.
+        /// </summary>
+        public int Count
+        {
+            get
+            {
+                if (!IsArray)
+                    throw new InvalidOperationException();
+
+                return Type.GetArrayLength(Address);
+            }
+        }
+
+        /// <summary>
+        /// Returns the given element in the array.
+        /// </summary>
+        /// <param name="i">The index of the element to return.</param>
+        /// <returns>A ClrValue of the value.</returns>
+        public ClrValue this[int i]
+        {
+            get
+            {
+                if (!IsArray)
+                    throw new InvalidOperationException();
+
+                ClrType arrayType = Type.ComponentType;
+
+                ulong addr = Type.GetArrayElementAddress(Address, i);
+                return new ClrValueImpl(Type.Heap.Runtime, addr, arrayType, !arrayType.IsObjectReference);
+            }
+        }
+
+        /// <summary>
         /// Returns the size of the value.
         /// </summary>
         public abstract int Size { get; }
@@ -32,11 +70,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong Address { get; }
 
         /// <summary>
-        /// Returns the result of ReadPointer(Address) if this value is an object.
-        /// </summary>
-        protected abstract ulong Object { get; }
-
-        /// <summary>
         /// Returns whether Address is an interior value.
         /// </summary>
         public abstract bool Interior { get; }
@@ -44,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns whether this value is null (or otherwise cannot be accessed).
         /// </summary>
-        public virtual bool IsNull { get { return Address == 0 || (ClrRuntime.IsObjectReference(ElementType) && Object == 0); } }
+        public virtual bool IsNull { get { return Address == 0 || (ClrRuntime.IsObjectReference(ElementType) && Address == 0); } }
 
         /// <summary>
         /// Returns the element type of this value.
@@ -99,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.GetHeap();
 
-            ulong obj = Object;
+            ulong obj = Address;
             return new ClrObject(obj, obj != 0 ? heap.GetObjectType(obj) : heap.NullType);
         }
 
@@ -331,17 +364,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (ElementType != ClrElementType.String && (!ClrRuntime.IsObjectReference(ElementType) || !Type.IsString))
                 throw new InvalidOperationException("Value is not a string.");
-
-            ulong str;
-            if (!_runtime.ReadPointer(Address, out str))
-                throw new MemoryReadException(Address);
-
-            if (str == 0)
+            
+            if (Address == 0)
                 return null;
 
             string result;
-            if (!_runtime.ReadString(str, out result))
-                throw new MemoryReadException(str);
+            if (!_runtime.ReadString(Address, out result))
+                throw new MemoryReadException(Address);
 
             return result;
         }
@@ -405,7 +434,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Type.Heap;
 
-            ulong addr = ClrRuntime.IsObjectReference(ElementType) ? Object : Address;
+            ulong addr = Address;
             addr = field.GetAddress(addr, Interior);
             ulong obj;
 
@@ -814,9 +843,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (field.ElementType != element)
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
-
-            ulong address = ClrRuntime.IsObjectReference(ElementType) ? Object : Address;
-            address = field.GetAddress(address, Interior);
+            
+            ulong address = field.GetAddress(Address, Interior);
             return address;
         }
         #endregion
@@ -886,22 +914,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private ClrType _type;
         private ulong _address;
-        private ulong _obj;
         private bool _interior;
-
-        protected override ulong Object
-        {
-            get
-            {
-                return _obj;
-            }
-        }
-
+        
         public override int Size
         {
             get
             {
-                return _type.IsObjectReference ? (int)_type.GetSize(_obj) : _type.BaseSize;
+                return _type.IsObjectReference ? (int)_type.GetSize(_address) : _type.BaseSize;
             }
         }
 
@@ -939,11 +958,23 @@ namespace Microsoft.Diagnostics.Runtime
             if (_type.IsObjectReference)
             {
                 var heap = _type.Heap;
-                if (!heap.ReadPointer(address, out _obj))
+                if (!heap.ReadPointer(_address, out _address))
                     throw new MemoryReadException(address);
 
-                _type = heap.GetObjectType(_obj);
+                _type = heap.GetObjectType(_address);
             }
+        }
+
+        public ClrValueImpl(ClrRuntime runtime, ulong obj, ClrType type)
+            : base(runtime)
+        {
+            // For reference types only, this is called with the object itself and assumes
+            // obj points to an object and type is a concrete type.
+            _address = obj;
+            _interior = false;
+            _type = type;
+
+            Debug.Assert(type == type.Heap.GetObjectType(obj));
         }
 
         public ClrValueImpl(ClrRuntime runtime, ulong address, ClrType type, bool interior)
@@ -958,10 +989,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (_type.IsObjectReference)
             {
                 var heap = _type.Heap;
-                if (!heap.ReadPointer(address, out _obj))
+                if (!heap.ReadPointer(address, out _address))
                     throw new MemoryReadException(address);
 
-                _type = heap.GetObjectType(_obj);
+                _type = heap.GetObjectType(_address);
             }
         }
 
@@ -977,7 +1008,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Interior)
                 throw new InvalidOperationException("Value is an interior pointer, not an object.");
 
-            return new ClrObject(_obj, _type);
+            return new ClrObject(_address, _type);
         }
 
         public override ClrType Type
@@ -999,25 +1030,7 @@ namespace Microsoft.Diagnostics.Runtime
         ICorDebug.ICorDebugValue _value;
         int? _size;
         ulong? _address;
-        ulong? _object;
         ClrElementType _elementType;
-
-        protected override ulong Object
-        {
-            get
-            {
-                if (!_object.HasValue)
-                {
-                    ulong obj;
-                    if (!Runtime.ReadPointer(Address, out obj))
-                        throw new MemoryReadException(Address);
-
-                    _object = obj;
-                }
-
-                return _object.Value;
-            }
-        }
 
         public override int Size
         {
@@ -1050,6 +1063,13 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     ulong addr;
                     _value.GetAddress(out addr);
+
+                    if (ClrRuntime.IsObjectReference(ElementType))
+                    {
+                        if (!Runtime.ReadPointer(addr, out addr))
+                            throw new MemoryReadException(addr);
+                    }
+
                     _address = addr;
                 }
 

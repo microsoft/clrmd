@@ -78,12 +78,50 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns whether this object is an array or not.
+        /// </summary>
+        public bool IsArray { get { return _type.IsArray; } }
+
+        /// <summary>
+        /// Returns the count of elements in this array, or throws InvalidOperatonException if this object is not an array.
+        /// </summary>
+        public int Count
+        {
+            get
+            {
+                if (!IsArray)
+                    throw new InvalidOperationException();
+
+                return _type.GetArrayLength(Address);
+            }
+        }
+
+        /// <summary>
+        /// Returns the given element in the array.
+        /// </summary>
+        /// <param name="i">The index of the element to return.</param>
+        /// <returns>A ClrValue of the value.</returns>
+        public ClrValue this[int i]
+        {
+            get
+            {
+                if (!IsArray)
+                    throw new InvalidOperationException();
+
+                ClrType arrayType = _type.ComponentType;
+
+                ulong addr = _type.GetArrayElementAddress(Address, i);
+                return new ClrValueImpl(_type.Heap.Runtime, addr, arrayType, !arrayType.IsObjectReference);
+            }
+        }
+
+        /// <summary>
         /// Convenience function to convert to a ClrValue.
         /// </summary>
         /// <returns>A ClrValue representing this ClrObject.</returns>
         public ClrValue AsClrValue()
         {
-            return new ClrValueImpl(_type.Heap.Runtime, Address, _type, false);
+            return new ClrValueImpl(_type.Heap.Runtime, Address, _type);
         }
 
         #region GetField

@@ -48,6 +48,92 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [TestMethod]
+        public void RoundTripTest()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                foreach (ClrObject obj in heap.EnumerateObjects())
+                {
+                    ClrValue val = obj.AsClrValue();
+
+                    Assert.AreEqual(obj.Type, val.Type);
+                    Assert.AreEqual(obj.Address, val.Address);
+
+                    ClrObject obj2 = val.AsObject();
+                    
+                    Assert.AreEqual(obj.Type, obj2.Type);
+                    Assert.AreEqual(obj.Address, obj2.Address);
+                }
+
+            }
+        }
+
+
+        [TestMethod]
+        public void ArrayElementTests()
+        {
+            using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.GetHeap();
+
+                var arrays = (from item in heap.EnumerateObjects()
+                              where item.IsArray && (item.Type.ComponentType.ElementType == ClrElementType.Int32 || item.Type.ComponentType.IsObjectReference)
+                              select item);
+
+                foreach (ClrObject obj in arrays)
+                {
+                    ClrValue clrValue = obj.AsClrValue();
+                    int len = obj.Type.GetArrayLength(obj.Address);
+                    Assert.AreEqual(len, obj.Count);
+
+                    bool isIntArray = obj.Type.ComponentType.ElementType == ClrElementType.Int32;
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        if (isIntArray)
+                        {
+                            int value = (int)obj.Type.GetArrayElementValue(obj.Address, i);
+                            int indexedValue = obj[i].AsInt32();
+                            Assert.AreEqual(value, indexedValue);
+
+                            indexedValue = clrValue[i].AsInt32();
+                            Assert.AreEqual(value, indexedValue);
+                        }
+                        else
+                        {
+                            object o = obj.Type.GetArrayElementValue(obj.Address, i);
+                            if (o == null)
+                                continue;
+
+                            if (o is string)
+                            {
+                                string value = (string)o;
+                                string indexedValue = obj[i].AsString();
+                                Assert.AreEqual(value, indexedValue);
+
+                                indexedValue = clrValue[i].AsString();
+                                Assert.AreEqual(value, indexedValue);
+                            }
+                            else
+                            {
+                                ulong value = (ulong)o;
+                                ulong indexedValue = obj[i].AsObject().Address;
+                                Assert.AreEqual(value, indexedValue);
+
+                                indexedValue = clrValue[i].AsObject().Address;
+                                Assert.AreEqual(value, indexedValue);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
         public void AsClrValueTest()
         {
             using (DataTarget dt = TestTargets.LocalVariables.LoadFullDump())
