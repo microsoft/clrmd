@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClrAppDomain.cs" />
+    <Compile Include="ClrDynamicValue.cs" />
     <Compile Include="ClrObject.cs" />
     <Compile Include="ClrValue.cs" />
     <Compile Include="DataTarget.cs" />

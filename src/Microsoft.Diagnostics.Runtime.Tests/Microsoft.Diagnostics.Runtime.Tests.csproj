@@ -35,6 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
   </ItemGroup>
   <Choose>
@@ -54,6 +55,7 @@
   <ItemGroup>
     <Compile Include="AppDomainTests.cs" />
     <Compile Include="Debugger.cs" />
+    <Compile Include="DynamicTests.cs" />
     <Compile Include="GCHandleTests.cs" />
     <Compile Include="StackTests.cs" />
     <Compile Include="ValueTests.cs" />

@@ -21,6 +21,13 @@ namespace Microsoft.Diagnostics.Runtime
             _runtime = runtime;
         }
 
+#if !V2_SUPPORT
+        /// <summary>
+        /// Returns a C# dynamic value for this value.
+        /// </summary>
+        public dynamic Dynamic { get { return new ClrDynamicValue(this); } }
+#endif
+
         /// <summary>
         /// Returns whether this object is an array or not.
         /// </summary>
@@ -29,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the count of elements in this array, or throws InvalidOperatonException if this object is not an array.
         /// </summary>
-        public int Count
+        public int Length
         {
             get
             {
@@ -106,6 +113,28 @@ namespace Microsoft.Diagnostics.Runtime
                     return AsObject().Type;
 
                 return GetStructElementType();
+            }
+        }
+
+        /// <summary>
+        /// Returns the "value" itself.  The type will vary based on ElementType.
+        /// </summary>
+        public object Value
+        {
+            get
+            {
+                ulong addr = Address;
+                
+                // Structs are stored as objects.
+                var elementType = ElementType;
+                if (elementType == ClrElementType.Struct)
+                    elementType = ClrElementType.Object;
+
+                if (elementType == ClrElementType.Object && addr == 0)
+                    return (ulong)0;
+
+                // TODO:  Refactor such that GetValueAtAddress is on HeapBase.
+                return ((Desktop.DesktopGCHeap)Type.Heap).GetValueAtAddress(elementType, addr);
             }
         }
 
@@ -362,11 +391,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The string contents of this value.</returns>
         public virtual string AsString()
         {
-            if (ElementType != ClrElementType.String && (!ClrRuntime.IsObjectReference(ElementType) || !Type.IsString))
-                throw new InvalidOperationException("Value is not a string.");
-            
             if (Address == 0)
                 return null;
+
+            if (ElementType != ClrElementType.String && (!ClrRuntime.IsObjectReference(ElementType) || !Type.IsString))
+                throw new InvalidOperationException("Value is not a string.");
 
             string result;
             if (!_runtime.ReadString(Address, out result))

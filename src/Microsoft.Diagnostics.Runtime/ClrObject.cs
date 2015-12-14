@@ -33,6 +33,13 @@ namespace Microsoft.Diagnostics.Runtime
             Debug.Assert(address == 0 || type.Heap.GetObjectType(address) == type);
         }
 
+#if !V2_SUPPORT
+        /// <summary>
+        /// Returns a C# dynamic value for this object.
+        /// </summary>
+        public dynamic Dynamic { get { return AsClrValue().Dynamic; } }
+#endif
+
         /// <summary>
         /// The address of the object.
         /// </summary>
@@ -85,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the count of elements in this array, or throws InvalidOperatonException if this object is not an array.
         /// </summary>
-        public int Count
+        public int Length
         {
             get
             {
@@ -124,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrValueImpl(_type.Heap.Runtime, Address, _type);
         }
 
-        #region GetField
+#region GetField
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
         /// not exist in the object.  Throws NullReferenceException if IsNull is true.
@@ -527,10 +534,10 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = field.GetAddress(Address);
             return address;
         }
-        #endregion
+#endregion
 
 
-        #region FieldOrNull
+#region FieldOrNull
         /// <summary>
         /// Gets an object reference field from ClrObject.  Any field which is a subclass of System.Object
         /// </summary>
@@ -944,6 +951,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             return new UIntPtr((ulong)value);
         }
-        #endregion
+#endregion
     }
 }

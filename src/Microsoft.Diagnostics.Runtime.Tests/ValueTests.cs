@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     ClrValue clrValue = obj.AsClrValue();
                     int len = obj.Type.GetArrayLength(obj.Address);
-                    Assert.AreEqual(len, obj.Count);
+                    Assert.AreEqual(len, obj.Length);
 
                     bool isIntArray = obj.Type.ComponentType.ElementType == ClrElementType.Int32;
 
