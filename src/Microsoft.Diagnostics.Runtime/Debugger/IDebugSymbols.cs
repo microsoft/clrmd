@@ -218,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int SetScope(
             [In] UInt64 InstructionOffset,
-            [In] DEBUG_STACK_FRAME ScopeFrame,
+            [In] ref DEBUG_STACK_FRAME ScopeFrame,
             [In] IntPtr ScopeContext,
             [In] UInt32 ScopeContextSize);
 
