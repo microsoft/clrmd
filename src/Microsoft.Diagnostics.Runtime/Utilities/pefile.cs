@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _stream = stream;
             _headerBuff = buffer;
             Header = header;
-            if (Header.PEHeaderSize > _headerBuff.Length)
+            if (header != null && header.PEHeaderSize > _headerBuff.Length)
                 throw new InvalidOperationException("Bad PE Header in " + filePath);
         }
         /// <summary>
