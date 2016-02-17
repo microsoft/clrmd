@@ -55,6 +55,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public override IEnumerable<ClrException> GetSerializedExceptions()
+        {
+            throw new NotSupportedException("GetSerializedExceptions is only supported for .NET native.");
+        }
+
         internal override ulong[] GetAssemblyList(ulong appDomain, int count)
         {
             return RequestAddrList(DacRequests.ASSEMBLY_LIST, appDomain, count);

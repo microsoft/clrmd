@@ -4,6 +4,8 @@
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
 
@@ -17,6 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeModule[] _modules;
         private NativeAppDomain _domain;
         private int _dacRawVersion;
+
+        private ISOSNativeSerializedExceptionSupport _sosNativeSerializedExceptionSupport;
 
         public NativeRuntime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -46,12 +50,22 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
                 _sos = (ISOSNative)dac;
             }
+            if (_sosNativeSerializedExceptionSupport == null)
+            {
+                var dac = _library.DacInterface;
+                if (dac is ISOSNativeSerializedExceptionSupport)
+                    _sosNativeSerializedExceptionSupport = (ISOSNativeSerializedExceptionSupport)dac;
+            }
+
+        
         }
 
         public override ClrHeap GetHeap()
         {
             if (_heap == null)
+            {
                 _heap = new NativeHeap(this, NativeModules);
+            }
 
             return _heap;
         }
@@ -259,6 +273,95 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
 
             _threads = threads.ToArray();
+        }
+
+        public override IEnumerable<ClrException> GetSerializedExceptions()
+        {
+            if (!this.ClrInfo.DacInfo.PlatformAgnosticFileName.Contains("mrt100"))
+                throw new ClrDiagnosticsException("Serialized exceptions are only available for a Native data target");
+
+            if (_sosNativeSerializedExceptionSupport == null)
+                throw new ClrDiagnosticsException("This version of mrt100 is too old.", ClrDiagnosticsException.HR.DataRequestError);
+
+            var exceptionById = new Dictionary<ulong, NativeHeap.NativeException>();
+            ISerializedExceptionEnumerator serializedExceptionEnumerator = _sosNativeSerializedExceptionSupport.GetSerializedExceptions();
+            while (serializedExceptionEnumerator.HasNext())
+            {
+                ISerializedException serializedException = serializedExceptionEnumerator.Next();
+
+                //build the stack frames
+                IList<ClrStackFrame> stackFrames = new List<ClrStackFrame>();
+                ISerializedStackFrameEnumerator serializedStackFrameEnumerator = serializedException.StackFrames;
+                while (serializedStackFrameEnumerator.HasNext())
+                {
+                    ISerializedStackFrame serializedStackFrame = serializedStackFrameEnumerator.Next();
+
+                    NativeModule nm = ((NativeHeap)this.GetHeap()).GetModuleFromAddress(serializedStackFrame.IP);
+                    if (nm == null)
+                    {
+                        Trace.WriteLine(String.Format("Unable to resolve module for IP {0}", serializedStackFrame.IP));
+                        continue;
+                    }
+                    if (nm.Pdb == null) {
+                        Trace.WriteLine(String.Format("PDB not found for IP {0}, Module={1}", serializedStackFrame.IP,nm.Name));
+                        continue;
+                    }
+
+                    ISymbolResolver resolver = null;
+                    try
+                    {
+                        resolver = this.DataTarget.SymbolProvider
+                                        .GetSymbolResolver(nm.Pdb.FileName, nm.Pdb.Guid, nm.Pdb.Revision);
+                    }
+                    catch (Exception e)
+                    {
+                        Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nm.Pdb.FileName}, GUID:{nm.Pdb.Guid}, Revision:{nm.Pdb.Revision}]: {e.Message}");
+                        Trace.WriteLine("Check previous traces for additional information");
+                        continue;
+                    }
+                    if (resolver == null)
+                    {
+                        Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nm.Pdb.FileName}, GUID:{nm.Pdb.Guid}, Revision:{nm.Pdb.Revision}]");
+                        continue;
+                    }
+                    string symbolName = resolver.GetSymbolNameByRVA((uint)(serializedStackFrame.IP - nm.ImageBase));
+
+                    NativeHeap.NativeStackFrame nativeStackFrame = new NativeHeap.NativeStackFrame(serializedStackFrame.IP, symbolName, nm);
+                    if (nativeStackFrame != null)
+                    {
+                        stackFrames.Add(nativeStackFrame);
+                    }
+                }
+
+                //create a new exception and populate the fields
+
+                exceptionById.Add(serializedException.ExceptionId, new NativeHeap.NativeException(
+                    this.GetHeap().GetClrTypeFromEE(serializedException.ExceptionEEType),
+                    serializedException.ExceptionCCWPtr,
+                    serializedException.HResult,
+                    serializedException.ThreadId,
+                    serializedException.ExceptionId,
+                    serializedException.InnerExceptionId,
+                    serializedException.NestingLevel,
+                    stackFrames));
+            }
+
+            var usedAsInnerException = new HashSet<ulong>();
+
+            foreach (var nativeException in exceptionById.Values)
+            {
+                if (nativeException.InnerExceptionId > 0)
+                {
+                    NativeHeap.NativeException innerException;
+                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out innerException))
+                    {
+                        nativeException.setInnerException(innerException);
+                        usedAsInnerException.Add(innerException.ExceptionId);
+                    }
+                }
+            }
+
+            return exceptionById.Keys.Except(usedAsInnerException).Select(id => exceptionById[id]).Cast<ClrException>().ToList();
         }
 
         #region Native Implementation

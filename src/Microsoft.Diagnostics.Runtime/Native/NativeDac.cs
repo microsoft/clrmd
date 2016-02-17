@@ -9,6 +9,45 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("d50b1d22-dc01-4d68-b71d-761f9d49f980")]
+    internal interface ISerializedExceptionEnumerator
+    {
+        bool HasNext();
+        ISerializedException Next();
+    }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("d681b4fd-87e1-42ec-af44-4938e62bd266")]
+    internal interface ISerializedException
+    {
+        ulong ExceptionId { get; }
+        ulong InnerExceptionId { get; }
+        ulong ThreadId { get; }
+        ulong NestingLevel { get; }
+        ulong ExceptionCCWPtr { get; }
+        ulong ExceptionEEType { get; }
+        ulong HResult { get; }
+        ISerializedStackFrameEnumerator StackFrames { get; }
+    }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("9141efb3-370c-4a7a-bdf5-7f2f7d6dc2f4")]
+    internal interface ISOSNativeSerializedExceptionSupport
+    {
+        ISerializedExceptionEnumerator GetSerializedExceptions();
+    }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("4bf18ce1-8166-4dfc-b540-4a79dd1ebe19")]
+    internal interface ISerializedStackFrame
+    {
+        ulong IP { get; }
+    }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("6091d53a-9371-4573-ae00-93b61d17ca04")]
+    internal interface ISerializedStackFrameEnumerator
+    {
+        bool HasNext();
+        ISerializedStackFrame Next();
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     internal delegate void STATICROOTCALLBACK(IntPtr token, ulong addr, ulong obj, int pinned, int interior);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]

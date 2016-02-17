@@ -23,6 +23,76 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private ISymbolProvider _symProvider;
         private Dictionary<NativeModule, ISymbolResolver> _resolvers = new Dictionary<NativeModule, ISymbolResolver>();
 
+        internal class NativeStackFrame : ClrStackFrame
+        {
+            private Address _ip;
+            private string _symbolName;
+            private ClrModule _module;
+
+            public NativeStackFrame(Address ip, string symbolName, ClrModule module)
+            {
+                _ip = ip;
+                _symbolName = symbolName;
+                _module = module;
+            }
+
+            public override string DisplayString
+            {
+                get
+                {
+                    return $"{_symbolName}";
+                }
+            }
+
+            public ClrModule Module
+            {
+                get
+                {
+                    return _module;
+                }
+            }
+
+            public override ulong InstructionPointer
+            {
+                get
+                {
+                    return _ip;
+                }
+            }
+
+            public override ClrStackFrameType Kind
+            {
+                get
+                {
+                    throw new NotImplementedException("This information is unavailable when debugging Native code");
+                }
+            }
+
+            public override ClrMethod Method
+            {
+                get
+                {
+                    throw new NotImplementedException("This information is unavailable when debugging Native code");
+                }
+            }
+
+            public override ulong StackPointer
+            {
+                get
+                {
+                    throw new NotImplementedException("The SP is not serialized, hence it is unavailable when debugging Native code");
+                }
+            }
+
+            public override ClrThread Thread
+            {
+                get
+                {
+                    throw new NotImplementedException("The Thread is not serialized, hence it is unavailable when debugging Native code");
+                }
+            }
+        }
+
         internal NativeHeap(NativeRuntime runtime, NativeModule[] modules)
             : base(runtime)
         {
@@ -84,6 +154,121 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _types.Add(_free);
         }
 
+        public override ClrType GetClrTypeFromEE(ulong eeType)
+        {
+            if ((((int)eeType) & 3) != 0)
+                eeType &= ~3UL;
+
+            ClrType clrType = null;
+            int index;
+            if (_indices.TryGetValue(eeType, out index))
+                clrType = _types[index];
+            else
+                clrType = ConstructObjectType(eeType);
+
+            return clrType;
+        }
+
+        internal class NativeException : ClrException
+        {
+            private Address _ccwPtr;
+            private ClrType _type;
+            private ulong _hResult;
+            private ulong _threadId;
+            private ulong _exceptionId;
+            private ulong _innerExceptionId;
+            private ulong _nestingLevel;
+            private IList<ClrStackFrame> _stackFrames;
+
+            private ClrException _innerException;
+            
+            public NativeException(
+                            ClrType clrType,
+                            Address ccwPtr,
+                            ulong hResult,
+                            ulong threadId,
+                            ulong exceptionId,
+                            ulong innerExceptionId,
+                            ulong nestingLevel,
+                            IList<ClrStackFrame> stackFrames)
+            {
+                _type = clrType;
+                _ccwPtr = ccwPtr;
+                _hResult = hResult;
+                _threadId = threadId;
+                _exceptionId = exceptionId;
+                _innerExceptionId = innerExceptionId;
+                _nestingLevel = nestingLevel;
+                _stackFrames = stackFrames;
+            }
+
+            public override Address Address
+            {
+                get { return _ccwPtr; }
+            }
+            public override int HResult
+            {
+                get
+                {
+                    return (int)_hResult;
+                }
+            }
+
+            public override ClrType Type
+            {
+                get { return _type; }
+            }
+
+            public override string Message
+            {
+                get
+                {
+                    return "<Invalid Object>"; // we do not expect a Message in serialized exceptions, however, returning <Invalid Object> as the SOS does
+                }
+            }
+
+            public override ClrException Inner
+            {
+                get
+                {
+                    return _innerException;
+                }
+            }
+
+            internal void setInnerException(ClrException inner)
+            {
+                _innerException = inner;
+            }
+
+            public override IList<ClrStackFrame> StackTrace
+            {
+                get
+                {
+                    return _stackFrames;
+                }
+            }
+
+            public ulong InnerExceptionId
+            {
+                get { return _innerExceptionId; }
+            }
+
+            public ulong ThreadId
+            {
+                get { return _threadId; }
+            }
+
+            public ulong NestingLevel
+            {
+                get { return _nestingLevel; }
+            }
+
+            public ulong ExceptionId
+            {
+                get { return _exceptionId; }
+            }
+        }
+
         public override ClrType GetObjectType(ulong objRef)
         {
             ulong eeType;
@@ -98,16 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (!cache.ReadPtr(objRef, out eeType))
                 return null;
 
-            if ((((int)eeType) & 3) != 0)
-                eeType &= ~3UL;
-
-            ClrType last = null;
-            int index;
-            if (_indices.TryGetValue(eeType, out index))
-                last = _types[index];
-            else
-                last = ConstructObjectType(eeType);
-
+            ClrType last = this.GetClrTypeFromEE(eeType);
             _lastObj = objRef;
             _lastType = last;
             return last;
@@ -187,6 +363,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _types.Add(type);
 
             return type;
+        }
+
+        internal NativeModule GetModuleFromAddress(Address addr)
+        {
+            // we expect addr to either be a pointer to a EE class desc or a stack IP pointing to a MD
+            return FindContainingModule(addr);
         }
 
         private NativeModule FindContainingModule(Address eeType)

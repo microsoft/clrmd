@@ -550,6 +550,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
         #endregion
 
+        public override IEnumerable<ClrException> GetSerializedExceptions()
+        {
+            throw new NotSupportedException("GetSerializedExceptions is only supported for .NET native.");
+        }
+
         internal override ulong GetThreadStaticPointer(ulong thread, ClrElementType type, uint offset, uint moduleId, bool shared)
         {
             ulong addr = offset;
