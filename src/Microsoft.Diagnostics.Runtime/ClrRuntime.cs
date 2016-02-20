@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// In .NET native crash dumps, we have a list of serialized exceptions objects. This property expose them as ClrException objects.
         /// </summary>
-        public abstract IEnumerable<ClrException> GetSerializedExceptions();
+        public abstract IEnumerable<ClrException> EnumerateSerializedExceptions();
 
         /// <summary>
         /// The ClrInfo of the current runtime.

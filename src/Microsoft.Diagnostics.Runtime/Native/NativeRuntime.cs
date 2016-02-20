@@ -50,14 +50,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
                 _sos = (ISOSNative)dac;
             }
-            if (_sosNativeSerializedExceptionSupport == null)
-            {
-                var dac = _library.DacInterface;
-                if (dac is ISOSNativeSerializedExceptionSupport)
-                    _sosNativeSerializedExceptionSupport = (ISOSNativeSerializedExceptionSupport)dac;
-            }
 
-        
+            _sosNativeSerializedExceptionSupport = _library.DacInterface as ISOSNativeSerializedExceptionSupport;
         }
 
         public override ClrHeap GetHeap()
@@ -275,15 +269,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _threads = threads.ToArray();
         }
 
-        public override IEnumerable<ClrException> GetSerializedExceptions()
+        public override IEnumerable<ClrException> EnumerateSerializedExceptions()
         {
-            if (!this.ClrInfo.DacInfo.PlatformAgnosticFileName.Contains("mrt100"))
-                throw new ClrDiagnosticsException("Serialized exceptions are only available for a Native data target");
-
             if (_sosNativeSerializedExceptionSupport == null)
-                throw new ClrDiagnosticsException("This version of mrt100 is too old.", ClrDiagnosticsException.HR.DataRequestError);
+            {
+                return new ClrException[0];
+            }
 
-            var exceptionById = new Dictionary<ulong, NativeHeap.NativeException>();
+            var exceptionById = new Dictionary<ulong, NativeException>();
             ISerializedExceptionEnumerator serializedExceptionEnumerator = _sosNativeSerializedExceptionSupport.GetSerializedExceptions();
             while (serializedExceptionEnumerator.HasNext())
             {
@@ -296,47 +289,48 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 {
                     ISerializedStackFrame serializedStackFrame = serializedStackFrameEnumerator.Next();
 
-                    NativeModule nm = ((NativeHeap)this.GetHeap()).GetModuleFromAddress(serializedStackFrame.IP);
-                    if (nm == null)
+                    NativeModule nativeModule = ((NativeHeap)this.GetHeap()).GetModuleFromAddress(serializedStackFrame.IP);
+                    string symbolName = null;
+                    if (nativeModule != null)
+                    {
+                        if (nativeModule.Pdb != null)
+                        {
+                            try
+                            {
+                                ISymbolResolver resolver = this.DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
+
+                                if (resolver != null)
+                                {
+                                    symbolName = resolver.GetSymbolNameByRVA((uint)(serializedStackFrame.IP - nativeModule.ImageBase));
+                                }
+                                else
+                                {
+                                    Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
+                                Trace.WriteLine("Check previous traces for additional information");
+                            }
+                        }
+                        else
+                        {
+                            Trace.WriteLine(String.Format("PDB not found for IP {0}, Module={1}", serializedStackFrame.IP, nativeModule.Name));
+                        }
+                    }
+                    else
                     {
                         Trace.WriteLine(String.Format("Unable to resolve module for IP {0}", serializedStackFrame.IP));
-                        continue;
-                    }
-                    if (nm.Pdb == null) {
-                        Trace.WriteLine(String.Format("PDB not found for IP {0}, Module={1}", serializedStackFrame.IP,nm.Name));
-                        continue;
                     }
 
-                    ISymbolResolver resolver = null;
-                    try
-                    {
-                        resolver = this.DataTarget.SymbolProvider
-                                        .GetSymbolResolver(nm.Pdb.FileName, nm.Pdb.Guid, nm.Pdb.Revision);
-                    }
-                    catch (Exception e)
-                    {
-                        Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nm.Pdb.FileName}, GUID:{nm.Pdb.Guid}, Revision:{nm.Pdb.Revision}]: {e.Message}");
-                        Trace.WriteLine("Check previous traces for additional information");
-                        continue;
-                    }
-                    if (resolver == null)
-                    {
-                        Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nm.Pdb.FileName}, GUID:{nm.Pdb.Guid}, Revision:{nm.Pdb.Revision}]");
-                        continue;
-                    }
-                    string symbolName = resolver.GetSymbolNameByRVA((uint)(serializedStackFrame.IP - nm.ImageBase));
-
-                    NativeHeap.NativeStackFrame nativeStackFrame = new NativeHeap.NativeStackFrame(serializedStackFrame.IP, symbolName, nm);
-                    if (nativeStackFrame != null)
-                    {
-                        stackFrames.Add(nativeStackFrame);
-                    }
+                    stackFrames.Add(new NativeHeap.NativeStackFrame(serializedStackFrame.IP, symbolName, nativeModule));
                 }
 
                 //create a new exception and populate the fields
 
-                exceptionById.Add(serializedException.ExceptionId, new NativeHeap.NativeException(
-                    this.GetHeap().GetClrTypeFromEE(serializedException.ExceptionEEType),
+                exceptionById.Add(serializedException.ExceptionId, new NativeException(
+                    this.GetHeap().GetTypeByMethodTable(serializedException.ExceptionEEType),
                     serializedException.ExceptionCCWPtr,
                     serializedException.HResult,
                     serializedException.ThreadId,
@@ -352,7 +346,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             {
                 if (nativeException.InnerExceptionId > 0)
                 {
-                    NativeHeap.NativeException innerException;
+                    NativeException innerException;
                     if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out innerException))
                     {
                         nativeException.setInnerException(innerException);

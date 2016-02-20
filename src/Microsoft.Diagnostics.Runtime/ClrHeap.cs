@@ -19,11 +19,6 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrHeap
     {
         /// <summary>
-        /// Returns a ClrType from an EE address. Available in .NET native only. Used for constructing ClrType object from an EEType value encoded in a .NET native serialized exception.
-        /// </summary>
-        public abstract ClrType GetClrTypeFromEE(ulong eeType);
-
-        /// <summary>
         /// And the ability to take an address of an object and fetch its type (The type alows further exploration)
         /// </summary>
         abstract public ClrType GetObjectType(Address objRef);

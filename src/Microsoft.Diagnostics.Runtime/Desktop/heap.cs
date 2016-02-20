@@ -1666,11 +1666,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return type;
         }
-
-        public override ClrType GetClrTypeFromEE(ulong eeType)
-        {
-            throw new NotSupportedException("GetClrTypeFromEE is only supported for .NET native.");
-        }
     }
 
     internal class V46GCHeap : DesktopGCHeap
@@ -1803,11 +1798,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 ret.ComponentType = TryGetComponentType(obj, 0);
 
             return ret;
-        }
-
-        public override ClrType GetClrTypeFromEE(ulong eeType)
-        {
-            throw new NotSupportedException("GetClrTypeFromEE is only supported for .NET native.");
         }
     }
 }

@@ -117,6 +117,7 @@
     <Compile Include="..\ClrException.cs" />
     <Compile Include="..\Native\NativeDac.cs" />
     <Compile Include="..\Native\NativeHeap.cs" />
+    <Compile Include="..\Native\NativeException.cs" />
     <Compile Include="..\Native\NativeModule.cs" />
     <Compile Include="..\Native\NativeRoots.cs" />
     <Compile Include="..\Native\NativeRuntime.cs" />
