@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Returns whether this version of CLR has component MethodTables.  Component MethodTables were removed from
-        /// desktop CLR in v4.6, and do not exist at all on .Net Native.  If this method returns false, all componet
+        /// desktop CLR in v4.6, and do not exist at all on .Net Native.  If this method returns false, all component
         /// MethodTables will be 0, and expected to be 0 when an argument to a function.
         /// </summary>
         virtual public bool HasComponentMethodTables { get { return true; } }

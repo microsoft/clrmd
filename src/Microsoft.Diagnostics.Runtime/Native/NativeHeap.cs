@@ -23,6 +23,76 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private ISymbolProvider _symProvider;
         private Dictionary<NativeModule, ISymbolResolver> _resolvers = new Dictionary<NativeModule, ISymbolResolver>();
 
+        internal class NativeStackFrame : ClrStackFrame
+        {
+            private Address _ip;
+            private string _symbolName;
+            private ClrModule _module;
+
+            public NativeStackFrame(Address ip, string symbolName, ClrModule module)
+            {
+                _ip = ip;
+                _symbolName = symbolName;
+                _module = module;
+            }
+
+            public override string DisplayString
+            {
+                get
+                {
+                    return _symbolName;
+                }
+            }
+
+            public ClrModule Module
+            {
+                get
+                {
+                    return _module;
+                }
+            }
+
+            public override ulong InstructionPointer
+            {
+                get
+                {
+                    return _ip;
+                }
+            }
+
+            public override ClrStackFrameType Kind
+            {
+                get
+                {
+                    return ClrStackFrameType.Unknown;
+                }
+            }
+
+            public override ClrMethod Method
+            {
+                get
+                {
+                    return null;
+                }
+            }
+
+            public override ulong StackPointer
+            {
+                get
+                {
+                    return 0;
+                }
+            }
+
+            public override ClrThread Thread
+            {
+                get
+                {
+                    return null;
+                }
+            }
+        }
+
         internal NativeHeap(NativeRuntime runtime, NativeModule[] modules)
             : base(runtime)
         {
@@ -55,14 +125,20 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public override ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable)
         {
+            if ((((int)methodTable) & 3) != 0)
+                methodTable &= ~3UL;
+
             if (componentMethodTable != 0)
                 return null;
 
+            ClrType clrType = null;
             int index;
             if (_indices.TryGetValue(methodTable, out index))
-                return _types[index];
+                clrType = _types[index];
+            else
+                clrType = ConstructObjectType(methodTable);
 
-            return null;
+            return clrType;
         }
 
         private NativeModule FindMrtModule()
@@ -98,16 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (!cache.ReadPtr(objRef, out eeType))
                 return null;
 
-            if ((((int)eeType) & 3) != 0)
-                eeType &= ~3UL;
-
-            ClrType last = null;
-            int index;
-            if (_indices.TryGetValue(eeType, out index))
-                last = _types[index];
-            else
-                last = ConstructObjectType(eeType);
-
+            ClrType last = this.GetTypeByMethodTable(eeType);
             _lastObj = objRef;
             _lastType = last;
             return last;
@@ -187,6 +254,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _types.Add(type);
 
             return type;
+        }
+
+        internal NativeModule GetModuleFromAddress(Address addr)
+        {
+            // we expect addr to either be a pointer to a EE class desc or a stack IP pointing to a MD
+            return FindContainingModule(addr);
         }
 
         private NativeModule FindContainingModule(Address eeType)

@@ -1666,7 +1666,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return type;
         }
-
     }
 
     internal class V46GCHeap : DesktopGCHeap

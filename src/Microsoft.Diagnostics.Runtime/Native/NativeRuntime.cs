@@ -4,6 +4,8 @@
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
 
@@ -17,6 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeModule[] _modules;
         private NativeAppDomain _domain;
         private int _dacRawVersion;
+
+        private ISOSNativeSerializedExceptionSupport _sosNativeSerializedExceptionSupport;
 
         public NativeRuntime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -46,12 +50,16 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
                 _sos = (ISOSNative)dac;
             }
+
+            _sosNativeSerializedExceptionSupport = _library.DacInterface as ISOSNativeSerializedExceptionSupport;
         }
 
         public override ClrHeap GetHeap()
         {
             if (_heap == null)
+            {
                 _heap = new NativeHeap(this, NativeModules);
+            }
 
             return _heap;
         }
@@ -259,6 +267,95 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
 
             _threads = threads.ToArray();
+        }
+
+        public override IEnumerable<ClrException> EnumerateSerializedExceptions()
+        {
+            if (_sosNativeSerializedExceptionSupport == null)
+            {
+                return new ClrException[0];
+            }
+
+            var exceptionById = new Dictionary<ulong, NativeException>();
+            ISerializedExceptionEnumerator serializedExceptionEnumerator = _sosNativeSerializedExceptionSupport.GetSerializedExceptions();
+            while (serializedExceptionEnumerator.HasNext())
+            {
+                ISerializedException serializedException = serializedExceptionEnumerator.Next();
+
+                //build the stack frames
+                IList<ClrStackFrame> stackFrames = new List<ClrStackFrame>();
+                ISerializedStackFrameEnumerator serializedStackFrameEnumerator = serializedException.StackFrames;
+                while (serializedStackFrameEnumerator.HasNext())
+                {
+                    ISerializedStackFrame serializedStackFrame = serializedStackFrameEnumerator.Next();
+
+                    NativeModule nativeModule = ((NativeHeap)this.GetHeap()).GetModuleFromAddress(serializedStackFrame.IP);
+                    string symbolName = null;
+                    if (nativeModule != null)
+                    {
+                        if (nativeModule.Pdb != null)
+                        {
+                            try
+                            {
+                                ISymbolResolver resolver = this.DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
+
+                                if (resolver != null)
+                                {
+                                    symbolName = resolver.GetSymbolNameByRVA((uint)(serializedStackFrame.IP - nativeModule.ImageBase));
+                                }
+                                else
+                                {
+                                    Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
+                                Trace.WriteLine("Check previous traces for additional information");
+                            }
+                        }
+                        else
+                        {
+                            Trace.WriteLine(String.Format("PDB not found for IP {0}, Module={1}", serializedStackFrame.IP, nativeModule.Name));
+                        }
+                    }
+                    else
+                    {
+                        Trace.WriteLine(String.Format("Unable to resolve module for IP {0}", serializedStackFrame.IP));
+                    }
+
+                    stackFrames.Add(new NativeHeap.NativeStackFrame(serializedStackFrame.IP, symbolName, nativeModule));
+                }
+
+                //create a new exception and populate the fields
+
+                exceptionById.Add(serializedException.ExceptionId, new NativeException(
+                    this.GetHeap().GetTypeByMethodTable(serializedException.ExceptionEEType),
+                    serializedException.ExceptionCCWPtr,
+                    serializedException.HResult,
+                    serializedException.ThreadId,
+                    serializedException.ExceptionId,
+                    serializedException.InnerExceptionId,
+                    serializedException.NestingLevel,
+                    stackFrames));
+            }
+
+            var usedAsInnerException = new HashSet<ulong>();
+
+            foreach (var nativeException in exceptionById.Values)
+            {
+                if (nativeException.InnerExceptionId > 0)
+                {
+                    NativeException innerException;
+                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out innerException))
+                    {
+                        nativeException.setInnerException(innerException);
+                        usedAsInnerException.Add(innerException.ExceptionId);
+                    }
+                }
+            }
+
+            return exceptionById.Keys.Except(usedAsInnerException).Select(id => exceptionById[id]).Cast<ClrException>().ToList();
         }
 
         #region Native Implementation
