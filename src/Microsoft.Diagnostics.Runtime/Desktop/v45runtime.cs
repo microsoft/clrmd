@@ -298,7 +298,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return value;
         }
 
-        internal override IGCInfo GetGCInfo()
+        internal override IGCInfo GetGCInfoImpl()
         {
             LegacyGCInfo gcInfo;
             return (_sos.GetGCHeapData(out gcInfo) >= 0) ? (IGCInfo)gcInfo : null;

@@ -26,9 +26,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _eeType = eeType;
             _index = index;
 
-            _baseSize = mtData.BaseSize;
-            _componentSize = mtData.ComponentSize;
-            _containsPointers = mtData.ContainsPointers;
+            if (mtData != null)
+            {
+                _baseSize = mtData.BaseSize;
+                _componentSize = mtData.ComponentSize;
+                _containsPointers = mtData.ContainsPointers;
+            }
         }
 
         internal override ClrMethod GetMethod(uint token)
