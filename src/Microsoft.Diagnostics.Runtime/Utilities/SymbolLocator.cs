@@ -566,11 +566,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     Trace("Exception encountered while expanding file '{0}': {1}", compressedFilePath, e.Message);
                 }
-                finally
-                {
-                    if (File.Exists(compressedFilePath))
-                        File.Delete(compressedFilePath);
-                }
+                //finally
+                //{
+                //    if (File.Exists(compressedFilePath))
+                //        File.Delete(compressedFilePath);
+                //}
             }
 
             // Just try to fetch the file directly
