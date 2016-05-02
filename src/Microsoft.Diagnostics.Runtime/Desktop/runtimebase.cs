@@ -826,8 +826,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (res < 0 || res == 1)
                         break;
 
-                    ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                    ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                    ulong ip, sp;
+
+                    if (PointerSize == 4)
+                    {
+                        ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                        sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                    }
+                    else
+                    {
+                        ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
+                        sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
+                    }
 
                     res = stackwalk.Request(0xf0000000, 0, null, (uint)ulongBuffer.Length, ulongBuffer);
 
