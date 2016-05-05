@@ -503,7 +503,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A task indicating when the copy is completed.</returns>
         protected override void CopyStreamToFile(Stream stream, string fullSrcPath, string fullDestPath, long size)
         {
-            CopyStreamToFileAsync(stream, fullSrcPath, fullDestPath, size).Wait();
+            var task = Task.Run(async () => { await CopyStreamToFileAsync(stream, fullSrcPath, fullDestPath, size); });
+            task.Wait();
         }
 
         /// <summary>
