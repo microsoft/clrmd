@@ -97,7 +97,6 @@ static class Extensions
 
         return last;
     }
-    
 
     private static PdbReader GetReaderForFrame(ClrStackFrame frame)
     {
@@ -112,7 +111,17 @@ static class Extensions
                 SymbolLocator locator = GetSymbolLocator(module);
                 string pdbPath = locator.FindPdb(info);
                 if (pdbPath != null)
-                    reader = new PdbReader(pdbPath);
+                {
+                    try
+                    {
+                        reader = new PdbReader(pdbPath);
+                    }
+                    catch (Exception) // Microsoft.Diagnostics.Runtime.Utilities.Pdb.PdbException 
+                                      // Some pdb files have no stream of "/NAMES"
+                    {
+                        // No need to retry.
+                    }
+                }
 
                 s_pdbReaders[info] = reader;
             }
