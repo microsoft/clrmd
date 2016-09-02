@@ -345,6 +345,31 @@ namespace Microsoft.Diagnostics.Runtime
             Guid = guid;
             Revision = rev;
         }
+
+        /// <summary>
+        /// Guid is unique.
+        /// </summary>
+        /// <returns></returns>
+        public override int GetHashCode()
+        {
+            return Guid.GetHashCode();
+        }
+
+        /// <summary>
+        /// True if PDB's guid and rev are same to 'obj'
+        /// </summary>
+        /// <param name="obj">PdbInfo</param>
+        /// <returns></returns>
+        public override bool Equals(object obj)
+        {
+            PdbInfo pdbInfo = obj as PdbInfo;
+            if (pdbInfo == null)
+            {
+                return false;
+            }
+
+            return Guid.Equals(pdbInfo.Guid) && Revision == pdbInfo.Revision;
+        }
     }
 
     /// <summary>
