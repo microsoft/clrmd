@@ -849,11 +849,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int Length { get { return _buffLen; } }
         public void Dispose()
         {
-            _pinningHandle.Free();
+            if (_pinningHandle.IsAllocated == true)
+            {
+                _pinningHandle.Free();
+            }
         }
         #region private
         private void GetBuffer(int buffSize)
         {
+            if (_buff != null)
+            {
+                Dispose();
+            }
+
             _buff = new byte[buffSize];
             _pinningHandle = GCHandle.Alloc(_buff, GCHandleType.Pinned);
             fixed (byte* ptr = _buff)
