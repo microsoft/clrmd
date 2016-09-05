@@ -104,20 +104,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (debugEntries[i].Type == IMAGE_DEBUG_TYPE.CODEVIEW)
                     {
-                        var stringBuff = AllocBuff();
-                        int ptr = _virt ? (int)debugEntries[i].AddressOfRawData : (int)debugEntries[i].PointerToRawData;
-                        var info = (CV_INFO_PDB70*)stringBuff.Fetch(ptr, debugEntries[i].SizeOfData);
-                        if (info->CvSignature == CV_INFO_PDB70.PDB70CvSignature)
+                        using (var stringBuff = AllocBuff())
                         {
-                            // If there are several this picks the last one.  
-                            pdbGuid = info->Signature;
-                            pdbAge = info->Age;
-                            pdbName = info->PdbFileName;
-                            ret = true;
-                            if (first)
-                                break;
+                            int ptr = _virt ? (int)debugEntries[i].AddressOfRawData : (int)debugEntries[i].PointerToRawData;
+                            var info = (CV_INFO_PDB70*)stringBuff.Fetch(ptr, debugEntries[i].SizeOfData);
+                            if (info->CvSignature == CV_INFO_PDB70.PDB70CvSignature)
+                            {
+                                // If there are several this picks the last one.  
+                                pdbGuid = info->Signature;
+                                pdbAge = info->Age;
+                                pdbName = info->PdbFileName;
+                                ret = true;
+                                if (first)
+                                    break;
+                            }
                         }
-                        FreeBuff(stringBuff);
                     }
                 }
                 FreeBuff(buff);
