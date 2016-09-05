@@ -854,6 +854,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         #region private
         private void GetBuffer(int buffSize)
         {
+            if (_pinningHandle != null)
+            {
+                Dispose();
+            }
+
             _buff = new byte[buffSize];
             _pinningHandle = GCHandle.Alloc(_buff, GCHandleType.Pinned);
             fixed (byte* ptr = _buff)
