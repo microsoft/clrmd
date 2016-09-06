@@ -305,12 +305,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
                                 }
                                 else
                                 {
-                                    Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
+                                    Trace.WriteLine(string.Format("Unable to find symbol resolver for PDB [Filename:{0}, GUID:{1}, Revision:{2}]", nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision));
                                 }
                             }
                             catch (Exception e)
                             {
-                                Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
+                                Trace.WriteLine(string.Format("Error in finding the symbol resolver for PDB [Filename:{0}, GUID:{1}, Revision:{2}]: {3}", nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision, e.Message));
                                 Trace.WriteLine("Check previous traces for additional information");
                             }
                         }

@@ -20,7 +20,7 @@ class Program
             foreach (ClrThread thread in runtime.Threads)
             {
                 Console.WriteLine("Thread {0:x}:", thread.OSThreadId);
-                
+
                 foreach (ClrStackFrame frame in thread.StackTrace)
                 {
                     if (frame.Kind == ClrStackFrameType.Runtime)
@@ -52,7 +52,7 @@ static class Extensions
         PdbReader reader = GetReaderForFrame(frame);
         if (reader == null)
             return new FileAndLineNumber();
-        
+
         PdbFunction function = reader.GetFunctionFromToken(frame.Method.MetadataToken);
         int ilOffset = FindIlOffset(frame);
 
@@ -100,8 +100,18 @@ static class Extensions
 
     private static PdbReader GetReaderForFrame(ClrStackFrame frame)
     {
-        ClrModule module = frame.Method?.Type?.Module;
-        PdbInfo info = module?.Pdb;
+        ClrModule module = null;
+        PdbInfo info = null;
+
+        if (frame.Method != null && frame.Method.Type != null)
+        {
+            module = frame.Method.Type.Module;
+
+            if (module != null)
+            {
+                info = module.Pdb;
+            }
+        }
 
         PdbReader reader = null;
         if (info != null)

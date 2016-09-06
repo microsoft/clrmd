@@ -853,7 +853,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void RegisterForRelease(IModuleData module)
         {
-            RegisterForRelease(module?.LegacyMetaDataImport);
+            object obj = null;
+
+            if (module != null)
+            {
+                obj = module.LegacyMetaDataImport;
+            }
+
+            RegisterForRelease(obj);
         }
 
         public IDataReader DataReader
