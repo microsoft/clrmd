@@ -5,7 +5,6 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
 
@@ -305,12 +304,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
                                 }
                                 else
                                 {
-                                    Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
+                                    Trace.WriteLine(string.Format("Unable to find symbol resolver for PDB [Filename:{0}, GUID:{1}, Revision:{2}]", nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision));
                                 }
                             }
                             catch (Exception e)
                             {
-                                Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
+                                Trace.WriteLine(string.Format("Error in finding the symbol resolver for PDB [Filename:{0}, GUID:{1}, Revision:{2}]: {3}", nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision, e.Message));
                                 Trace.WriteLine("Check previous traces for additional information");
                             }
                         }
@@ -355,7 +354,24 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 }
             }
 
-            return exceptionById.Keys.Except(usedAsInnerException).Select(id => exceptionById[id]).Cast<ClrException>().ToList();
+            return GetFilteredExceptionList(exceptionById, usedAsInnerException);
+        }
+
+        IEnumerable<ClrException> GetFilteredExceptionList(Dictionary<Address, NativeException> exceptionById, HashSet<ulong> usedAsInnerException)
+        {
+            List<ClrException> buffer = new List<ClrException>();
+
+            foreach (var item in exceptionById.Keys)
+            {
+                if (usedAsInnerException.Contains(item) == true)
+                {
+                    continue;
+                }
+
+                buffer.Add(exceptionById[item]);
+            }
+
+            return buffer;
         }
 
         #region Native Implementation

@@ -223,7 +223,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
                     if (!_resolvers.TryGetValue(module, out resolver))
                         _resolvers[module] = resolver = _symProvider.GetSymbolResolver(pdb.FileName, pdb.Guid, pdb.Revision);
 
-                    name = resolver?.GetSymbolNameByRVA((uint)(eeType - module.ImageBase));
+                    if (resolver != null)
+                    {
+                        name = resolver.GetSymbolNameByRVA((uint)(eeType - module.ImageBase));
+                    }
                 }
             }
 

@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using Address = System.UInt64;
 
@@ -51,7 +50,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_methodHandles != null && _methodHandles[0] != 0)
                     return _methodHandles[0];
 
-                return EnumerateMethodDescs().FirstOrDefault();
+                var methodDescs = EnumerateMethodDescs();
+
+                if (methodDescs != null)
+                {
+                    foreach (var item in methodDescs)
+                    {
+                        return item;
+                    }
+                }
+
+                return 0;
             }
         }
 

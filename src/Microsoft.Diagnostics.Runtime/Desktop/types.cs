@@ -5,7 +5,6 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using Address = System.UInt64;
@@ -724,7 +723,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _cachedMethodTable = _constructedMT;
                 else
                 {
-                    _cachedMethodTable = EnumerateMethodTables().FirstOrDefault();
+                    _cachedMethodTable = GetFirstMethodTable(EnumerateMethodTables());
                     if (_cachedMethodTable == 0)
                         _cachedMethodTable = _constructedMT;
                 }
@@ -732,6 +731,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 Debug.Assert(_cachedMethodTable != 0);
                 return _cachedMethodTable;
             }
+        }
+
+        ulong GetFirstMethodTable(IEnumerable<ulong> tables)
+        {
+            foreach (var item in tables)
+            {
+                return item;
+            }
+
+            return 0;
         }
 
         public override IEnumerable<ulong> EnumerateMethodTables()
@@ -1421,7 +1430,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         
         internal override ClrMethod GetMethod(uint token)
         {
-            return Methods.Where(m => m.MetadataToken == token).FirstOrDefault();
+            foreach (ClrMethod method in Methods)
+            {
+                if (method.MetadataToken == token)
+                {
+                    return method;
+                }
+            }
+
+            return null;
         }
 
         public override IList<ClrMethod> Methods

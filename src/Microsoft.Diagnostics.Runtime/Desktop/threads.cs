@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text;
 using Address = System.UInt64;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -299,14 +298,37 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 uint size;
                 fixed (byte *ptr = context)
                     stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, new IntPtr(ptr));
-                
-                ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
 
-                DesktopStackFrame result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
+                ulong ip, sp;
+
+                if (IntPtr.Size == 4)
+                {
+                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                }
+                else
+                {
+                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
+                }
+
+                DesktopStackFrame result = GetStackFrame(_stackTrace, sp, ip);
                 if (result != null)
                     result.CordbFrame = ilFrame;
             } while (stackwalk.Next() == 0);
+        }
+
+        DesktopStackFrame GetStackFrame(IList<ClrStackFrame> stackTrace, ulong sp, ulong ip)
+        {
+            foreach (var frm in stackTrace)
+            {
+                if (sp == frm.StackPointer && ip == frm.InstructionPointer)
+                {
+                    return frm as DesktopStackFrame;
+                }
+            }
+
+            return null;
         }
 
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace()

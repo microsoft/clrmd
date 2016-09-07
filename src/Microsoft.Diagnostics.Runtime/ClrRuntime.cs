@@ -6,7 +6,6 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.IO;
@@ -853,7 +852,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void RegisterForRelease(IModuleData module)
         {
-            RegisterForRelease(module?.LegacyMetaDataImport);
+            object obj = null;
+
+            if (module != null)
+            {
+                obj = module.LegacyMetaDataImport;
+            }
+
+            RegisterForRelease(obj);
         }
 
         public IDataReader DataReader

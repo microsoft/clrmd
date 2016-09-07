@@ -398,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 case 2: break; // this.ReadForwardedToModuleInfo(bits); break;
                 case 3: this.ReadIteratorLocals(bits); break;
                 case 4: this.ReadForwardIterator(bits); break;
-                default: throw new PdbDebugException("Unknown custom metadata item kind: {0}", kind);
+                // default: throw new PdbDebugException("Unknown custom metadata item kind: {0}", kind);
             }
             bits.Position = savedPosition + (int)numberOfBytesInItem;
         }
