@@ -8,7 +8,6 @@ using Address = System.UInt64;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -155,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override IEnumerable<ClrType> EnumerateTypes()
         {
             var heap = (DesktopGCHeap)_runtime.GetHeap();
-            var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
+            var mtList = _runtime.GetMethodTableList(GetFirstMapping(_mapping).Value);
             if (_typesLoaded)
             {
                 foreach (var type in heap.EnumerateTypes())
@@ -181,6 +180,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 _typesLoaded = true;
             }
+        }
+
+        KeyValuePair<ClrAppDomain, Address> GetFirstMapping(Dictionary<ClrAppDomain, Address> mapping)
+        {
+            foreach (var item in mapping)
+            {
+                return item;
+            }
+
+            return new KeyValuePair<ClrAppDomain, ulong>();
         }
 
         public override string AssemblyName
@@ -222,13 +231,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (_appDomainList == null)
                 {
-                    _appDomainList = new ClrAppDomain[_mapping.Keys.Count];
-                    _appDomainList = _mapping.Keys.ToArray();
+                    _appDomainList = AppDomainListToArray(_mapping.Keys);
                     Array.Sort(_appDomainList, (d, d2) => d.Id.CompareTo(d2.Id));
                 }
 
                 return _appDomainList;
             }
+        }
+
+        ClrAppDomain[] AppDomainListToArray(Dictionary<ClrAppDomain, Address>.KeyCollection coll)
+        {
+            List<ClrAppDomain> buffer = new List<ClrAppDomain>();
+            buffer.AddRange(coll);
+
+            return buffer.ToArray();
         }
 
         internal override ulong GetDomainModule(ClrAppDomain domain)

@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -1181,10 +1180,17 @@ namespace Microsoft.Diagnostics.Runtime
         {
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
-            _modules = dataTarget.EnumerateModules().ToArray();
+            _modules = ModuleToArray(dataTarget.EnumerateModules());
             Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
         }
 
+        ModuleInfo[] ModuleToArray(IEnumerable<ModuleInfo> modules)
+        {
+            List<ModuleInfo> buffer = new List<ModuleInfo>();
+            buffer.AddRange(modules);
+
+            return buffer.ToArray();
+        }
 
         public CorDebugPlatform GetPlatform()
         {

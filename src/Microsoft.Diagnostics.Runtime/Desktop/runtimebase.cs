@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Address = System.UInt64;
-using System.Linq;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
@@ -681,12 +680,36 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 if (_moduleList == null)
                 {
-                    HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p => (ClrModule)p));
-                    _moduleList = modules.ToArray();
+                    HashSet<ClrModule> modules = new HashSet<ClrModule>(ModulesToHashSet(_modules.Values));
+                    _moduleList = ModuleSetToArray(modules);
                 }
 
                 return _moduleList;
             }
+        }
+
+        HashSet<ClrModule> ModulesToHashSet(Dictionary<Address, DesktopModule>.ValueCollection modules)
+        {
+            HashSet<ClrModule> buffer = new HashSet<ClrModule>();
+
+            foreach (var item in modules)
+            {
+                buffer.Add(item);
+            }
+
+            return buffer;
+        }
+
+        ClrModule[] ModuleSetToArray(HashSet<ClrModule> modules)
+        {
+            List<ClrModule> buffer = new List<ClrModule>();
+
+            foreach (var item in modules)
+            {
+                buffer.Add(item);
+            }
+
+            return buffer.ToArray();
         }
 
         internal IEnumerable<ulong> EnumerateModules(IAppDomainData appDomain)
@@ -1009,19 +1032,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract uint GetStringLengthOffset();
         #endregion
 
-
     }
-
 
     internal struct MethodTableTokenPair
     {
-        public ulong MethodTable { get; set; }
-        public uint Token { get; set; }
+        ulong _methodTable;
+        public ulong MethodTable
+        {
+            get { return _methodTable; }
+            set { _methodTable = value; }
+        }
+
+        uint _token;
+        public uint Token
+        {
+            get { return _token; }
+            set { _token = value; }
+        }
 
         public MethodTableTokenPair(ulong methodTable, uint token)
         {
-            MethodTable = methodTable;
-            Token = token;
+            _methodTable = methodTable;
+            _token = token;
         }
     }
 

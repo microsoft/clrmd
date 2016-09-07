@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text;
 using Address = System.UInt64;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -313,10 +312,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
                 }
 
-                DesktopStackFrame result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
+                DesktopStackFrame result = GetStackFrame(_stackTrace, sp, ip);
                 if (result != null)
                     result.CordbFrame = ilFrame;
             } while (stackwalk.Next() == 0);
+        }
+
+        DesktopStackFrame GetStackFrame(IList<ClrStackFrame> stackTrace, ulong sp, ulong ip)
+        {
+            foreach (var frm in stackTrace)
+            {
+                if (sp == frm.StackPointer && ip == frm.InstructionPointer)
+                {
+                    return frm as DesktopStackFrame;
+                }
+            }
+
+            return null;
         }
 
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace()

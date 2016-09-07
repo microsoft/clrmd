@@ -8,38 +8,63 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
     /// </summary>
     public struct PdbSequencePoint
     {
+        uint _offset;
         /// <summary>
         /// The IL offset of this line.
         /// </summary>
-        public uint Offset { get; private set; }
+        public uint Offset
+        {
+            get { return _offset; }
+            private set { _offset = value; }
+        }
 
+        uint _lineBegin;
         /// <summary>
         /// The first line of this sequence point.
         /// </summary>
-        public uint LineBegin { get; private set; }
+        public uint LineBegin
+        {
+            get { return _lineBegin; }
+            private set { _lineBegin = value; }
+        }
 
+        uint _lineEnd;
         /// <summary>
         /// The last line of this sequence point.
         /// </summary>
-        public uint LineEnd { get; private set; }
+        public uint LineEnd
+        {
+            get { return _lineEnd; }
+            private set { _lineEnd = value; }
+        }
 
+        ushort _colBegin;
         /// <summary>
         /// The first column of the first line of this sequence point.
         /// </summary>
-        public ushort ColBegin { get; private set; }
+        public ushort ColBegin
+        {
+            get { return _colBegin; }
+            private set { _colBegin = value; }
+        }
 
+        ushort _colEnd;
         /// <summary>
         /// The last column of the last line of this sequence point.
         /// </summary>
-        public ushort ColEnd { get; private set; }
+        public ushort ColEnd
+        {
+            get { return _colEnd; }
+            private set { _colEnd = value; }
+        }
 
         internal PdbSequencePoint(uint offset, uint lineBegin, ushort colBegin, uint lineEnd, ushort colEnd)
         {
-            Offset = offset;
-            LineBegin = lineBegin;
-            ColBegin = colBegin;
-            LineEnd = lineEnd;
-            ColEnd = colEnd;
+            _offset = offset;
+            _lineBegin = lineBegin;
+            _colBegin = colBegin;
+            _lineEnd = lineEnd;
+            _colEnd = colEnd;
         }
 
         /// <summary>
