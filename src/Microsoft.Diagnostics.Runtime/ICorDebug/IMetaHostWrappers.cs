@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Security.Permissions;
+using System.Reflection;
 
 #pragma warning disable 1591
 
@@ -25,8 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         {
             SetHandle(handle);
         }
-
-        [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
+        
         override protected bool ReleaseHandle()
         {
             return NativeMethods.CloseHandle(handle);
@@ -44,7 +44,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
 
         [
-         System.Runtime.ConstrainedExecution.ReliabilityContract(System.Runtime.ConstrainedExecution.Consistency.WillNotCorruptState, System.Runtime.ConstrainedExecution.Cer.Success),
          DllImport(Kernel32LibraryName)
         ]
         public static extern bool CloseHandle(IntPtr handle);
@@ -171,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public CLRMetaHost()
         {
             object o;
-            Guid ifaceId = typeof(ICLRMetaHost).GUID;
+            Guid ifaceId = typeof(ICLRMetaHost).GetGuid();
             Guid clsid = clsidCLRMetaHost;
             NativeMethods.CLRCreateInstance(ref clsid, ref ifaceId, out o);
             m_metaHost = (ICLRMetaHost)o;
@@ -261,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public CLRRuntimeInfo GetRuntime(string version)
         {
-            Guid ifaceId = typeof(ICLRRuntimeInfo).GUID;
+            Guid ifaceId = typeof(ICLRRuntimeInfo).GetGuid();
             return new CLRRuntimeInfo(m_metaHost.GetRuntime(version, ref ifaceId));
         }
     }
@@ -319,7 +318,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public ICorDebug GetLegacyICorDebugInterface()
         {
-            Guid ifaceId = typeof(ICorDebug).GUID;
+            Guid ifaceId = typeof(ICorDebug).GetGuid();
             Guid clsId = s_ClsIdClrDebuggingLegacy;
             return (ICorDebug)m_runtimeInfo.GetInterface(ref clsId, ref ifaceId);
         }
@@ -429,7 +428,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         int IsLoaded([In] IntPtr hndProcess);
 
         // Marshal pcchBuffer as int even though it's unsigned. Error strings approaching 2 billion characters are currently unheard-of.
-        [LCIDConversion(3)]
         void LoadErrorString([In, MarshalAs(UnmanagedType.U4)] int iResourceID,
                              [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwzBuffer,
                              [In, Out, MarshalAs(UnmanagedType.U4)] ref int pcchBuffer,

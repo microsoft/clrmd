@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using IStream = System.Runtime.InteropServices.ComTypes.IStream;
 
@@ -22,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public CLRDebugging()
         {
             object o;
-            Guid ifaceId = typeof(ICLRDebugging).GUID;
+            Guid ifaceId = typeof(ICLRDebugging).GetGuid();
             Guid clsid = clsidCLRDebugging;
             NativeMethods.CLRCreateInstance(ref clsid, ref ifaceId, out o);
             _clrDebugging = (ICLRDebugging)o;
@@ -40,11 +41,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
                     highestLoadedRuntime = runtime;
             }
             if (highestLoadedRuntime == null)
-                throw new ApplicationException("Could not enumerate .NET runtimes on the system.");
+                throw new Exception("Could not enumerate .NET runtimes on the system.");
 
             var runtimeVersion = highestLoadedRuntime.GetVersionString();
             if (string.Compare(runtimeVersion, minimumVersion, StringComparison.OrdinalIgnoreCase) < 0)
-                throw new ApplicationException("Runtime in process " + runtimeVersion + " below the minimum of " + minimumVersion);
+                throw new Exception("Runtime in process " + runtimeVersion + " below the minimum of " + minimumVersion);
 
             ICorDebug rawDebuggingAPI = highestLoadedRuntime.GetLegacyICorDebugInterface();
             if (rawDebuggingAPI == null)
@@ -125,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             maxSupport.Revision = (short)maxDebuggerSupportedVersion.Revision;
             object processIface = null;
             clrVersion.StructVersion = 0;
-            Guid iid = typeof(ICorDebugProcess).GUID;
+            Guid iid = typeof(ICorDebugProcess).GetGuid();
 
             int result = _clrDebugging.OpenVirtualProcess(moduleBaseAddress, dataTarget, libraryProvider,
                 ref maxSupport, ref iid, out processIface, ref clrVersion, out flags);

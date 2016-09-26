@@ -613,7 +613,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 public uint BuildNumber;
 
                 // This enum is the same value as System.PlatformId.
-                public System.PlatformID PlatformId;
+                public int PlatformId;
 
                 // RVA to a CSDVersion string in the string table.
                 // This would be a string like "Service Pack 1".
@@ -1845,40 +1845,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 return _info.Version;
-            }
-        }
-
-        /// <summary>
-        /// Operating system that the dump was taken on.
-        /// </summary>
-        public OperatingSystem OSVersion
-        {
-            get
-            {
-                PlatformID id = _info.PlatformId;
-                Version v = this.Version;
-
-                // Ideally, we'd include the CSDVersion string, but the public ctor for
-                // OperatingSystem doesn't allow that. So we have a OSVersionString property that
-                // will include both OS and CSDVersion. If we can ever fix this, then adjust 
-                // the OSVersionString property accordingly.
-                OperatingSystem os = new OperatingSystem(id, v);
-                return os;
-            }
-        }
-
-        /// <summary>
-        /// Friendly helper to get full OS version string (including CSDVersion) that the dump was taken on.
-        /// </summary>
-        /// <remarks>This is really just to compensate that public OperatingSystem's ctor doesn't let us
-        /// add the service pack string, so we need a special helper for that.</remarks>
-        public string OSVersionString
-        {
-            get
-            {
-                EnsureValid();
-                string s = GetString(_info.CSDVersionRva);
-                return OSVersion.ToString() + " " + s;
             }
         }
 

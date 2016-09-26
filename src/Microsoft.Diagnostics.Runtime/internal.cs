@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.IO;
 using Microsoft.Win32.SafeHandles;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -831,6 +832,19 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 return handle;
             }
+        }
+    }
+    
+    static class TypeHelpers
+    {
+        static internal Guid GetGuid(this Type self)
+        {
+
+#if V2_SUPPORT
+            return self.GUID;
+#else
+            return self.GetTypeInfo().GUID;
+#endif
         }
     }
 }

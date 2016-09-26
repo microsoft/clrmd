@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
 
 
-    [ComImport, ClassInterface((short)0), Guid("6fef44d0-39e7-4c77-be8e-c9f8cf988630"), TypeLibType((short)2)]
+    [ComImport, ClassInterface((short)0), Guid("6fef44d0-39e7-4c77-be8e-c9f8cf988630")]
     public class CorDebugClass : ICorDebug, CorDebug
     {
         // Methods
@@ -367,7 +367,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     {
     }
 
-    [ComImport, ClassInterface((short)0), TypeLibType((short)2), Guid("B76B17EF-16FA-43A3-BABF-DB6E59439EB0")]
+    [ComImport, ClassInterface((short)0), Guid("B76B17EF-16FA-43A3-BABF-DB6E59439EB0")]
     public class CorDebugManagerClass : ICorDebug, CorDebugManager
     {
         // Methods
@@ -405,7 +405,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     {
     }
 
-    [ComImport, TypeLibType(2), Guid("211F1254-BC7E-4AF5-B9AA-067308D83DD1"), ClassInterface((short)0)]
+    [ComImport, Guid("211F1254-BC7E-4AF5-B9AA-067308D83DD1"), ClassInterface((short)0)]
     public class EmbeddedCLRCorDebugClass : ICorDebug, EmbeddedCLRCorDebug
     {
         // Methods

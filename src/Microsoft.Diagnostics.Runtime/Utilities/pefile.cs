@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public void Dispose()
         {
             // This method can only be called once on a given object.  
-            _stream.Close();
+            _stream.Dispose();
             _headerBuff.Dispose();
             if (_freeBuff != null)
                 _freeBuff.Dispose();
