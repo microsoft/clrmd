@@ -306,6 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         case "TryEnter":
                         case "ReliableEnterTimeout":
                         case "TryEnterTimeout":
+                        case "ReliableEnter":
                         case "Enter":
                             if (type.Name == "System.Threading.Monitor")
                             {
