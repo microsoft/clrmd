@@ -997,9 +997,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (_mscorlib == null)
                 {
-                    foreach (ClrModule module in DesktopRuntime.Modules)
+                    String moduleName = Runtime.ClrInfo.Flavor == ClrFlavor.CoreCLR
+                        ? "System.Private.CoreLib"
+                        : "mscorlib";
+                    foreach ( ClrModule module in DesktopRuntime.Modules)
                     {
-                        if (module.Name.Contains("mscorlib"))
+                        if (module.Name.Contains(moduleName))
                         {
                             _mscorlib = module;
                             break;
