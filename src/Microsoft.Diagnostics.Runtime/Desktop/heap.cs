@@ -997,7 +997,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (_mscorlib == null)
                 {
-                    string moduleName = Runtime.ClrInfo.Flavor == ClrFlavor.CoreCLR
+                    string moduleName = Runtime.ClrInfo.Flavor == ClrFlavor.Core
                         ? "system.private.corelib"
                         : "mscorlib";
                     

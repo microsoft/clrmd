@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (version.Major == 4 && version.Minor >= 6)
                         return false;
                 }
-                else if (ClrInfo.Flavor == ClrFlavor.CoreCLR)
+                else if (ClrInfo.Flavor == ClrFlavor.Core)
                 {
                     return false;
                 }
