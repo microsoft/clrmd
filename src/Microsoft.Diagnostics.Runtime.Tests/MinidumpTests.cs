@@ -25,7 +25,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrThread thread = runtime.GetMainThread();
 
-                string[] frames = new string[] { "Inner", "Middle", "Outer", "Main" };
+                string[] frames = IntPtr.Size == 8 ?
+                    new string[] { "Inner", "Inner", "Middle", "Outer", "Main" } : 
+                    new string[] { "Inner", "Middle", "Outer", "Main" };
 
                 int i = 0;
 

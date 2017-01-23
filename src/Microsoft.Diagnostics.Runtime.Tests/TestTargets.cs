@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             cp.GenerateInMemory = false;
-            cp.CompilerOptions = IntPtr.Size == 4 ? "/platform:x86" : "/platform:amd64";
+            cp.CompilerOptions = IntPtr.Size == 4 ? "/platform:x86" : "/platform:x64";
 
             cp.IncludeDebugInformation = true;
             cp.OutputAssembly = destination;
