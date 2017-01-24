@@ -1359,7 +1359,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (sos.GetMethodDescData(md, 0, out data, 0, null, out count) < 0)
                 return false;
 
-
             _md = data.MethodDescPtr;
             _ip = data.NativeCodeAddr;
             _module = data.ModulePtr;
@@ -1375,6 +1374,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _jitType = MethodCompilationType.Ngen;
                 else
                     _jitType = MethodCompilationType.None;
+
+                _gcInfo = header.GCInfo;
             }
             else
             {
@@ -1385,9 +1386,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private MethodCompilationType _jitType;
-        private ulong _md, _module, _ip;
+        private ulong _gcInfo, _md, _module, _ip;
         private uint _token;
         private ulong _mt;
+        
+        public ulong GCInfo
+        {
+            get
+            {
+                return _gcInfo;
+            }
+        }
 
         public ulong MethodDesc
         {
@@ -1435,7 +1444,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal ulong ModulePtr;
 
         internal uint MDToken;
-        private ulong _GCInfo;
+        public ulong GCInfo;
         private ulong _GCStressCodeCopy;
 
         // This is only valid if bIsDynamic is true

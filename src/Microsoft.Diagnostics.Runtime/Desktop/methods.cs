@@ -79,6 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _jit = mdData.JITType;
             _attrs = attrs;
             _token = mdData.MDToken;
+            _gcInfo = mdData.GCInfo;
             var heap = runtime.GetHeap();
             _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
         }
@@ -229,10 +230,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _type; }
         }
 
+        public override ulong GCInfo
+        {
+            get
+            {
+                return _gcInfo;
+            }
+        }
+
         private uint _token;
         private ILToNativeMap[] _ilMap;
         private string _sig;
         private ulong _ip;
+        private ulong _gcInfo;
         private MethodCompilationType _jit;
         private MethodAttributes _attrs;
         private DesktopRuntimeBase _runtime;

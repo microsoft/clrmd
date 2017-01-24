@@ -1064,6 +1064,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get { return _methodTablePtr; }
         }
+
+        public ulong GCInfo
+        {
+            get
+            {
+                return _GCInfo;
+            }
+        }
     }
 
     internal struct V35MethodDescData : IMethodDescData
@@ -1108,6 +1116,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _mdToken; }
         }
 
+        public ulong GCInfo
+        {
+            get
+            {
+                return _GCInfo;
+            }
+        }
 
         ulong IMethodDescData.NativeCodeAddr
         {
