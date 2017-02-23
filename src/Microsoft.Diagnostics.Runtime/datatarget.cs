@@ -71,14 +71,21 @@ namespace Microsoft.Diagnostics.Runtime
         Desktop = 0,
 
         /// <summary>
-        /// This is a reduced CLR used in other projects.
+        /// This originally was for Silverlight and other uses of "coreclr", but now
+        /// there are several flavors of coreclr, some of which are no longer supported.
         /// </summary>
+        [Obsolete]
         CoreCLR = 1,
         
         /// <summary>
         /// Used for .Net Native.
         /// </summary>
-        Native = 2
+        Native = 2,
+
+        /// <summary>
+        /// For .Net Core
+        /// </summary>
+        Core = 3
     }
 
     /// <summary>
@@ -194,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacLibrary lib = new DacLibrary(_dataTarget, dac);
 
             Desktop.DesktopVersion ver;
-            if (Flavor == ClrFlavor.CoreCLR)
+            if (Flavor == ClrFlavor.Core)
             {
                 return new Desktop.V45Runtime(this, _dataTarget, lib);
             }
@@ -532,7 +539,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (flavor == ClrFlavor.Native)
                 return targetArchitecture == Runtime.Architecture.Amd64 ? "mrt100dac_winamd64.dll" : "mrt100dac_winx86.dll";
 
-            string dacName = flavor == ClrFlavor.CoreCLR ? "mscordaccore" : "mscordacwks";
+            string dacName = flavor == ClrFlavor.Core ? "mscordaccore" : "mscordacwks";
             return string.Format("{0}_{1}_{2}_{3}.{4}.{5}.{6:D2}.dll", dacName, currentArchitecture, targetArchitecture, clrVersion.Major, clrVersion.Minor, clrVersion.Revision, clrVersion.Patch);
         }
 
@@ -995,7 +1002,7 @@ namespace Microsoft.Diagnostics.Runtime
                             break;
 
                         case "coreclr":
-                            flavor = ClrFlavor.CoreCLR;
+                            flavor = ClrFlavor.Core;
                             break;
 
                         default:
