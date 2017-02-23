@@ -403,6 +403,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         virtual public bool IsPossibleFalsePositive { get { return false; } }
 
+
+        /// <summary>
+        /// Returns the stack frame associated with this stack root.
+        /// </summary>
+        virtual public ClrStackFrame StackFrame { get { return null; } }
+
         /// <summary>
         /// Returns a string representation of this object.
         /// </summary>

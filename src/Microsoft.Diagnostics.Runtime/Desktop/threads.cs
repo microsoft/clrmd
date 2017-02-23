@@ -345,8 +345,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrThread _thread;
         private ClrType _type;
         private ClrAppDomain _domain;
+        private ClrStackFrame _stackFrame;
 
-        public LocalVarRoot(ulong addr, ulong obj, ClrType type, ClrAppDomain domain, ClrThread thread, bool pinned, bool falsePos, bool interior)
+        public LocalVarRoot(ulong addr, ulong obj, ClrType type, ClrAppDomain domain, ClrThread thread, bool pinned, bool falsePos, bool interior, ClrStackFrame stackFrame)
         {
             Address = addr;
             Object = obj;
@@ -356,6 +357,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _domain = domain;
             _thread = thread;
             _type = type;
+            _stackFrame = stackFrame;
+        }
+
+        public override ClrStackFrame StackFrame
+        {
+            get
+            {
+                return _stackFrame;
+            }
         }
 
         public override ClrAppDomain AppDomain

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -151,8 +152,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (!interior)
                             type = heap.GetObjectType(refs[i].Object);
 
+                        ClrStackFrame frame = thread.StackTrace.SingleOrDefault(f => f.StackPointer == refs[i].Source || (f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source));
+
                         if (interior || type != null)
-                            yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior);
+                            yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior, frame);
                     }
                 } while (fetched == refs.Length);
             }

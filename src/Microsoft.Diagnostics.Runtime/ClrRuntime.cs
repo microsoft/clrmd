@@ -1013,7 +1013,7 @@ namespace Microsoft.Diagnostics.Runtime
                                 type = heap.GetObjectType(objRef);
 
                             if (type != null && !type.IsFree)
-                                yield return new LocalVarRoot(stackPtr, objRef, type, domain, thread, false, true, false);
+                                yield return new LocalVarRoot(stackPtr, objRef, type, domain, thread, false, true, false, null);
                         }
                     }
                 }
