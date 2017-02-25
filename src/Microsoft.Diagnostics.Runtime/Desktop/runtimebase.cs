@@ -621,6 +621,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0);
+            if (_threads == null)
+                InitThreads();
+
             foreach (ClrThread thread in _threads)
             {
                 ulong min = thread.StackBase;
