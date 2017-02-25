@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(field.TypeMethodTable, 0);
             _defaultValue = defaultValue;
             _heap = heap;
+            _token = field.FieldToken;
 
             if (_type != null && ElementType != ClrElementType.Class)
                 _type.ElementType = ElementType;
@@ -95,6 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public override uint Token { get { return _token; } }
         override public bool HasDefaultValue { get { return _defaultValue != null; } }
         override public object GetDefaultValue() { return _defaultValue; }
 
@@ -322,6 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private FieldAttributes _attributes;
         private object _defaultValue;
         private DesktopGCHeap _heap;
+        private uint _token;
     }
 
     internal class DesktopThreadStaticField : ClrThreadStaticField
@@ -330,6 +333,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _field = field;
             _name = name;
+            _token = field.FieldToken;
             _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(field.TypeMethodTable, 0);
         }
 
@@ -357,6 +361,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return _type.DesktopHeap.GetValueAtAddress(ElementType, addr);
         }
+
+        public override uint Token { get { return _token; } }
 
         public override Address GetAddress(ClrAppDomain appDomain, ClrThread thread)
         {
@@ -424,10 +430,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private IFieldData _field;
         private string _name;
         private BaseDesktopHeapType _type;
+        private uint _token;
     }
 
     internal class DesktopInstanceField : ClrInstanceField
     {
+        public override uint Token { get { return _token; } }
         override public bool IsPublic
         {
             get
@@ -465,6 +473,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _name = name;
             _field = data;
             _attributes = attributes;
+            _token = data.FieldToken;
 
             ulong mt = data.TypeMethodTable;
             if (mt != 0)
@@ -647,6 +656,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private IFieldData _field;
         private FieldAttributes _attributes;
         private ClrElementType _elementType = ClrElementType.Unknown;
+        private uint _token;
         #endregion
 
         public override object GetValue(Address objRef, bool interior = false, bool convertStrings = true)

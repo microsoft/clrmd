@@ -610,6 +610,11 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public string Name { get; }
 
         /// <summary>
+        /// Returns the type token of this field.
+        /// </summary>
+        abstract public uint Token { get; }
+
+        /// <summary>
         /// The type of the field.  Note this property may return null on error.  There is a bug in several versions
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
