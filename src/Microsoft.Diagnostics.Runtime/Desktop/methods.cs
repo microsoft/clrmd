@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -35,7 +36,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return new DesktopMethod(runtime, mdData.MethodDesc, mdData, attrs);
         }
         
-        List<ulong> _methodHandles;
         internal void AddMethodHandle(ulong methodDesc)
         {
             if (_methodHandles == null)
@@ -238,6 +238,61 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        
+        public override ILInfo IL
+        {
+            get
+            {
+                if (_il == null)
+                    InitILInfo();
+
+                return _il;
+            }
+        }
+        
+        private unsafe void InitILInfo()
+        {
+            ClrModule module = Type?.Module;
+            ICorDebug.IMetadataImport metadataImport = module?.MetadataImport as ICorDebug.IMetadataImport;
+            
+            if (metadataImport != null)
+            {
+                uint rva;
+                uint flags;
+                if (metadataImport.GetRVA(_token, out rva, out flags) == 0)
+                {
+                    ulong il = _runtime.GetILForModule(module, rva);
+                    if (il != 0)
+                    {
+                        _il = new ILInfo();
+
+                        uint tmp;
+                        byte b;
+                        if (_runtime.ReadByte(il, out b))
+                        {
+                            bool isTinyHeader = ((b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat);
+                            if (isTinyHeader)
+                            {
+                                _il.Address = il + 1;
+                                _il.Length = b >> (int)(IMAGE_COR_ILMETHOD.FormatShift - 1);
+                                _il.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
+                            }
+                            else if (_runtime.ReadDword(il, out tmp))
+                            {
+                                _il.Flags = tmp;
+                                _runtime.ReadDword(il + 4, out tmp);
+                                _il.Length = (int)tmp;
+                                _runtime.ReadDword(il + 8, out tmp);
+                                _il.LocalVarSignatureToken = tmp;
+                                _il.Address = il + 12;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
         private uint _token;
         private ILToNativeMap[] _ilMap;
         private string _sig;
@@ -247,5 +302,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private MethodAttributes _attrs;
         private DesktopRuntimeBase _runtime;
         private DesktopHeapType _type;
+        private List<ulong> _methodHandles;
+        private ILInfo _il;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct IMAGE_COR_ILMETHOD
+    {
+        public uint FlagsSizeStack;
+        public uint CodeSize;
+        public uint LocalVarSignatureToken;
+
+        public const uint FormatShift = 3;
+        public const uint FormatMask = (uint)(1 << (int)FormatShift) - 1;
+        public const uint TinyFormat = 0x2;
+        public const uint mdSignatureNil = 0x11000000;
     }
 }

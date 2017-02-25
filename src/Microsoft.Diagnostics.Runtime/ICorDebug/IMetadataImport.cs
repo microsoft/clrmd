@@ -350,7 +350,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdToken     tk,                     // Member for which to set offset   
         //         ULONG       *pulCodeRVA,            // The offset   
         //         DWORD       *pdwImplFlags) PURE;    // the implementation flags 
-        void GetRVA_();
+        [PreserveSig]
+        int GetRVA(uint token, [Out] out uint pRva, [Out] out uint flags);
 
         //     STDMETHOD(GetPermissionSetProps) (  
         //         mdPermission pm,                    // [IN] the permission token.   
@@ -956,7 +957,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdToken     tk,                     // Member for which to set offset   
         //         ULONG       *pulCodeRVA,            // The offset   
         //         DWORD       *pdwImplFlags) PURE;    // the implementation flags 
-        new void GetRVA_();
+        [PreserveSig]
+        new int GetRVA(uint token, [Out] out uint pRva, [Out] out uint flags);
 
         //     STDMETHOD(GetPermissionSetProps) (  
         //         mdPermission pm,                    // [IN] the permission token.   

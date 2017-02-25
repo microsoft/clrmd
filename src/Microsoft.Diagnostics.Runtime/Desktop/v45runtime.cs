@@ -553,6 +553,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
         #endregion
 
+        internal override ulong GetILForModule(ClrModule module, uint rva)
+        {
+            ulong ilAddr;
+            return _sos.GetILForModule(module.Address, rva, out ilAddr) == 0 ? ilAddr : 0;
+        }
+
         internal override ulong GetThreadStaticPointer(ulong thread, ClrElementType type, uint offset, uint moduleId, bool shared)
         {
             ulong addr = offset;

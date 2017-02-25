@@ -1042,6 +1042,12 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public int GetILOffset(ulong addr);
 
         /// <summary>
+        /// Returns the location in memory of the IL for this method.
+        /// </summary>
+        abstract public ILInfo IL { get; }
+        
+
+        /// <summary>
         /// Returns the way this method was compiled.
         /// </summary>
         abstract public MethodCompilationType CompilationType { get; }
@@ -1127,6 +1133,37 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns whether this method is a static constructor.
         /// </summary>
         virtual public bool IsClassConstructor { get { return Name == ".cctor"; } }
+    }
+
+    /// <summary>
+    /// Returns information about the IL for a method.
+    /// </summary>
+    public class ILInfo
+    {
+        /// <summary>
+        /// The address in memory of where the IL for a particular method is located.
+        /// </summary>
+        public ulong Address { get; internal set; }
+
+        /// <summary>
+        /// The length (in bytes) of the IL method body.
+        /// </summary>
+        public int Length { get; internal set; }
+
+        /// <summary>
+        /// The maximum IL stack size in this method.
+        /// </summary>
+        public int MaxStack { get; internal set; }
+
+        /// <summary>
+        /// The flags associated with the IL code.
+        /// </summary>
+        public uint Flags { get; internal set; }
+
+        /// <summary>
+        /// The local variable signature token for this IL method.
+        /// </summary>
+        public uint LocalVarSignatureToken { get; internal set; }
     }
 
     /// <summary>

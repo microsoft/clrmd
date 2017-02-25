@@ -1006,6 +1006,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IEnumerable<NativeWorkItem> EnumerateWorkItems();
         internal abstract uint GetStringFirstCharOffset();
         internal abstract uint GetStringLengthOffset();
+        internal abstract ulong GetILForModule(ClrModule module, uint rva);
         #endregion
 
 

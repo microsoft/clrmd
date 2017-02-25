@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public DesktopBaseModule(DesktopRuntimeBase runtime)
         {
             _runtime = runtime;
-    }
+        }
     }
 
     internal class DesktopModule : DesktopBaseModule
@@ -49,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private string _name, _assemblyName;
         private ICorDebug.IMetadataImport _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
+        private ulong _address;
         private Address _imageBase, _size;
         private Address _metadataStart;
         private Address _metadataLength;
@@ -61,6 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
             : base(runtime)
         {
+            _address = address;
             Revision = runtime.Revision;
             _imageBase = data.ImageBase;
             _assemblyName = assemblyName;
@@ -97,6 +99,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                 }
 #endif
+            }
+        }
+
+        internal override ulong Address
+        {
+            get
+            {
+                return _address;
             }
         }
 

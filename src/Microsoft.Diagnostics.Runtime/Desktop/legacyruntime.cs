@@ -55,6 +55,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        internal override ulong GetILForModule(ClrModule module, uint rva)
+        {
+            throw new NotImplementedException();
+        }
+
         internal override ulong[] GetAssemblyList(ulong appDomain, int count)
         {
             return RequestAddrList(DacRequests.ASSEMBLY_LIST, appDomain, count);
