@@ -543,6 +543,14 @@ namespace Microsoft.Diagnostics.Runtime
             return string.Format("{0}_{1}_{2}_{3}.{4}.{5}.{6:D2}.dll", dacName, currentArchitecture, targetArchitecture, clrVersion.Major, clrVersion.Minor, clrVersion.Revision, clrVersion.Patch);
         }
 
+        internal static string GetDacFileName(ClrFlavor flavor, Runtime.Architecture targetArchitecture)
+        {
+            if (flavor == ClrFlavor.Native)
+                return targetArchitecture == Runtime.Architecture.Amd64 ? "mrt100dac_winamd64.dll" : "mrt100dac_winx86.dll";
+
+            return flavor == ClrFlavor.Core ? "mscordaccore.dll" : "mscordacwks.dll";
+        }
+
         /// <summary>
         /// The platform-agnostice filename of the dac dll
         /// </summary>
@@ -990,10 +998,6 @@ namespace Microsoft.Diagnostics.Runtime
                     if (clrName != "clr" && clrName != "mscorwks" && clrName != "coreclr" && clrName != "mrt100_app")
                         continue;
 
-                    string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), "mscordacwks.dll");
-                    if (!File.Exists(dacLocation) || !NativeMethods.IsEqualFileVersion(dacLocation, module.Version))
-                        dacLocation = null;
-
                     ClrFlavor flavor;
                     switch (clrName)
                     {
@@ -1009,6 +1013,10 @@ namespace Microsoft.Diagnostics.Runtime
                             flavor = ClrFlavor.Desktop;
                             break;
                     }
+
+                    string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), DacInfo.GetDacFileName(flavor, Architecture));
+                    if (!File.Exists(dacLocation) || !NativeMethods.IsEqualFileVersion(dacLocation, module.Version))
+                        dacLocation = null;
 
                     VersionInfo version = module.Version;
                     string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
