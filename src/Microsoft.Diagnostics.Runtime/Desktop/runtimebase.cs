@@ -236,16 +236,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 List<ClrThread> threads = new List<ClrThread>();
 
-                // Give a max number of threads to walk to ensure no infinite loops due to data
-                // inconsistency.
-                int max = 4098;
                 ulong addr = GetFirstThread();
                 IThreadData thread = GetThread(addr);
 
-                while (max-- > 0 && thread != null)
+                // Ensure we don't hit an infinite loop
+                HashSet<ulong> seen = new HashSet<Address>();
+                seen.Add(addr);
+
+                while (thread != null && !seen.Contains(thread.Next))
                 {
                     threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
                     addr = thread.Next;
+                    seen.Add(addr);
                     thread = GetThread(addr);
                 }
 
