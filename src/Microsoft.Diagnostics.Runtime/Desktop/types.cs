@@ -1180,7 +1180,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return this == DesktopHeap.FreeType;
+                return this == DesktopHeap.Free;
             }
         }
 
@@ -1215,7 +1215,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override bool IsArray { get { return _componentSize != 0 && this != DesktopHeap.StringType && this != DesktopHeap.FreeType; } }
+        public override bool IsArray { get { return _componentSize != 0 && this != DesktopHeap.StringType && this != DesktopHeap.Free; } }
         public override bool ContainsPointers { get { return _containsPointers; } }
         public override bool IsString { get { return this == DesktopHeap.StringType; } }
 

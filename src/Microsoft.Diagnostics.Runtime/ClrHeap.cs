@@ -119,6 +119,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns the ClrType representing free space on the GC heap.
+        /// </summary>
+        public abstract ClrType Free { get; }
+
+        /// <summary>
         /// Enumerate the roots in the process.
         /// </summary>
         /// <param name="enumerateStatics">True if we should enumerate static variables.  Enumerating with statics 
