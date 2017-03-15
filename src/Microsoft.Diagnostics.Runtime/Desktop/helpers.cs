@@ -200,21 +200,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public int AddHandle(ulong addr, ulong obj, int hndType, uint refCnt, uint dependentTarget, ulong appDomain)
         {
-            ulong mt;
-            ulong cmt;
-
             // If we fail to get the MT of this object, just skip it and keep going
-            if (!GetMethodTables(obj, out mt, out cmt))
+            if (!GetMethodTables(obj, out ulong mt, out ulong cmt))
                 return _max-- > 0 ? 1 : 0;
 
-            ClrHandle handle = new ClrHandle();
-            handle.Address = addr;
-            handle.Object = obj;
-            handle.Type = _heap.GetObjectType(obj);
-            handle.HandleType = (HandleType)hndType;
-            handle.RefCount = refCnt;
-            handle.AppDomain = _runtime.GetAppDomainByAddress(appDomain);
-            handle.DependentTarget = dependentTarget;
+            ClrHandle handle = new ClrHandle()
+            {
+                Address = addr,
+                Object = obj,
+                Type = _heap.GetObjectType(obj),
+                HandleType = (HandleType)hndType,
+                RefCount = refCnt,
+                AppDomain = _runtime.GetAppDomainByAddress(appDomain),
+                DependentTarget = dependentTarget
+            };
 
             if (dependentTarget != 0)
                 handle.DependentType = _heap.GetObjectType(dependentTarget);
@@ -235,8 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             cmt = 0;
 
             byte[] data = new byte[IntPtr.Size * 3];        // TODO assumes bitness same as dump
-            int read = 0;
-            if (!_runtime.ReadMemory(obj, data, data.Length, out read) || read != data.Length)
+            if (!_runtime.ReadMemory(obj, data, data.Length, out int read) || read != data.Length)
                 return false;
 
             if (IntPtr.Size == 4)

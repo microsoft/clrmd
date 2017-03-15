@@ -181,8 +181,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!ignoreMismatch)
             {
-                int major, minor, revision, patch;
-                NativeMethods.GetFileVersion(dacFilename, out major, out minor, out revision, out patch);
+                NativeMethods.GetFileVersion(dacFilename, out int major, out int minor, out int revision, out int patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
             }
@@ -443,8 +442,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_pdb != null && _managed != null)
                 return;
-
-            PdbInfo pdb = null;
+            
             PEFile file = null;
             try
             {
@@ -454,16 +452,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _managed = file.Header.ComDescriptorDirectory.VirtualAddress != 0;
 
-                string pdbName;
-                Guid guid;
-                int age;
-                if (file.GetPdbSignature(out pdbName, out guid, out age))
+                if (file.GetPdbSignature(out string pdbName, out Guid guid, out int age))
                 {
-                    pdb = new PdbInfo();
-                    pdb.FileName = pdbName;
-                    pdb.Guid = guid;
-                    pdb.Revision = age;
-                    _pdb = pdb;
+                    _pdb = new PdbInfo()
+                    {
+                        FileName = pdbName,
+                        Guid = guid,
+                        Revision = age
+                    };
                 }
             }
             catch
@@ -952,10 +948,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DataTargetImpl(IDataReader dataReader, IDebugClient client)
         {
-            if (dataReader == null)
-                throw new ArgumentNullException("dataReader");
-
-            _dataReader = dataReader;
+            _dataReader = dataReader ?? throw new ArgumentNullException("dataReader");
             _client = client;
             _architecture = _dataReader.GetArchitecture();
         }
@@ -1022,11 +1015,13 @@ namespace Microsoft.Diagnostics.Runtime
                     string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
                     string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
 
-                    DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture);
-                    dacInfo.FileSize = module.FileSize;
-                    dacInfo.TimeStamp = module.TimeStamp;
-                    dacInfo.FileName = dacFileName;
-                    dacInfo.Version = module.Version;
+                    DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
+                    {
+                        FileSize = module.FileSize,
+                        TimeStamp = module.TimeStamp,
+                        FileName = dacFileName,
+                        Version = module.Version
+                    };
 
                     versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
                 }
@@ -1130,10 +1125,9 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr addr = NativeMethods.GetProcAddress(_library, "CLRDataCreateInstance");
             _dacDataTarget = new DacDataTarget(dataTarget);
 
-            object obj;
             NativeMethods.CreateDacInstance func = (NativeMethods.CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(NativeMethods.CreateDacInstance));
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-            int res = func(ref guid, _dacDataTarget, out obj);
+            int res = func(ref guid, _dacDataTarget, out object obj);
 
             if (res == 0)
                 _dac = obj as IXCLRDataProcess;
@@ -1198,8 +1192,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
         {
-            int read;
-            if (ReadVirtual(address, buffer, (int)bytesRequested, out read) >= 0)
+            if (ReadVirtual(address, buffer, (int)bytesRequested, out int read) >= 0)
                 return (uint)read;
 
             throw new Exception();
@@ -1279,8 +1272,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public unsafe int ReadVirtual(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            int read = 0;
-            if (_dataReader.ReadMemory(address, buffer, bytesRequested, out read))
+            if (_dataReader.ReadMemory(address, buffer, bytesRequested, out int read))
             {
                 bytesRead = read;
                 return 0;
@@ -1326,8 +1318,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int ReadMemory(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
         {
-            int read = 0;
-            if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out read))
+            if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out int read))
             {
                 bytesRead = (uint)read;
                 return 0;
@@ -1525,16 +1516,13 @@ namespace Microsoft.Diagnostics.Runtime
 
                 SetClientInstance();
 
-                DEBUG_CLASS cls;
-                DEBUG_CLASS_QUALIFIER qual;
-                _control.GetDebuggeeType(out cls, out qual);
+                _control.GetDebuggeeType(out DEBUG_CLASS cls, out DEBUG_CLASS_QUALIFIER qual);
 
                 if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
                 {
-                    DEBUG_FORMAT flags;
-                    _control.GetDumpFormatFlags(out flags);
+                    _control.GetDumpFormatFlags(out DEBUG_FORMAT flags);
                     _minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
-                    return (bool)_minidump;
+                    return _minidump.Value;
                 }
 
                 _minidump = false;
@@ -1546,8 +1534,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            IMAGE_FILE_MACHINE machineType;
-            int hr = _control.GetExecutingProcessorType(out machineType);
+            int hr = _control.GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType);
             if (0 != hr)
                 throw new ClrDiagnosticsException(String.Format("Failed to get proessor type, HRESULT: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
 
@@ -1572,8 +1559,7 @@ namespace Microsoft.Diagnostics.Runtime
         private static IDebugClient CreateIDebugClient()
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            object obj;
-            NativeMethods.DebugCreate(ref guid, out obj);
+            NativeMethods.DebugCreate(ref guid, out object obj);
 
             IDebugClient client = (IDebugClient)obj;
             return client;
@@ -1609,8 +1595,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            uint id = 0;
-            GetThreadIdBySystemId(threadID, out id);
+            GetThreadIdBySystemId(threadID, out uint id);
 
             SetCurrentThreadId(id);
             GetThreadContext(context, contextSize);
@@ -1633,8 +1618,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (buffer.Length < bytesRequested)
                 bytesRequested = buffer.Length;
 
-            uint read = 0;
-            int res = _spaces.ReadVirtual(address, buffer, (uint)bytesRequested, out read);
+            int res = _spaces.ReadVirtual(address, buffer, (uint)bytesRequested, out uint read);
             bytesRead = (int)read;
             return res;
         }
@@ -1642,16 +1626,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong[] GetImageBases()
         {
-            List<ulong> bases = null;
-            uint count, unloadedCount;
-            if (GetNumberModules(out count, out unloadedCount) < 0)
+            if (GetNumberModules(out uint count, out uint unloadedCount) < 0)
                 return null;
 
-            bases = new List<ulong>((int)count);
+            List<ulong> bases = new List<ulong>((int)count);
             for (uint i = 0; i < count + unloadedCount; ++i)
             {
-                ulong image;
-                if (GetModuleByIndex(i, out image) < 0)
+                if (GetModuleByIndex(i, out ulong image) < 0)
                     continue;
 
                 bases.Add(image);
@@ -1676,14 +1657,15 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     for (int i = 0; i < bases.Length; ++i)
                     {
-                        ModuleInfo info = new ModuleInfo(this);
-                        info.TimeStamp = mods[i].TimeDateStamp;
-                        info.FileSize = mods[i].Size;
-                        info.ImageBase = bases[i];
+                        ModuleInfo info = new ModuleInfo(this)
+                        {
+                            TimeStamp = mods[i].TimeDateStamp,
+                            FileSize = mods[i].Size,
+                            ImageBase = bases[i]
+                        };
 
-                        uint needed;
                         StringBuilder sbpath = new StringBuilder();
-                        if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], null, 0, out needed) >= 0 && needed > 1)
+                        if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], null, 0, out uint needed) >= 0 && needed > 1)
                         {
                             sbpath.EnsureCapacity((int)needed);
                             if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], sbpath, needed, out needed) >= 0)
@@ -1784,9 +1766,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (_spaces2 == null)
                 return false;
 
-            MEMORY_BASIC_INFORMATION64 mem;
             SetClientInstance();
-            int hr = _spaces2.QueryVirtual(addr, out mem);
+            int hr = _spaces2.QueryVirtual(addr, out MEMORY_BASIC_INFORMATION64 mem);
             vq.BaseAddress = mem.BaseAddress;
             vq.Size = mem.RegionSize;
 
@@ -1802,8 +1783,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            int read;
-            if (ReadVirtual(addr, _ptrBuffer, IntPtr.Size, out read) != 0)
+            if (ReadVirtual(addr, _ptrBuffer, IntPtr.Size, out int read) != 0)
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -1817,8 +1797,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            int read;
-            if (ReadVirtual(addr, _ptrBuffer, 4, out read) != 0)
+            if (ReadVirtual(addr, _ptrBuffer, 4, out int read) != 0)
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -1854,14 +1833,11 @@ namespace Microsoft.Diagnostics.Runtime
         {
             version = new VersionInfo();
 
-            uint index;
-            ulong baseAddr;
-            int hr = _symbols.GetModuleByOffset(addr, 0, out index, out baseAddr);
+            int hr = _symbols.GetModuleByOffset(addr, 0, out uint index, out ulong baseAddr);
             if (hr != 0)
                 return;
 
-            uint needed = 0;
-            hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out needed);
+            hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out uint needed);
             if (hr != 0)
                 return;
 
@@ -1930,8 +1906,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            uint read;
-            bool res = _spacesPtr.ReadVirtual(address, buffer, (uint)bytesRequested, out read) >= 0;
+            bool res = _spacesPtr.ReadVirtual(address, buffer, (uint)bytesRequested, out uint read) >= 0;
             bytesRead = res ? (int)read : 0;
             return res;
         }
@@ -1946,8 +1921,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            uint count = 0;
-            int hr = _systemObjects.GetNumberThreads(out count);
+            int hr = _systemObjects.GetNumberThreads(out uint count);
             if (hr == 0)
             {
                 uint[] sysIds = new uint[count];
@@ -1965,8 +1939,7 @@ namespace Microsoft.Diagnostics.Runtime
             SetClientInstance();
 
             ulong teb = 0;
-            uint id = 0;
-            int hr = _systemObjects.GetCurrentThreadId(out id);
+            int hr = _systemObjects.GetCurrentThreadId(out uint id);
             bool haveId = hr == 0;
 
             if (_systemObjects.GetThreadIdBySystemId(thread, out id) == 0 && _systemObjects.SetCurrentThreadId(id) == 0)
@@ -2011,11 +1984,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
-            uint id = 0;
-            GetThreadIdBySystemId(threadID, out id);
+            GetThreadIdBySystemId(threadID, out uint id);
 
             SetCurrentThreadId(id);
-
             fixed (byte* pContext = &context[0])
                 GetThreadContext(new IntPtr(pContext), contextSize);
 
@@ -2040,10 +2011,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (_process == IntPtr.Zero)
                 throw new ClrDiagnosticsException(String.Format("Could not attach to process. Error {0}.", Marshal.GetLastWin32Error()));
 
-            bool wow64, targetWow64;
             using (Process p = Process.GetCurrentProcess())
-                if (NativeMethods.TryGetWow64(p.Handle, out wow64) &&
-                    NativeMethods.TryGetWow64(_process, out targetWow64) &&
+                if (NativeMethods.TryGetWow64(p.Handle, out bool wow64) &&
+                    NativeMethods.TryGetWow64(_process, out bool targetWow64) &&
                     wow64 != targetWow64)
                 {
                     throw new ClrDiagnosticsException("Dac architecture mismatch!");
@@ -2088,8 +2058,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             List<ModuleInfo> result = new List<ModuleInfo>();
 
-            uint needed;
-            EnumProcessModules(_process, null, 0, out needed);
+            EnumProcessModules(_process, null, 0, out uint needed);
 
             IntPtr[] modules = new IntPtr[needed / 4];
             uint size = (uint)modules.Length * sizeof(uint);
@@ -2109,17 +2078,18 @@ namespace Microsoft.Diagnostics.Runtime
                 StringBuilder sb = new StringBuilder(1024);
                 GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
 
+                ulong baseAddr = (ulong)ptr.ToInt64();
+                GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
+
                 string filename = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this);
+                ModuleInfo module = new ModuleInfo(this)
+                {
+                    ImageBase = baseAddr,
+                    FileName = filename,
+                    FileSize = filesize,
+                    TimeStamp = timestamp
+            };
 
-                module.ImageBase = (ulong)ptr.ToInt64();
-                module.FileName = filename;
-
-                uint filesize, timestamp;
-                GetFileProperties(module.ImageBase, out filesize, out timestamp);
-
-                module.FileSize = filesize;
-                module.TimeStamp = timestamp;
 
                 result.Add(module);
             }
@@ -2132,8 +2102,7 @@ namespace Microsoft.Diagnostics.Runtime
             StringBuilder filename = new StringBuilder(1024);
             GetModuleFileNameExA(_process, new IntPtr((long)addr), filename, filename.Capacity);
 
-            int major, minor, revision, patch;
-            if (NativeMethods.GetFileVersion(filename.ToString(), out major, out minor, out revision, out patch))
+            if (NativeMethods.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
             else
                 version = new VersionInfo();
@@ -2171,8 +2140,7 @@ namespace Microsoft.Diagnostics.Runtime
         private byte[] _ptrBuffer = new byte[IntPtr.Size];
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            int read;
-            if (!ReadMemory(addr, _ptrBuffer, IntPtr.Size, out read))
+            if (!ReadMemory(addr, _ptrBuffer, IntPtr.Size, out int read))
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -2187,8 +2155,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            int read;
-            if (!ReadMemory(addr, _ptrBuffer, 4, out read))
+            if (!ReadMemory(addr, _ptrBuffer, 4, out int read))
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -2259,8 +2226,7 @@ namespace Microsoft.Diagnostics.Runtime
             timestamp = 0;
             byte[] buffer = new byte[4];
 
-            int read;
-            if (ReadMemory(moduleBase + 0x3c, buffer, buffer.Length, out read) && read == buffer.Length)
+            if (ReadMemory(moduleBase + 0x3c, buffer, buffer.Length, out int read) && read == buffer.Length)
             {
                 uint sigOffset = (uint)BitConverter.ToInt32(buffer, 0);
                 int sigLength = 4;

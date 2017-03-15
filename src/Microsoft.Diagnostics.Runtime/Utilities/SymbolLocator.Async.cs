@@ -201,8 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             lock (tasks)
             {
-                Task<string> tmp;
-                if (tasks.TryGetValue(fileEntry, out tmp) && tmp == task)
+                if (tasks.TryGetValue(fileEntry, out Task<string> tmp) && tmp == task)
                     tasks.Remove(fileEntry);
 
                 lock (missingFiles)
@@ -557,8 +556,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             lock (s_files)
             {
-                Task<string> task;
-                if (s_files.TryGetValue(entry, out task))
+                if (s_files.TryGetValue(entry, out Task<string> task))
                     return task.Result;
             }
 
@@ -591,8 +589,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             lock (s_pdbs)
             {
-                Task<string> task;
-                if (s_pdbs.TryGetValue(entry, out task))
+                if (s_pdbs.TryGetValue(entry, out Task<string> task))
                     return task.Result;
             }
 

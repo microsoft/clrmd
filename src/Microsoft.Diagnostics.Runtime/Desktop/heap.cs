@@ -101,9 +101,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
             ModuleEntry modEnt = new ModuleEntry(module, token);
-            int index;
 
-            if (_typeEntry.TryGetValue(modEnt, out index))
+            if (_typeEntry.TryGetValue(modEnt, out int index))
             {
                 BaseDesktopHeapType match = (BaseDesktopHeapType)_types[index];
                 if (match.MetadataToken == token)
@@ -155,16 +154,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             // Get type name.
-            int ptkExtends;
-            int typeDefLen;
-            System.Reflection.TypeAttributes typeAttrs;
             StringBuilder typeBuilder = new StringBuilder(256);
-            int res = meta.GetTypeDefProps((int)token, typeBuilder, typeBuilder.Capacity, out typeDefLen, out typeAttrs, out ptkExtends);
+            int res = meta.GetTypeDefProps((int)token, typeBuilder, typeBuilder.Capacity, out int typeDefLen, out System.Reflection.TypeAttributes typeAttrs, out int ptkExtends);
             if (res < 0)
                 return null;
 
-            int enclosing = 0;
-            res = meta.GetNestedClassProps((int)token, out enclosing);
+            res = meta.GetNestedClassProps((int)token, out int enclosing);
             if (res == 0 && token != enclosing)
             {
                 StringBuilder inner = GetTypeNameFromToken(module, (uint)enclosing);
@@ -186,8 +181,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateFinalizableObjectAddresses()
         {
-            SubHeap[] heaps;
-            if (DesktopRuntime.GetHeaps(out heaps))
+            if (DesktopRuntime.GetHeaps(out SubHeap[] heaps))
             {
                 foreach (SubHeap heap in heaps)
                 {
@@ -241,7 +235,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             foreach (var ad in DesktopRuntime.AppDomains)
                             {
                                 ulong addr = 0;
-                                ulong value = 0;
                                 // We must manually get the value, as strings will not be returned as an object address.
                                 try // If this fails for whatever reasion, don't fail completely.  
                                 {
@@ -253,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                     goto NextStatic;
                                 }
 
-                                if (DesktopRuntime.ReadPointer(addr, out value) && value != 0)
+                                if (DesktopRuntime.ReadPointer(addr, out ulong value) && value != 0)
                                 {
                                     ClrType objType = GetObjectType(value);
                                     if (objType != null)
@@ -275,9 +268,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 {
                                     // We must manually get the value, as strings will not be returned as an object address.
                                     ulong addr = tsf.GetAddress(ad, thread);
-                                    ulong value = 0;
 
-                                    if (DesktopRuntime.ReadPointer(addr, out value) && value != 0)
+                                    if (DesktopRuntime.ReadPointer(addr, out ulong value) && value != 0)
                                     {
                                         ClrType objType = GetObjectType(value);
                                         if (objType != null)
@@ -438,8 +430,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 data = strAddr + DesktopRuntime.GetStringFirstCharOffset();
 
             byte[] buffer = new byte[length * 2];
-            int read;
-            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out read))
+            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out int read))
                 return null;
 
             return UnicodeEncoding.Unicode.GetString(buffer);
@@ -450,10 +441,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (offset != 0)
                 throw new NotImplementedException("Non-zero offsets not supported (yet)");
 
-            int bytesRead = 0;
-            if (!DesktopRuntime.ReadMemory(address, buffer, count, out bytesRead))
+            if (!DesktopRuntime.ReadMemory(address, buffer, count, out int bytesRead))
                 return 0;
-            return (int)bytesRead;
+
+            return bytesRead;
         }
 
         public override IEnumerable<ClrType> EnumerateTypes()
@@ -553,8 +544,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 case ClrElementType.SZArray:
                 case ClrElementType.Object:
                     {
-                        Address val;
-                        if (!MemoryReader.TryReadPtr(addr, out val))
+                        if (!MemoryReader.TryReadPtr(addr, out ulong val))
                             return null;
 
                         return val;
@@ -562,16 +552,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Boolean:
                     {
-                        byte val;
-                        if (!DesktopRuntime.ReadByte(addr, out val))
+                        if (!DesktopRuntime.ReadByte(addr, out byte val))
                             return null;
                         return val != 0;
                     }
 
                 case ClrElementType.Int32:
                     {
-                        int val;
-                        if (!DesktopRuntime.ReadDword(addr, out val))
+                        if (!DesktopRuntime.ReadDword(addr, out int val))
                             return null;
 
                         return val;
@@ -579,8 +567,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.UInt32:
                     {
-                        uint val;
-                        if (!DesktopRuntime.ReadDword(addr, out val))
+                        if (!DesktopRuntime.ReadDword(addr, out uint val))
                             return null;
 
                         return val;
@@ -588,8 +575,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Int64:
                     {
-                        long val;
-                        if (!DesktopRuntime.ReadQword(addr, out val))
+                        if (!DesktopRuntime.ReadQword(addr, out long val))
                             return long.MaxValue;
 
                         return val;
@@ -597,8 +583,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.UInt64:
                     {
-                        ulong val;
-                        if (!DesktopRuntime.ReadQword(addr, out val))
+                        if (!DesktopRuntime.ReadQword(addr, out ulong val))
                             return long.MaxValue;
 
                         return val;
@@ -608,8 +593,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 case ClrElementType.Pointer:
                 case ClrElementType.FunctionPointer:
                     {
-                        ulong val;
-                        if (!MemoryReader.TryReadPtr(addr, out val))
+                        if (!MemoryReader.TryReadPtr(addr, out ulong val))
                             return null;
 
                         return val;
@@ -617,8 +601,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.NativeInt:  // native int
                     {
-                        ulong val;
-                        if (!MemoryReader.TryReadPtr(addr, out val))
+                        if (!MemoryReader.TryReadPtr(addr, out ulong val))
                             return null;
 
                         return (long)val;
@@ -626,56 +609,49 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Int8:
                     {
-                        sbyte val;
-                        if (!DesktopRuntime.ReadByte(addr, out val))
+                        if (!DesktopRuntime.ReadByte(addr, out sbyte val))
                             return null;
                         return val;
                     }
 
                 case ClrElementType.UInt8:
                     {
-                        byte val;
-                        if (!DesktopRuntime.ReadByte(addr, out val))
+                        if (!DesktopRuntime.ReadByte(addr, out byte val))
                             return null;
                         return val;
                     }
 
                 case ClrElementType.Float:
                     {
-                        float val;
-                        if (!DesktopRuntime.ReadFloat(addr, out val))
+                        if (!DesktopRuntime.ReadFloat(addr, out float val))
                             return null;
                         return val;
                     }
 
                 case ClrElementType.Double: // double
                     {
-                        double val;
-                        if (!DesktopRuntime.ReadFloat(addr, out val))
+                        if (!DesktopRuntime.ReadFloat(addr, out double val))
                             return null;
                         return val;
                     }
 
                 case ClrElementType.Int16:
                     {
-                        short val;
-                        if (!DesktopRuntime.ReadShort(addr, out val))
+                        if (!DesktopRuntime.ReadShort(addr, out short val))
                             return null;
                         return val;
                     }
 
                 case ClrElementType.Char:  // u2
                     {
-                        ushort val;
-                        if (!DesktopRuntime.ReadShort(addr, out val))
+                        if (!DesktopRuntime.ReadShort(addr, out ushort val))
                             return null;
                         return (char)val;
                     }
 
                 case ClrElementType.UInt16:
                     {
-                        ushort val;
-                        if (!DesktopRuntime.ReadShort(addr, out val))
+                        if (!DesktopRuntime.ReadShort(addr, out ushort val))
                             return null;
                         return val;
                     }
@@ -973,9 +949,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal BaseDesktopHeapType CreatePointerType(BaseDesktopHeapType innerType, ClrElementType clrElementType, string nameHint)
         {
-            BaseDesktopHeapType result = new DesktopPointerType(this, (DesktopBaseModule)Mscorlib, clrElementType, 0, nameHint);
-            result.ComponentType = innerType;
-            return result;
+            return new DesktopPointerType(this, (DesktopBaseModule)Mscorlib, clrElementType, 0, nameHint) { ComponentType = innerType };
         }
 
         internal BaseDesktopHeapType GetArrayType(ClrElementType clrElementType, int ranks, string nameHint)
@@ -984,8 +958,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _arrayTypes = new Dictionary<ArrayRankHandle, BaseDesktopHeapType>();
 
             var handle = new ArrayRankHandle(clrElementType, ranks);
-            BaseDesktopHeapType result;
-            if (!_arrayTypes.TryGetValue(handle, out result))
+            if (!_arrayTypes.TryGetValue(handle, out BaseDesktopHeapType result))
                 _arrayTypes[handle] = result = new DesktopArrayType(this, (DesktopBaseModule)Mscorlib, clrElementType, ranks, ArrayType.MetadataToken, nameHint);
 
             return result;
@@ -1381,10 +1354,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (field != null)
                     return (int)field.GetValue(_object);
 
-                int hr = 0;
                 var runtime = _type.DesktopHeap.DesktopRuntime;
                 uint offset = runtime.GetExceptionHROffset();
-                runtime.ReadDword(_object + offset, out hr);
+                runtime.ReadDword(_object + offset, out int hr);
 
                 return hr;
             }
@@ -1531,8 +1503,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ClrType ret = null;
 
             // See if we already have the type.
-            int index;
-            if (_indices.TryGetValue(hnd, out index))
+            if (_indices.TryGetValue(hnd, out int index))
             {
                 ret = _types[index];
             }
@@ -1603,9 +1574,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (mtData == null)
                         return null;
 
-                    ret = new DesktopHeapType(typeName, module, token, mt, mtData, this);
-                    ret.ComponentType = componentType;
-
+                    ret = new DesktopHeapType(typeName, module, token, mt, mtData, this) { ComponentType = componentType };
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);
                     _indices[hnd] = index;
@@ -1731,8 +1700,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ClrType ret = null;
 
             // See if we already have the type.
-            int index;
-            if (_indices.TryGetValue(mt, out index))
+            if (_indices.TryGetValue(mt, out int index))
             {
                 ret = _types[index];
             }
@@ -1784,7 +1752,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         return null;
 
                     ret = new DesktopHeapType(typeName, module, token, mt, mtData, this);
-                    
+
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);
                     _indices[mt] = index;

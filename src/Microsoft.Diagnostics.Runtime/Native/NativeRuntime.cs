@@ -145,8 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 List<ModuleInfo> modules = new List<ModuleInfo>(DataTarget.EnumerateModules());
                 modules.Sort((x, y) => x.ImageBase.CompareTo(y.ImageBase));
 
-                int count;
-                if (_sos.GetModuleList(0, null, out count) < 0)
+                if (_sos.GetModuleList(0, null, out int count) < 0)
                 {
                     _modules = ConvertModuleList(modules);
                     return _modules;
@@ -346,10 +345,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
             {
                 if (nativeException.InnerExceptionId > 0)
                 {
-                    NativeException innerException;
-                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out innerException))
+                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out NativeException innerException))
                     {
-                        nativeException.setInnerException(innerException);
+                        nativeException.SetInnerException(innerException);
                         usedAsInnerException.Add(innerException.ExceptionId);
                     }
                 }
@@ -378,8 +376,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (addr == 0)
                 return null;
 
-            NativeThreadData data;
-            if (_sos.GetThreadData(addr, out data) < 0)
+            if (_sos.GetThreadData(addr, out NativeThreadData data) < 0)
                 return null;
 
             return data;
@@ -387,8 +384,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override IHeapDetails GetSvrHeapDetails(ulong addr)
         {
-            NativeHeapDetails data;
-            if (_sos.GetGCHeapDetails(addr, out data) < 0)
+            if (_sos.GetGCHeapDetails(addr, out NativeHeapDetails data) < 0)
                 return null;
 
             return data;
@@ -396,8 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override IHeapDetails GetWksHeapDetails()
         {
-            NativeHeapDetails data;
-            if (_sos.GetGCHeapStaticData(out data) < 0)
+            if (_sos.GetGCHeapStaticData(out NativeHeapDetails data) < 0)
                 return null;
 
             return data;
@@ -405,8 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override ulong[] GetServerHeapList()
         {
-            int count = 0;
-            if (_sos.GetGCHeapList(0, null, out count) < 0)
+            if (_sos.GetGCHeapList(0, null, out int count) < 0)
                 return null;
 
             ulong[] items = new ulong[count];
@@ -418,8 +412,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override IThreadStoreData GetThreadStoreData()
         {
-            NativeThreadStoreData data;
-            if (_sos.GetThreadStoreData(out data) < 0)
+            if (_sos.GetThreadStoreData(out NativeThreadStoreData data) < 0)
                 return null;
 
             return data;
@@ -430,8 +423,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (addr == 0)
                 return null;
 
-            NativeSegementData data;
-            if (_sos.GetGCHeapSegment(addr, out data) < 0)
+            if (_sos.GetGCHeapSegment(addr, out NativeSegementData data) < 0)
                 return null;
 
             return data;
@@ -439,8 +431,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override IMethodTableData GetMethodTableData(ulong eetype)
         {
-            NativeMethodTableData data;
-            if (_sos.GetEETypeData(eetype, out data) < 0)
+            if (_sos.GetEETypeData(eetype, out NativeMethodTableData data) < 0)
                 return null;
 
             return data;
@@ -451,8 +442,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             // Can't return 0 on error here, as that would make values of 0 look like a
             // valid method table.  Instead, return something that won't likely be the value
             // in the methodtable.
-            ulong free;
-            if (_sos.GetFreeEEType(out free) < 0)
+            if (_sos.GetFreeEEType(out ulong free) < 0)
                 return ulong.MaxValue - 42;
 
             return free;
@@ -460,8 +450,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override IGCInfo GetGCInfo()
         {
-            LegacyGCInfo info;
-            if (_sos.GetGCHeapData(out info) < 0)
+            if (_sos.GetGCHeapData(out LegacyGCInfo info) < 0)
                 return null;
 
             return info;

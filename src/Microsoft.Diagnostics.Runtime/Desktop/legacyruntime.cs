@@ -436,9 +436,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
 
             ModuleMapTraverse traverse = delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
-            LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs();
-            args.pCallback = Marshal.GetFunctionPointerForDelegate(traverse);
-            args.module = module;
+            LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs()
+            {
+                pCallback = Marshal.GetFunctionPointerForDelegate(traverse),
+                module = module
+            };
 
             // TODO:  Blah, theres got to be a better way to do this.
             byte[] input = GetByteArrayForStruct<LegacyModuleMapTraverseArgs>();
@@ -574,8 +576,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             List<ClrStackFrame> result = new List<ClrStackFrame>();
 
-            ulong _stackTrace;
-            if (!GetStackTraceFromField(type, obj, out _stackTrace))
+            if (!GetStackTraceFromField(type, obj, out ulong _stackTrace))
             {
                 if (!ReadPointer(obj + GetStackTraceOffset(), out _stackTrace))
                     return result;
@@ -599,8 +600,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             int elementSize = (CLRVersion == DesktopVersion.v2) ? IntPtr.Size * 4 : IntPtr.Size * 3;
             ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
-            ulong count = 0;
-            if (!ReadPointer(dataPtr, out count))
+            if (!ReadPointer(dataPtr, out ulong count))
                 return result;
 
             // Skip size and header
@@ -609,12 +609,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             DesktopThread thread = null;
             for (int i = 0; i < (int)count; ++i)
             {
-                ulong ip, sp, md;
-                if (!ReadPointer(dataPtr, out ip))
+                if (!ReadPointer(dataPtr, out ulong ip))
                     break;
-                if (!ReadPointer(dataPtr + (ulong)IntPtr.Size, out sp))
+                if (!ReadPointer(dataPtr + (ulong)IntPtr.Size, out ulong sp))
                     break;
-                if (!ReadPointer(dataPtr + (ulong)(2 * IntPtr.Size), out md))
+                if (!ReadPointer(dataPtr + (ulong)(2 * IntPtr.Size), out ulong md))
                     break;
                 
                 if (i == 0)
@@ -1583,17 +1582,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _bIsThreadLocal != 0; }
         }
 
-        bool IFieldData.bIsContextLocal
+        bool IFieldData.IsContextLocal
         {
             get { return _bIsContextLocal != 0; }
         }
 
-        bool IFieldData.bIsStatic
+        bool IFieldData.IsStatic
         {
             get { return _bIsStatic != 0; }
         }
 
-        ulong IFieldData.nextField
+        ulong IFieldData.NextField
         {
             get { return _nextField; }
         }

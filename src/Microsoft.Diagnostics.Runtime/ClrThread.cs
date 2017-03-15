@@ -573,8 +573,7 @@ namespace Microsoft.Diagnostics.Runtime
                 tlsSlot += ptrSize * (clrTlsSlot - maxTlsSlot);
             }
 
-            ulong clrTls = 0;
-            if (!runtime.ReadPointer(tlsSlot, out clrTls))
+            if (!runtime.ReadPointer(tlsSlot, out ulong clrTls))
                 return 0;
 
             // Get thread data;
@@ -583,8 +582,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (tlsThreadTypeIndex == uint.MaxValue)
                 return 0;
 
-            ulong threadType = 0;
-            if (!runtime.ReadPointer(clrTls + ptrSize * tlsThreadTypeIndex, out threadType))
+            if (!runtime.ReadPointer(clrTls + ptrSize * tlsThreadTypeIndex, out ulong threadType))
                 return 0;
 
             return (int)threadType;

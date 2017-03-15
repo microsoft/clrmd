@@ -257,10 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                Guid fileGuid;
-                int fileAge;
-                PdbReader.GetPdbProperties(pdbName, out fileGuid, out fileAge);
-
+                PdbReader.GetPdbProperties(pdbName, out Guid fileGuid, out int fileAge);
                 return guid == fileGuid && age == fileAge;
             }
             catch (IOException)
@@ -671,62 +668,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return fullDestPath;
             }
         }
-
-#if V2_SUPPORT
-        private Dictionary<FileEntry, string> _binCache = new Dictionary<FileEntry, string>();
-        private Dictionary<PdbEntry, string> _pdbCache = new Dictionary<PdbEntry, string>();
-        
-
-        private bool IsMissing<T>(HashSet<T> entries, T entry)
-        {
-            return entries.Contains(entry);
-        }
-        
-        private string GetFileEntry(FileEntry entry)
-        {
-            string result;
-            if (!_binCache.TryGetValue(entry, out result))
-                return null;
-
-            Debug.Assert(result != null);
-            if (File.Exists(result))
-                return result;
-
-            _binCache.Remove(entry);
-            return null;
-        }
-
-        private void SetFileEntry(HashSet<FileEntry> missing, FileEntry entry, string value)
-        {
-            if (value == null)
-                missing.Add(entry);
-            else
-                _binCache[entry] = value;
-        }
-
-
-        private string GetPdbEntry(PdbEntry entry)
-        {
-            string result;
-            if (!_pdbCache.TryGetValue(entry, out result))
-                return null;
-
-            Debug.Assert(result != null);
-            if (File.Exists(result))
-                return result;
-
-            _pdbCache.Remove(entry);
-            return null;
-        }
-
-        private void SetPdbEntry(HashSet<PdbEntry> missing, PdbEntry entry, string value)
-        {
-            if (value == null)
-                missing.Add(entry);
-            else
-                _pdbCache[entry] = value;
-        }
-#endif
     }
 
     internal struct FileEntry : IEquatable<FileEntry>
@@ -802,8 +743,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            PEFile result;
-            if (_pefileCache.TryGetValue(fileName, out result))
+            if (_pefileCache.TryGetValue(fileName, out PEFile result))
             {
                 if (!result.Disposed)
                     return result;

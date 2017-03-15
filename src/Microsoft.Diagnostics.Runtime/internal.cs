@@ -100,8 +100,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (offset == 0)
             {
-                int read;
-                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out read))
+                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out int read))
                     return read;
 
                 return 0;
@@ -111,8 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_tmp == null || _tmp.Length < count)
                     _tmp = new byte[count];
 
-                int read;
-                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out read))
+                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out int read))
                     return 0;
 
                 Buffer.BlockCopy(_tmp, 0, buffer, offset, read);
@@ -322,8 +320,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadDword(ulong addr, out int value)
         {
-            uint tmp = 0;
-            bool res = ReadDword(addr, out tmp);
+            bool res = ReadDword(addr, out uint tmp);
 
             value = (int)tmp;
             return res;
@@ -423,8 +420,7 @@ namespace Microsoft.Diagnostics.Runtime
         #region Private Functions
         private bool MisalignedRead(ulong addr, out ulong value)
         {
-            int size = 0;
-            bool res = _dataReader.ReadMemory(addr, _ptr, _ptr.Length, out size);
+            bool res = _dataReader.ReadMemory(addr, _ptr, _ptr.Length, out int size);
             fixed (byte* b = _ptr)
                 if (_ptr.Length == 4)
                 value = *((uint*)b);
@@ -435,16 +431,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool MisalignedRead(ulong addr, out uint value)
         {
-            int size = 0;
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out size);
+            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out int size);
             value = BitConverter.ToUInt32(_dword, 0);
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out int value)
         {
-            int size = 0;
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out size);
+            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out int size);
             value = BitConverter.ToInt32(_dword, 0);
             return res;
         }
@@ -502,8 +496,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     while (ptr < stop)
                     {
-                        ulong ret;
-                        if (cache.ReadPtr(ptr, out ret) && ret != 0)
+                        if (cache.ReadPtr(ptr, out ulong ret) && ret != 0)
                             refCallback(ret, (int)(ptr - addr));
 
                         ptr += (ulong)IntPtr.Size;
@@ -526,8 +519,7 @@ namespace Microsoft.Diagnostics.Runtime
                         ulong stop = ptr + (ulong)(nptrs * IntPtr.Size);
                         do
                         {
-                            ulong ret;
-                            if (cache.ReadPtr(ptr, out ret) && ret != 0)
+                            if (cache.ReadPtr(ptr, out ulong ret) && ret != 0)
                                 refCallback(ret, (int)(ptr - addr));
 
                             ptr += (ulong)IntPtr.Size;
@@ -695,10 +687,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private const int VS_FIXEDFILEINFO_size = 0x34;
         public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
-
-#if !V2_SUPPORT
+        
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-#endif
         [DllImport("dbgeng.dll")]
         internal static extern uint DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -712,8 +702,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal static bool IsEqualFileVersion(string file, VersionInfo version)
         {
-            int major, minor, revision, patch;
-            if (!GetFileVersion(file, out major, out minor, out revision, out patch))
+            if (!GetFileVersion(file, out int major, out int minor, out int revision, out int patch))
                 return false;
 
             return major == version.Major && minor == version.Minor && revision == version.Revision && patch == version.Patch;
@@ -724,9 +713,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             major = minor = revision = patch = 0;
 
-            int handle;
-            int len = GetFileVersionInfoSize(dll, out handle);
-
+            int len = GetFileVersionInfoSize(dll, out int handle);
             if (len <= 0)
                 return false;
 
@@ -734,13 +721,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (!GetFileVersionInfo(dll, handle, len, data))
                 return false;
 
-            IntPtr ptr;
-            if (!VerQueryValue(data, "\\", out ptr, out len))
-            {
+            if (!VerQueryValue(data, "\\", out IntPtr ptr, out len))
                 return false;
-            }
-
-
+            
             byte[] vsFixedInfo = new byte[len];
             Marshal.Copy(ptr, vsFixedInfo, 0, len);
 
@@ -839,12 +822,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         static internal Guid GetGuid(this Type self)
         {
-
-#if V2_SUPPORT
             return self.GUID;
-#else
-            return self.GetTypeInfo().GUID;
-#endif
         }
     }
 }

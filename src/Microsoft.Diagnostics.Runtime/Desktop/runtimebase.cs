@@ -118,8 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (module == 0)
                 return null;
 
-            DesktopModule res;
-            if (_modules.TryGetValue(module, out res))
+            if (_modules.TryGetValue(module, out DesktopModule res))
                 return res;
 
             IModuleData moduleData = GetModuleData(module);
@@ -139,8 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_moduleFiles == null)
                 _moduleFiles = new Dictionary<string, DesktopModule>();
 
-            uint size = 0;
-            _moduleSizes.TryGetValue(moduleData.ImageBase, out size);
+            _moduleSizes.TryGetValue(moduleData.ImageBase, out uint size);
             if (peFile == null)
             {
                 res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
@@ -175,17 +173,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (process == null)
                     return null;
 
-                ICorDebugThreadEnum threadEnum;
-                process.EnumerateThreads(out threadEnum);
+                process.EnumerateThreads(out ICorDebugThreadEnum threadEnum);
 
-                uint fetched;
                 ICorDebugThread[] threads = new ICorDebugThread[1];
-                while (threadEnum.Next(1, threads, out fetched) == 0 && fetched == 1)
+                while (threadEnum.Next(1, threads, out uint fetched) == 0 && fetched == 1)
                 {
                     try
                     {
-                        uint id;
-                        threads[0].GetID(out id);
+                        threads[0].GetID(out uint id);
                         _corDebugThreads[id] = threads[0];
                     }
                     catch
@@ -194,8 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            ICorDebugThread result;
-            _corDebugThreads.TryGetValue(osid, out result);
+            _corDebugThreads.TryGetValue(osid, out ICorDebugThread result);
             return result;
         }
 
@@ -240,9 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 IThreadData thread = GetThread(addr);
 
                 // Ensure we don't hit an infinite loop
-                HashSet<ulong> seen = new HashSet<Address>();
-                seen.Add(addr);
-
+                HashSet<ulong> seen = new HashSet<Address> { addr };
                 while (thread != null && !seen.Contains(thread.Next))
                 {
                     threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
@@ -478,8 +470,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             HashSet<ulong> regions = new HashSet<ulong>();
             foreach (ClrHandle handle in EnumerateHandles())
             {
-                VirtualQueryData vq;
-                if (!_dataReader.VirtualQuery(handle.Address, out vq))
+                if (!_dataReader.VirtualQuery(handle.Address, out VirtualQueryData vq))
                     continue;
 
                 if (regions.Contains(vq.BaseAddress))
@@ -533,8 +524,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (jitHeap.Type == CodeHeapType.Host)
                 {
-                    VirtualQueryData vq;
-                    if (_dataReader.VirtualQuery(jitHeap.Address, out vq))
+                    if (_dataReader.VirtualQuery(jitHeap.Address, out VirtualQueryData vq))
                         yield return new MemoryRegion(this, vq.BaseAddress, vq.Size, ClrMemoryRegionType.JitHostCodeHeap);
                     else
                         yield return new MemoryRegion(this, jitHeap.Address, 0, ClrMemoryRegionType.JitHostCodeHeap);
@@ -596,15 +586,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             // add offset of the m_pHead (tagLockEntry) field
             thread += GetRWLockDataOffset();
-            ulong firstEntry;
-            if (ReadPointer(thread, out firstEntry))
+            if (ReadPointer(thread, out ulong firstEntry))
             {
                 ulong lockEntry = firstEntry;
                 byte[] output = GetByteArrayForStruct<RWLockData>();
                 do
                 {
-                    int read;
-                    if (!ReadMemory(lockEntry, output, output.Length, out read) || read != output.Length)
+                    if (!ReadMemory(lockEntry, output, output.Length, out int read) || read != output.Length)
                         break;
 
                     IRWLockData result = ConvertStruct<IRWLockData, RWLockData>(output);
@@ -830,9 +818,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
             IXCLRDataProcess proc = GetClrDataProcess();
-            object tmp;
 
-            int res = proc.GetTaskByOSThreadID(thread.OSThreadId, out tmp);
+            int res = proc.GetTaskByOSThreadID(thread.OSThreadId, out object tmp);
             if (res < 0)
                 yield break;
 
@@ -851,8 +838,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 byte[] context = ContextHelper.Context;
                 do
                 {
-                    uint size;
-                    res = stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, context);
+                    res = stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, context);
                     if (res < 0 || res == 1)
                         break;
 
@@ -901,21 +887,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             List<ILToNativeMap> list = null;
             ILToNativeMap[] tmp = null;
 
-            ulong handle;
-            int res = _dacInterface.StartEnumMethodInstancesByAddress(ip, null, out handle);
+            int res = _dacInterface.StartEnumMethodInstancesByAddress(ip, null, out ulong handle);
             if (res < 0)
                 return null;
 
-            object objMethod;
-            res = _dacInterface.EnumMethodInstanceByAddress(ref handle, out objMethod);
+            res = _dacInterface.EnumMethodInstanceByAddress(ref handle, out object objMethod);
 
             while (res == 0)
             {
                 IXCLRDataMethodInstance method = (IXCLRDataMethodInstance)objMethod;
-
-                uint needed = 0;
-                res = method.GetILAddressMap(0, out needed, null);
-
+                res = method.GetILAddressMap(0, out uint needed, null);
                 if (res == 0)
                 {
                     tmp = new ILToNativeMap[needed];
@@ -1309,10 +1290,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal ulong FQLiveStart { get { return ActualHeap.FQRootsStart; } }
         internal ulong FQLiveStop { get { return ActualHeap.FQRootsEnd; } }
 
-        internal SubHeap(IHeapDetails heap, int heapNum)
+        internal SubHeap(IHeapDetails heap, int heapNum, Dictionary<ulong,ulong> allocPointers)
         {
             ActualHeap = heap;
             HeapNum = heapNum;
+            AllocPointers = allocPointers;
         }
     }
 
@@ -1465,9 +1447,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong EnclosingMethodTable { get; }
         uint Offset { get; }
         bool IsThreadLocal { get; }
-        bool bIsContextLocal { get; }
-        bool bIsStatic { get; }
-        ulong nextField { get; }
+        bool IsContextLocal { get; }
+        bool IsStatic { get; }
+        ulong NextField { get; }
     }
 
     internal interface IEEClassData

@@ -35,9 +35,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     SigParser sigParser = new SigParser(sig, sigLen);
 
                     bool res;
-                    int sigType, etype = 0;
+                    int etype = 0;
 
-                    if (res = sigParser.GetCallingConvInfo(out sigType))
+                    if (res = sigParser.GetCallingConvInfo(out int sigType))
                         Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                     res = res && sigParser.SkipCustomModifiers();
@@ -74,8 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = sigParser.GetElemType(out etype);
                             type = (ClrElementType)etype;
 
-                            int token;
-                            sigParser.GetToken(out token);
+                            sigParser.GetToken(out int token);
                             BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(field.Module, Convert.ToUInt32(token));
 
                             if (innerType == null)
@@ -310,9 +309,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (data == null || _containingType == null)
                 return false;
 
-            byte flags = 0;
             ulong flagsAddr = data.ClassData + (_containingType.MetadataToken & ~0x02000000u) - 1;
-            if (!_heap.DesktopRuntime.ReadByte(flagsAddr, out flags))
+            if (!_heap.DesktopRuntime.ReadByte(flagsAddr, out byte flags))
                 return false;
 
             return (flags & 1) != 0;
@@ -486,9 +484,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     SigParser sigParser = new SigParser(sig, sigLen);
 
                     bool res;
-                    int sigType, etype = 0;
+                    int etype = 0;
 
-                    if (res = sigParser.GetCallingConvInfo(out sigType))
+                    if (res = sigParser.GetCallingConvInfo(out int sigType))
                         Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                     res = res && sigParser.SkipCustomModifiers();
@@ -530,8 +528,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = sigParser.GetElemType(out etype);
                             type = (ClrElementType)etype;
 
-                            int token;
-                            sigParser.GetToken(out token);
+                            sigParser.GetToken(out int token);
                             BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, Convert.ToUInt32(token));
 
                             if (innerType == null)
@@ -573,9 +570,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     SigParser sigParser = new SigParser(sig, sigLen);
 
                     bool res;
-                    int sigType, etype = 0;
+                    int etype = 0;
 
-                    if (res = sigParser.GetCallingConvInfo(out sigType))
+                    if (res = sigParser.GetCallingConvInfo(out int sigType))
                         Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                     res = res && sigParser.SkipCustomModifiers();

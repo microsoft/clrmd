@@ -103,15 +103,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 continue;
 
                             ulong queueHead;
-                            ClrType queueHeadType;
                             do
                             {
-                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out queueHeadType, out queueHead))
+                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out ClrType queueHeadType, out queueHead))
                                     break;
 
-                                ulong nodes;
-                                ClrType nodesType;
-                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out nodesType, out nodes) && nodesType.IsArray)
+                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out ClrType nodesType, out ulong nodes) && nodesType.IsArray)
                                 {
                                     int len = nodesType.GetArrayLength(nodes);
                                     for (int i = 0; i < len; ++i)
@@ -146,9 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             if (threadQueueType == null)
                                 continue;
 
-                            ulong outerArray = 0;
-                            ClrType outerArrayType = null;
-                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out outerArrayType, out outerArray) || !outerArrayType.IsArray)
+                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out ClrType outerArrayType, out ulong outerArray) || !outerArrayType.IsArray)
                                 continue;
 
                             int outerLen = outerArrayType.GetArrayLength(outerArray);
@@ -162,9 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 if (entryType == null)
                                     continue;
 
-                                ulong array;
-                                ClrType arrayType;
-                                if (!GetFieldObject(entryType, entry, "m_array", out arrayType, out array) || !arrayType.IsArray)
+                                if (!GetFieldObject(entryType, entry, "m_array", out ClrType arrayType, out ulong array) || !arrayType.IsArray)
                                     continue;
 
                                 int len = arrayType.GetArrayLength(array);

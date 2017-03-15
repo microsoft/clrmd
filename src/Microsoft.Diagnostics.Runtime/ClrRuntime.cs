@@ -185,9 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         protected void OnRuntimeFlushed()
         {
-            var evt = RuntimeFlushed;
-            if (evt != null)
-                evt(this);
+            RuntimeFlushed?.Invoke(this);
         }
 
         /// <summary>
@@ -574,9 +572,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ClrHandle(Microsoft.Diagnostics.Runtime.Desktop.V45Runtime clr, ClrHeap heap, Microsoft.Diagnostics.Runtime.Desktop.HandleData handleData)
         {
-            Address obj;
             Address = handleData.Handle;
-            clr.ReadPointer(Address, out obj);
+            clr.ReadPointer(Address, out ulong obj);
 
             Object = obj;
             Type = heap.GetObjectType(obj);
@@ -624,10 +621,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ClrHandle GetInteriorHandle()
         {
-            if (this.HandleType != HandleType.AsyncPinned)
+            if (HandleType != HandleType.AsyncPinned)
                 return null;
 
-            if (this.Type == null)
+            if (Type == null)
                 return null;
 
             var field = this.Type.GetFieldByName("m_userObject");
@@ -639,17 +636,18 @@ namespace Microsoft.Diagnostics.Runtime
             if (!(tmp is ulong) || (obj = (ulong)tmp) == 0)
                 return null;
 
-            ClrType type = this.Type.Heap.GetObjectType(obj);
+            ClrType type = Type.Heap.GetObjectType(obj);
             if (type == null)
                 return null;
 
-            ClrHandle result = new ClrHandle();
-            result.Object = obj;
-            result.Type = type;
-            result.Address = this.Address;
-            result.AppDomain = this.AppDomain;
-            result.HandleType = this.HandleType;
-
+            ClrHandle result = new ClrHandle()
+            {
+                Object = obj,
+                Type = type,
+                Address = Address,
+                AppDomain = AppDomain,
+                HandleType = HandleType
+            };
             return result;
         }
     }
@@ -905,8 +903,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (heap == null)
                         continue;
 
-                    heaps[i] = new SubHeap(heap, i);
-                    heaps[i].AllocPointers = new Dictionary<ulong, ulong>(allocContexts);
+                    heaps[i] = new SubHeap(heap, i, allocContexts);
                     if (heap.EphemeralAllocContextPtr != 0)
                         heaps[i].AllocPointers[heap.EphemeralAllocContextPtr] = heap.EphemeralAllocContextLimit;
 
@@ -921,8 +918,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (heap == null)
                     return false;
 
-                heaps[0] = new SubHeap(heap, 0);
-                heaps[0].AllocPointers = allocContexts;
+                heaps[0] = new SubHeap(heap, 0, allocContexts);
                 heaps[0].AllocPointers[heap.EphemeralAllocContextPtr] = heap.EphemeralAllocContextLimit;
 
                 return true;
@@ -966,8 +962,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<Address> EnumerateFinalizerQueueObjectAddresses()
         {
-            SubHeap[] heaps;
-            if (GetHeaps(out heaps))
+            if (GetHeaps(out SubHeap[] heaps))
             {
                 foreach (SubHeap heap in heaps)
                 {
@@ -998,14 +993,12 @@ namespace Microsoft.Diagnostics.Runtime
             cache.EnsureRangeInCache(stackBase);
             for (Address stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
             {
-                Address objRef;
-                if (cache.ReadPtr(stackPtr, out objRef))
+                if (cache.ReadPtr(stackPtr, out ulong objRef))
                 {
                     // If the value isn't pointer aligned, it cannot be a managed pointer.
                     if (heap.IsInHeap(objRef))
                     {
-                        ulong mt;
-                        if (heap.ReadPointer(objRef, out mt))
+                        if (heap.ReadPointer(objRef, out ulong mt))
                         {
                             ClrType type = null;
 
@@ -1262,8 +1255,7 @@ namespace Microsoft.Diagnostics.Runtime
             // todo: There's probably a more efficient way to implement this if ReadVirtual accepted an "out byte"
             //       "out dword", "out long", etc.
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out read))
+            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
                 return false;
 
             Debug.Assert(read == 1);
@@ -1275,8 +1267,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadByte(Address addr, out sbyte value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out read))
+            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
                 return false;
 
             Debug.Assert(read == 1);
@@ -1288,8 +1279,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadDword(ulong addr, out int value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(int), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(int), out int read))
                 return false;
 
             Debug.Assert(read == 4);
@@ -1301,8 +1291,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadDword(ulong addr, out uint value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(uint), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(uint), out int read))
                 return false;
 
             Debug.Assert(read == 4);
@@ -1314,8 +1303,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadFloat(ulong addr, out float value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out int read))
                 return false;
 
             Debug.Assert(read == sizeof(float));
@@ -1327,8 +1315,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadFloat(ulong addr, out double value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(double), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(double), out int read))
                 return false;
 
             Debug.Assert(read == sizeof(double));
@@ -1341,8 +1328,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadShort(ulong addr, out short value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(short), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(short), out int read))
                 return false;
 
             Debug.Assert(read == sizeof(short));
@@ -1354,8 +1340,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadShort(ulong addr, out ushort value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ushort), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(ushort), out int read))
                 return false;
 
             Debug.Assert(read == sizeof(ushort));
@@ -1367,8 +1352,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadQword(ulong addr, out ulong value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ulong), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(ulong), out int read))
                 return false;
 
             Debug.Assert(read == sizeof(ulong));
@@ -1380,8 +1364,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadQword(ulong addr, out long value)
         {
             value = 0;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(long), out read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(long), out int read))
                 return false;
 
             Debug.Assert(read == sizeof(long));
@@ -1392,9 +1375,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool ReadPointer(ulong addr, out ulong value)
         {
-            int ptrSize = (int)PointerSize;
-            int read = 0;
-            if (!ReadMemory(addr, _dataBuffer, ptrSize, out read))
+            int ptrSize = PointerSize;
+            if (!ReadMemory(addr, _dataBuffer, ptrSize, out int read))
             {
                 value = 0xcccccccc;
                 return false;
@@ -1403,9 +1385,9 @@ namespace Microsoft.Diagnostics.Runtime
             Debug.Assert(read == ptrSize);
 
             if (ptrSize == 4)
-                value = (ulong)BitConverter.ToUInt32(_dataBuffer, 0);
+                value = BitConverter.ToUInt32(_dataBuffer, 0);
             else
-                value = (ulong)BitConverter.ToUInt64(_dataBuffer, 0);
+                value = BitConverter.ToUInt64(_dataBuffer, 0);
 
             return true;
         }
@@ -1423,8 +1405,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong[] array = new ulong[count];
             byte[] tmp = new byte[(int)count * IntPtr.Size];
-            int read;
-            if (!ReadMemory(start, tmp, tmp.Length, out read))
+            if (!ReadMemory(start, tmp, tmp.Length, out int read))
                 return s_emptyPointerArray;
 
             if (IntPtr.Size == 4)
@@ -1439,10 +1420,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         private IEnumerable<Address> EnumeratePointersInRange(ulong start, ulong stop)
         {
-            ulong obj;
             for (ulong ptr = start; ptr < stop; ptr += (uint)IntPtr.Size)
             {
-                if (!ReadPointer(ptr, out obj))
+                if (!ReadPointer(ptr, out ulong obj))
                     break;
 
                 yield return obj;

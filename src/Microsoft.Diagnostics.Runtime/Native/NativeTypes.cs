@@ -75,7 +75,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
             else
             {
-                uint count = 0;
                 uint countOffset = pointerSize;
                 ulong loc = objRef + countOffset;
 
@@ -83,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 if (!cache.Contains(loc))
                     cache = _heap.NativeRuntime.MemoryReader;
 
-                if (!cache.ReadDword(loc, out count))
+                if (!cache.ReadDword(loc, out uint count))
                     throw new Exception("Could not read from heap at " + objRef.ToString("x"));
 
                 // TODO:  Strings in v4+ contain a trailing null terminator not accounted for.
@@ -120,18 +119,16 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             NativeRuntime runtime = _heap.NativeRuntime;
 
-            int entries;
-            if (!runtime.MemoryReader.TryReadDword(_eeType - (ulong)IntPtr.Size, out entries))
+            if (!runtime.MemoryReader.TryReadDword(_eeType - (ulong)IntPtr.Size, out int entries))
                 return false;
 
             // Get entries in map
             if (entries < 0)
                 entries = -entries;
 
-            int read;
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!runtime.ReadMemory(_eeType - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out read) || read != buffer.Length)
+            if (!runtime.ReadMemory(_eeType - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
                 return false;
 
             // Construct the gc desc

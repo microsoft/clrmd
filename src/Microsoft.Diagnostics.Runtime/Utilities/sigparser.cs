@@ -69,14 +69,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipInt()
         {
-            int tmp;
-            return GetData(out tmp);
+            return GetData(out int tmp);
         }
 
         public bool GetData(out int data)
         {
-            int size = 0;
-            if (UncompressData(out data, out size))
+            if (UncompressData(out data, out int size))
             {
                 SkipBytes(size);
                 return true;
@@ -115,11 +113,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SigParser sigTemp = new SigParser(this);
             if (sigTemp.SkipCustomModifiers())
             {
-                byte elemType;
-                if (sigTemp.GetByte(out elemType))
+                if (sigTemp.GetByte(out byte elemType))
                 {
                     etype = elemType;
-                    this.CopyFrom(sigTemp);
+                    CopyFrom(sigTemp);
                     return true;
                 }
             }
@@ -177,8 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool PeekData(out int data)
         {
-            int size;
-            return UncompressData(out data, out size);
+            return UncompressData(out data, out int size);
         }
 
         private bool PeekElemTypeSlow(out int etype)
@@ -210,8 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
-            byte bElementType = 0;
-            if (!sigTemp.GetByte(out bElementType))
+            if (!sigTemp.GetByte(out byte bElementType))
                 return false;
 
 
@@ -283,8 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool GetToken(out int token)
         {
-            int size;
-            if (UncompressToken(out token, out size))
+            if (UncompressToken(out token, out int size))
             {
                 SkipBytes(size);
                 return true;
@@ -300,17 +294,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
-            byte bElementType = 0;
-            if (!sigTemp.PeekByte(out bElementType))
+            if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
-
-
+            
             while ((ELEMENT_TYPE_CMOD_REQD == bElementType) || (ELEMENT_TYPE_CMOD_OPT == bElementType))
             {
                 sigTemp.SkipBytes(1);
 
-                int token;
-                if (!sigTemp.GetToken(out token))
+                if (!sigTemp.GetToken(out int token))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -340,10 +331,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
-
-            byte bElementType = 0;
-
-            if (!sigTemp.PeekByte(out bElementType))
+            if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
             while (ELEMENT_TYPE_CMOD_REQD == bElementType ||
@@ -353,8 +341,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 sigTemp.SkipBytes(1);
 
-                int token;
-                if (!sigTemp.GetToken(out token))
+                if (!sigTemp.GetToken(out int token))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -380,8 +367,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipAnyVASentinel()
         {
-            byte bElementType = 0;
-            if (!PeekByte(out bElementType))
+            if (!PeekByte(out byte bElementType))
                 return false;
 
             if (bElementType == ELEMENT_TYPE_SENTINEL)
@@ -393,12 +379,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool SkipExactlyOne()
         {
-            int typ;
-            if (!GetElemType(out typ))
+            if (!GetElemType(out int typ))
                 return false;
 
             int tmp;
-            if (!Microsoft.Diagnostics.Runtime.Desktop.DesktopRuntimeBase.IsPrimitive((ClrElementType)typ))
+            if (!ClrRuntime.IsPrimitive((ClrElementType)typ))
             {
                 switch (typ)
                 {
@@ -447,16 +432,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         if (rank > 0)
                         {
-                            int sizes;
-                            if (!GetData(out sizes))
+                            if (!GetData(out int sizes))
                                 return false;
 
                             while (sizes-- != 0)
                                 if (!GetData(out tmp))
                                     return false;
 
-                            int bounds;
-                            if (!GetData(out bounds))
+                            if (!GetData(out int bounds))
                                 return false;
                             while (bounds-- != 0)
                                 if (!GetData(out tmp))
@@ -498,19 +481,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pcArgs = 0;
 
             // Skip calling convention
-            int uCallConv, tmp;
-            if (!GetCallingConvInfo(out uCallConv))
+            if (!GetCallingConvInfo(out int uCallConv))
                 return false;
 
-            if ((uCallConv == IMAGE_CEE_CS_CALLCONV_FIELD) ||
-                (uCallConv == IMAGE_CEE_CS_CALLCONV_LOCAL_SIG))
-            {
+            if (uCallConv == IMAGE_CEE_CS_CALLCONV_FIELD || uCallConv == IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
                 return false;
-            }
 
             // Skip type parameter count
             if ((uCallConv & IMAGE_CEE_CS_CALLCONV_GENERIC) == IMAGE_CEE_CS_CALLCONV_GENERIC)
-                if (!GetData(out tmp))
+                if (!GetData(out int tmp))
                     return false;
 
             // Get arg count;
@@ -527,11 +506,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipSignature()
         {
-            int args;
-            if (!SkipMethodHeaderSignature(out args))
+            if (!SkipMethodHeaderSignature(out int args))
                 return false;
-
-
+            
             // Skip args.
             while (args-- > 0)
                 if (!SkipExactlyOne())
@@ -617,8 +594,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool PeekByte(out int data)
         {
-            byte tmp;
-            if (!PeekByte(out tmp))
+            if (!PeekByte(out byte tmp))
             {
                 data = 0xcc;
                 return false;

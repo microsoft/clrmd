@@ -282,13 +282,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _corDebugInit = true;
 
             ICorDebugThread3 thread = (ICorDebugThread3)CorDebugThread;
-            ICorDebugStackWalk stackwalk;
-            thread.CreateStackWalk(out stackwalk);
+            thread.CreateStackWalk(out ICorDebugStackWalk stackwalk);
 
             do
             {
-                ICorDebugFrame frame;
-                stackwalk.GetFrame(out frame);
+                stackwalk.GetFrame(out ICorDebugFrame frame);
 
                 ICorDebugILFrame ilFrame = frame as ICorDebugILFrame;
                 if (ilFrame == null)
@@ -296,10 +294,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 byte[] context = ContextHelper.Context;
 
-                uint size;
-                fixed (byte *ptr = context)
-                    stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out size, new IntPtr(ptr));
-                
+                fixed (byte* ptr = context)
+                    stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, new IntPtr(ptr));
+
                 ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
                 ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
 

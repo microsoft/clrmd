@@ -132,8 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return null;
 
             ClrType clrType = null;
-            int index;
-            if (_indices.TryGetValue(methodTable, out index))
+            if (_indices.TryGetValue(methodTable, out int index))
                 clrType = _types[index];
             else
                 clrType = ConstructObjectType(methodTable);
@@ -162,8 +161,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public override ClrType GetObjectType(ulong objRef)
         {
-            ulong eeType;
-
             if (_lastObj == objRef)
                 return _lastType;
 
@@ -171,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (!cache.Contains(objRef))
                 cache = NativeRuntime.MemoryReader;
 
-            if (!cache.ReadPtr(objRef, out eeType))
+            if (!cache.ReadPtr(objRef, out ulong eeType))
                 return null;
 
             ClrType last = this.GetTypeByMethodTable(eeType);
@@ -193,8 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             ulong canonType = isArray ? componentType : mtData.EEClass;
             if (!isArray && canonType != 0)
             {
-                int index;
-                if (!isArray && _indices.TryGetValue(canonType, out index))
+                if (!isArray && _indices.TryGetValue(canonType, out int index))
                 {
                     _indices[eeType] = index;  // Link the original eeType to its canonical GCHeapType.
                     return _types[index];
@@ -219,8 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
                 if (pdb != null)
                 {
-                    ISymbolResolver resolver;
-                    if (!_resolvers.TryGetValue(module, out resolver))
+                    if (!_resolvers.TryGetValue(module, out ISymbolResolver resolver))
                         _resolvers[module] = resolver = _symProvider.GetSymbolResolver(pdb.FileName, pdb.Guid, pdb.Revision);
 
                     name = resolver?.GetSymbolNameByRVA((uint)(eeType - module.ImageBase));
@@ -320,8 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (offset != 0)
                 throw new NotImplementedException("Non-zero offsets not supported (yet)");
 
-            int bytesRead = 0;
-            if (!NativeRuntime.ReadMemory(address, buffer, count, out bytesRead))
+            if (!NativeRuntime.ReadMemory(address, buffer, count, out int bytesRead))
                 return 0;
             return bytesRead;
         }

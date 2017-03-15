@@ -133,15 +133,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (_pdb == null)
-                {
-                    string pdbName;
-                    Guid pdbGuid;
-                    int pdbAge;
-
-                    if (GetPdbSignature(out pdbName, out pdbGuid, out pdbAge))
-                        _pdb = new PdbInfo(pdbName, pdbGuid, pdbAge);
-                }
+                if (_pdb == null && GetPdbSignature(out string pdbName, out Guid pdbGuid, out int pdbAge))
+                    _pdb = new PdbInfo(pdbName, pdbGuid, pdbAge);
 
                 return _pdb;
             }
@@ -604,7 +597,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (idx >= NumberOfRvaAndSizes)
                 return new IMAGE_DATA_DIRECTORY();
-            return ntDirectories[idx];
+            return NTDirectories[idx];
         }
         /// <summary>
         /// Return the data directory for DLL Exports see PE file spec for more
@@ -693,7 +686,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private IMAGE_OPTIONAL_HEADER32* OptionalHeader32 { get { return (IMAGE_OPTIONAL_HEADER32*)(((byte*)_ntHeader) + sizeof(IMAGE_NT_HEADERS)); } }
         private IMAGE_OPTIONAL_HEADER64* OptionalHeader64 { get { return (IMAGE_OPTIONAL_HEADER64*)(((byte*)_ntHeader) + sizeof(IMAGE_NT_HEADERS)); } }
-        private IMAGE_DATA_DIRECTORY* ntDirectories
+        private IMAGE_DATA_DIRECTORY* NTDirectories
         {
             get
             {

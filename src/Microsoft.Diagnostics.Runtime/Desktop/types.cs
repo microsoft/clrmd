@@ -105,8 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 for (int i = 0; i < count; ++i)
                 {
-                    int mdClass, mdIFace;
-                    res = import.GetInterfaceImplProps(mdTokens[i], out mdClass, out mdIFace);
+                    res = import.GetInterfaceImplProps(mdTokens[i], out int mdClass, out int mdIFace);
 
                     if (interfaces == null)
                         interfaces = new List<ClrInterface>(count == mdTokens.Length ? 64 : count);
@@ -132,10 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrInterface GetInterface(ICorDebug.IMetadataImport import, int mdIFace)
         {
             StringBuilder builder = new StringBuilder(1024);
-            int extends, cnt;
-            System.Reflection.TypeAttributes attr;
-            int res = import.GetTypeDefProps(mdIFace, builder, builder.Capacity, out cnt, out attr, out extends);
-            int scope;
+            int res = import.GetTypeDefProps(mdIFace, builder, builder.Capacity, out int count, out TypeAttributes attr, out int extends);
 
             string name = null;
             ClrInterface result = null;
@@ -145,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else if (res == 1)
             {
-                res = import.GetTypeRefProps(mdIFace, out scope, builder, builder.Capacity, out cnt);
+                res = import.GetTypeRefProps(mdIFace, out int scope, builder, builder.Capacity, out count);
                 if (res == 0)
                 {
                     name = builder.ToString();
@@ -819,7 +815,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
-                uint count = 0;
                 uint countOffset = pointerSize;
                 ulong loc = objRef + countOffset;
 
@@ -831,7 +826,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         cache = DesktopHeap.DesktopRuntime.MemoryReader;
                 }
 
-                if (!cache.ReadDword(loc, out count))
+                if (!cache.ReadDword(loc, out uint count))
                     throw new Exception("Could not read from heap at " + objRef.ToString("x"));
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
@@ -891,18 +886,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
 
-            int entries;
-            if (!runtime.ReadDword(_constructedMT - (ulong)IntPtr.Size, out entries))
+            if (!runtime.ReadDword(_constructedMT - (ulong)IntPtr.Size, out int entries))
                 return false;
 
             // Get entries in map
             if (entries < 0)
                 entries = -entries;
 
-            int read;
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out read) || read != buffer.Length)
+            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
                 return false;
 
             // Construct the gc desc
@@ -1050,8 +1043,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override bool TryGetEnumValue(string name, out int value)
         {
-            object val = null;
-            if (TryGetEnumValue(name, out val))
+            if (TryGetEnumValue(name, out object val))
             {
                 value = (int)val;
                 return true;
@@ -1075,8 +1067,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_enumData == null)
                 InitEnumData();
 
-            string result = null;
-            _enumData.ValueToName.TryGetValue(value, out result);
+            _enumData.ValueToName.TryGetValue(value, out string result);
             return result;
         }
 
@@ -1121,19 +1112,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 int res = import.EnumFields(ref hnd, (int)_token, fields, fields.Length, out tokens);
                 for (int i = 0; i < tokens; ++i)
                 {
-                    FieldAttributes attr;
-                    int mdTypeDef, pchField, pcbSigBlob, pdwCPlusTypeFlag, pcchValue;
-                    IntPtr ppvSigBlob, ppValue = IntPtr.Zero;
                     StringBuilder builder = new StringBuilder(256);
-
-                    res = import.GetFieldProps(fields[i], out mdTypeDef, builder, builder.Capacity, out pchField, out attr, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
+                    res = import.GetFieldProps(fields[i], out int mdTypeDef, builder, builder.Capacity, out int pchField, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue, out int pcchValue);
 
                     if ((int)attr == 0x606 && builder.ToString() == "value__")
                     {
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
-                        int sigType, elemType;
 
-                        if (parser.GetCallingConvInfo(out sigType) && parser.GetElemType(out elemType))
+                        if (parser.GetCallingConvInfo(out int sigType) && parser.GetElemType(out int elemType))
                             _enumData.ElementType = (ClrElementType)elemType;
                     }
 
@@ -1144,11 +1130,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         string name = builder.ToString();
                         names.Add(name);
 
-                        int ccinfo;
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
-                        parser.GetCallingConvInfo(out ccinfo);
-                        int elemType;
-                        parser.GetElemType(out elemType);
+                        parser.GetCallingConvInfo(out int ccinfo);
+                        parser.GetElemType(out int elemType);
 
                         Type type = ClrRuntime.GetTypeForElementType((ClrElementType)pdwCPlusTypeFlag);
                         if (type != null)
@@ -1204,8 +1188,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private const uint FinalizationSuppressedFlag = 0x40000000;
         public override bool IsFinalizeSuppressed(Address obj)
         {
-            uint value;
-            bool result = DesktopHeap.GetObjectHeader(obj, out value);
+            bool result = DesktopHeap.GetObjectHeader(obj, out uint value);
 
             return result && (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
@@ -1351,9 +1334,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     break;
 
                 // We don't handle context statics.
-                if (field.bIsContextLocal)
+                if (field.IsContextLocal)
                 {
-                    nextField = field.nextField;
+                    nextField = field.NextField;
                     continue;
                 }
 
@@ -1366,10 +1349,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 if (import != null)
                 {
-                    int mdTypeDef, pchField, pdwCPlusTypeFlab;
                     StringBuilder builder = new StringBuilder(256);
 
-                    int res = import.GetFieldProps((int)field.FieldToken, out mdTypeDef, builder, builder.Capacity, out pchField, out attr, out fieldSig, out sigLen, out pdwCPlusTypeFlab, out ppValue, out pcchValue);
+                    int res = import.GetFieldProps((int)field.FieldToken, out int mdTypeDef, builder, builder.Capacity, out int pchField, out attr, out fieldSig, out sigLen, out int pdwCPlusTypeFlab, out ppValue, out pcchValue);
                     if (res >= 0)
                         name = builder.ToString();
                     else
@@ -1391,7 +1373,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     // TODO:  Renable when thread statics are fixed.
                     //m_threadStatics.Add(new RealTimeMemThreadStaticField(m_heap, field, name));
                 }
-                else if (field.bIsStatic)
+                else if (field.IsStatic)
                 {
                     if (_statics == null)
                         _statics = new List<ClrStaticField>();
@@ -1413,7 +1395,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
 
                 i++;
-                nextField = field.nextField;
+                nextField = field.NextField;
             }
 
             _fields.Sort((a, b) => a.Offset.CompareTo(b.Offset));
@@ -1529,8 +1511,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Debug.Assert(IsArray);
 
-            uint res;
-            if (!DesktopHeap.DesktopRuntime.ReadDword(objRef + (uint)DesktopHeap.DesktopRuntime.PointerSize, out res))
+            if (!DesktopHeap.DesktopRuntime.ReadDword(objRef + (uint)DesktopHeap.DesktopRuntime.PointerSize, out uint res))
                 res = 0;
 
             return (int)res;
@@ -1793,9 +1774,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return;
             }
 
-            int tdef;
-            int extends;
-            int i = import.GetTypeDefProps((int)_token, null, 0, out tdef, out _attributes, out extends);
+            int i = import.GetTypeDefProps((int)_token, null, 0, out int tdef, out _attributes, out int extends);
             if (i < 0 || (int)_attributes == 0)
                 _attributes = (TypeAttributes)0x70000000;
         }

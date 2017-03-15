@@ -23,15 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mdData == null)
                 return null;
 
-            MethodAttributes attrs = (MethodAttributes)0;
-            if (metadata != null)
-            {
-                int pClass, methodLength;
-                uint blobLen, codeRva, implFlags;
-                IntPtr blob;
-                if (metadata.GetMethodProps(mdData.MDToken, out pClass, null, 0, out methodLength, out attrs, out blob, out blobLen, out codeRva, out implFlags) < 0)
-                    attrs = (MethodAttributes)0;
-            }
+            MethodAttributes attrs = 0;
+            if (metadata?.GetMethodProps(mdData.MDToken, out int pClass, null, 0, out int methodLength, out attrs, out IntPtr blob, out uint blobLen, out uint codeRva, out uint implFlags) < 0)
+                attrs = 0;
 
             return new DesktopMethod(runtime, mdData.MethodDesc, mdData, attrs);
         }
@@ -72,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             DesktopModule module = runtime.GetModule(mdData.Module);
-            return Create(runtime, module != null ? module.GetMetadataImport() : null, mdData);
+            return Create(runtime, module?.GetMetadataImport(), mdData);
         }
 
         public DesktopMethod(DesktopRuntimeBase runtime, ulong md, IMethodDescData mdData, MethodAttributes attrs)
@@ -265,22 +259,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private unsafe void InitILInfo()
         {
             ClrModule module = Type?.Module;
-            ICorDebug.IMetadataImport metadataImport = module?.MetadataImport as ICorDebug.IMetadataImport;
-            
-            if (metadataImport != null)
+            if (module?.MetadataImport is ICorDebug.IMetadataImport metadataImport)
             {
-                uint rva;
-                uint flags;
-                if (metadataImport.GetRVA(_token, out rva, out flags) == 0)
+                if (metadataImport.GetRVA(_token, out uint rva, out uint flags) == 0)
                 {
                     ulong il = _runtime.GetILForModule(module, rva);
                     if (il != 0)
                     {
                         _il = new ILInfo();
 
-                        uint tmp;
-                        byte b;
-                        if (_runtime.ReadByte(il, out b))
+                        if (_runtime.ReadByte(il, out byte b))
                         {
                             bool isTinyHeader = ((b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat);
                             if (isTinyHeader)
@@ -289,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 _il.Length = b >> (int)(IMAGE_COR_ILMETHOD.FormatShift - 1);
                                 _il.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
                             }
-                            else if (_runtime.ReadDword(il, out tmp))
+                            else if (_runtime.ReadDword(il, out uint tmp))
                             {
                                 _il.Flags = tmp;
                                 _runtime.ReadDword(il + 4, out tmp);

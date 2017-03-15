@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        internal void setInnerException(ClrException inner)
+        internal void SetInnerException(ClrException inner)
         {
             _innerException = inner;
         }

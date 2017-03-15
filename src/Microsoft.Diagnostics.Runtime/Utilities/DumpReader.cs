@@ -954,8 +954,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 public int GetChunkContainingAddress(ulong address)
                 {
-                    MinidumpMemoryChunk targetChunk = new MinidumpMemoryChunk();
-                    targetChunk.TargetStartAddress = address;
+                    MinidumpMemoryChunk targetChunk = new MinidumpMemoryChunk() { TargetStartAddress = address };
                     int index = Array.BinarySearch(_chunks, targetChunk);
                     if (index >= 0)
                     {
@@ -1010,11 +1009,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     for (UInt64 i = 0; i < count; i++)
                     {
                         tempMD = _memory64List.GetElement((uint)i);
-                        MinidumpMemoryChunk chunk = new MinidumpMemoryChunk();
-                        chunk.Size = tempMD.DataSize;
-                        chunk.TargetStartAddress = tempMD.StartOfMemoryRange;
-                        chunk.TargetEndAddress = tempMD.StartOfMemoryRange + tempMD.DataSize;
-                        chunk.RVA = currentRVA.Value;
+                        MinidumpMemoryChunk chunk = new MinidumpMemoryChunk()
+                        {
+                            Size = tempMD.DataSize,
+                            TargetStartAddress = tempMD.StartOfMemoryRange,
+                            TargetEndAddress = tempMD.StartOfMemoryRange + tempMD.DataSize,
+                            RVA = currentRVA.Value
+                        };
+
                         currentRVA.Value += tempMD.DataSize;
                         chunks.Add(chunk);
                     }
@@ -1800,11 +1802,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>DumpPointer refering into the stream. </returns>
         private DumpPointer GetStream(DumpNative.MINIDUMP_STREAM_TYPE type)
         {
-            DumpPointer stream;
-            if (!TryGetStream(type, out stream))
-            {
+            if (!TryGetStream(type, out DumpPointer stream))
                 throw new ClrDiagnosticsException("Dump does not contain a " + type + " stream.", ClrDiagnosticsException.HR.CrashDumpError);
-            }
+
             return stream;
         }
 
@@ -1818,10 +1818,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             EnsureValid();
 
-            IntPtr pStream;
-            uint cbStreamSize;
-
-            bool fOk = DumpNative.MiniDumpReadDumpStream(_view.BaseAddress, type, out pStream, out cbStreamSize);
+            bool fOk = DumpNative.MiniDumpReadDumpStream(_view.BaseAddress, type, out IntPtr pStream, out uint cbStreamSize);
 
             if ((!fOk) || (IntPtr.Zero == pStream) || (cbStreamSize < 1))
             {

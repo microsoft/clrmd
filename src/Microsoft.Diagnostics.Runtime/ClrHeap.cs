@@ -686,11 +686,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override ulong GetMethodTable(ulong obj)
         {
-            ulong mt;
-            if (!MemoryReader.ReadPtr(obj, out mt))
-                return 0;
+            if (MemoryReader.ReadPtr(obj, out ulong mt))
+                return mt;
 
-            return mt;
+            return 0;
         }
 
         public override bool ReadPointer(Address addr, out Address value)
@@ -769,8 +768,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected void InitSegments(RuntimeBase runtime)
         {
             // Populate segments
-            SubHeap[] heaps;
-            if (runtime.GetHeaps(out heaps))
+            if (runtime.GetHeaps(out SubHeap[] heaps))
             {
                 var segments = new List<HeapSegment>();
                 foreach (var heap in heaps)
@@ -969,8 +967,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return 0;
 
             // Ensure we aren't at the start of an alloc context
-            ulong tmp;
-            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(addr, out tmp))
+            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(addr, out ulong tmp))
             {
                 tmp += Align(minObjSize, _large);
 

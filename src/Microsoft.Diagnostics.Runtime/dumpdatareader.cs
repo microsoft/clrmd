@@ -44,9 +44,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             Directory.CreateDirectory(_generatedPath);
 
-            CommandOptions options = new CommandOptions();
-            options.NoThrow = true;
-            options.NoWindow = true;
+            CommandOptions options = new CommandOptions()
+            {
+                NoThrow = true,
+                NoWindow = true
+            };
+
             Command cmd = Command.Run(string.Format("expand -F:*dmp {0} {1}", file, _generatedPath), options);
 
             bool error = false;
@@ -164,13 +167,15 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 var raw = mod.Raw;
 
-                ModuleInfo module = new ModuleInfo(this);
-                module.FileName = mod.FullName;
-                module.ImageBase = raw.BaseOfImage;
-                module.FileSize = raw.SizeOfImage;
-                module.TimeStamp = raw.TimeDateStamp;
+                ModuleInfo module = new ModuleInfo(this)
+                {
+                    FileName = mod.FullName,
+                    ImageBase = raw.BaseOfImage,
+                    FileSize = raw.SizeOfImage,
+                    TimeStamp = raw.TimeDateStamp,
+                    Version = GetVersionInfo(mod)
+                };
 
-                module.Version = GetVersionInfo(mod);
                 modules.Add(module);
             }
 

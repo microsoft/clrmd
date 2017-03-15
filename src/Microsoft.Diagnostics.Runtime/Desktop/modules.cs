@@ -86,19 +86,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 // If we are a minidump and metadata isn't mapped in, attempt to fetch this module from the symbol server
                 // on a background thread.
-#if !V2_SUPPORT
                 if (_isPE && _metadataStart != 0 && _metadataLength > 0)
                 {
-                    int read;
                     byte[] tmp = new byte[1];
-                    if (!_runtime.DataReader.ReadMemory(_metadataStart, tmp, 1, out read) || read == 0)
-                    {
-                        int filesize, imagesize;
-                        if (PEFile.TryGetIndexProperties(new ReadVirtualStream(_runtime.DataReader, (long)data.ImageBase, (long)size), true, out imagesize, out filesize))
+                    if (!_runtime.DataReader.ReadMemory(_metadataStart, tmp, 1, out int read) || read == 0)
+                        if (PEFile.TryGetIndexProperties(new ReadVirtualStream(_runtime.DataReader, (long)data.ImageBase, (long)size), true, out int imagesize, out int filesize))
                             _runtime.DataTarget.SymbolLocator.PrefetchBinary(Path.GetFileName(assemblyName), imagesize, filesize);
-                    }
                 }
-#endif
             }
         }
 
@@ -252,8 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return 0;
             }
 
-            ulong value;
-            if (_mapping.TryGetValue(domain, out value))
+            if (_mapping.TryGetValue(domain, out ulong value))
                 return value;
 
             return 0;
@@ -328,9 +321,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             try
             {
-                IntPtr data;
-                uint cbData;
-                int hr = metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out data, out cbData);
+                int hr = metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out IntPtr data, out uint cbData);
                 if (hr != 0 || cbData <= 4)
                 {
                     _debugMode = DebuggableAttribute.DebuggingModes.None;

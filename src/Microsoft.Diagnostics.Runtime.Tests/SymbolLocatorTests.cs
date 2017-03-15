@@ -24,11 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         static internal SymbolLocator GetLocator()
         {
-            string tmpPath = Helpers.TestWorkingDirectory;
-
-            SymbolLocator locator = new DefaultSymbolLocator();
-            locator.SymbolCache = tmpPath;
-            return locator;
+            return new DefaultSymbolLocator() { SymbolCache = Helpers.TestWorkingDirectory };
         }
 
         [TestMethod]
@@ -124,9 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         static bool PdbMatches(string pdb, Guid guid, int age)
         {
-            Guid fileGuid;
-            int fileAge;
-            PdbReader.GetPdbProperties(pdb, out fileGuid, out fileAge);
+            PdbReader.GetPdbProperties(pdb, out Guid fileGuid, out int fileAge);
 
             return guid == fileGuid && age == fileAge;
         }
