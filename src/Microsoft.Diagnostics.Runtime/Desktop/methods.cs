@@ -58,7 +58,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override IEnumerable<ulong> EnumerateMethodDescs()
         {
             if (_methodHandles == null)
-                _type.InitMethodHandles();
+                _type?.InitMethodHandles();
+
+            if (_methodHandles == null)
+                _methodHandles = new List<ulong>();
+
             return _methodHandles;
         }
 
@@ -82,6 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _gcInfo = mdData.GCInfo;
             var heap = runtime.GetHeap();
             _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
+            _hotColdInfo = new HotColdRegions() { HotStart = _ip, HotSize = mdData.HotSize, ColdStart = mdData.ColdStart, ColdSize = mdData.ColdSize };
         }
 
         public override string Name
@@ -208,6 +213,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        public override HotColdRegions HotColdInfo
+        {
+            get
+            {
+                return _hotColdInfo;
+            }
+        }
 
         public override ILToNativeMap[] ILOffsetMap
         {
@@ -304,6 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private DesktopHeapType _type;
         private List<ulong> _methodHandles;
         private ILInfo _il;
+        private HotColdRegions _hotColdInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]

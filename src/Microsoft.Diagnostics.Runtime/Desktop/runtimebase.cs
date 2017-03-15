@@ -1512,6 +1512,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong NativeCodeAddr { get; }
         ulong MethodTable { get; }
         MethodCompilationType JITType { get; }
+        ulong ColdStart { get; }
+        uint ColdSize { get; }
+        uint HotSize { get; }
     }
 
     internal interface ICCWData

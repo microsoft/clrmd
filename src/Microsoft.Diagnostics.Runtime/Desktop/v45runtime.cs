@@ -1385,6 +1385,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     _jitType = MethodCompilationType.None;
 
                 _gcInfo = header.GCInfo;
+                _coldStart = header.ColdRegionStart;
+                _coldSize = header.ColdRegionSize;
+                _hotSize = header.HotRegionSize;
             }
             else
             {
@@ -1395,8 +1398,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private MethodCompilationType _jitType;
-        private ulong _gcInfo, _md, _module, _ip;
-        private uint _token;
+        private ulong _gcInfo, _md, _module, _ip, _coldStart;
+        private uint _token, _coldSize, _hotSize;
         private ulong _mt;
         
         public ulong GCInfo
@@ -1436,6 +1439,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong MethodTable
         {
             get { return _mt; }
+        }
+
+        public ulong ColdStart
+        {
+            get { return _coldStart; }
+        }
+
+        public uint ColdSize
+        {
+            get { return _coldSize; }
+        }
+
+        public uint HotSize
+        {
+            get { return _hotSize; }
         }
     }
 

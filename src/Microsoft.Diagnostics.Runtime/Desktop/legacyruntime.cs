@@ -1077,6 +1077,30 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _GCInfo;
             }
         }
+
+        public ulong ColdStart
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public uint ColdSize
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public uint HotSize
+        {
+            get
+            {
+                return 0;
+            }
+        }
     }
 
     internal struct V35MethodDescData : IMethodDescData
@@ -1143,6 +1167,30 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 else if (_JITType == 2)
                     return MethodCompilationType.Ngen;
                 return MethodCompilationType.None;
+            }
+        }
+
+        public ulong ColdStart
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public uint ColdSize
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public uint HotSize
+        {
+            get
+            {
+                return 0;
             }
         }
     }
