@@ -6,13 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
     internal class NativeException : ClrException
     {
-        private Address _ccwPtr;
+        private ulong _ccwPtr;
         private ClrType _type;
         private ulong _hResult;
         private ulong _threadId;
@@ -25,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public NativeException(
                         ClrType clrType,
-                        Address ccwPtr,
+                        ulong ccwPtr,
                         ulong hResult,
                         ulong threadId,
                         ulong exceptionId,
@@ -43,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _stackFrames = stackFrames;
         }
 
-        public override Address Address
+        public override ulong Address
         {
             get { return _ccwPtr; }
         }

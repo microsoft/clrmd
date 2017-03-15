@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -25,11 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal class NativeStackFrame : ClrStackFrame
         {
-            private Address _ip;
+            private ulong _ip;
             private string _symbolName;
             private ClrModule _module;
 
-            public NativeStackFrame(Address ip, string symbolName, ClrModule module)
+            public NativeStackFrame(ulong ip, string symbolName, ClrModule module)
             {
                 _ip = ip;
                 _symbolName = symbolName;
@@ -251,13 +250,13 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return type;
         }
 
-        internal NativeModule GetModuleFromAddress(Address addr)
+        internal NativeModule GetModuleFromAddress(ulong addr)
         {
             // we expect addr to either be a pointer to a EE class desc or a stack IP pointing to a MD
             return FindContainingModule(addr);
         }
 
-        private NativeModule FindContainingModule(Address eeType)
+        private NativeModule FindContainingModule(ulong eeType)
         {
             int min = 0, max = _modules.Length;
 
@@ -310,7 +309,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        public override int ReadMemory(Address address, byte[] buffer, int offset, int count)
+        public override int ReadMemory(ulong address, byte[] buffer, int offset, int count)
         {
             if (offset != 0)
                 throw new NotImplementedException("Non-zero offsets not supported (yet)");
@@ -321,9 +320,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
         }
 
         public override IEnumerable<ClrType> EnumerateTypes() { return null; }
-        public override IEnumerable<Address> EnumerateFinalizableObjectAddresses() { throw new NotImplementedException(); }
+        public override IEnumerable<ulong> EnumerateFinalizableObjectAddresses() { throw new NotImplementedException(); }
         public override IEnumerable<BlockingObject> EnumerateBlockingObjects() { throw new NotImplementedException(); }
-        public override ClrException GetExceptionObject(Address objRef) { throw new NotImplementedException(); }
+        public override ClrException GetExceptionObject(ulong objRef) { throw new NotImplementedException(); }
 
         protected override int GetRuntimeRevision()
         {
@@ -364,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        public NativeFinalizerRoot(Address obj, ClrType type, ClrAppDomain domain, string name)
+        public NativeFinalizerRoot(ulong obj, ClrType type, ClrAppDomain domain, string name)
         {
             Object = obj;
             _name = name;

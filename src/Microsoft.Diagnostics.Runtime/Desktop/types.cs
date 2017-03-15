@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -198,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return new ulong[] { MethodTable };
         }
 
-        internal override Address GetModuleAddress(ClrAppDomain domain)
+        internal override ulong GetModuleAddress(ClrAppDomain domain)
         {
             return 0;
         }
@@ -280,7 +279,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return "POINTER";
         }
 
-        public override bool IsFinalizeSuppressed(Address obj)
+        public override bool IsFinalizeSuppressed(ulong obj)
         {
             return false;
         }
@@ -311,13 +310,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         override public IList<ClrMethod> Methods { get { return new ClrMethod[0]; } }
 
-        public override Address GetSize(Address objRef)
+        public override ulong GetSize(ulong objRef)
         {
             ClrType realType = DesktopHeap.GetObjectType(objRef);
             return realType.GetSize(objRef);
         }
 
-        public override void EnumerateRefsOfObject(Address objRef, Action<Address, int> action)
+        public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
             ClrType realType = DesktopHeap.GetObjectType(objRef);
             realType.EnumerateRefsOfObject(objRef, action);
@@ -395,17 +394,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return null; } // TODO: Determine if null should be the correct return value
         }
 
-        public override int GetArrayLength(Address objRef)
+        public override int GetArrayLength(ulong objRef)
         {
             return 0;
         }
 
-        public override Address GetArrayElementAddress(Address objRef, int index)
+        public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             return 0;
         }
 
-        public override object GetArrayElementValue(Address objRef, int index)
+        public override object GetArrayElementValue(ulong objRef, int index)
         {
             return null;
         }
@@ -420,7 +419,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return IntPtr.Size * 8; } //TODO GET HELP
         }
 
-        public override void EnumerateRefsOfObjectCarefully(Address objRef, Action<Address, int> action) // TODO GET HELP
+        public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action) // TODO GET HELP
         {
             ClrType realType = DesktopHeap.GetObjectType(objRef);
             realType.EnumerateRefsOfObjectCarefully(objRef, action);
@@ -468,7 +467,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrModule Module { get { return DesktopModule; } }
 
 
-        internal override Address GetModuleAddress(ClrAppDomain domain)
+        internal override ulong GetModuleAddress(ClrAppDomain domain)
         {
             return 0;
         }
@@ -555,7 +554,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return "ARRAY";
         }
 
-        public override bool IsFinalizeSuppressed(Address obj)
+        public override bool IsFinalizeSuppressed(ulong obj)
         {
             return false;
         }
@@ -586,13 +585,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         override public IList<ClrMethod> Methods { get { return new ClrMethod[0]; } }
 
-        public override Address GetSize(Address objRef)
+        public override ulong GetSize(ulong objRef)
         {
             ClrType realType = DesktopHeap.GetObjectType(objRef);
             return realType.GetSize(objRef);
         }
 
-        public override void EnumerateRefsOfObject(Address objRef, Action<Address, int> action)
+        public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
             ClrType realType = DesktopHeap.GetObjectType(objRef);
             realType.EnumerateRefsOfObject(objRef, action);
@@ -670,18 +669,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return DesktopHeap.ArrayType; }
         }
 
-        public override int GetArrayLength(Address objRef)
+        public override int GetArrayLength(ulong objRef)
         {
             //todo
             throw new NotImplementedException();
         }
 
-        public override Address GetArrayElementAddress(Address objRef, int index)
+        public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             throw new NotImplementedException();
         }
 
-        public override object GetArrayElementValue(Address objRef, int index)
+        public override object GetArrayElementValue(ulong objRef, int index)
         {
             throw new NotImplementedException();
         }
@@ -696,7 +695,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return IntPtr.Size * 8; }
         }
 
-        public override void EnumerateRefsOfObjectCarefully(Address objRef, Action<Address, int> action)
+        public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
         {
             ClrType realType = DesktopHeap.GetObjectType(objRef);
             realType.EnumerateRefsOfObjectCarefully(objRef, action);
@@ -805,7 +804,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return DesktopModule;
             }
         }
-        public override ulong GetSize(Address objRef)
+        public override ulong GetSize(ulong objRef)
         {
             ulong size;
             uint pointerSize = (uint)DesktopHeap.PointerSize;
@@ -842,7 +841,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return size;
         }
 
-        public override void EnumerateRefsOfObjectCarefully(Address objRef, Action<Address, int> action)
+        public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
         {
             if (!_containsPointers)
                 return;
@@ -864,7 +863,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _gcDesc.WalkObject(objRef, (ulong)size, cache, action);
         }
 
-        public override void EnumerateRefsOfObject(Address objRef, Action<Address, int> action)
+        public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
             if (!_containsPointers)
                 return;
@@ -910,7 +909,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public override bool HasSimpleValue { get { return ElementType != ClrElementType.Struct; } }
-        public override object GetValue(Address address)
+        public override object GetValue(ulong address)
         {
             if (IsPrimitive)
                 address += (ulong)DesktopHeap.PointerSize;
@@ -936,7 +935,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public override bool IsCCW(Address obj)
+        public override bool IsCCW(ulong obj)
         {
             if (_checkedIfIsCCW)
                 return !_notCCW;
@@ -952,7 +951,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return !_notCCW;
         }
 
-        public override CcwData GetCCWData(Address obj)
+        public override CcwData GetCCWData(ulong obj)
         {
             if (_notCCW)
                 return null;
@@ -979,7 +978,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        public override bool IsRCW(Address obj)
+        public override bool IsRCW(ulong obj)
         {
             if (_checkedIfIsRCW)
                 return !_notRCW;
@@ -995,7 +994,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return !_notRCW;
         }
 
-        public override RcwData GetRCWData(Address obj)
+        public override RcwData GetRCWData(ulong obj)
         {
             // Most types can't possibly be RCWs.  
             if (_notRCW)
@@ -1186,7 +1185,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private const uint FinalizationSuppressedFlag = 0x40000000;
-        public override bool IsFinalizeSuppressed(Address obj)
+        public override bool IsFinalizeSuppressed(ulong obj)
         {
             bool result = DesktopHeap.GetObjectHeader(obj, out uint value);
 
@@ -1507,7 +1506,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override int GetArrayLength(Address objRef)
+        public override int GetArrayLength(ulong objRef)
         {
             Debug.Assert(IsArray);
 
@@ -1517,7 +1516,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return (int)res;
         }
 
-        public override Address GetArrayElementAddress(Address objRef, int index)
+        public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             if (_baseArrayOffset == 0)
             {
@@ -1542,10 +1541,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            return objRef + (Address)(_baseArrayOffset + index * _componentSize);
+            return objRef + (ulong)(_baseArrayOffset + index * _componentSize);
         }
 
-        public override object GetArrayElementValue(Address objRef, int index)
+        public override object GetArrayElementValue(ulong objRef, int index)
         {
             ulong addr = GetArrayElementAddress(objRef, index);
             if (addr == 0)
@@ -1861,7 +1860,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        internal override Address GetModuleAddress(ClrAppDomain appDomain)
+        internal override ulong GetModuleAddress(ClrAppDomain appDomain)
         {
             if (DesktopModule == null)
                 return 0;

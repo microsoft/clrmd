@@ -3,11 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -105,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override Address NativeCode
+        public override ulong NativeCode
         {
             get { return _ip; }
         }

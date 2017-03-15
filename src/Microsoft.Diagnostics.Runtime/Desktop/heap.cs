@@ -2,12 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -47,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ClrException GetExceptionObject(Address objRef)
+        public override ClrException GetExceptionObject(ulong objRef)
         {
             ClrType type = GetObjectType(objRef);
             if (type == null)
@@ -185,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 foreach (SubHeap heap in heaps)
                 {
-                    foreach (Address obj in DesktopRuntime.GetPointersInRange(heap.FQLiveStart, heap.FQLiveStop))
+                    foreach (ulong obj in DesktopRuntime.GetPointersInRange(heap.FQLiveStart, heap.FQLiveStop))
                     {
                         if (obj == 0)
                             continue;
@@ -288,7 +285,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 foreach (ClrHandle handle in handles)
                 {
-                    Address objAddr = handle.Object;
+                    ulong objAddr = handle.Object;
                     GCRootKind kind = GCRootKind.Strong;
                     if (objAddr != 0)
                     {
@@ -377,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Finalization Queue
-            foreach (Address objAddr in DesktopRuntime.EnumerateFinalizerQueueObjectAddresses())
+            foreach (ulong objAddr in DesktopRuntime.EnumerateFinalizerQueueObjectAddresses())
                 if (objAddr != 0)
                 {
                     ClrType type = GetObjectType(objAddr);
@@ -392,7 +389,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         yield return root;
         }
 
-        internal string GetStringContents(Address strAddr)
+        internal string GetStringContents(ulong strAddr)
         {
             if (strAddr == 0)
                 return null;
@@ -423,7 +420,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (length == 0)
                 return "";
 
-            Address data = 0;
+            ulong data = 0;
             if (_firstChar != null)
                 data = _firstChar.GetAddress(strAddr);
             else
@@ -436,7 +433,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return UnicodeEncoding.Unicode.GetString(buffer);
         }
 
-        public override int ReadMemory(Address address, byte[] buffer, int offset, int count)
+        public override int ReadMemory(ulong address, byte[] buffer, int offset, int count)
         {
             if (offset != 0)
                 throw new NotImplementedException("Non-zero offsets not supported (yet)");
@@ -466,28 +463,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _loadedTypes = true;
 
             // Walking a module is sloooow.  Ensure we only walk each module once.
-            HashSet<Address> modules = new HashSet<Address>();
+            HashSet<ulong> modules = new HashSet<ulong>();
 
-            foreach (Address module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SystemDomainAddress)))
+            foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SystemDomainAddress)))
                 modules.Add(module);
 
-            foreach (Address module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SharedDomainAddress)))
+            foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SharedDomainAddress)))
                 modules.Add(module);
 
             IAppDomainStoreData ads = DesktopRuntime.GetAppDomainStoreData();
             if (ads == null)
                 return;
 
-            IList<Address> appDomains = DesktopRuntime.GetAppDomainList(ads.Count);
+            IList<ulong> appDomains = DesktopRuntime.GetAppDomainList(ads.Count);
             if (appDomains == null)
                 return;
 
-            foreach (Address ad in appDomains)
+            foreach (ulong ad in appDomains)
             {
                 var adData = DesktopRuntime.GetAppDomainData(ad);
                 if (adData != null)
                 {
-                    foreach (Address module in DesktopRuntime.EnumerateModules(adData))
+                    foreach (ulong module in DesktopRuntime.EnumerateModules(adData))
                         modules.Add(module);
                 }
             }
@@ -519,7 +516,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return MemoryReader.TryReadDword(obj - 4, out value);
         }
 
-        internal IObjectData GetObjectData(Address address)
+        internal IObjectData GetObjectData(ulong address)
         {
             LastObjectData last = _lastObjData;
 
@@ -532,7 +529,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return last.Data;
         }
 
-        internal object GetValueAtAddress(ClrElementType cet, Address addr)
+        internal object GetValueAtAddress(ClrElementType cet, ulong addr)
         {
             switch (cet)
             {
@@ -769,8 +766,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private class LastObjectData
         {
             public IObjectData Data;
-            public Address Address;
-            public LastObjectData(Address addr, IObjectData data)
+            public ulong Address;
+            public LastObjectData(ulong addr, IObjectData data)
             {
                 Address = addr;
                 Data = data;
@@ -779,7 +776,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal struct LastObjectType
         {
-            public Address Address;
+            public ulong Address;
             public ClrType Type;
         }
 
@@ -1156,7 +1153,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class DesktopBlockingObject : BlockingObject
     {
-        private Address _obj;
+        private ulong _obj;
         private bool _locked;
         private int _recursion;
         private IList<ClrThread> _waiters;
@@ -1176,7 +1173,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _owners[0] = owner;
         }
 
-        public DesktopBlockingObject(Address obj, bool locked, int recursion, ClrThread owner, BlockingReason reason)
+        public DesktopBlockingObject(ulong obj, bool locked, int recursion, ClrThread owner, BlockingReason reason)
         {
             _obj = obj;
             _locked = locked;
@@ -1186,7 +1183,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _owners[0] = owner;
         }
 
-        public DesktopBlockingObject(Address obj, bool locked, int recursion, BlockingReason reason, ClrThread[] owners)
+        public DesktopBlockingObject(ulong obj, bool locked, int recursion, BlockingReason reason, ClrThread[] owners)
         {
             _obj = obj;
             _locked = locked;
@@ -1195,7 +1192,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _owners = owners;
         }
 
-        public DesktopBlockingObject(Address obj, bool locked, int recursion, BlockingReason reason)
+        public DesktopBlockingObject(ulong obj, bool locked, int recursion, BlockingReason reason)
         {
             _obj = obj;
             _locked = locked;
@@ -1203,7 +1200,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _reason = reason;
         }
 
-        public override Address Object
+        public override ulong Object
         {
             get { return _obj; }
         }
@@ -1280,7 +1277,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class DesktopException : ClrException
     {
-        public DesktopException(Address objRef, BaseDesktopHeapType type)
+        public DesktopException(ulong objRef, BaseDesktopHeapType type)
         {
             _object = objRef;
             _type = type;
@@ -1311,7 +1308,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override Address Address
+        public override ulong Address
         {
             get { return _object; }
         }
@@ -1363,7 +1360,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         #region Private
-        private Address _object;
+        private ulong _object;
         private BaseDesktopHeapType _type;
         private IList<ClrStackFrame> _stackTrace;
         #endregion
@@ -1388,8 +1385,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal struct TypeHandle : IEquatable<TypeHandle>
     {
-        public Address MethodTable;
-        public Address ComponentMethodTable;
+        public ulong MethodTable;
+        public ulong ComponentMethodTable;
 
         #region Constructors
         public TypeHandle(ulong mt)
@@ -1592,7 +1589,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public override ClrType GetObjectType(Address objRef)
+        public override ClrType GetObjectType(ulong objRef)
         {
             ulong mt, cmt = 0;
 
@@ -1644,7 +1641,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class V46GCHeap : DesktopGCHeap
     {
         private LastObjectType _lastObjType = new LastObjectType();
-        private Dictionary<Address, int> _indices = new Dictionary<Address, int>();
+        private Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
         
         public V46GCHeap(DesktopRuntimeBase runtime)
             : base(runtime)
@@ -1652,7 +1649,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         }
 
-        public override ClrType GetObjectType(Address objRef)
+        public override ClrType GetObjectType(ulong objRef)
         {
             ulong mt;
 

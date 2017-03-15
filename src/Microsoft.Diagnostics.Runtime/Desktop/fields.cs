@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using Address = System.UInt64;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Collections.Generic;
@@ -228,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!HasSimpleValue)
                 return null;
 
-            Address addr = GetAddress(appDomain);
+            ulong addr = GetAddress(appDomain);
 
             if (ElementType == ClrElementType.String)
             {
@@ -254,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _containingType.DesktopHeap.GetValueAtAddress(elementType, addr);
         }
 
-        public override Address GetAddress(ClrAppDomain appDomain)
+        public override ulong GetAddress(ClrAppDomain appDomain)
         {
             if (_containingType == null)
                 return 0;
@@ -264,14 +263,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IDomainLocalModuleData data = null;
             if (shared)
             {
-                Address id = _containingType.DesktopModule.ModuleId;
+                ulong id = _containingType.DesktopModule.ModuleId;
                 data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(appDomain.Address, id);
                 if (!IsInitialized(data))
                     return 0;
             }
             else
             {
-                Address modAddr = _containingType.GetModuleAddress(appDomain);
+                ulong modAddr = _containingType.GetModuleAddress(appDomain);
                 if (modAddr != 0)
                     data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(modAddr);
             }
@@ -279,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (data == null)
                 return 0;
 
-            Address addr;
+            ulong addr;
             if (DesktopRuntimeBase.IsPrimitive(ElementType))
                 addr = data.NonGCStaticDataStart + _field.Offset;
             else
@@ -296,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!_containingType.Shared)
                 return true;
 
-            Address id = _containingType.DesktopModule.ModuleId;
+            ulong id = _containingType.DesktopModule.ModuleId;
             IDomainLocalModuleData data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(appDomain.Address, id);
             if (data == null)
                 return false;
@@ -340,7 +339,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!HasSimpleValue)
                 return null;
 
-            Address addr = GetAddress(appDomain, thread);
+            ulong addr = GetAddress(appDomain, thread);
             if (addr == 0)
                 return null;
 
@@ -362,7 +361,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override uint Token { get { return _token; } }
 
-        public override Address GetAddress(ClrAppDomain appDomain, ClrThread thread)
+        public override ulong GetAddress(ClrAppDomain appDomain, ClrThread thread)
         {
             if (_type == null)
                 return 0;
@@ -656,12 +655,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private uint _token;
         #endregion
 
-        public override object GetValue(Address objRef, bool interior = false, bool convertStrings = true)
+        public override object GetValue(ulong objRef, bool interior = false, bool convertStrings = true)
         {
             if (!HasSimpleValue)
                 return null;
 
-            Address addr = GetAddress(objRef, interior);
+            ulong addr = GetAddress(objRef, interior);
 
             if (ElementType == ClrElementType.String)
             {
@@ -679,17 +678,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _type.DesktopHeap.GetValueAtAddress(ElementType, addr);
         }
 
-        public override Address GetAddress(Address objRef, bool interior = false)
+        public override ulong GetAddress(ulong objRef, bool interior = false)
         {
             if (interior)
-                return objRef + (Address)Offset;
+                return objRef + (ulong)Offset;
 
             // TODO:  Type really shouldn't be null here, but due to the dac it can be.  We still need
             //        to respect m_heap.PointerSize, so there needs to be a way to track this when m_type is null.
             if (_type == null)
-                return objRef + (Address)(Offset + IntPtr.Size);
+                return objRef + (ulong)(Offset + IntPtr.Size);
 
-            return objRef + (Address)(Offset + _type.DesktopHeap.PointerSize);
+            return objRef + (ulong)(Offset + _type.DesktopHeap.PointerSize);
         }
 
 

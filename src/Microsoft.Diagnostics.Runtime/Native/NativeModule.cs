@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -27,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _modules = modules;
         }
 
-        public override Address Address
+        public override ulong Address
         {
             get { return 0; }
         }
@@ -64,8 +63,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeRuntime _runtime;
         private string _name;
         private string _filename;
-        private Address _imageBase;
-        private Address _size;
+        private ulong _imageBase;
+        private ulong _size;
         private PdbInfo _pdb;
 
         public NativeModule(NativeRuntime runtime, ModuleInfo module)
@@ -121,12 +120,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             get { return _filename; }
         }
 
-        public override Address ImageBase
+        public override ulong ImageBase
         {
             get { return _imageBase; }
         }
 
-        public override Address Size
+        public override ulong Size
         {
             get { return _size; }
         }
@@ -138,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                     yield return type;
         }
 
-        internal int ComparePointer(Address eetype)
+        internal int ComparePointer(ulong eetype)
         {
             if (eetype < ImageBase)
                 return -1;
@@ -149,12 +148,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return 0;
         }
 
-        public override Address MetadataAddress
+        public override ulong MetadataAddress
         {
             get { throw new NotImplementedException(); }
         }
 
-        public override Address MetadataLength
+        public override ulong MetadataLength
         {
             get { throw new NotImplementedException(); }
         }
@@ -174,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             throw new NotImplementedException();
         }
 
-        public override Address AssemblyId
+        public override ulong AssemblyId
         {
             get { throw new NotImplementedException(); }
         }

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -151,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                     return _modules;
                 }
 
-                Address[] ptrs = new Address[count];
+                ulong[] ptrs = new ulong[count];
                 if (_sos.GetModuleList(count, ptrs, out count) < 0)
                 {
                     _modules = ConvertModuleList(modules);
@@ -358,7 +357,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         #region Native Implementation
 
-        internal override ClrAppDomain GetAppDomainByAddress(Address addr)
+        internal override ClrAppDomain GetAppDomainByAddress(ulong addr)
         {
             return _domain;
         }
@@ -480,7 +479,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        public override CcwData GetCcwDataByAddress(Address addr)
+        public override CcwData GetCcwDataByAddress(ulong addr)
         {
             throw new NotImplementedException();
         }

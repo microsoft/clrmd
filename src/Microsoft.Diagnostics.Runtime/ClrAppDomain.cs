@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Address = System.UInt64;
+﻿using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -17,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Address of the AppDomain.
         /// </summary>
-        public abstract Address Address { get; }
+        public abstract ulong Address { get; }
 
         /// <summary>
         /// The AppDomain's ID.

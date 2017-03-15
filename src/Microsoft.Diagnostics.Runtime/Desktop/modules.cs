@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Address = System.UInt64;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -24,9 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal abstract Address GetDomainModule(ClrAppDomain appDomain);
+        internal abstract ulong GetDomainModule(ClrAppDomain appDomain);
 
-        internal Address ModuleId { get; set; }
+        internal ulong ModuleId { get; set; }
 
         internal virtual ICorDebug.IMetadataImport GetMetadataImport()
         {
@@ -50,11 +49,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ICorDebug.IMetadataImport _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
         private ulong _address;
-        private Address _imageBase, _size;
-        private Address _metadataStart;
-        private Address _metadataLength;
+        private ulong _imageBase, _size;
+        private ulong _metadataStart;
+        private ulong _metadataLength;
         private DebuggableAttribute.DebuggingModes? _debugMode;
-        private Address _assemblyAddress;
+        private ulong _assemblyAddress;
         private bool _typesLoaded;
         ClrAppDomain[] _appDomainList;
         PdbInfo _pdb;
@@ -268,13 +267,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _metadata;
         }
 
-        public override Address ImageBase
+        public override ulong ImageBase
         {
             get { return _imageBase; }
         }
 
 
-        public override Address Size
+        public override ulong Size
         {
             get
             {
@@ -283,12 +282,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public override Address MetadataAddress
+        public override ulong MetadataAddress
         {
             get { return _metadataStart; }
         }
 
-        public override Address MetadataLength
+        public override ulong MetadataLength
         {
             get { return _metadataLength; }
         }
@@ -352,7 +351,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override Address AssemblyId
+        public override ulong AssemblyId
         {
             get { return _assemblyAddress; }
         }
@@ -409,12 +408,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return "<error>"; }
         }
 
-        public override Address ImageBase
+        public override ulong ImageBase
         {
             get { return 0; }
         }
 
-        public override Address Size
+        public override ulong Size
         {
             get { return 0; }
         }
@@ -424,12 +423,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return new ClrType[0];
         }
 
-        public override Address MetadataAddress
+        public override ulong MetadataAddress
         {
             get { return 0; }
         }
 
-        public override Address MetadataLength
+        public override ulong MetadataLength
         {
             get { return 0; }
         }
@@ -439,7 +438,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return null; }
         }
 
-        internal override Address GetDomainModule(ClrAppDomain appDomain)
+        internal override ulong GetDomainModule(ClrAppDomain appDomain)
         {
             return 0;
         }
@@ -454,7 +453,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override Address AssemblyId
+        public override ulong AssemblyId
         {
             get { return _id; }
         }

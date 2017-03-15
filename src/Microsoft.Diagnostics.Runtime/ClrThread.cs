@@ -1,13 +1,9 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
-using Microsoft.Diagnostics.Runtime.Utilities;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -47,12 +43,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The instruction pointer of this frame.
         /// </summary>
-        public abstract Address InstructionPointer { get; }
+        public abstract ulong InstructionPointer { get; }
 
         /// <summary>
         /// The stack pointer of this frame.
         /// </summary>
-        public abstract Address StackPointer { get; }
+        public abstract ulong StackPointer { get; }
 
         /// <summary>
         /// The type of frame (managed or internal).
@@ -124,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The address of the underlying datastructure which makes up the Thread object.  This
         /// serves as a unique identifier.
         /// </summary>
-        public abstract Address Address { get; }
+        public abstract ulong Address { get; }
 
         /// <summary>
         /// Returns true if the thread is alive in the process, false if this thread was recently terminated.
@@ -145,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The AppDomain the thread is running in.
         /// </summary>
-        public abstract Address AppDomain { get; }
+        public abstract ulong AppDomain { get; }
 
         /// <summary>
         /// The number of managed locks (Monitors) the thread has currently entered but not left.
@@ -156,17 +152,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The TEB (thread execution block) address in the process.
         /// </summary>
-        public abstract Address Teb { get; }
+        public abstract ulong Teb { get; }
 
         /// <summary>
         /// The base of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
-        public abstract Address StackBase { get; }
+        public abstract ulong StackBase { get; }
 
         /// <summary>
         /// The limit of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
-        public abstract Address StackLimit { get; }
+        public abstract ulong StackLimit { get; }
 
         /// <summary>
         /// Enumerates the GC references (objects) on the stack.  This is equivalent to
@@ -326,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime
 
     internal abstract class ThreadBase : ClrThread
     {
-        public override Address Address
+        public override ulong Address
         {
             get { return _address; }
         }

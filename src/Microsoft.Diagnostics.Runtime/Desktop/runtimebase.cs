@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using Address = System.UInt64;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 
@@ -26,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #region Variables
         protected CommonMethodTables _commonMTs;
         private Dictionary<uint, ICorDebug.ICorDebugThread> _corDebugThreads;
-        private Dictionary<Address, DesktopModule> _modules = new Dictionary<Address, DesktopModule>();
+        private Dictionary<ulong, DesktopModule> _modules = new Dictionary<ulong, DesktopModule>();
         private Dictionary<ulong, uint> _moduleSizes = null;
         private ClrModule[] _moduleList = null;
         private Dictionary<string, DesktopModule> _moduleFiles = null;
@@ -113,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopModule GetModule(Address module)
+        internal DesktopModule GetModule(ulong module)
         {
             if (module == 0)
                 return null;
@@ -130,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_moduleSizes == null)
             {
-                _moduleSizes = new Dictionary<Address, uint>();
+                _moduleSizes = new Dictionary<ulong, uint>();
                 foreach (var native in _dataReader.EnumerateModules())
                     _moduleSizes[native.ImageBase] = native.FileSize;
             }
@@ -154,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public override CcwData GetCcwDataByAddress(Address addr)
+        public override CcwData GetCcwDataByAddress(ulong addr)
         {
             var ccw = GetCCWData(addr);
             if (ccw == null)
@@ -234,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 IThreadData thread = GetThread(addr);
 
                 // Ensure we don't hit an infinite loop
-                HashSet<ulong> seen = new HashSet<Address> { addr };
+                HashSet<ulong> seen = new HashSet<ulong> { addr };
                 while (thread != null && !seen.Contains(thread.Next))
                 {
                     threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
@@ -247,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public Address ExceptionMethodTable { get { return _commonMTs.ExceptionMethodTable; } }
+        public ulong ExceptionMethodTable { get { return _commonMTs.ExceptionMethodTable; } }
         public ulong ObjectMethodTable
         {
             get
@@ -408,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 heaps = new IHeapDetails[HeapCount];
                 int i = 0;
-                Address[] heapList = GetServerHeapList();
+                ulong[] heapList = GetServerHeapList();
                 if (heapList != null)
                 {
                     foreach (ulong addr in heapList)
@@ -573,7 +572,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _threadpool = null;
         }
 
-        public override ClrMethod GetMethodByAddress(Address ip)
+        public override ClrMethod GetMethodByAddress(ulong ip)
         {
             IMethodDescData mdData = GetMDForIP(ip);
             if (mdData == null)
@@ -651,7 +650,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ClrThread GetThreadFromThinlockID(uint threadId)
         {
-            Address thread = GetThreadFromThinlock(threadId);
+            ulong thread = GetThreadFromThinlock(threadId);
             if (thread == 0)
                 return null;
 
@@ -695,7 +694,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (data == null)
                             continue;
 
-                        Address[] moduleList = GetModuleList(assembly, (int)data.ModuleCount);
+                        ulong[] moduleList = GetModuleList(assembly, (int)data.ModuleCount);
                         if (moduleList != null)
                             foreach (ulong module in moduleList)
                                 yield return module;
@@ -882,7 +881,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal ILToNativeMap[] GetILMap(Address ip)
+        internal ILToNativeMap[] GetILMap(ulong ip)
         {
             List<ILToNativeMap> list = null;
             ILToNativeMap[] tmp = null;
@@ -961,30 +960,30 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract bool TraverseStubHeap(ulong appDomain, int type, LoaderHeapTraverse callback);
         internal abstract IEnumerable<ICodeHeap> EnumerateJitHeaps();
         internal abstract ulong GetModuleForMT(ulong mt);
-        internal abstract IFieldInfo GetFieldInfo(Address mt);
-        internal abstract IFieldData GetFieldData(Address fieldDesc);
-        internal abstract ICorDebug.IMetadataImport GetMetadataImport(Address module);
-        internal abstract IObjectData GetObjectData(Address objRef);
+        internal abstract IFieldInfo GetFieldInfo(ulong mt);
+        internal abstract IFieldData GetFieldData(ulong fieldDesc);
+        internal abstract ICorDebug.IMetadataImport GetMetadataImport(ulong module);
+        internal abstract IObjectData GetObjectData(ulong objRef);
         internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
-        internal abstract IList<MethodTableTokenPair> GetMethodTableList(Address module);
-        internal abstract IDomainLocalModuleData GetDomainLocalModule(Address appDomain, Address id);
-        internal abstract ICCWData GetCCWData(Address ccw);
-        internal abstract IRCWData GetRCWData(Address rcw);
-        internal abstract COMInterfacePointerData[] GetCCWInterfaces(Address ccw, int count);
-        internal abstract COMInterfacePointerData[] GetRCWInterfaces(Address rcw, int count);
+        internal abstract IList<MethodTableTokenPair> GetMethodTableList(ulong module);
+        internal abstract IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id);
+        internal abstract ICCWData GetCCWData(ulong ccw);
+        internal abstract IRCWData GetRCWData(ulong rcw);
+        internal abstract COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count);
+        internal abstract COMInterfacePointerData[] GetRCWInterfaces(ulong rcw, int count);
         internal abstract ulong GetThreadStaticPointer(ulong thread, ClrElementType type, uint offset, uint moduleId, bool shared);
-        internal abstract IDomainLocalModuleData GetDomainLocalModule(Address module);
-        internal abstract IList<Address> GetMethodDescList(Address methodTable);
-        internal abstract string GetNameForMD(Address md);
-        internal abstract IMethodDescData GetMethodDescData(Address md);
-        internal abstract uint GetMetadataToken(Address mt);
+        internal abstract IDomainLocalModuleData GetDomainLocalModule(ulong module);
+        internal abstract IList<ulong> GetMethodDescList(ulong methodTable);
+        internal abstract string GetNameForMD(ulong md);
+        internal abstract IMethodDescData GetMethodDescData(ulong md);
+        internal abstract uint GetMetadataToken(ulong mt);
         protected abstract DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong sp, ulong frameVtbl);
-        internal abstract IList<ClrStackFrame> GetExceptionStackTrace(Address obj, ClrType type);
-        internal abstract string GetAssemblyName(Address assembly);
-        internal abstract string GetAppBase(Address appDomain);
-        internal abstract string GetConfigFile(Address appDomain);
+        internal abstract IList<ClrStackFrame> GetExceptionStackTrace(ulong obj, ClrType type);
+        internal abstract string GetAssemblyName(ulong assembly);
+        internal abstract string GetAppBase(ulong appDomain);
+        internal abstract string GetConfigFile(ulong appDomain);
         internal abstract IMethodDescData GetMDForIP(ulong ip);
-        protected abstract Address GetThreadFromThinlock(uint threadId);
+        protected abstract ulong GetThreadFromThinlock(uint threadId);
         internal abstract int GetSyncblkCount();
         internal abstract ISyncBlkData GetSyncblkData(int index);
         internal abstract IThreadPoolData GetThreadPoolData();

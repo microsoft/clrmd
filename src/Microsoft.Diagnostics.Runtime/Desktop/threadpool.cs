@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Collections.Generic;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -235,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class DesktopManagedWorkItem : ManagedWorkItem
     {
         private ClrType _type;
-        private Address _addr;
+        private ulong _addr;
 
         public DesktopManagedWorkItem(ClrType type, ulong addr)
         {
@@ -243,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _addr = addr;
         }
 
-        public override Address Object
+        public override ulong Object
         {
             get { return _addr; }
         }
@@ -302,12 +300,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _kind; }
         }
 
-        public override Address Callback
+        public override ulong Callback
         {
             get { return _callback; }
         }
 
-        public override Address Data
+        public override ulong Data
         {
             get { return _data; }
         }

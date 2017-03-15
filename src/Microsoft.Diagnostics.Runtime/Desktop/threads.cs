@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text;
-using Address = System.UInt64;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -20,12 +19,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override Address StackPointer
+        public override ulong StackPointer
         {
             get { return _sp; }
         }
 
-        public override Address InstructionPointer
+        public override ulong InstructionPointer
         {
             get { return _ip; }
         }

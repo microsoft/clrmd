@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -255,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// GetSize returns the size in bytes for the total overhead of the object 'objRef'.   
         /// </summary>
-        abstract public ulong GetSize(Address objRef);
+        abstract public ulong GetSize(ulong objRef);
         /// <summary>
         /// EnumeationRefsOfObject will call 'action' once for each object reference inside 'objRef'.  
         /// 'action' is passed the address of the outgoing refernece as well as an integer that
@@ -263,13 +262,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// refernece, abstractly is simply something that can be given to GetFieldForOffset to 
         /// return the field information for that object reference  
         /// </summary>
-        abstract public void EnumerateRefsOfObject(Address objRef, Action<Address, int> action);
+        abstract public void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action);
 
         /// <summary>
         /// Does the same as EnumerateRefsOfObject, but does additional bounds checking to ensure
         /// we don't loop forever with inconsistent data.
         /// </summary>
-        abstract public void EnumerateRefsOfObjectCarefully(Address objRef, Action<Address, int> action);
+        abstract public void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action);
 
         /// <summary>
         /// Returns true if the type CAN contain references to other objects.  This is used in optimizations 
@@ -345,7 +344,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// System.GC.SupressFinalize.  The behavior of this function is undefined if the object itself
         /// is not finalizable.
         /// </summary>
-        virtual public bool IsFinalizeSuppressed(Address obj) { throw new NotImplementedException(); }
+        virtual public bool IsFinalizeSuppressed(ulong obj) { throw new NotImplementedException(); }
 
         /// <summary>
         /// Returns whether objects of this type are finalizable.
@@ -439,13 +438,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">The object to check.</param>
         /// <returns>True if this is a CCW.</returns>
-        virtual public bool IsCCW(Address obj) { return false; }
+        virtual public bool IsCCW(ulong obj) { return false; }
 
         /// <summary>
         /// Returns the CCWData for the given object.  Note you may only call this function if IsCCW returns true.
         /// </summary>
         /// <returns>The CCWData associated with the object, undefined result of obj is not a CCW.</returns>
-        virtual public CcwData GetCCWData(Address obj)
+        virtual public CcwData GetCCWData(ulong obj)
         {
             return null;
         }
@@ -455,13 +454,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">The object to check.</param>
         /// <returns>True if this is an RCW.</returns>
-        virtual public bool IsRCW(Address obj) { return false; }
+        virtual public bool IsRCW(ulong obj) { return false; }
 
         /// <summary>
         /// Returns the RCWData for the given object.  Note you may only call this function if IsRCW returns true.
         /// </summary>
         /// <returns>The RCWData associated with the object, undefined result of obj is not a RCW.</returns>
-        virtual public RcwData GetRCWData(Address obj)
+        virtual public RcwData GetRCWData(ulong obj)
         {
             return null;
         }
@@ -487,19 +486,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// If the type is an array, then GetArrayLength returns the number of elements in the array.  Undefined
         /// behavior if this type is not an array.
         /// </summary>
-        abstract public int GetArrayLength(Address objRef);
+        abstract public int GetArrayLength(ulong objRef);
 
         /// <summary>
         /// Returns the absolute address to the given array element.  You may then make a direct memory read out
         /// of the process to get the value if you want.
         /// </summary>
-        abstract public Address GetArrayElementAddress(Address objRef, int index);
+        abstract public ulong GetArrayElementAddress(ulong objRef, int index);
 
         /// <summary>
         /// Returns the array element value at the given index.  Returns 'null' if the array element is of type
         /// VALUE_CLASS.
         /// </summary>
-        abstract public object GetArrayElementValue(Address objRef, int index);
+        abstract public object GetArrayElementValue(ulong objRef, int index);
 
         /// <summary>
         /// Returns the size of individual elements of an array.
@@ -587,7 +586,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// For example ELEMENT_TYPE_I4 is an "int" and the return value of this function would be an int.
         /// </summary>
         /// <param name="address">The address of an instance of this type.</param>
-        virtual public object GetValue(Address address) { return null; }
+        virtual public object GetValue(ulong address) { return null; }
 
         /// <summary>
         /// Returns a string representation of this object.
@@ -704,7 +703,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="objRef">The object to get the field value for.</param>
         /// <returns>The value of the field.</returns>
-        virtual public object GetValue(Address objRef)
+        virtual public object GetValue(ulong objRef)
         {
             return GetValue(objRef, false, true);
         }
@@ -717,7 +716,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="interior">Whether the enclosing type of this field is a value class,
         /// and that value class is embedded in another object.</param>
         /// <returns>The value of the field.</returns>
-        virtual public object GetValue(Address objRef, bool interior)
+        virtual public object GetValue(ulong objRef, bool interior)
         {
             return GetValue(objRef, interior, true);
         }
@@ -732,14 +731,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="convertStrings">When true, the value of a string field will be 
         /// returned as a System.String object; otherwise the address of the String object will be returned.</param>
         /// <returns>The value of the field.</returns>
-        abstract public object GetValue(Address objRef, bool interior, bool convertStrings);
+        abstract public object GetValue(ulong objRef, bool interior, bool convertStrings);
 
         /// <summary>
         /// Returns the address of the value of this field.  Equivalent to GetFieldAddress(objRef, false).
         /// </summary>
         /// <param name="objRef">The object to get the field address for.</param>
         /// <returns>The value of the field.</returns>
-        virtual public Address GetAddress(Address objRef)
+        virtual public ulong GetAddress(ulong objRef)
         {
             return GetAddress(objRef, false);
         }
@@ -752,7 +751,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="interior">Whether the enclosing type of this field is a value class,
         /// and that value class is embedded in another object.</param>
         /// <returns>The value of the field.</returns>
-        abstract public Address GetAddress(Address objRef, bool interior);
+        abstract public ulong GetAddress(ulong objRef, bool interior);
     }
 
     /// <summary>
@@ -795,7 +794,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="appDomain">The AppDomain in which to get the field's address.</param>
         /// <returns>The address of the field's value.</returns>
-        abstract public Address GetAddress(ClrAppDomain appDomain);
+        abstract public ulong GetAddress(ClrAppDomain appDomain);
 
         /// <summary>
         /// Returns true if the static field has a default value (and if we can obtain it).
@@ -841,7 +840,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="appDomain">The AppDomain in which to get the field's address.</param>
         /// <param name="thread">The thread on which to get the field's address.</param>
         /// <returns>The address of the field.</returns>
-        abstract public Address GetAddress(ClrAppDomain appDomain, ClrThread thread);
+        abstract public ulong GetAddress(ClrAppDomain appDomain, ClrThread thread);
     }
 
     /// <summary>
@@ -864,7 +863,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the address of the exception object.
         /// </summary>
-        abstract public Address Address { get; }
+        abstract public ulong Address { get; }
 
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.
@@ -897,7 +896,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The interface pointer of Type.
         /// </summary>
-        public abstract Address InterfacePointer { get; }
+        public abstract ulong InterfacePointer { get; }
     }
 
     /// <summary>
@@ -909,17 +908,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the pointer to the IUnknown representing this CCW.
         /// </summary>
-        public abstract Address IUnknown { get; }
+        public abstract ulong IUnknown { get; }
 
         /// <summary>
         /// Returns the pointer to the managed object representing this CCW.
         /// </summary>
-        public abstract Address Object { get; }
+        public abstract ulong Object { get; }
 
         /// <summary>
         /// Returns the CLR handle associated with this CCW.
         /// </summary>
-        public abstract Address Handle { get; }
+        public abstract ulong Handle { get; }
 
         /// <summary>
         /// Returns the refcount of this CCW.
@@ -941,13 +940,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the pointer to the IUnknown representing this CCW.
         /// </summary>
-        public abstract Address IUnknown { get; }
+        public abstract ulong IUnknown { get; }
 
         /// <summary>
         /// Returns the external VTable associated with this RCW.  (It's useful to resolve the VTable as a symbol
         /// which will tell you what the underlying native type is...if you have the symbols for it loaded).
         /// </summary>
-        public abstract Address VTablePointer { get; }
+        public abstract ulong VTablePointer { get; }
 
         /// <summary>
         /// Returns the RefCount of the RCW.
@@ -957,7 +956,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the managed object associated with this of RCW.
         /// </summary>
-        public abstract Address Object { get; }
+        public abstract ulong Object { get; }
 
         /// <summary>
         /// Returns true if the RCW is disconnected from the underlying COM type.
@@ -1037,7 +1036,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the instruction pointer in the target process for the start of the method's assembly.
         /// </summary>
-        abstract public Address NativeCode { get; }
+        abstract public ulong NativeCode { get; }
 
         /// <summary>
         /// Gets the ILOffset of the given address within this method.

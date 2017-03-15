@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -63,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the base of the image loaded into memory.  This may be 0 if there is not a physical
         /// file backing it.
         /// </summary>
-        public abstract Address ImageBase { get; }
+        public abstract ulong ImageBase { get; }
 
         /// <summary>
         /// Returns the size of the image in memory.

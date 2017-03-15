@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -199,17 +198,17 @@ namespace Microsoft.Diagnostics.Runtime.Native
         }
 
 
-        public NativeHandleRoot(Address addr, Address obj, Address dependentTarget, ClrType type, int hndType, ClrAppDomain domain, string name)
+        public NativeHandleRoot(ulong addr, ulong obj, ulong dependentTarget, ClrType type, int hndType, ClrAppDomain domain, string name)
         {
             Init(addr, obj, dependentTarget, type, hndType, domain, name);
         }
 
-        public NativeHandleRoot(Address addr, Address obj, ClrType type, int hndType, ClrAppDomain domain, string name)
+        public NativeHandleRoot(ulong addr, ulong obj, ClrType type, int hndType, ClrAppDomain domain, string name)
         {
             Init(addr, obj, 0, type, hndType, domain, name);
         }
 
-        private void Init(Address addr, Address obj, Address dependentTarget, ClrType type, int hndType, ClrAppDomain domain, string name)
+        private void Init(ulong addr, ulong obj, ulong dependentTarget, ClrType type, int hndType, ClrAppDomain domain, string name)
         {
             HandleType htype = (HandleType)hndType;
             switch (htype)
@@ -295,7 +294,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
         }
 
-        public NativeStaticVar(NativeRuntime runtime, Address addr, Address obj, ClrType type, string name, bool pinned, bool interior)
+        public NativeStaticVar(NativeRuntime runtime, ulong addr, ulong obj, ClrType type, string name, bool pinned, bool interior)
         {
             Address = addr;
             Object = obj;

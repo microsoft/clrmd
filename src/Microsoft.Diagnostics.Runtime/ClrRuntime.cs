@@ -1,15 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Address = System.UInt64;
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -82,14 +79,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects
         /// which have been collected and will be imminently finalized.)
         /// </summary>
-        abstract public IEnumerable<Address> EnumerateFinalizerQueueObjectAddresses();
+        abstract public IEnumerable<ulong> EnumerateFinalizerQueueObjectAddresses();
 
         /// <summary>
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
         /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
-        abstract public ClrMethod GetMethodByHandle(Address methodHandle);
+        abstract public ClrMethod GetMethodByHandle(ulong methodHandle);
 
         /// <summary>
         /// Returns the CCW data associated with the given address.  This is used when looking at stowed
@@ -109,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="bytesRead">The number of bytes actually read out of the process.  This will be less than
         /// bytes requested if the request falls off the end of an allocation.</param>
         /// <returns>False if the memory is not readable (free or no read permission), true if *some* memory was read.</returns>
-        abstract public bool ReadMemory(Address address, byte[] buffer, int bytesRequested, out int bytesRead);
+        abstract public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead);
 
 
         /// <summary>
@@ -119,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">The address to read from.</param>
         /// <param name="value">The value at that address.</param>
         /// <returns>True if the read was successful, false otherwise.</returns>
-        abstract public bool ReadPointer(Address address, out Address value);
+        abstract public bool ReadPointer(ulong address, out ulong value);
 
         /// <summary>
         /// Enumerates a list of GC handles currently in the process.  Note that this list may be incomplete
@@ -150,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
         /// </summary>
-        abstract public ClrMethod GetMethodByAddress(Address ip);
+        abstract public ClrMethod GetMethodByAddress(ulong ip);
 
 
         /// <summary>
@@ -414,12 +411,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the callback's address.
         /// </summary>
-        public abstract Address Callback { get; }
+        public abstract ulong Callback { get; }
 
         /// <summary>
         /// Returns the pointer to the user's data.
         /// </summary>
-        public abstract Address Data { get; }
+        public abstract ulong Data { get; }
     }
 
     /// <summary>
@@ -474,14 +471,14 @@ namespace Microsoft.Diagnostics.Runtime
     public class ClrHandle
     {
         /// <summary>
-        /// The address of the handle itself.  That is, *Address == Object.
+        /// The address of the handle itself.  That is, *ulong == Object.
         /// </summary>
-        public Address Address { get; set; }
+        public ulong Address { get; set; }
 
         /// <summary>
         /// The Object the handle roots.
         /// </summary>
-        public Address Object { get; set; }
+        public ulong Object { get; set; }
 
         /// <summary>
         /// The the type of the Object.
@@ -544,7 +541,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// NOTE: CLRs prior to v4.5 cannot obtain the dependent target.  This field will
         ///       be 0 for any CLR prior to v4.5.
         /// </summary>
-        public Address DependentTarget { get; set; }
+        public ulong DependentTarget { get; set; }
 
         /// <summary>
         /// The type of the dependent target, if non 0.
@@ -742,7 +739,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The start address of the memory region.
         /// </summary>
-        public Address Address { get; set; }
+        public ulong Address { get; set; }
 
         /// <summary>
         /// The size of the memory region in bytes.
@@ -960,13 +957,13 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public override IEnumerable<Address> EnumerateFinalizerQueueObjectAddresses()
+        public override IEnumerable<ulong> EnumerateFinalizerQueueObjectAddresses()
         {
             if (GetHeaps(out SubHeap[] heaps))
             {
                 foreach (SubHeap heap in heaps)
                 {
-                    foreach (Address objAddr in GetPointersInRange(heap.FQStart, heap.FQStop))
+                    foreach (ulong objAddr in GetPointersInRange(heap.FQStart, heap.FQStop))
                     {
                         if (objAddr != 0)
                             yield return objAddr;
@@ -977,11 +974,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal virtual IEnumerable<ClrRoot> EnumerateStackReferences(ClrThread thread, bool includeDead)
         {
-            Address stackBase = thread.StackBase;
-            Address stackLimit = thread.StackLimit;
+            ulong stackBase = thread.StackBase;
+            ulong stackLimit = thread.StackLimit;
             if (stackLimit <= stackBase)
             {
-                Address tmp = stackLimit;
+                ulong tmp = stackLimit;
                 stackLimit = stackBase;
                 stackBase = tmp;
             }
@@ -991,7 +988,7 @@ namespace Microsoft.Diagnostics.Runtime
             var mask = ((ulong)(PointerSize - 1));
             var cache = MemoryReader;
             cache.EnsureRangeInCache(stackBase);
-            for (Address stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
+            for (ulong stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
             {
                 if (cache.ReadPtr(stackPtr, out ulong objRef))
                 {
@@ -1244,13 +1241,13 @@ namespace Microsoft.Diagnostics.Runtime
         #region Data Read
 
 
-        public override bool ReadMemory(Address address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public override bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
         private byte[] _dataBuffer = new byte[8];
-        public bool ReadByte(Address addr, out byte value)
+        public bool ReadByte(ulong addr, out byte value)
         {
             // todo: There's probably a more efficient way to implement this if ReadVirtual accepted an "out byte"
             //       "out dword", "out long", etc.
@@ -1264,7 +1261,7 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool ReadByte(Address addr, out sbyte value)
+        public bool ReadByte(ulong addr, out sbyte value)
         {
             value = 0;
             if (!ReadMemory(addr, _dataBuffer, 1, out int read))
@@ -1418,7 +1415,7 @@ namespace Microsoft.Diagnostics.Runtime
             return array;
         }
 
-        private IEnumerable<Address> EnumeratePointersInRange(ulong start, ulong stop)
+        private IEnumerable<ulong> EnumeratePointersInRange(ulong start, ulong stop)
         {
             for (ulong ptr = start; ptr < stop; ptr += (uint)IntPtr.Size)
             {
