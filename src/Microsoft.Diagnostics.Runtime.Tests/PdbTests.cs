@@ -14,12 +14,34 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class PdbTests
     {
         [TestMethod]
+        public void PdbEqualityTest()
+        {
+            // Ensure all methods in our source file is in the pdb.
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+                PdbInfo[] allPdbs = runtime.Modules.Where(m => m.Pdb != null).Select(m => m.Pdb).ToArray();
+                Assert.IsTrue(allPdbs.Length > 1);
+
+                for (int i = 0; i < allPdbs.Length; i++)
+                {
+                    Assert.IsTrue(allPdbs[i].Equals(allPdbs[i]));
+                    for (int j = i + 1; j < allPdbs.Length; j++)
+                    {
+                        Assert.IsFalse(allPdbs[i].Equals(allPdbs[j]));
+                        Assert.IsFalse(allPdbs[j].Equals(allPdbs[i]));
+                    }
+                }
+
+            }
+        }
+
+        [TestMethod]
         public void PdbGuidAgeTest()
         {
-            int pdbAge;
-            Guid pdbSignature;
-            PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out pdbSignature, out pdbAge);
-            
+            PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out Guid pdbSignature, out int pdbAge);
+
             // Ensure we get the same answer a different way.
             using (PdbReader pdbReader = new PdbReader(TestTargets.NestedException.Pdb))
             {

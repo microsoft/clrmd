@@ -351,6 +351,51 @@ namespace Microsoft.Diagnostics.Runtime
             Guid = guid;
             Revision = rev;
         }
+
+        /// <summary>
+        /// GetHashCode implementation.
+        /// </summary>
+        /// <returns></returns>
+        public override int GetHashCode()
+        {
+            return Guid.GetHashCode() ^ Revision;
+        }
+
+        /// <summary>
+        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the 
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>True if the objects match, false otherwise.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+
+            if (ReferenceEquals(this, obj))
+                return true;
+
+            if (obj is PdbInfo rhs)
+            {
+
+                if (Revision == rhs.Revision && Guid == rhs.Guid)
+                {
+                    string lhsFilename = Path.GetFileName(FileName);
+                    string rhsFilename = Path.GetFileName(rhs.FileName);
+                    return lhsFilename.Equals(rhsFilename, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// To string implementation.
+        /// </summary>
+        /// <returns>Printing friendly version.</returns>
+        public override string ToString()
+        {
+            return $"{Guid} {Revision} {FileName}";
+        }
     }
 
     /// <summary>
