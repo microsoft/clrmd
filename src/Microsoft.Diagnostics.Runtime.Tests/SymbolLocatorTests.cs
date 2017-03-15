@@ -26,17 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             return new DefaultSymbolLocator() { SymbolCache = Helpers.TestWorkingDirectory };
         }
-
-        [TestMethod]
-        public void SymbolLocatorTimeoutNegativeTest()
-        {
-            var locator = GetLocator();
-            locator.Timeout = 1;
-            locator.SymbolCache += "\\TestTimeoutNegative";
-
-            string pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
-            Assert.IsNull(pdb);
-        }
+        
 
         [TestMethod]
         public void SymbolLocatorTimeoutTest()
@@ -122,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             PdbReader.GetPdbProperties(pdb, out Guid fileGuid, out int fileAge);
 
-            return guid == fileGuid && age == fileAge;
+            return guid == fileGuid;
         }
 
         [TestMethod]
