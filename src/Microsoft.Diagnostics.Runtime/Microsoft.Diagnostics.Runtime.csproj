@@ -118,6 +118,7 @@
     <Compile Include="internal.cs" />
     <Compile Include="ISymbolResolver.cs" />
     <Compile Include="Native\NativeException.cs" />
+    <Compile Include="ObjectSet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ClrException.cs" />
     <Compile Include="Native\NativeThread.cs" />
