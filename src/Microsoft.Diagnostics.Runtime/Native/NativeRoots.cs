@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public NativeHandleRootWalker(NativeRuntime runtime, bool dependentHandleSupport)
         {
-            _heap = runtime.GetHeap();
+            _heap = runtime.Heap;
             _domain = runtime.GetRhAppDomain();
             _dependentSupport = dependentHandleSupport;
         }
@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             Roots = new List<ClrRoot>(128);
             _runtime = resolveStatics ? runtime : null;
-            _heap = _runtime.GetHeap();
+            _heap = _runtime.Heap;
         }
 
         public void Callback(IntPtr token, ulong addr, ulong obj, int pinned, int interior)
@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _name = name;
             _pinned = pinned;
             _interior = interior;
-            _type = runtime.GetHeap().GetObjectType(obj);
+            _type = runtime.Heap.GetObjectType(obj);
             _appDomain = runtime.GetRhAppDomain();
         }
     }

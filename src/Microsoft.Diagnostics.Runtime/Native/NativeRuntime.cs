@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
     internal class NativeRuntime : RuntimeBase
     {
         private ISOSNative _sos;
-        private NativeHeap _heap;
+        private Lazy<NativeHeap> _heap;
         private ClrThread[] _threads;
         private NativeModule[] _modules;
         private NativeAppDomain _domain;
@@ -32,6 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _dacRawVersion = BitConverter.ToInt32(tmp, 0);
             if (_dacRawVersion != 10 && _dacRawVersion != 11)
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsException.HR.DacError);
+
+            _heap = new Lazy<NativeHeap>(() => new NativeHeap(this, NativeModules));
         }
 
         public override ClrMethod GetMethodByHandle(ulong methodHandle)
@@ -53,15 +55,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _sosNativeSerializedExceptionSupport = _library.DacInterface as ISOSNativeSerializedExceptionSupport;
         }
 
-        public override ClrHeap GetHeap()
-        {
-            if (_heap == null)
-            {
-                _heap = new NativeHeap(this, NativeModules);
-            }
+        public override ClrHeap Heap => _heap.Value;
 
-            return _heap;
-        }
+        [Obsolete]
+        public override ClrHeap GetHeap() => _heap.Value;
 
         public override int PointerSize
         {
@@ -213,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             byte[] context = new byte[contextSize];
             _dataReader.GetThreadContext(thread.OSThreadId, 0, (uint)contextSize, context);
 
-            var walker = new NativeStackRootWalker(GetHeap(), GetRhAppDomain(), thread);
+            var walker = new NativeStackRootWalker(_heap.Value, GetRhAppDomain(), thread);
             THREADROOTCALLBACK del = new THREADROOTCALLBACK(walker.Callback);
             IntPtr callback = Marshal.GetFunctionPointerForDelegate(del);
 
@@ -287,7 +284,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 {
                     ISerializedStackFrame serializedStackFrame = serializedStackFrameEnumerator.Next();
 
-                    NativeModule nativeModule = ((NativeHeap)this.GetHeap()).GetModuleFromAddress(serializedStackFrame.IP);
+                    NativeModule nativeModule = _heap.Value.GetModuleFromAddress(serializedStackFrame.IP);
                     string symbolName = null;
                     if (nativeModule != null)
                     {
@@ -328,7 +325,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 //create a new exception and populate the fields
 
                 exceptionById.Add(serializedException.ExceptionId, new NativeException(
-                    this.GetHeap().GetTypeByMethodTable(serializedException.ExceptionEEType),
+                    _heap.Value.GetTypeByMethodTable(serializedException.ExceptionEEType),
                     serializedException.ExceptionCCWPtr,
                     serializedException.HResult,
                     serializedException.ThreadId,

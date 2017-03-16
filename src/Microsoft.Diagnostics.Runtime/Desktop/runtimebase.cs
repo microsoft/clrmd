@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private DesktopAppDomain _system, _shared;
         private List<ClrAppDomain> _domains;
         private List<ClrThread> _threads;
-        private DesktopGCHeap _heap;
+        private Lazy<DesktopGCHeap> _heap;
         private DesktopThreadPool _threadpool;
         private ErrorModule _errorModule;
         #endregion
@@ -75,11 +75,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if ((threadType & (int)DesktopThread.TlsThreadType.ThreadType_GC) == (int)DesktopThread.TlsThreadType.ThreadType_GC)
                     yield return (int)thread;
             }
-        }
-
-        internal DesktopGCHeap TryGetHeap()
-        {
-            return _heap;
         }
 
 
@@ -159,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (ccw == null)
                 return null;
 
-            return new DesktopCCWData((DesktopGCHeap)GetHeap(), addr, ccw);
+            return new DesktopCCWData((DesktopGCHeap)_heap.Value, addr, ccw);
         }
 
         internal ICorDebugThread GetCorDebugThread(uint osid)
@@ -280,17 +275,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ClrHeap GetHeap()
-        {
-            if (_heap == null)
-            {
-                if (HasArrayComponentMethodTables)
-                    _heap = new LegacyGCHeap(this);
-                else
-                    _heap = new V46GCHeap(this);
-            }
+        public override ClrHeap Heap => _heap.Value;
 
-            return _heap;
+        [Obsolete]
+        public override ClrHeap GetHeap() => _heap.Value;
+
+        private DesktopGCHeap CreateHeap()
+        {
+            if (HasArrayComponentMethodTables)
+                return new LegacyGCHeap(this);
+            else
+                return  new V46GCHeap(this);
         }
 
         public override ClrThreadPool GetThreadPool()
@@ -389,7 +384,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (methodDesc == null)
                 return null;
 
-            ClrType type = GetHeap().GetTypeByMethodTable(methodDesc.MethodTable);
+            ClrType type = Heap.GetTypeByMethodTable(methodDesc.MethodTable);
             if (type == null)
                 return null;
 
@@ -571,7 +566,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _shared = null;
             _threads = null;
             MemoryReader = null;
-            _heap = null;
+            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
             _threadpool = null;
         }
 
@@ -709,6 +704,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
         {
+            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
         }
 
         internal void InitDomains()

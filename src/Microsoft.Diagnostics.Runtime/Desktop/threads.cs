@@ -184,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!_runtime.ReadPointer(ex, out ex) || ex == 0)
                     return null;
 
-                return _runtime.GetHeap().GetExceptionObject(ex);
+                return _runtime.Heap.GetExceptionObject(ex);
             }
         }
         
@@ -314,7 +314,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                ((DesktopGCHeap)_runtime.GetHeap()).InitLockInspection();
+                ((DesktopGCHeap)_runtime.Heap).InitLockInspection();
 
                 if (_blockingObjs == null)
                     return new BlockingObject[0];

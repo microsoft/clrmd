@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ulong> EnumerateManagedThreadpoolObjects()
         {
-            _heap = _runtime.GetHeap();
+            _heap = _runtime.Heap;
 
             ClrModule mscorlib = GetMscorlib();
             if (mscorlib != null)

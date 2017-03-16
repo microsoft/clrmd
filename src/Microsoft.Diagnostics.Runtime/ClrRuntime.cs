@@ -128,7 +128,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the GC heap of the process.
         /// </summary>
+        [Obsolete("Use the Heap property instead.")]
         abstract public ClrHeap GetHeap();
+
+        /// <summary>
+        /// Gets the GC heap of the process.
+        /// </summary>
+        abstract public ClrHeap Heap { get; }
 
         /// <summary>
         /// Returns data on the CLR thread pool for this runtime.
@@ -984,7 +990,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
-            ClrHeap heap = GetHeap();
+            ClrHeap heap = Heap;
             var mask = ((ulong)(PointerSize - 1));
             var cache = MemoryReader;
             cache.EnsureRangeInCache(stackBase);

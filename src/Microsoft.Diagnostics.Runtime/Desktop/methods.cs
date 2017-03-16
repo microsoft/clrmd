@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _attrs = attrs;
             _token = mdData.MDToken;
             _gcInfo = mdData.GCInfo;
-            var heap = runtime.GetHeap();
+            var heap = runtime.Heap;
             _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
             _hotColdInfo = new HotColdRegions() { HotStart = _ip, HotSize = mdData.HotSize, ColdStart = mdData.ColdStart, ColdSize = mdData.ColdSize };
         }

@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 else
                 {
                     if (heap == null)
-                        heap = (DesktopGCHeap)_runtime.GetHeap();
+                        heap = (DesktopGCHeap)_runtime.Heap;
 
                     if (heap.GetTypeByMethodTable(pair.MethodTable, 0) == type)
                         return pair.MethodTable;
@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            var heap = (DesktopGCHeap)_runtime.GetHeap();
+            var heap = (DesktopGCHeap)_runtime.Heap;
             var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
             if (_typesLoaded)
             {

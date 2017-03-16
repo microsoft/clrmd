@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public HandleTableWalker(DesktopRuntimeBase dac)
         {
             _runtime = dac;
-            _heap = dac.GetHeap();
+            _heap = dac.Heap;
             Handles = new List<ClrHandle>();
         }
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
