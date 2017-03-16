@@ -215,10 +215,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong[] GetAssemblyList(ulong appDomain, int count)
         {
-            // It's not valid to request an assembly list for the system domain in v4.5.
-            if (appDomain == SystemDomainAddress)
-                return new ulong[0];
-
             int needed;
             if (count <= 0)
             {

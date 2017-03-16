@@ -236,7 +236,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetDomainModule(ClrAppDomain domain)
         {
-            _runtime.InitDomains();
+            var domains = _runtime.AppDomains;
             if (domain == null)
             {
                 foreach (ulong addr in _mapping.Values)
