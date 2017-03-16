@@ -234,10 +234,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 // Ensure we don't hit an infinite loop
                 HashSet<ulong> seen = new HashSet<ulong> { addr };
-                while (thread != null && !seen.Contains(thread.Next))
+                while (thread != null)
                 {
                     threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
                     addr = thread.Next;
+                    if (seen.Contains(addr))
+                        break;
+
                     seen.Add(addr);
                     thread = GetThread(addr);
                 }
