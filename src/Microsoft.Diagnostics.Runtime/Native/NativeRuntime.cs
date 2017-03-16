@@ -121,6 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             throw new NotImplementedException();
         }
         
+        [Obsolete]
         override public ClrThreadPool GetThreadPool() { throw new NotImplementedException(); }
 
         internal ClrAppDomain GetRhAppDomain()

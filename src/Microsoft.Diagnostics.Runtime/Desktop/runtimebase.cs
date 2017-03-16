@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrModule[] _moduleList = null;
         private Lazy<List<ClrThread>> _threads;
         private Lazy<DesktopGCHeap> _heap;
-        private DesktopThreadPool _threadpool;
+        private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
         #endregion
@@ -49,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _heap = new Lazy<DesktopGCHeap>(CreateHeap);
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
+            _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
         }
 
 
@@ -65,11 +66,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _dacInterface.Flush();
             
             MemoryReader = null;
-            _threadpool = null;
             _moduleList = null;
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
         }
 
         internal int Revision { get; set; }
@@ -257,18 +258,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return  new V46GCHeap(this);
         }
 
-        public override ClrThreadPool GetThreadPool()
-        {
-            if (_threadpool != null)
-                return _threadpool;
+        public override ClrThreadPool ThreadPool => _threadpool.Value;
 
-            IThreadPoolData data = GetThreadPoolData();
-            if (data == null)
-                return null;
-
-            _threadpool = new DesktopThreadPool(this, data);
-            return _threadpool;
-        }
+        [Obsolete]
+        public override ClrThreadPool GetThreadPool() => _threadpool.Value;
         
         public ulong SystemDomainAddress => _appDomains.Value.System.Address;
         public ulong SharedDomainAddress => _appDomains.Value.Shared.Address;
@@ -582,7 +575,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        internal DomainContainer CreateAppDomainList()
+        private DesktopThreadPool CreateThreadPoolData()
+        {
+            IThreadPoolData data = GetThreadPoolData();
+            if (data == null)
+                return null;
+
+            return new DesktopThreadPool(this, data);
+        }
+
+        private DomainContainer CreateAppDomainList()
         {
             Dictionary<ulong, DesktopModule> modules = new Dictionary<ulong, DesktopModule>();
             Dictionary<string, DesktopModule> moduleFiles = new Dictionary<string, DesktopModule>();

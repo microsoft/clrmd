@@ -139,6 +139,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns data on the CLR thread pool for this runtime.
         /// </summary>
+        virtual public ClrThreadPool ThreadPool { get { throw new NotImplementedException(); } }
+
+        /// <summary>
+        /// Returns data on the CLR thread pool for this runtime.
+        /// </summary>
+        [Obsolete("Use ThreadPool property instead.")]
         virtual public ClrThreadPool GetThreadPool() { throw new NotImplementedException(); }
 
         /// <summary>
