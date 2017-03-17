@@ -579,7 +579,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        internal ClrHandle(Microsoft.Diagnostics.Runtime.Desktop.V45Runtime clr, ClrHeap heap, Microsoft.Diagnostics.Runtime.Desktop.HandleData handleData)
+        internal ClrHandle(V45Runtime clr, ClrHeap heap, HandleData handleData)
         {
             Address = handleData.Handle;
             clr.ReadPointer(Address, out ulong obj);
@@ -1333,6 +1333,11 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
+        public bool ReadString(ulong addr, out string value)
+        {
+            value = ((DesktopGCHeap)Heap).GetStringContents(addr);
+            return value != null;
+        }
 
         public bool ReadShort(ulong addr, out short value)
         {

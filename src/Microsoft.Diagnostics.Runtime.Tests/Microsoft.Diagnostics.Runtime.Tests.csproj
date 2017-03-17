@@ -56,8 +56,12 @@
     <None Include="Targets\GCHandles.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Compile Include="GCRootTests.cs" />
     <Compile Include="HeapTests.cs" />
     <Compile Include="MethodTests.cs" />
+    <None Include="Targets\GCRoot.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="TypeTests.cs" />
     <Compile Include="MinidumpTests.cs" />
     <Compile Include="ModuleTests.cs" />

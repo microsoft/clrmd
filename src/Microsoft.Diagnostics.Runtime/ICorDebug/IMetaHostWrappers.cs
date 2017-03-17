@@ -14,7 +14,7 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    class ProcessSafeHandle : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
+    class ProcessSafeHandle : Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
     {
         private ProcessSafeHandle()
             : base(true)
