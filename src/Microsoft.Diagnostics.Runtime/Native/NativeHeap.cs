@@ -22,6 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private ISymbolProvider _symProvider;
         private Dictionary<NativeModule, ISymbolResolver> _resolvers = new Dictionary<NativeModule, ISymbolResolver>();
 
+        public override ClrType Free => _free;
+
         internal class NativeStackFrame : ClrStackFrame
         {
             private ulong _ip;

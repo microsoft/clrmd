@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 else
                 {
                     if (heap == null)
-                        heap = (DesktopGCHeap)_runtime.GetHeap();
+                        heap = (DesktopGCHeap)_runtime.Heap;
 
                     if (heap.GetTypeByMethodTable(pair.MethodTable, 0) == type)
                         return pair.MethodTable;
@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            var heap = (DesktopGCHeap)_runtime.GetHeap();
+            var heap = (DesktopGCHeap)_runtime.Heap;
             var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
             if (_typesLoaded)
             {
@@ -236,7 +236,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetDomainModule(ClrAppDomain domain)
         {
-            _runtime.InitDomains();
+            var domains = _runtime.AppDomains;
             if (domain == null)
             {
                 foreach (ulong addr in _mapping.Values)

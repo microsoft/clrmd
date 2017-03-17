@@ -20,22 +20,58 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         v45
     }
 
+    struct DomainContainer
+    {
+        public List<ClrAppDomain> Domains;
+        public DesktopAppDomain System;
+        public DesktopAppDomain Shared;
+        public Dictionary<ulong, DesktopModule> Modules;
+        public Dictionary<string, DesktopModule> ModuleFiles;
+        public Dictionary<ulong, uint> ModuleSizes;
+    }
+
     abstract internal class DesktopRuntimeBase : RuntimeBase
     {
         #region Variables
         protected CommonMethodTables _commonMTs;
         private Dictionary<uint, ICorDebug.ICorDebugThread> _corDebugThreads;
-        private Dictionary<ulong, DesktopModule> _modules = new Dictionary<ulong, DesktopModule>();
-        private Dictionary<ulong, uint> _moduleSizes = null;
         private ClrModule[] _moduleList = null;
-        private Dictionary<string, DesktopModule> _moduleFiles = null;
-        private DesktopAppDomain _system, _shared;
-        private List<ClrAppDomain> _domains;
-        private List<ClrThread> _threads;
-        private DesktopGCHeap _heap;
-        private DesktopThreadPool _threadpool;
+        private Lazy<List<ClrThread>> _threads;
+        private Lazy<DesktopGCHeap> _heap;
+        private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
+        private Lazy<DomainContainer> _appDomains;
         #endregion
+        
+        internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+            : base(info, dt, lib)
+        {
+            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _threads = new Lazy<List<ClrThread>>(CreateThreadList);
+            _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
+            _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
+        }
+
+
+        /// <summary>
+        /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
+        /// but expect different results.  For example, after walking the heap, you need to call Flush before
+        /// attempting to walk the heap again.
+        /// </summary>
+        public override void Flush()
+        {
+            OnRuntimeFlushed();
+
+            Revision++;
+            _dacInterface.Flush();
+            
+            MemoryReader = null;
+            _moduleList = null;
+            _threads = new Lazy<List<ClrThread>>(CreateThreadList);
+            _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
+            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
+        }
 
         internal int Revision { get; set; }
 
@@ -77,11 +113,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopGCHeap TryGetHeap()
-        {
-            return _heap;
-        }
-
 
         /// <summary>
         /// Returns the version of the target process (v2, v4, v45)
@@ -112,46 +143,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopModule GetModule(ulong module)
-        {
-            if (module == 0)
-                return null;
-
-            if (_modules.TryGetValue(module, out DesktopModule res))
-                return res;
-
-            IModuleData moduleData = GetModuleData(module);
-            if (moduleData == null)
-                return null;
-
-            string peFile = GetPEFileName(moduleData.PEFile);
-            string assemblyName = GetAssemblyName(moduleData.Assembly);
-
-            if (_moduleSizes == null)
-            {
-                _moduleSizes = new Dictionary<ulong, uint>();
-                foreach (var native in _dataReader.EnumerateModules())
-                    _moduleSizes[native.ImageBase] = native.FileSize;
-            }
-
-            if (_moduleFiles == null)
-                _moduleFiles = new Dictionary<string, DesktopModule>();
-
-            _moduleSizes.TryGetValue(moduleData.ImageBase, out uint size);
-            if (peFile == null)
-            {
-                res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
-            }
-            else if (!_moduleFiles.TryGetValue(peFile, out res))
-            {
-                res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
-                _moduleFiles[peFile] = res;
-            }
-
-            _modules[module] = res;
-            return res;
-        }
-
 
         public override CcwData GetCcwDataByAddress(ulong addr)
         {
@@ -159,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (ccw == null)
                 return null;
 
-            return new DesktopCCWData((DesktopGCHeap)GetHeap(), addr, ccw);
+            return new DesktopCCWData((DesktopGCHeap)_heap.Value, addr, ccw);
         }
 
         internal ICorDebugThread GetCorDebugThread(uint osid)
@@ -192,58 +183,35 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        public override IList<ClrAppDomain> AppDomains
+        public override IList<ClrAppDomain> AppDomains => _appDomains.Value.Domains;
+        public override IList<ClrThread> Threads => _threads.Value;
+
+        private List<ClrThread> CreateThreadList()
         {
-            get
+            IThreadStoreData threadStore = GetThreadStoreData();
+            ulong finalizer = ulong.MaxValue - 1;
+            if (threadStore != null)
+                finalizer = threadStore.Finalizer;
+
+            List<ClrThread> threads = new List<ClrThread>();
+
+            ulong addr = GetFirstThread();
+            IThreadData thread = GetThread(addr);
+
+            // Ensure we don't hit an infinite loop
+            HashSet<ulong> seen = new HashSet<ulong> { addr };
+            while (thread != null)
             {
-                if (_domains == null)
-                    InitDomains();
+                threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
+                addr = thread.Next;
+                if (seen.Contains(addr))
+                    break;
 
-                return _domains;
+                seen.Add(addr);
+                thread = GetThread(addr);
             }
-        }
 
-        /// <summary>
-        /// Enumerates all managed threads in the process.  Only threads which have previously run managed
-        /// code will be enumerated.
-        /// </summary>
-        public override IList<ClrThread> Threads
-        {
-            get
-            {
-                if (_threads == null)
-                    InitThreads();
-
-                return _threads;
-            }
-        }
-
-        private void InitThreads()
-        {
-            if (_threads == null)
-            {
-                IThreadStoreData threadStore = GetThreadStoreData();
-                ulong finalizer = ulong.MaxValue - 1;
-                if (threadStore != null)
-                    finalizer = threadStore.Finalizer;
-
-                List<ClrThread> threads = new List<ClrThread>();
-
-                ulong addr = GetFirstThread();
-                IThreadData thread = GetThread(addr);
-
-                // Ensure we don't hit an infinite loop
-                HashSet<ulong> seen = new HashSet<ulong> { addr };
-                while (thread != null && !seen.Contains(thread.Next))
-                {
-                    threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
-                    addr = thread.Next;
-                    seen.Add(addr);
-                    thread = GetThread(addr);
-                }
-
-                _threads = threads;
-            }
+            return threads;
         }
 
         public ulong ExceptionMethodTable { get { return _commonMTs.ExceptionMethodTable; } }
@@ -277,105 +245,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ClrHeap GetHeap()
-        {
-            if (_heap == null)
-            {
-                if (HasArrayComponentMethodTables)
-                    _heap = new LegacyGCHeap(this);
-                else
-                    _heap = new V46GCHeap(this);
-            }
+        public override ClrHeap Heap => _heap.Value;
 
-            return _heap;
+        [Obsolete]
+        public override ClrHeap GetHeap() => _heap.Value;
+
+        private DesktopGCHeap CreateHeap()
+        {
+            if (HasArrayComponentMethodTables)
+                return new LegacyGCHeap(this);
+            else
+                return  new V46GCHeap(this);
         }
 
-        public override ClrThreadPool GetThreadPool()
-        {
-            if (_threadpool != null)
-                return _threadpool;
+        public override ClrThreadPool ThreadPool => _threadpool.Value;
 
-            IThreadPoolData data = GetThreadPoolData();
-            if (data == null)
-                return null;
-
-            _threadpool = new DesktopThreadPool(this, data);
-            return _threadpool;
-        }
-
-
-        /// <summary>
-        /// The address of the system domain in CLR.
-        /// </summary>
-        public ulong SystemDomainAddress
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                if (_system == null)
-                    return 0;
-
-                return _system.Address;
-            }
-        }
-
-        /// <summary>
-        /// The address of the shared domain in CLR.
-        /// </summary>
-        public ulong SharedDomainAddress
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                if (_shared == null)
-                    return 0;
-
-                return _shared.Address;
-            }
-        }
-
-        /// <summary>
-        /// The address of the system domain in CLR.
-        /// </summary>
-        public override ClrAppDomain SystemDomain
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                return _system;
-            }
-        }
-
-        /// <summary>
-        /// The address of the shared domain in CLR.
-        /// </summary>
-        public override ClrAppDomain SharedDomain
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                return _shared;
-            }
-        }
-
-        public bool IsSingleDomain
-        {
-            get
-            {
-                if (_domains == null)
-                    InitDomains();
-
-                return _domains.Count == 1;
-            }
-        }
+        [Obsolete]
+        public override ClrThreadPool GetThreadPool() => _threadpool.Value;
+        
+        public ulong SystemDomainAddress => _appDomains.Value.System.Address;
+        public ulong SharedDomainAddress => _appDomains.Value.Shared.Address;
+        public override ClrAppDomain SystemDomain => _appDomains.Value.System;
+        public override ClrAppDomain SharedDomain => _appDomains.Value.Shared;
+        public bool IsSingleDomain => _appDomains.Value.Domains.Count == 1;
 
         public override ClrMethod GetMethodByHandle(ulong methodHandle)
         {
@@ -386,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (methodDesc == null)
                 return null;
 
-            ClrType type = GetHeap().GetTypeByMethodTable(methodDesc.MethodTable);
+            ClrType type = Heap.GetTypeByMethodTable(methodDesc.MethodTable);
             if (type == null)
                 return null;
 
@@ -548,30 +440,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        /// <summary>
-        /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
-        /// but expect different results.  For example, after walking the heap, you need to call Flush before
-        /// attempting to walk the heap again.
-        /// </summary>
-        public override void Flush()
-        {
-            OnRuntimeFlushed();
-
-            Revision++;
-            _dacInterface.Flush();
-
-            _modules.Clear();
-            _moduleFiles = null;
-            _moduleSizes = null;
-            _domains = null;
-            _system = null;
-            _shared = null;
-            _threads = null;
-            MemoryReader = null;
-            _heap = null;
-            _threadpool = null;
-        }
-
         public override ClrMethod GetMethodByAddress(ulong ip)
         {
             IMethodDescData mdData = GetMDForIP(ip);
@@ -610,10 +478,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0);
-            if (_threads == null)
-                InitThreads();
 
-            foreach (ClrThread thread in _threads)
+            foreach (ClrThread thread in _threads.Value)
             {
                 ulong min = thread.StackBase;
                 ulong max = thread.StackLimit;
@@ -653,11 +519,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ulong thread = GetThreadFromThinlock(threadId);
             if (thread == 0)
                 return null;
-
-            if (_threads == null)
-                InitThreads();
-
-            foreach (var clrThread in _threads)
+            
+            foreach (var clrThread in _threads.Value)
                 if (clrThread.Address == thread)
                     return clrThread;
 
@@ -668,16 +531,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if (_domains == null)
-                    InitDomains();
-
                 if (_moduleList == null)
-                {
-                    HashSet<ClrModule> modules = new HashSet<ClrModule>(_modules.Values.Select(p => (ClrModule)p));
-                    _moduleList = modules.ToArray();
-                }
+                    _moduleList = UniqueModules(_appDomains.Value.Modules.Values).ToArray();
 
                 return _moduleList;
+            }
+        }
+
+        static IEnumerable<ClrModule> UniqueModules(Dictionary<ulong, DesktopModule>.ValueCollection self)
+        {
+            HashSet<DesktopModule> set = new HashSet<DesktopModule>();
+
+            foreach (DesktopModule value in self)
+            {
+                if (set.Contains(value))
+                    continue;
+
+                set.Add(value);
+                yield return (ClrModule)value;
             }
         }
 
@@ -703,39 +574,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
-            : base(info, dt, lib)
+
+        private DesktopThreadPool CreateThreadPoolData()
         {
+            IThreadPoolData data = GetThreadPoolData();
+            if (data == null)
+                return null;
+
+            return new DesktopThreadPool(this, data);
         }
 
-        internal void InitDomains()
+        private DomainContainer CreateAppDomainList()
         {
-            if (_domains != null)
-                return;
-
-            _modules.Clear();
-            _domains = new List<ClrAppDomain>();
+            Dictionary<ulong, DesktopModule> modules = new Dictionary<ulong, DesktopModule>();
+            Dictionary<string, DesktopModule> moduleFiles = new Dictionary<string, DesktopModule>();
+            Dictionary<ulong, uint> moduleSizes = _dataReader.EnumerateModules().ToDictionary(module => module.ImageBase, module => module.FileSize);
 
             IAppDomainStoreData ads = GetAppDomainStoreData();
             if (ads == null)
-                return;
+                return new DomainContainer();
 
             IList<ulong> domains = GetAppDomainList(ads.Count);
-            foreach (ulong domain in domains)
+            if (domains == null)
+                return new DomainContainer();
+
+            return new DomainContainer()
             {
-                DesktopAppDomain appDomain = InitDomain(domain);
-                if (appDomain != null)
-                    _domains.Add(appDomain);
-            }
-
-            _system = InitDomain(ads.SystemDomain, "System Domain");
-            _shared = InitDomain(ads.SharedDomain, "Shared Domain");
-
-            _moduleFiles = null;
-            _moduleSizes = null;
+                Domains = domains.Select(ad=>(ClrAppDomain)InitDomain(ad, modules, moduleFiles, moduleSizes)).Where(ad => ad != null).ToList(),
+                Shared = InitDomain(ads.SharedDomain, modules, moduleFiles, moduleSizes, "Shared Domain"),
+                System = InitDomain(ads.SystemDomain, modules, moduleFiles, moduleSizes, "System Domain"),
+                Modules = modules,
+                ModuleFiles = moduleFiles,
+                ModuleSizes = moduleSizes
+            };
         }
 
-        private DesktopAppDomain InitDomain(ulong domain, string name = null)
+        private DesktopAppDomain InitDomain(ulong domain, Dictionary<ulong, DesktopModule> modules, Dictionary<string, DesktopModule> moduleFiles, Dictionary<ulong, uint> moduleSizes, string name = null)
         {
             ulong[] bases = new ulong[1];
             IAppDomainData domainData = GetAppDomainData(domain);
@@ -756,7 +630,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         foreach (ulong module in GetModuleList(assembly, assemblyData.ModuleCount))
                         {
-                            DesktopModule clrModule = GetModule(module);
+                            DesktopModule clrModule = GetModule(module, modules, moduleFiles, moduleSizes);
                             if (clrModule != null)
                             {
                                 clrModule.AddMapping(appDomain, module);
@@ -770,19 +644,40 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return appDomain;
         }
 
-        private IEnumerable<DesktopModule> EnumerateImages()
+        private DesktopModule GetModule(ulong module, Dictionary<ulong, DesktopModule> modules, Dictionary<string, DesktopModule> moduleFiles, Dictionary<ulong, uint> moduleSizes)
         {
-            InitDomains();
-            foreach (var module in _modules.Values)
-                if (module.ImageBase != 0)
-                    yield return module;
+            if (module == 0)
+                return null;
+
+            if (modules.TryGetValue(module, out DesktopModule res))
+                return res;
+
+            IModuleData moduleData = GetModuleData(module);
+            if (moduleData == null)
+                return null;
+            
+            string peFile = GetPEFileName(moduleData.PEFile);
+            string assemblyName = GetAssemblyName(moduleData.Assembly);
+
+            moduleSizes.TryGetValue(moduleData.ImageBase, out uint size);
+
+            if (peFile == null)
+            {
+                res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
+            }
+            else if (!moduleFiles.TryGetValue(peFile, out res))
+            {
+                res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
+                moduleFiles[peFile] = res;
+            }
+
+            // We've modified the 'real' module list, so clear the cached version.
+            _moduleList = null;
+            modules[module] = res;
+            return res;
         }
 
-        private IEnumerable<ulong> EnumerateImageBases(IEnumerable<DesktopModule> modules)
-        {
-            foreach (var module in modules)
-                yield return module.ImageBase;
-        }
+        internal DesktopModule GetModule(ulong module) => GetModule(module, _appDomains.Value.Modules, _appDomains.Value.ModuleFiles, _appDomains.Value.ModuleSizes);
 
         /// <summary>
         /// 

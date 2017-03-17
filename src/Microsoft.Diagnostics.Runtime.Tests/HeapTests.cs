@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.GetHeap();
+                ClrHeap heap = runtime.Heap;
 
                 int count = 0;
                 foreach (ulong obj in heap.EnumerateObjectAddresses())
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server))
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.GetHeap();
+                ClrHeap heap = runtime.Heap;
 
                 Assert.IsTrue(runtime.ServerGC);
                 
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation))
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.GetHeap();
+                ClrHeap heap = runtime.Heap;
 
                 Assert.IsFalse(runtime.ServerGC);
 

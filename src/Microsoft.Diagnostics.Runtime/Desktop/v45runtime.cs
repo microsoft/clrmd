@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 int curr = _handles.Count;
                 for (int i = 0; i < fetched; i++)
                 {
-                    ClrHandle handle = new ClrHandle(this, GetHeap(), handles[i]);
+                    ClrHandle handle = new ClrHandle(this, Heap, handles[i]);
                     _handles.Add(handle);
 
                     handle = handle.GetInteriorHandle();
@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
             if (handleEnum != null)
             {
-                var heap = GetHeap();
+                var heap = Heap;
                 StackRefData[] refs = new StackRefData[1024];
 
                 const int GCInteriorFlag = 1;
@@ -215,10 +215,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong[] GetAssemblyList(ulong appDomain, int count)
         {
-            // It's not valid to request an assembly list for the system domain in v4.5.
-            if (appDomain == SystemDomainAddress)
-                return new ulong[0];
-
             int needed;
             if (count <= 0)
             {
@@ -662,7 +658,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_stackTrace == 0)
                 return result;
 
-            ClrHeap heap = GetHeap();
+            ClrHeap heap = Heap;
             ClrType stackTraceType = heap.GetObjectType(_stackTrace);
             if (stackTraceType == null || !stackTraceType.IsArray)
                 return result;

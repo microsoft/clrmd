@@ -818,6 +818,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _stream = stream;
             GetBuffer(buffSize);
         }
+
+        ~PEBuffer()
+        {
+            if (_pinningHandle.IsAllocated)
+                _pinningHandle.Free();
+        }
+
         public byte* Fetch(int filePos, int size)
         {
             if (size > _buff.Length)
@@ -842,11 +849,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int Length { get { return _buffLen; } }
         public void Dispose()
         {
-            _pinningHandle.Free();
+            if (_pinningHandle.IsAllocated)
+                _pinningHandle.Free();
+
+            GC.SuppressFinalize(this);
         }
         #region private
         private void GetBuffer(int buffSize)
         {
+            if (_pinningHandle.IsAllocated)
+                _pinningHandle.Free();
+
             _buff = new byte[buffSize];
             _pinningHandle = GCHandle.Alloc(_buff, GCHandleType.Pinned);
             fixed (byte* ptr = _buff)

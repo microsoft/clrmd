@@ -462,7 +462,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ulong FindWaitHandle(ulong start, ulong stop, HashSet<string> eventTypes)
         {
-            ClrHeap heap = _runtime.GetHeap();
+            ClrHeap heap = _runtime.Heap;
             foreach (ulong obj in EnumerateObjectsOfTypes(start, stop, eventTypes))
                 return obj;
 
@@ -471,7 +471,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ulong FindWaitObjects(ulong start, ulong stop, string typeName)
         {
-            ClrHeap heap = _runtime.GetHeap();
+            ClrHeap heap = _runtime.Heap;
             foreach (ulong obj in EnumerateObjectsOfType(start, stop, typeName))
                 return obj;
 
@@ -480,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ulong> EnumerateObjectsOfTypes(ulong start, ulong stop, HashSet<string> types)
         {
-            ClrHeap heap = _runtime.GetHeap();
+            ClrHeap heap = _runtime.Heap;
             foreach (ulong ptr in EnumeratePointersInRange(start, stop))
             {
                 if (_runtime.ReadPointer(ptr, out ulong obj))
@@ -511,7 +511,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ulong> EnumerateObjectsOfType(ulong start, ulong stop, string typeName)
         {
-            ClrHeap heap = _runtime.GetHeap();
+            ClrHeap heap = _runtime.Heap;
             foreach (ulong ptr in EnumeratePointersInRange(start, stop))
             {
                 if (_runtime.ReadPointer(ptr, out ulong obj))
@@ -542,7 +542,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private bool FindThread(ulong start, ulong stop, out ulong threadAddr, out ClrThread target)
         {
-            ClrHeap heap = _runtime.GetHeap();
+            ClrHeap heap = _runtime.Heap;
             foreach (ulong obj in EnumerateObjectsOfType(start, stop, "System.Threading.Thread"))
             {
                 ClrType type = heap.GetObjectType(obj);

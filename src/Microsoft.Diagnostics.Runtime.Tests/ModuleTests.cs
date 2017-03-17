@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.GetHeap();
+                ClrHeap heap = runtime.Heap;
 
                 ClrModule shared = runtime.GetModule("sharedlibrary.dll");
                 Assert.IsNotNull(shared.GetTypeByName("Foo"));

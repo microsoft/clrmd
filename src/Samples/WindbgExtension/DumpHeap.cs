@@ -19,7 +19,7 @@ namespace WindbgExtension
             // Use ClrMD as normal, but ONLY cache the copy of ClrRuntime (this.Runtime).  All other
             // types you get out of ClrMD (such as ClrHeap, ClrTypes, etc) should be discarded and
             // reobtained every run.
-            ClrHeap heap = Runtime.GetHeap();
+            ClrHeap heap = Runtime.Heap;
 
             var stats = from obj in heap.EnumerateObjectAddresses()
                         let t = heap.GetObjectType(obj)

@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            foreach (var type in _runtime.GetHeap().EnumerateTypes())
+            foreach (var type in _runtime.Heap.EnumerateTypes())
                 if (type.Module == this)
                     yield return type;
         }

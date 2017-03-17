@@ -18,12 +18,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            FreeType = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
-            ((DesktopHeapType)FreeType).Shared = true;
+            _free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+            ((DesktopHeapType)Free).Shared = true;
             ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0);
             ArrayType = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
             ArrayType.ComponentType =  ObjectType;
-            ((BaseDesktopHeapType)FreeType).DesktopModule = (DesktopModule)ObjectType.Module;
+            ((BaseDesktopHeapType)Free).DesktopModule = (DesktopModule)ObjectType.Module;
             StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
             ExceptionType = GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0);
             ErrorType = new ErrorType(this);
@@ -753,12 +753,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
+        private ClrType _free;
+
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
         internal BaseDesktopHeapType ErrorType { get; private set; }
         internal ClrType ObjectType { get; private set; }
         internal ClrType StringType { get; private set; }
         internal ClrType ValueType { get; private set; }
-        internal ClrType FreeType { get; private set; }
+        public override ClrType Free { get { return _free; } }
         internal ClrType ExceptionType { get; private set; }
         internal ClrType EnumType { get; set; }
         internal ClrType ArrayType { get; private set; }
