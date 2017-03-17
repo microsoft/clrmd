@@ -56,10 +56,102 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.IsFalse(hash.Add(obj));
                     Assert.IsTrue(hash.Contains(obj));
                 }
+
+            }
+        }
+        [TestMethod]
+        public void BuildCacheCancel()
+        {
+            using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
+            {
+                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
+
+                CancellationTokenSource source = new CancellationTokenSource();
+                source.Cancel();
+
+                try
+                {
+                    gcroot.BuildCache(source.Token);
+                    Assert.Fail("Should have been cancelled!");
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
 
 
+        [TestMethod]
+        public void EnumerateGCRootsCancel()
+        {
+            using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
+            {
+                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
+
+                CancellationTokenSource source = new CancellationTokenSource();
+                source.Cancel();
+
+                try
+                {
+                    gcroot.EnumerateGCRoots(target, false, source.Token).ToArray();
+                    Assert.Fail("Should have been cancelled!");
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+        }
+
+        [TestMethod]
+        public void FindSinglePathCancel()
+        {
+            using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
+            {
+                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+
+                CancellationTokenSource cancelSource = new CancellationTokenSource();
+                cancelSource.Cancel();
+
+                GetKnownSourceAndTarget(runtime.Heap, out ulong source, out ulong target);
+                try
+                {
+                    gcroot.FindSinglePath(source, target, cancelSource.Token);
+                    Assert.Fail("Should have been cancelled!");
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+        }
+
+
+        [TestMethod]
+        public void EnumerateAllPathshCancel()
+        {
+            using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
+            {
+                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+
+                CancellationTokenSource cancelSource = new CancellationTokenSource();
+                cancelSource.Cancel();
+
+                GetKnownSourceAndTarget(runtime.Heap, out ulong source, out ulong target);
+                try
+                {
+                    gcroot.EnumerateAllPaths(source, target, false, cancelSource.Token).ToArray();
+                    Assert.Fail("Should have been cancelled!");
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+        }
 
         [TestMethod]
         public void GCStaticRoots()
@@ -152,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
 
             GCRoot gcroot = new GCRoot(heap);
-            LinkedList<ClrObject> path = gcroot.FindSinglePath(source, target);
+            LinkedList<ClrObject> path = gcroot.FindSinglePath(source, target, CancellationToken.None);
 
             AssertPathIsCorrect(heap, path.ToArray(), source, target);
         }
@@ -180,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
 
             GCRoot gcroot = new GCRoot(heap);
-            LinkedList<ClrObject>[] paths = gcroot.EnumerateAllPaths(source, target, false).ToArray();
+            LinkedList<ClrObject>[] paths = gcroot.EnumerateAllPaths(source, target, false, CancellationToken.None).ToArray();
 
             // There are exactly three paths to the object in the test target
             Assert.AreEqual(3, paths.Length);

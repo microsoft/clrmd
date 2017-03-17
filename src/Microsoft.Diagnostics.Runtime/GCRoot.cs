@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
 
                 Debug.Assert(handle.Object != 0);
-                var path = PathTo(processedObjects, knownEndPoints, obj, target, unique).FirstOrDefault();
+                var path = PathTo(processedObjects, knownEndPoints, obj, target, unique, cancelToken).FirstOrDefault();
                 if (path != null)
                 {
                     yield return new RootPath() { Root = GetHandleRoot(handle), Path = path.ToArray() };
@@ -176,23 +176,24 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (!processedObjects.Contains(root.Object))
                 {
-                    var path = PathTo(processedObjects, knownEndPoints, root.Object, target, unique).FirstOrDefault();
+                    var path = PathTo(processedObjects, knownEndPoints, root.Object, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
                         yield return new RootPath() { Root = root, Path = path.ToArray() };
                 }
             }
         }
-        
+
 
         /// <summary>
         /// Returns the path from the start object to the end object (or null if no such path exists).
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
+        /// <param name="cancelToken">A cancellation token to stop searching.</param>
         /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
-        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target)
+        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
         {
-            return PathTo(new ObjectSet(_heap), null, source, target, false).FirstOrDefault();
+            return PathTo(new ObjectSet(_heap), null, source, target, false, cancelToken).FirstOrDefault();
         }
 
         /// <summary>
@@ -201,10 +202,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
         /// <param name="unique">Whether to only enumerate fully unique paths.</param>
+        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
-        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique)
+        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
         {
-            return PathTo(new ObjectSet(_heap), new Dictionary<ulong, LinkedListNode<ClrObject>>(), source, target, unique);
+            return PathTo(new ObjectSet(_heap), new Dictionary<ulong, LinkedListNode<ClrObject>>(), source, target, unique, cancelToken);
         }
 
         /// <summary>
@@ -260,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
-        private IEnumerable<LinkedList<ClrObject>> PathTo(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ulong source, ulong target, bool unique)
+        private IEnumerable<LinkedList<ClrObject>> PathTo(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ulong source, ulong target, bool unique, CancellationToken cancelToken)
         {
             ClrType startType = _heap.GetObjectType(source);
             if (startType == null)
@@ -278,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
             path.AddLast(new PathEntry()
             {
                 Object = source,
-                Todo = GetRefs(seen, knownEndPoints, source, target, unique, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+                Todo = GetRefs(seen, knownEndPoints, source, target, unique, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
             });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
@@ -294,6 +296,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             while (path.Count > 0)
             {
+                cancelToken.ThrowIfCancellationRequested();
+
                 TraceFullPath(null, path);
                 var last = path.Last.Value;
 
@@ -309,6 +313,7 @@ namespace Microsoft.Diagnostics.Runtime
                     // we can't get an object's type...inconsistent heap happens sometimes).
                     do
                     {
+                        cancelToken.ThrowIfCancellationRequested();
                         ulong next = last.Todo.Pop();
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
@@ -323,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime
                         PathEntry nextPathEntry = new PathEntry()
                         {
                             Object = next,
-                            Todo = GetRefs(seen, knownEndPoints, next, target, unique, out foundTarget, out foundEnding)
+                            Todo = GetRefs(seen, knownEndPoints, next, target, unique, cancelToken, out foundTarget, out foundEnding)
                         };
 
                         path.AddLast(nextPathEntry);
@@ -354,7 +359,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private Stack<ulong> GetRefs(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ulong obj, ulong target, bool unique, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+        private Stack<ulong> GetRefs(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ulong obj, ulong target, bool unique, CancellationToken cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
         {
             // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
             //Debug.Assert(obj.Type != null);
@@ -373,6 +378,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         for (uint i = 0; i < objInfo.RefCount; i++)
                         {
+                            cancelToken.ThrowIfCancellationRequested();
                             ulong refAddr = _cache.GCRefs[checked((int)objInfo.RefOffset) + i];
                             if (ending == null && knownEndPoints != null)
                             {
@@ -415,6 +421,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 type.EnumerateRefsOfObject(obj, (refAddr, _) =>
                 {
+                    cancelToken.ThrowIfCancellationRequested();
                     if (ending == null && knownEndPoints != null)
                         knownEndPoints.TryGetValue(refAddr, out ending);
 
@@ -573,8 +580,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrThread[] threads = _heap.Runtime.Threads.Where(t => t.IsAlive).ToArray();
             bool exact = TranslatePolicyToExact(threads, StackwalkPolicy);
-            var roots = threads.SelectMany(t => t.EnumerateStackObjects(exact)).Where(r => !r.IsInterior && r.Object != 0);
-            return roots;
+            return threads.SelectMany(t => t.EnumerateStackObjects(exact)).Where(r => !r.IsInterior && r.Object != 0);
         }
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
