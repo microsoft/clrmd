@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -21,11 +22,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The collection of segments and associated objects.
         /// </summary>
         protected HeapHashSegment[] _segments;
-
-        /// <summary>
-        /// The last segment found.
-        /// </summary>
-        protected HeapHashSegment _lastSegment;
 
         /// <summary>
         /// Returns the count of objects in this set.
@@ -131,23 +127,27 @@ namespace Microsoft.Diagnostics.Runtime
             Count = 0;
         }
 
-
-        private int GetOffset(ulong obj, HeapHashSegment seg)
+        /// <summary>
+        /// Calculates the offset of an object within a segment.
+        /// </summary>
+        /// <param name="obj">The object</param>
+        /// <param name="seg">The segment</param>
+        /// <returns>The index into seg.Objects.</returns>
+        protected int GetOffset(ulong obj, HeapHashSegment seg)
         {
             return checked((int)(obj - seg.StartAddress) / _minObjSize);
         }
 
-        private bool GetSegment(ulong obj, out HeapHashSegment seg)
+        /// <summary>
+        /// Gets the segment for the given object.
+        /// </summary>
+        /// <param name="obj">The object in question.</param>
+        /// <param name="seg">The resulting segment.</param>
+        /// <returns>True if obj lies within a gc segment, false otherwise.</returns>
+        protected bool GetSegment(ulong obj, out HeapHashSegment seg)
         {
             if (obj != 0)
             {
-                if (_lastSegment.StartAddress <= obj && obj < _lastSegment.EndAddress)
-                {
-                    seg = _lastSegment;
-                    return true;
-                }
-
-
                 int i = _segments.Length >> 1;
                 int mid, lower = 0, upper = _segments.Length - 1;
 
@@ -165,7 +165,6 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     else
                     {
-                        _lastSegment = _segments[mid];
                         seg = _segments[mid];
                         return true;
                     }
@@ -195,6 +194,73 @@ namespace Microsoft.Diagnostics.Runtime
             /// The end address of the segment.
             /// </summary>
             public ulong EndAddress;
+        }
+    }
+
+    internal class ParallelObjectSet : ObjectSet
+    {
+        public ParallelObjectSet(ClrHeap heap) : base(heap) { }
+
+        
+        public override bool Contains(ulong obj)
+        {
+            if (GetSegment(obj, out HeapHashSegment seg))
+            {
+                int offset = GetOffset(obj, seg);
+
+                lock (seg.Objects.SyncRoot)
+                    return seg.Objects[offset];
+            }
+
+            return false;
+        }
+
+        public override bool Add(ulong obj)
+        {
+            if (GetSegment(obj, out HeapHashSegment seg))
+            {
+                int offset = GetOffset(obj, seg);
+
+                lock (seg.Objects.SyncRoot)
+                {
+                    if (seg.Objects[offset])
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        seg.Objects.Set(offset, true);
+                        Count++;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+        
+        public override bool Remove(ulong obj)
+        {
+            if (GetSegment(obj, out HeapHashSegment seg))
+            {
+                int offset = GetOffset(obj, seg);
+                lock (seg.Objects.SyncRoot)
+                {
+                    if (seg.Objects[offset])
+                    {
+                        seg.Objects.Set(offset, false);
+                        Count--;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        public override void Clear()
+        {
+            throw new InvalidOperationException();
         }
     }
 }

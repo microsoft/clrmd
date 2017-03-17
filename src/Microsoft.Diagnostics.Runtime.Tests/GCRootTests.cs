@@ -166,6 +166,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 GCStaticRootsImpl(gcroot);
 
                 gcroot.BuildCache(int.MaxValue, CancellationToken.None);
+
+                gcroot.AllowParallelSearch = false;
+                Assert.IsTrue(gcroot.IsFullyCached);
+                GCStaticRootsImpl(gcroot);
+
+                gcroot.AllowParallelSearch = true;
                 Assert.IsTrue(gcroot.IsFullyCached);
                 GCStaticRootsImpl(gcroot);
             }
@@ -174,7 +180,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private void GCStaticRootsImpl(GCRoot gcroot)
         {
             ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-            RootPath rootPath = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).Single();
+            RootPath[] paths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
+            Assert.AreEqual(1, paths.Length);
+            RootPath rootPath = paths[0];
 
             AssertPathIsCorrect(gcroot.Heap, rootPath.Path.ToArray(), rootPath.Path.First().Address, target);
         }
@@ -189,17 +197,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 gcroot.ClearCache();
                 Assert.IsFalse(gcroot.IsFullyCached);
-                GCRootsImpl(gcroot.Heap);
-
+                GCRootsImpl(gcroot);
+                
                 gcroot.BuildCache(int.MaxValue, CancellationToken.None);
+
+                gcroot.AllowParallelSearch = false;
                 Assert.IsTrue(gcroot.IsFullyCached);
-                GCRootsImpl(gcroot.Heap);
+                GCRootsImpl(gcroot);
+
+                gcroot.AllowParallelSearch = true;
+                Assert.IsTrue(gcroot.IsFullyCached);
+                GCRootsImpl(gcroot);
             }
         }
 
-        private void GCRootsImpl(ClrHeap heap)
+        private void GCRootsImpl(GCRoot gcroot)
         {
-            GCRoot gcroot = new GCRoot(heap);
+            ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
             RootPath[] rootPaths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
 
@@ -231,19 +245,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 gcroot.ClearCache();
                 Assert.IsFalse(gcroot.IsFullyCached);
-                FindPathImpl(gcroot.Heap);
+                FindPathImpl(gcroot);
 
                 gcroot.BuildCache(int.MaxValue, CancellationToken.None);
                 Assert.IsTrue(gcroot.IsFullyCached);
-                FindPathImpl(gcroot.Heap);
+                FindPathImpl(gcroot);
             }
         }
 
-        private void FindPathImpl(ClrHeap heap)
+        private void FindPathImpl(GCRoot gcroot)
         {
+            ClrHeap heap = gcroot.Heap;
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
 
-            GCRoot gcroot = new GCRoot(heap);
             LinkedList<ClrObject> path = gcroot.FindSinglePath(source, target, CancellationToken.None);
 
             AssertPathIsCorrect(heap, path.ToArray(), source, target);
@@ -259,19 +273,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 gcroot.ClearCache();
                 Assert.IsFalse(gcroot.IsFullyCached);
-                FindAllPathsImpl(gcroot.Heap);
+                FindAllPathsImpl(gcroot);
 
                 gcroot.BuildCache(int.MaxValue, CancellationToken.None);
                 Assert.IsTrue(gcroot.IsFullyCached);
-                FindAllPathsImpl(gcroot.Heap);
+                FindAllPathsImpl(gcroot);
             }
         }
 
-        private void FindAllPathsImpl(ClrHeap heap)
+        private void FindAllPathsImpl(GCRoot gcroot)
         {
+            ClrHeap heap = gcroot.Heap;
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
-
-            GCRoot gcroot = new GCRoot(heap);
+            
             LinkedList<ClrObject>[] paths = gcroot.EnumerateAllPaths(source, target, false, CancellationToken.None).ToArray();
 
             // There are exactly three paths to the object in the test target
