@@ -106,7 +106,8 @@ namespace Microsoft.Diagnostics.Runtime
                 GCRefs = gcrefs;
                 ObjectInfo = objInfo;
                 ObjectMap = objmap;
-                Complete = true;
+                Complete = count <= max;
+                Objects = count;
             }
             catch (OutOfMemoryException)
             {

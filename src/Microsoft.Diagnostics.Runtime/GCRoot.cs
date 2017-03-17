@@ -30,14 +30,10 @@ namespace Microsoft.Diagnostics.Runtime
         BuildingHandleCache,
 
         /// <summary>
-        /// During the GC root algorithm, searching through handle roots to find the target object.
+        /// Processing objects during the GCRoot algorithm.  This reports the current number of objects
+        /// we have processed.
         /// </summary>
-        SearchingHandleRoots,
-
-        /// <summary>
-        /// During the GC root algorithm, searching through thread roots to find the target object.
-        /// </summary>
-        SearchingThreadRoots,
+        ProcessingObjects,
     }
 
     /// <summary>
@@ -93,8 +89,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
     /// <param name="phase">The current GCRoot phase.</param>
-    /// <param name="current">The current progress.  This number will be 0&lt;= current &lt;= total.</param>
-    /// <param name="total">The total value current is ticking up to.</param>
+    /// <param name="current">The current progress.</param>
+    /// <param name="total">The total value current is ticking up to.  If the total number is not known, -1.</param>
     public delegate void GCRootProgressEvent(GCRoot source, GCRootPhase phase, long current, long total);
 
     /// <summary>
@@ -113,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Since GCRoot can be long running, this event attempts to provide progress updates on the phases of GC root.
         /// </summary>
-        private event GCRootProgressEvent ProgressUpdate;
+        public event GCRootProgressEvent ProgressUpdate;
 
         /// <summary>
         /// Returns the heap that's associated with this GCRoot instance.
@@ -173,6 +169,18 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
+
+        /// <summary>
+        /// Enumerates GCRoots of a given object.  Similar to !gcroot.  Note this function only returns paths that are fully unique.
+        /// </summary>
+        /// <param name="target">The target object to search for GC rooting.</param>
+        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
+        /// <returns>An enumeration of all GC roots found for target.</returns>
+        public IEnumerable<RootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken)
+        {
+            return EnumerateGCRoots(target, true, cancelToken);
+        }
+
         /// <summary>
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.
         /// </summary>
@@ -182,6 +190,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of all GC roots found for target.</returns>
         public IEnumerable<RootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
+            long totalObjects = IsFullyCached ? _cache.Objects : -1;
+            long lastObjectReported = 0;
+
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
             if (parallel)
             {
@@ -214,6 +225,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (completed.Result.Item1 != null)
                             yield return new RootPath() { Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray() };
+
+                        ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                     }
                 }
                 
@@ -236,20 +249,19 @@ namespace Microsoft.Diagnostics.Runtime
                             
                             if (completed.Result.Item1 != null)
                                 yield return new RootPath() { Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray() };
+
+                            ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                         }
                     }
-                    
-                    foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
-                        yield return new RootPath() { Root = result.Item2, Path = result.Item1.ToArray() };
                 }
 
-                if (initial < tasks.Length)
-                    Array.Resize(ref tasks, initial);
+                foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
+                {
+                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                    yield return new RootPath() { Root = result.Item2, Path = result.Item1.ToArray() };
+                }
 
-                Task.WaitAll(tasks);
-                foreach (var t in tasks)
-                    if (t.Result.Item1 != null)
-                        yield return new RootPath() { Root = t.Result.Item2, Path = t.Result.Item1.ToArray() };
+                ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
             }
             else
             {
@@ -269,6 +281,8 @@ namespace Microsoft.Diagnostics.Runtime
                     var path = PathTo(processedObjects, knownEndPoints, new ClrObject(obj, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
                     if (path != null)
                         yield return new RootPath() { Root = GetHandleRoot(handle), Path = path.ToArray() };
+
+                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                 }
 
                 foreach (ClrRoot root in EnumerateStackHandles())
@@ -279,8 +293,22 @@ namespace Microsoft.Diagnostics.Runtime
                         var path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
                         if (path != null)
                             yield return new RootPath() { Root = root, Path = path.ToArray() };
+
+                        ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                     }
                 }
+
+
+                ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
+            }
+        }
+
+        private void ReportObjectCount(long curr, ref long lastObjectReported, long totalObjects)
+        {
+            if (curr != lastObjectReported)
+            {
+                lastObjectReported = curr;
+                ProgressUpdate?.Invoke(this, GCRootPhase.ProcessingObjects, lastObjectReported, totalObjects);
             }
         }
 
