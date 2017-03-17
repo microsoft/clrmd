@@ -108,6 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrHandle[] _handles;
         private Dictionary<ulong, List<ulong>> _dependentMap;
+        private int _maxTasks;
 
         /// <summary>
         /// Since GCRoot can be long running, this event attempts to provide progress updates on the phases of GC root.
@@ -128,6 +129,24 @@ namespace Microsoft.Diagnostics.Runtime
         public bool AllowParallelSearch { get; set; } = true;
 
         /// <summary>
+        /// The maximum number of tasks allowed to run in parallel, if GCRoot does a parallel search.
+        /// </summary>
+        public int MaximumTasksAllowed
+        {
+            get
+            {
+                return _maxTasks;
+            }
+            set
+            {
+                if (_maxTasks < 0)
+                    throw new InvalidOperationException($"{nameof(MaximumTasksAllowed)} cannot be less than 0!");
+
+                _maxTasks = value;
+            }
+        }
+
+        /// <summary>
         /// The policy for walking the stack (see the GCRootStackWalkPolicy enum for more details).
         /// </summary>
         public GCRootStackWalkPolicy StackwalkPolicy { get; set; }
@@ -144,6 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
         public GCRoot(ClrHeap heap)
         {
             _heap = heap ?? throw new ArgumentNullException(nameof(heap));
+            _maxTasks = Environment.ProcessorCount * 2;
         }
 
         internal static bool TranslatePolicyToExact(ClrThread[] threads, GCRootStackWalkPolicy stackPolicy)
@@ -162,15 +182,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of all GC roots found for target.</returns>
         public IEnumerable<RootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
-            bool parallel = AllowParallelSearch && IsFullyCached;
+            bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
             if (parallel)
             {
-                int maxTaskCount = Environment.ProcessorCount * 2;
                 ParallelObjectSet processedObjects = new ParallelObjectSet(_heap);
                 Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
 
                 int initial = 0;
-                Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[maxTaskCount];
+                Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
 
                 foreach (ClrHandle handle in EnumerateStrongHandles(cancelToken))
                 {
