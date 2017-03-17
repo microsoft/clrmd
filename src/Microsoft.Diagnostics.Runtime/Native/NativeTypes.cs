@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private bool _containsPointers;
         private int _index;
 
-        public NativeType(NativeHeap heap, int index, NativeModule module, string name, ulong eeType, Microsoft.Diagnostics.Runtime.Desktop.IMethodTableData mtData)
+        public NativeType(NativeHeap heap, int index, NativeModule module, string name, ulong eeType, Desktop.IMethodTableData mtData)
         {
             _heap = heap;
             _module = module;

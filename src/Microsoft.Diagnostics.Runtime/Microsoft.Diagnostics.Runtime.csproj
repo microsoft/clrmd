@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClrAppDomain.cs" />
+    <Compile Include="ClrObject.cs" />
     <Compile Include="DataTarget.cs" />
     <Compile Include="Debugger\Enums.cs" />
     <Compile Include="Debugger\IDebugAdvanced.cs" />
@@ -111,12 +112,15 @@
     <Compile Include="ClrModule.cs" />
     <Compile Include="DumpDataReader.cs" />
     <Compile Include="ClrHeap.cs" />
+    <Compile Include="GCCache.cs" />
+    <Compile Include="GCRoot.cs" />
     <Compile Include="ICorDebug\ICorDebugHelpers.cs" />
     <Compile Include="ICorDebug\ICorDebugWrappers.cs" />
     <Compile Include="ICorDebug\IMetaHostWrappers.cs" />
     <Compile Include="ICorDebug\IMetadataImport.cs" />
     <Compile Include="internal.cs" />
     <Compile Include="ISymbolResolver.cs" />
+    <Compile Include="MemoryReadException.cs" />
     <Compile Include="Native\NativeException.cs" />
     <Compile Include="ObjectSet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

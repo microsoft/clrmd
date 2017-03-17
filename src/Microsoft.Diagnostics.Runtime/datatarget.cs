@@ -845,7 +845,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="client">The dbgeng IDebugClient object.  We will query interface on this for IDebugClient.</param>
         /// <returns>A DataTarget instance.</returns>
-        public static DataTarget CreateFromDebuggerInterface(Microsoft.Diagnostics.Runtime.Interop.IDebugClient client)
+        public static DataTarget CreateFromDebuggerInterface(IDebugClient client)
         {
             DbgEngDataReader reader = new DbgEngDataReader(client);
             DataTargetImpl dataTarget = new DataTargetImpl(reader, reader.DebuggerInterface);
@@ -873,7 +873,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget AttachToProcess(int pid, uint msecTimeout, AttachFlag attachFlag)
         {
-            Microsoft.Diagnostics.Runtime.Interop.IDebugClient client = null;
+            IDebugClient client = null;
             IDataReader reader;
             if (attachFlag == AttachFlag.Passive)
             {
@@ -970,7 +970,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the IDebugClient interface associated with this datatarget.  (Will return null if the
         /// user attached passively.)
         /// </summary>
-        public abstract Microsoft.Diagnostics.Runtime.Interop.IDebugClient DebuggerInterface { get; }
+        public abstract IDebugClient DebuggerInterface { get; }
 
         /// <summary>
         /// Enumerates information about the loaded modules in the process (both managed and unmanaged).

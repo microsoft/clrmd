@@ -10,6 +10,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public static class Helpers
     {
+        public static IEnumerable<ulong> GetObjectsOfType(this ClrHeap heap, string name)
+        {
+            return from obj in heap.EnumerateObjectAddresses()
+                   let type = heap.GetObjectType(obj)
+                   where type?.Name?.Contains(name) ?? false
+                   select obj;
+        }
+        public static ulong GetStaticObjectValue(this ClrType mainType, string fieldName)
+        {
+            ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
+            ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
+            return obj;
+        }
+
+        public static ClrModule GetMainModule(this ClrRuntime runtime)
+        {
+            return runtime.Modules.Single(m => m.FileName.EndsWith(".exe"));
+        }
+
         public static ClrMethod GetMethod(this ClrType type, string name)
         {
             return GetMethods(type, name).Single();

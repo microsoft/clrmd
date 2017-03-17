@@ -28,6 +28,11 @@ namespace Microsoft.Diagnostics.Runtime
         protected HeapHashSegment _lastSegment;
 
         /// <summary>
+        /// Returns the count of objects in this set.
+        /// </summary>
+        public int Count { get; protected set; }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="heap">A ClrHeap to add objects from.</param>
@@ -68,26 +73,13 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        /// <summary>
-        /// Adds the given object to the set.
-        /// </summary>
-        /// <param name="obj">The object to add to the set.</param>
-        public virtual void Add(ulong obj)
-        {
-            if (GetSegment(obj, out HeapHashSegment seg))
-            {
-                int offset = GetOffset(obj, seg);
-                seg.Objects.Set(offset, true);
-            }
-        }
-
 
         /// <summary>
-        /// Adds the given object to the set.  Returns true if the value was changed, returns false if the object was already in the set.
+        /// Adds the given object to the set.  Returns true if the object was added to the set, returns false if the object was already in the set.
         /// </summary>
         /// <param name="obj">The object to add to the set.</param>
-        /// <returns>True if the value was changed, returns false if the object was already in the set.</returns>
-        public virtual bool TryAdd(ulong obj)
+        /// <returns>True if the object was added to the set, returns false if the object was already in the set.</returns>
+        public virtual bool Add(ulong obj)
         {
             if (GetSegment(obj, out HeapHashSegment seg))
             {
@@ -99,6 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
                 else
                 {
                     seg.Objects.Set(offset, true);
+                    Count++;
                     return true;
                 }
             }
@@ -107,16 +100,24 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Removes the given object from the set.
+        /// Removes the given object from the set.  Returns true if the object was removed, returns false if the object was not in the set.
         /// </summary>
         /// <param name="obj">The object to remove from the set.</param>
-        public virtual void Remove(ulong obj)
+        /// <returns>True if the object was removed, returns false if the object was not in the set.</returns>
+        public virtual bool Remove(ulong obj)
         {
             if (GetSegment(obj, out HeapHashSegment seg))
             {
                 int offset = GetOffset(obj, seg);
-                seg.Objects.Set(offset, false);
+                if (seg.Objects[offset])
+                {
+                    seg.Objects.Set(offset, false);
+                    Count--;
+                    return true;
+                }
             }
+
+            return false;
         }
 
         /// <summary>
@@ -126,6 +127,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             for (int i = 0; i < _segments.Length; i++)
                 _segments[i].Objects.SetAll(false);
+
+            Count = 0;
         }
 
 
