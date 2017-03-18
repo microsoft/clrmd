@@ -11,9 +11,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{FB57
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindbgExtension", "Samples\WindbgExtension\WindbgExtension.csproj", "{3FCA8012-3BAD-41E4-91F4-534AA9A44F96}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileAndLineNumbers", "FileAndLineNumbers\FileAndLineNumbers.csproj", "{EA92F1E6-3F34-48F8-8B0A-F2BBC19220EF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileAndLineNumbers", "Samples\FileAndLineNumbers\FileAndLineNumbers.csproj", "{EA92F1E6-3F34-48F8-8B0A-F2BBC19220EF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCRootDemo", "GCRootDemo\GCRootDemo.csproj", "{AB227B1A-25FA-4CF1-B2AE-B41AFCF5E182}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCRootDemo", "Samples\GCRootDemo\GCRootDemo.csproj", "{AB227B1A-25FA-4CF1-B2AE-B41AFCF5E182}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
