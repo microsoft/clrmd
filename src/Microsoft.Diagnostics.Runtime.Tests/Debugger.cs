@@ -13,7 +13,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         AV = 0xC0000005,
         StackOverflow = 0xC00000FD,
         Cpp = 0xe06d7363,
-        Clr = 0xe0434352
+        Clr = 0xe0434352,
+        Break = 0x80000003
     }
 
     class DebuggerStartInfo
@@ -306,18 +307,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public int CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName,
                                  uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
         {
-            CreateProcessEventHandler evt = CreateProcessEvent;
-            if (evt != null)
-                evt(this, new CreateProcessArgs(ImageFileHandle, Handle, BaseOffset, ModuleSize, ModuleName, ImageName, CheckSum, TimeDateStamp, InitialThreadHandle, ThreadDataOffset, StartOffset));
+            CreateProcessEvent?.Invoke(this, new CreateProcessArgs(ImageFileHandle, Handle, BaseOffset, ModuleSize, ModuleName, ImageName, CheckSum, TimeDateStamp, InitialThreadHandle, ThreadDataOffset, StartOffset));
 
             return 0;
         }
 
         public int ExitProcess(uint ExitCode)
         {
-            ExitProcessEventHandler evt = ExitProcessEvent;
-            if (evt != null)
-                evt(this, (int)ExitCode);
+            ExitProcessEvent?.Invoke(this, (int)ExitCode);
 
             m_exited = true;
             return (int)DEBUG_STATUS.BREAK;
@@ -325,45 +322,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
         {
-            CreateThreadEventHandler evt = ThreadCreateEvent;
-            if (evt != null)
-                evt(this, new CreateThreadArgs(Handle, DataOffset, StartOffset));
+            ThreadCreateEvent?.Invoke(this, new CreateThreadArgs(Handle, DataOffset, StartOffset));
 
             return 0;
         }
 
         public int ExitThread(uint ExitCode)
         {
-            ExitThreadEventHandler evt = ExitThreadEvent;
-            if (evt != null)
-                evt(this, (int)ExitCode);
+            ExitThreadEvent?.Invoke(this, (int)ExitCode);
 
             return 0;
         }
 
         public int Exception(ref EXCEPTION_RECORD64 Exception, uint FirstChance)
         {
-            ExceptionEventHandler evt = (FirstChance == 1) ? FirstChanceExceptionEvent : SecondChanceExceptionEvent;
-            if (evt != null)
-                evt(this, Exception);
+            ((FirstChance == 1) ? FirstChanceExceptionEvent : SecondChanceExceptionEvent)?.Invoke(this, Exception);
 
             return (int)DEBUG_STATUS.BREAK;
         }
 
         public int LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
         {
-            ModuleEventHandler evt = ModuleLoadEvent;
-            if (evt != null)
-                evt(this, new ModuleEventArgs(ImageFileHandle, BaseOffset, ModuleSize, ModuleName, ImageName, CheckSum, TimeDateStamp));
+            ModuleLoadEvent?.Invoke(this, new ModuleEventArgs(ImageFileHandle, BaseOffset, ModuleSize, ModuleName, ImageName, CheckSum, TimeDateStamp));
 
             return 0;
         }
 
         public int UnloadModule(string ImageBaseName, ulong BaseOffset)
         {
-            ModuleEventHandler evt = ModuleUnloadEvent;
-            if (evt != null)
-                evt(this, new ModuleEventArgs(ImageBaseName, BaseOffset));
+            ModuleUnloadEvent?.Invoke(this, new ModuleEventArgs(ImageBaseName, BaseOffset));
 
             return 0;
         }
