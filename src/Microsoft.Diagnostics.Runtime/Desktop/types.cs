@@ -1428,10 +1428,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             continue;
 
                         IMethodDescData mdData = runtime.GetMethodDescData(md);
-
-                        if (mdData == null || _methods.FirstOrDefault(i => i.MetadataToken == mdData.MDToken) != null)
-                            continue;
-
                         DesktopMethod method = DesktopMethod.Create(runtime, metadata, mdData);
                         if (method != null)
                             _methods.Add(method);
