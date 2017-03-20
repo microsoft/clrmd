@@ -987,15 +987,17 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private IDataReader _dataReader;
         private IDebugClient _client;
-        private ClrInfo[] _versions;
         private Architecture _architecture;
-        private ModuleInfo[] _modules;
+        private Lazy<ClrInfo[]> _versions;
+        private Lazy<ModuleInfo[]> _modules;
 
         public DataTargetImpl(IDataReader dataReader, IDebugClient client)
         {
             _dataReader = dataReader ?? throw new ArgumentNullException("dataReader");
             _client = client;
             _architecture = _dataReader.GetArchitecture();
+            _modules = new Lazy<ModuleInfo[]>(InitModules);
+            _versions = new Lazy<ClrInfo[]>(InitVersions);
         }
 
         public override IDataReader DataReader
@@ -1023,59 +1025,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IList<ClrInfo> ClrVersions
         {
-            get
-            {
-                if (_versions != null)
-                    return _versions;
-
-                List<ClrInfo> versions = new List<ClrInfo>();
-                foreach (ModuleInfo module in EnumerateModules())
-                {
-                    string clrName = Path.GetFileNameWithoutExtension(module.FileName).ToLower();
-
-                    if (clrName != "clr" && clrName != "mscorwks" && clrName != "coreclr" && clrName != "mrt100_app")
-                        continue;
-
-                    ClrFlavor flavor;
-                    switch (clrName)
-                    {
-                        case "mrt100_app":
-                            flavor = ClrFlavor.Native;
-                            break;
-
-                        case "coreclr":
-                            flavor = ClrFlavor.Core;
-                            break;
-
-                        default:
-                            flavor = ClrFlavor.Desktop;
-                            break;
-                    }
-
-                    string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), DacInfo.GetDacFileName(flavor, Architecture));
-                    if (!File.Exists(dacLocation) || !NativeMethods.IsEqualFileVersion(dacLocation, module.Version))
-                        dacLocation = null;
-
-                    VersionInfo version = module.Version;
-                    string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
-                    string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
-
-                    DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
-                    {
-                        FileSize = module.FileSize,
-                        TimeStamp = module.TimeStamp,
-                        FileName = dacFileName,
-                        Version = module.Version
-                    };
-
-                    versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
-                }
-
-                _versions = versions.ToArray();
-
-                Array.Sort(_versions);
-                return _versions;
-            }
+            get { return _versions.Value; }
         }
 
         public override bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
@@ -1090,34 +1040,77 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<ModuleInfo> EnumerateModules()
         {
-            if (_modules == null)
-                InitModules();
-
-            return _modules;
+            return _modules.Value;
         }
 
         private ModuleInfo FindModule(ulong addr)
         {
-            if (_modules == null)
-                InitModules();
-
             // TODO: Make binary search.
-            foreach (var module in _modules)
+            foreach (var module in _modules.Value)
                 if (module.ImageBase <= addr && addr < module.ImageBase + module.FileSize)
                     return module;
 
             return null;
         }
 
-        private void InitModules()
+        private ModuleInfo[] InitModules()
         {
-            if (_modules == null)
-            {
-                var sortedModules = new List<ModuleInfo>(_dataReader.EnumerateModules());
-                sortedModules.Sort((a, b) => a.ImageBase.CompareTo(b.ImageBase));
-                _modules = sortedModules.ToArray();
-            }
+            var sortedModules = new List<ModuleInfo>(_dataReader.EnumerateModules());
+            sortedModules.Sort((a, b) => a.ImageBase.CompareTo(b.ImageBase));
+            return sortedModules.ToArray();
         }
+
+        private ClrInfo[] InitVersions()
+        {
+
+            List<ClrInfo> versions = new List<ClrInfo>();
+            foreach (ModuleInfo module in EnumerateModules())
+            {
+                string clrName = Path.GetFileNameWithoutExtension(module.FileName).ToLower();
+
+                if (clrName != "clr" && clrName != "mscorwks" && clrName != "coreclr" && clrName != "mrt100_app")
+                    continue;
+
+                ClrFlavor flavor;
+                switch (clrName)
+                {
+                    case "mrt100_app":
+                        flavor = ClrFlavor.Native;
+                        break;
+
+                    case "coreclr":
+                        flavor = ClrFlavor.Core;
+                        break;
+
+                    default:
+                        flavor = ClrFlavor.Desktop;
+                        break;
+                }
+
+                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), DacInfo.GetDacFileName(flavor, Architecture));
+                if (!File.Exists(dacLocation) || !NativeMethods.IsEqualFileVersion(dacLocation, module.Version))
+                    dacLocation = null;
+
+                VersionInfo version = module.Version;
+                string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
+                string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
+
+                DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
+                {
+                    FileSize = module.FileSize,
+                    TimeStamp = module.TimeStamp,
+                    FileName = dacFileName,
+                    Version = module.Version
+                };
+
+                versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
+            }
+
+            var result = versions.ToArray();
+            Array.Sort(result);
+            return result;
+        }
+
 
         public override void Dispose()
         {
@@ -1675,7 +1668,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
 
             List<ulong> bases = new List<ulong>((int)count);
-            for (uint i = 0; i < count + unloadedCount; ++i)
+            for (uint i = 0; i < count; ++i)
             {
                 if (GetModuleByIndex(i, out ulong image) < 0)
                     continue;
@@ -1694,6 +1687,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong[] bases = GetImageBases();
             DEBUG_MODULE_PARAMETERS[] mods = new DEBUG_MODULE_PARAMETERS[bases.Length];
             List<ModuleInfo> modules = new List<ModuleInfo>();
+            HashSet<ulong> encounteredBases = new HashSet<ulong>();
 
             if (bases != null && CanEnumerateModules)
             {
