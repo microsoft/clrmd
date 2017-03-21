@@ -169,6 +169,12 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public IEnumerable<ulong> EnumerateObjectAddresses();
 
         /// <summary>
+        /// Enumerates all objects on the heap.
+        /// </summary>
+        /// <returns>An enumerator for all objects on the heap.</returns>
+        abstract public IEnumerable<ClrObject> EnumerateObjects();
+
+        /// <summary>
         /// TotalHeapSize is defined as the sum of the length of all segments.  
         /// </summary>
         abstract public ulong TotalHeapSize { get; }
@@ -467,17 +473,30 @@ namespace Microsoft.Diagnostics.Runtime
         virtual public ulong CommittedEnd { get { return 0; } }
 
         /// <summary>
-        /// If it is possible to move from one object to the 'next' object in the segment. 
-        /// Then FirstObject returns the first object in the heap (or null if it is not
-        /// possible to walk the heap.
+        /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
-        virtual public ulong FirstObject { get { return 0; } }
+        abstract public ulong FirstObject { get; }
+
+        /// <summary>
+        /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
+        /// </summary>
+        /// <param name="type">The type of the first object.</param>
+        /// <returns>The first object on this segment or 0 if this segment contains no objects.</returns>
+        abstract public ulong GetFirstObject(out ClrType type);
+
 
         /// <summary>
         /// Given an object on the segment, return the 'next' object in the segment.  Returns
         /// 0 when there are no more objects.   (Or enumeration is not possible)  
         /// </summary>
-        virtual public ulong NextObject(ulong objRef) { return 0; }
+        abstract public ulong NextObject(ulong objRef);
+
+        /// <summary>
+        /// Given an object on the segment, return the 'next' object in the segment.  Returns
+        /// 0 when there are no more objects.   (Or enumeration is not possible)  
+        /// </summary>
+        abstract public ulong NextObject(ulong objRef, out ClrType type);
+
 
         /// <summary>
         /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
@@ -835,6 +854,22 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public override IEnumerable<ClrObject> EnumerateObjects()
+        {
+            if (Revision != GetRuntimeRevision())
+                ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+
+            for (int i = 0; i < _segments.Length; ++i)
+            {
+                ClrSegment seg = _segments[i];
+                
+                for (ulong obj = seg.GetFirstObject(out ClrType type); obj != 0; obj = seg.NextObject(obj, out type))
+                {
+                    _lastSegmentIdx = i;
+                    yield return new ClrObject(obj, type);
+                }
+            }
+        }
 
         public override IEnumerable<ulong> EnumerateObjectAddresses()
         {
@@ -843,7 +878,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             for (int i = 0; i < _segments.Length; ++i)
             {
-                var seg = _segments[i];
+                ClrSegment seg = _segments[i];
                 for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
                 {
                     _lastSegmentIdx = i;
@@ -936,54 +971,129 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (Gen2Start == End)
+                ulong start = Gen2Start;
+                if (start >= End)
                     return 0;
-                _heap.MemoryReader.EnsureRangeInCache(Gen2Start);
-                return Gen2Start;
+
+                _heap.MemoryReader.EnsureRangeInCache(start);
+                return start;
             }
         }
 
-        public override ulong NextObject(ulong addr)
+        public override ulong GetFirstObject(out ClrType type)
         {
-            if (addr >= CommittedEnd)
+            ulong start = Gen2Start;
+            if (start >= End)
+            {
+                type = null;
+                return 0;
+            }
+
+            _heap.MemoryReader.EnsureRangeInCache(start);
+            type = _heap.GetObjectType(start);
+            return start;
+        }
+
+        public override ulong NextObject(ulong objRef)
+        {
+            if (objRef >= CommittedEnd)
                 return 0;
 
             uint minObjSize = (uint)_clr.PointerSize * 3;
 
-            ClrType type = _heap.GetObjectType(addr);
-            if (type == null)
+            ClrType currType = _heap.GetObjectType(objRef);
+            if (currType == null)
                 return 0;
 
-            ulong size = type.GetSize(addr);
+            ulong size = currType.GetSize(objRef);
             size = Align(size, _large);
             if (size < minObjSize)
                 size = minObjSize;
 
             // Move to the next object
-            addr += size;
+            objRef += size;
 
             // Check to make sure a GC didn't cause "count" to be invalid, leading to too large
             // of an object
-            if (addr >= End)
+            if (objRef >= End)
                 return 0;
 
             // Ensure we aren't at the start of an alloc context
-            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(addr, out ulong tmp))
+            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
             {
                 tmp += Align(minObjSize, _large);
 
                 // Only if there's data corruption:
-                if (addr >= tmp)
+                if (objRef >= tmp)
                     return 0;
 
                 // Otherwise:
-                addr = tmp;
+                objRef = tmp;
 
-                if (addr >= End)
+                if (objRef >= End)
                     return 0;
             }
+            
+            return objRef;
+        }
 
-            return addr;
+        public override ulong NextObject(ulong objRef, out ClrType type)
+        {
+            if (objRef >= CommittedEnd)
+            {
+                type = null;
+                return 0;
+            }
+
+            uint minObjSize = (uint)_clr.PointerSize * 3;
+
+            ClrType currType = _heap.GetObjectType(objRef);
+            if (currType == null)
+            {
+                type = null;
+                return 0;
+            }
+
+            ulong size = currType.GetSize(objRef);
+            size = Align(size, _large);
+            if (size < minObjSize)
+                size = minObjSize;
+
+            // Move to the next object
+            objRef += size;
+
+            // Check to make sure a GC didn't cause "count" to be invalid, leading to too large
+            // of an object
+            if (objRef >= End)
+            {
+                type = null;
+                return 0;
+            }
+
+            // Ensure we aren't at the start of an alloc context
+            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
+            {
+                tmp += Align(minObjSize, _large);
+
+                // Only if there's data corruption:
+                if (objRef >= tmp)
+                {
+                    type = null;
+                    return 0;
+                }
+
+                // Otherwise:
+                objRef = tmp;
+
+                if (objRef >= End)
+                {
+                    type = null;
+                    return 0;
+                }
+            }
+
+            type = _heap.GetObjectType(objRef);
+            return objRef;
         }
 
         #region private

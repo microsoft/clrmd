@@ -518,15 +518,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal IObjectData GetObjectData(ulong address)
         {
-            LastObjectData last = _lastObjData;
-
-            if (_lastObjData != null && _lastObjData.Address == address)
-                return _lastObjData.Data;
-
-            last = new LastObjectData(address, DesktopRuntime.GetObjectData(address));
-            _lastObjData = last;
-
-            return last.Data;
+            return DesktopRuntime.GetObjectData(address);
         }
 
         internal object GetValueAtAddress(ClrElementType cet, ulong addr)
@@ -746,7 +738,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrInstanceField _firstChar, _stringLength;
         private bool _initializedStringFields = false;
-        private LastObjectData _lastObjData;
         private ClrType[] _basicTypes;
         private bool _loadedTypes = false;
         #endregion
@@ -764,23 +755,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal ClrType ExceptionType { get; private set; }
         internal ClrType EnumType { get; set; }
         internal ClrType ArrayType { get; private set; }
-
-        private class LastObjectData
-        {
-            public IObjectData Data;
-            public ulong Address;
-            public LastObjectData(ulong addr, IObjectData data)
-            {
-                Address = addr;
-                Data = data;
-            }
-        }
-
-        internal struct LastObjectType
-        {
-            public ulong Address;
-            public ClrType Type;
-        }
 
         private class ModuleEntryCompare : IEqualityComparer<ModuleEntry>
         {
@@ -1444,7 +1418,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class LegacyGCHeap : DesktopGCHeap
     {
-        private LastObjectType _lastObjType = new LastObjectType();
+        private ClrObject _lastObject = new ClrObject();
         private Dictionary<TypeHandle, int> _indices = new Dictionary<TypeHandle, int>(TypeHandle.EqualityComparer);
 
         public LegacyGCHeap(DesktopRuntimeBase runtime)
@@ -1595,8 +1569,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             ulong mt, cmt = 0;
 
-            if (_lastObjType.Address == objRef)
-                return _lastObjType.Type;
+            if (_lastObject.Address == objRef)
+                return _lastObject.Type;
 
             var cache = MemoryReader;
             if (cache.Contains(objRef))
@@ -1633,8 +1607,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             ClrType type = GetTypeByMethodTable(mt, cmt, objRef);
-            _lastObjType.Address = objRef;
-            _lastObjType.Type = type;
+            _lastObject = ClrObject.Create(objRef, type);
 
             return type;
         }
@@ -1642,7 +1615,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class V46GCHeap : DesktopGCHeap
     {
-        private LastObjectType _lastObjType = new LastObjectType();
+        private ClrObject _lastObject;
         private Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
         
         public V46GCHeap(DesktopRuntimeBase runtime)
@@ -1655,8 +1628,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             ulong mt;
 
-            if (_lastObjType.Address == objRef)
-                return _lastObjType.Type;
+            if (_lastObject.Address == objRef)
+                return _lastObject.Type;
 
             var cache = MemoryReader;
             if (cache.Contains(objRef))
@@ -1680,8 +1653,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 mt &= ~3UL;
             
             ClrType type = GetTypeByMethodTable(mt, 0, objRef);
-            _lastObjType.Address = objRef;
-            _lastObjType.Type = type;
+            _lastObject = ClrObject.Create(objRef, type);
 
             return type;
         }

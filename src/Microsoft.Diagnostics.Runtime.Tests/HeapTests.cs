@@ -19,11 +19,43 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.Heap;
 
+                bool encounteredFoo = false;
                 int count = 0;
                 foreach (ulong obj in heap.EnumerateObjectAddresses())
                 {
-                    Assert.IsNotNull(heap.GetObjectType(obj));
+                    ClrType type = heap.GetObjectType(obj);
+                    Assert.IsNotNull(type);
+                    if (type.Name == "Foo")
+                        encounteredFoo = true;
+
                     count++;
+                }
+
+                Assert.IsTrue(encounteredFoo);
+                Assert.IsTrue(count > 0);
+            }
+        }
+
+        [TestMethod]
+        public void HeapEnumerationMatches()
+        {
+            // Simply test that we can enumerate the heap.
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
+
+                List<ClrObject> objects = new List<ClrObject>(heap.EnumerateObjects());
+                
+                int count = 0;
+                foreach (ulong obj in heap.EnumerateObjectAddresses())
+                {
+                    ClrObject actual = objects[count++];
+
+                    Assert.AreEqual(obj, actual.Address);
+
+                    ClrType type = heap.GetObjectType(obj);
+                    Assert.AreEqual(type, actual.Type);
                 }
 
                 Assert.IsTrue(count > 0);
