@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The GCRoot class will attempt to select a policy for you based on the number of threads in the process.
         /// </summary>
-        Heuristic,
+        Automatic,
 
         /// <summary>
         /// Use real stack roots.  This is much slower than 'Fast', but provides no false-positives for more accurate
@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal static bool TranslatePolicyToExact(ClrThread[] threads, GCRootStackWalkPolicy stackPolicy)
         {
             Debug.Assert(stackPolicy != GCRootStackWalkPolicy.SkipStack);
-            return stackPolicy == GCRootStackWalkPolicy.Exact || (stackPolicy == GCRootStackWalkPolicy.Heuristic && threads.Length < 512);
+            return stackPolicy == GCRootStackWalkPolicy.Exact || (stackPolicy == GCRootStackWalkPolicy.Automatic && threads.Length < 512);
         }
 
 
