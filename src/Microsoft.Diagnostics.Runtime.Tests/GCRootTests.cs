@@ -15,6 +15,59 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class GCRootTests
     {
         [TestMethod]
+        public void EnumerateGCRefs()
+        {
+            using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
+            {
+                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
+
+                ulong obj = heap.GetObjectsOfType("DoubleRef").Single();
+                ClrType type = heap.GetObjectType(obj);
+
+                ClrObject[] refs = type.EnumerateObjectReferences(obj).ToArray();
+                ValidateRefs(refs);
+            }
+        }
+
+        private void ValidateRefs(ClrObject[] refs)
+        {
+            // Should contain one SingleRef and one TripleRef object.
+            Assert.AreEqual(2, refs.Length);
+
+            Assert.AreEqual(1, refs.Count(r => r.Type.Name == "SingleRef"));
+            Assert.AreEqual(1, refs.Count(r => r.Type.Name == "TripleRef"));
+
+            foreach (ClrObject obj in refs)
+            {
+                Assert.AreNotEqual(0, obj.Address);
+                Assert.AreEqual(obj.Type.Heap.GetObjectType(obj.Address), obj.Type);
+            }
+        }
+
+        [TestMethod]
+        public void EnumerateGCRefsArray()
+        {
+            using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
+            {
+                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
+
+                ClrModule module = heap.Runtime.GetMainModule();
+                ClrType mainType = module.GetTypeByName("GCRootTarget");
+
+                ClrObject obj = mainType.GetStaticObjectValue("TheRoot");
+                obj = obj.GetObjectField("Item1");
+
+                Assert.AreEqual("System.Object[]", obj.Type.Name);
+
+                ClrObject[] refs = obj.EnumerateObjectReferences(false).ToArray();
+                Assert.AreEqual(1, refs.Length);
+                Assert.AreEqual("DoubleRef", refs[0].Type.Name);
+            }
+        }
+
+        [TestMethod]
         public void ObjectSetAddRemove()
         {
             using (DataTarget dataTarget = TestTargets.Types.LoadFullDump())
@@ -300,7 +353,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule module = heap.Runtime.GetMainModule();
             ClrType mainType = module.GetTypeByName("GCRootTarget");
 
-            source = mainType.GetStaticObjectValue("TheRoot");
+            source = mainType.GetStaticObjectValue("TheRoot").Address;
             target = heap.GetObjectsOfType("TargetType").Single();
         }
 

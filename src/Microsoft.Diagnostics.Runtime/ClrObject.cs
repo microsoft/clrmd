@@ -41,6 +41,15 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Enumerates all objects that this object references.
+        /// </summary>
+        /// <returns>An enumeration of object references.</returns>
+        public IEnumerable<ClrObject> EnumerateObjectReferences(bool carefully=false)
+        {
+            return _type.Heap.EnumerateObjectReferences(_address, _type, carefully);
+        }
+
+        /// <summary>
         /// The address of the object.
         /// </summary>
         public ulong Address { get { return _address; } }
@@ -82,6 +91,15 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return _type.GetArrayLength(Address);
             }
+        }
+
+        /// <summary>
+        /// ToString override.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return $"{_type?.Name} {_address:x}";
         }
 
 

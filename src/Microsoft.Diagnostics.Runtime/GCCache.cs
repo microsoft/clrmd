@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             private Entry NewEntry(ulong obj)
             {
-                Entry result = new Entry() { Start = obj, End = obj, Dictionary = new Dictionary<ulong, int>() };
+                Entry result = new Entry() { Start = obj, End = obj, Dictionary = new SortedDictionary<ulong, int>() };
                 _entries.Add(result);
                 return result;
             }
@@ -347,7 +347,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 public ulong Start;
                 public ulong End;
-                public Dictionary<ulong, int> Dictionary;
+                public SortedDictionary<ulong, int> Dictionary;
             }
         }
         #endregion

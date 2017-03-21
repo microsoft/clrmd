@@ -93,6 +93,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return true;
         }
 
+        protected override MemoryReader GetMemoryReaderForAddress(ulong obj)
+        {
+            if (MemoryReader.Contains(obj))
+                return MemoryReader;
+
+            return DesktopRuntime.MemoryReader;
+        }
+
 
         internal ClrType GetGCHeapTypeFromModuleAndToken(ulong moduleAddr, uint token)
         {
@@ -117,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return null;
         }
-        
+
         internal abstract ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj);
 
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -224,6 +225,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrType
     {
+        abstract internal GCDesc GCDesc { get; }
+
         /// <summary>
         /// Retrieves the first type handle in EnumerateMethodTables().  MethodTables
         /// are unique to an AppDomain/Type pair, so when there are multiple domains
@@ -269,6 +272,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// we don't loop forever with inconsistent data.
         /// </summary>
         abstract public void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action);
+
+        /// <summary>
+        /// Enumerates all objects that the given object references.
+        /// </summary>
+        /// <param name="obj">The object in question.</param>
+        /// <param name="carefully">Whether to bounds check along the way (useful in cases where
+        /// the heap may be in an inconsistent state.)</param>
+        virtual public IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, bool carefully = false)
+        {
+            Debug.Assert(Heap.GetObjectType(obj) == this);
+            return Heap.EnumerateObjectReferences(obj, this, carefully);
+        }
 
         /// <summary>
         /// Returns true if the type CAN contain references to other objects.  This is used in optimizations 

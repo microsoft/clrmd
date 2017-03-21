@@ -37,16 +37,45 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrElementType _elementType;
         protected uint _token;
         private IList<ClrInterface> _interfaces;
+        private Lazy<GCDesc> _gcDesc;
+        protected ulong _constructedMT;
+
+        internal override GCDesc GCDesc { get { return _gcDesc.Value; } }
+
         public bool Shared { get; internal set; }
-        internal abstract ulong GetModuleAddress(ClrAppDomain domain);
 
-
-        public BaseDesktopHeapType(DesktopGCHeap heap, DesktopBaseModule module, uint token)
+        public BaseDesktopHeapType(ulong mt, DesktopGCHeap heap, DesktopBaseModule module, uint token)
         {
+            _constructedMT = mt;
             DesktopHeap = heap;
             DesktopModule = module;
             _token = token;
+            _gcDesc = new Lazy<GCDesc>(FillGCDesc);
         }
+
+        private GCDesc FillGCDesc()
+        {
+            DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
+
+            Debug.Assert(_constructedMT != 0, "Attempted to fill GC desc with a constructed (not real) type.");
+            if (!runtime.ReadDword(_constructedMT - (ulong)IntPtr.Size, out int entries))
+                return null;
+
+            // Get entries in map
+            if (entries < 0)
+                entries = -entries;
+
+            int slots = 1 + entries * 2;
+            byte[] buffer = new byte[slots * IntPtr.Size];
+            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
+                return null;
+
+            // Construct the gc desc
+            return new GCDesc(buffer);
+        }
+
+
+        internal abstract ulong GetModuleAddress(ClrAppDomain domain);
 
         internal override ClrMethod GetMethod(uint token)
         {
@@ -173,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private string _name;
 
         public DesktopPointerType(DesktopGCHeap heap, DesktopBaseModule module, ClrElementType eltype, uint token, string nameHint)
-            : base(heap, module, token)
+            : base(0, heap, module, token)
         {
             ElementType = ClrElementType.Pointer;
             _pointerElement = eltype;
@@ -435,7 +464,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private string _name;
 
         public DesktopArrayType(DesktopGCHeap heap, DesktopBaseModule module, ClrElementType eltype, int ranks, uint token, string nameHint)
-            : base(heap, module, token)
+            : base(0, heap, module, token)
         {
             ElementType = ClrElementType.Array;
             _arrayElement = eltype;
@@ -707,6 +736,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         ulong _cachedMethodTable;
         ulong[] _methodTables;
+        private string _name;
+        private int _index;
+
+        private TypeAttributes _attributes;
+        private ulong _parent;
+        private uint _baseSize;
+        private uint _componentSize;
+        private bool _containsPointers;
+        private byte _finalizable;
+
+        private List<ClrInstanceField> _fields;
+        private List<ClrStaticField> _statics;
+        private List<ClrThreadStaticField> _threadStatics;
+        private int[] _fieldNameMap;
+
+        private int _baseArrayOffset;
+        private bool _hasMethods;
+        private bool? _runtimeType;
+        private EnumData _enumData;
+        private bool _notRCW;
+        private bool _checkedIfIsRCW;
+        private bool _checkedIfIsCCW;
+        private bool _notCCW;
 
         public override ulong MethodTable
         {
@@ -843,64 +895,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
         {
-            if (!_containsPointers)
-                return;
-
-            if (_gcDesc == null)
-                if (!FillGCDesc() || _gcDesc == null)
-                    return;
-
-            ulong size = GetSize(objRef);
-
-            ClrSegment seg = DesktopHeap.GetSegmentByAddress(objRef);
-            if (seg == null || objRef + size > seg.End)
-                return;
-
-            var cache = DesktopHeap.MemoryReader;
-            if (!cache.Contains(objRef))
-                cache = DesktopHeap.DesktopRuntime.MemoryReader;
-
-            _gcDesc.WalkObject(objRef, (ulong)size, cache, action);
+            if (_containsPointers)
+                Heap.EnumerateObjectReferences(objRef, this, action, true);
         }
 
         public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
-            if (!_containsPointers)
-                return;
-
-            if (_gcDesc == null)
-                if (!FillGCDesc() || _gcDesc == null)
-                    return;
-
-            var size = GetSize(objRef);
-            var cache = DesktopHeap.MemoryReader;
-            if (!cache.Contains(objRef))
-                cache = DesktopHeap.DesktopRuntime.MemoryReader;
-
-            _gcDesc.WalkObject(objRef, (ulong)size, cache, action);
+            if (_containsPointers)
+                Heap.EnumerateObjectReferences(objRef, this, action, false);
         }
 
-
-        private bool FillGCDesc()
-        {
-            DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
-
-            if (!runtime.ReadDword(_constructedMT - (ulong)IntPtr.Size, out int entries))
-                return false;
-
-            // Get entries in map
-            if (entries < 0)
-                entries = -entries;
-
-            int slots = 1 + entries * 2;
-            byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
-                return false;
-
-            // Construct the gc desc
-            _gcDesc = new GCDesc(buffer);
-            return true;
-        }
 
         public override ClrHeap Heap { get { return DesktopHeap; } }
         public override string ToString()
@@ -1739,11 +1743,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         internal DesktopHeapType(string typeName, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap)
-            : base(heap, module, token)
+            : base(mt, heap, module, token)
         {
             _name = typeName;
 
-            _constructedMT = mt;
             Shared = mtData.Shared;
             _parent = mtData.Parent;
             _baseSize = mtData.BaseSize;
@@ -1912,32 +1915,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
         }
-
-        private string _name;
-        private int _index;
-
-        private TypeAttributes _attributes;
-        private GCDesc _gcDesc;
-        private ulong _constructedMT;
-        private ulong _parent;
-        private uint _baseSize;
-        private uint _componentSize;
-        private bool _containsPointers;
-        private byte _finalizable;
-
-        private List<ClrInstanceField> _fields;
-        private List<ClrStaticField> _statics;
-        private List<ClrThreadStaticField> _threadStatics;
-        private int[] _fieldNameMap;
-
-        private int _baseArrayOffset;
-        private bool _hasMethods;
-        private bool? _runtimeType;
-        private EnumData _enumData;
-        private bool _notRCW;
-        private bool _checkedIfIsRCW;
-        private bool _checkedIfIsCCW;
-        private bool _notCCW;
 
         private static ClrStaticField[] s_emptyStatics = new ClrStaticField[0];
         private static ClrThreadStaticField[] s_emptyThreadStatics = new ClrThreadStaticField[0];

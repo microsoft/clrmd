@@ -111,6 +111,15 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         }
 
+        protected override MemoryReader GetMemoryReaderForAddress(ulong obj)
+        {
+            var cache = MemoryReader;
+            if (!cache.Contains(obj))
+                cache = NativeRuntime.MemoryReader;
+
+            return cache;
+        }
+
         public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
         {
             throw new NotImplementedException();

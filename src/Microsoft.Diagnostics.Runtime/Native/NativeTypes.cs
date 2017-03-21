@@ -14,9 +14,11 @@ namespace Microsoft.Diagnostics.Runtime.Native
         private NativeModule _module;
         private uint _baseSize;
         private uint _componentSize;
-        private GCDesc _gcDesc;
+        private Lazy<GCDesc> _gcDesc;
         private bool _containsPointers;
         private int _index;
+
+        internal override GCDesc GCDesc => _gcDesc.Value;
 
         public NativeType(NativeHeap heap, int index, NativeModule module, string name, ulong eeType, Desktop.IMethodTableData mtData)
         {
@@ -25,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _name = name;
             _eeType = eeType;
             _index = index;
+            _gcDesc = new Lazy<GCDesc>(FillGCDesc);
 
             if (mtData != null)
             {
@@ -99,28 +102,17 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
-            if (!_containsPointers)
-                return;
-
-            if (_gcDesc == null)
-                if (!FillGCDesc() || _gcDesc == null)
-                    return;
-
-            var size = GetSize(objRef);
-            var cache = _heap.MemoryReader;
-            if (!cache.Contains(objRef))
-                cache = _heap.NativeRuntime.MemoryReader;
-
-            _gcDesc.WalkObject(objRef, (ulong)size, cache, action);
+            if (_containsPointers)
+                Heap.EnumerateObjectReferences(objRef, this, action, false);
         }
 
 
-        private bool FillGCDesc()
+        private GCDesc FillGCDesc()
         {
             NativeRuntime runtime = _heap.NativeRuntime;
 
             if (!runtime.MemoryReader.TryReadDword(_eeType - (ulong)IntPtr.Size, out int entries))
-                return false;
+                return null;
 
             // Get entries in map
             if (entries < 0)
@@ -129,11 +121,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
             if (!runtime.ReadMemory(_eeType - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
-                return false;
+                return null;
 
             // Construct the gc desc
-            _gcDesc = new GCDesc(buffer);
-            return true;
+            return new GCDesc(buffer);
         }
 
         public override ClrHeap Heap
@@ -233,7 +224,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
         {
-            EnumerateRefsOfObject(objRef, action);
+            if (_containsPointers)
+                _heap.EnumerateObjectReferences(objRef, this, action, true);
         }
 
         public override uint MetadataToken

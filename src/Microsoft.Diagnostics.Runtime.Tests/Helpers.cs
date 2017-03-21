@@ -17,11 +17,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                    where type?.Name?.Contains(name) ?? false
                    select obj;
         }
-        public static ulong GetStaticObjectValue(this ClrType mainType, string fieldName)
+        public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
             ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
             ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
-            return obj;
+            return new ClrObject(obj, mainType.Heap.GetObjectType(obj));
         }
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)

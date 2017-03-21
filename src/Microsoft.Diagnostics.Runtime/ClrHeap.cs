@@ -250,6 +250,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="value">The pointer value.</param>
         /// <returns>True if we successfully read the value, false if addr is not mapped into the process space.</returns>
         public abstract bool ReadPointer(ulong addr, out ulong value);
+
+        internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
+        internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, Action<ulong, int> callback, bool carefully);
     }
 
     /// <summary>
@@ -688,6 +691,7 @@ namespace Microsoft.Diagnostics.Runtime
 
     internal abstract class HeapBase : ClrHeap
     {
+        static readonly ClrObject[] s_emptyObjectSet = new ClrObject[0];
         private ulong _minAddr;          // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.  
         private ulong _maxAddr;
         private ClrSegment[] _segments;
@@ -917,6 +921,60 @@ namespace Microsoft.Diagnostics.Runtime
             }
             return null;
         }
+
+        internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
+        {
+            if (type == null)
+                type = GetObjectType(obj);
+            else
+                Debug.Assert(type == GetObjectType(obj));
+
+            if (!type.ContainsPointers)
+                return s_emptyObjectSet;
+
+            GCDesc gcdesc = type.GCDesc;
+            if (gcdesc == null)
+                return s_emptyObjectSet;
+
+            ulong size = type.GetSize(obj);
+            if (carefully)
+            {
+                ClrSegment seg = GetSegmentByAddress(obj);
+                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                    return s_emptyObjectSet;
+            }
+
+            List<ClrObject> result = new List<ClrObject>();
+            gcdesc.WalkObject(obj, size, GetMemoryReaderForAddress(obj), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
+            return result;
+        }
+
+        internal override void EnumerateObjectReferences(ulong obj, ClrType type, Action<ulong, int> callback, bool carefully)
+        {
+            if (type == null)
+                type = GetObjectType(obj);
+            else
+                Debug.Assert(type == GetObjectType(obj));
+
+            if (!type.ContainsPointers)
+                return;
+
+            GCDesc gcdesc = type.GCDesc;
+            if (gcdesc == null)
+                return;
+
+            ulong size = type.GetSize(obj);
+            if (carefully)
+            {
+                ClrSegment seg = GetSegmentByAddress(obj);
+                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                    return;
+            }
+
+            gcdesc.WalkObject(obj, size, GetMemoryReaderForAddress(obj), callback);
+        }
+
+        protected abstract MemoryReader GetMemoryReaderForAddress(ulong obj);
     }
 
 

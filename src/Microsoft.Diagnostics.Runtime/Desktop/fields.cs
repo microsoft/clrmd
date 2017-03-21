@@ -745,7 +745,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     class ErrorType : BaseDesktopHeapType
     {
         public ErrorType(DesktopGCHeap heap)
-            : base(heap, heap.DesktopRuntime.ErrorModule, 0)
+            : base(0, heap, heap.DesktopRuntime.ErrorModule, 0)
         {
         }
 
