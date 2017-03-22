@@ -98,9 +98,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class GCRoot
     {
-        private static readonly Stack<ulong> s_emptyStack = new Stack<ulong>();
+        private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
         private readonly ClrHeap _heap;
-        private GCCache _cache;
         
         private int _maxTasks;
 
@@ -183,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of all GC roots found for target.</returns>
         public IEnumerable<RootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
-            long totalObjects = IsFullyCached ? _cache.Objects : -1;
+            long totalObjects = -1;
             long lastObjectReported = 0;
 
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
@@ -360,13 +359,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="cancelToken">The cancellation token used to cancel the operation if it's taking too long.</param>
         public void BuildCache(int maxObjects, CancellationToken cancelToken)
         {
-            if (_cache == null)
-                _cache = new GCCache();
-
-            if (!_cache.Complete)
-                _cache.BuildHeapCache(_heap, maxObjects, (curr, total) => ProgressUpdate?.Invoke(this, GCRootPhase.BuildingGCCache, curr, total), cancelToken);
-            
             _heap.CacheRoots(cancelToken);
+            _heap.CacheHeap(cancelToken);
         }
 
         /// <summary>
@@ -390,7 +384,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public void ClearCache()
         {
-            _cache = null;
+            _heap.ClearHeapCache();
             _heap.ClearRootCache();
         }
 
@@ -425,21 +419,21 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (source.Address == target)
             {
-                path.AddLast(new PathEntry() { Object = source.Address });
+                path.AddLast(new PathEntry() { Object = source });
                 yield return GetResult(knownEndPoints, path, null, target);
                 yield break;
             }
 
             path.AddLast(new PathEntry()
             {
-                Object = source.Address,
-                Todo = GetRefs(seen, knownEndPoints, source.Address, target, unique, parallel, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+                Object = source,
+                Todo = GetRefs(seen, knownEndPoints, source, target, unique, parallel, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
             });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
             if (foundTarget)
             {
-                path.AddLast(new PathEntry() { Object = target });
+                path.AddLast(new PathEntry() { Object = ClrObject.Create(target, _heap.GetObjectType(target)) });
                 yield return GetResult(knownEndPoints, path, null, target);
             }
             else if (foundEnding != null)
@@ -467,16 +461,16 @@ namespace Microsoft.Diagnostics.Runtime
                     do
                     {
                         cancelToken.ThrowIfCancellationRequested();
-                        ulong next = last.Todo.Pop();
+                        ClrObject next = last.Todo.Pop();
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
-                        if (!seen.Add(next))
+                        if (!seen.Add(next.Address))
                             continue;
 
                         // We should never reach the 'end' here, as we always check if we found the target
                         // value when adding refs below.
-                        Debug.Assert(next != target);
+                        Debug.Assert(next.Address != target);
 
                         PathEntry nextPathEntry = new PathEntry()
                         {
@@ -485,12 +479,11 @@ namespace Microsoft.Diagnostics.Runtime
                         };
 
                         path.AddLast(nextPathEntry);
-                        TraceCurrent(next, nextPathEntry.Todo);
 
                         // If we found the target object while enumerating refs of the current object, we are done.
                         if (foundTarget)
                         {
-                            path.AddLast(new PathEntry() { Object = target });
+                            path.AddLast(new PathEntry() { Object = ClrObject.Create(target, _heap.GetObjectType(target)) });
                             TraceFullPath("FoundTarget", path);
 
                             yield return GetResult(knownEndPoints, path, null, target);
@@ -512,103 +505,47 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private Stack<ulong> GetRefs(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ulong obj, ulong target, bool unique, bool parallel, CancellationToken cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+        private Stack<ClrObject> GetRefs(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrObject obj, ulong target, bool unique, bool parallel, CancellationToken cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
         {
             // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
             //Debug.Assert(obj.Type != null);
             //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
-            Stack<ulong> result = s_emptyStack;
+            Stack<ClrObject> result = s_emptyStack;
 
             bool found = false;
             LinkedListNode<ClrObject> ending = null;
-
-            if (_cache?.HasMap ?? false)
+            if (obj.ContainsPointers)
             {
-                if (TryGetObjectInfo(obj, out ObjectInfo objInfo))
-                {
-                    if (objInfo.RefCount > 0)
-                    {
-                        for (uint i = 0; i < objInfo.RefCount; i++)
-                        {
-                            cancelToken.ThrowIfCancellationRequested();
-                            ulong refAddr = _cache.GCRefs[checked((int)objInfo.RefOffset) + i];
-                            if (ending == null && knownEndPoints != null)
-                            {
-                                if (parallel)
-                                {
-                                    lock (knownEndPoints)
-                                    {
-                                        if (unique)
-                                        {
-                                            if (knownEndPoints.ContainsKey(refAddr))
-                                                continue;
-                                        }
-                                        else
-                                        {
-                                            knownEndPoints.TryGetValue(refAddr, out ending);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    if (unique)
-                                    {
-                                        if (knownEndPoints.ContainsKey(refAddr))
-                                            continue;
-                                    }
-                                    else
-                                    {
-                                        knownEndPoints.TryGetValue(refAddr, out ending);
-                                    }
-                                }
-                            }
-
-                            if (result == s_emptyStack)
-                                result = new Stack<ulong>();
-
-                            result.Push(refAddr);
-                            if (refAddr == target)
-                                found = true;
-                        }
-                    }
-
-                    foundTarget = found;
-                    foundEnding = ending;
-
-                    return result;
-                }
-
-                if (_cache.Complete)
-                {
-                    foundTarget = false;
-                    foundEnding = null;
-                    return s_emptyStack;
-                }
-            }
-
-            if (parallel)
-                throw new InvalidOperationException("Attempted to access debuggee on an incorrect thread!");
-
-            ClrType type = _heap.GetObjectType(obj);
-            if (type != null && type.ContainsPointers && !IsTooLarge(obj, type, type.Heap.GetSegmentByAddress(obj)))
-            {
-                type.EnumerateRefsOfObject(obj, (refAddr, _) =>
+                foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
                 {
                     cancelToken.ThrowIfCancellationRequested();
                     if (ending == null && knownEndPoints != null)
-                        knownEndPoints.TryGetValue(refAddr, out ending);
+                    {
+                        lock (knownEndPoints)
+                        {
+                            if (unique)
+                            {
+                                if (knownEndPoints.ContainsKey(reference.Address))
+                                    continue;
+                            }
+                            else
+                            {
+                                knownEndPoints.TryGetValue(reference.Address, out ending);
+                            }
+                        }
+                    }
 
-                    if (!seen.Contains(refAddr))
+                    if (!seen.Contains(reference.Address))
                     {
                         if (result == s_emptyStack)
-                            result = new Stack<ulong>();
+                            result = new Stack<ClrObject>();
 
-                        result.Push(refAddr);
-                        if (refAddr == target)
+                        result.Push(reference);
+                        if (reference.Address == target)
                             found = true;
                     }
-                });
+                }
             }
 
             foundTarget = found;
@@ -621,7 +558,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private LinkedList<ClrObject> GetResult(Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, LinkedList<PathEntry> path, LinkedListNode<ClrObject> ending, ulong target)
         {
-            var result = new LinkedList<ClrObject>(path.Select(p => GetType(_heap, p.Object)).ToArray());
+            var result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
 
             for (; ending != null; ending = ending.Next)
                 result.AddLast(ending.Value);
@@ -633,31 +570,6 @@ namespace Microsoft.Diagnostics.Runtime
                             knownEndPoints[node.Value.Address] = node;
 
             return result;
-        }
-
-        private ClrObject GetType(ClrHeap heap, ulong obj)
-        {
-            ClrType type;
-            if (TryGetObjectInfo(obj, out ObjectInfo info))
-                type = info.Type;
-            else
-                type = _heap.GetObjectType(obj);
-
-            return ClrObject.Create(obj, type);
-        }
-
-
-        private bool TryGetObjectInfo(ulong obj, out ObjectInfo info)
-        {
-            int index = 0;
-            if (_cache?.ObjectMap?.TryGetValue(obj, out index) ?? false)
-            {
-                info = _cache.ObjectInfo[index];
-                return true;
-            }
-
-            info = new ObjectInfo();
-            return false;
         }
         
         private ClrRoot GetHandleRoot(ClrHandle handle)
@@ -724,8 +636,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         struct PathEntry
         {
-            public ulong Object;
-            public Stack<ulong> Todo;
+            public ClrObject Object;
+            public Stack<ClrObject> Todo;
             public override string ToString()
             {
                 return Object.ToString();

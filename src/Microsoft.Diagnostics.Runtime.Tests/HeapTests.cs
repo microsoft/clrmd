@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -59,6 +60,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
 
                 Assert.IsTrue(count > 0);
+            }
+        }
+
+        [TestMethod]
+        public void HeapCachedEnumerationMatches()
+        {
+            // Simply test that we can enumerate the heap.
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
+
+                List<ClrObject> expectedList = new List<ClrObject>(heap.EnumerateObjects());
+
+                heap.CacheHeap(CancellationToken.None);
+                Assert.IsTrue(heap.IsHeapCached);
+                List<ClrObject> actualList = new List<ClrObject>(heap.EnumerateObjects());
+
+                Assert.IsTrue(actualList.Count > 0);
+                Assert.AreEqual(expectedList.Count, actualList.Count);
+
+                for (int i = 0; i < actualList.Count; i++)
+                {
+                    ClrObject expected = expectedList[i];
+                    ClrObject actual = actualList[i];
+
+                    Assert.IsTrue(expected == actual);
+                    Assert.AreEqual(expected, actual);
+                }
             }
         }
 

@@ -100,6 +100,23 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public ClrRootStackwalkPolicy StackwalkPolicy { get; set; }
 
         /// <summary>
+        /// Caches all relevant heap information into memory so future heap operations run faster and
+        /// do not require touching the debuggee.
+        /// </summary>
+        /// <param name="cancelToken">A cancellation token to stop caching the heap.</param>
+        virtual public void CacheHeap(CancellationToken cancelToken) => throw new NotImplementedException();
+
+        /// <summary>
+        /// Releases all cached object data to reclaim memory.
+        /// </summary>
+        virtual public void ClearHeapCache() => throw new NotImplementedException();
+
+        /// <summary>
+        /// Returns true if the heap is cached, false otherwise.
+        /// </summary>
+        virtual public bool IsHeapCached { get => false; }
+
+        /// <summary>
         /// Returns whether the roots of the process are cached or not.
         /// </summary>
         abstract public bool AreRootsCached { get; }
@@ -279,7 +296,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool ReadPointer(ulong addr, out ulong value);
 
         internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
-        internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, Action<ulong, int> callback, bool carefully);
+        internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
     }
 
     /// <summary>
@@ -718,7 +735,7 @@ namespace Microsoft.Diagnostics.Runtime
 
     internal abstract class HeapBase : ClrHeap
     {
-        static readonly ClrObject[] s_emptyObjectSet = new ClrObject[0];
+        static protected readonly ClrObject[] s_emptyObjectSet = new ClrObject[0];
         private ulong _minAddr;          // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.  
         private ulong _maxAddr;
         private ClrSegment[] _segments;
@@ -976,7 +993,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        internal override void EnumerateObjectReferences(ulong obj, ClrType type, Action<ulong, int> callback, bool carefully)
+        internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
         {
             if (type == null)
                 type = GetObjectType(obj);

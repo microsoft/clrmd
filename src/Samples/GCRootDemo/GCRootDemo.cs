@@ -76,17 +76,14 @@ namespace GCRootDemo
                 try
                 {
                     gcroot.BuildCache(CancellationToken.None);
+                    // Now GCRoot will run MUCH, MUCH faster for the following code.
                 }
-                catch (GCRootCacheException ex) // This inherits from OutOfMemoryException
+                catch (OutOfMemoryException)
                 {
-                    // Whoops, the crash dump in question was too big to read all data into memory.  We will try again
-                    // but not try to cache the whole heap.  GCRootCacheException tells you how many objects we got to
-                    // before running oom, so we will try again with 1/3 the count.  You should wrap this in a try/catch
-                    // as well, but omitted here for brevity.
-                    gcroot.BuildCache(ex.CompletedObjects / 3, CancellationToken.None);
+                    // Whoops, the crash dump in question was too big to read all data into memory.  We will continue
+                    // on without cached GC data.
                 }
 
-                // Now GCRoot will run MUCH, MUCH faster for the following code.
 
                 // ==========================================
 

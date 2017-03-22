@@ -12,6 +12,24 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public struct ClrObject
     {
+        /// <summary>
+        /// Tests whether two objects are equal.
+        /// </summary>
+        public static bool operator ==(ClrObject a, ClrObject b)
+        {
+            Debug.Assert(a._address != b._address || a._type == b._type);
+            return a._address == b._address;
+        }
+        
+        /// <summary>
+        /// Tests whether two objects are not equal.
+        /// </summary>
+        public static bool operator !=(ClrObject a, ClrObject b)
+        {
+            Debug.Assert(a._address != b._address || a._type == b._type);
+            return a._address != b._address;
+        }
+
         private ulong _address;
         private ClrType _type;
 
@@ -38,6 +56,28 @@ namespace Microsoft.Diagnostics.Runtime
 
             Debug.Assert(type != null);
             Debug.Assert(address == 0 || type.Heap.GetObjectType(address) == type);
+        }
+
+        /// <summary>
+        /// Equals implementation.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is ClrObject rhs)
+                return this == rhs;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets a hash code.
+        /// </summary>
+        /// <returns>this.Address.GetHashCode()</returns>
+        public override int GetHashCode()
+        {
+            return _address.GetHashCode();
         }
 
         /// <summary>
@@ -92,6 +132,11 @@ namespace Microsoft.Diagnostics.Runtime
                 return _type.GetArrayLength(Address);
             }
         }
+
+        /// <summary>
+        /// Returns true if this object possibly contians GC pointers.
+        /// </summary>
+        public bool ContainsPointers { get => _type != null && _type.ContainsPointers; }
 
         /// <summary>
         /// ToString override.

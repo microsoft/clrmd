@@ -1148,6 +1148,349 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _mscorlib;
             }
         }
+
+        private DictionaryList _objectMap;
+        private ExtendedArray<ObjectInfo> _objects;
+        private ExtendedArray<ulong> _gcRefs;
+
+        public override bool IsHeapCached => _objectMap != null;
+
+        public override void ClearHeapCache()
+        {
+            _objectMap = null;
+            _objects = null;
+            _gcRefs = null;
+        }
+
+        public override void CacheHeap(CancellationToken cancelToken)
+        {
+            // TODO
+            Action<long, long> progressReport = null;
+
+            DictionaryList objmap = new DictionaryList();
+            ExtendedArray<ulong> gcrefs = new ExtendedArray<ulong>();
+            ExtendedArray<ObjectInfo> objInfo = new ExtendedArray<ObjectInfo>();
+
+            long totalBytes = Segments.Sum(s => (long)s.Length);
+            long completed = 0;
+
+            uint pointerSize = (uint)PointerSize;
+
+            foreach (ClrSegment seg in Segments)
+            {
+                progressReport?.Invoke(completed, totalBytes);
+                
+                for (ulong obj = seg.FirstObject; obj < seg.End && obj != 0; obj = seg.NextObject(obj))
+                {
+                    cancelToken.ThrowIfCancellationRequested();
+                    
+                    // We may
+                    ClrType type = GetObjectType(obj);
+                    if (type == null || GCRoot.IsTooLarge(obj, type, seg))
+                    {
+                        AddObject(objmap, gcrefs, objInfo, obj, Free);
+                        do
+                        {
+                            cancelToken.ThrowIfCancellationRequested();
+
+                            obj += pointerSize;
+                            if (obj >= seg.End)
+                                break;
+
+                            type = GetObjectType(obj);
+                        } while (type == null);
+
+                        if (obj >= seg.End)
+                            break;
+                    }
+                    
+                    AddObject(objmap, gcrefs, objInfo, obj, type);
+                }
+
+                completed += (long)seg.Length;
+            }
+
+            progressReport?.Invoke(totalBytes, totalBytes);
+
+            _objectMap = objmap;
+            _gcRefs = gcrefs;
+            _objects = objInfo;
+        }
+
+        public override IEnumerable<ClrObject> EnumerateObjects()
+        {
+            if (Revision != GetRuntimeRevision())
+                ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+
+            if (IsHeapCached)
+                return _objectMap.Enumerate().Select(item => ClrObject.Create(item.Key, _objects[item.Value].Type));
+            
+            return base.EnumerateObjects();
+        }
+
+        public override IEnumerable<ulong> EnumerateObjectAddresses()
+        {
+            if (Revision != GetRuntimeRevision())
+                ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+
+            if (IsHeapCached)
+                return _objectMap.Enumerate().Select(item => item.Key);
+
+            return base.EnumerateObjectAddresses();
+        }
+
+        public override ClrType GetObjectType(ulong objRef)
+        {
+            Debug.Assert(IsHeapCached);
+
+            if (!_objectMap.TryGetValue(objRef, out int index))
+                return null;
+
+            return _objects[index].Type;
+        }
+
+        internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
+        {
+            if (IsHeapCached)
+            {
+                if (type.ContainsPointers && _objectMap.TryGetValue(obj, out int index))
+                {
+                    uint count = _objects[index].RefCount;
+                    uint offset = _objects[index].RefOffset;
+
+
+                    for (uint i = offset; i < offset + count; i++)
+                        callback(_gcRefs[i], 0);
+                }
+            }
+            else
+            {
+                base.EnumerateObjectReferences(obj, type, carefully, callback);
+            }
+        }
+
+        internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
+        {
+            if (IsHeapCached)
+            {
+                if (type.ContainsPointers && _objectMap.TryGetValue(obj, out int index))
+                {
+                    uint count = _objects[index].RefCount;
+                    uint offset = _objects[index].RefOffset;
+
+                    return EnumerateRefs(offset, count);
+                }
+
+                return s_emptyObjectSet;
+            }
+
+            return base.EnumerateObjectReferences(obj, type, carefully);
+        }
+
+        private IEnumerable<ClrObject> EnumerateRefs(uint offset, uint count)
+        {
+            for (uint i = offset; i < offset + count; i++)
+            {
+                ulong obj = _gcRefs[i];
+                yield return ClrObject.Create(obj, GetObjectType(obj));
+            }
+        }
+
+        private void AddObject(DictionaryList objmap, ExtendedArray<ulong> gcrefs, ExtendedArray<ObjectInfo> objInfo, ulong obj, ClrType type)
+        {
+            uint offset = gcrefs.Count;
+            
+            if (type.ContainsPointers)
+            {
+                EnumerateObjectReferences(obj, type, true, (addr, offs) =>
+                {
+                    gcrefs.Add(addr);
+                });
+            }
+            
+            uint refCount = gcrefs.Count - offset;
+            objmap.Add(obj, checked((int)objInfo.Count));
+            objInfo.Add(new ObjectInfo()
+            {
+                Type = type,
+                RefOffset = refCount != 0 ? offset : uint.MaxValue,
+                RefCount = refCount
+            });
+        }
+
+        struct ObjectInfo
+        {
+            public ClrType Type;
+            public uint RefOffset;
+            public uint RefCount;
+
+            public override string ToString()
+            {
+                return $"{Type.Name} refs: {RefCount:n0}";
+            }
+        }
+
+        #region Large array/dictionary helpers
+        internal class ExtendedArray<T>
+        {
+            private const int Initial = 0x100000; // 1 million-ish
+            private const int Secondary = 0x1000000;
+            private const int Complete = 0x4000000;
+
+            private List<T[]> _lists = new List<T[]>();
+            private int _curr = 0;
+
+            public uint Count
+            {
+                get
+                {
+                    if (_lists.Count <= 0)
+                        return 0;
+
+                    uint total = (uint)(_lists.Count - 1) * Complete;
+                    total += (uint)_curr;
+                    return total;
+                }
+            }
+
+            public T this[int index]
+            {
+                get
+                {
+                    int arrayIndex = index / Complete;
+                    index %= Complete;
+
+                    return _lists[arrayIndex][index];
+                }
+                set
+                {
+                    int arrayIndex = index / Complete;
+                    index %= Complete;
+
+                    _lists[arrayIndex][index] = value;
+                }
+            }
+
+
+            public T this[long index]
+            {
+                get
+                {
+                    long arrayIndex = index / Complete;
+                    index %= Complete;
+
+                    return _lists[(int)arrayIndex][index];
+                }
+                set
+                {
+                    long arrayIndex = index / Complete;
+                    index %= Complete;
+
+                    _lists[(int)arrayIndex][index] = value;
+                }
+            }
+
+            public void Add(T t)
+            {
+                T[] arr = _lists.LastOrDefault();
+                if (arr == null || _curr == Complete)
+                {
+                    arr = new T[Initial];
+                    _lists.Add(arr);
+                    _curr = 0;
+                }
+
+                if (_curr >= arr.Length)
+                {
+                    if (arr.Length == Complete)
+                    {
+                        arr = new T[Initial];
+                        _lists.Add(arr);
+                        _curr = 0;
+                    }
+                    else
+                    {
+                        int newSize = arr.Length == Initial ? Secondary : Complete;
+
+                        _lists.RemoveAt(_lists.Count - 1);
+                        Array.Resize(ref arr, newSize);
+                        _lists.Add(arr);
+                    }
+                }
+
+                arr[_curr++] = t;
+            }
+
+            public void Condense()
+            {
+                T[] arr = _lists.LastOrDefault();
+                if (arr != null && _curr < arr.Length)
+                {
+                    _lists.RemoveAt(_lists.Count - 1);
+                    Array.Resize(ref arr, _curr);
+                    _lists.Add(arr);
+                }
+            }
+        }
+
+        internal class DictionaryList
+        {
+            private const int MaxEntries = 40000000;
+            private List<Entry> _entries = new List<Entry>();
+
+            public IEnumerable<KeyValuePair<ulong,int>> Enumerate()
+            {
+                return _entries.SelectMany(e => e.Dictionary);
+            }
+
+            public void Add(ulong obj, int index)
+            {
+                Entry curr = GetOrCreateEntry(obj);
+                curr.End = obj;
+                curr.Dictionary.Add(obj, index);
+            }
+
+            public bool TryGetValue(ulong obj, out int index)
+            {
+                foreach (Entry entry in _entries)
+                    if (entry.Start <= obj && obj <= entry.End)
+                        return entry.Dictionary.TryGetValue(obj, out index);
+
+                index = 0;
+                return false;
+            }
+
+            private Entry GetOrCreateEntry(ulong obj)
+            {
+                if (_entries.Count == 0)
+                {
+                    return NewEntry(obj);
+                }
+                else
+                {
+                    Entry last = _entries.Last();
+                    if (last.Dictionary.Count > MaxEntries)
+                        return NewEntry(obj);
+
+                    return last;
+                }
+            }
+
+            private Entry NewEntry(ulong obj)
+            {
+                Entry result = new Entry() { Start = obj, End = obj, Dictionary = new SortedDictionary<ulong, int>() };
+                _entries.Add(result);
+                return result;
+            }
+
+            class Entry
+            {
+                public ulong Start;
+                public ulong End;
+                public SortedDictionary<ulong, int> Dictionary;
+            }
+        }
+        #endregion
     }
 
 
@@ -1760,6 +2103,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_lastObject.Address == objRef)
                 return _lastObject.Type;
 
+            if (IsHeapCached)
+                return base.GetObjectType(objRef);
+
             var cache = MemoryReader;
             if (cache.Contains(objRef))
             {
@@ -1818,6 +2164,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_lastObject.Address == objRef)
                 return _lastObject.Type;
+            
+            if (IsHeapCached)
+                return base.GetObjectType(objRef);
 
             var cache = MemoryReader;
             if (cache.Contains(objRef))

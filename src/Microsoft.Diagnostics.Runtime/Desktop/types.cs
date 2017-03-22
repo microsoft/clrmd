@@ -896,13 +896,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
         {
             if (_containsPointers)
-                Heap.EnumerateObjectReferences(objRef, this, action, true);
+                Heap.EnumerateObjectReferences(objRef, this, true, action);
         }
 
         public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
             if (_containsPointers)
-                Heap.EnumerateObjectReferences(objRef, this, action, false);
+                Heap.EnumerateObjectReferences(objRef, this, false, action);
         }
 
 
