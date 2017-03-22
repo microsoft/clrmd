@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.IsFalse(gcroot.IsFullyCached);
                 GCStaticRootsImpl(gcroot);
 
-                gcroot.BuildCache(int.MaxValue, CancellationToken.None);
+                gcroot.BuildCache(CancellationToken.None);
 
                 gcroot.AllowParallelSearch = false;
                 Assert.IsTrue(gcroot.IsFullyCached);
@@ -264,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.IsFalse(gcroot.IsFullyCached);
                 GCRootsImpl(gcroot);
                 
-                gcroot.BuildCache(int.MaxValue, CancellationToken.None);
+                gcroot.BuildCache(CancellationToken.None);
 
                 gcroot.AllowParallelSearch = false;
                 Assert.IsTrue(gcroot.IsFullyCached);
@@ -312,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.IsFalse(gcroot.IsFullyCached);
                 FindPathImpl(gcroot);
 
-                gcroot.BuildCache(int.MaxValue, CancellationToken.None);
+                gcroot.BuildCache(CancellationToken.None);
                 Assert.IsTrue(gcroot.IsFullyCached);
                 FindPathImpl(gcroot);
             }
@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.IsFalse(gcroot.IsFullyCached);
                 FindAllPathsImpl(gcroot);
 
-                gcroot.BuildCache(int.MaxValue, CancellationToken.None);
+                gcroot.BuildCache(CancellationToken.None);
                 Assert.IsTrue(gcroot.IsFullyCached);
                 FindAllPathsImpl(gcroot);
             }

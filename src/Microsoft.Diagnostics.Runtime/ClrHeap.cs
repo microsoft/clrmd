@@ -16,7 +16,8 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrHeap
     {
         /// <summary>
-        /// And the ability to take an address of an object and fetch its type (The type alows further exploration)
+        /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
+        /// a valid managed object.
         /// </summary>
         abstract public ClrType GetObjectType(ulong objRef);
 
@@ -297,6 +298,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
         internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
+
+        /// <summary>
+        /// This might be useful to be public, but we actually don't know the total number objects without walking the entire
+        /// heap.  This property is only valid if we have cached the heap...which leads to a weird programatic interface (that
+        /// this simply property would throw InvalidOperationException unless the heap is cached).  I'm leaving this internal
+        /// until I am convinced there's a good way to surface this.
+        /// </summary>
+        internal virtual long TotalObjects { get => -1; }
     }
 
     /// <summary>

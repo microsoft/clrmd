@@ -3,40 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    /// <summary>
-    /// Returns the current state of what GC root is doing.
-    /// </summary>
-    public enum GCRootPhase
-    {
-        /// <summary>
-        /// When enumerating the GC heap to build an object graph.
-        /// </summary>
-        BuildingGCCache,
-
-        /// <summary>
-        /// When building the thread cache.
-        /// </summary>
-        BuildingThreadCache,
-
-        /// <summary>
-        /// When building the handle table cache.
-        /// </summary>
-        BuildingHandleCache,
-
-        /// <summary>
-        /// Processing objects during the GCRoot algorithm.  This reports the current number of objects
-        /// we have processed.
-        /// </summary>
-        ProcessingObjects,
-    }
-
-
     /// <summary>
     /// Represents a path of objects from a root to an object.
     /// </summary>
@@ -57,10 +28,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// A delegate for reporting GCRoot progress.
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
-    /// <param name="phase">The current GCRoot phase.</param>
-    /// <param name="current">The current progress.</param>
-    /// <param name="total">The total value current is ticking up to.  If the total number is not known, -1.</param>
-    public delegate void GCRootProgressEvent(GCRoot source, GCRootPhase phase, long current, long total);
+    /// <param name="current">The total number of objects processed.</param>
+    /// <param name="total">The total number of objects in the heap, if that number is known, otherwise -1.</param>
+    public delegate void GCRootProgressEvent(GCRoot source, long current, long total);
 
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
@@ -69,11 +39,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
         private readonly ClrHeap _heap;
-        
         private int _maxTasks;
 
         /// <summary>
-        /// Since GCRoot can be long running, this event attempts to provide progress updates on the phases of GC root.
+        /// Since GCRoot can be long running, this event will provide periodic updates to how many objects the algorithm
+        /// has processed.  Note that in the case where we search all objects and do not find a path, it's unlikely that
+        /// the number of objects processed will ever reach the total number of objects on the heap.  That's because there
+        /// will be garbage objects on the heap we can't reach.
         /// </summary>
         public event GCRootProgressEvent ProgressUpdate;
 
@@ -145,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<RootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
             _heap.BuildDependentHandleMap(cancelToken);
-            long totalObjects = -1;
+            long totalObjects = _heap.TotalObjects;
             long lastObjectReported = 0;
             
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
@@ -249,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (curr != lastObjectReported)
             {
                 lastObjectReported = curr;
-                ProgressUpdate?.Invoke(this, GCRootPhase.ProcessingObjects, lastObjectReported, totalObjects);
+                ProgressUpdate?.Invoke(this, lastObjectReported, totalObjects);
             }
         }
 
@@ -295,30 +267,11 @@ namespace Microsoft.Diagnostics.Runtime
             _heap.BuildDependentHandleMap(cancelToken);
             return PathTo(new ObjectSet(_heap), new Dictionary<ulong, LinkedListNode<ClrObject>>(), new ClrObject(source, _heap.GetObjectType(source)), target, unique, false, cancelToken);
         }
+        
 
         /// <summary>
         /// Builds a cache of the GC heap and roots.  This will consume a LOT of memory, so when calling it you must wrap this in
-        /// a try/catch for either OutOfMemoryException or GCRootCacheException (derives from OutOfMemoryException).  You may
-        /// attempt to retry building the cache but with a lower number of objects (setting maxObjects to something like
-        /// "GCRootCacheException.CompletedObjects / 3", for example).
-        /// 
-        /// Note that this function allows you to choose whether we have exact thread callstacks or not.  Exact thread callstacks
-        /// will essentially force ClrMD to walk the stack as a real GC would, but this can take 10s of minutes when the thread count gets
-        /// into the 1000s.
-        /// </summary>
-        /// <param name="maxObjects">The maxium number of objects to inspect.  int.MaxValue is reasonable.</param>
-        /// <param name="cancelToken">The cancellation token used to cancel the operation if it's taking too long.</param>
-        public void BuildCache(int maxObjects, CancellationToken cancelToken)
-        {
-            _heap.CacheRoots(cancelToken);
-            _heap.CacheHeap(cancelToken);
-        }
-
-        /// <summary>
-        /// Builds a cache of the GC heap and roots.  This will consume a LOT of memory, so when calling it you must wrap this in
-        /// a try/catch for either OutOfMemoryException or GCRootCacheException (derives from OutOfMemoryException).  You may
-        /// attempt to retry building the cache but with a lower number of objects using the overload with that parameter.
-        /// (That is, setting maxObjects to something like "GCRootCacheException.CompletedObjects / 3", for example.)
+        /// a try/catch for OutOfMemoryException.
         /// 
         /// Note that this function allows you to choose whether we have exact thread callstacks or not.  Exact thread callstacks
         /// will essentially force ClrMD to walk the stack as a real GC would, but this can take 10s of minutes when the thread count gets
@@ -327,7 +280,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="cancelToken">The cancellation token used to cancel the operation if it's taking too long.</param>
         public void BuildCache(CancellationToken cancelToken)
         {
-            BuildCache(int.MaxValue, cancelToken);
+            _heap.CacheRoots(cancelToken);
+            _heap.CacheHeap(cancelToken);
         }
 
         /// <summary>
@@ -341,6 +295,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrHandle handle, ulong target, bool unique, CancellationToken cancelToken)
         {
+            Debug.Assert(IsFullyCached);
+
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(() =>
             {
                 LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, ClrObject.Create(handle.Object, handle.Type), target, unique, true, cancelToken).FirstOrDefault();
@@ -354,6 +310,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrRoot root, ulong target, bool unique, CancellationToken cancelToken)
         {
+            Debug.Assert(IsFullyCached);
+
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(() => new Tuple<LinkedList<ClrObject>, ClrRoot>(PathTo(seen, knownEndPoints, ClrObject.Create(root.Object, root.Type), target, unique, true, cancelToken).FirstOrDefault(), root));
             t.Start();
             return t;

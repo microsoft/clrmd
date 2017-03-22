@@ -925,8 +925,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return ClrElementType.Struct;
         }
 
-
-        #region private
+        
         protected List<ClrType> _types;
         protected Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
         private Dictionary<ArrayRankHandle, BaseDesktopHeapType> _arrayTypes;
@@ -936,11 +935,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool _initializedStringFields = false;
         private ClrType[] _basicTypes;
         private bool _loadedTypes = false;
-        #endregion
 
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
         private ClrType _free;
+
+        private DictionaryList _objectMap;
+        private ExtendedArray<ObjectInfo> _objects;
+        private ExtendedArray<ulong> _gcRefs;
 
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
         internal BaseDesktopHeapType ErrorType { get; private set; }
@@ -1157,9 +1159,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        private DictionaryList _objectMap;
-        private ExtendedArray<ObjectInfo> _objects;
-        private ExtendedArray<ulong> _gcRefs;
+        internal override long TotalObjects => _objects?.Count ?? -1;
 
         public override bool IsHeapCached => _objectMap != null;
 
@@ -1328,7 +1328,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private void AddObject(DictionaryList objmap, ExtendedArray<ulong> gcrefs, ExtendedArray<ObjectInfo> objInfo, ulong obj, ClrType type)
         {
-            uint offset = gcrefs.Count;
+            uint offset = (uint)gcrefs.Count;
             
             if (type.ContainsPointers)
             {
@@ -1338,7 +1338,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 });
             }
             
-            uint refCount = gcrefs.Count - offset;
+            uint refCount = (uint)gcrefs.Count - offset;
             objmap.Add(obj, checked((int)objInfo.Count));
             objInfo.Add(new ObjectInfo()
             {
@@ -1370,15 +1370,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             private List<T[]> _lists = new List<T[]>();
             private int _curr = 0;
 
-            public uint Count
+            public long Count
             {
                 get
                 {
                     if (_lists.Count <= 0)
                         return 0;
 
-                    uint total = (uint)(_lists.Count - 1) * Complete;
-                    total += (uint)_curr;
+                    long total = (_lists.Count - 1) * (long)Complete;
+                    total += _curr;
                     return total;
                 }
             }

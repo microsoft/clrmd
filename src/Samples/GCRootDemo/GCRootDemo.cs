@@ -46,20 +46,20 @@ namespace GCRootDemo
                 /* Since GCRoot can take a long time to run, ClrMD provides an event to get progress updates on how far
                  * along GCRoot is.  There are some caveats here, in that you only get updates if you have cached the
                  * gc heap locally (more on that later).  This is because without pre-fetching and compiling data ahead
-                 * of time, we have no real way to know how big the heap is.  The intent of this delegate is to allow
-                 * you to report to the user a rough percentage of how far along things are (such as a progress bar or
-                 * console output).
+                 * of time, we have no real way to know how many objects are on the heap.  The intent of this delegate is
+                 * to allow you to report to the user a rough percentage of how far along things are (such as a progress
+                 * bar or console output).
                  */
-                gcroot.ProgressUpdate += delegate (GCRoot source, GCRootPhase phase, long current, long total)
+                gcroot.ProgressUpdate += delegate (GCRoot source, long current, long total)
                 {
                     // Note that sometimes we don't know how many total items will be processed in the current
                     // phase.  In that case, total will be -1.  (For example, we don't know the total number
                     // of handles on the handle table until we enumerate them all.)
 
                     if (total > 0)
-                        Console.WriteLine($"phase={phase} completed={(int)(100 * current / (float)total)}%");
+                        Console.WriteLine($"heap searched={(int)(100 * current / (float)total)}%");
                     else
-                        Console.WriteLine($"phase={phase} completed items in phase={current}");
+                        Console.WriteLine($"objects inspected={current}");
                 };
 
                 // ==========================================
