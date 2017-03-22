@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 class GCRootTarget
 {
     static object TheRoot;
+    static ConditionalWeakTable<SingleRef, TargetType> _dependent = new ConditionalWeakTable<SingleRef, TargetType>();
 
     public static void Main(string[] args)
     {
@@ -33,7 +35,8 @@ class GCRootTarget
         t.Item3 = new object(); // dead path
 
 
-        s.Item1 = target;
+        _dependent.Add(s, target);
+        //s.Item1 = target;
         throw new Exception();
         GC.KeepAlive(target);
     }

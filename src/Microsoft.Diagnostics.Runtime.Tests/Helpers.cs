@@ -14,9 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             return from obj in heap.EnumerateObjectAddresses()
                    let type = heap.GetObjectType(obj)
-                   where type?.Name?.Contains(name) ?? false
+                   where type?.Name == name
                    select obj;
         }
+
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
             ClrStaticField field = mainType.GetStaticFieldByName(fieldName);

@@ -144,6 +144,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of all GC roots found for target.</returns>
         public IEnumerable<RootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
+            _heap.BuildDependentHandleMap(cancelToken);
             long totalObjects = -1;
             long lastObjectReported = 0;
             
@@ -277,6 +278,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
         public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
         {
+            _heap.BuildDependentHandleMap(cancelToken);
             return PathTo(new ObjectSet(_heap), null, new ClrObject(source, _heap.GetObjectType(source)), target, false, false, cancelToken).FirstOrDefault();
         }
 
@@ -290,6 +292,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
         public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
         {
+            _heap.BuildDependentHandleMap(cancelToken);
             return PathTo(new ObjectSet(_heap), new Dictionary<ulong, LinkedListNode<ClrObject>>(), new ClrObject(source, _heap.GetObjectType(source)), target, unique, false, cancelToken);
         }
 
@@ -501,9 +504,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             return result;
         }
-
-
-
+        
         private LinkedList<ClrObject> GetResult(Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, LinkedList<PathEntry> path, LinkedListNode<ClrObject> ending, ulong target)
         {
             var result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
@@ -553,8 +554,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Debug.WriteLine($"FoundEnding: {string.Join(" ", path.Select(p => p.Object.ToString()))} {string.Join(" ", NodeToList(foundEnding))}");
         }
-
-
+        
         private List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
             List<string> list = new List<string>();

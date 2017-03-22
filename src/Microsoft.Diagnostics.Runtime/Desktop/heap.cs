@@ -310,6 +310,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return EnumerateStrongHandlesWorker(CancellationToken.None);
         }
 
+        internal override void BuildDependentHandleMap(CancellationToken cancelToken)
+        {
+            if (_dependentHandles != null)
+                return;
+
+            Dictionary<ulong, List<ulong>> dependentHandles = new Dictionary<ulong, List<ulong>>();
+            foreach (ClrHandle handle in Runtime.EnumerateHandles())
+            {
+                if (handle.HandleType == HandleType.Dependent)
+                {
+                    if (!dependentHandles.TryGetValue(handle.Object, out List<ulong> list))
+                        dependentHandles[handle.Object] = list = new List<ulong>();
+
+                    list.Add(handle.DependentTarget);
+                }
+            }
+
+            _dependentHandles = dependentHandles;
+        }
+
         private IEnumerable<ClrHandle> EnumerateStrongHandlesWorker(CancellationToken cancelToken)
         {
             Dictionary<ulong, List<ulong>> dependentHandles = null;
@@ -356,18 +376,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (dependentHandles != null)
                 _dependentHandles = dependentHandles;
-        }
-
-        internal override Dictionary<ulong, List<ulong>> DependentHandles
-        {
-            get
-            {
-                if (_dependentHandles == null)
-                    CacheStrongHandles(CancellationToken.None);
-
-                Debug.Assert(_dependentHandles != null);
-                return _dependentHandles;
-            }
         }
 
         internal override IEnumerable<ClrRoot> EnumerateStackRoots()
@@ -1267,10 +1275,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 base.EnumerateObjectReferences(obj, type, carefully, callback);
             }
+
+            if (_dependentHandles == null)
+                BuildDependentHandleMap(CancellationToken.None);
+
+            Debug.Assert(_dependentHandles != null);
+            if (_dependentHandles.TryGetValue(obj, out List<ulong> value))
+                foreach (ulong item in value)
+                    callback(item, -1);
         }
 
         internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
         {
+            IEnumerable<ClrObject> result = null;
             if (IsHeapCached)
             {
                 if (type.ContainsPointers && _objectMap.TryGetValue(obj, out int index))
@@ -1278,13 +1295,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     uint count = _objects[index].RefCount;
                     uint offset = _objects[index].RefOffset;
 
-                    return EnumerateRefs(offset, count);
+                    result = EnumerateRefs(offset, count);
                 }
-
-                return s_emptyObjectSet;
+                else
+                {
+                    result = s_emptyObjectSet;
+                }
+            }
+            else
+            {
+                result = base.EnumerateObjectReferences(obj, type, carefully);
             }
 
-            return base.EnumerateObjectReferences(obj, type, carefully);
+            if (_dependentHandles == null)
+                BuildDependentHandleMap(CancellationToken.None);
+
+            Debug.Assert(_dependentHandles != null);
+            if (_dependentHandles.TryGetValue(obj, out List<ulong> values))
+                result = result.Union(values.Select(v => ClrObject.Create(v, GetObjectType(v))));
+
+            return result;
         }
 
         private IEnumerable<ClrObject> EnumerateRefs(uint offset, uint count)

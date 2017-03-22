@@ -126,9 +126,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         abstract public void CacheRoots(CancellationToken cancelToken);
 
+        virtual internal void BuildDependentHandleMap(CancellationToken cancelToken) { }
         virtual internal IEnumerable<ClrRoot> EnumerateStackRoots() => throw new NotImplementedException();
         virtual internal IEnumerable<ClrHandle> EnumerateStrongHandles() => throw new NotImplementedException();
-        virtual internal Dictionary<ulong, List<ulong>> DependentHandles { get => throw new NotImplementedException(); }
 
         /// <summary>
         /// This method clears any previously cached roots to reclaim memory.
