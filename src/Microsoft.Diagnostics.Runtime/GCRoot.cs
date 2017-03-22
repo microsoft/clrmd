@@ -36,37 +36,6 @@ namespace Microsoft.Diagnostics.Runtime
         ProcessingObjects,
     }
 
-    /// <summary>
-    /// This sets the policy for how ClrHeap walks the stack when enumerating roots.  There is a choice here because the 'Exact' stack walking
-    /// gives the correct answer (without overreporting), but unfortunately is poorly implemented in CLR's debugging layer.
-    /// This means it could take 10-30 minutes (!) to enumerate roots on crash dumps with 4000+ threads.
-    /// </summary>
-    public enum ClrRootStackwalkPolicy
-    {
-        /// <summary>
-        /// The GCRoot class will attempt to select a policy for you based on the number of threads in the process.
-        /// </summary>
-        Automatic,
-
-        /// <summary>
-        /// Use real stack roots.  This is much slower than 'Fast', but provides no false-positives for more accurate
-        /// results.  Note that this can actually take 10s of minutes to enumerate the roots themselves in the worst
-        /// case scenario.
-        /// </summary>
-        Exact,
-
-        /// <summary>
-        /// Walks each pointer alighed address on all stacks and if it points to an object it treats that location
-        /// as a real root.  This can over-report roots when a value is left on the stack, but the GC does not
-        /// consider it a real root.
-        /// </summary>
-        Fast,
-
-        /// <summary>
-        /// Do not walk stack roots.
-        /// </summary>
-        SkipStack,
-    }
 
     /// <summary>
     /// Represents a path of objects from a root to an object.
@@ -153,14 +122,7 @@ namespace Microsoft.Diagnostics.Runtime
             _heap = heap ?? throw new ArgumentNullException(nameof(heap));
             _maxTasks = Environment.ProcessorCount * 2;
         }
-
-        internal static bool TranslatePolicyToExact(ClrThread[] threads, ClrRootStackwalkPolicy stackPolicy)
-        {
-            Debug.Assert(stackPolicy != ClrRootStackwalkPolicy.SkipStack);
-            return stackPolicy == ClrRootStackwalkPolicy.Exact || (stackPolicy == ClrRootStackwalkPolicy.Automatic && threads.Length < 512);
-        }
-
-
+        
 
         /// <summary>
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.  Note this function only returns paths that are fully unique.
@@ -184,27 +146,35 @@ namespace Microsoft.Diagnostics.Runtime
         {
             long totalObjects = -1;
             long lastObjectReported = 0;
-
+            
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
+
+            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks;
+            ObjectSet processedObjects;
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
+
             if (parallel)
+                processedObjects = new ParallelObjectSet(_heap);
+
+            else
+                processedObjects = new ObjectSet(_heap);
+
+            int initial = 0;
+            tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
+
+            foreach (ClrHandle handle in _heap.EnumerateStrongHandles())
             {
-                ParallelObjectSet processedObjects = new ParallelObjectSet(_heap);
-                Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
+                Debug.Assert(handle.HandleType != HandleType.Dependent);
+                Debug.Assert(handle.Object != 0);
 
-                int initial = 0;
-                Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
+                if (processedObjects.Contains(handle.Object))
+                    continue;
 
-                foreach (ClrHandle handle in _heap.EnumerateStrongHandles())
+                Debug.Assert(_heap.GetObjectType(handle.Object) == handle.Type);
+
+                if (parallel)
                 {
-                    Debug.Assert(handle.HandleType != HandleType.Dependent);
-                    Debug.Assert(handle.Object != 0);
-
-                    if (processedObjects.Contains(handle.Object))
-                        continue;
-
-                    Debug.Assert(_heap.GetObjectType(handle.Object) == handle.Type);
-
-                    var task = PathToParaellel(processedObjects, knownEndPoints, handle, target, unique, cancelToken);
+                    var task = PathToParallel(processedObjects, knownEndPoints, handle, target, unique, cancelToken);
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -218,17 +188,27 @@ namespace Microsoft.Diagnostics.Runtime
                         if (completed.Result.Item1 != null)
                             yield return new RootPath() { Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray() };
 
-                        ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                     }
                 }
-                
-                foreach (ClrRoot root in _heap.EnumerateStackRoots())
+                else
                 {
-                    if (!processedObjects.Contains(root.Object))
-                    {
-                        Debug.Assert(_heap.GetObjectType(root.Object) == root.Type);
+                    var path = PathTo(processedObjects, knownEndPoints, new ClrObject(handle.Object, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
+                    if (path != null)
+                        yield return new RootPath() { Root = GetHandleRoot(handle), Path = path.ToArray() };
+                }
 
-                        var task = PathToParaellel(processedObjects, knownEndPoints, root, target, unique, cancelToken);
+                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+            }
+                
+            foreach (ClrRoot root in _heap.EnumerateStackRoots())
+            {
+                if (!processedObjects.Contains(root.Object))
+                {
+                    Debug.Assert(_heap.GetObjectType(root.Object) == root.Type);
+
+                    if (parallel)
+                    {
+                        var task = PathToParallel(processedObjects, knownEndPoints, root, target, unique, cancelToken);
                         if (initial < tasks.Length)
                         {
                             tasks[initial++] = task;
@@ -238,61 +218,29 @@ namespace Microsoft.Diagnostics.Runtime
                             int i = Task.WaitAny(tasks);
                             var completed = tasks[i];
                             tasks[i] = task;
-                            
+
                             if (completed.Result.Item1 != null)
                                 yield return new RootPath() { Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray() };
-
-                            ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                         }
                     }
-                }
-
-                foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
-                {
-                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
-                    yield return new RootPath() { Root = result.Item2, Path = result.Item1.ToArray() };
-                }
-
-                ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
-            }
-            else
-            {
-                ObjectSet processedObjects = new ObjectSet(_heap);
-                Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
-
-                foreach (ClrHandle handle in _heap.EnumerateStrongHandles())
-                {
-                    ulong obj = handle.Object;
-                    Debug.Assert(handle.HandleType != HandleType.Dependent);
-                    Debug.Assert(obj != 0);
-                    Debug.Assert(_heap.GetObjectType(obj) == handle.Type);
-                    
-                    if (processedObjects.Contains(obj))
-                        continue;
-                    
-                    var path = PathTo(processedObjects, knownEndPoints, new ClrObject(obj, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
-                    if (path != null)
-                        yield return new RootPath() { Root = GetHandleRoot(handle), Path = path.ToArray() };
-
-                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
-                }
-
-                foreach (ClrRoot root in _heap.EnumerateStackRoots())
-                {
-                    if (!processedObjects.Contains(root.Object))
+                    else
                     {
-                        Debug.Assert(_heap.GetObjectType(root.Object) == root.Type);
                         var path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
                         if (path != null)
                             yield return new RootPath() { Root = root, Path = path.ToArray() };
-
-                        ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                     }
+
+                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                 }
-
-
-                ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
             }
+
+            foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
+            {
+                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                yield return new RootPath() { Root = result.Item2, Path = result.Item1.ToArray() };
+            }
+
+            ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
         }
 
         private void ReportObjectCount(long curr, ref long lastObjectReported, long totalObjects)
@@ -388,7 +336,7 @@ namespace Microsoft.Diagnostics.Runtime
             _heap.ClearRootCache();
         }
 
-        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParaellel(ParallelObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrHandle handle, ulong target, bool unique, CancellationToken cancelToken)
+        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrHandle handle, ulong target, bool unique, CancellationToken cancelToken)
         {
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(() =>
             {
@@ -401,7 +349,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
-        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParaellel(ParallelObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrRoot root, ulong target, bool unique, CancellationToken cancelToken)
+        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(ObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrRoot root, ulong target, bool unique, CancellationToken cancelToken)
         {
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(() => new Tuple<LinkedList<ClrObject>, ClrRoot>(PathTo(seen, knownEndPoints, ClrObject.Create(root.Object, root.Type), target, unique, true, cancelToken).FirstOrDefault(), root));
             t.Start();
