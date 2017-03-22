@@ -7,29 +7,13 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime
 {
+    
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
-    public struct ClrObject
+    [DebuggerDisplay("Address={HexAddress}, Type={Type.Name}")]
+    public struct ClrObject : IEquatable<ClrObject>
     {
-        /// <summary>
-        /// Tests whether two objects are equal.
-        /// </summary>
-        public static bool operator ==(ClrObject a, ClrObject b)
-        {
-            Debug.Assert(a._address != b._address || a._type == b._type);
-            return a._address == b._address;
-        }
-        
-        /// <summary>
-        /// Tests whether two objects are not equal.
-        /// </summary>
-        public static bool operator !=(ClrObject a, ClrObject b)
-        {
-            Debug.Assert(a._address != b._address || a._type == b._type);
-            return a._address != b._address;
-        }
-
         private ulong _address;
         private ClrType _type;
 
@@ -57,29 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
             Debug.Assert(type != null);
             Debug.Assert(address == 0 || type.Heap.GetObjectType(address) == type);
         }
-
-        /// <summary>
-        /// Equals implementation.
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is ClrObject rhs)
-                return this == rhs;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Gets a hash code.
-        /// </summary>
-        /// <returns>this.Address.GetHashCode()</returns>
-        public override int GetHashCode()
-        {
-            return _address.GetHashCode();
-        }
-
+        
         /// <summary>
         /// Enumerates all objects that this object references.
         /// </summary>
@@ -93,6 +55,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// The address of the object.
         /// </summary>
         public ulong Address { get { return _address; } }
+
+        /// <summary>
+        /// The address of the object in Hex format.
+        /// </summary>
+        public string HexAddress { get { return _address.ToString("x"); } }
 
         /// <summary>
         /// The type of the object.
@@ -146,8 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return $"{_type?.Name} {_address:x}";
         }
-
-
+        
         #region GetField
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
@@ -218,7 +184,6 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
             if (IsNull)
@@ -234,6 +199,70 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = field.GetAddress(Address);
             return address;
         }
+        #endregion
+
+        #region IEquatable<ClrObject> 
+
+        /// <summary>
+        /// Determines if this instance and another specific <see cref="ClrObject"/> have the same value.
+        /// <para>Instances are considered equal when they have same <see cref="Address"/>.</para>
+        /// </summary>
+        /// <param name="other">The <see cref="ClrObject"/> to compare to this instance.</param>
+        /// <returns><c>true</c> if the <see cref="Address"/> of the parameter is same as <see cref="Address"/> in this instance; <c>false</c> otherwise.</returns>
+        public bool Equals(ClrObject other)
+        {
+             return this.Address == other.Address;
+        }
+        #endregion
+
+        #region Object overrides
+
+        /// <summary>
+        /// Determines whether this instance and a specified object, which must also be a <see cref="ClrObject"/>, have the same value.
+        /// </summary>
+        /// <param name="other">The <see cref="ClrObject"/> to compare to this instance.</param>
+        /// <returns><c>true</c> if <paramref name="other"/> is <see cref="ClrObject"/>, and its <see cref="Address"/> is same as <see cref="Address"/> in this instance; <c>false</c> otherwise.</returns>
+        public override bool Equals(object other)
+        {
+            if (other == null)
+                return false;
+            return (other is ClrObject) && this.Equals((ClrObject)other);
+        }
+
+        /// <summary>
+        /// Returns the hash code for this <see cref="ClrObject"/> based on its <see cref="Address"/>.
+        /// </summary>
+        /// <returns>An <see cref="int"/> hash code for this instance.</returns>
+        public override int GetHashCode()
+        {
+            return this.Address.GetHashCode();
+        }
+        #endregion
+
+        #region Operators overloads
+
+        /// <summary>
+        /// Determines whether two specified <see cref="ClrObject"/> have the same value.
+        /// </summary>
+        /// <param name="left">First <see cref="ClrObject"/> to compare.</param>
+        /// <param name="right">Second <see cref="ClrObject"/> to compare.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> <see cref="Equals(ClrObject)"/> <paramref name="right"/>; <c>false</c> otherwise.</returns>
+        public static bool operator ==(ClrObject left, ClrObject right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Determines whether two specified <see cref="ClrObject"/> have different values.
+        /// </summary>
+        /// <param name="left">First <see cref="ClrObject"/> to compare.</param>
+        /// <param name="right">Second <see cref="ClrObject"/> to compare.</param>
+        /// <returns><c>true</c> if the value of <paramref name="left"/> is different from the value of <paramref name="right"/>; <c>false</c> otherwise.</returns>
+        public static bool operator !=(ClrObject left, ClrObject right)
+        {
+            return !left.Equals(right);
+        }
+
         #endregion
     }
 }
