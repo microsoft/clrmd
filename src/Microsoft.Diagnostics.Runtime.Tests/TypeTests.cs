@@ -131,6 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.Heap;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.Exact;
 
                 var fooRoots = from root in heap.EnumerateRoots()
                                where root.Type.Name == "Foo"
@@ -139,6 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRoot staticRoot = fooRoots.Where(r => r.Kind == GCRootKind.StaticVar).Single();
                 Assert.IsTrue(staticRoot.Name.Contains("s_foo"));
 
+                var arr = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
                 ClrRoot localVarRoot = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).Single();
 
                 ClrThread thread = runtime.GetMainThread();

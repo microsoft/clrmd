@@ -118,7 +118,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
             {
                 ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ClrHeap heap = runtime.Heap;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
+
+                GCRoot gcroot = new GCRoot(heap);
                 ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
 
                 CancellationTokenSource source = new CancellationTokenSource();
@@ -142,7 +145,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
             {
                 ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ClrHeap heap = runtime.Heap;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
+                GCRoot gcroot = new GCRoot(runtime.Heap);
+
                 ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
 
                 CancellationTokenSource source = new CancellationTokenSource();
@@ -165,7 +171,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
             {
                 ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ClrHeap heap = runtime.Heap;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
+                GCRoot gcroot = new GCRoot(runtime.Heap);
 
                 CancellationTokenSource cancelSource = new CancellationTokenSource();
                 cancelSource.Cancel();
@@ -189,7 +197,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
             {
                 ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ClrHeap heap = runtime.Heap;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
+                GCRoot gcroot = new GCRoot(runtime.Heap);
 
                 CancellationTokenSource cancelSource = new CancellationTokenSource();
                 cancelSource.Cancel();
@@ -212,7 +222,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
             {
                 ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-                GCRoot gcroot = new GCRoot(runtime.Heap) { StackwalkPolicy = GCRootStackWalkPolicy.SkipStack };
+                ClrHeap heap = runtime.Heap;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
+                GCRoot gcroot = new GCRoot(runtime.Heap);
 
                 gcroot.ClearCache();
                 Assert.IsFalse(gcroot.IsFullyCached);

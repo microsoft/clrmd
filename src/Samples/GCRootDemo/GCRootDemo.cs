@@ -91,7 +91,7 @@ namespace GCRootDemo
                 // ==========================================
 
                 /* The next thing to know about GCRoot is there are two ways we can walk the stack of threads looking for
-                 * roots:  Exact and Fast.  You change this setting with GCRoot.StackwalkPolicy.  Using a stackwalk policy
+                 * roots:  Exact and Fast.  You change this setting with ClrHeap.StackwalkPolicy.  Using a stackwalk policy
                  * of exact will show you exactly what the GC sees, eliminating false roots, but it can be slow.  Using the
                  * Fast stackwalk policy is very fast, but can over-report roots that are actually just old GC references
                  * left on the stack.
@@ -102,7 +102,7 @@ namespace GCRootDemo
                  */
                 
                 // Let's set a concrete example:
-                gcroot.StackwalkPolicy = GCRootStackWalkPolicy.Exact;
+                heap.StackwalkPolicy = ClrRootStackwalkPolicy.Exact;
 
 
                 // ==========================================

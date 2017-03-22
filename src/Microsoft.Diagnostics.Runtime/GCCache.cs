@@ -32,9 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool HasMap { get { return ObjectMap != null; } }
         public bool Complete { get; private set; }
-        public GCRootStackWalkPolicy StackwalkPolicy { get; private set; }
-
-        public ClrRoot[] StackRoots { get; private set; }
+        
         public int Objects { get; private set; }
         public int MaxObjects { get; private set; }
         public int BadObjects { get; private set; }
@@ -116,46 +114,6 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new GCRootCacheException(count);
             }
         }
-
-        public void BuildThreadCache(ClrHeap heap, GCRootStackWalkPolicy stackPolicy, Action<long, long> progressReport, CancellationToken cancelToken)
-        {
-            ClearThreads();
-            StackwalkPolicy = stackPolicy;
-
-            if (stackPolicy == GCRootStackWalkPolicy.SkipStack)
-                return;
-
-            try
-            {
-                List<ClrRoot> result = new List<ClrRoot>();
-                ClrThread[] threads = heap.Runtime.Threads.Where(t => t.IsAlive).ToArray();
-
-                bool exact = GCRoot.TranslatePolicyToExact(threads, StackwalkPolicy);
-                for (int i = 0; i < threads.Length; i++)
-                {
-                    progressReport?.Invoke(i, threads.Length);
-
-                    ClrThread thread = threads[i];
-                    foreach (ClrRoot root in thread.EnumerateStackObjects(!exact))
-                    {
-                        cancelToken.ThrowIfCancellationRequested();
-
-                        if (root.IsInterior || root.Object == 0)
-                            continue;
-
-                        result.Add(root);
-                    }
-                }
-
-                // There could be a LOT of roots.  Forcing this back down to an array clears wasted space...at the cost of time.
-                StackRoots = result.ToArray();
-                progressReport?.Invoke(threads.Length, threads.Length);
-            }
-            catch (OutOfMemoryException)
-            {
-                throw new GCRootCacheException(Objects);
-            }
-        }
         
         public void ClearObjects()
         {
@@ -168,11 +126,6 @@ namespace Microsoft.Diagnostics.Runtime
             Complete = false;
         }
 
-        public void ClearThreads()
-        {
-            StackRoots = null;
-        }
-        
         private static void AddObject(DictionaryList objmap, ExtendedArray<ulong> gcrefs, ExtendedArray<ObjectInfo> objInfo, ulong obj, ClrType type)
         {
             uint offset = gcrefs.Count;

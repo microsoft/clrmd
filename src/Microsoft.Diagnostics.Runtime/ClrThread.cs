@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -195,6 +196,24 @@ namespace Microsoft.Diagnostics.Runtime
         /// instead of this property, and be sure to handle the case of repeating stack frames.
         /// </summary>
         public abstract IList<ClrStackFrame> StackTrace { get; }
+
+        internal static bool GetExactPolicy(ClrRuntime runtime, ClrRootStackwalkPolicy stackwalkPolicy)
+        {
+            Debug.Assert(stackwalkPolicy != ClrRootStackwalkPolicy.SkipStack);
+
+            switch (stackwalkPolicy)
+            {
+                case ClrRootStackwalkPolicy.Automatic:
+                    return runtime.Threads.Count < 512 ? true : false;
+
+                case ClrRootStackwalkPolicy.Exact:
+                    return true;
+
+                default:
+                case ClrRootStackwalkPolicy.Fast:
+                    return false;
+            }
+        }
 
         /// <summary>
         /// Enumerates a stack trace for a given thread.  Note this method may loop infinitely in the case of

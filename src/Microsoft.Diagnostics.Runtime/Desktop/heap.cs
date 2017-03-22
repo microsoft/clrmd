@@ -4,7 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -220,6 +222,199 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _managedLocks = li.InitLockInspection();
         }
 
+        public override ClrRootStackwalkPolicy StackwalkPolicy
+        {
+            get => _stackwalkPolicy;
+            set
+            {
+                if (value != _currentStackCache)
+                    _stackCache = null;
+
+                _stackwalkPolicy = value;
+            }
+        }
+
+        private ClrRootStackwalkPolicy _stackwalkPolicy;
+        private ClrRootStackwalkPolicy _currentStackCache = ClrRootStackwalkPolicy.SkipStack;
+        private Dictionary<ClrThread, ClrRoot[]> _stackCache;
+        private ClrHandle[] _strongHandles;
+        private Dictionary<ulong, List<ulong>> _dependentHandles;
+        
+        public override void CacheRoots(CancellationToken cancelToken)
+        {
+            if (StackwalkPolicy != ClrRootStackwalkPolicy.SkipStack && (_stackCache == null || _currentStackCache != StackwalkPolicy))
+            {
+                var cache = new Dictionary<ClrThread, ClrRoot[]>();
+
+                bool exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
+                foreach (ClrThread thread in Runtime.Threads)
+                {
+                    cancelToken.ThrowIfCancellationRequested();
+                    if (thread.IsAlive)
+                        cache.Add(thread, thread.EnumerateStackObjects(!exactStackwalk).ToArray());
+                }
+
+                _stackCache = cache;
+                _currentStackCache = StackwalkPolicy;
+            }
+
+            if (_strongHandles == null)
+                CacheStrongHandles(cancelToken);
+        }
+
+        private void CacheStrongHandles(CancellationToken cancelToken)
+        {
+            _strongHandles = EnumerateStrongHandlesWorker(cancelToken).OrderBy(k => GetHandleOrder(k.HandleType)).ToArray();
+            Debug.Assert(_dependentHandles != null);
+        }
+
+        public override void ClearRootCache()
+        {
+            _currentStackCache = ClrRootStackwalkPolicy.SkipStack;
+            _stackCache = null;
+            _strongHandles = null;
+            _dependentHandles = null;
+        }
+
+        public override bool AreRootsCached => (_stackwalkPolicy == ClrRootStackwalkPolicy.SkipStack || (_stackCache != null && _currentStackCache == StackwalkPolicy)) && _strongHandles != null;
+
+        private static int GetHandleOrder(HandleType handleType)
+        {
+            switch (handleType)
+            {
+                case HandleType.AsyncPinned:
+                    return 0;
+
+                case HandleType.Pinned:
+                    return 1;
+
+                case HandleType.Strong:
+                    return 2;
+
+                case HandleType.RefCount:
+                    return 3;
+
+                default:
+                    return 4;
+            }
+        }
+
+        internal override IEnumerable<ClrHandle> EnumerateStrongHandles()
+        {
+            if (_strongHandles != null)
+            {
+                Debug.Assert(_dependentHandles != null);
+                return _strongHandles;
+            }
+
+            return EnumerateStrongHandlesWorker(CancellationToken.None);
+        }
+
+        private IEnumerable<ClrHandle> EnumerateStrongHandlesWorker(CancellationToken cancelToken)
+        {
+            Dictionary<ulong, List<ulong>> dependentHandles = null;
+            if (_dependentHandles == null)
+                dependentHandles = new Dictionary<ulong, List<ulong>>();
+
+            foreach (ClrHandle handle in Runtime.EnumerateHandles())
+            {
+                cancelToken.ThrowIfCancellationRequested();
+
+                if (handle.Object != 0)
+                {
+                    switch (handle.HandleType)
+                    {
+                        case HandleType.RefCount:
+                            if (handle.RefCount > 0)
+                                yield return handle;
+
+                            break;
+
+                        case HandleType.AsyncPinned:
+                        case HandleType.Pinned:
+                        case HandleType.SizedRef:
+                        case HandleType.Strong:
+                            yield return handle;
+                            break;
+
+                        case HandleType.Dependent:
+                            if (dependentHandles != null)
+                            {
+                                if (!dependentHandles.TryGetValue(handle.Object, out List<ulong> list))
+                                    dependentHandles[handle.Object] = list = new List<ulong>();
+
+                                list.Add(handle.DependentTarget);
+                            }
+
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            if (dependentHandles != null)
+                _dependentHandles = dependentHandles;
+        }
+
+        internal override Dictionary<ulong, List<ulong>> DependentHandles
+        {
+            get
+            {
+                if (_dependentHandles == null)
+                    CacheStrongHandles(CancellationToken.None);
+
+                Debug.Assert(_dependentHandles != null);
+                return _dependentHandles;
+            }
+        }
+
+        internal override IEnumerable<ClrRoot> EnumerateStackRoots()
+        {
+            if (StackwalkPolicy != ClrRootStackwalkPolicy.SkipStack)
+            {
+                if (_stackCache != null && _currentStackCache == StackwalkPolicy)
+                {
+                    return _stackCache.SelectMany(t => t.Value);
+                }
+                else
+                {
+                    return EnumerateStackRootsWorker();
+                }
+            }
+            
+            return new ClrRoot[0];
+        }
+
+        private IEnumerable<ClrRoot> EnumerateStackRootsWorker()
+        {
+            bool exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
+            foreach (ClrThread thread in DesktopRuntime.Threads)
+            {
+                if (thread.IsAlive)
+                {
+                    if (exactStackwalk)
+                    {
+                        foreach (var root in thread.EnumerateStackObjects(false))
+                            yield return root;
+                    }
+                    else
+                    {
+                        HashSet<ulong> seen = new HashSet<ulong>();
+                        foreach (var root in thread.EnumerateStackObjects(true))
+                        {
+                            if (!seen.Contains(root.Object))
+                            {
+                                seen.Add(root.Object);
+                                yield return root;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public override IEnumerable<ClrRoot> EnumerateRoots()
         {
             return EnumerateRoots(true);
@@ -288,99 +483,86 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Handles
-            var handles = DesktopRuntime.EnumerateHandles();
-            if (handles != null)
+            foreach (ClrHandle handle in EnumerateStrongHandles())
             {
-                foreach (ClrHandle handle in handles)
+                ulong objAddr = handle.Object;
+                GCRootKind kind = GCRootKind.Strong;
+                if (objAddr != 0)
                 {
-                    ulong objAddr = handle.Object;
-                    GCRootKind kind = GCRootKind.Strong;
-                    if (objAddr != 0)
+                    ClrType type = GetObjectType(objAddr);
+                    if (type != null)
                     {
-                        ClrType type = GetObjectType(objAddr);
-                        if (type != null)
+                        switch (handle.HandleType)
                         {
-                            switch (handle.HandleType)
-                            {
-                                case HandleType.WeakShort:
-                                case HandleType.WeakLong:
+                            case HandleType.WeakShort:
+                            case HandleType.WeakLong:
+                                break;
+                            case HandleType.RefCount:
+                                if (handle.RefCount <= 0)
                                     break;
-                                case HandleType.RefCount:
-                                    if (handle.RefCount <= 0)
-                                        break;
-                                    goto case HandleType.Strong;
-                                case HandleType.Dependent:
-                                    if (objAddr == 0)
-                                        continue;
-                                    objAddr = handle.DependentTarget;
-                                    goto case HandleType.Strong;
-                                case HandleType.Pinned:
-                                    kind = GCRootKind.Pinning;
-                                    goto case HandleType.Strong;
-                                case HandleType.AsyncPinned:
-                                    kind = GCRootKind.AsyncPinning;
-                                    goto case HandleType.Strong;
-                                case HandleType.Strong:
-                                case HandleType.SizedRef:
-                                    yield return new HandleRoot(handle.Address, objAddr, type, handle.HandleType, kind, handle.AppDomain);
+                                goto case HandleType.Strong;
+                            case HandleType.Pinned:
+                                kind = GCRootKind.Pinning;
+                                goto case HandleType.Strong;
+                            case HandleType.AsyncPinned:
+                                kind = GCRootKind.AsyncPinning;
+                                goto case HandleType.Strong;
+                            case HandleType.Strong:
+                            case HandleType.SizedRef:
+                                yield return new HandleRoot(handle.Address, objAddr, type, handle.HandleType, kind, handle.AppDomain);
 
-                                    // Async pinned handles keep 1 or more "sub objects" alive.  I will report them here as their own pinned handle.
-                                    if (handle.HandleType == HandleType.AsyncPinned)
+                                // Async pinned handles keep 1 or more "sub objects" alive.  I will report them here as their own pinned handle.
+                                if (handle.HandleType == HandleType.AsyncPinned)
+                                {
+                                    ClrInstanceField userObjectField = type.GetFieldByName("m_userObject");
+                                    if (userObjectField != null)
                                     {
-                                        ClrInstanceField userObjectField = type.GetFieldByName("m_userObject");
-                                        if (userObjectField != null)
+                                        ulong _userObjAddr = userObjectField.GetAddress(objAddr);
+                                        ulong _userObj = (ulong)userObjectField.GetValue(objAddr);
+                                        var _userObjType = GetObjectType(_userObj);
+                                        if (_userObjType != null)
                                         {
-                                            ulong _userObjAddr = userObjectField.GetAddress(objAddr);
-                                            ulong _userObj = (ulong)userObjectField.GetValue(objAddr);
-                                            var _userObjType = GetObjectType(_userObj);
-                                            if (_userObjType != null)
+                                            if (_userObjType.IsArray)
                                             {
-                                                if (_userObjType.IsArray)
+                                                if (_userObjType.ComponentType != null)
                                                 {
-                                                    if (_userObjType.ComponentType != null)
+                                                    if (_userObjType.ComponentType.ElementType == ClrElementType.Object)
                                                     {
-                                                        if (_userObjType.ComponentType.ElementType == ClrElementType.Object)
+                                                        // report elements
+                                                        int len = _userObjType.GetArrayLength(_userObj);
+                                                        for (int i = 0; i < len; ++i)
                                                         {
-                                                            // report elements
-                                                            int len = _userObjType.GetArrayLength(_userObj);
-                                                            for (int i = 0; i < len; ++i)
-                                                            {
-                                                                ulong indexAddr = _userObjType.GetArrayElementAddress(_userObj, i);
-                                                                ulong indexObj = (ulong)_userObjType.GetArrayElementValue(_userObj, i);
-                                                                ClrType indexObjType = GetObjectType(indexObj);
+                                                            ulong indexAddr = _userObjType.GetArrayElementAddress(_userObj, i);
+                                                            ulong indexObj = (ulong)_userObjType.GetArrayElementValue(_userObj, i);
+                                                            ClrType indexObjType = GetObjectType(indexObj);
 
-                                                                if (indexObj != 0 && indexObjType != null)
-                                                                    yield return new HandleRoot(indexAddr, indexObj, indexObjType, HandleType.AsyncPinned, GCRootKind.AsyncPinning, handle.AppDomain);
-                                                            }
-                                                        }
-                                                        else
-                                                        {
-                                                            yield return new HandleRoot(_userObjAddr, _userObj, _userObjType, HandleType.AsyncPinned, GCRootKind.AsyncPinning, handle.AppDomain);
+                                                            if (indexObj != 0 && indexObjType != null)
+                                                                yield return new HandleRoot(indexAddr, indexObj, indexObjType, HandleType.AsyncPinned, GCRootKind.AsyncPinning, handle.AppDomain);
                                                         }
                                                     }
+                                                    else
+                                                    {
+                                                        yield return new HandleRoot(_userObjAddr, _userObj, _userObjType, HandleType.AsyncPinned, GCRootKind.AsyncPinning, handle.AppDomain);
+                                                    }
                                                 }
-                                                else
-                                                {
-                                                    yield return new HandleRoot(_userObjAddr, _userObj, _userObjType, HandleType.AsyncPinned, GCRootKind.AsyncPinning, handle.AppDomain);
-                                                }
+                                            }
+                                            else
+                                            {
+                                                yield return new HandleRoot(_userObjAddr, _userObj, _userObjType, HandleType.AsyncPinned, GCRootKind.AsyncPinning, handle.AppDomain);
                                             }
                                         }
                                     }
+                                }
 
-                                    break;
-                                default:
-                                    Debug.WriteLine("Warning, unknown handle type {0} ignored", Enum.GetName(typeof(HandleType), handle.HandleType));
-                                    break;
-                            }
+                                break;
+                            default:
+                                Debug.WriteLine("Warning, unknown handle type {0} ignored", Enum.GetName(typeof(HandleType), handle.HandleType));
+                                break;
                         }
                     }
                 }
             }
-            else
-            {
-                Trace.WriteLine("Warning, GetHandles() return null!");
-            }
-
+            
             // Finalization Queue
             foreach (ulong objAddr in DesktopRuntime.EnumerateFinalizerQueueObjectAddresses())
                 if (objAddr != 0)
@@ -391,10 +573,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
 
             // Threads
-            foreach (ClrThread thread in DesktopRuntime.Threads)
-                if (thread.IsAlive)
-                    foreach (var root in thread.EnumerateStackObjects(false))
-                        yield return root;
+            foreach (ClrRoot root in EnumerateStackRoots())
+                yield return root;
         }
 
         internal string GetStringContents(ulong strAddr)

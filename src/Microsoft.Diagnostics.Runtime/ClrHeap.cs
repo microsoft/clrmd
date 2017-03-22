@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Diagnostics.Runtime.Desktop;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -90,6 +91,32 @@ namespace Microsoft.Diagnostics.Runtime
         /// Equivalent to EnumerateRoots(true).
         /// </summary>
         abstract public IEnumerable<ClrRoot> EnumerateRoots();
+
+        /// <summary>
+        /// Sets the stackwalk policy for enumerating roots.  See ClrRootStackwalkPolicy for more information.
+        /// Setting this field can invalidate the root cache.
+        /// <see cref="ClrRootStackwalkPolicy"/>
+        /// </summary>
+        abstract public ClrRootStackwalkPolicy StackwalkPolicy { get; set; }
+
+        /// <summary>
+        /// Returns whether the roots of the process are cached or not.
+        /// </summary>
+        abstract public bool AreRootsCached { get; }
+
+        /// <summary>
+        /// This method caches many roots so that subsequent calls to EnumerateRoots run faster.
+        /// </summary>
+        abstract public void CacheRoots(CancellationToken cancelToken);
+
+        virtual internal IEnumerable<ClrRoot> EnumerateStackRoots() => throw new NotImplementedException();
+        virtual internal IEnumerable<ClrHandle> EnumerateStrongHandles() => throw new NotImplementedException();
+        virtual internal Dictionary<ulong, List<ulong>> DependentHandles { get => throw new NotImplementedException(); }
+
+        /// <summary>
+        /// This method clears any previously cached roots to reclaim memory.
+        /// </summary>
+        abstract public void ClearRootCache();
 
         /// <summary>
         /// Looks up a type by name.

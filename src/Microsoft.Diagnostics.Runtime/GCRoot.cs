@@ -37,11 +37,11 @@ namespace Microsoft.Diagnostics.Runtime
     }
 
     /// <summary>
-    /// This sets the policy for how GCRoot walks the stack.  There is a choice here because the 'Exact' stack walking
+    /// This sets the policy for how ClrHeap walks the stack when enumerating roots.  There is a choice here because the 'Exact' stack walking
     /// gives the correct answer (without overreporting), but unfortunately is poorly implemented in CLR's debugging layer.
     /// This means it could take 10-30 minutes (!) to enumerate roots on crash dumps with 4000+ threads.
     /// </summary>
-    public enum GCRootStackWalkPolicy
+    public enum ClrRootStackwalkPolicy
     {
         /// <summary>
         /// The GCRoot class will attempt to select a policy for you based on the number of threads in the process.
@@ -101,9 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
         private static readonly Stack<ulong> s_emptyStack = new Stack<ulong>();
         private readonly ClrHeap _heap;
         private GCCache _cache;
-
-        private ClrHandle[] _handles;
-        private Dictionary<ulong, List<ulong>> _dependentMap;
+        
         private int _maxTasks;
 
         /// <summary>
@@ -141,16 +139,11 @@ namespace Microsoft.Diagnostics.Runtime
                 _maxTasks = value;
             }
         }
-
-        /// <summary>
-        /// The policy for walking the stack (see the GCRootStackWalkPolicy enum for more details).
-        /// </summary>
-        public GCRootStackWalkPolicy StackwalkPolicy { get; set; }
         
         /// <summary>
         /// Returns true if all relevant heap and root data is locally cached in this process for fast GCRoot processing.
         /// </summary>
-        public bool IsFullyCached { get { return _cache != null && _cache.Complete && (StackwalkPolicy == GCRootStackWalkPolicy.SkipStack || _cache.StackRoots != null) && _handles != null; } }
+        public bool IsFullyCached { get { return _heap.AreRootsCached; } }
 
         /// <summary>
         /// Creates a GCRoot helper object for the given heap.
@@ -162,10 +155,10 @@ namespace Microsoft.Diagnostics.Runtime
             _maxTasks = Environment.ProcessorCount * 2;
         }
 
-        internal static bool TranslatePolicyToExact(ClrThread[] threads, GCRootStackWalkPolicy stackPolicy)
+        internal static bool TranslatePolicyToExact(ClrThread[] threads, ClrRootStackwalkPolicy stackPolicy)
         {
-            Debug.Assert(stackPolicy != GCRootStackWalkPolicy.SkipStack);
-            return stackPolicy == GCRootStackWalkPolicy.Exact || (stackPolicy == GCRootStackWalkPolicy.Automatic && threads.Length < 512);
+            Debug.Assert(stackPolicy != ClrRootStackwalkPolicy.SkipStack);
+            return stackPolicy == ClrRootStackwalkPolicy.Exact || (stackPolicy == ClrRootStackwalkPolicy.Automatic && threads.Length < 512);
         }
 
 
@@ -202,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
                 int initial = 0;
                 Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
 
-                foreach (ClrHandle handle in EnumerateStrongHandles(cancelToken))
+                foreach (ClrHandle handle in _heap.EnumerateStrongHandles())
                 {
                     Debug.Assert(handle.HandleType != HandleType.Dependent);
                     Debug.Assert(handle.Object != 0);
@@ -230,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                 }
                 
-                foreach (ClrRoot root in EnumerateStackHandles())
+                foreach (ClrRoot root in _heap.EnumerateStackRoots())
                 {
                     if (!processedObjects.Contains(root.Object))
                     {
@@ -268,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ObjectSet processedObjects = new ObjectSet(_heap);
                 Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
 
-                foreach (ClrHandle handle in EnumerateStrongHandles(cancelToken))
+                foreach (ClrHandle handle in _heap.EnumerateStrongHandles())
                 {
                     ulong obj = handle.Object;
                     Debug.Assert(handle.HandleType != HandleType.Dependent);
@@ -285,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                 }
 
-                foreach (ClrRoot root in EnumerateStackHandles())
+                foreach (ClrRoot root in _heap.EnumerateStackRoots())
                 {
                     if (!processedObjects.Contains(root.Object))
                     {
@@ -372,11 +365,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!_cache.Complete)
                 _cache.BuildHeapCache(_heap, maxObjects, (curr, total) => ProgressUpdate?.Invoke(this, GCRootPhase.BuildingGCCache, curr, total), cancelToken);
-
-            if (_cache.StackRoots == null || StackwalkPolicy != _cache.StackwalkPolicy)
-                _cache.BuildThreadCache(_heap, StackwalkPolicy, (curr, total) => ProgressUpdate?.Invoke(this, GCRootPhase.BuildingThreadCache, curr, total), cancelToken);
-
-            BuildHandleCache(cancelToken);
+            
+            _heap.CacheRoots(cancelToken);
         }
 
         /// <summary>
@@ -401,8 +391,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void ClearCache()
         {
             _cache = null;
-            _handles = null;
-            _dependentMap = null;
+            _heap.ClearRootCache();
         }
 
         private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParaellel(ParallelObjectSet seen, Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints, ClrHandle handle, ulong target, bool unique, CancellationToken cancelToken)
@@ -689,114 +678,6 @@ namespace Microsoft.Diagnostics.Runtime
             return new HandleRoot(handle.Address, handle.Object, handle.Type, handle.HandleType, kind, handle.AppDomain);
         }
 
-        private void BuildHandleCache(CancellationToken cancelToken)
-        {
-            if (_handles != null)
-            {
-                Debug.Assert(_dependentMap != null);
-                return;
-            }
-
-            // Unfortunately we do not have any idea how many handles there are total, so we can't give good progress updates.
-            // Thankfully this tends to be a very fast enumeration, even with a lot of handles.
-            ProgressUpdate?.Invoke(this, GCRootPhase.BuildingHandleCache, 0, 1);
-            
-            Dictionary<ulong, List<ulong>> dependentMap = new Dictionary<ulong, List<ulong>>();
-            _handles = EnumerateStrongHandles(_heap, dependentMap, true, cancelToken).ToArray();
-            _dependentMap = dependentMap;
-            ProgressUpdate?.Invoke(this, GCRootPhase.BuildingHandleCache, 1, 1);
-        }
-
-        private static IEnumerable<ClrHandle> EnumerateStrongHandles(ClrHeap heap, Dictionary<ulong, List<ulong>> dependentMap, bool sort, CancellationToken cancelToken)
-        {
-            // For most operations we want to prioritize AsyncPinned and Pinned handles, followed by strong handles.
-            // We do NOT guarantee order of handles walked, but ordering this here will give us a better shot at producing good results.
-            // Also, handle enumeration tends to be fast (compared to everything else), so we can spend a little time getting it right since
-            // we are caching the result.
-            IEnumerable<ClrHandle> handles = heap.Runtime.EnumerateHandles();
-            if (sort)
-                handles = handles.OrderBy(h => GetOrder(h.HandleType));
-
-            foreach (ClrHandle handle in handles)
-            {
-                cancelToken.ThrowIfCancellationRequested();
-
-                if (handle.Object != 0)
-                {
-                    switch (handle.HandleType)
-                    {
-                        case HandleType.RefCount:
-                            if (handle.RefCount > 0)
-                                yield return handle;
-
-                            break;
-
-                        case HandleType.AsyncPinned:
-                        case HandleType.Pinned:
-                        case HandleType.SizedRef:
-                        case HandleType.Strong:
-                            yield return handle;
-                            break;
-
-                        case HandleType.Dependent:
-                            if (dependentMap != null)
-                            {
-                                if (!dependentMap.TryGetValue(handle.Object, out List<ulong> list))
-                                    dependentMap[handle.Object] = list = new List<ulong>();
-
-                                list.Add(handle.DependentTarget);
-                            }
-
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-
-        private static int GetOrder(HandleType handleType)
-        {
-            switch (handleType)
-            {
-                case HandleType.AsyncPinned:
-                    return 0;
-
-                case HandleType.Pinned:
-                    return 1;
-
-                case HandleType.Strong:
-                    return 2;
-
-                case HandleType.RefCount:
-                    return 3;
-
-                default:
-                    return 4;
-            }
-        }
-
-        private IEnumerable<ClrHandle> EnumerateStrongHandles(CancellationToken cancelToken)
-        {
-            if (_handles != null)
-                return _handles;
-
-            return EnumerateStrongHandles(_heap, null, false, cancelToken);
-        }
-
-        private IEnumerable<ClrRoot> EnumerateStackHandles()
-        {
-            if (StackwalkPolicy == GCRootStackWalkPolicy.SkipStack)
-                return new ClrRoot[0];
-
-            if (_cache != null && _cache.StackRoots != null && _cache.StackwalkPolicy == StackwalkPolicy)
-                return _cache.StackRoots;
-
-            ClrThread[] threads = _heap.Runtime.Threads.Where(t => t.IsAlive).ToArray();
-            bool exact = TranslatePolicyToExact(threads, StackwalkPolicy);
-            return threads.SelectMany(t => t.EnumerateStackObjects(exact)).Where(r => !r.IsInterior && r.Object != 0);
-        }
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
             ulong size = type.GetSize(obj);
