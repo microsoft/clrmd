@@ -13,6 +13,11 @@ For more details, take a look at the [documentation] and [samples].
 
 Please see the [FAQ](./Documentation/FAQ.md) for more information.
 
+## Apps and tools using ClrMD
+
+1. [MemoScope.Net](https://github.com/fremag/MemoScope.Net)
+2. [DumpMiner](https://github.com/dudikeleti/DumpMiner) - [https://mycodingplace.wordpress.com/2016/11/24/dumpminer-ui-tool-for-playing-with-clrmd](https://mycodingplace.wordpress.com/2016/11/24/dumpminer-ui-tool-for-playing-with-clrmd)
+
 ## Tutorials
 
 Here you will find a step by step walkthrough on how to use the CLR MD API.
