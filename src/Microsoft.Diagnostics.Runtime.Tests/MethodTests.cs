@@ -84,5 +84,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.AreEqual(methodDesc, method.EnumerateMethodDescs().Single());
             }
         }
-    }
+
+        /// <summary>
+        /// This test tests a patch in v45runtime.GetNameForMD(ulong md) that
+        /// corrects an error from sos
+        /// </summary>
+        [TestMethod]
+        public void CompleteSignatureIsRetrievedForMethodsWithGenericParameters()
+        {
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
+
+                ClrMethod genericMethod = type.GetMethod("GenericBar");
+
+                string methodName = genericMethod.GetFullSignature();
+
+                Assert.AreEqual(')', methodName.Last());
+            }
+        }
+	}
 }
