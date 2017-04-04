@@ -537,9 +537,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             _type = heap.CreatePointerType(innerType, type, null);
                         }
+                        else if (type == ClrElementType.Object || type == ClrElementType.Class)
+                        {
+                            _type = (BaseDesktopHeapType)heap.ObjectType;
+                        }
                         else
                         {
-                            // If it's a class or struct, then try to get the token
+                            // struct, then try to get the token
                             int token = 0;
                             if (etype == 0x11 || etype == 0x12)
                                 res = res && sigParser.GetToken(out token);
