@@ -122,6 +122,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!runtime.ReadPointer(address, out ulong str))
                 throw new MemoryReadException(address);
+            
+            if (str == 0)
+                return null;
 
             if (!runtime.ReadString(str, out string result))
                 throw new MemoryReadException(str);
