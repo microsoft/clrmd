@@ -144,6 +144,31 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// </summary>
+        /// <param name="fieldName"></param>
+        /// <returns></returns>
+        public ClrValueClass GetValueClassField(string fieldName)
+        {
+            if (IsNull)
+                throw new NullReferenceException();
+
+            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            if (field == null)
+                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+
+            if (!field.IsValueClass)
+                throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not a ValueClass.");
+
+            if (field.Type == null)
+                throw new Exception("Field does not have an associated class.");
+
+            ClrHeap heap = _type.Heap;
+
+            ulong addr = field.GetAddress(_address);
+            return new ClrValueClass(addr, field.Type, true);
+        }
+
+        /// <summary>
         /// Gets the value of a primitive field.  This will throw an InvalidCastException if the type parameter
         /// does not match the field's type.
         /// </summary>

@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="ClrAppDomain.cs" />
     <Compile Include="ClrObject.cs" />
+    <Compile Include="ClrValueClass.cs" />
     <Compile Include="DataTarget.cs" />
     <Compile Include="Debugger\Enums.cs" />
     <Compile Include="Debugger\IDebugAdvanced.cs" />
