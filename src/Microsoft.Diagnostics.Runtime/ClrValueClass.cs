@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = _type.Heap;
 
-            ulong addr = field.GetAddress(_address);
+            ulong addr = field.GetAddress(_address, _interior);
             return new ClrValueClass(addr, field.Type, true);
         }
 
