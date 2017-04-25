@@ -11,6 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopStaticField : ClrStaticField
     {
+
         public DesktopStaticField(DesktopGCHeap heap, IFieldData field, BaseDesktopHeapType containingType, string name, FieldAttributes attributes, object defaultValue, IntPtr sig, int sigLen)
         {
             _field = field;
@@ -85,13 +86,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         }
                     }
                 }
-
-                if (_type == null)
-                    _type = (BaseDesktopHeapType)TryBuildType(_heap);
-
-                if (_type == null)
-                    _type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
             }
+
+            if (_type == null)
+            {
+                _typeResolver = new Lazy<ClrType>(() =>
+                {
+                    ClrType type = (BaseDesktopHeapType)TryBuildType(_heap);
+
+                    if (type == null)
+                        type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
+
+                    return type;
+                });
+            }
+
         }
 
         public override uint Token { get { return _token; } }
@@ -142,7 +151,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get
             {
                 if (_type == null)
-                    _type = (BaseDesktopHeapType)TryBuildType(_heap);
+                    return _typeResolver.Value;
+
                 return _type;
             }
         }
@@ -322,6 +332,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private object _defaultValue;
         private DesktopGCHeap _heap;
         private uint _token;
+        private Lazy<ClrType> _typeResolver;
     }
 
     internal class DesktopThreadStaticField : ClrThreadStaticField

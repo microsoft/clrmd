@@ -929,7 +929,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected List<ClrType> _types;
         protected Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
         private Dictionary<ArrayRankHandle, BaseDesktopHeapType> _arrayTypes;
-        private ClrModule _mscorlib;
 
         private ClrInstanceField _firstChar, _stringLength;
         private bool _initializedStringFields = false;
@@ -1011,7 +1010,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _basicTypes[(int)ClrElementType.Object] = ObjectType;
             _basicTypes[(int)ClrElementType.Class] = ObjectType;
 
-            ClrModule mscorlib = Mscorlib;
+            ClrModule mscorlib = DesktopRuntime.Mscorlib;
             if (mscorlib == null)
                 return;
 
@@ -1120,7 +1119,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal BaseDesktopHeapType CreatePointerType(BaseDesktopHeapType innerType, ClrElementType clrElementType, string nameHint)
         {
-            return new DesktopPointerType(this, (DesktopBaseModule)Mscorlib, clrElementType, 0, nameHint) { ComponentType = innerType };
+            return new DesktopPointerType(this, (DesktopBaseModule)DesktopRuntime.Mscorlib, clrElementType, 0, nameHint) { ComponentType = innerType };
         }
 
         internal BaseDesktopHeapType GetArrayType(ClrElementType clrElementType, int ranks, string nameHint)
@@ -1130,33 +1129,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             var handle = new ArrayRankHandle(clrElementType, ranks);
             if (!_arrayTypes.TryGetValue(handle, out BaseDesktopHeapType result))
-                _arrayTypes[handle] = result = new DesktopArrayType(this, (DesktopBaseModule)Mscorlib, clrElementType, ranks, ArrayType.MetadataToken, nameHint);
+                _arrayTypes[handle] = result = new DesktopArrayType(this, (DesktopBaseModule)DesktopRuntime.Mscorlib, clrElementType, ranks, ArrayType.MetadataToken, nameHint);
 
             return result;
-        }
-
-        internal ClrModule Mscorlib
-        {
-            get
-            {
-                if (_mscorlib == null)
-                {
-                    string moduleName = Runtime.ClrInfo.Flavor == ClrFlavor.Core
-                        ? "system.private.corelib"
-                        : "mscorlib";
-                    
-                    foreach (ClrModule module in DesktopRuntime.Modules)
-                    {
-                        if (module.Name.ToLowerInvariant().Contains(moduleName))
-                        {
-                            _mscorlib = module;
-                            break;
-                        }
-                    }
-                }
-
-                return _mscorlib;
-            }
         }
 
         internal override long TotalObjects => _objects?.Count ?? -1;
