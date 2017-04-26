@@ -955,7 +955,7 @@ namespace Microsoft.Diagnostics.Runtime
                 for (ulong obj = seg.GetFirstObject(out ClrType type); obj != 0; obj = seg.NextObject(obj, out type))
                 {
                     _lastSegmentIdx = i;
-                    yield return new ClrObject(obj, type);
+                    yield return ClrObject.Create(obj, type);
                 }
             }
         }

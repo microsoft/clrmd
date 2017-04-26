@@ -113,6 +113,18 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return $"{_type?.Name} {_address:x}";
         }
+
+        /// <summary>
+        /// Converts a ClrObject into its string value.
+        /// </summary>
+        /// <param name="obj">A string object.</param>
+        public static explicit operator string(ClrObject obj)
+        {
+            if (!obj.Type.IsString)
+                throw new InvalidOperationException("Object {obj} is not a string.");
+
+            return (string)obj.Type.GetValue(obj.Address);
+        }
         
         #region GetField
         /// <summary>
