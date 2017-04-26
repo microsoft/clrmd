@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -53,6 +54,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 return _version;
             }
+        }
+
+        internal override Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken)
+        {
+            return new Dictionary<ulong, List<ulong>>();
         }
 
         internal override ulong GetILForModule(ClrModule module, uint rva)

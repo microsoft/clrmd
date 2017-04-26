@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
+using System.Threading;
 
 #pragma warning disable 649
 
@@ -879,6 +880,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #endregion
 
         #region Abstract Functions
+
+        internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
         internal abstract uint GetExceptionHROffset();
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);

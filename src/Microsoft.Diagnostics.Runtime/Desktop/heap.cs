@@ -315,19 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_dependentHandles != null)
                 return;
 
-            Dictionary<ulong, List<ulong>> dependentHandles = new Dictionary<ulong, List<ulong>>();
-            foreach (ClrHandle handle in Runtime.EnumerateHandles())
-            {
-                if (handle.HandleType == HandleType.Dependent)
-                {
-                    if (!dependentHandles.TryGetValue(handle.Object, out List<ulong> list))
-                        dependentHandles[handle.Object] = list = new List<ulong>();
-
-                    list.Add(handle.DependentTarget);
-                }
-            }
-
-            _dependentHandles = dependentHandles;
+            _dependentHandles = DesktopRuntime.GetDependentHandleMap(cancelToken);
         }
 
         private IEnumerable<ClrHandle> EnumerateStrongHandlesWorker(CancellationToken cancelToken)

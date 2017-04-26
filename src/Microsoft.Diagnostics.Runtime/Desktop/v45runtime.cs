@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -56,6 +57,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _handles;
 
             return EnumerateHandleWorker();
+        }
+
+        internal override Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken)
+        {
+            Dictionary<ulong, List<ulong>> result = new Dictionary<ulong, List<ulong>>();
+
+            if (_sos.GetHandleEnum(out object tmp) < 0)
+                return result;
+
+            ISOSHandleEnum enumerator = (ISOSHandleEnum)tmp;
+            HandleData[] handles = new HandleData[32];
+            uint fetched = 0;
+            do
+            {
+                if (enumerator.Next((uint)handles.Length, handles, out fetched) < 0 || fetched <= 0)
+                    break;
+                
+                for (int i = 0; i < fetched; i++)
+                {
+                    cancelToken.ThrowIfCancellationRequested();
+                        
+                    HandleType type = (HandleType)handles[i].Type;
+                    if (type != HandleType.Dependent)
+                        continue;
+
+                    if (ReadPointer(handles[i].Handle, out ulong address))
+                    {
+                        if (!result.TryGetValue(address, out List<ulong> value))
+                            result[address] = value = new List<ulong>();
+
+                        value.Add(handles[i].Secondary);
+                    }
+                }
+            } while (fetched > 0);
+
+            return result;
         }
 
         private IEnumerable<ClrHandle> EnumerateHandleWorker()
