@@ -2157,7 +2157,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_lastObject.Address == objRef)
                 return _lastObject.Type;
-            
+
             if (IsHeapCached)
                 return base.GetObjectType(objRef);
 
@@ -2234,16 +2234,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 else
                 {
                     typeName = DesktopHeapType.FixGenerics(typeName);
-                }
-
-                if (_typeEntry.TryGetValue(modEnt, out index))
-                {
-                    BaseDesktopHeapType match = (BaseDesktopHeapType)_types[index];
-                    if (match.Name == typeName)
-                    {
-                        _indices[mt] = index;
-                        ret = match;
-                    }
                 }
 
                 if (ret == null)
