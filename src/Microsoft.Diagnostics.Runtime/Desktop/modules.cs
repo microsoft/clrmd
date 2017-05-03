@@ -82,18 +82,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
                 _metadata = data.LegacyMetaDataImport as ICorDebug.IMetadataImport;
             }
-            else
-            {
-                // If we are a minidump and metadata isn't mapped in, attempt to fetch this module from the symbol server
-                // on a background thread.
-                if (_isPE && _metadataStart != 0 && _metadataLength > 0)
-                {
-                    byte[] tmp = new byte[1];
-                    if (!_runtime.DataReader.ReadMemory(_metadataStart, tmp, 1, out int read) || read == 0)
-                        if (PEFile.TryGetIndexProperties(new ReadVirtualStream(_runtime.DataReader, (long)data.ImageBase, (long)_size.Value), true, out int imagesize, out int filesize))
-                            _runtime.DataTarget.SymbolLocator.PrefetchBinary(Path.GetFileName(assemblyName), imagesize, filesize);
-                }
-            }
         }
 
         internal override ulong Address
