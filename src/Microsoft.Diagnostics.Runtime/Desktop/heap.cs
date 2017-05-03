@@ -1311,6 +1311,37 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             });
         }
 
+
+
+        protected string GetTypeName(ulong mt, DesktopModule module, uint token)
+        {
+            string typeName = DesktopRuntime.GetNameForMT(mt);
+            return GetBetterTypeName(typeName, module, token);
+        }
+        
+        protected string GetTypeName(TypeHandle hnd, DesktopModule module, uint token)
+        {
+            string typeName = DesktopRuntime.GetTypeName(hnd);
+            return GetBetterTypeName(typeName, module, token);
+        }
+
+        private static string GetBetterTypeName(string typeName, DesktopModule module, uint token)
+        {
+            if (typeName == null || typeName == "<Unloaded Type>")
+            {
+                var builder = GetTypeNameFromToken(module, token);
+                string newName = builder?.ToString();
+                if (newName != null && newName != "<UNKNOWN>")
+                    typeName = newName;
+            }
+            else
+            {
+                typeName = DesktopHeapType.FixGenerics(typeName);
+            }
+
+            return typeName;
+        }
+
         struct ObjectInfo
         {
             public ClrType Type;
@@ -2042,36 +2073,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 ModuleEntry modEnt = new ModuleEntry(module, tokenEnt);
 
-                // We key the dictionary on a Module/Token pair.  If names do not match, then
-                // do not treat these as the same type (happens with generics).
-                string typeName = DesktopRuntime.GetTypeName(hnd);
-                if (typeName == null || typeName == "<Unloaded Type>")
-                {
-                    var builder = GetTypeNameFromToken(module, token);
-                    typeName = (builder != null) ? builder.ToString() : "<UNKNOWN>";
-                }
-                else
-                {
-                    typeName = DesktopHeapType.FixGenerics(typeName);
-                }
-
-                if (_typeEntry.TryGetValue(modEnt, out index))
-                {
-                    BaseDesktopHeapType match = (BaseDesktopHeapType)_types[index];
-                    if (match.Name == typeName)
-                    {
-                        _indices[hnd] = index;
-                        ret = match;
-                    }
-                }
-
                 if (ret == null)
                 {
                     IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
                         return null;
 
-                    ret = new DesktopHeapType(typeName, module, token, mt, mtData, this) { ComponentType = componentType };
+                    ret = new DesktopHeapType(() => GetTypeName(hnd, module, token), module, token, mt, mtData, this) { ComponentType = componentType };
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);
                     _indices[hnd] = index;
@@ -2087,7 +2095,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return ret;
         }
-
 
         public override ClrType GetObjectType(ulong objRef)
         {
@@ -2223,26 +2230,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 ModuleEntry modEnt = new ModuleEntry(module, tokenEnt);
 
-                // We key the dictionary on a Module/Token pair.  If names do not match, then
-                // do not treat these as the same type (happens with generics).
-                string typeName = DesktopRuntime.GetNameForMT(mt);
-                if (typeName == null || typeName == "<Unloaded Type>")
-                {
-                    var builder = GetTypeNameFromToken(module, token);
-                    typeName = (builder != null) ? builder.ToString() : "<UNKNOWN>";
-                }
-                else
-                {
-                    typeName = DesktopHeapType.FixGenerics(typeName);
-                }
-
                 if (ret == null)
                 {
                     IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
                         return null;
 
-                    ret = new DesktopHeapType(typeName, module, token, mt, mtData, this);
+                    ret = new DesktopHeapType(() => GetTypeName(mt, module, token), module, token, mt, mtData, this);
 
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);
