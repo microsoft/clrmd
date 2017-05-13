@@ -1500,6 +1500,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong ObjectMethodTable;
         public ulong ExceptionMethodTable;
         public ulong FreeMethodTable;
+
+        public bool Validate()
+        {
+            return ArrayMethodTable != 0 &&
+                StringMethodTable != 0 &&
+                ObjectMethodTable != 0 &&
+                ExceptionMethodTable != 0 &&
+                FreeMethodTable != 0;
+        }
     };
 
 

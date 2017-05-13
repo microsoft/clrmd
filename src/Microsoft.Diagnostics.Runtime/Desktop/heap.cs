@@ -20,17 +20,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            _free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
-            ((DesktopHeapType)Free).Shared = true;
-            ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0);
-            ArrayType = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
-            ArrayType.ComponentType =  ObjectType;
-            ((BaseDesktopHeapType)Free).DesktopModule = (DesktopModule)ObjectType.Module;
-            StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
-            ExceptionType = GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0);
+            _arrayType = new Lazy<ClrType>(CreateArrayType);
+            _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0));
             ErrorType = new ErrorType(this);
 
+            StringType = DesktopRuntime.StringMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0) : ErrorType;
+            ObjectType = DesktopRuntime.ObjectMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) : ErrorType;
+            if (DesktopRuntime.FreeMethodTable != 0)
+            {
+                var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+
+                ((DesktopHeapType)free).Shared = true;
+                ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
+                _free = free;
+            }
+            else
+            {
+                _free = ErrorType;
+            }
+
             InitSegments(runtime);
+        }
+
+        private ClrType CreateFree()
+        {
+            var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+
+            ((DesktopHeapType)free).Shared = true;
+            ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
+            return free;
+        }
+
+        private ClrType CreateArrayType()
+        {
+            ClrType type = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
+            type.ComponentType = ObjectType;
+            return type;
         }
 
         protected override int GetRuntimeRevision()
@@ -585,10 +610,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
-                if (_firstChar.Type == ErrorType)
+                if (_firstChar?.Type == ErrorType)
                     _firstChar = null;
 
-                if (_stringLength.Type == ErrorType)
+                if (_stringLength?.Type == ErrorType)
                     _stringLength = null;
 
                 _initializedStringFields = true;
@@ -925,6 +950,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
+        private Lazy<ClrType> _arrayType,  _exceptionType;
         private ClrType _free;
 
         private DictionaryList _objectMap;
@@ -936,10 +962,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal ClrType ObjectType { get; private set; }
         internal ClrType StringType { get; private set; }
         internal ClrType ValueType { get; private set; }
-        public override ClrType Free { get { return _free; } }
-        internal ClrType ExceptionType { get; private set; }
+        internal ClrType ArrayType => _arrayType.Value;
+        public override ClrType Free => _free;
+
+        internal ClrType ExceptionType => _exceptionType.Value;
         internal ClrType EnumType { get; set; }
-        internal ClrType ArrayType { get; private set; }
 
         private class ModuleEntryCompare : IEqualityComparer<ModuleEntry>
         {

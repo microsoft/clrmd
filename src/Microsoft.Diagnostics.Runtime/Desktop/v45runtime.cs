@@ -22,6 +22,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!GetCommonMethodTables(ref _commonMTs))
                 throw new ClrDiagnosticsException("Could not request common MethodTable list.", ClrDiagnosticsException.HR.DacError);
 
+            if (!_commonMTs.Validate())
+                CanWalkHeap = false;
+
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
             byte[] tmp = new byte[sizeof(int)];
