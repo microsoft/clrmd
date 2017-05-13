@@ -20,12 +20,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            _free = new Lazy<ClrType>(CreateFree);
-            _objectType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0));
             _arrayType = new Lazy<ClrType>(CreateArrayType);
-            _stringType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0));
             _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0));
             ErrorType = new ErrorType(this);
+
+            StringType = DesktopRuntime.StringMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0) : ErrorType;
+            ObjectType = DesktopRuntime.ObjectMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) : ErrorType;
+            if (DesktopRuntime.FreeMethodTable != 0)
+            {
+                var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+
+                ((DesktopHeapType)free).Shared = true;
+                ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
+                _free = free;
+            }
+            else
+            {
+                _free = ErrorType;
+            }
 
             InitSegments(runtime);
         }
@@ -598,10 +610,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
-                if (_firstChar.Type == ErrorType)
+                if (_firstChar?.Type == ErrorType)
                     _firstChar = null;
 
-                if (_stringLength.Type == ErrorType)
+                if (_stringLength?.Type == ErrorType)
                     _stringLength = null;
 
                 _initializedStringFields = true;
@@ -938,7 +950,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
-        private Lazy<ClrType> _free, _arrayType,  _stringType, _objectType, _exceptionType;
+        private Lazy<ClrType> _arrayType,  _exceptionType;
+        private ClrType _free;
 
         private DictionaryList _objectMap;
         private ExtendedArray<ObjectInfo> _objects;
@@ -946,11 +959,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
         internal BaseDesktopHeapType ErrorType { get; private set; }
-        internal ClrType ObjectType => _objectType.Value;
-        internal ClrType StringType => _stringType.Value;
+        internal ClrType ObjectType { get; private set; }
+        internal ClrType StringType { get; private set; }
         internal ClrType ValueType { get; private set; }
         internal ClrType ArrayType => _arrayType.Value;
-        public override ClrType Free => _free.Value;
+        public override ClrType Free => _free;
 
         internal ClrType ExceptionType => _exceptionType.Value;
         internal ClrType EnumType { get; set; }
