@@ -846,7 +846,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ServerGC = data.ServerMode;
                 HeapCount = data.HeapCount;
-                CanWalkHeap = data.GCStructuresValid && !dataTarget.DataReader.IsMinidump;
+                CanWalkHeap = data.GCStructuresValid;
             }
             _dataReader = dataTarget.DataReader;
         }
@@ -879,7 +879,7 @@ namespace Microsoft.Diagnostics.Runtime
             get { return IntPtr.Size; }
         }
 
-        internal bool CanWalkHeap { get; private set; }
+        internal protected bool CanWalkHeap { get; protected set; }
 
         internal MemoryReader MemoryReader
         {

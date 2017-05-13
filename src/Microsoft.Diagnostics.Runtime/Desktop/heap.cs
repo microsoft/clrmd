@@ -20,17 +20,30 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            _free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
-            ((DesktopHeapType)Free).Shared = true;
-            ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0);
-            ArrayType = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
-            ArrayType.ComponentType =  ObjectType;
-            ((BaseDesktopHeapType)Free).DesktopModule = (DesktopModule)ObjectType.Module;
-            StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
-            ExceptionType = GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0);
+            _free = new Lazy<ClrType>(CreateFree);
+            _objectType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0));
+            _arrayType = new Lazy<ClrType>(CreateArrayType);
+            _stringType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0));
+            _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0));
             ErrorType = new ErrorType(this);
 
             InitSegments(runtime);
+        }
+
+        private ClrType CreateFree()
+        {
+            var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+
+            ((DesktopHeapType)free).Shared = true;
+            ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
+            return free;
+        }
+
+        private ClrType CreateArrayType()
+        {
+            ClrType type = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
+            type.ComponentType = ObjectType;
+            return type;
         }
 
         protected override int GetRuntimeRevision()
@@ -925,7 +938,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
-        private ClrType _free;
+        private Lazy<ClrType> _free, _arrayType,  _stringType, _objectType, _exceptionType;
 
         private DictionaryList _objectMap;
         private ExtendedArray<ObjectInfo> _objects;
@@ -933,13 +946,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
         internal BaseDesktopHeapType ErrorType { get; private set; }
-        internal ClrType ObjectType { get; private set; }
-        internal ClrType StringType { get; private set; }
+        internal ClrType ObjectType => _objectType.Value;
+        internal ClrType StringType => _stringType.Value;
         internal ClrType ValueType { get; private set; }
-        public override ClrType Free { get { return _free; } }
-        internal ClrType ExceptionType { get; private set; }
+        internal ClrType ArrayType => _arrayType.Value;
+        public override ClrType Free => _free.Value;
+
+        internal ClrType ExceptionType => _exceptionType.Value;
         internal ClrType EnumType { get; set; }
-        internal ClrType ArrayType { get; private set; }
 
         private class ModuleEntryCompare : IEqualityComparer<ModuleEntry>
         {
