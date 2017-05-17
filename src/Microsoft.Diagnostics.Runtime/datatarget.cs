@@ -1328,7 +1328,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
                 PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
-                if (file != null)
+                if (file?.Header != null)
                 {
                     PEBuffer peBuffer = file.AllocBuff();
 
@@ -1685,6 +1685,9 @@ namespace Microsoft.Diagnostics.Runtime
                 return _modules;
 
             ulong[] bases = GetImageBases();
+            if (bases == null || bases.Length == 0)
+                return new ModuleInfo[0];
+
             DEBUG_MODULE_PARAMETERS[] mods = new DEBUG_MODULE_PARAMETERS[bases.Length];
             List<ModuleInfo> modules = new List<ModuleInfo>();
             HashSet<ulong> encounteredBases = new HashSet<ulong>();
