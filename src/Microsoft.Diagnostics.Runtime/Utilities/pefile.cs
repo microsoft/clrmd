@@ -94,11 +94,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pdbAge = 0;
             bool ret = false;
 
+            if (Header == null)
+                return false;
+
             if (Header.DebugDirectory.VirtualAddress != 0)
             {
                 var buff = AllocBuff();
                 var debugEntries = (IMAGE_DEBUG_DIRECTORY*)FetchRVA(Header.DebugDirectory.VirtualAddress, Header.DebugDirectory.Size, buff);
-                Debug.Assert(Header.DebugDirectory.Size % sizeof(IMAGE_DEBUG_DIRECTORY) == 0);
+                if (Header.DebugDirectory.Size % sizeof(IMAGE_DEBUG_DIRECTORY) != 0)
+                    return false;
+
                 int debugCount = Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
                 for (int i = 0; i < debugCount; i++)
                 {
