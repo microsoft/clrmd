@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _imageBase = data.ImageBase;
             _assemblyName = assemblyName;
             _isPE = data.IsPEFile;
-            _reflection = data.IsReflection || string.IsNullOrEmpty(name) || !name.Contains("\\");
+            _reflection = data.IsReflection || string.IsNullOrEmpty(name);
             _name = name;
             ModuleId = data.ModuleId;
             ModuleIndex = data.ModuleIndex;
