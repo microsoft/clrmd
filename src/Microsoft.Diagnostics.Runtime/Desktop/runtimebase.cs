@@ -332,39 +332,55 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 heaps[0] = GetWksHeapDetails();
             }
 
-            int max = 2048;  // Max number of segments in case of inconsistent data.
+            HashSet<ulong> addresses = new HashSet<ulong>();
             for (int i = 0; i < heaps.Length; ++i)
             {
                 // Small heap
                 ISegmentData segment = GetSegmentData(heaps[i].FirstHeapSegment);
-                while (segment != null && max-- > 0)
+                while (segment != null)
                 {
                     Debug.Assert(segment.Start < segment.Committed);
-                    Debug.Assert(segment.Committed <= segment.Reserved);
 
                     GCSegmentType type = (segment.Address == heaps[i].EphemeralSegment) ? GCSegmentType.Ephemeral : GCSegmentType.Regular;
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, type);
-                    yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, type);
+
+                    if (segment.Committed <= segment.Reserved)
+                        yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, type);
 
                     if (segment.Address == segment.Next || segment.Address == 0)
-                        segment = null;
+                    {
+                        break;
+                    }
                     else
+                    {
+                        if (!addresses.Add(segment.Next))
+                            break;
+
                         segment = GetSegmentData(segment.Next);
+                    }
                 }
 
                 segment = GetSegmentData(heaps[i].FirstLargeHeapSegment);
-                while (segment != null && max-- > 0)
+                while (segment != null)
                 {
                     Debug.Assert(segment.Start < segment.Committed);
-                    Debug.Assert(segment.Committed <= segment.Reserved);
 
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, GCSegmentType.LargeObject);
-                    yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, GCSegmentType.LargeObject);
+
+                    if (segment.Committed <= segment.Reserved)
+                        yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, GCSegmentType.LargeObject);
 
                     if (segment.Address == segment.Next || segment.Address == 0)
-                        segment = null;
+                    {
+                        break;
+                    }
                     else
+                    {
+                        if (!addresses.Add(segment.Next))
+                            break;
+
                         segment = GetSegmentData(segment.Next);
+                    }
                 }
             }
 
