@@ -568,8 +568,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return "UNKNOWN";
 
             StringBuilder sb = new StringBuilder((int)needed);
-            if (_sos.GetMethodDescName(md, (uint)sb.Capacity, sb, out needed) < 0)
+            if (_sos.GetMethodDescName(md, (uint)sb.Capacity, sb, out uint actuallyNeeded) < 0)
                 return "UNKNOWN";
+
+            // Patch for a bug on sos side :
+            //  Sometimes, when the target method has parameters with generic types
+            //  the first call to GetMethodDescName sets an incorrect value into pNeeded.
+            //  In those cases, a second call directly after the first returns the correct value.
+            if (needed != actuallyNeeded)
+            {
+                sb.Capacity = (int)actuallyNeeded;
+                if (_sos.GetMethodDescName(md, (uint)sb.Capacity, sb, out actuallyNeeded) < 0)
+                    return "UNKNOWN";
+            }
 
             return sb.ToString();
         }
