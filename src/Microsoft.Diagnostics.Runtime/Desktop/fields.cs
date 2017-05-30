@@ -11,6 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopStaticField : ClrStaticField
     {
+
         public DesktopStaticField(DesktopGCHeap heap, IFieldData field, BaseDesktopHeapType containingType, string name, FieldAttributes attributes, object defaultValue, IntPtr sig, int sigLen)
         {
             _field = field;
@@ -85,13 +86,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         }
                     }
                 }
-
-                if (_type == null)
-                    _type = (BaseDesktopHeapType)TryBuildType(_heap);
-
-                if (_type == null)
-                    _type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
             }
+
+            if (_type == null)
+            {
+                _typeResolver = new Lazy<ClrType>(() =>
+                {
+                    ClrType type = (BaseDesktopHeapType)TryBuildType(_heap);
+
+                    if (type == null)
+                        type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
+
+                    return type;
+                });
+            }
+
         }
 
         public override uint Token { get { return _token; } }
@@ -142,7 +151,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get
             {
                 if (_type == null)
-                    _type = (BaseDesktopHeapType)TryBuildType(_heap);
+                    return _typeResolver.Value;
+
                 return _type;
             }
         }
@@ -322,6 +332,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private object _defaultValue;
         private DesktopGCHeap _heap;
         private uint _token;
+        private Lazy<ClrType> _typeResolver;
     }
 
     internal class DesktopThreadStaticField : ClrThreadStaticField
@@ -472,11 +483,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _attributes = attributes;
             _token = data.FieldToken;
 
+            _heap = heap;
+            _type = new Lazy<BaseDesktopHeapType>(() => GetType(_heap, data, sig, sigLen, (ClrElementType)_field.CorElementType));
+        }
+
+        private static BaseDesktopHeapType GetType(DesktopGCHeap heap, IFieldData data, IntPtr sig, int sigLen, ClrElementType elementType)
+        {
+            BaseDesktopHeapType result = null;
             ulong mt = data.TypeMethodTable;
             if (mt != 0)
-                _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(mt, 0);
+                result = (BaseDesktopHeapType)heap.GetTypeByMethodTable(mt, 0);
 
-            if (_type == null)
+            if (result == null)
             {
                 if (sig != IntPtr.Zero && sigLen > 0)
                 {
@@ -509,7 +527,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = res && sigParser.GetData(out ranks);
 
                             if (res)
-                                _type = heap.GetArrayType((ClrElementType)etype, ranks, null);
+                                result = heap.GetArrayType((ClrElementType)etype, ranks, null);
                         }
                         else if (type == ClrElementType.SZArray)
                         {
@@ -517,9 +535,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             type = (ClrElementType)etype;
 
                             if (DesktopRuntimeBase.IsObjectReference(type))
-                                _type = (BaseDesktopHeapType)heap.GetBasicType(ClrElementType.SZArray);
+                                result = (BaseDesktopHeapType)heap.GetBasicType(ClrElementType.SZArray);
                             else
-                                _type = (BaseDesktopHeapType)heap.GetArrayType(type, -1, null);
+                                result = (BaseDesktopHeapType)heap.GetArrayType(type, -1, null);
                         }
                         else if (type == ClrElementType.Pointer)
                         {
@@ -535,11 +553,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 innerType = (BaseDesktopHeapType)heap.GetBasicType(type);
                             }
 
-                            _type = heap.CreatePointerType(innerType, type, null);
+                            result = heap.CreatePointerType(innerType, type, null);
                         }
                         else if (type == ClrElementType.Object || type == ClrElementType.Class)
                         {
-                            _type = (BaseDesktopHeapType)heap.ObjectType;
+                            result = (BaseDesktopHeapType)heap.ObjectType;
                         }
                         else
                         {
@@ -549,24 +567,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 res = res && sigParser.GetToken(out token);
 
                             if (token != 0)
-                                _type = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
+                                result = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
 
-                            if (_type == null)
-                                if ((_type = (BaseDesktopHeapType)heap.GetBasicType((ClrElementType)etype)) == null)
-                                    _type = heap.ErrorType;
+                            if (result == null)
+                                if ((result = (BaseDesktopHeapType)heap.GetBasicType((ClrElementType)etype)) == null)
+                                    result = heap.ErrorType;
                         }
                     }
                 }
 
-                if (_type == null)
-                    _type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
+                if (result == null)
+                    result = (BaseDesktopHeapType)heap.GetBasicType(elementType);
             }
-            else if (ElementType != ClrElementType.Class)
+            else if (elementType != ClrElementType.Class)
             {
-                _type.ElementType = ElementType;
+                result.ElementType = elementType;
             }
 
-            if (_type.IsArray && _type.ComponentType == null)
+            if (result.IsArray && result.ComponentType == null)
             {
                 if (sig != IntPtr.Zero && sigLen > 0)
                 {
@@ -580,7 +598,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     res = res && sigParser.SkipCustomModifiers();
                     res = res && sigParser.GetElemType(out etype);
-                    
+
                     res = res && sigParser.GetElemType(out etype);
 
                     // Generic instantiation
@@ -591,17 +609,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     int token = 0;
                     if (etype == 0x11 || etype == 0x12)
                         res = res && sigParser.GetToken(out token);
-                    
+
                     if (token != 0)
-                        _type.ComponentType = heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
-                    
-                    else if (_type.ComponentType == null)
-                        if ((_type.ComponentType = heap.GetBasicType((ClrElementType)etype)) == null)
-                            _type.ComponentType = heap.ErrorType;
+                        result.ComponentType = heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
+
+                    else if (result.ComponentType == null)
+                        if ((result.ComponentType = heap.GetBasicType((ClrElementType)etype)) == null)
+                            result.ComponentType = heap.ErrorType;
                 }
             }
+
+            return result;
         }
 
+        public override bool IsObjectReference => ClrRuntime.IsObjectReference((ClrElementType)_field.CorElementType);
+        public override bool IsValueClass => ClrRuntime.IsValueClass((ClrElementType)_field.CorElementType);
+        public override bool IsPrimitive => ClrRuntime.IsPrimitive((ClrElementType)_field.CorElementType);
 
         public override ClrElementType ElementType
         {
@@ -610,14 +633,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_elementType != ClrElementType.Unknown)
                     return _elementType;
 
-                if (_type == null)
+                ClrType type = _type.Value;
+                if (type == null)
                     _elementType = (ClrElementType)_field.CorElementType;
 
-                else if (_type.IsEnum)
-                    _elementType = _type.GetEnumElementType();
+                else if (type.IsEnum)
+                    _elementType = type.GetEnumElementType();
 
                 else
-                    _elementType = _type.ElementType;
+                    _elementType = type.ElementType;
 
                 return _elementType;
             }
@@ -625,7 +649,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override string Name { get { return _name; } }
 
-        public override ClrType Type { get { return _type; } }
+        public override ClrType Type { get { return _type.Value; } }
 
         // these are optional.  
         /// <summary>
@@ -645,14 +669,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return GetSize(_type, ElementType);
+                return GetSize(_type.Value, ElementType);
             }
         }
 
 
         #region Fields
         private string _name;
-        private BaseDesktopHeapType _type;
+        private DesktopGCHeap _heap;
+        private Lazy<BaseDesktopHeapType> _type;
         private IFieldData _field;
         private FieldAttributes _attributes;
         private ClrElementType _elementType = ClrElementType.Unknown;
@@ -668,7 +693,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (ElementType == ClrElementType.String)
             {
-                object val = _type.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
+                object val = _heap.GetValueAtAddress(ClrElementType.Object, addr);
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
@@ -679,7 +704,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return addr;
             }
 
-            return _type.DesktopHeap.GetValueAtAddress(ElementType, addr);
+            return _heap.GetValueAtAddress(ElementType, addr);
         }
 
         public override ulong GetAddress(ulong objRef, bool interior = false)
@@ -692,7 +717,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_type == null)
                 return objRef + (ulong)(Offset + IntPtr.Size);
 
-            return objRef + (ulong)(Offset + _type.DesktopHeap.PointerSize);
+            return objRef + (ulong)(Offset + _heap.PointerSize);
         }
 
 
@@ -935,5 +960,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             return 0;
         }
+
+        public override IList<ClrInstanceField> Fields => new ClrInstanceField[0];
     }
 }

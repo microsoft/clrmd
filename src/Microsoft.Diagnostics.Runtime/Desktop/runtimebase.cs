@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
+using System.Threading;
 
 #pragma warning disable 649
 
@@ -25,9 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public List<ClrAppDomain> Domains;
         public DesktopAppDomain System;
         public DesktopAppDomain Shared;
-        public Dictionary<ulong, DesktopModule> Modules;
-        public Dictionary<string, DesktopModule> ModuleFiles;
-        public Dictionary<ulong, uint> ModuleSizes;
     }
 
     abstract internal class DesktopRuntimeBase : RuntimeBase
@@ -41,8 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
+        private Lazy<Dictionary<ulong, uint>> _moduleSizes;
+        private Dictionary<ulong, DesktopModule> _modules = new Dictionary<ulong, DesktopModule>();
+        private Dictionary<string, DesktopModule> _moduleFiles = new Dictionary<string, DesktopModule>();
+        private Lazy<ClrModule> _mscorlib;
         #endregion
-        
+
         internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
         {
@@ -50,6 +52,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
+            _moduleSizes = new Lazy<Dictionary<ulong, uint>>(() => _dataReader.EnumerateModules().ToDictionary(module => module.ImageBase, module => module.FileSize));
+            _mscorlib = new Lazy<ClrModule>(GetMscorlib);
         }
 
 
@@ -71,6 +75,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _heap = new Lazy<DesktopGCHeap>(CreateHeap);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
+            _mscorlib = new Lazy<ClrModule>(GetMscorlib);
+        }
+
+        internal ulong GetModuleSize(ulong address)
+        {
+            _moduleSizes.Value.TryGetValue(address, out uint size);
+            return size;
         }
 
         internal int Revision { get; set; }
@@ -321,39 +332,55 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 heaps[0] = GetWksHeapDetails();
             }
 
-            int max = 2048;  // Max number of segments in case of inconsistent data.
+            HashSet<ulong> addresses = new HashSet<ulong>();
             for (int i = 0; i < heaps.Length; ++i)
             {
                 // Small heap
                 ISegmentData segment = GetSegmentData(heaps[i].FirstHeapSegment);
-                while (segment != null && max-- > 0)
+                while (segment != null)
                 {
                     Debug.Assert(segment.Start < segment.Committed);
-                    Debug.Assert(segment.Committed <= segment.Reserved);
 
                     GCSegmentType type = (segment.Address == heaps[i].EphemeralSegment) ? GCSegmentType.Ephemeral : GCSegmentType.Regular;
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, type);
-                    yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, type);
+
+                    if (segment.Committed <= segment.Reserved)
+                        yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, type);
 
                     if (segment.Address == segment.Next || segment.Address == 0)
-                        segment = null;
+                    {
+                        break;
+                    }
                     else
+                    {
+                        if (!addresses.Add(segment.Next))
+                            break;
+
                         segment = GetSegmentData(segment.Next);
+                    }
                 }
 
                 segment = GetSegmentData(heaps[i].FirstLargeHeapSegment);
-                while (segment != null && max-- > 0)
+                while (segment != null)
                 {
                     Debug.Assert(segment.Start < segment.Committed);
-                    Debug.Assert(segment.Committed <= segment.Reserved);
 
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, GCSegmentType.LargeObject);
-                    yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, GCSegmentType.LargeObject);
+
+                    if (segment.Committed <= segment.Reserved)
+                        yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, GCSegmentType.LargeObject);
 
                     if (segment.Address == segment.Next || segment.Address == 0)
-                        segment = null;
+                    {
+                        break;
+                    }
                     else
+                    {
+                        if (!addresses.Add(segment.Next))
+                            break;
+
                         segment = GetSegmentData(segment.Next);
+                    }
                 }
             }
 
@@ -532,10 +559,53 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get
             {
                 if (_moduleList == null)
-                    _moduleList = UniqueModules(_appDomains.Value.Modules.Values).ToArray();
+                {
+                    if (!_appDomains.IsValueCreated)
+                    {
+                        var value = _appDomains.Value;
+                    }
+
+                    _moduleList = UniqueModules(_modules.Values).ToArray();
+                }
 
                 return _moduleList;
             }
+        }
+
+        public ClrModule Mscorlib => _mscorlib.Value;
+
+        private ClrModule GetMscorlib()
+        {
+            ClrModule mscorlib = null;
+            string moduleName = ClrInfo.Flavor == ClrFlavor.Core
+                                    ? "system.private.corelib"
+                                    : "mscorlib";
+
+
+            foreach (ClrModule module in _modules.Values)
+                if (module.Name.ToLowerInvariant().Contains(moduleName))
+                {
+                    mscorlib = module;
+                    break;
+                }
+
+            if (mscorlib == null)
+            {
+                IAppDomainStoreData ads = GetAppDomainStoreData();
+                IAppDomainData sharedDomain = GetAppDomainData(ads.SharedDomain);
+                foreach (ulong assembly in GetAssemblyList(ads.SharedDomain, sharedDomain.AssemblyCount))
+                {
+                    string name = GetAssemblyName(assembly);
+                    if (name.ToLowerInvariant().Contains(moduleName))
+                    {
+                        IAssemblyData assemblyData = GetAssemblyData(ads.SharedDomain, assembly);
+                        ulong module = GetModuleList(assembly, assemblyData.ModuleCount).Single();
+                        mscorlib = GetModule(module);
+                    }
+                }
+            }
+
+            return mscorlib;
         }
 
         static IEnumerable<ClrModule> UniqueModules(Dictionary<ulong, DesktopModule>.ValueCollection self)
@@ -548,7 +618,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     continue;
 
                 set.Add(value);
-                yield return (ClrModule)value;
+                yield return value;
             }
         }
 
@@ -586,10 +656,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private DomainContainer CreateAppDomainList()
         {
-            Dictionary<ulong, DesktopModule> modules = new Dictionary<ulong, DesktopModule>();
-            Dictionary<string, DesktopModule> moduleFiles = new Dictionary<string, DesktopModule>();
-            Dictionary<ulong, uint> moduleSizes = _dataReader.EnumerateModules().ToDictionary(module => module.ImageBase, module => module.FileSize);
-
             IAppDomainStoreData ads = GetAppDomainStoreData();
             if (ads == null)
                 return new DomainContainer();
@@ -600,16 +666,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return new DomainContainer()
             {
-                Domains = domains.Select(ad=>(ClrAppDomain)InitDomain(ad, modules, moduleFiles, moduleSizes)).Where(ad => ad != null).ToList(),
-                Shared = InitDomain(ads.SharedDomain, modules, moduleFiles, moduleSizes, "Shared Domain"),
-                System = InitDomain(ads.SystemDomain, modules, moduleFiles, moduleSizes, "System Domain"),
-                Modules = modules,
-                ModuleFiles = moduleFiles,
-                ModuleSizes = moduleSizes
+                Domains = domains.Select(ad=>(ClrAppDomain)InitDomain(ad)).Where(ad => ad != null).ToList(),
+                Shared = InitDomain(ads.SharedDomain, "Shared Domain"),
+                System = InitDomain(ads.SystemDomain, "System Domain")
             };
         }
 
-        private DesktopAppDomain InitDomain(ulong domain, Dictionary<ulong, DesktopModule> modules, Dictionary<string, DesktopModule> moduleFiles, Dictionary<ulong, uint> moduleSizes, string name = null)
+        private DesktopAppDomain InitDomain(ulong domain, string name = null)
         {
             ulong[] bases = new ulong[1];
             IAppDomainData domainData = GetAppDomainData(domain);
@@ -630,7 +693,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         foreach (ulong module in GetModuleList(assembly, assemblyData.ModuleCount))
                         {
-                            DesktopModule clrModule = GetModule(module, modules, moduleFiles, moduleSizes);
+                            DesktopModule clrModule = GetModule(module);
                             if (clrModule != null)
                             {
                                 clrModule.AddMapping(appDomain, module);
@@ -644,12 +707,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return appDomain;
         }
 
-        private DesktopModule GetModule(ulong module, Dictionary<ulong, DesktopModule> modules, Dictionary<string, DesktopModule> moduleFiles, Dictionary<ulong, uint> moduleSizes)
+        internal DesktopModule GetModule(ulong module)
         {
             if (module == 0)
                 return null;
 
-            if (modules.TryGetValue(module, out DesktopModule res))
+            if (_modules.TryGetValue(module, out DesktopModule res))
                 return res;
 
             IModuleData moduleData = GetModuleData(module);
@@ -659,25 +722,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             string peFile = GetPEFileName(moduleData.PEFile);
             string assemblyName = GetAssemblyName(moduleData.Assembly);
 
-            moduleSizes.TryGetValue(moduleData.ImageBase, out uint size);
-
             if (peFile == null)
             {
-                res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
+                res = new DesktopModule(this, module, moduleData, peFile, assemblyName);
             }
-            else if (!moduleFiles.TryGetValue(peFile, out res))
+            else if (!_moduleFiles.TryGetValue(peFile, out res))
             {
-                res = new DesktopModule(this, module, moduleData, peFile, assemblyName, size);
-                moduleFiles[peFile] = res;
+                res = new DesktopModule(this, module, moduleData, peFile, assemblyName);
+                _moduleFiles[peFile] = res;
             }
 
             // We've modified the 'real' module list, so clear the cached version.
             _moduleList = null;
-            modules[module] = res;
+            _modules[module] = res;
             return res;
         }
-
-        internal DesktopModule GetModule(ulong module) => GetModule(module, _appDomains.Value.Modules, _appDomains.Value.ModuleFiles, _appDomains.Value.ModuleSizes);
 
         /// <summary>
         /// 
@@ -837,6 +896,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #endregion
 
         #region Abstract Functions
+
+        internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
         internal abstract uint GetExceptionHROffset();
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
@@ -1455,6 +1516,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong ObjectMethodTable;
         public ulong ExceptionMethodTable;
         public ulong FreeMethodTable;
+
+        public bool Validate()
+        {
+            return ArrayMethodTable != 0 &&
+                StringMethodTable != 0 &&
+                ObjectMethodTable != 0 &&
+                ExceptionMethodTable != 0 &&
+                FreeMethodTable != 0;
+        }
     };
 
 

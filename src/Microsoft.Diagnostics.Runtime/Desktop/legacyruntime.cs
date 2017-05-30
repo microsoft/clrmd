@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -29,6 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (!GetCommonMethodTables(ref _commonMTs))
                 throw new ClrDiagnosticsException("Could not request common MethodTable list.", ClrDiagnosticsException.HR.DacError);
+            
+            if (!_commonMTs.Validate())
+                CanWalkHeap = false;
 
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
@@ -53,6 +57,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 return _version;
             }
+        }
+
+        internal override Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken)
+        {
+            return new Dictionary<ulong, List<ulong>>();
         }
 
         internal override ulong GetILForModule(ClrModule module, uint rva)

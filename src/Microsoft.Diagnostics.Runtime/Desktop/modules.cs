@@ -49,7 +49,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ICorDebug.IMetadataImport _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
         private ulong _address;
-        private ulong _imageBase, _size;
+        private ulong _imageBase;
+        private Lazy<ulong> _size;
         private ulong _metadataStart;
         private ulong _metadataLength;
         private DebuggableAttribute.DebuggingModes? _debugMode;
@@ -58,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ClrAppDomain[] _appDomainList;
         PdbInfo _pdb;
 
-        public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName, ulong size)
+        public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName)
             : base(runtime)
         {
             _address = address;
@@ -66,32 +67,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _imageBase = data.ImageBase;
             _assemblyName = assemblyName;
             _isPE = data.IsPEFile;
-            _reflection = data.IsReflection || string.IsNullOrEmpty(name) || !name.Contains("\\");
+            _reflection = data.IsReflection || string.IsNullOrEmpty(name);
             _name = name;
             ModuleId = data.ModuleId;
             ModuleIndex = data.ModuleIndex;
             _metadataStart = data.MetdataStart;
             _metadataLength = data.MetadataLength;
             _assemblyAddress = data.Assembly;
-            _size = size;
+            _size = new Lazy<ulong>(()=>runtime.GetModuleSize(address));
 
             if (!runtime.DataReader.IsMinidump)
             {
                 // This is very expensive in the minidump case, as we may be heading out to the symbol server or
                 // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
                 _metadata = data.LegacyMetaDataImport as ICorDebug.IMetadataImport;
-            }
-            else
-            {
-                // If we are a minidump and metadata isn't mapped in, attempt to fetch this module from the symbol server
-                // on a background thread.
-                if (_isPE && _metadataStart != 0 && _metadataLength > 0)
-                {
-                    byte[] tmp = new byte[1];
-                    if (!_runtime.DataReader.ReadMemory(_metadataStart, tmp, 1, out int read) || read == 0)
-                        if (PEFile.TryGetIndexProperties(new ReadVirtualStream(_runtime.DataReader, (long)data.ImageBase, (long)size), true, out int imagesize, out int filesize))
-                            _runtime.DataTarget.SymbolLocator.PrefetchBinary(Path.GetFileName(assemblyName), imagesize, filesize);
-                }
             }
         }
 
@@ -158,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override IEnumerable<ClrType> EnumerateTypes()
         {
             var heap = (DesktopGCHeap)_runtime.Heap;
-            var mtList = _runtime.GetMethodTableList(_mapping.First().Value);
+            var mtList = _runtime.GetMethodTableList(_address);
             if (_typesLoaded)
             {
                 foreach (var type in heap.EnumerateTypes())
@@ -258,12 +247,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_metadata != null)
                 return _metadata;
-
-            ulong module = GetDomainModule(null);
-            if (module == 0)
-                return null;
-
-            _metadata = _runtime.GetMetadataImport(module);
+            
+            _metadata = _runtime.GetMetadataImport(_address);
             return _metadata;
         }
 
@@ -277,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return _size;
+                return _size.Value;
             }
         }
 

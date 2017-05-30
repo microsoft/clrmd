@@ -736,7 +736,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         ulong _cachedMethodTable;
         ulong[] _methodTables;
-        private string _name;
+        private Lazy<string> _name;
         private int _index;
 
         private TypeAttributes _attributes;
@@ -845,7 +845,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override string Name { get { return _name; } }
+        public override string Name { get { return _name.Value; } }
         public override ClrModule Module
         {
             get
@@ -1742,10 +1742,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return builder.ToString();
         }
 
-        internal DesktopHeapType(string typeName, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap)
+        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap)
             : base(mt, heap, module, token)
         {
-            _name = typeName;
+            _name = new Lazy<string>(typeNameFactory);
 
             Shared = mtData.Shared;
             _parent = mtData.Parent;
