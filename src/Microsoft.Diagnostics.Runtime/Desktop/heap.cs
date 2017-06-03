@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
 
                 ((DesktopHeapType)free).Shared = true;
-                ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
+                ((BaseDesktopHeapType)free).DesktopModule = ObjectType.Module as DesktopModule;
                 _free = free;
             }
             else
