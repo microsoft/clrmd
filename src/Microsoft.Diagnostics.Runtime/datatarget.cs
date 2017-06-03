@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -1053,9 +1054,11 @@ namespace Microsoft.Diagnostics.Runtime
             return null;
         }
 
+        private static Regex s_invalidChars = new Regex($"[{Regex.Escape(new string(System.IO.Path.GetInvalidPathChars()))}]");
+
         private ModuleInfo[] InitModules()
         {
-            var sortedModules = new List<ModuleInfo>(_dataReader.EnumerateModules());
+            var sortedModules = new List<ModuleInfo>(_dataReader.EnumerateModules().Where(m => !s_invalidChars.IsMatch(m.FileName)));
             sortedModules.Sort((a, b) => a.ImageBase.CompareTo(b.ImageBase));
             return sortedModules.ToArray();
         }

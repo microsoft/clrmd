@@ -15,13 +15,6 @@ namespace GCRootDemo
         {
             Helpers.TestWorkingDirectory = Environment.CurrentDirectory;
 
-            using (DataTarget dt = DataTarget.LoadCrashDump(@"D:\work\05_09_gchole\PerfTestActorV1.exe.5812.dmp"))
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
-                bool walkable = heap.CanWalkHeap;
-            }
-
             // Please see src\Microsoft.Diagnostics.Runtime.Tests\Targets\GCRoot.cs for the debuggee we
             // are currently debugging.
             using (DataTarget dt = TestTargets.GCRoot.LoadFullDump())
