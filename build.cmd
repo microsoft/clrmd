@@ -1,5 +1,8 @@
-@ECHO OFF
 
-if not exist bin mkdir bin
+set scriptRoot=%~dp0
+set binDir=%scriptRoot%bin
 
-"%SystemRoot%\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe" src\Microsoft.Diagnostics.Runtime.sln /p:OutDir="%~dp0\bin" /nologo /m /v:m /nr:false /flp:verbosity=normal;LogFile=bin\msbuild.log %*
+if not exist %binDir% mkdir %binDir%
+call %scriptRoot%init-tools.cmd
+call %scriptRoot%Tools\dotnetcli\dotnet restore %scriptRoot%src\Microsoft.Diagnostics.Runtime.sln --packages %scriptRoot%packages
+call %scriptRoot%Tools\dotnetcli\dotnet msbuild %scriptRoot%src\Microsoft.Diagnostics.Runtime.sln /p:OutDir="%scriptRoot%\bin" /m /v:m /flp:verbosity=normal;LogFile=%binDir%\msbuild.log %*
