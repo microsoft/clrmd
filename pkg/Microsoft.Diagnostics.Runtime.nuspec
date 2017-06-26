@@ -31,6 +31,7 @@ Aside from various bugfixes, here are some noteworthy changes in this release:
   </metadata>
   <files>
     <file src="..\Bin\Microsoft.Diagnostics.Runtime.dll" target="lib/net40" exclude="" />
+    <file src="..\Bin\Microsoft.Diagnostics.Runtime.xml" target="lib/net40" exclude="" />
     <file src="License-Stable.rtf" target="" exclude="" />
   </files>
 </package>
