@@ -74,6 +74,8 @@ static class Extensions
                     nearest.File = sequenceCollection.File.Name;
                     nearest.Line = (int)point.LineBegin;
                 }
+                
+                distance = dist;
             }
         }
 
