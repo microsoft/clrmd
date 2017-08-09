@@ -77,10 +77,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         [Obsolete]
         CoreCLR = 1,
-        
+
         /// <summary>
         /// Used for .Net Native.
         /// </summary>
+        [Obsolete(".Net Native support is being split out of this library into a different one.")]
         Native = 2,
 
         /// <summary>
@@ -190,6 +191,7 @@ namespace Microsoft.Diagnostics.Runtime
             return ConstructRuntime(dacFilename);
         }
 
+#pragma warning disable 0618
         private ClrRuntime ConstructRuntime(string dac)
         {
             if (IntPtr.Size != (int)_dataTarget.DataReader.GetPointerSize())
@@ -1114,6 +1116,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+#pragma warning restore 0618
 
         public override void Dispose()
         {
