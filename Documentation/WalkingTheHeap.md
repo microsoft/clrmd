@@ -5,7 +5,7 @@
 CLR's GC is a generational, mark and sweep GC. There are 3 generations in the
 process, gen0, gen1, and gen2. Objects are allocated in gen0, and whenever an
 object survives a GC they are promoted to the next generation (thus a gen0
-object becomes a gen2 object and a gen1 object becomes a gen2 object). The only
+object becomes a gen1 object and a gen1 object becomes a gen2 object). The only
 exception to this rule are large objects. Large objects are allocated directly
 into gen2 (on a special segment) and are never relocated. An object is
 considered a "large object" if it takes up more than 85,000 bytes.
