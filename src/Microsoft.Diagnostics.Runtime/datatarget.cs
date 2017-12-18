@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text.RegularExpressions;
+using System.ComponentModel;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -880,7 +881,7 @@ namespace Microsoft.Diagnostics.Runtime
             IDataReader reader;
             if (attachFlag == AttachFlag.Passive)
             {
-                reader = new LiveDataReader(pid);
+                reader = new LiveDataReader(pid, createSnapshot: false);
             }
             else
             {
@@ -890,6 +891,18 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
+            return dataTarget;
+        }
+
+        /// <summary>
+        /// Attaches to a snapshot process (see https://msdn.microsoft.com/en-us/library/dn457825(v=vs.85).aspx).
+        /// </summary>
+        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <returns>A DataTarget instance.</returns>
+        public static DataTarget CreateSnapshotAndAttach(int pid)
+        {
+            IDataReader reader = new LiveDataReader(pid, createSnapshot: true);
+            DataTargetImpl dataTarget = new DataTargetImpl(reader, null);
             return dataTarget;
         }
 
@@ -2045,16 +2058,40 @@ namespace Microsoft.Diagnostics.Runtime
     internal unsafe class LiveDataReader : IDataReader
     {
         #region Variables
+        private int _originalPid;
+        private IntPtr _snapshotHandle;
+        private IntPtr _cloneHandle;
         private IntPtr _process;
         private int _pid;
         #endregion
 
         private const int PROCESS_VM_READ = 0x10;
         private const int PROCESS_QUERY_INFORMATION = 0x0400;
-        public LiveDataReader(int pid)
+        public LiveDataReader(int pid, bool createSnapshot)
         {
-            _pid = pid;
-            _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, pid);
+            if (createSnapshot)
+            {
+                _originalPid = pid;
+                Process process = Process.GetProcessById(pid);
+                int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
+                if(hr != 0)
+                {
+                    throw new ClrDiagnosticsException(String.Format("Could not create snapshot to process. Error {0}.", hr));
+                }
+
+                hr = PssQuerySnapshot(_snapshotHandle, PSS_QUERY_INFORMATION_CLASS.PSS_QUERY_VA_CLONE_INFORMATION, out _cloneHandle, IntPtr.Size);
+                if (hr != 0)
+                {
+                    throw new ClrDiagnosticsException(String.Format("Could not query the snapshot. Error {0}.", hr));
+                }
+
+                _pid = GetProcessId(_cloneHandle);
+            }
+            else
+            {
+                _pid = pid;
+            }
+            _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
 
             if (_process == IntPtr.Zero)
                 throw new ClrDiagnosticsException(String.Format("Could not attach to process. Error {0}.", Marshal.GetLastWin32Error()));
@@ -2078,6 +2115,24 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Close()
         {
+            if (_originalPid != 0)
+            {
+                CloseHandle(_cloneHandle);
+                int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
+                if (hr != 0)
+                {
+                    throw new ClrDiagnosticsException(String.Format("Could not free the snapshot. Error {0}.", hr));
+                }
+
+                try
+                {
+                    Process.GetProcessById(_pid).Kill();
+                }
+                catch (Win32Exception)
+                {
+                }
+            }
+
             if (_process != IntPtr.Zero)
             {
                 CloseHandle(_process);
@@ -2300,6 +2355,45 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        #region PInvoke Enums
+        [Flags]
+        private enum PSS_CAPTURE_FLAGS : uint
+        {
+            PSS_CAPTURE_NONE = 0x00000000,
+            PSS_CAPTURE_VA_CLONE = 0x00000001,
+            PSS_CAPTURE_RESERVED_00000002 = 0x00000002,
+            PSS_CAPTURE_HANDLES = 0x00000004,
+            PSS_CAPTURE_HANDLE_NAME_INFORMATION = 0x00000008,
+            PSS_CAPTURE_HANDLE_BASIC_INFORMATION = 0x00000010,
+            PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION = 0x00000020,
+            PSS_CAPTURE_HANDLE_TRACE = 0x00000040,
+            PSS_CAPTURE_THREADS = 0x00000080,
+            PSS_CAPTURE_THREAD_CONTEXT = 0x00000100,
+            PSS_CAPTURE_THREAD_CONTEXT_EXTENDED = 0x00000200,
+            PSS_CAPTURE_RESERVED_00000400 = 0x00000400,
+            PSS_CAPTURE_VA_SPACE = 0x00000800,
+            PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION = 0x00001000,
+            PSS_CREATE_BREAKAWAY_OPTIONAL = 0x04000000,
+            PSS_CREATE_BREAKAWAY = 0x08000000,
+            PSS_CREATE_FORCE_BREAKAWAY = 0x10000000,
+            PSS_CREATE_USE_VM_ALLOCATIONS = 0x20000000,
+            PSS_CREATE_MEASURE_PERFORMANCE = 0x40000000,
+            PSS_CREATE_RELEASE_SECTION = 0x80000000
+        }
+
+        private enum PSS_QUERY_INFORMATION_CLASS
+        {
+            PSS_QUERY_PROCESS_INFORMATION = 0,
+            PSS_QUERY_VA_CLONE_INFORMATION = 1,
+            PSS_QUERY_AUXILIARY_PAGES_INFORMATION = 2,
+            PSS_QUERY_VA_SPACE_INFORMATION = 3,
+            PSS_QUERY_HANDLE_INFORMATION = 4,
+            PSS_QUERY_THREAD_INFORMATION = 5,
+            PSS_QUERY_HANDLE_TRACE_INFORMATION = 6,
+            PSS_QUERY_PERFORMANCE_COUNTERS = 7
+        } 
+        #endregion
+
         #region PInvoke Structs
         [StructLayout(LayoutKind.Sequential)]
         internal struct MEMORY_BASIC_INFORMATION
@@ -2349,8 +2443,20 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
+
+        [DllImport("kernel32")]
+        private static extern int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, out IntPtr SnapshotHandle);
+
+        [DllImport("kernel32")]
+        private static extern int PssFreeSnapshot(IntPtr ProcessHandle, IntPtr SnapshotHandle);
+
+        [DllImport("kernel32")]
+        private static extern int PssQuerySnapshot(IntPtr SnapshotHandle, PSS_QUERY_INFORMATION_CLASS InformationClass, out IntPtr Buffer, int BufferLength);
+
+        [DllImport("kernel32")]
+        private static extern int GetProcessId(IntPtr hObject);
         #endregion
-        
+
         private enum ThreadAccess : int
         {
             THREAD_ALL_ACCESS = (0x1F03FF),
