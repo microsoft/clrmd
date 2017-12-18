@@ -881,7 +881,7 @@ namespace Microsoft.Diagnostics.Runtime
             IDataReader reader;
             if (attachFlag == AttachFlag.Passive)
             {
-                reader = new LiveDataReader(pid);
+                reader = new LiveDataReader(pid, createSnapshot: false);
             }
             else
             {
@@ -901,7 +901,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget CreateSnapshotAndAttach(int pid)
         {
-            IDataReader reader = new LiveDataReader(pid, true);
+            IDataReader reader = new LiveDataReader(pid, createSnapshot: true);
             DataTargetImpl dataTarget = new DataTargetImpl(reader, null);
             return dataTarget;
         }
@@ -2060,32 +2060,32 @@ namespace Microsoft.Diagnostics.Runtime
         #region Variables
         private int _originalPid;
         private IntPtr _snapshotHandle;
-        private IntPtr _vaCloneHandle;
+        private IntPtr _cloneHandle;
         private IntPtr _process;
         private int _pid;
         #endregion
 
         private const int PROCESS_VM_READ = 0x10;
         private const int PROCESS_QUERY_INFORMATION = 0x0400;
-        public LiveDataReader(int pid, bool createSnapshot = false)
+        public LiveDataReader(int pid, bool createSnapshot)
         {
             if (createSnapshot)
             {
                 _originalPid = pid;
-                var process = Process.GetProcessById(pid);
-                var hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
+                Process process = Process.GetProcessById(pid);
+                int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if(hr != 0)
                 {
                     throw new ClrDiagnosticsException(String.Format("Could not create snapshot to process. Error {0}.", hr));
                 }
 
-                hr = PssQuerySnapshot(_snapshotHandle, PSS_QUERY_INFORMATION_CLASS.PSS_QUERY_VA_CLONE_INFORMATION, out _vaCloneHandle, IntPtr.Size);
+                hr = PssQuerySnapshot(_snapshotHandle, PSS_QUERY_INFORMATION_CLASS.PSS_QUERY_VA_CLONE_INFORMATION, out _cloneHandle, IntPtr.Size);
                 if (hr != 0)
                 {
                     throw new ClrDiagnosticsException(String.Format("Could not query the snapshot. Error {0}.", hr));
                 }
 
-                _pid = GetProcessId(_vaCloneHandle);
+                _pid = GetProcessId(_cloneHandle);
             }
             else
             {
@@ -2117,8 +2117,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (_originalPid != 0)
             {
-                CloseHandle(_vaCloneHandle);
-                var hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
+                CloseHandle(_cloneHandle);
+                int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
                 if (hr != 0)
                 {
                     throw new ClrDiagnosticsException(String.Format("Could not free the snapshot. Error {0}.", hr));
