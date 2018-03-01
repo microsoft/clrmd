@@ -39,6 +39,12 @@
     <DocumentationFile>bin\Release\Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -164,6 +170,9 @@
     <Compile Include="Utilities\SymbolLocator.Async.cs" />
     <Compile Include="Utilities\SymbolLocator.cs" />
     <Compile Include="Utilities\SymbolPath.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Microsoft.Diagnostics.Runtime.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
