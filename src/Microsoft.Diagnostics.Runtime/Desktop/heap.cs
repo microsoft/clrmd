@@ -1010,7 +1010,31 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 InitBasicTypes();
 
 
-            return _basicTypes[(int)elType];
+            var ret = _basicTypes[(int)elType];
+            if (ret == null && this.DesktopRuntime.DataReader.IsMinidump)
+            {
+                switch (elType)
+                {
+                    case ClrElementType.Boolean:
+                    case ClrElementType.Char:
+                    case ClrElementType.Double:
+                    case ClrElementType.Float:
+                    case ClrElementType.Pointer:
+                    case ClrElementType.NativeInt:
+                    case ClrElementType.FunctionPointer:
+                    case ClrElementType.NativeUInt:
+                    case ClrElementType.Int16:
+                    case ClrElementType.Int32:
+                    case ClrElementType.Int64:
+                    case ClrElementType.Int8:
+                    case ClrElementType.UInt16:
+                    case ClrElementType.UInt32:
+                    case ClrElementType.UInt64:
+                    case ClrElementType.UInt8:
+                        return new PrimitiveType(this, elType);
+                }
+            }
+            return ret;
         }
 
         private void InitBasicTypes()
