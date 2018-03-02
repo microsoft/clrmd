@@ -1009,9 +1009,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_basicTypes == null)
                 InitBasicTypes();
 
-
-            var ret = _basicTypes[(int)elType];
-            if (ret == null && this.DesktopRuntime.DataReader.IsMinidump)
+            if (_basicTypes[(int)elType] == null && this.DesktopRuntime.DataReader.IsMinidump)
             {
                 switch (elType)
                 {
@@ -1031,10 +1029,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     case ClrElementType.UInt32:
                     case ClrElementType.UInt64:
                     case ClrElementType.UInt8:
-                        return new PrimitiveType(this, elType);
+                        _basicTypes[(int)elType] = new PrimitiveType(this, elType);
+                        break;
                 }
             }
-            return ret;
+            return _basicTypes[(int)elType]; ;
         }
 
         private void InitBasicTypes()
@@ -1153,7 +1152,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            Debug.Assert(DesktopRuntime.DataReader.IsMinidump || count == 14);
+            Debug.Assert(DesktopRuntime.DataReader.IsMinidump || count == 14);           
+
         }
 
         internal BaseDesktopHeapType CreatePointerType(BaseDesktopHeapType innerType, ClrElementType clrElementType, string nameHint)

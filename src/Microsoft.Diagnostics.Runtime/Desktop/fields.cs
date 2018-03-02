@@ -991,7 +991,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return DesktopInstanceField.GetSize(this, ElementType);
+                return 0;
             }
         }
 
@@ -1095,7 +1095,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return ElementType.ToString();
+                return GetElementTypeName();
             }
         }
 
@@ -1155,5 +1155,58 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public override IList<ClrInstanceField> Fields => new ClrInstanceField[0];
+
+        private string GetElementTypeName()
+        {
+            switch (ElementType)
+            {
+                case ClrElementType.Boolean:
+                    return "System.Boolean";
+
+                case ClrElementType.Char:
+                    return "System.Char";
+
+                case ClrElementType.Int8:
+                    return "System.SByte";
+
+                case ClrElementType.UInt8:
+                    return "System.Byte";
+
+                case ClrElementType.Int16:
+                    return "System.Int16";
+
+                case ClrElementType.UInt16:
+                    return "System.UInt16";
+
+                case ClrElementType.Int32:
+                    return "System.Int32";
+
+                case ClrElementType.UInt32:
+                    return "System.UInt32";
+
+                case ClrElementType.Int64:
+                    return "System.Int64";
+
+                case ClrElementType.UInt64:
+                    return "System.UInt64";
+
+                case ClrElementType.Float:
+                    return "System.Single";
+
+                case ClrElementType.Double:
+                    return "System.Double";
+
+                case ClrElementType.NativeInt:
+                    return "System.IntPtr";
+
+                case ClrElementType.NativeUInt:
+                    return "System.UIntPtr";
+
+                case ClrElementType.Struct:
+                    return "Sytem.ValueType";
+            }
+
+            return ElementType.ToString();
+        }
     }
 }
