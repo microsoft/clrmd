@@ -504,7 +504,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #region Internal Functions
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
-            Debug.Assert(address != 0);
+            Debug.Assert(address != 0 || _dataReader.IsMinidump);
 
             foreach (ClrThread thread in _threads.Value)
             {

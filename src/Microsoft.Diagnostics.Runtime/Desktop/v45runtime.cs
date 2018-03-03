@@ -736,7 +736,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!ReadPointer(dataPtr + (ulong)(2 * IntPtr.Size), out ulong md))
                     break;
 
-                if (i == 0)
+                if (i == 0 && sp != 0)
+                    thread = (DesktopThread)GetThreadByStackAddress(sp);
+
+                // it seems that the first frame often has 0 for IP and SP.  Try the 2nd frame as well
+                if (i == 1 && thread == null && sp != 0)
                     thread = (DesktopThread)GetThreadByStackAddress(sp);
 
                 result.Add(new DesktopStackFrame(this, thread, ip, sp, md));
