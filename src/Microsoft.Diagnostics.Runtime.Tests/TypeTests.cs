@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                                    select t).ToArray();
 
                 Assert.AreEqual(2, types.Length);
-                Assert.AreEqual(types[0], types[1]);
+                Assert.AreNotSame(types[0], types[1]);
 
                 ClrModule module = runtime.Modules.Where(m => Path.GetFileName(m.FileName).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase)).Single();
                 ClrType typeFromModule = module.GetTypeByName(TypeName);
@@ -287,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
                 ClrType fooType = heap.GetObjectType(fooObjects[0]);
-                Assert.AreSame(fooType, heap.GetObjectType(fooObjects[1]));
+                Assert.AreNotSame(fooType, heap.GetObjectType(fooObjects[1]));
 
 
                 ClrRoot appDomainsFoo = (from root in heap.EnumerateRoots(true)
@@ -297,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ulong nestedExceptionFoo = fooObjects.Where(obj => obj != appDomainsFoo.Object).Single();
                 ClrType nestedExceptionFooType = heap.GetObjectType(nestedExceptionFoo);
 
-                Assert.AreSame(nestedExceptionFooType, appDomainsFoo.Type);
+                Assert.AreNotSame(nestedExceptionFooType, appDomainsFoo.Type);
 
                 ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedExceptionFoo);
                 ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Object);

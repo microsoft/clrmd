@@ -1,8 +1,9 @@
 {
-    "dependencies": {
-        "Microsoft.VisualStudio.UnitTesting": "11.0.50727.1"
-    },
-    "frameworks": {
-        "net45": {}
-    }
+  "dependencies": {
+    "Microsoft.VisualStudio.UnitTesting": "11.0.50727.1"
+  },
+  "frameworks": {
+    "net45": {}
+  },
+  "runtimes": { "win": {} }
 }
