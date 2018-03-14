@@ -71,6 +71,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             
             MemoryReader = null;
             _moduleList = null;
+            _modules = new Dictionary<ulong, DesktopModule>();
+            _moduleFiles = new Dictionary<string, DesktopModule>();
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _heap = new Lazy<DesktopGCHeap>(CreateHeap);
