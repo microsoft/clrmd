@@ -182,7 +182,7 @@ debugger process without detaching from the target process, Windows will kill
 the target process. Calling `DataTarget`'s `Dispose` method will detatch from
 any live process.
 
-DataTarget itself has a finalzier (which calls `Dispose`), and this will be run
+DataTarget itself has a finalizer (which calls `Dispose`), and this will be run
 if the process is terminated normally. However I highly recommend that your
 program eagerly call `Dispose` as soon as you are done using ClrMD on the
 process.
