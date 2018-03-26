@@ -1,9 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -20,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 List<ClrHandle> handles = new List<ClrHandle>();
-                
+
                 bool cont;
                 do
                 {
@@ -44,6 +41,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 // We create at least this many handles in the test, plus the runtime uses some.
                 Assert.IsTrue(handles.Count > 4);
+            }
+        }
+
+        [TestMethod]
+        public void EnsureAllItemsAreUnique()
+        {
+            // Making sure that handles are returned only once
+            var handles = new HashSet<ClrHandle>();
+
+            using (DataTarget dt = TestTargets.GCHandles.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+                foreach (var handle in runtime.EnumerateHandles())
+                {
+                    Assert.IsTrue(handles.Add(handle));
+                }
+
+                // Make sure we had at least one AsyncPinned handle
+                Assert.IsTrue(handles.Any(h => h.HandleType == HandleType.AsyncPinned));
             }
         }
     }

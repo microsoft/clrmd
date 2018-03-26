@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Runtime.InteropServices;
 
 class GCHandles
@@ -13,11 +14,22 @@ class GCHandles
         string weak = "weak";
         GCHandle.Alloc(weak, GCHandleType.Weak);
 
+        //var a = new System.Net.Sockets.SocketAsyncEventArgs();
+        //a.SetBuffer(new byte[10], 0, 10);
+
+        NativeOverlapped nativeOverlapped;
+        
+        unsafe
+        {
+            nativeOverlapped = *new System.Threading.Overlapped().UnsafePack((u, bytes, overlap) => { }, "state");
+        }
+
         string weakLong = "weakLong";
         GCHandle.Alloc(weak, GCHandleType.WeakTrackResurrection);
 
         throw new Exception();
 
+        GC.KeepAlive(nativeOverlapped);
         GC.KeepAlive(weak);
         GC.KeepAlive(weakLong);
     }
