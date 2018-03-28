@@ -14,11 +14,8 @@ class GCHandles
         string weak = "weak";
         GCHandle.Alloc(weak, GCHandleType.Weak);
 
-        //var a = new System.Net.Sockets.SocketAsyncEventArgs();
-        //a.SetBuffer(new byte[10], 0, 10);
-
         NativeOverlapped nativeOverlapped;
-        
+
         unsafe
         {
             nativeOverlapped = *new System.Threading.Overlapped().UnsafePack((u, bytes, overlap) => { }, "state");
