@@ -138,7 +138,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (handle != null)
                     {
                         _handles.Add(handle);
-                        yield return handle;
                     }
                 }
 
