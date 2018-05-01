@@ -22,7 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // Prepopulate a few important method tables.
             _arrayType = new Lazy<ClrType>(CreateArrayType);
             _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0));
-            ErrorType = new ErrorType(this);
 
             StringType = DesktopRuntime.StringMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0) : ErrorType;
             ObjectType = DesktopRuntime.ObjectMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) : ErrorType;
@@ -958,7 +957,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ExtendedArray<ulong> _gcRefs;
 
         internal DesktopRuntimeBase DesktopRuntime { get; private set; }
-        internal BaseDesktopHeapType ErrorType { get; private set; }
+        
         internal ClrType ObjectType { get; private set; }
         internal ClrType StringType { get; private set; }
         internal ClrType ValueType { get; private set; }
@@ -1033,7 +1032,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         break;
                 }
             }
-            return _basicTypes[(int)elType]; ;
+            return _basicTypes[(int)elType];
         }
 
         private void InitBasicTypes()

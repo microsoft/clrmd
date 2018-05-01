@@ -484,12 +484,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _token = data.FieldToken;
 
             _heap = heap;
-            _type = new Lazy<BaseDesktopHeapType>(() => GetType(_heap, data, sig, sigLen, (ClrElementType)_field.CorElementType));
+            _type = new Lazy<ClrType>(() => GetType(_heap, data, sig, sigLen, (ClrElementType)_field.CorElementType));
         }
 
-        private static BaseDesktopHeapType GetType(DesktopGCHeap heap, IFieldData data, IntPtr sig, int sigLen, ClrElementType elementType)
+        private static ClrType GetType(DesktopGCHeap heap, IFieldData data, IntPtr sig, int sigLen, ClrElementType elementType)
         {
-            BaseDesktopHeapType result = null;
+            ClrType result = null;
             ulong mt = data.TypeMethodTable;
             if (mt != 0)
                 result = (BaseDesktopHeapType)heap.GetTypeByMethodTable(mt, 0);
@@ -677,7 +677,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         #region Fields
         private string _name;
         private DesktopGCHeap _heap;
-        private Lazy<BaseDesktopHeapType> _type;
+        private Lazy<ClrType> _type;
         private IFieldData _field;
         private FieldAttributes _attributes;
         private ClrElementType _elementType = ClrElementType.Unknown;
@@ -721,7 +721,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        internal static int GetSize(BaseDesktopHeapType type, ClrElementType cet)
+        internal static int GetSize(ClrType type, ClrElementType cet)
         {
             // todo:  What if we have a struct which is not fully constructed (null MT,
             //        null type) and need to get the size of the field?
@@ -756,9 +756,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 case ClrElementType.NativeUInt:  // native unsigned int
                 case ClrElementType.Pointer:
                 case ClrElementType.FunctionPointer:
-                    if (type == null)
+                    var desktopType = type as BaseDesktopHeapType;
+                    if (desktopType == null)
                         return IntPtr.Size;  // todo: fixme
-                    return (int)type.DesktopHeap.PointerSize;
+                    return (int)desktopType.DesktopHeap.PointerSize;
 
 
                 case ClrElementType.UInt16:
@@ -771,11 +772,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
     }
 
-    class ErrorType : BaseDesktopHeapType
+    class ErrorType : ClrType
     {
-        public ErrorType(DesktopGCHeap heap)
-            : base(0, heap, heap.DesktopRuntime.ErrorModule, 0)
+        public ErrorType(ClrHeap heap)
         {
+            Heap = heap;
         }
 
         public override int BaseSize
@@ -790,7 +791,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                return DesktopHeap.ObjectType;
+                return null;
             }
         }
 
@@ -802,13 +803,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ClrHeap Heap
-        {
-            get
-            {
-                return DesktopHeap;
-            }
-        }
+        public override ClrHeap Heap { get; }
 
         public override IList<ClrInterface> Interfaces
         {
@@ -890,6 +885,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        internal override GCDesc GCDesc{
+            get
+            {
+                return null;
+            }
+        }
+
         public override ulong MethodTable
         {
             get
@@ -954,11 +956,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrStaticField GetStaticFieldByName(string name)
         {
             return null;
-        }
-
-        internal override ulong GetModuleAddress(ClrAppDomain domain)
-        {
-            return 0;
         }
 
         public override IList<ClrInstanceField> Fields => new ClrInstanceField[0];

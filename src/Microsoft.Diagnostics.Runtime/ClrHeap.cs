@@ -169,6 +169,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType Free { get; }
 
         /// <summary>
+        /// Returns the ClrType representing an invalid type.
+        /// </summary>
+        public abstract ClrType ErrorType { get; }
+
+        /// <summary>
         /// Enumerate the roots in the process.
         /// </summary>
         /// <param name="enumerateStatics">True if we should enumerate static variables.  Enumerating with statics 
@@ -786,11 +791,14 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _canWalkHeap;
         private int _pointerSize;
 
+        public override ClrType ErrorType { get; }
+
         public HeapBase(RuntimeBase runtime)
         {
             _canWalkHeap = runtime.CanWalkHeap;
             MemoryReader = new MemoryReader(runtime.DataReader, 0x10000);
             _pointerSize = runtime.PointerSize;
+            ErrorType = new ErrorType(this);
         }
 
         public override ulong GetMethodTable(ulong obj)
