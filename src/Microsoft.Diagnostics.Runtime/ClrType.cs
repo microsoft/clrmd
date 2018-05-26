@@ -860,13 +860,13 @@ namespace Microsoft.Diagnostics.Runtime
 
     /// <summary>
     /// A wrapper class for exception objects which help with common tasks for exception objects.
-    /// Create this using GCHeap.GetExceptionObject.  You may call that when GCHeapType.IsException
+    /// Create this using GCHeap.GetExceptionObject.  You may call that when ClrType.IsException
     /// returns true.
     /// </summary>
     public abstract class ClrException
     {
         /// <summary>
-        /// Returns the GCHeapType for this exception object.
+        /// Returns the ClrType for this exception object.
         /// </summary>
         abstract public ClrType Type { get; }
 
