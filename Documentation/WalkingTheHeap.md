@@ -55,7 +55,7 @@ data for each segment:
 
     CLRRuntime runtime = ...;
     Console.WriteLine("{0,12} {1,12} {2,12} {3,12} {4,4} {5}", "Start", "End", "Committed", "Reserved", "Heap", "Type");
-    foreach (GCHeapSegment segment in heap.Segments)
+    foreach (ClrSegment segment in heap.Segments)
     {
         string type;
         if (segment.Ephemeral)
@@ -96,8 +96,8 @@ As mentioned before, logical heap imbalance in server GC can cause perf issues.
 ## Walking Managed Objects in the Process
 
 As mentioned before, GC segments contain managed objects. You can walk all
-objects on a segment by starting at `GCHeapSegment.FirstObject` and repeatedly
-calling `GCHeapSegment.NextObject` until it returns 0. To get the type of an
+objects on a segment by starting at `ClrSegment.FirstObject` and repeatedly
+calling `ClrSegment.NextObject` until it returns 0. To get the type of an
 object, you can call GCHeap.GetObjectType. This returns a `GCHeapType` object,
 which we will cover in more detail in a later tutorial.
 
@@ -113,7 +113,7 @@ printing the address, size, generation, and type of the object:
     }
     else
     {
-      foreach (GCHeapSegment seg in heap.Segments)
+      foreach (ClrSegment seg in heap.Segments)
       {
           for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
           {
@@ -137,7 +137,7 @@ At which point a linear walk of the GC heap is not possible. If this is the
 case, `CanWalkHeap` will return `false`.
 
 Second, you need to check the return value of GetObjectType to make sure it's
-non-null. `GCHeapSegment.NextObject` does not attempt to detect heap corruption,
+non-null. `ClrSegment.NextObject` does not attempt to detect heap corruption,
 so it is possible `GetObjectType` will return null if the address that
 NextObject returns is a corrupt object.
 
