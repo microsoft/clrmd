@@ -98,7 +98,7 @@ As mentioned before, logical heap imbalance in server GC can cause perf issues.
 As mentioned before, GC segments contain managed objects. You can walk all
 objects on a segment by starting at `GCHeapSegment.FirstObject` and repeatedly
 calling `GCHeapSegment.NextObject` until it returns 0. To get the type of an
-object, you can call GCHeap.GetObjectType. This returns a `GCHeapType` object,
+object, you can call GCHeap.GetObjectType. This returns a `ClrType` object,
 which we will cover in more detail in a later tutorial.
 
 Here is an example of walking each object on each segment in the process and
@@ -117,7 +117,7 @@ printing the address, size, generation, and type of the object:
       {
           for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
           {
-              GCHeapType type = heap.GetObjectType(obj);
+              ClrType type = heap.GetObjectType(obj);
 
               // If heap corruption, continue past this object.
               if (type == null)
@@ -157,7 +157,7 @@ walking each segment: GCHeap.EnumerateObjects. Here is an example:
     {
       foreach (ulong obj in heap.EnumerateObjects())
       {
-          GCHeapType type = heap.GetObjectType(obj);
+          ClrType type = heap.GetObjectType(obj);
 
           // If heap corruption, continue past this object.
           if (type == null)
@@ -187,7 +187,7 @@ those point to, and so on. This is what we call the `!objsize` algorithm.
 (the total size of all objects the given object keeps alive.)
 
 Given an object, you can enumerate all objects it points to using
-`GCHeapType.Enumerate` object references. We will use that function to implement
+`ClrType.Enumerate` object references. We will use that function to implement
 `objsize`:
 
     private static void ObjSize(GCHeap heap, ulong obj, out uint count, out ulong size)
@@ -215,7 +215,7 @@ Given an object, you can enumerate all objects it points to using
             considered.Add(obj);
 
             // Grab the type. We will only get null here in the case of heap corruption.
-            GCHeapType type = heap.GetObjectType(obj);
+            ClrType type = heap.GetObjectType(obj);
             if (type == null)
                 continue;
 
@@ -245,7 +245,7 @@ than walking fields to look for objects.
 
 As you can see, it doesn't take much work to walk the heap. To do anything
 useful with the objects you get, though, you will need to work with the
-`GCHeapType` for that object. In the next tutorial we will fully explore types
+`ClrType` for that object. In the next tutorial we will fully explore types
 in CLRMD.
 
 Next Tutorial: [Types and Fields in CLRMD](TypesAndFields.md)
