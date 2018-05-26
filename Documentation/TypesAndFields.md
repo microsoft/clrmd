@@ -2,9 +2,9 @@
 
 ## Introduction
 
-An object's type in CLRMD is represented by `GCHeapType`. This class has two
+An object's type in CLRMD is represented by `ClrType`. This class has two
 sets of operations. The first is to provide data about an instance of that type.
-For example, `GCHeapType` has functions for getting the length of an array,
+For example, `ClrType` has functions for getting the length of an array,
 getting the size of an object, and getting the field values for an object. The
 second set is operations which tell you about the type itself such as what
 fields it contains, what interfaces it implements, what methods the type has,
@@ -49,10 +49,10 @@ easy, even though I don't give a direct way to the MethodTable through the API:
 ## Basic type information
 
 We'll start with basic operations of a type. There are a few fairly self
-explanatory functions and properties, such as `GCHeapType.Name` (the name of the
-type) and `GCHeapType.GetSize`, which returns the size of an instance of that
+explanatory functions and properties, such as `ClrType.Name` (the name of the
+type) and `ClrType.GetSize`, which returns the size of an instance of that
 type. Note that you must pass in an instance of an object to get its size since
-there are variable-sized types in CLR. Similarly, `GCHeapType` has `IsArray`,
+there are variable-sized types in CLR. Similarly, `ClrType` has `IsArray`,
 `IsException`, `IsEnum`, and `IsFree` which tells you if the type is an array of
 some sort, is a subclass of `Exception`, an `Enum`, or free space on the heap,
 respectively. (We'll cover free objects in more detail below.)
@@ -60,7 +60,7 @@ respectively. (We'll cover free objects in more detail below.)
 Another very basic thing that you can do with a type is enumerate the interfaces
 it implements. Here is an example of doing that:
 
-    GCHeapType type = ...;
+    ClrType type = ...;
     Console.WriteLine("Type {0} implements interfaces:");
 
     foreach (GCHeapInterface inter in type.Interfaces)
@@ -182,7 +182,7 @@ class "One". This can have surprising consequences if you are attempting to
 deeply inspect an object. For example, let's take the naive approach to walking
 the "One" class:
 
-    public static void WriteFields(ulong obj, GCHeapType type)
+    public static void WriteFields(ulong obj, ClrType type)
     {
         foreach (var field in type.Fields)
         {
@@ -229,12 +229,12 @@ layout of the object you are walking. You know that a field is embedded if
 example, one which recursively walks an object and prints out the values and
 locations of all fields:
 
-    public static void WriteFields(ulong obj, GCHeapType type)
+    public static void WriteFields(ulong obj, ClrType type)
     {
         WriteFieldsWorker(obj, type, null, 0, false);
     }
 
-    static void WriteFieldsWorker(ulong obj, GCHeapType type, string baseName, int offset, bool inner)
+    static void WriteFieldsWorker(ulong obj, ClrType type, string baseName, int offset, bool inner)
     {
         // Keep track of nested fields.
         if (string.IsNullOrEmpty(baseName))
@@ -296,7 +296,7 @@ this easy to work with. Note, I use a simple linq query to filter down to just
 
     foreach (var item in intArrays)
     {
-        GCHeapType type = item.Type;
+        ClrType type = item.Type;
         ulong obj = item.Address;
 
         int len = type.GetArrayLength(obj);
@@ -310,10 +310,10 @@ this easy to work with. Note, I use a simple linq query to filter down to just
     }
 
 At the very basic level, walking elements of an array is quite simple.
-`GCHeapType.IsArray` will tell you the type is an array. Use the
+`ClrType.IsArray` will tell you the type is an array. Use the
 `GetArrayLength` function to get the length of the array, and either
 `GetArrayElementValue` or `GetArrayElementAddress` to get the address or value
-of the field, respectively. Similar to fields, `GCHeapType` also provides the
+of the field, respectively. Similar to fields, `ClrType` also provides the
 `ArrayComponentType` property, telling you the component type of the array. You
 can use: `type.ArrayComponentType.HasSimpleValue` or
 `type.ArrayComponentType.ElementType == ClrElementType.ELEMENTTYPEVALUETYPE` to
@@ -377,9 +377,9 @@ walk the contents of these arrays.
 
 ## Enums
 
-You can check if a type is an Enum by checking the `GCHeapType.IsEnum` property.
+You can check if a type is an Enum by checking the `ClrType.IsEnum` property.
 If a type is an Enum, you can get the list of enumeration values it contains
-using `GCHeapType.GetEnumNames`. For example, let's say an enum was defined as:
+using `ClrType.GetEnumNames`. For example, let's say an enum was defined as:
 
     enum Numbers
     {
@@ -434,10 +434,10 @@ some of these concepts:
 Exceptions in CLRMD are objects which derrive from `System.Exception`. CLR
 itself does not actually make that distinction, almost any object can be thrown
 as an exception (this is mostly to support C++/CLI which allows throwing non-
-System.Exception objects). `GCHeapType.IsException` only returns true if an
+System.Exception objects). `ClrType.IsException` only returns true if an
 object derives from `System.Exception`.
 
-The `GCHeapType` class does not offer any properties or methods specific to
+The `ClrType` class does not offer any properties or methods specific to
 exceptions (other than `IsException`). Instead, it provides a wrapper class for
 exception objects which gives you a wide variety of helpful properties for
 exceptions. This includes the HRESULT of the exception, the exception message,
@@ -468,7 +468,7 @@ simply not print a stack trace in that case).
 ## "Free" objects
 
 When enumerating the heap, you will notice a lot of "Free objects". These are
-denoted by the `GCHeapType.IsFree` property.
+denoted by the `ClrType.IsFree` property.
 
 Free objects are not real objects in the strictest sense. They are actually
 markers placed by the GC to denote free space on the heap. Free objects have no
