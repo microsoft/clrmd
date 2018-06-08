@@ -975,7 +975,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 foreach (SubHeap heap in heaps)
                 {
-                    foreach (ulong objAddr in GetPointersInRange(heap.FQStart, heap.FQStop))
+                    foreach (ulong objAddr in GetPointersInRange(heap.FQRootsStart, heap.FQRootsStop))
                     {
                         if (objAddr != 0)
                             yield return objAddr;

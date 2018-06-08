@@ -1242,10 +1242,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal ulong Gen2Start { get { return ActualHeap.Gen2Start; } }
         internal ulong FirstLargeSegment { get { return ActualHeap.FirstLargeHeapSegment; } }
         internal ulong FirstSegment { get { return ActualHeap.FirstHeapSegment; } }
-        internal ulong FQStart { get { return ActualHeap.FQAllObjectsStart; } }
-        internal ulong FQStop { get { return ActualHeap.FQAllObjectsStop; } }
-        internal ulong FQLiveStart { get { return ActualHeap.FQRootsStart; } }
-        internal ulong FQLiveStop { get { return ActualHeap.FQRootsEnd; } }
+        internal ulong FQAllObjectsStart { get { return ActualHeap.FQAllObjectsStart; } }
+        internal ulong FQAllObjectsStop { get { return ActualHeap.FQAllObjectsStop; } }
+        internal ulong FQRootsStart { get { return ActualHeap.FQRootsStart; } }
+        internal ulong FQRootsStop { get { return ActualHeap.FQRootsStop; } }
 
         internal SubHeap(IHeapDetails heap, int heapNum, Dictionary<ulong,ulong> allocPointers)
         {
@@ -1359,7 +1359,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong FQAllObjectsStart { get; }
         ulong FQAllObjectsStop { get; }
         ulong FQRootsStart { get; }
-        ulong FQRootsEnd { get; }
+        ulong FQRootsStop { get; }
     }
 
     internal interface IGCInfo

@@ -217,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 foreach (SubHeap heap in heaps)
                 {
-                    foreach (ulong obj in DesktopRuntime.GetPointersInRange(heap.FQLiveStart, heap.FQLiveStop))
+                    foreach (ulong obj in DesktopRuntime.GetPointersInRange(heap.FQAllObjectsStart, heap.FQAllObjectsStop))
                     {
                         if (obj == 0)
                             continue;
