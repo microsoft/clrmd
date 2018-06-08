@@ -30,6 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         static Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
         static Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
         static Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs", NestedException));
+        static Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
 
         public static TestTarget GCRoot { get { return _gcroot.Value; } }
         public static TestTarget NestedException { get { return _nestedException.Value; } }
@@ -37,6 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget GCHandles { get { return _gcHandles.Value; } }
         public static TestTarget Types { get { return _types.Value; } }
         public static TestTarget AppDomains { get { return _appDomains.Value; } }
+        public static TestTarget FinalizationQueue { get { return _finalizationQueue.Value; } }
     }
 
     public class TestTarget

@@ -2584,46 +2584,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get { return generation_table0.AllocContextLimit; }
         }
+
         public ulong FQAllObjectsStart
         {
-            get { return finalization_fill_pointers0; }
+            get { return finalization_fill_pointers3; }
         }
 
         public ulong FQAllObjectsStop
         {
-            get { return finalization_fill_pointers3; }
+            get { return finalization_fill_pointers5; }
         }
-
 
         public ulong FQRootsStart
         {
-            get { return finalization_fill_pointers3; }
+            get { return finalization_fill_pointers0; }
         }
 
         public ulong FQRootsEnd
         {
-            get { return finalization_fill_pointers6; }
+            get { return finalization_fill_pointers3; }
         }
-
-        //public ulong FQStop
-        //{
-        //    get { return finalization_fill_pointers6; }
-        //}
-
-        //public ulong FQStart
-        //{
-        //    get { return finalization_fill_pointers3; }
-        //}
-
-        //public ulong FQLiveStart
-        //{
-        //    get { return finalization_fill_pointers0; }
-        //}
-
-        //public ulong FQLiveEnd
-        //{
-        //    get { return finalization_fill_pointers4; }
-        //}
 
         public ulong Gen0Start
         {
