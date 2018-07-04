@@ -107,13 +107,13 @@ instance of the `ClrRuntime` class.  This class represents one CLR runtime
 in the process.  To create one of these classes, use `ClrInfo.CreateRuntime`
 and you will create the runtime for the selected version:
 
-    ClrInfo runtimeInfo = dataTarget.ClrInfo[0];  // just using the first runtime
+    ClrInfo runtimeInfo = dataTarget.ClrVersions[0];  // just using the first runtime
     ClrRuntime runtime = runtimeInfo.CreateRuntime();
 
 You can also create a runtime from a dac location on disk if you know exactly
 where it is:
 
-    ClrInfo runtimeInfo = dataTarget.ClrInfo[0];  // just using the first runtime
+    ClrInfo runtimeInfo = dataTarget.ClrVersions[0];  // just using the first runtime
     ClrRuntime runtime = runtimeInfo.CreateRuntime(@"C:\work\mscordacwks.dll");
 
 Lastly, note that create runtime with no parameters is equivalent to checking
@@ -151,7 +151,7 @@ through the IDebug interfaces. If you do not care about getting debugger events
 or breaking/continuing the process, you should choose a non-invaisve attach.
 
 One last note on invasive and non-invasive, is that managed debuggers (such as
-ICorDebug, and Visual Studio) cannot function when when something pauses the
+ICorDebug, and Visual Studio) cannot function when something pauses the
 process. So if you attach to a process with a Noninvasive or Invasive attach,
 Visual Studio's debugger will hang until you detach.
 
@@ -182,9 +182,9 @@ debugger process without detaching from the target process, Windows will kill
 the target process. Calling `DataTarget`'s `Dispose` method will detatch from
 any live process.
 
-DataTarget itself has a finalizer (which calls `Dispose`), and this will be run
-if the process is terminated normally. However I highly recommend that your
-program eagerly call `Dispose` as soon as you are done using ClrMD on the
+`DataTarget` itself has a finalizer (which calls `Dispose`), and this will be run
+if the process is terminated normally. However, I highly recommend that your
+program eagerly calls `Dispose` as soon as you are done using ClrMD on the
 process.
 
 The next tutorial will cover some basic uses of the `ClrRuntime` class.
