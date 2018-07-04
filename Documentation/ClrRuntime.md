@@ -69,7 +69,7 @@ foreach (ClrAppDomain domain in runtime.AppDomains)
     Console.WriteLine("Name:    {0}", domain.Name);
     Console.WriteLine("Address: {0}", domain.Address);
 }
-```cs
+```
 
 This is the entirety of what you can do with AppDomains (as of Beta 0.3). The
 primary reason for exposing AppDomains at all is to be able to get at the name
@@ -200,7 +200,7 @@ foreach (var region in (from r in runtime.EnumerateMemoryRegions()
 {
     Console.WriteLine("{0,6:n0} {1,12:n0} {2}", region.Count, region.TotalSize, region.Type.ToString());
 }
-```cs
+```
 
 Note that I have eliminated `ReservedGCSegments` from this table. That's because
 `ReserveGCSegments` are just that...reserved memory which isn't counting toward
@@ -259,7 +259,7 @@ foreach (GCHeapHandle handle in runtime.EnumerateHandles())
     string objectType = heap.GetObjectType(handle.Object).Name;
     Console.WriteLine("{0,12:X} {1,12:X} {2,12} {3}", handle.Address, handle.Object, handle.Type.ToString(), objectType);
 }
-```cs
+```
 
 Note this example doesn't do anything with types of objects on the heap. Please
 see the `GCHandles` code snippet for a different way of breaking down handles.
