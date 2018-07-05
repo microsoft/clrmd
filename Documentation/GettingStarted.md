@@ -67,7 +67,7 @@ To create an instance of the `DataTarget` class, call one of the static function
 on `DataTarget`.  Here is the code to create a `DataTarget` from a crash dump:
 
 ```cs
-using (DataTarget target = DataTarget.LoadCrashDump(@"c:\work\crash.dmp"))
+using (DataTarget dataTarget = DataTarget.LoadCrashDump(@"c:\work\crash.dmp"))
 {
 }
 ```
@@ -79,7 +79,7 @@ To enumerate the versions of CLR loaded into the target process, use
 `DataTarget.ClrVersions`:
 
 ```cs
-foreach (ClrInfo version in target.ClrVersions)
+foreach (ClrInfo version in dataTarget.ClrVersions)
 {
     Console.WriteLine("Found CLR Version:" + version.Version.ToString());
 
@@ -90,8 +90,8 @@ foreach (ClrInfo version in target.ClrVersions)
     Console.WriteLine("Dac File:  {0}", dacInfo.FileName);
 
     // If we just happen to have the correct dac file installed on the machine,
-    // the "TryGetDacLocation" function will return its location on disk:
-    string dacLocation = version.TryGetDacLocation();
+    // the "LocalMatchingDac" property will return its location on disk:
+    string dacLocation = version.LocalMatchingDac;
     if (!string.IsNullOrEmpty(dacLocation))
         Console.WriteLine("Local dac location: " + dacLocation);
 
@@ -99,6 +99,7 @@ foreach (ClrInfo version in target.ClrVersions)
     // in a later section of this tutorial.
 }
 ```
+
 Note that `target.ClrVersions` is an `IList<ClrInfo>`. We can have two copies of
 CLR loaded into the process in the side-by-side scenario (that is, both v2 and
 v4 loaded into the process at the same time).  `ClrInfo` also has information 
@@ -137,7 +138,7 @@ this, everything is the same, except you call `DataTarget.AttachToProcess`
 instead of "LoadCrashDump". For example:
 
 ```cs
-DataTarget dt = DataTarget.AttachToProcess(0x123, AttachFlags.Noninvasive, 5000);
+DataTarget dataTarget = DataTarget.AttachToProcess(0x123, AttachFlags.Noninvasive, 5000);
 ```
 
 The parameters to the function are: the pid to attach to, the type of debugger
