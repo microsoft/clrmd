@@ -66,7 +66,7 @@ To get started the first thing you need to do is to create a `DataTarget`. The
 To create an instance of the `DataTarget` class, call one of the static functions
 on `DataTarget`.  Here is the code to create a `DataTarget` from a crash dump:
 
-    using (DataTarget target = DataTarget.LoadCrashDump(@"c:\work\crash.dmp"))
+    using (DataTarget dataTarget = DataTarget.LoadCrashDump(@"c:\work\crash.dmp"))
     {
     }
 
@@ -76,7 +76,7 @@ runtimes are loaded into the process and creating `ClrRuntime` instances.
 To enumerate the versions of CLR loaded into the target process, use
 `DataTarget.ClrVersions`:
 
-    foreach (ClrInfo version in target.ClrVersions)
+    foreach (ClrInfo version in dataTarget.ClrVersions)
     {
         Console.WriteLine("Found CLR Version:" + version.Version.ToString());
 
@@ -87,8 +87,8 @@ To enumerate the versions of CLR loaded into the target process, use
         Console.WriteLine("Dac File:  {0}", dacInfo.FileName);
 
         // If we just happen to have the correct dac file installed on the machine,
-        // the "TryGetDacLocation" function will return its location on disk:
-        string dacLocation = version.TryGetDacLocation();
+        // the "LocalMatchingDac" property will return its location on disk:
+        string dacLocation = version.LocalMatchingDac();
         if (!string.IsNullOrEmpty(dacLocation))
             Console.WriteLine("Local dac location: " + dacLocation);
 
@@ -107,13 +107,13 @@ instance of the `ClrRuntime` class.  This class represents one CLR runtime
 in the process.  To create one of these classes, use `ClrInfo.CreateRuntime`
 and you will create the runtime for the selected version:
 
-    ClrInfo runtimeInfo = dataTarget.ClrInfo[0];  // just using the first runtime
+    ClrInfo runtimeInfo = dataTarget.ClrVersions[0];  // just using the first runtime
     ClrRuntime runtime = runtimeInfo.CreateRuntime();
 
 You can also create a runtime from a dac location on disk if you know exactly
 where it is:
 
-    ClrInfo runtimeInfo = dataTarget.ClrInfo[0];  // just using the first runtime
+    ClrInfo runtimeInfo = dataTarget.ClrVersions[0];  // just using the first runtime
     ClrRuntime runtime = runtimeInfo.CreateRuntime(@"C:\work\mscordacwks.dll");
 
 Lastly, note that create runtime with no parameters is equivalent to checking
