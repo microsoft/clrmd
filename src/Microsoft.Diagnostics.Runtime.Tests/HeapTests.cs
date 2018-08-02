@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,6 +12,100 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     [TestClass]
     public class HeapTests
     {
+        [TestMethod]
+        public void OptimizedClassHistogram()
+        {
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            {
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
+
+                // ensure that the optimized version is faster than the default one
+                Stopwatch timing = new Stopwatch();
+                var notOptimizedStatistics = new Dictionary<ClrType, TypeEntry>(32768);
+                int notOptimizedObjectCount = 0;
+
+                // with an optimized version
+                timing.Start();
+
+                foreach (var objDetails in heap.EnumerateObjectDetails())
+                {
+                    ClrType type = objDetails.Item3;
+                    ulong size = objDetails.Item4;
+
+                    TypeEntry entry;
+                    if (!notOptimizedStatistics.TryGetValue(type, out entry))
+                    {
+                        entry = new TypeEntry()
+                        {
+                            TypeName = type.Name,
+                            Size = 0
+                        };
+                        notOptimizedStatistics[type] = entry;
+                    }
+                    entry.Count++;
+                    entry.Size += size;
+                    notOptimizedObjectCount++;
+                }
+
+                timing.Stop();
+                var notOptimizedTime = TimeSpan.FromMilliseconds(timing.ElapsedMilliseconds);
+
+
+                // with an non-optimized version
+                var statistics = new Dictionary<ClrType, TypeEntry>(32768);
+                int objectCount = 0;
+                timing.Restart();
+
+                foreach (ulong objAddress in heap.EnumerateObjectAddresses())
+                {
+                    ClrType type = heap.GetObjectType(objAddress);
+                    ulong size = type.GetSize(objAddress);
+
+                    TypeEntry entry;
+                    if (!statistics.TryGetValue(type, out entry))
+                    {
+                        entry = new TypeEntry()
+                        {
+                            TypeName = type.Name,
+                            Size = 0
+                        };
+                        statistics[type] = entry;
+                    }
+                    entry.Count++;
+                    entry.Size += size;
+                    objectCount++;
+                }
+
+                timing.Stop();
+
+                // check object count
+                Assert.AreEqual(notOptimizedObjectCount, objectCount);
+
+                // check heap content
+                var types = notOptimizedStatistics.Keys;
+                foreach (var type in types)
+                {
+                    var notOptimizedDetails = notOptimizedStatistics[type];
+                    var details = statistics[type];
+
+                    Assert.AreEqual(notOptimizedDetails.TypeName, details.TypeName);
+                    Assert.AreEqual(notOptimizedDetails.Count, details.Count);
+                    Assert.AreEqual(notOptimizedDetails.Size, details.Size);
+                }
+                Assert.AreEqual(types.Count, statistics.Count);
+
+                // checking that optimized is faster could be flaky
+                // Assert.IsTrue(notOptimizedTime > TimeSpan.FromMilliseconds(timing.ElapsedMilliseconds));
+            }
+        }
+        class TypeEntry
+        {
+            public string TypeName;
+            public int Count;
+            public ulong Size;
+        }
+
         [TestMethod]
         public void HeapEnumeration()
         {

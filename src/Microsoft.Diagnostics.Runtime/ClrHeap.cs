@@ -214,6 +214,12 @@ namespace Microsoft.Diagnostics.Runtime
         abstract public IEnumerable<ulong> EnumerateObjectAddresses();
 
         /// <summary>
+        /// Enumerates all objects on the heap and for each returns its address, type and size in an optimized way.
+        /// </summary>
+        /// <returns>An enumerator for all objects on the heap.</returns>
+        abstract public IEnumerable<Tuple<ulong, ulong, ClrType, ulong>> EnumerateObjectDetails();
+
+        /// <summary>
         /// Enumerates all objects on the heap.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
@@ -584,6 +590,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// 0 when there are no more objects.   (Or enumeration is not possible)  
         /// </summary>
         abstract public ulong NextObject(ulong objRef, out ClrType type);
+
+        /// <summary>
+        /// Given an object on the segment given its address, type and size,
+        /// return the 'next' object in the segment.
+        /// Returns 0 when there are no more objects.   (Or enumeration is not possible)
+        /// This is used for specific class histogram workflow.
+        /// </summary>
+        abstract internal ulong NextObject(ulong objRef, ClrType type, ulong size);
 
 
         /// <summary>
@@ -976,6 +990,43 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+
+        public override IEnumerable<Tuple<ulong, ulong, ClrType, ulong>> EnumerateObjectDetails()
+        {
+            ClrHeap heap = _segments[0].Heap;
+
+            // optimization for large dumps/apps with 30.000+ types:
+            //    keep track of ClrType given a method table address
+            Dictionary<ulong, ClrType> typeCache = new Dictionary<ulong, ClrType>(32768);
+
+            for (int iSegment = 0; iSegment < _segments.Length; ++iSegment)
+            {
+                ClrSegment segment = _segments[iSegment];
+
+                // unlike the default implementation, we are trying to avoid
+                // duplicate calls to GetObjectType and GetSize that are used by segment.NextObject()
+                // --> 25% faster on large memory dumps
+                ulong obj = segment.FirstObject;
+                while (obj != 0)
+                {
+                    ulong methodTable = heap.GetMethodTable(obj);
+
+                    // internal cache method table -> ClrType
+                    if (!typeCache.TryGetValue(methodTable, out ClrType type))
+                    {
+                        type = heap.GetObjectType(obj);
+                        typeCache.Add(methodTable, type);
+                    }
+                    ulong size = type.GetSize(obj);
+
+                    yield return new Tuple<ulong, ulong, ClrType, ulong>(obj, methodTable, type, size);
+
+                    // look for next object given the type and size of the current one are known
+                    obj = segment.NextObject(obj, type, size);
+                }
+            }
+        }
+
         public override ClrSegment GetSegmentByAddress(ulong objRef)
         {
             if (_minAddr <= objRef && objRef < _maxAddr)
@@ -1137,18 +1188,18 @@ namespace Microsoft.Diagnostics.Runtime
             return start;
         }
 
-        public override ulong NextObject(ulong objRef)
+        internal override ulong NextObject(ulong objRef, ClrType objType, ulong objSize)
         {
             if (objRef >= CommittedEnd)
                 return 0;
 
             uint minObjSize = (uint)_clr.PointerSize * 3;
 
-            ClrType currType = _heap.GetObjectType(objRef);
+            ClrType currType = (objType != null) ? objType : _heap.GetObjectType(objRef);
             if (currType == null)
                 return 0;
 
-            ulong size = currType.GetSize(objRef);
+            ulong size = (objType != null) ? objSize : currType.GetSize(objRef);
             size = Align(size, _large);
             if (size < minObjSize)
                 size = minObjSize;
@@ -1176,8 +1227,13 @@ namespace Microsoft.Diagnostics.Runtime
                 if (objRef >= End)
                     return 0;
             }
-            
+
             return objRef;
+        }
+
+        public override ulong NextObject(ulong objRef)
+        {
+            return NextObject(objRef, null, 0);
         }
 
         public override ulong NextObject(ulong objRef, out ClrType type)
