@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FileSignInfo Include="Microsoft.DiaSymReader.dll" PublicKeyToken="31bf3856ad364e35" TargetFramework=".NETFramework,Version=v2.0" CertificateName="MicrosoftSHA1Win8WinBlue"/>
+    <FileSignInfo Include="Microsoft.DiaSymReader.dll" PublicKeyToken="31bf3856ad364e35" TargetFramework=".NETStandard,Version=v1.1" CertificateName="WindowsPhone623"/>
+  </ItemGroup>
+</Project>

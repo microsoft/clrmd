@@ -1,5 +1,8 @@
 syntax: glob
 
+.dotnet
+.packages
+
 ### VisualStudio ###
 
 # User-specific files
