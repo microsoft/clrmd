@@ -24,7 +24,7 @@ namespace LinuxTest
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            using (DataTarget dt = DataTarget.LoadCoredump(args[0]))
+            using (DataTarget dt = DataTarget.LoadCoreDump(args[0]))
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime(args[1], true);
                 ClrHeap heap = runtime.Heap;
