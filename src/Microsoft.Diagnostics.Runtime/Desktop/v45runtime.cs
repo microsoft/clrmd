@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class V45Runtime : DesktopRuntimeBase
     {
-        private ISOSDac _sos;
+        private SOSDac _sos;
 
         #region Constructor
         public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
@@ -50,102 +51,81 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get { return DesktopVersion.v45; }
         }
-
-        private ISOSHandleEnum _handleEnum;
         private List<ClrHandle> _handles;
 
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
-            if (_handles != null && _handleEnum == null)
+            if (_handles != null)
                 return _handles;
 
             return EnumerateHandleWorker();
         }
+        private IEnumerable<ClrHandle> EnumerateHandleWorker()
+        {
+            Debug.Assert(_handles == null);
+            List<ClrHandle> result = new List<ClrHandle>();
+
+            using (SOSHandleEnum handleEnum = _sos.EnumerateHandles())
+            {
+                HandleData[] handles = new HandleData[8];
+                int fetched = 0;
+
+                while ((fetched = handleEnum.ReadHandles(handles)) != 0)
+                {
+                    for (int i = 0; i < fetched; i++)
+                    {
+                        ClrHandle handle = new ClrHandle(this, Heap, handles[i]);
+                        _handles.Add(handle);
+                        yield return handle;
+
+                        handle = handle.GetInteriorHandle();
+                        if (handle != null)
+                        {
+                            _handles.Add(handle);
+                            yield return handle;
+                        }
+                    }
+                }
+            }
+
+            _handles = result;
+        }
+
 
         internal override Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken)
         {
             Dictionary<ulong, List<ulong>> result = new Dictionary<ulong, List<ulong>>();
 
-            if (_sos.GetHandleEnum(out object tmp) < 0)
+            using (SOSHandleEnum handleEnum = _sos.EnumerateHandles())
+            {
+                if (handleEnum == null)
+                    return result;
+
+                HandleData[] handles = new HandleData[32];
+
+                int fetched;
+                while ((fetched = handleEnum.ReadHandles(handles)) != 0)
+                {
+                    for (int i = 0; i < fetched; i++)
+                    {
+                        cancelToken.ThrowIfCancellationRequested();
+
+                        HandleType type = (HandleType)handles[i].Type;
+                        if (type != HandleType.Dependent)
+                            continue;
+
+                        if (ReadPointer(handles[i].Handle, out ulong address))
+                        {
+                            if (!result.TryGetValue(address, out List<ulong> value))
+                                result[address] = value = new List<ulong>();
+
+                            value.Add(handles[i].Secondary);
+                        }
+                    }
+                }
+
                 return result;
-
-            ISOSHandleEnum enumerator = (ISOSHandleEnum)tmp;
-            HandleData[] handles = new HandleData[32];
-            uint fetched = 0;
-            do
-            {
-                if (enumerator.Next((uint)handles.Length, handles, out fetched) < 0 || fetched <= 0)
-                    break;
-                
-                for (int i = 0; i < fetched; i++)
-                {
-                    cancelToken.ThrowIfCancellationRequested();
-                        
-                    HandleType type = (HandleType)handles[i].Type;
-                    if (type != HandleType.Dependent)
-                        continue;
-
-                    if (ReadPointer(handles[i].Handle, out ulong address))
-                    {
-                        if (!result.TryGetValue(address, out List<ulong> value))
-                            result[address] = value = new List<ulong>();
-
-                        value.Add(handles[i].Secondary);
-                    }
-                }
-            } while (fetched > 0);
-
-            return result;
-        }
-
-        private IEnumerable<ClrHandle> EnumerateHandleWorker()
-        {
-            // handles was fully populated already
-            if (_handles != null && _handleEnum == null)
-                yield break;
-
-            // Create _handleEnum if it's not already created.
-            if (_handleEnum == null)
-            {
-                if (_sos.GetHandleEnum(out object tmp) < 0)
-                    yield break;
-
-                _handleEnum = tmp as ISOSHandleEnum;
-                if (_handleEnum == null)
-                    yield break;
-
-                _handles = new List<ClrHandle>();
             }
-
-            // We already partially enumerated handles before, start with them.
-            foreach (var handle in _handles)
-                yield return handle;
-
-            HandleData[] handles = new HandleData[8];
-            uint fetched = 0;
-            do
-            {
-                if (_handleEnum.Next((uint)handles.Length, handles, out fetched) < 0 || fetched <= 0)
-                    break;
-
-                int curr = _handles.Count;
-                for (int i = 0; i < fetched; i++)
-                {
-                    ClrHandle handle = new ClrHandle(this, Heap, handles[i]);
-                    _handles.Add(handle);
-
-                    handle = handle.GetInteriorHandle();
-                    if (handle != null)
-                    {
-                        _handles.Add(handle);
-                    }
-                }
-
-                for (int i = curr; i < _handles.Count; i++)
-                    yield return _handles[i];
-            } while (fetched > 0);
-
-            _handleEnum = null;
         }
 
         internal override IEnumerable<ClrRoot> EnumerateStackReferences(ClrThread thread, bool includeDead)
@@ -158,24 +138,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ClrRoot> EnumerateStackReferencesWorker(ClrThread thread)
         {
-            ISOSStackRefEnum handleEnum = null;
-            if (_sos.GetStackReferences(thread.OSThreadId, out object tmp) >= 0)
-                handleEnum = tmp as ISOSStackRefEnum;
-
-            ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
-            if (handleEnum != null)
+            using (SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId))
             {
+                if (stackRefEnum == null)
+                    yield break;
+
+                ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
                 var heap = Heap;
                 StackRefData[] refs = new StackRefData[1024];
 
                 const int GCInteriorFlag = 1;
                 const int GCPinnedFlag = 2;
-                uint fetched = 0;
-                do
+                int fetched = 0;
+                while ((fetched = stackRefEnum.ReadStackReferences(refs)) != 0)
                 {
-                    if (handleEnum.Next((uint)refs.Length, refs, out fetched) < 0)
-                        break;
-
                     for (uint i = 0; i < fetched && i < refs.Length; ++i)
                     {
                         if (refs[i].Object == 0)
@@ -194,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (interior || type != null)
                             yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior, frame);
                     }
-                } while (fetched == refs.Length);
+                }
             }
         }
 
@@ -204,367 +180,103 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return threadStore != null ? threadStore.FirstThread : 0;
         }
 
-        internal override IThreadData GetThread(ulong addr)
-        {
-            if (addr == 0)
-                return null;
+        internal override IThreadData GetThread(ulong addr) => _sos.GetThreadData(addr);
 
-            if (_sos.GetThreadData(addr, out V4ThreadData data) < 0)
-                return null;
+        internal override IHeapDetails GetSvrHeapDetails(ulong addr) => _sos.GetServerHeapDetails(addr);
+        internal override IHeapDetails GetWksHeapDetails() => _sos.GetWksHeapDetails();
 
-            return data;
-        }
+        internal override ulong[] GetServerHeapList() => _sos.GetHeapList(HeapCount);
 
-        internal override IHeapDetails GetSvrHeapDetails(ulong addr)
-        {
-            if (_sos.GetGCHeapDetails(addr, out V4HeapDetails data) < 0)
-                return null;
-            return data;
-        }
+        internal override ulong[] GetAppDomainList(int count) => _sos.GetAppDomainList();
 
-        internal override IHeapDetails GetWksHeapDetails()
-        {
-            if (_sos.GetGCHeapStaticData(out V4HeapDetails data) < 0)
-                return null;
-            return data;
-        }
+        internal override ulong[] GetAssemblyList(ulong appDomain, int count) => _sos.GetAssemblyList(appDomain, count);
 
-        internal override ulong[] GetServerHeapList()
-        {
-            ulong[] refs = new ulong[HeapCount];
-            if (_sos.GetGCHeapList((uint)HeapCount, refs, out uint needed) < 0)
-                return null;
+        internal override ulong[] GetModuleList(ulong assembly, int count) => _sos.GetModuleList(assembly, count);
 
-            return refs;
-        }
+        internal override IAssemblyData GetAssemblyData(ulong domain, ulong assembly) => _sos.GetAssemblyData(domain, assembly);
 
-        internal override IList<ulong> GetAppDomainList(int count)
-        {
-            ulong[] data = new ulong[1024];
-            if (_sos.GetAppDomainList((uint)data.Length, data, out uint needed) < 0)
-                return null;
+        internal override IAppDomainStoreData GetAppDomainStoreData() => _sos.GetAppDomainStoreData();
 
-            List<ulong> list = new List<ulong>((int)needed);
+        internal override IMethodTableData GetMethodTableData(ulong addr) => _sos.GetMethodTableData(addr);
 
-            for (uint i = 0; i < needed; ++i)
-                list.Add(data[i]);
+        internal override ulong GetMethodTableByEEClass(ulong eeclass) => _sos.GetMethodTableByEEClass(eeclass);
 
-            return list;
-        }
+        internal override IGCInfo GetGCInfoImpl() => _sos.GetGcHeapData();
 
-        internal override ulong[] GetAssemblyList(ulong appDomain, int count)
-        {
-            int needed;
-            if (count <= 0)
-            {
-                if (_sos.GetAssemblyList(appDomain, 0, null, out needed) < 0)
-                    return new ulong[0];
+        internal override bool GetCommonMethodTables(ref CommonMethodTables mts) => _sos.GetCommonMethodTables(out mts);
 
-                count = needed;
-            }
+        internal override string GetNameForMT(ulong mt) => _sos.GetMethodTableName(mt);
 
-            // We ignore the return value here since modules might be partially
-            // filled even if GetAssemblyList hits an error.
-            ulong[] modules = new ulong[count];
-            _sos.GetAssemblyList(appDomain, modules.Length, modules, out needed);
+        internal override string GetPEFileName(ulong addr) => _sos.GetPEFileName(addr);
 
-            return modules;
-        }
+        internal override IModuleData GetModuleData(ulong addr) => _sos.GetModuleData(addr);
 
-        internal override ulong[] GetModuleList(ulong assembly, int count)
-        {
-            uint needed = (uint)count;
+        internal override ulong GetModuleForMT(ulong addr) => _sos.GetMethodTableData(addr)?.Module ?? 0;
 
-            if (count <= 0)
-            {
-                if (_sos.GetAssemblyModuleList(assembly, 0, null, out needed) < 0)
-                    return new ulong[0];
-            }
+        internal override ISegmentData GetSegmentData(ulong addr) => _sos.GetSegmentData(addr);
 
-            // We ignore the return value here since modules might be partially
-            // filled even if GetAssemblyList hits an error.
-            ulong[] modules = new ulong[needed];
-            _sos.GetAssemblyModuleList(assembly, needed, modules, out needed);
-            return modules;
-        }
+        internal override IAppDomainData GetAppDomainData(ulong addr) => _sos.GetAppDomainData(addr);
 
-        internal override IAssemblyData GetAssemblyData(ulong domain, ulong assembly)
-        {
-            if (_sos.GetAssemblyData(domain, assembly, out LegacyAssemblyData data) < 0)
-            {
-                // The dac seems to have an issue where the assembly data can be filled in for a minidump.
-                // If the data is partially filled in, we'll use it.
-                if (data.Address != assembly)
-                    return null;
-            }
+        internal override string GetAppDomaminName(ulong addr) => _sos.GetAppDomainName(addr);
 
-            return data;
-        }
+        internal override string GetAssemblyName(ulong addr) => _sos.GetAssemblyName(addr);
 
-        internal override IAppDomainStoreData GetAppDomainStoreData()
-        {
-            if (_sos.GetAppDomainStoreData(out LegacyAppDomainStoreData data) < 0)
-                return null;
+        internal override bool TraverseHeap(ulong heap, LoaderHeapTraverse callback) => _sos.TraverseLoaderHeap(heap, callback);
 
-            return data;
-        }
-
-        internal override IMethodTableData GetMethodTableData(ulong addr)
-        {
-            if (_sos.GetMethodTableData(addr, out V45MethodTableData data) < 0)
-                return null;
-
-            return data;
-        }
-
-        internal override ulong GetMethodTableByEEClass(ulong eeclass)
-        {
-            if (_sos.GetMethodTableForEEClass(eeclass, out ulong value) != 0)
-                return 0;
-
-            return value;
-        }
-
-        internal override IGCInfo GetGCInfoImpl()
-        {
-            return (_sos.GetGCHeapData(out LegacyGCInfo gcInfo) >= 0) ? (IGCInfo)gcInfo : null;
-        }
-
-        internal override bool GetCommonMethodTables(ref CommonMethodTables mCommonMTs)
-        {
-            return _sos.GetUsefulGlobals(out mCommonMTs) >= 0;
-        }
-
-        internal override string GetNameForMT(ulong mt)
-        {
-            if (_sos.GetMethodTableName(mt, 0, null, out uint count) < 0)
-                return null;
-
-            StringBuilder sb = new StringBuilder((int)count);
-            if (_sos.GetMethodTableName(mt, count, sb, out count) < 0)
-                return null;
-
-            return sb.ToString();
-        }
-
-        internal override string GetPEFileName(ulong addr)
-        {
-            if (_sos.GetPEFileName(addr, 0, null, out uint needed) < 0)
-                return null;
-
-            StringBuilder sb = new StringBuilder((int)needed);
-            if (_sos.GetPEFileName(addr, needed, sb, out needed) < 0)
-                return null;
-
-            return sb.ToString();
-        }
-
-        internal override IModuleData GetModuleData(ulong addr)
-        {
-            return _sos.GetModuleData(addr, out V45ModuleData data) >= 0 ? (IModuleData)data : null;
-        }
-
-        internal override ulong GetModuleForMT(ulong addr)
-        {
-            if (_sos.GetMethodTableData(addr, out V45MethodTableData data) < 0)
-                return 0;
-
-            return data.module;
-        }
-
-        internal override ISegmentData GetSegmentData(ulong addr)
-        {
-            if (_sos.GetHeapSegmentData(addr, out V4SegmentData seg) < 0)
-                return null;
-            return seg;
-        }
-
-        internal override IAppDomainData GetAppDomainData(ulong addr)
-        {
-            LegacyAppDomainData data = new LegacyAppDomainData(); ;
-            if (_sos.GetAppDomainData(addr, out data) < 0)
-            {
-                // We can face an exception while walking domain data if we catch the process
-                // at a bad state.  As a workaround we will return partial data if data.Address
-                // and data.StubHeap are set.
-                if (data.Address != addr && data.StubHeap != 0)
-                    return null;
-            }
-
-            return data;
-        }
-
-        internal override string GetAppDomaminName(ulong addr)
-        {
-            if (_sos.GetAppDomainName(addr, 0, null, out uint count) < 0)
-                return null;
-
-            StringBuilder sb = new StringBuilder((int)count);
-
-            if (_sos.GetAppDomainName(addr, count, sb, out count) < 0)
-                return null;
-
-            return sb.ToString();
-        }
-
-        internal override string GetAssemblyName(ulong addr)
-        {
-            if (_sos.GetAssemblyName(addr, 0, null, out uint count) < 0)
-                return null;
-
-            StringBuilder sb = new StringBuilder((int)count);
-
-            if (_sos.GetAssemblyName(addr, count, sb, out count) < 0)
-                return null;
-
-            return sb.ToString();
-        }
-
-        internal override bool TraverseHeap(ulong heap, DesktopRuntimeBase.LoaderHeapTraverse callback)
-        {
-            bool res = _sos.TraverseLoaderHeap(heap, Marshal.GetFunctionPointerForDelegate(callback)) >= 0;
-            GC.KeepAlive(callback);
-            return res;
-        }
-
-        internal override bool TraverseStubHeap(ulong appDomain, int type, DesktopRuntimeBase.LoaderHeapTraverse callback)
-        {
-            bool res = _sos.TraverseVirtCallStubHeap(appDomain, (uint)type, Marshal.GetFunctionPointerForDelegate(callback)) >= 0;
-            GC.KeepAlive(callback);
-            return res;
-        }
+        internal override bool TraverseStubHeap(ulong appDomain, int type, LoaderHeapTraverse callback) => _sos.TraverseStubHeap(appDomain, type, callback);
 
         internal override IEnumerable<ICodeHeap> EnumerateJitHeaps()
         {
-            LegacyJitManagerInfo[] jitManagers = null;
-
-            int res = _sos.GetJitManagerList(0, null, out uint needed);
-            if (res >= 0)
+            LegacyJitManagerInfo[] jitManagers = _sos.GetJitManagers();
+            for (int i = 0; i < jitManagers.Length; ++i)
             {
-                jitManagers = new LegacyJitManagerInfo[needed];
-                res = _sos.GetJitManagerList(needed, jitManagers, out needed);
-            }
+                if (jitManagers[i].type != CodeHeapType.Unknown)
+                    continue;
 
-            if (res >= 0 && jitManagers != null)
-            {
-                for (int i = 0; i < jitManagers.Length; ++i)
-                {
-                    if (jitManagers[i].type != CodeHeapType.Unknown)
-                        continue;
+                LegacyJitCodeHeapInfo[] heapInfo = _sos.GetCodeHeapList(jitManagers[i].addr);
 
-                    res = _sos.GetCodeHeapList(jitManagers[i].addr, 0, null, out needed);
-                    if (res >= 0 && needed > 0)
-                    {
-                        LegacyJitCodeHeapInfo[] heapInfo = new LegacyJitCodeHeapInfo[needed];
-                        res = _sos.GetCodeHeapList(jitManagers[i].addr, needed, heapInfo, out needed);
-
-                        if (res >= 0)
-                        {
-                            for (int j = 0; j < heapInfo.Length; ++j)
-                            {
-                                yield return (ICodeHeap)heapInfo[i];
-                            }
-                        }
-                    }
-                }
+                for (int j = 0; j < heapInfo.Length; ++j)
+                    yield return heapInfo[i];
             }
         }
 
-        internal override IFieldInfo GetFieldInfo(ulong mt)
-        {
-            if (_sos.GetMethodTableFieldData(mt, out V4FieldInfo fieldInfo) < 0)
-                return null;
+        internal override IFieldInfo GetFieldInfo(ulong mt) => _sos.GetFieldInfo(mt);
 
-            return fieldInfo;
-        }
+        internal override IFieldData GetFieldData(ulong fieldDesc) => _sos.GetFieldData(fieldDesc);
 
-        internal override IFieldData GetFieldData(ulong fieldDesc)
-        {
-            if (_sos.GetFieldDescData(fieldDesc, out LegacyFieldData data) < 0)
-                return null;
+        internal override ICorDebug.IMetadataImport GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
 
-            return data;
-        }
-
-        internal override ICorDebug.IMetadataImport GetMetadataImport(ulong module)
-        {
-            if (module == 0 || _sos.GetModule(module, out object obj) < 0)
-                return null;
-
-            RegisterForRelease(obj);
-            return obj as ICorDebug.IMetadataImport;
-        }
-
-        internal override IObjectData GetObjectData(ulong objRef)
-        {
-            if (_sos.GetObjectData(objRef, out V45ObjectData data) < 0)
-                return null;
-            return data;
-        }
+        internal override IObjectData GetObjectData(ulong objRef) => _sos.GetObjectData(objRef);
 
         internal override IList<MethodTableTokenPair> GetMethodTableList(ulong module)
         {
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
-            int res = _sos.TraverseModuleMap(0, module, new ModuleMapTraverse(delegate (uint index, ulong mt, IntPtr token)
-                { mts.Add(new MethodTableTokenPair(mt, index)); }),
-                IntPtr.Zero);
+            _sos.TraverseModuleMap(0, module, new ModuleMapTraverse(delegate (uint index, ulong mt, IntPtr token)
+            {
+                mts.Add(new MethodTableTokenPair(mt, index));
+            }));
 
             return mts;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
-        {
-            int res = _sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id, out V45DomainLocalModuleData data);
-            if (res < 0)
-                return null;
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id) => _sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id);
 
-            return data;
-        }
+        internal override COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count) => _sos.GetCCWInterfaces(ccw, count);
 
-        internal override COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count)
-        {
-            COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            if (_sos.GetCCWInterfaces(ccw, (uint)count, data, out uint pNeeded) >= 0)
-                return data;
+        internal override COMInterfacePointerData[] GetRCWInterfaces(ulong rcw, int count) => _sos.GetRCWInterfaces(rcw, count);
 
-            return null;
-        }
+        internal override ICCWData GetCCWData(ulong ccw) => _sos.GetCCWData(ccw);
 
-        internal override COMInterfacePointerData[] GetRCWInterfaces(ulong rcw, int count)
-        {
-            COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            if (_sos.GetRCWInterfaces(rcw, (uint)count, data, out uint pNeeded) >= 0)
-                return data;
-
-            return null;
-        }
-        internal override ICCWData GetCCWData(ulong ccw)
-        {
-            if (ccw != 0 && _sos.GetCCWData(ccw, out V45CCWData data) >= 0)
-                return data;
-
-            return null;
-        }
-
-        internal override IRCWData GetRCWData(ulong rcw)
-        {
-            if (rcw != 0 && _sos.GetRCWData(rcw, out V45RCWData data) >= 0)
-                return data;
-
-            return null;
-        }
+        internal override IRCWData GetRCWData(ulong rcw) => _sos.GetRCWData(rcw);
         #endregion
 
-        internal override ulong GetILForModule(ClrModule module, uint rva)
-        {
-            return _sos.GetILForModule(module.Address, rva, out ulong ilAddr) == 0 ? ilAddr : 0;
-        }
+        internal override ulong GetILForModule(ClrModule module, uint rva) => _sos.GetILForModule(module.Address, rva);
 
         internal override ulong GetThreadStaticPointer(ulong thread, ClrElementType type, uint offset, uint moduleId, bool shared)
         {
             ulong addr = offset;
 
-            if (_sos.GetThreadLocalModuleData(thread, moduleId, out V45ThreadLocalModuleData data) < 0)
+            if (!_sos.GetThreadLocalModuleData(thread, moduleId, out V45ThreadLocalModuleData data))
                 return 0;
 
             if (IsObjectReference(type) || IsValueClass(type))
@@ -575,54 +287,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return addr;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module)
-        {
-            if (_sos.GetDomainLocalModuleDataFromModule(module, out V45DomainLocalModuleData data) < 0)
-                return null;
-
-            return data;
-        }
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module) => _sos.GetDomainLocalModuleDataFromModule(module);
 
         internal override IList<ulong> GetMethodDescList(ulong methodTable)
         {
-            if (_sos.GetMethodTableData(methodTable, out V45MethodTableData mtData) < 0)
+            IMethodTableData mtData = _sos.GetMethodTableData(methodTable);
+            if (mtData ==  null)
                 return null;
 
-            List<ulong> mds = new List<ulong>(mtData.wNumMethods);
+            uint numMethods = mtData.NumMethods;
+            ulong[] mds = new ulong[numMethods];
 
-            ulong ip = 0;
-            for (uint i = 0; i < mtData.wNumMethods; ++i)
-                if (_sos.GetMethodTableSlot(methodTable, i, out ip) >= 0)
-                {
-                    if (_sos.GetCodeHeaderData(ip, out CodeHeaderData header) >= 0)
-                        mds.Add(header.MethodDescPtr);
-                }
+            for (uint i = 0; i < numMethods; ++i)
+                if (_sos.GetCodeHeaderData(_sos.GetMethodTableSlot(methodTable, i), out CodeHeaderData header))
+                    mds[i] = header.MethodDescPtr;
 
             return mds;
         }
 
-        internal override string GetNameForMD(ulong md)
-        {
-            if (_sos.GetMethodDescName(md, 0, null, out uint needed) < 0)
-                return "UNKNOWN";
-
-            StringBuilder sb = new StringBuilder((int)needed);
-            if (_sos.GetMethodDescName(md, (uint)sb.Capacity, sb, out uint actuallyNeeded) < 0)
-                return "UNKNOWN";
-
-            // Patch for a bug on sos side :
-            //  Sometimes, when the target method has parameters with generic types
-            //  the first call to GetMethodDescName sets an incorrect value into pNeeded.
-            //  In those cases, a second call directly after the first returns the correct value.
-            if (needed != actuallyNeeded)
-            {
-                sb.Capacity = (int)actuallyNeeded;
-                if (_sos.GetMethodDescName(md, (uint)sb.Capacity, sb, out actuallyNeeded) < 0)
-                    return "UNKNOWN";
-            }
-
-            return sb.ToString();
-        }
+        internal override string GetNameForMD(ulong md) => _sos.GetMethodDescName(md);
 
         internal override IMethodDescData GetMethodDescData(ulong md)
         {
@@ -635,24 +318,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetMetadataToken(ulong mt)
         {
-            if (_sos.GetMethodTableData(mt, out V45MethodTableData data) < 0)
-                return uint.MaxValue;
-
-            return data.token;
+            IMethodTableData data = _sos.GetMethodTableData(mt);
+            return data?.Token ?? uint.MaxValue;
         }
 
-        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong framePtr, ulong frameVtbl)
+        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong framePtr, ulong frameVtbl)
         {
             DesktopStackFrame frame;
-            StringBuilder sb = new StringBuilder(256);
-            if (res >= 0 && frameVtbl != 0)
+            if (frameVtbl != 0)
             {
                 ClrMethod innerMethod = null;
-                string frameName = "Unknown Frame";
-                if (_sos.GetFrameName(frameVtbl, (uint)sb.Capacity, sb, out uint needed) >= 0)
-                    frameName = sb.ToString();
+                string frameName = _sos.GetFrameName(frameVtbl);
 
-                if (_sos.GetMethodDescPtrFromFrame(framePtr, out ulong md) == 0)
+                ulong md = _sos.GetMethodDescPtrFromFrame(framePtr);
+                if (md != 0)
                 {
                     V45MethodDescDataWrapper mdData = new V45MethodDescDataWrapper();
                     if (mdData.Init(_sos, md))
@@ -663,14 +342,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
-                if (_sos.GetMethodDescPtrFromIP(ip, out ulong md) >= 0)
-                {
-                    frame = new DesktopStackFrame(this, thread, ip, framePtr, md);
-                }
-                else
-                {
-                    frame = new DesktopStackFrame(this, thread, ip, framePtr, 0);
-                }
+                frame = new DesktopStackFrame(this, thread, ip, framePtr, _sos.GetMethodDescPtrFromIP(ip));
             }
 
             return frame;
@@ -752,41 +424,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IThreadStoreData GetThreadStoreData()
         {
-            if (_sos.GetThreadStoreData(out LegacyThreadStoreData data) < 0)
+            if (!_sos.GetThreadStoreData(out LegacyThreadStoreData data))
                 return null;
 
             return data;
         }
 
-        internal override string GetAppBase(ulong appDomain)
-        {
-            if (_sos.GetApplicationBase(appDomain, 0, null, out uint needed) < 0)
-                return null;
-
-            StringBuilder builder = new StringBuilder((int)needed);
-            if (_sos.GetApplicationBase(appDomain, (int)needed, builder, out needed) < 0)
-                return null;
-
-            return builder.ToString();
-        }
-
-        internal override string GetConfigFile(ulong appDomain)
-        {
-            if (_sos.GetAppDomainConfigFile(appDomain, 0, null, out uint needed) < 0)
-                return null;
-
-            StringBuilder builder = new StringBuilder((int)needed);
-            if (_sos.GetAppDomainConfigFile(appDomain, (int)needed, builder, out needed) < 0)
-                return null;
-
-            return builder.ToString();
-        }
+        internal override string GetAppBase(ulong appDomain) => _sos.GetAppBase(appDomain);
+        internal override string GetConfigFile(ulong appDomain) => _sos.GetConfigFile(appDomain);
 
         internal override IMethodDescData GetMDForIP(ulong ip)
         {
-            if (_sos.GetMethodDescPtrFromIP(ip, out ulong md) < 0 || md == 0)
+            ulong md = _sos.GetMethodDescPtrFromIP(ip);
+            if (md == 0)
             {
-                if (_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData) < 0)
+                if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
                     return null;
 
                 if ((md = codeHeaderData.MethodDescPtr) == 0)
@@ -800,45 +452,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mdWrapper;
         }
 
-        protected override ulong GetThreadFromThinlock(uint threadId)
-        {
-            if (_sos.GetThreadFromThinlockID(threadId, out ulong thread) < 0)
-                return 0;
+        protected override ulong GetThreadFromThinlock(uint threadId) => _sos.GetThreadFromThinlockId(threadId);
 
-            return thread;
-        }
+        internal override int GetSyncblkCount() => (int)(_sos.GetSyncBlockData(1)?.TotalCount ?? 0);
 
-        internal override int GetSyncblkCount()
-        {
-            if (_sos.GetSyncBlockData(1, out LegacySyncBlkData data) < 0)
-                return 0;
+        internal override ISyncBlkData GetSyncblkData(int index) => _sos.GetSyncBlockData(index + 1);
 
-            return (int)data.TotalCount;
-        }
+        internal override IThreadPoolData GetThreadPoolData() => _sos.GetThreadPoolData();
 
-        internal override ISyncBlkData GetSyncblkData(int index)
-        {
-            if (_sos.GetSyncBlockData((uint)index + 1, out LegacySyncBlkData data) < 0)
-                return null;
-
-            return data;
-        }
-
-        internal override IThreadPoolData GetThreadPoolData()
-        {
-            if (_sos.GetThreadpoolData(out V45ThreadPoolData data) < 0)
-                return null;
-
-            return data;
-        }
-
-        internal override uint GetTlsSlot()
-        {
-            if (_sos.GetTLSIndex(out uint result) < 0)
-                return uint.MaxValue;
-
-            return result;
-        }
+        internal override uint GetTlsSlot() => _sos.GetTlsIndex();
 
         internal override uint GetThreadTypeIndex()
         {
@@ -855,17 +477,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IEnumerable<NativeWorkItem> EnumerateWorkItems()
         {
-            if (_sos.GetThreadpoolData(out V45ThreadPoolData data) == 0)
+            IThreadPoolData data = _sos.GetThreadPoolData();
+            ulong request = data.FirstWorkRequest;
+            while (request != 0)
             {
-                ulong request = data.FirstWorkRequest;
-                while (request != 0)
-                {
-                    if (_sos.GetWorkRequestData(request, out V45WorkRequestData requestData) != 0)
-                        break;
+                if (!_sos.GetWorkRequestData(request, out V45WorkRequestData requestData))
+                    break;
 
-                    yield return new DesktopNativeWorkItem(requestData);
-                    request = requestData.NextWorkRequest;
-                }
+                yield return new DesktopNativeWorkItem(requestData);
+                request = requestData.NextWorkRequest;
             }
         }
 
@@ -890,30 +510,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return PointerSize == 8 ? 0x8cu : 0x40u;
         }
     }
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("3E269830-4A2B-4301-8EE2-D6805B29B2FA")]
-
 
 
     #region V45 Dac Interface
-
-    internal interface ISOSHandleEnum
-    {
-        void Skip(uint count);
-        void Reset();
-        void GetCount(out uint count);
-        [PreserveSig]
-        int Next(uint count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] handles, out uint pNeeded);
-    }
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("8FA642BD-9F10-4799-9AA3-512AE78C77EE")]
-
-    internal interface ISOSStackRefEnum
-    {
-        void Skip(uint count);
-        void Reset();
-        void GetCount(out uint count);
-        [PreserveSig]
-        int Next(uint count, [Out, MarshalAs(UnmanagedType.LPArray)] StackRefData[] handles, out uint pNeeded);
-    }
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     internal delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
@@ -1350,10 +949,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class V45MethodDescDataWrapper : IMethodDescData
     {
-        public bool Init(ISOSDac sos, ulong md)
+        public bool Init(SOSDac sos, ulong md)
         {
-            V45MethodDescData data = new V45MethodDescData();
-            if (sos.GetMethodDescData(md, 0, out data, 0, null, out ulong count) < 0)
+            if (!sos.GetMethodDescData(md, 0, out V45MethodDescData data))
                 return false;
 
             _md = data.MethodDescPtr;
@@ -1362,7 +960,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _token = data.MDToken;
             _mt = data.MethodTablePtr;
 
-            if (sos.GetCodeHeaderData(data.NativeCodeAddr, out CodeHeaderData header) >= 0)
+            if (sos.GetCodeHeaderData(data.NativeCodeAddr, out CodeHeaderData header))
             {
                 if (header.JITType == 1)
                     _jitType = MethodCompilationType.Jit;
@@ -1624,6 +1222,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public uint isShared; // flags & enum_flag_DomainNeutral
         public uint isDynamic;
         public uint containsPointers;
+
+        public uint Token => token;
+        public ulong Module => module;
 
         public bool ContainsPointers
         {

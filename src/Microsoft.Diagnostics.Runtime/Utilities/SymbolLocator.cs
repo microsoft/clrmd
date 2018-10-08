@@ -773,7 +773,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return -1;
             }
 
-            hModule = NativeMethods.LoadLibrary(result);
+            hModule = WindowsFunctions.NativeMethods.LoadLibrary(result);
             return 0;
         }
     }

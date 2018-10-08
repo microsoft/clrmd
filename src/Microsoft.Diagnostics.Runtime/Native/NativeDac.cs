@@ -315,6 +315,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             get { return elementTypeHandle; }
         }
+
+        public uint Token => 0;
+
+        public ulong Module => 0;
     }
 
     internal struct NativeSegementData : ISegmentData

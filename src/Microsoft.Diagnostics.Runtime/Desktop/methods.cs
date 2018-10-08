@@ -121,9 +121,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override int GetILOffset(ulong addr)
         {
             ILToNativeMap[] map = ILOffsetMap;
-            if (map == null)
-                return -1;
-
             int ilOffset = 0;
             if (map.Length > 1)
                 ilOffset = map[1].ILOffset;

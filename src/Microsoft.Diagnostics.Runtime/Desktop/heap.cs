@@ -684,7 +684,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (ads == null)
                 return;
 
-            IList<ulong> appDomains = DesktopRuntime.GetAppDomainList(ads.Count);
+            ulong[] appDomains = DesktopRuntime.GetAppDomainList(ads.Count);
             if (appDomains == null)
                 return;
 

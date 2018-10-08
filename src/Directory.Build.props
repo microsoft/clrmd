@@ -17,4 +17,11 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
   </PropertyGroup>
+  
+  <PropertyGroup>
+	<EnableSourceLink>false</EnableSourceLink>
+	<EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+	<DeterministicSourcePaths>false</DeterministicSourcePaths>
+	<RepositoryUrl>https://github.com/Microsoft/clrmd</RepositoryUrl>
+  </PropertyGroup>
 </Project>

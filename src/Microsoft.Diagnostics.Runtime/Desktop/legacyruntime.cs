@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return RequestAddrList(DacRequests.GCHEAP_LIST, HeapCount);
         }
 
-        internal override IList<ulong> GetAppDomainList(int count)
+        internal override ulong[] GetAppDomainList(int count)
         {
             return RequestAddrList(DacRequests.APPDOMAIN_LIST, count);
         }
@@ -537,12 +537,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return token;
         }
 
-        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong sp, ulong frameVtbl)
+        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong sp, ulong frameVtbl)
         {
             DesktopStackFrame frame;
             ClearBuffer();
 
-            if (res >= 0 && frameVtbl != 0)
+            if (frameVtbl != 0)
             {
                 ClrMethod method = null;
                 string frameName = "Unknown Frame";
@@ -1331,6 +1331,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get { throw new NotImplementedException(); }
         }
+
+        public uint Token => 0;
+
+        public ulong Module => 0;
     }
 
     // Same for v2 and v4

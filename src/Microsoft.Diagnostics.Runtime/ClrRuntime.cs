@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
@@ -811,7 +812,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private static ulong[] s_emptyPointerArray = new ulong[0];
         protected DacLibrary _library;
-        protected IXCLRDataProcess _dacInterface;
+        protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
         protected IDataReader _dataReader;
         protected DataTargetImpl _dataTarget;
