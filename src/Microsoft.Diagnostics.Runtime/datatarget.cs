@@ -1227,6 +1227,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (_library == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to load dac: " + dacDll);
 
+            IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(_library, "PAL_InitializeDLL");
+            if (initAddr != IntPtr.Zero)
+            {
+                PAL_Initialize init = (PAL_Initialize)Marshal.GetDelegateForFunctionPointer(initAddr, typeof(PAL_Initialize));
+                int result = init();
+            }
+
+
             IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(_library, "CLRDataCreateInstance");
             _dacDataTarget = new DacDataTarget(dataTarget);
             _dacDataTargetWrapper = new DacDataTargetWrapper(dataTarget);
@@ -1243,7 +1251,10 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate int CreateDacInstance(ref Guid riid,
+        private delegate int PAL_Initialize();
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int CreateDacInstance(ref Guid riid,
                                IntPtr dacDataInterface,
                                out IntPtr ppObj);
 

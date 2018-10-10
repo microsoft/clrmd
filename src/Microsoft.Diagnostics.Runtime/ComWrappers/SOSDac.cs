@@ -339,7 +339,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return obj as ICorDebug.IMetadataImport;
              */
 
-            throw new NotImplementedException();
+            return null;
         }
 
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
@@ -522,6 +522,9 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public IThreadData GetThreadData(ulong address)
         {
+            if (address == 0)
+                return null;
+
             InitDelegate(ref _getThreadData, VTable->GetThreadData);
 
             int hr = _getThreadData(Self, address, out V4ThreadData data);
@@ -666,7 +669,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         delegate int DacGetIntPtrWithArg(IntPtr self, ulong addr, out IntPtr data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetThreadData(IntPtr self, ulong addr, out V4ThreadData data);
+        delegate int DacGetThreadData(IntPtr self, ulong addr, [Out] out V4ThreadData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetHeapDetailsWithArg(IntPtr self, ulong addr, out V4HeapDetails data);

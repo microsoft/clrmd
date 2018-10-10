@@ -218,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
                 addr = thread.Next;
-                if (seen.Contains(addr))
+                if (seen.Contains(addr) || addr == 0)
                     break;
 
                 seen.Add(addr);
@@ -770,6 +770,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             using (ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf))
             {
+                if (stackwalk == null)
+                    yield break;
+
                 byte[] ulongBuffer = new byte[8];
                 byte[] context = ContextHelper.Context;
                 do

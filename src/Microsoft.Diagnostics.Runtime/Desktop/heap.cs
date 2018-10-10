@@ -2237,8 +2237,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 mt = DesktopRuntime.DataReader.ReadPointerUnsafe(objRef);
             }
 
-            if ((((int)mt) & 3) != 0)
-                mt &= ~3UL;
+            unchecked
+            {
+                if ((((byte)mt) & 3) != 0)
+                    mt &= ~3UL;
+            }
             
             ClrType type = GetTypeByMethodTable(mt, 0, objRef);
             _lastObject = ClrObject.Create(objRef, type);

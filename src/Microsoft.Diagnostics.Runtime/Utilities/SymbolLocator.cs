@@ -9,6 +9,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Linux;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -288,18 +289,36 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 try
                 {
-                    using (PEFile pefile = new PEFile(fullPath))
+                    using (FileStream fs = File.OpenRead(fullPath))
                     {
-                        var header = pefile.Header;
-                        if (!checkProperties || (header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize))
+                        Console.WriteLine(Path.GetExtension(fullPath));
+
+                        if (Path.GetExtension(fullPath) == ".so")
                         {
+                            Debugger.Break();
+                            Console.WriteLine($"Skipping validation for {fullPath}");
                             return true;
                         }
                         else
                         {
-                            Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
+                            using (PEFile pefile = PEFile.TryLoad(fs, false))
+                            {
+                                if (pefile != null)
+                                {
+                                    var header = pefile.Header;
+                                    if (!checkProperties || (header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize))
+                                    {
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
+                                    }
+                                }
+                            }
                         }
                     }
+
                 }
                 catch (Exception e)
                 {

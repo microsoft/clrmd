@@ -50,7 +50,6 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         
         public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesRead)
         {
-            Console.WriteLine($"Called: ReadVirtual");
             if (ReadVirtual(self, address, buffer, (int)bytesRequested, out int read) >= 0)
             {
                 bytesRead = (uint)read;
@@ -63,7 +62,6 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
-            Console.WriteLine($"Called: GetMachineType");
             var arch = _dataReader.GetArchitecture();
 
             switch (arch)
@@ -90,7 +88,6 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         private ModuleInfo GetModule(ulong address)
         {
-            Console.WriteLine($"Called: GetModule");
             int min = 0, max = _modules.Length - 1;
 
             while (min <= max)
@@ -111,14 +108,12 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public int GetPointerSize(IntPtr self, out uint pointerSize)
         {
-            Console.WriteLine($"Called: GetPointerSize");
             pointerSize = _dataReader.GetPointerSize();
             return S_OK;
         }
 
         public int GetImageBase(IntPtr self, string imagePath, out ulong baseAddress)
         {
-            Console.WriteLine($"Called: GetImageBase");
             imagePath = Path.GetFileNameWithoutExtension(imagePath);
 
             foreach (ModuleInfo module in _modules)
@@ -137,13 +132,13 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public unsafe int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            Console.WriteLine($"Called: ReadVirtual");
             if (_dataReader.ReadMemory(address, buffer, bytesRequested, out int read))
             {
                 bytesRead = read;
                 return S_OK;
             }
-
+            
+            System.Diagnostics.Debugger.Break();
             ModuleInfo info = GetModule(address);
             if (info != null)
             {
@@ -184,7 +179,6 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public int ReadMemory(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
         {
-            Console.WriteLine($"Called: ReadMemory");
             if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out int read))
             {
                 bytesRead = (uint)read;
@@ -197,13 +191,11 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public int ReadVirtual(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
         {
-            Console.WriteLine($"Called: ReadVirtual");
             return ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
         public int WriteVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
         {
-            Console.WriteLine($"Called: WriteVirtual");
             // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
             bytesWritten = bytesRequested;
             return S_OK;
@@ -228,7 +220,8 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            Console.WriteLine($"Called: GetThreadContext");
+            Console.WriteLine($"Called: GetThreadContext {threadID:x} {contextFlags:x} {contextSize:x}");
+            System.Diagnostics.Debugger.Break();
             if (_dataReader.GetThreadContext(threadID, contextFlags, contextSize, context))
                 return S_OK;
 
@@ -250,6 +243,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         public int GetMetadata(IntPtr self, string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize)
         {
             Console.WriteLine($"Called: GetMetadata");
+            System.Diagnostics.Debugger.Break();
             string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
             if (filePath == null)
                 return E_FAIL;
