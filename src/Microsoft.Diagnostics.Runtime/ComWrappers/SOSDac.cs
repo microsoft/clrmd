@@ -295,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public IFieldData GetFieldData(ulong fieldDesc)
         {
-            InitDelegate(ref _getFieldData, VTable->GetMethodTableFieldData);
+            InitDelegate(ref _getFieldData, VTable->GetFieldDescData);
             if (_getFieldData(Self, fieldDesc, out LegacyFieldData data) == S_OK)
                 return data;
 
