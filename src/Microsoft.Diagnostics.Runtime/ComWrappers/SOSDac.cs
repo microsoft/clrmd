@@ -76,6 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private DacGetUInt _getTlsIndex;
         private DacGetThreadStoreData _getThreadStoreData;
         private GetMethodDescDataDelegate _getMethodDescData;
+        private GetMetaDataImportDelegate _getMetaData;
 
         public bool GetMethodDescData(ulong md, ulong ip, out V45MethodDescData data)
         {
@@ -328,18 +329,16 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return null;
         }
 
-        public ICorDebug.IMetadataImport GetMetadataImport(ulong module)
+        public MetaDataImport GetMetadataImport(ulong module)
         {
-            //TODO
-            /*
-            if (module == 0 || _sos.GetModule(module, out object obj) < 0)
+            if (module == 0)
                 return null;
 
-            RegisterForRelease(obj);
-            return obj as ICorDebug.IMetadataImport;
-             */
+            InitDelegate(ref _getMetaData, VTable->GetMetaDataImport);
+            if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
+                return null;
 
-            return null;
+            return new MetaDataImport(iunk);
         }
 
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
@@ -773,6 +772,10 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetJitManagers(IntPtr self, int count, [Out] LegacyJitManagerInfo[] jitManagers, out int pNeeded);
+
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        delegate int GetMetaDataImportDelegate(IntPtr self, ulong addr, out IntPtr iunk);
         #endregion
     }
 
@@ -796,7 +799,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         public readonly IntPtr GetAssemblyName;
 
         // Modules
-        public readonly IntPtr GetModule;
+        public readonly IntPtr GetMetaDataImport;
         public readonly IntPtr GetModuleData;
         public readonly IntPtr TraverseModuleMap;
         public readonly IntPtr GetAssemblyModuleList;

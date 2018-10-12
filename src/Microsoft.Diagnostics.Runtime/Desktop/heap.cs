@@ -1,10 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 
@@ -176,37 +178,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        protected static StringBuilder GetTypeNameFromToken(DesktopModule module, uint token)
+        protected static string GetTypeNameFromToken(DesktopModule module, uint token)
         {
             if (module == null)
                 return null;
 
-            ICorDebug.IMetadataImport meta = module.GetMetadataImport();
+            MetaDataImport meta = module.GetMetadataImport();
             if (meta == null)
                 return null;
 
             // Get type name.
-            StringBuilder typeBuilder = new StringBuilder(256);
-            int res = meta.GetTypeDefProps((int)token, typeBuilder, typeBuilder.Capacity, out int typeDefLen, out System.Reflection.TypeAttributes typeAttrs, out int ptkExtends);
-            if (res < 0)
+            if (!meta.GetTypeDefProperties((int)token, out string name, out TypeAttributes attrs, out int parent))
                 return null;
-
-            res = meta.GetNestedClassProps((int)token, out int enclosing);
-            if (res == 0 && token != enclosing)
+            
+            if (meta.GetNestedClassProperties((int)token, out int enclosing) && token != enclosing)
             {
-                StringBuilder inner = GetTypeNameFromToken(module, (uint)enclosing);
+                string inner = GetTypeNameFromToken(module, (uint)enclosing);
                 if (inner == null)
-                {
-                    inner = new StringBuilder(typeBuilder.Capacity + 16);
-                    inner.Append("<UNKNOWN>");
-                }
+                    inner = "<UNKNOWN>";
 
-                inner.Append('+');
-                inner.Append(typeBuilder);
-                return inner;
+                return $"{inner}+{name}";
             }
 
-            return typeBuilder;
+            return name;
         }
 
 
@@ -2280,7 +2274,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 // Dynamic functions/modules
                 uint tokenEnt = token;
                 if (!isFree && (module == null || module.IsDynamic))
-                    tokenEnt = (uint)mt;
+                    tokenEnt = unchecked((uint)mt);
 
                 ModuleEntry modEnt = new ModuleEntry(module, tokenEnt);
 

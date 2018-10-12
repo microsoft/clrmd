@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -27,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ulong ModuleId { get; set; }
 
-        internal virtual ICorDebug.IMetadataImport GetMetadataImport()
+        internal virtual MetaDataImport GetMetadataImport()
         {
             return null;
         }
@@ -43,10 +44,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class DesktopModule : DesktopBaseModule
     {
         static PdbInfo s_failurePdb = new PdbInfo();
-
-        private bool _reflection, _isPE;
-        private string _name, _assemblyName;
-        private ICorDebug.IMetadataImport _metadata;
+        private readonly bool _reflection;
+        private readonly bool _isPE;
+        private string _name;
+        private readonly string _assemblyName;
+        private MetaDataImport _metadata;
         private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
         private ulong _address;
         private ulong _imageBase;
@@ -76,12 +78,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _assemblyAddress = data.Assembly;
             _size = new Lazy<ulong>(()=>runtime.GetModuleSize(address));
 
-            if (!runtime.DataReader.IsMinidump)
-            {
-                // This is very expensive in the minidump case, as we may be heading out to the symbol server or
-                // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
-                _metadata = data.LegacyMetaDataImport as ICorDebug.IMetadataImport;
-            }
+            // This is very expensive in the minidump case, as we may be heading out to the symbol server or
+            // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
+            if (!runtime.DataReader.IsMinidump && data.LegacyMetaDataImport != IntPtr.Zero)
+                _metadata = new MetaDataImport(data.LegacyMetaDataImport);
         }
 
         internal override ulong Address
@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return 0;
         }
 
-        internal override ICorDebug.IMetadataImport GetMetadataImport()
+        internal override MetaDataImport GetMetadataImport()
         {
             if (Revision != _runtime.Revision)
                 ClrDiagnosticsException.ThrowRevisionError(Revision, _runtime.Revision);
@@ -294,9 +294,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        private void InitDebugAttributes()
+        private unsafe void InitDebugAttributes()
         {
-            ICorDebug.IMetadataImport metadata = GetMetadataImport();
+            MetaDataImport metadata = GetMetadataImport();
             if (metadata == null)
             {
                 _debugMode = DebuggableAttribute.DebuggingModes.None;
@@ -305,20 +305,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             try
             {
-                int hr = metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out IntPtr data, out uint cbData);
-                if (hr != 0 || cbData <= 4)
-                {
-                    _debugMode = DebuggableAttribute.DebuggingModes.None;
-                    return;
-                }
-
-                unsafe
+                if (metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out IntPtr data, out uint cbData) && cbData >= 4)
                 {
                     byte* b = (byte*)data.ToPointer();
-                    UInt16 opt = b[2];
-                    UInt16 dbg = b[3];
+                    ushort opt = b[2];
+                    ushort dbg = b[3];
 
-                    _debugMode = (System.Diagnostics.DebuggableAttribute.DebuggingModes)((dbg << 8) | opt);
+                    _debugMode = (DebuggableAttribute.DebuggingModes)((dbg << 8) | opt);
+                }
+                else
+                {
+                    _debugMode = DebuggableAttribute.DebuggingModes.None;
                 }
             }
             catch (SEHException)

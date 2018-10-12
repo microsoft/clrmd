@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IFieldData GetFieldData(ulong fieldDesc) => _sos.GetFieldData(fieldDesc);
 
-        internal override ICorDebug.IMetadataImport GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
+        internal override MetaDataImport GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
 
         internal override IObjectData GetObjectData(ulong objRef) => _sos.GetObjectData(objRef);
 
@@ -1136,9 +1136,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public object LegacyMetaDataImport
+        public IntPtr LegacyMetaDataImport
         {
-            get { return null; }
+            get { return IntPtr.Zero; }
         }
 
 

@@ -863,7 +863,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract ulong GetModuleForMT(ulong mt);
         internal abstract IFieldInfo GetFieldInfo(ulong mt);
         internal abstract IFieldData GetFieldData(ulong fieldDesc);
-        internal abstract ICorDebug.IMetadataImport GetMetadataImport(ulong module);
+        internal abstract MetaDataImport GetMetadataImport(ulong module);
         internal abstract IObjectData GetObjectData(ulong objRef);
         internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
         internal abstract IList<MethodTableTokenPair> GetMethodTableList(ulong module);
@@ -1377,7 +1377,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong PEFile { get; }
         ulong LookupTableHeap { get; }
         ulong ThunkHeap { get; }
-        object LegacyMetaDataImport { get; }
+        IntPtr LegacyMetaDataImport { get; }
         ulong ModuleId { get; }
         ulong ModuleIndex { get; }
         ulong Assembly { get; }
