@@ -220,8 +220,6 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            Console.WriteLine($"Called: GetThreadContext {threadID:x} {contextFlags:x} {contextSize:x}");
-            System.Diagnostics.Debugger.Break();
             if (_dataReader.GetThreadContext(threadID, contextFlags, contextSize, context))
                 return S_OK;
 

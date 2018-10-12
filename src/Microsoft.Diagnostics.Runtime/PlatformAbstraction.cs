@@ -202,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public class XmmSaveArea
+        public struct XmmSaveArea
         {
             public const int HeaderSize = 2;
             public const int LegacySize = 8;
@@ -247,139 +247,10 @@ namespace Microsoft.Diagnostics.Runtime
             public M128A Xmm14;
             [FieldOffset(0x190)]
             public M128A Xmm15;
-
-            public XmmSaveArea()
-            {
-                Header = new M128A[HeaderSize];
-                Legacy = new M128A[LegacySize];
-            }
-
-            public XmmSaveArea(XmmSaveArea other) : this()
-            {
-                for (int i = 0; i < HeaderSize; ++i)
-                    Header[i] = other.Header[i];
-
-                for (int i = 0; i < LegacySize; ++i)
-                    Legacy[i] = other.Legacy[i];
-
-                Xmm0 = other.Xmm0;
-                Xmm1 = other.Xmm1;
-                Xmm2 = other.Xmm2;
-                Xmm3 = other.Xmm3;
-                Xmm4 = other.Xmm4;
-                Xmm5 = other.Xmm5;
-                Xmm6 = other.Xmm6;
-                Xmm7 = other.Xmm7;
-                Xmm8 = other.Xmm8;
-                Xmm9 = other.Xmm9;
-                Xmm10 = other.Xmm10;
-                Xmm11 = other.Xmm11;
-                Xmm12 = other.Xmm12;
-                Xmm13 = other.Xmm13;
-                Xmm14 = other.Xmm14;
-                Xmm15 = other.Xmm15;
-            }
-
-            public void Clear()
-            {
-                for (int i = 0; i < HeaderSize; ++i)
-                    Header[i].Clear();
-
-                for (int i = 0; i < LegacySize; ++i)
-                    Legacy[i].Clear();
-
-                Xmm0.Clear();
-                Xmm1.Clear();
-                Xmm2.Clear();
-                Xmm3.Clear();
-                Xmm4.Clear();
-                Xmm5.Clear();
-                Xmm6.Clear();
-                Xmm7.Clear();
-                Xmm8.Clear();
-                Xmm9.Clear();
-                Xmm10.Clear();
-                Xmm11.Clear();
-                Xmm12.Clear();
-                Xmm13.Clear();
-                Xmm14.Clear();
-                Xmm15.Clear();
-            }
-
-            public static bool operator ==(XmmSaveArea lhs, XmmSaveArea rhs)
-            {
-                if (lhs.Xmm0 == rhs.Xmm0 &&
-                    lhs.Xmm1 == rhs.Xmm1 &&
-                    lhs.Xmm2 == rhs.Xmm2 &&
-                    lhs.Xmm3 == rhs.Xmm3 &&
-                    lhs.Xmm4 == rhs.Xmm4 &&
-                    lhs.Xmm5 == rhs.Xmm5 &&
-                    lhs.Xmm6 == rhs.Xmm6 &&
-                    lhs.Xmm7 == rhs.Xmm7 &&
-                    lhs.Xmm8 == rhs.Xmm8 &&
-                    lhs.Xmm9 == rhs.Xmm9 &&
-                    lhs.Xmm10 == rhs.Xmm10 &&
-                    lhs.Xmm11 == rhs.Xmm11 &&
-                    lhs.Xmm12 == rhs.Xmm12 &&
-                    lhs.Xmm13 == rhs.Xmm13 &&
-                    lhs.Xmm14 == rhs.Xmm14 &&
-                    lhs.Xmm15 == rhs.Xmm15)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            public static bool operator !=(XmmSaveArea lhs, XmmSaveArea rhs)
-            {
-                if (lhs.Xmm0 != rhs.Xmm0 ||
-                    lhs.Xmm1 != rhs.Xmm1 ||
-                    lhs.Xmm2 != rhs.Xmm2 ||
-                    lhs.Xmm3 != rhs.Xmm3 ||
-                    lhs.Xmm4 != rhs.Xmm4 ||
-                    lhs.Xmm5 != rhs.Xmm5 ||
-                    lhs.Xmm6 != rhs.Xmm6 ||
-                    lhs.Xmm7 != rhs.Xmm7 ||
-                    lhs.Xmm8 != rhs.Xmm8 ||
-                    lhs.Xmm9 != rhs.Xmm9 ||
-                    lhs.Xmm10 != rhs.Xmm10 ||
-                    lhs.Xmm11 != rhs.Xmm11 ||
-                    lhs.Xmm12 != rhs.Xmm12 ||
-                    lhs.Xmm13 != rhs.Xmm13 ||
-                    lhs.Xmm14 != rhs.Xmm14 ||
-                    lhs.Xmm15 != rhs.Xmm15)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (obj == null)
-                    throw new ArgumentNullException("obj");
-
-                XmmSaveArea rhs = obj as XmmSaveArea;
-                if (rhs == null)
-                    return false;
-
-                return this == rhs;
-            }
-
-            public override int GetHashCode()
-            {
-                return base.GetHashCode();
-            }
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public class VectorRegisterArea
+        public struct VectorRegisterArea
         {
             public const int VectorRegisterSize = 26;
 
@@ -389,11 +260,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             [FieldOffset(0x1a0)]
             public ulong VectorControl;
-
-            public VectorRegisterArea()
-            {
-                VectorRegister = new M128A[VectorRegisterSize];
-            }
+        
 
             public VectorRegisterArea(VectorRegisterArea other) : this()
             {
@@ -413,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
     [StructLayout(LayoutKind.Explicit)]
-    public class AMD64Context
+    public struct AMD64Context
     {
         [FieldOffset(0x0)]
         public ulong P1Home;
@@ -429,7 +296,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong P6Home;
 
         [FieldOffset(0x30)]
-        public int m_contextFlags;
+        public int ContextFlags;
 
         [FieldOffset(0x34)]
         public int MxCsr;
@@ -498,11 +365,11 @@ namespace Microsoft.Diagnostics.Runtime
         [FieldOffset(0xf8)]
         public ulong Rip;
 
-        [FieldOffset(0x100)]
-        public XmmSaveArea FltSave;
+        //[FieldOffset(0x100)]
+        //public XmmSaveArea FltSave;
 
-        [FieldOffset(0x300)]
-        public VectorRegisterArea VectorRegisters;
+        //[FieldOffset(0x300)]
+        //public VectorRegisterArea VectorRegisters;
 
         [FieldOffset(0x4a8)]
         public ulong DebugControl;
@@ -514,15 +381,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong LastExceptionToRip;
         [FieldOffset(0x4c8)]
         public ulong LastExceptionFromRip;
-
-        // returns the size of the Context
-        public int Size
-        {
-            get
-            {
-                return Marshal.SizeOf(this);
-            }
-        }
+        
+        public static int Size => Marshal.SizeOf(typeof(AMD64Context));
     }
-
 }

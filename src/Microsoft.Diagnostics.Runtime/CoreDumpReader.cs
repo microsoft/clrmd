@@ -81,22 +81,68 @@ namespace Microsoft.Diagnostics.Runtime
         public uint GetPointerSize() => (uint)_pointerSize;
 
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            Console.WriteLine($"GetThreadContext: thread={threadID:x} flags={contextFlags:x} size={contextSize:x}");
-            Console.WriteLine($"{new AMD64Context().Size:x}");
+            Console.WriteLine($"Writing context: flags:{contextFlags:x} size:{contextSize:x} actualSize:{AMD64Context.Size}");
+            if (contextSize != AMD64Context.Size)
+                return false;
 
+            InitThreads();
 
+            AMD64Context* ctx = (AMD64Context*)context.ToPointer();
+            ctx->ContextFlags = (int)contextFlags;
+            if (_threads.TryGetValue(threadID, out ELFPRStatus status))
+            {
+                CopyContext(ctx, ref status.RegisterSet);
+                return true;
+            }
 
-            throw new NotImplementedException();
+            Console.WriteLine($"Did not find thread {threadID:x}");
+            return false;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        private unsafe void CopyContext(AMD64Context* ctx, ref RegSetX64 registerSet)
         {
-            Console.WriteLine($"GetThreadContext: thread={threadID:x} flags={contextFlags:x} size={contextSize:x}");
-            Console.WriteLine($"{new AMD64Context().Size:x}");
+            ctx->R15 = registerSet.R15;
+            ctx->R14 = registerSet.R14;
+            ctx->R13 = registerSet.R13;
+            ctx->R12 = registerSet.R12;
+            ctx->Rbp = registerSet.Rbp;
+            ctx->Rbx = registerSet.Rbx;
+            ctx->R11 = registerSet.R11;
+            ctx->R10 = registerSet.R10;
+            ctx->R9 = registerSet.R9;
+            ctx->R8 = registerSet.R8;
+            ctx->Rax = registerSet.Rax;
+            ctx->Rcx = registerSet.Rcx;
+            ctx->Rdx = registerSet.Rdx;
+            ctx->Rsi = registerSet.Rsi;
+            ctx->Rdi = registerSet.Rdi;
+            ctx->Rip = registerSet.Rip;
+            ctx->Rsp = registerSet.Rsp;
+        }
 
-            throw new NotImplementedException();
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        {
+            Console.WriteLine($"Writing context: flags:{contextFlags:x} size:{contextSize:x} actualSize:{AMD64Context.Size}");
+            if (contextSize != AMD64Context.Size)
+                return false;
+
+            InitThreads();
+
+            fixed (byte* ptr = context)
+            {
+                AMD64Context* ctx = (AMD64Context*)ptr;
+                ctx->ContextFlags = (int)contextFlags;
+                if (_threads.TryGetValue(threadID, out ELFPRStatus status))
+                {
+                    CopyContext(ctx, ref status.RegisterSet);
+                    return true;
+                }
+            }
+
+            Console.WriteLine($"Did not find thread {threadID:x}");
+            return false;
         }
 
         public ulong GetThreadTeb(uint thread)

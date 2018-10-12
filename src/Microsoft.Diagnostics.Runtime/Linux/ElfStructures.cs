@@ -245,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ulong Rip;
         public ulong CS;
         public ulong EFlags;
-        public ulong RSP;
+        public ulong Rsp;
         public ulong SS;
         public ulong FS;
         public ulong GS;
