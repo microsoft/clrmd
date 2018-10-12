@@ -84,12 +84,18 @@ namespace Microsoft.Diagnostics.Runtime
         public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
             Console.WriteLine($"GetThreadContext: thread={threadID:x} flags={contextFlags:x} size={contextSize:x}");
+            Console.WriteLine($"{new AMD64Context().Size:x}");
+
+
+
             throw new NotImplementedException();
         }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
             Console.WriteLine($"GetThreadContext: thread={threadID:x} flags={contextFlags:x} size={contextSize:x}");
+            Console.WriteLine($"{new AMD64Context().Size:x}");
+
             throw new NotImplementedException();
         }
 

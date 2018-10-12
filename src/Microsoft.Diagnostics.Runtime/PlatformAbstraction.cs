@@ -162,4 +162,367 @@ namespace Microsoft.Diagnostics.Runtime
         }
     }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct M128A
+        {
+            public ulong Low;
+            public ulong High;
+
+            public void Clear()
+            {
+                Low = 0;
+                High = 0;
+            }
+
+            public static bool operator ==(M128A lhs, M128A rhs)
+            {
+                return lhs.Low == rhs.Low && lhs.High == rhs.High;
+            }
+
+            public static bool operator !=(M128A lhs, M128A rhs)
+            {
+                return lhs.Low != rhs.Low || lhs.High != rhs.High;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj == null)
+                    throw new ArgumentNullException("obj");
+
+                if (obj.GetType() != typeof(M128A))
+                    return false;
+
+                return this == (M128A)obj;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public class XmmSaveArea
+        {
+            public const int HeaderSize = 2;
+            public const int LegacySize = 8;
+
+            [FieldOffset(0x0)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = HeaderSize)]
+            public M128A[] Header;
+
+            [FieldOffset(0x20)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = LegacySize)]
+            public M128A[] Legacy;
+
+            [FieldOffset(0xa0)]
+            public M128A Xmm0;
+            [FieldOffset(0xb0)]
+            public M128A Xmm1;
+            [FieldOffset(0xc0)]
+            public M128A Xmm2;
+            [FieldOffset(0xd0)]
+            public M128A Xmm3;
+            [FieldOffset(0xe0)]
+            public M128A Xmm4;
+            [FieldOffset(0xf0)]
+            public M128A Xmm5;
+            [FieldOffset(0x100)]
+            public M128A Xmm6;
+            [FieldOffset(0x110)]
+            public M128A Xmm7;
+            [FieldOffset(0x120)]
+            public M128A Xmm8;
+            [FieldOffset(0x130)]
+            public M128A Xmm9;
+            [FieldOffset(0x140)]
+            public M128A Xmm10;
+            [FieldOffset(0x150)]
+            public M128A Xmm11;
+            [FieldOffset(0x160)]
+            public M128A Xmm12;
+            [FieldOffset(0x170)]
+            public M128A Xmm13;
+            [FieldOffset(0x180)]
+            public M128A Xmm14;
+            [FieldOffset(0x190)]
+            public M128A Xmm15;
+
+            public XmmSaveArea()
+            {
+                Header = new M128A[HeaderSize];
+                Legacy = new M128A[LegacySize];
+            }
+
+            public XmmSaveArea(XmmSaveArea other) : this()
+            {
+                for (int i = 0; i < HeaderSize; ++i)
+                    Header[i] = other.Header[i];
+
+                for (int i = 0; i < LegacySize; ++i)
+                    Legacy[i] = other.Legacy[i];
+
+                Xmm0 = other.Xmm0;
+                Xmm1 = other.Xmm1;
+                Xmm2 = other.Xmm2;
+                Xmm3 = other.Xmm3;
+                Xmm4 = other.Xmm4;
+                Xmm5 = other.Xmm5;
+                Xmm6 = other.Xmm6;
+                Xmm7 = other.Xmm7;
+                Xmm8 = other.Xmm8;
+                Xmm9 = other.Xmm9;
+                Xmm10 = other.Xmm10;
+                Xmm11 = other.Xmm11;
+                Xmm12 = other.Xmm12;
+                Xmm13 = other.Xmm13;
+                Xmm14 = other.Xmm14;
+                Xmm15 = other.Xmm15;
+            }
+
+            public void Clear()
+            {
+                for (int i = 0; i < HeaderSize; ++i)
+                    Header[i].Clear();
+
+                for (int i = 0; i < LegacySize; ++i)
+                    Legacy[i].Clear();
+
+                Xmm0.Clear();
+                Xmm1.Clear();
+                Xmm2.Clear();
+                Xmm3.Clear();
+                Xmm4.Clear();
+                Xmm5.Clear();
+                Xmm6.Clear();
+                Xmm7.Clear();
+                Xmm8.Clear();
+                Xmm9.Clear();
+                Xmm10.Clear();
+                Xmm11.Clear();
+                Xmm12.Clear();
+                Xmm13.Clear();
+                Xmm14.Clear();
+                Xmm15.Clear();
+            }
+
+            public static bool operator ==(XmmSaveArea lhs, XmmSaveArea rhs)
+            {
+                if (lhs.Xmm0 == rhs.Xmm0 &&
+                    lhs.Xmm1 == rhs.Xmm1 &&
+                    lhs.Xmm2 == rhs.Xmm2 &&
+                    lhs.Xmm3 == rhs.Xmm3 &&
+                    lhs.Xmm4 == rhs.Xmm4 &&
+                    lhs.Xmm5 == rhs.Xmm5 &&
+                    lhs.Xmm6 == rhs.Xmm6 &&
+                    lhs.Xmm7 == rhs.Xmm7 &&
+                    lhs.Xmm8 == rhs.Xmm8 &&
+                    lhs.Xmm9 == rhs.Xmm9 &&
+                    lhs.Xmm10 == rhs.Xmm10 &&
+                    lhs.Xmm11 == rhs.Xmm11 &&
+                    lhs.Xmm12 == rhs.Xmm12 &&
+                    lhs.Xmm13 == rhs.Xmm13 &&
+                    lhs.Xmm14 == rhs.Xmm14 &&
+                    lhs.Xmm15 == rhs.Xmm15)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            public static bool operator !=(XmmSaveArea lhs, XmmSaveArea rhs)
+            {
+                if (lhs.Xmm0 != rhs.Xmm0 ||
+                    lhs.Xmm1 != rhs.Xmm1 ||
+                    lhs.Xmm2 != rhs.Xmm2 ||
+                    lhs.Xmm3 != rhs.Xmm3 ||
+                    lhs.Xmm4 != rhs.Xmm4 ||
+                    lhs.Xmm5 != rhs.Xmm5 ||
+                    lhs.Xmm6 != rhs.Xmm6 ||
+                    lhs.Xmm7 != rhs.Xmm7 ||
+                    lhs.Xmm8 != rhs.Xmm8 ||
+                    lhs.Xmm9 != rhs.Xmm9 ||
+                    lhs.Xmm10 != rhs.Xmm10 ||
+                    lhs.Xmm11 != rhs.Xmm11 ||
+                    lhs.Xmm12 != rhs.Xmm12 ||
+                    lhs.Xmm13 != rhs.Xmm13 ||
+                    lhs.Xmm14 != rhs.Xmm14 ||
+                    lhs.Xmm15 != rhs.Xmm15)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj == null)
+                    throw new ArgumentNullException("obj");
+
+                XmmSaveArea rhs = obj as XmmSaveArea;
+                if (rhs == null)
+                    return false;
+
+                return this == rhs;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public class VectorRegisterArea
+        {
+            public const int VectorRegisterSize = 26;
+
+            [FieldOffset(0x0)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = VectorRegisterSize)]
+            public M128A[] VectorRegister;
+
+            [FieldOffset(0x1a0)]
+            public ulong VectorControl;
+
+            public VectorRegisterArea()
+            {
+                VectorRegister = new M128A[VectorRegisterSize];
+            }
+
+            public VectorRegisterArea(VectorRegisterArea other) : this()
+            {
+                for (int i = 0; i < VectorRegisterSize; ++i)
+                    VectorRegister[i] = other.VectorRegister[i];
+
+                VectorControl = other.VectorControl;
+            }
+
+            public void Clear()
+            {
+                for (int i = 0; i < VectorRegisterSize; ++i)
+                    VectorRegister[i].Clear();
+
+                VectorControl = 0;
+            }
+        }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public class AMD64Context
+    {
+        [FieldOffset(0x0)]
+        public ulong P1Home;
+        [FieldOffset(0x8)]
+        public ulong P2Home;
+        [FieldOffset(0x10)]
+        public ulong P3Home;
+        [FieldOffset(0x18)]
+        public ulong P4Home;
+        [FieldOffset(0x20)]
+        public ulong P5Home;
+        [FieldOffset(0x28)]
+        public ulong P6Home;
+
+        [FieldOffset(0x30)]
+        public int m_contextFlags;
+
+        [FieldOffset(0x34)]
+        public int MxCsr;
+
+        [FieldOffset(0x38)]
+        public short SegCs;
+        [FieldOffset(0x3a)]
+        public short SegDs;
+        [FieldOffset(0x3c)]
+        public short SegEs;
+        [FieldOffset(0x3e)]
+        public short SegFs;
+        [FieldOffset(0x40)]
+        public short SegGs;
+        [FieldOffset(0x42)]
+        public short SegSs;
+        [FieldOffset(0x44)]
+        public int EFlags;
+
+        [FieldOffset(0x48)]
+        public ulong Dr0;
+        [FieldOffset(0x50)]
+        public ulong Dr1;
+        [FieldOffset(0x58)]
+        public ulong Dr2;
+        [FieldOffset(0x60)]
+        public ulong Dr3;
+        [FieldOffset(0x68)]
+        public ulong Dr6;
+        [FieldOffset(0x70)]
+        public ulong Dr7;
+
+        [FieldOffset(0x78)]
+        public ulong Rax;
+        [FieldOffset(0x80)]
+        public ulong Rcx;
+        [FieldOffset(0x88)]
+        public ulong Rdx;
+        [FieldOffset(0x90)]
+        public ulong Rbx;
+        [FieldOffset(0x98)]
+        public ulong Rsp;
+        [FieldOffset(0xa0)]
+        public ulong Rbp;
+        [FieldOffset(0xa8)]
+        public ulong Rsi;
+        [FieldOffset(0xb0)]
+        public ulong Rdi;
+        [FieldOffset(0xb8)]
+        public ulong R8;
+        [FieldOffset(0xc0)]
+        public ulong R9;
+        [FieldOffset(0xc8)]
+        public ulong R10;
+        [FieldOffset(0xd0)]
+        public ulong R11;
+        [FieldOffset(0xd8)]
+        public ulong R12;
+        [FieldOffset(0xe0)]
+        public ulong R13;
+        [FieldOffset(0xe8)]
+        public ulong R14;
+        [FieldOffset(0xf0)]
+        public ulong R15;
+
+        [FieldOffset(0xf8)]
+        public ulong Rip;
+
+        [FieldOffset(0x100)]
+        public XmmSaveArea FltSave;
+
+        [FieldOffset(0x300)]
+        public VectorRegisterArea VectorRegisters;
+
+        [FieldOffset(0x4a8)]
+        public ulong DebugControl;
+        [FieldOffset(0x4b0)]
+        public ulong LastBranchToRip;
+        [FieldOffset(0x4b8)]
+        public ulong LastBranchFromRip;
+        [FieldOffset(0x4c0)]
+        public ulong LastExceptionToRip;
+        [FieldOffset(0x4c8)]
+        public ulong LastExceptionFromRip;
+
+        // returns the size of the Context
+        public int Size
+        {
+            get
+            {
+                return Marshal.SizeOf(this);
+            }
+        }
+    }
+
 }
