@@ -59,13 +59,9 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         protected static void InitDelegate<T>(ref T t, IntPtr entry) where T : Delegate
         {
             if (t != null)
-                Console.WriteLine($"Calling: {t.GetType().Name}");
-
-            if (t != null)
                 return;
 
             t = (T)Marshal.GetDelegateForFunctionPointer(entry, typeof(T));
-            Console.WriteLine($"Calling: {t.GetType().Name}");
 
 #if DEBUG
             if (t.Method.GetParameters().First().ParameterType != typeof(IntPtr))

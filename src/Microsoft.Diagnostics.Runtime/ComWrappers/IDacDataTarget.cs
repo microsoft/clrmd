@@ -137,7 +137,8 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
                 bytesRead = read;
                 return S_OK;
             }
-            
+
+            Console.WriteLine($"Reading from interior module pointer not yet implemented!");
             System.Diagnostics.Debugger.Break();
             ModuleInfo info = GetModule(address);
             if (info != null)
@@ -240,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         
         public int GetMetadata(IntPtr self, string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize)
         {
-            Console.WriteLine($"Called: GetMetadata");
+            Console.WriteLine($"Called: GetMetadata, not implemented!");
             System.Diagnostics.Debugger.Break();
             string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
             if (filePath == null)

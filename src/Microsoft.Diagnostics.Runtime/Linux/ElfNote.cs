@@ -60,12 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             T result = _reader.Read<T>(location);
             return result;
         }
-
-        private void PrintOne(Type type, string field)
-        {
-            Console.WriteLine($"{field} offs:{Marshal.OffsetOf(type, field).ToInt32():x}");
-        }
-
+        
         public ElfNote(Reader reader, long position)
         {
             _position = position;

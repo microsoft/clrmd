@@ -295,8 +295,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         if (Path.GetExtension(fullPath) == ".so")
                         {
+                            Console.WriteLine($"Validate binary not yet implemented for .so!");
                             Debugger.Break();
-                            Console.WriteLine($"Skipping validation for {fullPath}");
                             return true;
                         }
                         else

@@ -53,8 +53,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            Console.WriteLine("EnumerateModules");
-
             return _core.LoadedImages.Select(img => CreateModuleInfo(img)).ToArray();
         }
 
@@ -83,7 +81,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            Console.WriteLine($"Writing context: flags:{contextFlags:x} size:{contextSize:x} actualSize:{AMD64Context.Size}");
             if (contextSize != AMD64Context.Size)
                 return false;
 
@@ -96,8 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
                 CopyContext(ctx, ref status.RegisterSet);
                 return true;
             }
-
-            Console.WriteLine($"Did not find thread {threadID:x}");
+            
             return false;
         }
 
@@ -124,7 +120,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
-            Console.WriteLine($"Writing context: flags:{contextFlags:x} size:{contextSize:x} actualSize:{AMD64Context.Size}");
             if (contextSize != AMD64Context.Size)
                 return false;
 
@@ -140,8 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return true;
                 }
             }
-
-            Console.WriteLine($"Did not find thread {threadID:x}");
+            
             return false;
         }
 
@@ -152,7 +146,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            Console.WriteLine($"GetVersionInfo: addr={baseAddress:x}");
+            Console.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
+            System.Diagnostics.Debugger.Break();
             version = new VersionInfo();
         }
 
