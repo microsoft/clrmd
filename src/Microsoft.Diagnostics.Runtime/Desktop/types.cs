@@ -1260,6 +1260,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_fields != null)
                 return;
 
+            if (IsFree)
+            {
+                _fields = new List<ClrInstanceField>();
+                return;
+            }
+
             DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
             IFieldInfo fieldInfo = runtime.GetFieldInfo(_constructedMT);
 
