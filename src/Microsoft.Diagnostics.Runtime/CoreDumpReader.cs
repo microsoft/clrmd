@@ -225,10 +225,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (_threads != null)
                 return;
-
+            
             _threads = new Dictionary<uint, ELFPRStatus>();
             foreach (ELFPRStatus status in _core.EnumeratePRStatus())
-                _threads.Add(status.PGrp, status);
+                _threads.Add(status.Pid, status);
         }
     }
 }

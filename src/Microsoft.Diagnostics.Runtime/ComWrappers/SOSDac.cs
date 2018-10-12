@@ -281,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         public string GetFrameName(ulong vtable)
         {
             InitDelegate(ref _getFrameName, VTable->GetFrameName);
-            return GetString(_getFrameName, vtable) ?? "Unknown Frame";
+            return GetString(_getFrameName, vtable, skipNull:false) ?? "Unknown Frame";
         }
 
         public IFieldInfo GetFieldInfo(ulong mt)
@@ -423,7 +423,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return GetString(_getPEFileName, pefile);
         }
 
-        private string GetString(DacGetCharArrayWithArg func, ulong addr)
+        private string GetString(DacGetCharArrayWithArg func, ulong addr, bool skipNull = true)
         {
             int hr = func(Self, addr, 0, null, out int needed);
             if (hr != S_OK)
@@ -440,7 +440,10 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
                 return null;
             }
 
-            string result = Encoding.Unicode.GetString(buffer, 0, (needed - 1) * 2);
+            if (skipNull)
+                needed--;
+
+            string result = Encoding.Unicode.GetString(buffer, 0, needed * 2);
 
             ReleaseBuffer(buffer);
             return result;
