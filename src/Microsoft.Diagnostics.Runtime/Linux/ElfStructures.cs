@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct ElfSectionHeader
     {
-        public uint NameIndex;                  // sh_name
+        public int NameIndex;                  // sh_name
         public ELFSectionHeaderType Type;       // sh_type
         public IntPtr Flags;                    // sh_flags
         public IntPtr VirtualAddress;           // sh_addr

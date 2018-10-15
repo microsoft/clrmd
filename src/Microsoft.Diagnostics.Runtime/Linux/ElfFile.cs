@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly Reader _reader;
         private readonly long _position;
         private readonly bool _virtual;
-
+        
+        private Reader _virtualAddressReader;
         private ElfNote[] _notes;
-
         private ElfProgramHeader[] _programHeaders;
         private ElfSectionHeader[] _sections;
         private string[] _sectionNames;
@@ -24,12 +25,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public IReadOnlyCollection<ElfNote> Notes { get { LoadNotes(); return _notes; } }
         public IReadOnlyList<ElfProgramHeader> ProgramHeaders { get { LoadProgramHeaders(); return _programHeaders; } }
+        
+        public Reader VirtualAddressReader { get { CreateVirtualAddressReader(); return _virtualAddressReader; } }
 
         public ElfFile(Reader reader, long position = 0, bool virt=false)
         {
             _reader = reader;
             _position = position;
             _virtual = virt;
+
+            if (virt)
+                _virtualAddressReader = reader;
 
             Header = reader.Read<ElfHeader>(position);
             Header.Validate(reader.DataSource.Name);
@@ -40,6 +46,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             LoadProgramHeaders();
             LoadNotes();
 #endif
+        }
+
+        private void CreateVirtualAddressReader()
+        {
+            if (_virtualAddressReader != null)
+                return;
+
+            _virtualAddressReader = new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
         }
 
         private void LoadNotes()
@@ -94,6 +108,32 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (_sectionNames[section] != null)
                 return _sectionNames[section];
 
+            LoadSectionNameTable();
+            ref ElfSectionHeader hdr = ref _sections[section];
+            int idx = hdr.NameIndex;
+
+            if (hdr.Type == ELFSectionHeaderType.Null || idx == 0)
+                return _sectionNames[section] = string.Empty;
+
+            int len = 0;
+            for (len = 0; idx + len < _sectionNameTable.Length && _sectionNameTable[idx + len] != 0; len++)
+                ;
+
+            string name = Encoding.ASCII.GetString(_sectionNameTable, idx, len);
+
+            Console.WriteLine($"{idx:x}\t{name}");
+            _sectionNames[section] = name;
+
+            return _sectionNames[section];
+        }
+
+        private byte[] _sectionNameTable;
+
+        private void LoadSectionNameTable()
+        {
+            if (_sectionNameTable != null)
+                return;
+
             int nameTableIndex = Header.SectionHeaderStringIndex;
             if (Header.SectionHeaderOffset != IntPtr.Zero && Header.SectionHeaderCount > 0 && nameTableIndex != 0)
             {
@@ -101,12 +141,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 long offset = hdr.FileOffset.ToInt64();
                 int size = checked((int)hdr.FileSize.ToInt64());
 
-                byte[] buffer = _reader.ReadBytes(offset, size);
-
-                throw new NotImplementedException();
+                _sectionNameTable = _reader.ReadBytes(offset, size);
             }
-
-            return _sectionNames[section];
         }
 
         private void LoadSections()
