@@ -125,12 +125,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             InitThreads();
 
-            fixed (byte* ptr = context)
+            if (_threads.TryGetValue(threadID, out ELFPRStatus status))
             {
-                AMD64Context* ctx = (AMD64Context*)ptr;
-                ctx->ContextFlags = (int)contextFlags;
-                if (_threads.TryGetValue(threadID, out ELFPRStatus status))
+                fixed (byte* ptr = context)
                 {
+                    AMD64Context* ctx = (AMD64Context*)ptr;
+                    ctx->ContextFlags = (int)contextFlags;
                     CopyContext(ctx, ref status.RegisterSet);
                     return true;
                 }
