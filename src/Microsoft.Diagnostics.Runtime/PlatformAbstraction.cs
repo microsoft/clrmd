@@ -63,8 +63,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public override bool FreeLibrary(IntPtr module) => NativeMethods.FreeLibrary(module);
 
-
-
         public override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             major = minor = revision = patch = 0;
@@ -95,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IntPtr LoadLibrary(string lpFileName) => NativeMethods.LoadLibraryEx(lpFileName, 0, NativeMethods.LoadLibraryFlags.NoFlags);
 
-        public class NativeMethods
+        internal class NativeMethods
         {
             const string Kernel32LibraryName = "kernel32.dll";
 
@@ -110,8 +108,8 @@ namespace Microsoft.Diagnostics.Runtime
                 return LoadLibraryEx(lpFileName, 0, LoadLibraryFlags.NoFlags);
             }
 
-            [DllImportAttribute(Kernel32LibraryName, SetLastError = true)]
-            public static extern IntPtr LoadLibraryEx(String fileName, int hFile, LoadLibraryFlags dwFlags);
+            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            public static extern IntPtr LoadLibraryEx(string fileName, int hFile, LoadLibraryFlags dwFlags);
 
             [Flags]
             public enum LoadLibraryFlags : uint
@@ -162,125 +160,125 @@ namespace Microsoft.Diagnostics.Runtime
         }
     }
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct M128A
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct M128A
+    {
+        public ulong Low;
+        public ulong High;
+
+        public void Clear()
         {
-            public ulong Low;
-            public ulong High;
-
-            public void Clear()
-            {
-                Low = 0;
-                High = 0;
-            }
-
-            public static bool operator ==(M128A lhs, M128A rhs)
-            {
-                return lhs.Low == rhs.Low && lhs.High == rhs.High;
-            }
-
-            public static bool operator !=(M128A lhs, M128A rhs)
-            {
-                return lhs.Low != rhs.Low || lhs.High != rhs.High;
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (obj == null)
-                    throw new ArgumentNullException("obj");
-
-                if (obj.GetType() != typeof(M128A))
-                    return false;
-
-                return this == (M128A)obj;
-            }
-
-            public override int GetHashCode()
-            {
-                return base.GetHashCode();
-            }
+            Low = 0;
+            High = 0;
         }
 
-        [StructLayout(LayoutKind.Explicit)]
-        public struct XmmSaveArea
+        public static bool operator ==(M128A lhs, M128A rhs)
         {
-            public const int HeaderSize = 2;
-            public const int LegacySize = 8;
-
-            [FieldOffset(0x0)]
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = HeaderSize)]
-            public M128A[] Header;
-
-            [FieldOffset(0x20)]
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = LegacySize)]
-            public M128A[] Legacy;
-
-            [FieldOffset(0xa0)]
-            public M128A Xmm0;
-            [FieldOffset(0xb0)]
-            public M128A Xmm1;
-            [FieldOffset(0xc0)]
-            public M128A Xmm2;
-            [FieldOffset(0xd0)]
-            public M128A Xmm3;
-            [FieldOffset(0xe0)]
-            public M128A Xmm4;
-            [FieldOffset(0xf0)]
-            public M128A Xmm5;
-            [FieldOffset(0x100)]
-            public M128A Xmm6;
-            [FieldOffset(0x110)]
-            public M128A Xmm7;
-            [FieldOffset(0x120)]
-            public M128A Xmm8;
-            [FieldOffset(0x130)]
-            public M128A Xmm9;
-            [FieldOffset(0x140)]
-            public M128A Xmm10;
-            [FieldOffset(0x150)]
-            public M128A Xmm11;
-            [FieldOffset(0x160)]
-            public M128A Xmm12;
-            [FieldOffset(0x170)]
-            public M128A Xmm13;
-            [FieldOffset(0x180)]
-            public M128A Xmm14;
-            [FieldOffset(0x190)]
-            public M128A Xmm15;
+            return lhs.Low == rhs.Low && lhs.High == rhs.High;
         }
 
-        [StructLayout(LayoutKind.Explicit)]
-        public struct VectorRegisterArea
+        public static bool operator !=(M128A lhs, M128A rhs)
         {
-            public const int VectorRegisterSize = 26;
-
-            [FieldOffset(0x0)]
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = VectorRegisterSize)]
-            public M128A[] VectorRegister;
-
-            [FieldOffset(0x1a0)]
-            public ulong VectorControl;
-        
-
-            public VectorRegisterArea(VectorRegisterArea other) : this()
-            {
-                for (int i = 0; i < VectorRegisterSize; ++i)
-                    VectorRegister[i] = other.VectorRegister[i];
-
-                VectorControl = other.VectorControl;
-            }
-
-            public void Clear()
-            {
-                for (int i = 0; i < VectorRegisterSize; ++i)
-                    VectorRegister[i].Clear();
-
-                VectorControl = 0;
-            }
+            return lhs.Low != rhs.Low || lhs.High != rhs.High;
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+
+            if (obj.GetType() != typeof(M128A))
+                return false;
+
+            return this == (M128A)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+    }
 
     [StructLayout(LayoutKind.Explicit)]
-    public struct AMD64Context
+    internal struct XmmSaveArea
+    {
+        public const int HeaderSize = 2;
+        public const int LegacySize = 8;
+
+        [FieldOffset(0x0)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = HeaderSize)]
+        public M128A[] Header;
+
+        [FieldOffset(0x20)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = LegacySize)]
+        public M128A[] Legacy;
+
+        [FieldOffset(0xa0)]
+        public M128A Xmm0;
+        [FieldOffset(0xb0)]
+        public M128A Xmm1;
+        [FieldOffset(0xc0)]
+        public M128A Xmm2;
+        [FieldOffset(0xd0)]
+        public M128A Xmm3;
+        [FieldOffset(0xe0)]
+        public M128A Xmm4;
+        [FieldOffset(0xf0)]
+        public M128A Xmm5;
+        [FieldOffset(0x100)]
+        public M128A Xmm6;
+        [FieldOffset(0x110)]
+        public M128A Xmm7;
+        [FieldOffset(0x120)]
+        public M128A Xmm8;
+        [FieldOffset(0x130)]
+        public M128A Xmm9;
+        [FieldOffset(0x140)]
+        public M128A Xmm10;
+        [FieldOffset(0x150)]
+        public M128A Xmm11;
+        [FieldOffset(0x160)]
+        public M128A Xmm12;
+        [FieldOffset(0x170)]
+        public M128A Xmm13;
+        [FieldOffset(0x180)]
+        public M128A Xmm14;
+        [FieldOffset(0x190)]
+        public M128A Xmm15;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct VectorRegisterArea
+    {
+        public const int VectorRegisterSize = 26;
+
+        [FieldOffset(0x0)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = VectorRegisterSize)]
+        public M128A[] VectorRegister;
+
+        [FieldOffset(0x1a0)]
+        public ulong VectorControl;
+        
+
+        public VectorRegisterArea(VectorRegisterArea other) : this()
+        {
+            for (int i = 0; i < VectorRegisterSize; ++i)
+                VectorRegister[i] = other.VectorRegister[i];
+
+            VectorControl = other.VectorControl;
+        }
+
+        public void Clear()
+        {
+            for (int i = 0; i < VectorRegisterSize; ++i)
+                VectorRegister[i].Clear();
+
+            VectorControl = 0;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct AMD64Context
     {
         [FieldOffset(0x0)]
         public ulong P1Home;
