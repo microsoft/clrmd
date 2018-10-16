@@ -206,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong[] GetServerHeapList() => _sos.GetHeapList(HeapCount);
 
-        internal override ulong[] GetAppDomainList(int count) => _sos.GetAppDomainList();
+        internal override ulong[] GetAppDomainList(int count) => _sos.GetAppDomainList(count);
 
         internal override ulong[] GetAssemblyList(ulong appDomain, int count) => _sos.GetAssemblyList(appDomain, count);
 
@@ -336,7 +336,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override IList<MethodTableTokenPair> GetMethodTableList(ulong module)
         {
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
-            _sos.TraverseModuleMap(0, module, new ModuleMapTraverse(delegate (uint index, ulong mt, IntPtr token)
+            _sos.TraverseModuleMap(SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable, module, new ModuleMapTraverse(delegate (uint index, ulong mt, IntPtr token)
             {
                 mts.Add(new MethodTableTokenPair(mt, index));
             }));
@@ -406,7 +406,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             uint numMethods = mtData.NumMethods;
             ulong[] mds = new ulong[numMethods];
 
-            for (uint i = 0; i < numMethods; ++i)
+            for (int i = 0; i < numMethods; ++i)
                 if (_sos.GetCodeHeaderData(_sos.GetMethodTableSlot(methodTable, i), out CodeHeaderData header))
                     mds[i] = header.MethodDescPtr;
 

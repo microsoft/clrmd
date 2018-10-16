@@ -12,6 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
     {
         private static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
+        private static V45ReJitData[] s_emptyRejit;
 
         public SOSDac(IntPtr ptr)
             : base(ref IID_ISOSDac, ptr)
@@ -20,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         const int CharBufferSize = 256;
         private byte[] _buffer = new byte[CharBufferSize];
-        
+
         private DacGetIntPtr _getHandleEnum;
         private DacGetIntPtrWithArg _getStackRefEnum;
         private DacGetThreadData _getThreadData;
@@ -76,10 +77,30 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private GetMethodDescDataDelegate _getMethodDescData;
         private GetMetaDataImportDelegate _getMetaData;
 
+        public V45ReJitData[] GetRejitData(ulong md, ulong ip = 0)
+        {
+            InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
+            int hr = _getMethodDescData(Self, md, ip, out V45MethodDescData data, 0, null, out int needed);
+
+            if (SUCCEEDED(hr) && needed > 1)
+            {
+                V45ReJitData[] result = new V45ReJitData[needed];
+                hr = _getMethodDescData(Self, md, ip, out data, result.Length, result, out needed);
+                if (SUCCEEDED(hr))
+                    return result;
+            }
+
+            if (s_emptyRejit == null)
+                s_emptyRejit = new V45ReJitData[0];
+
+            return s_emptyRejit;
+        }
+
         public bool GetMethodDescData(ulong md, ulong ip, out V45MethodDescData data)
         {
             InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
-            return _getMethodDescData(Self, md, ip, out data, 0, null, out int needed) == S_OK;
+            int hr = _getMethodDescData(Self, md, ip, out data, 0, null, out int needed);
+            return SUCCEEDED(hr);
         }
 
         public bool GetThreadStoreData(out LegacyThreadStoreData data)
@@ -137,14 +158,14 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return string.Intern(Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2));
         }
 
-        public ulong GetMethodTableSlot(ulong mt, uint slot)
+        public ulong GetMethodTableSlot(ulong mt, int slot)
         {
             if (mt == 0)
                 return 0;
 
             InitDelegate(ref _getMethodTableSlot, VTable->GetMethodTableSlot);
 
-            if (_getMethodTableSlot(Self, mt, slot, out ulong ip) == S_OK)
+            if (_getMethodTableSlot(Self, mt, (uint)slot, out ulong ip) == S_OK)
                 return ip;
 
             return 0;
@@ -325,6 +346,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return _getCommonMethodTables(Self, out commonMTs) == S_OK;
         }
 
+        public ulong[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
         public ulong[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable->GetAssemblyList);
 
         public bool GetAssemblyData(ulong domain, ulong assembly, out LegacyAssemblyData data)
@@ -451,6 +473,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return SUCCEEDED(hr);
         }
 
+        public ulong[] GetModuleList(ulong assembly) => GetModuleList(assembly, 0);
         public ulong[] GetModuleList(ulong assembly, int count) => GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable->GetAssemblyModuleList);
 
         private ulong[] GetModuleOrAssembly(ulong address, int count, ref DacGetUlongArrayWithArg func, IntPtr vtableEntry)
@@ -473,16 +496,20 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return modules;
         }
 
-        internal ulong[] GetAppDomainList()
+        internal ulong[] GetAppDomainList(int count = 0)
         {
             InitDelegate(ref _getAppDomainList, VTable->GetAppDomainList);
 
-            int hr = _getAppDomainList(Self, 0, null, out int needed);
-            if (hr != S_OK)
-                return new ulong[0];
+            if (count <= 0)
+            {
+                if (!GetAppDomainStoreData(out LegacyAppDomainStoreData addata))
+                    return new ulong[0];
 
-            ulong[] data = new ulong[needed];
-            hr = _getAppDomainList(Self, data.Length, data, out needed);
+                count = addata.Count;
+            }
+
+            ulong[] data = new ulong[count];
+            int hr = _getAppDomainList(Self, data.Length, data, out int needed);
             return hr == S_OK ? data : new ulong[0];
         }
 
@@ -563,11 +590,17 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return hr == S_OK ? result : new LegacyJitCodeHeapInfo[0];
         }
 
-        public bool TraverseModuleMap(int mt, ulong module, ModuleMapTraverse traverse)
+        public enum ModuleMapTraverseKind
+        {
+            TypeDefToMethodTable,
+            TypeRefToMethodTable
+        }
+
+        public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
             InitDelegate(ref _traverseModuleMap, VTable->TraverseModuleMap);
 
-            int hr = _traverseModuleMap(Self, mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
+            int hr = _traverseModuleMap(Self, (int)mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
             return hr == S_OK;
         }
