@@ -55,6 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return hr == S_OK ? unk : IntPtr.Zero;
         }
 
+        protected static bool SUCCEEDED(int hresult) => hresult >= 0;
 
         protected static void InitDelegate<T>(ref T t, IntPtr entry) where T : Delegate
         {

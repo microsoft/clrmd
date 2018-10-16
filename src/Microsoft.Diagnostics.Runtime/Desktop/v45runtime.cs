@@ -180,10 +180,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return threadStore != null ? threadStore.FirstThread : 0;
         }
 
-        internal override IThreadData GetThread(ulong addr) => _sos.GetThreadData(addr);
+        internal override IThreadData GetThread(ulong addr)
+        {
+            if (_sos.GetThreadData(addr, out V4ThreadData data))
+                return data;
 
-        internal override IHeapDetails GetSvrHeapDetails(ulong addr) => _sos.GetServerHeapDetails(addr);
-        internal override IHeapDetails GetWksHeapDetails() => _sos.GetWksHeapDetails();
+            return null;
+        }
+
+        internal override IHeapDetails GetSvrHeapDetails(ulong addr)
+        {
+            if (_sos.GetServerHeapDetails(addr, out V4HeapDetails data))
+                return data;
+
+            return null;
+        }
+
+        internal override IHeapDetails GetWksHeapDetails()
+        {
+            if (_sos.GetWksHeapDetails(out V4HeapDetails details))
+                return details;
+
+            return null;
+        }
 
         internal override ulong[] GetServerHeapList() => _sos.GetHeapList(HeapCount);
 
@@ -193,15 +212,39 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong[] GetModuleList(ulong assembly, int count) => _sos.GetModuleList(assembly, count);
 
-        internal override IAssemblyData GetAssemblyData(ulong domain, ulong assembly) => _sos.GetAssemblyData(domain, assembly);
+        internal override IAssemblyData GetAssemblyData(ulong domain, ulong assembly)
+        {
+            if (_sos.GetAssemblyData(domain, assembly, out LegacyAssemblyData data))
+                return data;
 
-        internal override IAppDomainStoreData GetAppDomainStoreData() => _sos.GetAppDomainStoreData();
+            return null;
+        }
 
-        internal override IMethodTableData GetMethodTableData(ulong addr) => _sos.GetMethodTableData(addr);
+        internal override IAppDomainStoreData GetAppDomainStoreData()
+        {
+            if (_sos.GetAppDomainStoreData(out LegacyAppDomainStoreData data))
+                return data;
+
+            return null;
+        }
+
+        internal override IMethodTableData GetMethodTableData(ulong addr)
+        {
+            if (_sos.GetMethodTableData(addr, out V45MethodTableData data))
+                return data;
+
+            return null;
+        }
 
         internal override ulong GetMethodTableByEEClass(ulong eeclass) => _sos.GetMethodTableByEEClass(eeclass);
 
-        internal override IGCInfo GetGCInfoImpl() => _sos.GetGcHeapData();
+        internal override IGCInfo GetGCInfoImpl()
+        {
+            if (_sos.GetGcHeapData(out LegacyGCInfo data))
+                return data;
+
+            return null;
+        }
 
         internal override bool GetCommonMethodTables(ref CommonMethodTables mts) => _sos.GetCommonMethodTables(out mts);
 
@@ -209,13 +252,37 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override string GetPEFileName(ulong addr) => _sos.GetPEFileName(addr);
 
-        internal override IModuleData GetModuleData(ulong addr) => _sos.GetModuleData(addr);
+        internal override IModuleData GetModuleData(ulong addr)
+        {
+            if (_sos.GetModuleData(addr, out V45ModuleData data))
+                return data;
 
-        internal override ulong GetModuleForMT(ulong addr) => _sos.GetMethodTableData(addr)?.Module ?? 0;
+            return null;
+        }
 
-        internal override ISegmentData GetSegmentData(ulong addr) => _sos.GetSegmentData(addr);
+        internal override ulong GetModuleForMT(ulong addr)
+        {
+            if (_sos.GetMethodTableData(addr, out V45MethodTableData data))
+                return data.Module;
 
-        internal override IAppDomainData GetAppDomainData(ulong addr) => _sos.GetAppDomainData(addr);
+            return 0;
+        }
+
+        internal override ISegmentData GetSegmentData(ulong addr)
+        {
+            if (_sos.GetSegmentData(addr, out V4SegmentData data))
+                return data;
+
+            return null;
+        }
+
+        internal override IAppDomainData GetAppDomainData(ulong addr)
+        {
+            if (_sos.GetAppDomainData(addr, out LegacyAppDomainData data))
+                return data;
+
+            return null;
+        }
 
         internal override string GetAppDomaminName(ulong addr) => _sos.GetAppDomainName(addr);
 
@@ -240,13 +307,31 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal override IFieldInfo GetFieldInfo(ulong mt) => _sos.GetFieldInfo(mt);
+        internal override IFieldInfo GetFieldInfo(ulong mt)
+        {
+            if (_sos.GetFieldInfo(mt, out V4FieldInfo fieldInfo))
+                return fieldInfo;
 
-        internal override IFieldData GetFieldData(ulong fieldDesc) => _sos.GetFieldData(fieldDesc);
+            return null;
+        }
+
+        internal override IFieldData GetFieldData(ulong fieldDesc)
+        {
+            if (_sos.GetFieldData(fieldDesc, out LegacyFieldData data))
+                return data;
+
+            return null;
+        }
 
         internal override MetaDataImport GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
 
-        internal override IObjectData GetObjectData(ulong objRef) => _sos.GetObjectData(objRef);
+        internal override IObjectData GetObjectData(ulong objRef)
+        {
+            if (_sos.GetObjectData(objRef, out V45ObjectData data))
+                return data;
+
+            return null;
+        }
 
         internal override IList<MethodTableTokenPair> GetMethodTableList(ulong module)
         {
@@ -259,15 +344,33 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mts;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id) => _sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id);
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
+        {
+            if (_sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id, out V45DomainLocalModuleData data))
+                return data;
+
+            return null;
+        }
 
         internal override COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count) => _sos.GetCCWInterfaces(ccw, count);
 
         internal override COMInterfacePointerData[] GetRCWInterfaces(ulong rcw, int count) => _sos.GetRCWInterfaces(rcw, count);
 
-        internal override ICCWData GetCCWData(ulong ccw) => _sos.GetCCWData(ccw);
+        internal override ICCWData GetCCWData(ulong ccw)
+        {
+            if (_sos.GetCCWData(ccw, out V45CCWData data))
+                return data;
 
-        internal override IRCWData GetRCWData(ulong rcw) => _sos.GetRCWData(rcw);
+            return null;
+        }
+
+        internal override IRCWData GetRCWData(ulong rcw)
+        {
+            if (_sos.GetRCWData(rcw, out V45RCWData data))
+                return data;
+
+            return null;
+        }
         #endregion
 
         internal override ulong GetILForModule(ClrModule module, uint rva) => _sos.GetILForModule(module.Address, rva);
@@ -287,12 +390,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return addr;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module) => _sos.GetDomainLocalModuleDataFromModule(module);
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module)
+        {
+            if (_sos.GetDomainLocalModuleDataFromModule(module, out V45DomainLocalModuleData data))
+                return data;
+
+            return null;
+        }
 
         internal override IList<ulong> GetMethodDescList(ulong methodTable)
         {
-            IMethodTableData mtData = _sos.GetMethodTableData(methodTable);
-            if (mtData ==  null)
+            if (!_sos.GetMethodTableData(methodTable, out V45MethodTableData mtData))
                 return null;
 
             uint numMethods = mtData.NumMethods;
@@ -318,8 +426,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetMetadataToken(ulong mt)
         {
-            IMethodTableData data = _sos.GetMethodTableData(mt);
-            return data?.Token ?? uint.MaxValue;
+            if (!_sos.GetMethodTableData(mt, out V45MethodTableData data))
+                return uint.MaxValue;
+
+            return data.token;
         }
 
         protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong framePtr, ulong frameVtbl)
@@ -454,12 +564,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         protected override ulong GetThreadFromThinlock(uint threadId) => _sos.GetThreadFromThinlockId(threadId);
 
-        internal override int GetSyncblkCount() => (int)(_sos.GetSyncBlockData(1)?.TotalCount ?? 0);
+        internal override int GetSyncblkCount()
+        {
+            if (_sos.GetSyncBlockData(1, out LegacySyncBlkData data))
+                return (int)data.TotalCount;
 
-        internal override ISyncBlkData GetSyncblkData(int index) => _sos.GetSyncBlockData(index + 1);
+            return 0;
+        }
 
-        internal override IThreadPoolData GetThreadPoolData() => _sos.GetThreadPoolData();
+        internal override ISyncBlkData GetSyncblkData(int index)
+        {
+            if (_sos.GetSyncBlockData(index + 1, out LegacySyncBlkData data))
+                return data;
 
+            return null;
+        }
+
+        internal override IThreadPoolData GetThreadPoolData()
+        {
+            if (_sos.GetThreadPoolData(out V45ThreadPoolData data))
+                return data;
+
+            return null;
+        }
         internal override uint GetTlsSlot() => _sos.GetTlsIndex();
 
         internal override uint GetThreadTypeIndex()
@@ -477,7 +604,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IEnumerable<NativeWorkItem> EnumerateWorkItems()
         {
-            IThreadPoolData data = _sos.GetThreadPoolData();
+            IThreadPoolData data = GetThreadPoolData();
             ulong request = data.FirstWorkRequest;
             while (request != 0)
             {
