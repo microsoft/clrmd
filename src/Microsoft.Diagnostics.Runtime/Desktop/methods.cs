@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,15 +17,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sig;
         }
 
-        internal static DesktopMethod Create(DesktopRuntimeBase runtime, ICorDebug.IMetadataImport metadata, IMethodDescData mdData)
+        internal static DesktopMethod Create(DesktopRuntimeBase runtime, MetaDataImport metadata, IMethodDescData mdData)
         {
             if (mdData == null)
                 return null;
 
-            MethodAttributes attrs = 0;
-            if (metadata?.GetMethodProps(mdData.MDToken, out int pClass, null, 0, out int methodLength, out attrs, out IntPtr blob, out uint blobLen, out uint codeRva, out uint implFlags) < 0)
-                attrs = 0;
-
+            MethodAttributes attrs = metadata.GetMethodAttributes((int)mdData.MDToken);
             return new DesktopMethod(runtime, mdData.MethodDesc, mdData, attrs);
         }
         
@@ -121,9 +119,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override int GetILOffset(ulong addr)
         {
             ILToNativeMap[] map = ILOffsetMap;
-            if (map == null)
-                return -1;
-
             int ilOffset = 0;
             if (map.Length > 1)
                 ilOffset = map[1].ILOffset;

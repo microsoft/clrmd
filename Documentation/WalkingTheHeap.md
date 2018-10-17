@@ -48,34 +48,34 @@ relocated (we treat objects in these segments as pinned).
 
 ## Getting the Heap and Walking Segments
 
-The `CLRRuntime` object has a function called GetHeap, which returns a `GCHeap`
-object. The `GCHeap` object, among other things, allows you to walk each segment
+The `ClrRuntime` object has a property called `Heap`, which returns a `ClrHeap`
+object. The `ClrHeap` object, among other things, allows you to walk each segment
 in the process. Here's a simple example of walking each segment and printing out
 data for each segment:
 
-    CLRRuntime runtime = ...;
-    Console.WriteLine("{0,12} {1,12} {2,12} {3,12} {4,4} {5}", "Start", "End", "Committed", "Reserved", "Heap", "Type");
-    foreach (ClrSegment segment in heap.Segments)
+    ClrRuntime runtime = ...;
+    Console.WriteLine("{0,12} {1,12} {2,12} {3,12} {4,4} {5}", "Start", "End", "CommittedEnd", "ReservedEnd", "Heap", "Type");
+    foreach (ClrSegment segment in runtime.Heap.Segments)
     {
         string type;
-        if (segment.Ephemeral)
+        if (segment.IsEphemeral)
             type = "Ephemeral";
-        else if (segment.Large)
+        else if (segment.IsLarge)
             type = "Large";
         else
             type = "Gen2";
 
-        Console.WriteLine("{0,12:X} {1,12:X} {2,12:X} {3,12:X} {4,4} {5}", segment.Start, segment.End, segment.Committed, segment.Reserved, segment.ProcessorAffinity, type);
+        Console.WriteLine("{0,12:X} {1,12:X} {2,12:X} {3,12:X} {4,4} {5}", segment.Start, segment.End, segment.CommittedEnd, segment.ReservedEnd, segment.ProcessorAffinity, type);
     }
 
-As you can see, each `GCSegment` object gives you a Start address for the
-beginning of the GC segment and the End address (which is the address after the
-end of the last object). You also have access to the Committed line, that is,
-the address which is the limit of what we have committed (so Committed - End is
+As you can see, each `ClrSegment` object gives you a `Start` address for the
+beginning of the GC segment and the `End` address (which is the address after the
+end of the last object). You also have access to the `Committed` line, that is,
+the address which is the limit of what we have committed (so `Committed` - `End` is
 the amount of memory we have committed but not filled). Similarly we also give
 you the reserved line: the limit of the memory we have reserved for the segment.
 
-Note that the `GCSegment.ProcessorAffinity` is actually the logical GC Heap to
+Note that the `ClrSegment.ProcessorAffinity` is actually the logical GC Heap to
 which the segment belongs. Here is a simple linq query which will print out a
 table showing logical heap balance:
 
@@ -98,26 +98,25 @@ As mentioned before, logical heap imbalance in server GC can cause perf issues.
 As mentioned before, GC segments contain managed objects. You can walk all
 objects on a segment by starting at `ClrSegment.FirstObject` and repeatedly
 calling `ClrSegment.NextObject` until it returns 0. To get the type of an
-object, you can call GCHeap.GetObjectType. This returns a `GCHeapType` object,
+object, you can call `ClrHeap.GetObjectType`. This returns a `ClrType` object,
 which we will cover in more detail in a later tutorial.
 
 Here is an example of walking each object on each segment in the process and
 printing the address, size, generation, and type of the object:
 
-    CLRRuntime runtime = ...;
-    GCHeap heap = runtime.GetHeap();
-
-    if (!heap.CanWalkHeap)
+    ClrRuntime runtime = ...;
+    
+    if (!runtime.Heap.CanWalkHeap)
     {
         Console.WriteLine("Cannot walk the heap!");
     }
     else
     {
-      foreach (ClrSegment seg in heap.Segments)
+      foreach (ClrSegment seg in runtime.Heap.Segments)
       {
           for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
           {
-              GCHeapType type = heap.GetObjectType(obj);
+              ClrType type = runtime.Heap.GetObjectType(obj);
 
               // If heap corruption, continue past this object.
               if (type == null)
@@ -130,41 +129,40 @@ printing the address, size, generation, and type of the object:
   }
 
 There are two parts in this example you should pay attention to. First is
-checking the `GCHeap.CanWalkHeap` property. This property specifies whether the
+checking the `ClrHeap.CanWalkHeap` property. This property specifies whether the
 process is in a state where you can reliably walk the heap. If the crashdump
 was taken during the middle of a GC, the GC could have been relocating objects.
 At which point a linear walk of the GC heap is not possible. If this is the
 case, `CanWalkHeap` will return `false`.
 
-Second, you need to check the return value of GetObjectType to make sure it's
+Second, you need to check the return value of `GetObjectType` to make sure it's
 non-null. `ClrSegment.NextObject` does not attempt to detect heap corruption,
 so it is possible `GetObjectType` will return null if the address that
-NextObject returns is a corrupt object.
+`NextObject` returns is a corrupt object.
 
 ## Walking objects without walking the segments
 
 There is another way to walk the heap, one which takes far less code than
-walking each segment: GCHeap.EnumerateObjects. Here is an example:
+walking each segment: `ClrHeap.EnumerateObjectAddresses`. Here is an example:
 
     CLRRuntime runtime = ...;
-    GCHeap heap = runtime.GetHeap();
 
-    if (!heap.CanWalkHeap)
+    if (!runtime.Heap.CanWalkHeap)
     {
         Console.WriteLine("Cannot walk the heap!");
     }
     else
     {
-      foreach (ulong obj in heap.EnumerateObjects())
+      foreach (ulong obj in runtime.Heap.EnumerateObjectAddresses())
       {
-          GCHeapType type = heap.GetObjectType(obj);
+          ClrType type = runtime.Heap.GetObjectType(obj);
 
           // If heap corruption, continue past this object.
           if (type == null)
               continue;
 
           ulong size = type.GetSize(obj);
-          Console.WriteLine("{0,12:X} {1,8:n0} {2,1:n0} {3}", obj, size, heap.GetObjectGeneration(obj), type.Name);
+          Console.WriteLine("{0,12:X} {1,8:n0} {2,1:n0} {3}", obj, size, runtime.Heap.GetObjectGeneration(obj), type.Name);
       }
   }
 
@@ -190,7 +188,7 @@ Given an object, you can enumerate all objects it points to using
 `GCHeapType.Enumerate` object references. We will use that function to implement
 `objsize`:
 
-    private static void ObjSize(GCHeap heap, ulong obj, out uint count, out ulong size)
+    private static void ObjSize(ClrHeap heap, ulong obj, out uint count, out ulong size)
     {
         // Evaluation stack
         Stack<ulong> eval = new Stack<ulong>();
@@ -234,7 +232,7 @@ Given an object, you can enumerate all objects it points to using
 
 ### Why do we need EnumerateRefsOfObject?
 
-You might be wondering why we need `EnumerateRefsOfObject` at all. As you will
+You might be wondering why we need `ClrType.EnumerateRefsOfObject` at all. As you will
 see in the next tutorial, you can walk each field in the object and get its
 value. You could implement this algorithm by walking fields instead. However,
 `EnumerateRefsOfObject` is much, much faster. It uses the same algorithm the GC
@@ -245,7 +243,7 @@ than walking fields to look for objects.
 
 As you can see, it doesn't take much work to walk the heap. To do anything
 useful with the objects you get, though, you will need to work with the
-`GCHeapType` for that object. In the next tutorial we will fully explore types
+`ClrType` for that object. In the next tutorial we will fully explore types
 in CLRMD.
 
 Next Tutorial: [Types and Fields in CLRMD](TypesAndFields.md)

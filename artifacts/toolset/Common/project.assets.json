@@ -1,0 +1,331 @@
+{
+  "version": 3,
+  "targets": {
+    ".NETFramework,Version=v4.6.2": {
+      "MicroBuild.Core/0.2.0": {
+        "type": "package",
+        "build": {
+          "build/MicroBuild.Core.props": {},
+          "build/MicroBuild.Core.targets": {}
+        }
+      },
+      "MicroBuild.Core.Sentinel/1.0.0": {
+        "type": "package"
+      },
+      "Microsoft.DiaSymReader.Pdb2Pdb/1.1.0-beta1-62506-02": {
+        "type": "package"
+      },
+      "Microsoft.DotNet.SignTool/1.0.0-beta.18471.7": {
+        "type": "package",
+        "build": {
+          "build/Microsoft.DotNet.SignTool.props": {}
+        }
+      },
+      "Microsoft.SymbolUploader.Build.Task/1.0.0-beta-63008-01": {
+        "type": "package"
+      },
+      "RoslynTools.NuGetRepack.BuildTasks/1.0.0-beta2-63223-01": {
+        "type": "package"
+      },
+      "vswhere/2.5.2": {
+        "type": "package",
+        "build": {
+          "build/vswhere.props": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MicroBuild.Core/0.2.0": {
+      "sha512": "UU0glyD/p+hIrgMdA6nYw5NhdhsYxaKTc3/N9sGEPZZi63wuB3dlB1AAbFBBtVjj9jZ9UijaBnUslNWKM1xDxA==",
+      "type": "package",
+      "path": "microbuild.core/0.2.0",
+      "files": [
+        "build/MicroBuild.Core.props",
+        "build/MicroBuild.Core.targets",
+        "build/MicroBuild.Plugin.props",
+        "microbuild.core.0.2.0.nupkg.sha512",
+        "microbuild.core.nuspec"
+      ]
+    },
+    "MicroBuild.Core.Sentinel/1.0.0": {
+      "sha512": "Hra2Plv5lO61Gk7pF44lQ2B4Y1vCEpyKpUZLuNoTr9YZ2dV/B0KSQOzIrZM/wwe+SoYKmY80X5igGSny332Diw==",
+      "type": "package",
+      "path": "microbuild.core.sentinel/1.0.0",
+      "files": [
+        "microbuild.core.sentinel.1.0.0.nupkg.sha512",
+        "microbuild.core.sentinel.nuspec",
+        "sentinel.txt"
+      ]
+    },
+    "Microsoft.DiaSymReader.Pdb2Pdb/1.1.0-beta1-62506-02": {
+      "sha512": "pQ/DgtE9wBaXaixdmlDqf84VKuoUzcJqiyJJ8+a/XZJtt5gWDd7Txa271ey7iQ5yZc9LOh0GiAjfErwhwMESKQ==",
+      "type": "package",
+      "path": "microsoft.diasymreader.pdb2pdb/1.1.0-beta1-62506-02",
+      "files": [
+        "microsoft.diasymreader.pdb2pdb.1.1.0-beta1-62506-02.nupkg.sha512",
+        "microsoft.diasymreader.pdb2pdb.nuspec",
+        "tools/Microsoft.DiaSymReader.Converter.dll",
+        "tools/Microsoft.DiaSymReader.Native.amd64.dll",
+        "tools/Microsoft.DiaSymReader.Native.x86.dll",
+        "tools/Microsoft.DiaSymReader.dll",
+        "tools/Newtonsoft.Json.dll",
+        "tools/Pdb2Pdb.exe",
+        "tools/System.Collections.Immutable.dll",
+        "tools/System.Reflection.Metadata.dll",
+        "tools/System.ValueTuple.dll",
+        "tools/cs/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/cs/Pdb2Pdb.resources.dll",
+        "tools/de/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/de/Pdb2Pdb.resources.dll",
+        "tools/es/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/es/Pdb2Pdb.resources.dll",
+        "tools/fr/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/fr/Pdb2Pdb.resources.dll",
+        "tools/it/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/it/Pdb2Pdb.resources.dll",
+        "tools/ja/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/ja/Pdb2Pdb.resources.dll",
+        "tools/ko/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/ko/Pdb2Pdb.resources.dll",
+        "tools/pl/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/pl/Pdb2Pdb.resources.dll",
+        "tools/pt-BR/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/pt-BR/Pdb2Pdb.resources.dll",
+        "tools/ru/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/ru/Pdb2Pdb.resources.dll",
+        "tools/tr/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/tr/Pdb2Pdb.resources.dll",
+        "tools/zh-Hans/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/zh-Hans/Pdb2Pdb.resources.dll",
+        "tools/zh-Hant/Microsoft.DiaSymReader.Converter.resources.dll",
+        "tools/zh-Hant/Pdb2Pdb.resources.dll"
+      ]
+    },
+    "Microsoft.DotNet.SignTool/1.0.0-beta.18471.7": {
+      "sha512": "+7eEHiUnVKXfbwxKOVHiQmHLTOvhPfbxoKvYpZa7f9UYFOajCr3yyQGI8VQIC5RJI1BGe/pQvrHjF+RB8gOmlg==",
+      "type": "package",
+      "path": "microsoft.dotnet.signtool/1.0.0-beta.18471.7",
+      "files": [
+        ".signature.p7s",
+        "LICENSE.txt",
+        "THIRD-PARTY-NOTICES.txt",
+        "build/Microsoft.DotNet.SignTool.props",
+        "microsoft.dotnet.signtool.1.0.0-beta.18471.7.nupkg.sha512",
+        "microsoft.dotnet.signtool.nuspec",
+        "tools/net461/Microsoft.DotNet.SignTool.dll",
+        "tools/net461/System.IO.FileSystem.Primitives.dll",
+        "tools/net461/System.Reflection.Metadata.dll",
+        "tools/netcoreapp2.0/Microsoft.DotNet.SignTool.deps.json",
+        "tools/netcoreapp2.0/Microsoft.DotNet.SignTool.dll"
+      ]
+    },
+    "Microsoft.SymbolUploader.Build.Task/1.0.0-beta-63008-01": {
+      "sha512": "x7O2i13RhnNL1J6vBJYFpP/EChp5RBi/bAPTSUw+IstrQGjWJYaJD3xi0N4kmcEvza8k5123LMQI7vkW1zSFMA==",
+      "type": "package",
+      "path": "microsoft.symboluploader.build.task/1.0.0-beta-63008-01",
+      "files": [
+        ".signature.p7s",
+        "build/PublishSymbols.targets",
+        "build/net45/Microsoft.Build.Framework.dll",
+        "build/net45/Microsoft.Build.Utilities.Core.dll",
+        "build/net45/Microsoft.DiaSymReader.Converter.dll",
+        "build/net45/Microsoft.DiaSymReader.Native.amd64.dll",
+        "build/net45/Microsoft.DiaSymReader.Native.arm.dll",
+        "build/net45/Microsoft.DiaSymReader.Native.x86.dll",
+        "build/net45/Microsoft.DiaSymReader.dll",
+        "build/net45/Microsoft.FileFormats.dll",
+        "build/net45/Microsoft.IdentityModel.Clients.ActiveDirectory.Platform.dll",
+        "build/net45/Microsoft.IdentityModel.Clients.ActiveDirectory.dll",
+        "build/net45/Microsoft.SymbolStore.dll",
+        "build/net45/Microsoft.SymbolUploader.Build.Task.dll",
+        "build/net45/Microsoft.SymbolUploader.Build.Task.pdb",
+        "build/net45/Microsoft.SymbolUploader.dll",
+        "build/net45/Microsoft.SymbolUploader.pdb",
+        "build/net45/Newtonsoft.Json.dll",
+        "build/net45/System.Collections.Immutable.dll",
+        "build/net45/System.Net.Http.Formatting.dll",
+        "build/net45/System.Reflection.Metadata.dll",
+        "build/net45/System.Runtime.InteropServices.RuntimeInformation.dll",
+        "build/net45/System.Threading.Tasks.Dataflow.dll",
+        "build/net45/System.ValueTuple.dll",
+        "build/net45/cs/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/de/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/es/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/fr/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/it/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/ja/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/ko/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/pl/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/pt-BR/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/ru/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/tr/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/zh-Hans/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/net45/zh-Hant/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/Microsoft.CSharp.dll",
+        "build/netstandard2.0/Microsoft.DiaSymReader.Converter.dll",
+        "build/netstandard2.0/Microsoft.DiaSymReader.Native.amd64.dll",
+        "build/netstandard2.0/Microsoft.DiaSymReader.Native.arm.dll",
+        "build/netstandard2.0/Microsoft.DiaSymReader.Native.x86.dll",
+        "build/netstandard2.0/Microsoft.DiaSymReader.dll",
+        "build/netstandard2.0/Microsoft.FileFormats.dll",
+        "build/netstandard2.0/Microsoft.IdentityModel.Clients.ActiveDirectory.dll",
+        "build/netstandard2.0/Microsoft.SymbolStore.dll",
+        "build/netstandard2.0/Microsoft.SymbolUploader.Build.Task.dll",
+        "build/netstandard2.0/Microsoft.SymbolUploader.Build.Task.pdb",
+        "build/netstandard2.0/Microsoft.SymbolUploader.dll",
+        "build/netstandard2.0/Microsoft.SymbolUploader.pdb",
+        "build/netstandard2.0/Newtonsoft.Json.dll",
+        "build/netstandard2.0/System.Collections.Immutable.dll",
+        "build/netstandard2.0/System.Net.Http.Formatting.dll",
+        "build/netstandard2.0/System.Reflection.Metadata.dll",
+        "build/netstandard2.0/System.Threading.Tasks.Dataflow.dll",
+        "build/netstandard2.0/cs/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/de/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/es/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/fr/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/it/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/ja/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/ko/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/pl/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/pt-BR/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/ru/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/tr/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/zh-Hans/Microsoft.DiaSymReader.Converter.resources.dll",
+        "build/netstandard2.0/zh-Hant/Microsoft.DiaSymReader.Converter.resources.dll",
+        "microsoft.symboluploader.build.task.1.0.0-beta-63008-01.nupkg.sha512",
+        "microsoft.symboluploader.build.task.nuspec"
+      ]
+    },
+    "RoslynTools.NuGetRepack.BuildTasks/1.0.0-beta2-63223-01": {
+      "sha512": "/2b/8egMtbrnFmt755AZWAkkmfX4EUkEzUpLq7Ipw9IJjxeTb1liU7XvT18m4gbOwSbFB3TZ4BcLQOgnb6gMQw==",
+      "type": "package",
+      "path": "roslyntools.nugetrepack.buildtasks/1.0.0-beta2-63223-01",
+      "files": [
+        ".signature.p7s",
+        "roslyntools.nugetrepack.buildtasks.1.0.0-beta2-63223-01.nupkg.sha512",
+        "roslyntools.nugetrepack.buildtasks.nuspec",
+        "tools/net461/NuGet.Versioning.dll",
+        "tools/net461/RoslynTools.NuGetRepack.BuildTasks.dll",
+        "tools/net461/RoslynTools.NuGetRepack.BuildTasks.pdb",
+        "tools/net461/System.Collections.Immutable.dll",
+        "tools/net461/System.Diagnostics.Process.dll",
+        "tools/net461/System.IO.FileSystem.Primitives.dll",
+        "tools/net461/System.IO.Packaging.dll",
+        "tools/net461/System.Reflection.Metadata.dll",
+        "tools/net461/System.Runtime.InteropServices.RuntimeInformation.dll",
+        "tools/net461/System.Threading.Thread.dll",
+        "tools/net461/System.ValueTuple.dll",
+        "tools/netcoreapp2.0/NuGet.Versioning.dll",
+        "tools/netcoreapp2.0/RoslynTools.NuGetRepack.BuildTasks.deps.json",
+        "tools/netcoreapp2.0/RoslynTools.NuGetRepack.BuildTasks.dll",
+        "tools/netcoreapp2.0/RoslynTools.NuGetRepack.BuildTasks.pdb",
+        "tools/netcoreapp2.0/System.IO.Packaging.dll",
+        "tools/netcoreapp2.0/System.Xml.XPath.XmlDocument.dll"
+      ]
+    },
+    "vswhere/2.5.2": {
+      "sha512": "z7pHqoZ+b1FzunFY1bEczFT/kJP9Ht6GsLG1D9CJv4cAhCsGY7jdvpikHyXZCqrixEbCx+J+EBqb6HweVMwySQ==",
+      "type": "package",
+      "path": "vswhere/2.5.2",
+      "files": [
+        ".signature.p7s",
+        "build/vswhere.props",
+        "tools/LICENSE.txt",
+        "tools/VERIFICATION.txt",
+        "tools/vswhere.exe",
+        "vswhere.2.5.2.nupkg.sha512",
+        "vswhere.nuspec"
+      ]
+    }
+  },
+  "projectFileDependencyGroups": {
+    ".NETFramework,Version=v4.6.2": [
+      "MicroBuild.Core >= 0.2.0",
+      "MicroBuild.Core.Sentinel >= 1.0.0",
+      "Microsoft.DiaSymReader.Pdb2Pdb >= 1.1.0-beta1-62506-02",
+      "Microsoft.DotNet.SignTool >= 1.0.0-beta.18471.7",
+      "Microsoft.SymbolUploader.Build.Task >= 1.0.0-beta-63008-01",
+      "RoslynTools.NuGetRepack.BuildTasks >= 1.0.0-beta2-63223-01",
+      "vswhere >= 2.5.2"
+    ]
+  },
+  "packageFolders": {
+    "/home/leculver/git/clrmd/.packages": {},
+    "/home/leculver/git/clrmd/.dotnet/sdk/NuGetFallbackFolder": {}
+  },
+  "project": {
+    "version": "1.4.0-dev",
+    "restore": {
+      "projectUniqueName": "/home/leculver/git/clrmd/.packages/microsoft.dotnet.arcade.sdk/1.0.0-beta.18478.1/tools/Tools.proj",
+      "projectName": "Tools",
+      "projectPath": "/home/leculver/git/clrmd/.packages/microsoft.dotnet.arcade.sdk/1.0.0-beta.18478.1/tools/Tools.proj",
+      "packagesPath": "/home/leculver/git/clrmd/.packages",
+      "outputPath": "/home/leculver/git/clrmd/artifacts/toolset/Common/",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "/home/leculver/git/clrmd/.dotnet/sdk/NuGetFallbackFolder"
+      ],
+      "configFilePaths": [
+        "/home/leculver/git/clrmd/nuget.config",
+        "/home/leculver/.nuget/NuGet/NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net462"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {},
+        "https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json": {},
+        "https://dotnet.myget.org/F/roslyn-tools/api/v3/index.json": {},
+        "https://dotnet.myget.org/F/symreader-converter/api/v3/index.json": {},
+        "https://dotnetfeed.blob.core.windows.net/dotnet-core/index.json": {}
+      },
+      "frameworks": {
+        "net462": {
+          "projectReferences": {}
+        }
+      }
+    },
+    "frameworks": {
+      "net462": {
+        "dependencies": {
+          "MicroBuild.Core": {
+            "target": "Package",
+            "version": "[0.2.0, )",
+            "autoReferenced": true
+          },
+          "MicroBuild.Core.Sentinel": {
+            "target": "Package",
+            "version": "[1.0.0, )",
+            "autoReferenced": true
+          },
+          "Microsoft.DiaSymReader.Pdb2Pdb": {
+            "target": "Package",
+            "version": "[1.1.0-beta1-62506-02, )",
+            "autoReferenced": true
+          },
+          "Microsoft.DotNet.SignTool": {
+            "target": "Package",
+            "version": "[1.0.0-beta.18471.7, )",
+            "autoReferenced": true
+          },
+          "Microsoft.SymbolUploader.Build.Task": {
+            "target": "Package",
+            "version": "[1.0.0-beta-63008-01, )",
+            "autoReferenced": true
+          },
+          "RoslynTools.NuGetRepack.BuildTasks": {
+            "target": "Package",
+            "version": "[1.0.0-beta2-63223-01, )",
+            "autoReferenced": true
+          },
+          "vswhere": {
+            "target": "Package",
+            "version": "[2.5.2, )",
+            "autoReferenced": true
+          }
+        }
+      }
+    }
+  }
+}

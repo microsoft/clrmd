@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+
+    <!-- This repo version -->
+    <VersionPrefix>1.4.0</VersionPrefix>
+    <PreReleaseVersionLabel>beta2</PreReleaseVersionLabel>
+    <SemanticVersioningV1>true</SemanticVersioningV1>
+
+    <!-- Opt-in repo features -->
+    <UsingToolSymbolUploader>true</UsingToolSymbolUploader>
+    <UsingToolNetFrameworkReferenceAssemblies>true</UsingToolNetFrameworkReferenceAssemblies>
+    <UsingToolNuGetRepack>true</UsingToolNuGetRepack>
+
+    <!-- Dependencies -->
+    <SystemCollectionsImmutableVersion>1.5.0</SystemCollectionsImmutableVersion>
+    <SystemReflectionMetadataVersion>1.6.0</SystemReflectionMetadataVersion>
+    <SystemValueTupleVersion>4.3.0</SystemValueTupleVersion>
+
+    <MicrosoftDiaSymReaderNativeVersion>1.7.0</MicrosoftDiaSymReaderNativeVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RestoreSources>
+      $(RestoreSources);
+      https://dotnet.myget.org/F/symreader-native/api/v3/index.json;
+      https://dotnet.myget.org/F/dotnet-core/api/v3/index.json
+    </RestoreSources>
+  </PropertyGroup>
+</Project>
