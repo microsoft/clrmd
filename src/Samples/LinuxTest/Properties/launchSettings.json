@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LinuxTest": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\work\\10_01_coredump\\core"
+    }
+  }
+}
