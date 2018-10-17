@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -171,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return RequestAddrList(DacRequests.GCHEAP_LIST, HeapCount);
         }
 
-        internal override IList<ulong> GetAppDomainList(int count)
+        internal override ulong[] GetAppDomainList(int count)
         {
             return RequestAddrList(DacRequests.APPDOMAIN_LIST, count);
         }
@@ -394,13 +395,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Request<IObjectData, LegacyObjectData>(DacRequests.OBJECT_DATA, objRef);
         }
 
-        internal override ICorDebug.IMetadataImport GetMetadataImport(ulong module)
+        internal override MetaDataImport GetMetadataImport(ulong module)
         {
             IModuleData data = GetModuleData(module);
             RegisterForRelease(data);
 
-            if (data != null && data.LegacyMetaDataImport != null)
-                return data.LegacyMetaDataImport as ICorDebug.IMetadataImport;
+            if (data != null && data.LegacyMetaDataImport != IntPtr.Zero)
+                return new MetaDataImport(data.LegacyMetaDataImport);
 
             return null;
         }
@@ -444,7 +445,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
 
-            ModuleMapTraverse traverse = delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
+            SOSDac.ModuleMapTraverse traverse = delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
             LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs()
             {
                 pCallback = Marshal.GetFunctionPointerForDelegate(traverse),
@@ -537,12 +538,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return token;
         }
 
-        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, int res, ulong ip, ulong sp, ulong frameVtbl)
+        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong sp, ulong frameVtbl)
         {
             DesktopStackFrame frame;
             ClearBuffer();
 
-            if (res >= 0 && frameVtbl != 0)
+            if (frameVtbl != 0)
             {
                 ClrMethod method = null;
                 string frameName = "Unknown Frame";
@@ -1331,6 +1332,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get { throw new NotImplementedException(); }
         }
+
+        public uint Token => 0;
+
+        public ulong Module => 0;
     }
 
     // Same for v2 and v4
@@ -1738,8 +1743,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public uint bIsReflection;
         public uint bIsPEFile;
         public IntPtr dwBaseClassIndex;
-        [MarshalAs(UnmanagedType.IUnknown)]
-        public object ModuleDefinition;
+        public IntPtr ModuleDefinition;
         public IntPtr dwDomainNeutralIndex;
 
         public uint dwTransientFlags;
@@ -1787,7 +1791,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public object LegacyMetaDataImport
+        public IntPtr LegacyMetaDataImport
         {
             get { return ModuleDefinition; }
         }
@@ -2268,8 +2272,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public uint bIsReflection;
         public uint bIsPEFile;
         public IntPtr dwBaseClassIndex;
-        [MarshalAs(UnmanagedType.IUnknown)]
-        public object ModuleDefinition;
+        public IntPtr ModuleDefinition;
         public IntPtr dwModuleID;
 
         public uint dwTransientFlags;
@@ -2316,7 +2319,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public object LegacyMetaDataImport
+        public IntPtr LegacyMetaDataImport
         {
             get { return ModuleDefinition; }
         }

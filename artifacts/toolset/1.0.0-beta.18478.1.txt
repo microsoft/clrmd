@@ -1,0 +1,1 @@
+/home/leculver/git/clrmd/.packages/microsoft.dotnet.arcade.sdk/1.0.0-beta.18478.1/tools/Build.proj

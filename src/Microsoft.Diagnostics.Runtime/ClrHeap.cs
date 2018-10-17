@@ -515,7 +515,7 @@ namespace Microsoft.Diagnostics.Runtime
     }
 
     /// <summary>
-    /// A GCHeapSegment represents a contiguous region of memory that is devoted to the GC heap. 
+    /// A ClrSegment represents a contiguous region of memory that is devoted to the GC heap. 
     /// Segments.  It has a start and end and knows what heap it belongs to.   Segments can
     /// optional have regions for Gen 0, 1 and 2, and Large properties.  
     /// </summary>

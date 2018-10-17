@@ -18,7 +18,7 @@ well as the GC Handle table and finalizer queue.
 `ClrRuntime` implements a handful of grab-bag operations which you can use to
 get some bits of information about the runtime. The first (and simplest) is that
 `ClrRuntime`.PointerSize returns to you the size of a pointer in the target
-process. All functions in ClrMD use a ulong (64bit int) everytime a pointer
+process. All functions in ClrMD use a ulong (64bit int) every time a pointer
 would be required, but this field tells you what bitness the target process is.
 
 There are two GC related properties on `ClrRuntime`:
@@ -37,14 +37,14 @@ will quickly become a perf problem in your server application. We will cover
 more about GC heap imbalance in the tutorial section covering heap walking.
 
 `ClrRuntime` also gives you some very simple functions to read data out of the
-target process. Currently it exposes two functions. ReadVirtual allows you to
-read a raw buffer out of the target process. ReadPtr is special in that it will
+target process. Currently it exposes two functions. `ReadVirtual` allows you to
+read a raw buffer out of the target process. `ReadPtr` is special in that it will
 only read a single pointer out of the target process (either 4 or 8 bytes
 depending on the architecture).
 
 Lastly, `ClrRuntime` has 3 static functions for telling whether a
 `ClrElementType` (an enum we'll cover in a later tutorial about types and
-fields) is a primitive, object reference, or value class (struct).
+fields) is a primitive, object reference, or value class (`struct`).
 
 That's it for the most basic functions in `ClrRuntime`. Now off to the more
 structured data...
@@ -61,13 +61,15 @@ AppDomain as well as more information about the state of the AppDomain.
 To walk AppDomains in the process, simply use the `ClrRuntime.AppDomains`
 property:
 
-    ClrRuntime runtime = ...;
-    foreach (ClrAppDomain domain in runtime.AppDomains)
-    {
-        Console.WriteLine("ID:      {0}", domain.Id);
-        Console.WriteLine("Name:    {0}", domain.Name);
-        Console.WriteLine("Address: {0}", domain.Address);
-    }
+```cs
+ClrRuntime runtime = ...;
+foreach (ClrAppDomain domain in runtime.AppDomains)
+{
+    Console.WriteLine("ID:      {0}", domain.Id);
+    Console.WriteLine("Name:    {0}", domain.Name);
+    Console.WriteLine("Address: {0}", domain.Address);
+}
+```
 
 This is the entirety of what you can do with AppDomains (as of Beta 0.3). The
 primary reason for exposing AppDomains at all is to be able to get at the name
@@ -95,18 +97,20 @@ You can walk the managed stack of any thread in the process by simply
 enumerating the `ClrThread.StackTrace` property. Here's an example of printing
 out the call stack for each thread in the process:
 
-    foreach (ClrThread thread in runtime.Threads)
-    {
-        if (!thread.IsAlive)
-            continue;
+```cs
+foreach (ClrThread thread in runtime.Threads)
+{
+    if (!thread.IsAlive)
+        continue;
 
-        Console.WriteLine("Thread {0:X}:", thread.OSThreadId);
+    Console.WriteLine("Thread {0:X}:", thread.OSThreadId);
 
-        foreach (ClrStackFrame frame in thread.StackTrace)
-            Console.WriteLine("{0,12:X} {1,12:X} {2}", frame.StackPointer, frame.InstructionPointer, frame.ToString());
+    foreach (ClrStackFrame frame in thread.StackTrace)
+        Console.WriteLine("{0,12:X} {1,12:X} {2}", frame.StackPointer, frame.InstructionPointer, frame.ToString());
 
-        Console.WriteLine();
-    }
+    Console.WriteLine();
+}
+```
 
 Note that to get the class/function name that we are currently executing,
 calling `ClrStackFrame.ToString` will give you output roughly equivalent to
@@ -181,20 +185,22 @@ The intent of providing this data is to allow you to do a few things:
 Here is an example of using linq to build a useful table of what is eating the
 most memory in the process:
 
-    foreach (var region in (from r in runtime.EnumerateMemoryRegions()
-                            where r.Type != ClrMemoryRegionType.ReservedGCSegment
-                            group r by r.Type into g
-                            let total = g.Sum(p => (uint)p.Size)
-                            orderby total descending
-                            select new
-                            {
-                                TotalSize = total,
-                                Count = g.Count(),
-                                Type = g.Key
-                            }))
-    {
-        Console.WriteLine("{0,6:n0} {1,12:n0} {2}", region.Count, region.TotalSize, region.Type.ToString());
-    }
+```cs
+foreach (var region in (from r in runtime.EnumerateMemoryRegions()
+                        where r.Type != ClrMemoryRegionType.ReservedGCSegment
+                        group r by r.Type into g
+                        let total = g.Sum(p => (uint)p.Size)
+                        orderby total descending
+                        select new
+                        {
+                            TotalSize = total,
+                            Count = g.Count(),
+                            Type = g.Key
+                        }))
+{
+    Console.WriteLine("{0,6:n0} {1,12:n0} {2}", region.Count, region.TotalSize, region.Type.ToString());
+}
+```
 
 Note that I have eliminated `ReservedGCSegments` from this table. That's because
 `ReserveGCSegments` are just that...reserved memory which isn't counting toward
@@ -227,9 +233,11 @@ The finalizer queue in CLR is a list of objects which have been collected and
 will soon have their finalizer run. Enumerating all objects on the finalizer
 queue is as simple as calling
 
-        foreach (ulong obj in runtime.FinalizerQueue)
-        {
-        }
+```cs
+foreach (ulong obj in runtime.FinalizerQueue)
+{
+}
+```
 
 Of course, at this point I have not shown you what you can do with object
 addresses in ClrMD. That will come in the next tutorial
@@ -245,11 +253,13 @@ and a handle type which specifies how the runtime treats the handle.
 Here is an example of walking the GC Handle table and printing out a table of
 handles and their types:
 
-    foreach (GCHeapHandle handle in runtime.EnumerateHandles())
-    {
-        string objectType = heap.GetObjectType(handle.Object).Name;
-        Console.WriteLine("{0,12:X} {1,12:X} {2,12} {3}", handle.Address, handle.Object, handle.Type.ToString(), objectType);
-    }
+```cs
+foreach (GCHeapHandle handle in runtime.EnumerateHandles())
+{
+    string objectType = heap.GetObjectType(handle.Object).Name;
+    Console.WriteLine("{0,12:X} {1,12:X} {2,12} {3}", handle.Address, handle.Object, handle.Type.ToString(), objectType);
+}
+```
 
 Note this example doesn't do anything with types of objects on the heap. Please
 see the `GCHandles` code snippet for a different way of breaking down handles.

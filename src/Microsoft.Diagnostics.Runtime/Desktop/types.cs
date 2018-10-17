@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.ComWrappers;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -114,37 +115,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             BaseDesktopHeapType baseType = BaseType as BaseDesktopHeapType;
             List<ClrInterface> interfaces = baseType != null ? new List<ClrInterface>(baseType.Interfaces) : null;
-            ICorDebug.IMetadataImport import = DesktopModule.GetMetadataImport();
+            MetaDataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
                 _interfaces = DesktopHeap.EmptyInterfaceList;
                 return null;
             }
 
-            IntPtr hnd = IntPtr.Zero;
-            int[] mdTokens = new int[32];
-            int count;
-
-            do
+            foreach (int token in import.EnumerateInterfaceImpls((int)_token))
             {
-                int res = import.EnumInterfaceImpls(ref hnd, (int)_token, mdTokens, mdTokens.Length, out count);
-                if (res < 0)
-                    break;
-
-                for (int i = 0; i < count; ++i)
+                if (import.GetInterfaceImplProps(token, out int mdClass, out int mdIFace))
                 {
-                    res = import.GetInterfaceImplProps(mdTokens[i], out int mdClass, out int mdIFace);
-
                     if (interfaces == null)
-                        interfaces = new List<ClrInterface>(count == mdTokens.Length ? 64 : count);
+                        interfaces = new List<ClrInterface>();
 
                     var result = GetInterface(import, mdIFace);
                     if (result != null && !interfaces.Contains(result))
                         interfaces.Add(result);
                 }
-            } while (count == mdTokens.Length);
-
-            import.CloseEnum(hnd);
+            }
 
             if (interfaces == null)
                 _interfaces = DesktopHeap.EmptyInterfaceList;
@@ -156,31 +145,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
 
-        private ClrInterface GetInterface(ICorDebug.IMetadataImport import, int mdIFace)
+        private ClrInterface GetInterface(MetaDataImport import, int mdIFace)
         {
-            StringBuilder builder = new StringBuilder(1024);
-            int res = import.GetTypeDefProps(mdIFace, builder, builder.Capacity, out int count, out TypeAttributes attr, out int extends);
-
-            string name = null;
             ClrInterface result = null;
-            if (res == 0)
+            if (!import.GetTypeDefProperties(mdIFace, out string name, out TypeAttributes attrs, out int extends))
             {
-                name = builder.ToString();
-            }
-            else if (res == 1)
-            {
-                res = import.GetTypeRefProps(mdIFace, out int scope, builder, builder.Capacity, out count);
-                if (res == 0)
-                {
-                    name = builder.ToString();
-                }
-                else if (res == 1)
-                {
-                }
+                name = import.GetTypeRefName(mdIFace);
             }
 
             // TODO:  Handle typespec case.
-
             if (name != null && !DesktopHeap.Interfaces.TryGetValue(name, out result))
             {
                 ClrInterface type = null;
@@ -1095,30 +1068,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 throw new InvalidOperationException("Type is not an Enum.");
 
             _enumData = new EnumData();
-            ICorDebug.IMetadataImport import = null;
-            if (DesktopModule != null)
-                import = DesktopModule.GetMetadataImport();
-
+            MetaDataImport import = DesktopModule?.GetMetadataImport();
             if (import == null)
-            {
-                _enumData = new EnumData();
                 return;
-            }
 
             IntPtr hnd = IntPtr.Zero;
-            int tokens;
-
             List<string> names = new List<string>();
-            int[] fields = new int[64];
-            do
+            foreach (int token in import.EnumerateFields((int)_token))
             {
-                int res = import.EnumFields(ref hnd, (int)_token, fields, fields.Length, out tokens);
-                for (int i = 0; i < tokens; ++i)
+                if (import.GetFieldProps(token, out string name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
                 {
-                    StringBuilder builder = new StringBuilder(256);
-                    res = import.GetFieldProps(fields[i], out int mdTypeDef, builder, builder.Capacity, out int pchField, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue, out int pcchValue);
-
-                    if ((int)attr == 0x606 && builder.ToString() == "value__")
+                    if ((int)attr == 0x606 && name == "value__")
                     {
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
 
@@ -1130,7 +1090,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     int intAttr = (int)attr;
                     if ((int)attr == 0x8056)
                     {
-                        string name = builder.ToString();
                         names.Add(name);
 
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
@@ -1146,9 +1105,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         }
                     }
                 }
-            } while (fields.Length == tokens);
-
-            import.CloseEnum(hnd);
+            }
         }
 
         public override bool IsEnum
@@ -1303,6 +1260,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_fields != null)
                 return;
 
+            if (IsFree)
+            {
+                _fields = new List<ClrInstanceField>();
+                return;
+            }
+
             DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
             IFieldInfo fieldInfo = runtime.GetFieldInfo(_constructedMT);
 
@@ -1326,7 +1289,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ulong nextField = fieldInfo.FirstField;
             int i = 0;
 
-            ICorDebug.IMetadataImport import = null;
+            MetaDataImport import = null;
             if (nextField != 0 && DesktopModule != null)
                 import = DesktopModule.GetMetadataImport();
 
@@ -1346,20 +1309,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 // Get the name of the field.
                 string name = null;
                 FieldAttributes attr = FieldAttributes.PrivateScope;
-                int pcchValue = 0, sigLen = 0;
+                int sigLen = 0;
                 IntPtr ppValue = IntPtr.Zero;
                 IntPtr fieldSig = IntPtr.Zero;
 
                 if (import != null)
-                {
-                    StringBuilder builder = new StringBuilder(256);
-
-                    int res = import.GetFieldProps((int)field.FieldToken, out int mdTypeDef, builder, builder.Capacity, out int pchField, out attr, out fieldSig, out sigLen, out int pdwCPlusTypeFlab, out ppValue, out pcchValue);
-                    if (res >= 0)
-                        name = builder.ToString();
-                    else
-                        fieldSig = IntPtr.Zero;
-                }
+                    import.GetFieldProps((int)field.FieldToken, out name, out attr, out fieldSig, out sigLen, out int pdwCPlusTypeFlab, out ppValue);
 
                 // If we couldn't figure out the name, at least give the token.
                 if (import == null || name == null)
@@ -1416,7 +1371,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_methods != null)
                     return _methods;
 
-                ICorDebug.IMetadataImport metadata = null;
+                MetaDataImport metadata = null;
                 if (DesktopModule != null)
                     metadata = DesktopModule.GetMetadataImport();
 
@@ -1762,18 +1717,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private void InitFlags()
         {
-            if ((int)_attributes != 0 || DesktopModule == null)
+            if (_attributes != 0 || DesktopModule == null)
                 return;
 
-            ICorDebug.IMetadataImport import = DesktopModule.GetMetadataImport();
+            MetaDataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
                 _attributes = (TypeAttributes)0x70000000;
                 return;
             }
 
-            int i = import.GetTypeDefProps((int)_token, null, 0, out int tdef, out _attributes, out int extends);
-            if (i < 0 || (int)_attributes == 0)
+            if (!import.GetTypeDefAttributes((int)_token, out _attributes) || _attributes == 0)
                 _attributes = (TypeAttributes)0x70000000;
         }
 
