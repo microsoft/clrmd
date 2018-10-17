@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int SetValue(
             [In] UInt32 Register,
-            [In] DEBUG_VALUE Value);
+            [In] ref DEBUG_VALUE Value);
 
         [PreserveSig]
         int GetValues( //FIX ME!!! This needs to be tested
