@@ -144,9 +144,9 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             {
                 if (Path.GetExtension(info.FileName).ToLower() == ".so")
                 {
-                    Console.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
-                    System.Diagnostics.Debugger.Break();
-                    return E_FAIL;
+                    // TODO
+                    System.Diagnostics.Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
+                    return E_NOTIMPL;
                 }
 
                 string filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);

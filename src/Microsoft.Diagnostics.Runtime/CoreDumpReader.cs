@@ -146,8 +146,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            Console.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
-            System.Diagnostics.Debugger.Break();
+            // TODO
+            System.Diagnostics.Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
             version = new VersionInfo();
         }
 
