@@ -56,7 +56,7 @@
     <None Include="Targets\GCRoot.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="Targets\FinalizationQueue.cs">
+    <None Include="Targets\FinalizationQueue.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
     <Compile Include="TypeTests.cs" />
