@@ -150,22 +150,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrRuntime CreateRuntime(object clrDataProcess)
         {
-            DacLibrary lib = new DacLibrary(_dataTarget, (IXCLRDataProcess)clrDataProcess);
+            DacLibrary lib = new DacLibrary(_dataTarget, clrDataProcess);
 
             // Figure out what version we are on.
-            if (clrDataProcess is Desktop.ISOSDac)
+            if (lib.SOSInterface != null)
             {
-                return new Desktop.V45Runtime(this, _dataTarget, lib);
+                return new V45Runtime(this, _dataTarget, lib);
             }
             else
             {
-                byte[] buffer = new byte[System.Runtime.InteropServices.Marshal.SizeOf(typeof(Desktop.V2HeapDetails))];
+                byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
 
-                int val = lib.DacInterface.Request(Desktop.DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
-                if ((uint)val == (uint)0x80070057)
-                    return new Desktop.LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
+                int val = lib.DacInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+                if ((uint)val == 0x80070057)
+                    return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
                 else
-                    return new Desktop.LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v2, 3054);
+                    return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v2, 3054);
             }
         }
 
@@ -1033,7 +1033,6 @@ namespace Microsoft.Diagnostics.Runtime
         private Lazy<ClrInfo[]> _versions;
         private Lazy<ModuleInfo[]> _modules;
         
-
         public DataTargetImpl(IDataReader dataReader, IDebugClient client)
         {
             _dataReader = dataReader ?? throw new ArgumentNullException("dataReader");
@@ -1182,12 +1181,9 @@ namespace Microsoft.Diagnostics.Runtime
     internal class DacLibrary
     {
         private IntPtr _library;
-        private DacDataTarget _dacDataTarget;  // TODO: REMOVE
-        private readonly DacDataTargetWrapper _dacDataTargetWrapper;
         private SOSDac _sos;
-        private HashSet<object> _release = new HashSet<object>();
 
-        public DacDataTarget DacDataTarget { get { return _dacDataTarget; } }
+        public DacDataTargetWrapper DacDataTarget { get; }
 
         public ClrDataProcess DacInterface { get; }
 
@@ -1237,12 +1233,11 @@ namespace Microsoft.Diagnostics.Runtime
 
 
             IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(_library, "CLRDataCreateInstance");
-            _dacDataTarget = new DacDataTarget(dataTarget);
-            _dacDataTargetWrapper = new DacDataTargetWrapper(dataTarget);
+            DacDataTarget = new DacDataTargetWrapper(dataTarget);
 
             CreateDacInstance func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-            int res = func(ref guid, _dacDataTargetWrapper.IDacDataTarget, out IntPtr iUnk);
+            int res = func(ref guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
             if (res != 0)
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);
@@ -1265,274 +1260,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         ~DacLibrary()
         {
-            foreach (object obj in _release)
-                Marshal.FinalReleaseComObject(obj);
-
             if (_library != IntPtr.Zero)
                 DataTarget.PlatformFunctions.FreeLibrary(_library);
         }
-
-        internal void AddToReleaseList(object obj)
-        {
-            Debug.Assert(Marshal.IsComObject(obj));
-            _release.Add(obj);
-        }
     }
-
-    internal class DacDataTarget : IDacDataTarget, IMetadataLocator, ICorDebug.ICorDebugDataTarget
-    {
-        private DataTargetImpl _dataTarget;
-        private IDataReader _dataReader;
-        private ModuleInfo[] _modules;
-
-        public DacDataTarget(DataTargetImpl dataTarget)
-        {
-            _dataTarget = dataTarget;
-            _dataReader = _dataTarget.DataReader;
-            _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
-        }
-
-
-        public CorDebugPlatform GetPlatform()
-        {
-            var arch = _dataReader.GetArchitecture();
-
-            switch (arch)
-            {
-                case Architecture.Amd64:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_AMD64;
-
-                case Architecture.X86:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_X86;
-
-                case Architecture.Arm:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM;
-
-                default:
-                    throw new Exception();
-            }
-        }
-
-        public uint ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
-        {
-            if (ReadVirtual(address, buffer, (int)bytesRequested, out int read) >= 0)
-                return (uint)read;
-
-            throw new Exception();
-        }
-
-        void ICorDebugDataTarget.GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
-        {
-            if (!_dataReader.GetThreadContext(threadId, contextFlags, contextSize, context))
-                throw new Exception();
-        }
-
-        public void GetMachineType(out IMAGE_FILE_MACHINE machineType)
-        {
-            var arch = _dataReader.GetArchitecture();
-
-            switch (arch)
-            {
-                case Architecture.Amd64:
-                    machineType = IMAGE_FILE_MACHINE.AMD64;
-                    break;
-
-                case Architecture.X86:
-                    machineType = IMAGE_FILE_MACHINE.I386;
-                    break;
-
-                case Architecture.Arm:
-                    machineType = IMAGE_FILE_MACHINE.THUMB2;
-                    break;
-
-                default:
-                    machineType = IMAGE_FILE_MACHINE.UNKNOWN;
-                    break;
-            }
-        }
-
-        private ModuleInfo GetModule(ulong address)
-        {
-            int min = 0, max = _modules.Length - 1;
-
-            while (min <= max)
-            {
-                int i = (min + max) / 2;
-                ModuleInfo curr = _modules[i];
-
-                if (curr.ImageBase <= address && address < curr.ImageBase + curr.FileSize)
-                    return curr;
-                else if (curr.ImageBase < address)
-                    min = i + 1;
-                else
-                    max = i - 1;
-            }
-
-            return null;
-        }
-
-        public void GetPointerSize(out uint pointerSize)
-        {
-            pointerSize = _dataReader.GetPointerSize();
-        }
-
-        public void GetImageBase(string imagePath, out ulong baseAddress)
-        {
-            imagePath = Path.GetFileNameWithoutExtension(imagePath);
-
-            foreach (ModuleInfo module in _modules)
-            {
-                string moduleName = Path.GetFileNameWithoutExtension(module.FileName);
-                if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase))
-                {
-                    baseAddress = module.ImageBase;
-                    return;
-                }
-            }
-
-            throw new Exception();
-        }
-
-        public unsafe int ReadVirtual(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
-        {
-            if (_dataReader.ReadMemory(address, buffer, bytesRequested, out int read))
-            {
-                bytesRead = read;
-                return 0;
-            }
-
-            ModuleInfo info = GetModule(address);
-            if (info != null)
-            {
-                string filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);
-                if (filePath == null)
-                {
-                    bytesRead = 0;
-                    return -1;
-                }
-
-                // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
-                if (file?.Header != null)
-                {
-                    PEBuffer peBuffer = file.AllocBuff();
-
-                    int rva = checked((int)(address - info.ImageBase));
-
-                    if (file.Header.TryGetFileOffsetFromRva(rva, out rva))
-                    {
-                        byte* dst = (byte*)buffer.ToPointer();
-                        byte* src = peBuffer.Fetch(rva, bytesRequested);
-
-                        for (int i = 0; i < bytesRequested; i++)
-                            dst[i] = src[i];
-
-                        bytesRead = bytesRequested;
-                        return 0;
-                    }
-
-                    file.FreeBuff(peBuffer);
-                }
-            }
-
-            bytesRead = 0;
-            return -1;
-        }
-
-        public int ReadMemory(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
-        {
-            if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out int read))
-            {
-                bytesRead = (uint)read;
-                return 0;
-            }
-
-            bytesRead = 0;
-            return -1;
-        }
-
-        public int ReadVirtual(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
-        {
-            return ReadMemory(address, buffer, bytesRequested, out bytesRead);
-        }
-
-        public void WriteVirtual(ulong address, byte[] buffer, uint bytesRequested, out uint bytesWritten)
-        {
-            // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
-            bytesWritten = bytesRequested;
-        }
-
-        public void GetTLSValue(uint threadID, uint index, out ulong value)
-        {
-            // TODO:  Validate this is not used?
-            value = 0;
-        }
-
-        public void SetTLSValue(uint threadID, uint index, ulong value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void GetCurrentThreadID(out uint threadID)
-        {
-            threadID = 0;
-        }
-
-        public void GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
-        {
-            _dataReader.GetThreadContext(threadID, contextFlags, contextSize, context);
-        }
-
-        public void SetThreadContext(uint threadID, uint contextSize, IntPtr context)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Request(uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public int GetMetadata(string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize)
-        {
-            string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
-            if (filePath == null)
-                return -1;
-
-            // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
-            if (file == null)
-                return -1;
-
-            var comDescriptor = file.Header.ComDescriptorDirectory;
-            if (comDescriptor.VirtualAddress == 0)
-                return -1;
-
-            PEBuffer peBuffer = file.AllocBuff();
-            if (mdRva == 0)
-            {
-                IntPtr hdr = file.SafeFetchRVA((int)comDescriptor.VirtualAddress, (int)comDescriptor.Size, peBuffer);
-
-                IMAGE_COR20_HEADER corhdr = (IMAGE_COR20_HEADER)Marshal.PtrToStructure(hdr, typeof(IMAGE_COR20_HEADER));
-                if (bufferSize < corhdr.MetaData.Size)
-                {
-                    file.FreeBuff(peBuffer);
-                    return -1;
-                }
-
-                mdRva = corhdr.MetaData.VirtualAddress;
-                bufferSize = corhdr.MetaData.Size;
-            }
-
-            IntPtr ptr = file.SafeFetchRVA((int)mdRva, (int)bufferSize, peBuffer);
-            Marshal.Copy(ptr, buffer, 0, (int)bufferSize);
-
-            file.FreeBuff(peBuffer);
-            return 0;
-        }
-    }
-
+    
     internal unsafe class DbgEngDataReader : IDisposable, IDataReader
     {
         private static int s_totalInstanceCount = 0;

@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 {
     internal unsafe sealed class SOSDac : CallableCOMWrapper
     {
-        private static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
+        internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
         private static V45ReJitData[] s_emptyRejit;
 
@@ -595,6 +595,9 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             TypeDefToMethodTable,
             TypeRefToMethodTable
         }
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        internal delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
 
         public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {

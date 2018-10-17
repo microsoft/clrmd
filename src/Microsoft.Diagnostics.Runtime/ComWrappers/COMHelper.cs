@@ -21,12 +21,15 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         protected delegate int QueryInterfaceDelegate(IntPtr self, ref Guid guid, out IntPtr ptr);
 
-        public static unsafe int Release(IntPtr obj)
+        public static unsafe int Release(IntPtr pUnk)
         {
-            IUnknownVTable* vtable = *(IUnknownVTable**)obj;
+            if (pUnk == IntPtr.Zero)
+                return 0;
+
+            IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
             var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
-            return release(obj);
+            return release(pUnk);
         }
     }
 }

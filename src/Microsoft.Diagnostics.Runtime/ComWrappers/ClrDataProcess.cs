@@ -28,11 +28,18 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         public SOSDac GetSOSDacInterface()
         {
-            IntPtr result = QueryInterface(ref IID_IXCLRDataProcess);
+            IntPtr result = QueryInterface(ref SOSDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
                 return null;
 
-            return new SOSDac(result);
+            try
+            {
+                return new SOSDac(result);
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
         }
 
         public void Flush()

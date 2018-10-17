@@ -445,7 +445,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
 
-            ModuleMapTraverse traverse = delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
+            SOSDac.ModuleMapTraverse traverse = delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
             LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs()
             {
                 pCallback = Marshal.GetFunctionPointerForDelegate(traverse),

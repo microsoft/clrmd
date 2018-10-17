@@ -1,4 +1,5 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
+﻿using Microsoft.Diagnostics.Runtime.ICorDebug;
+using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.ComWrappers
 {
-    unsafe class DacDataTargetWrapper : COMCallableIUnknown
+    unsafe class DacDataTargetWrapper : COMCallableIUnknown, ICorDebugDataTarget
     {
         private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
@@ -283,6 +284,40 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         }
 
 
+        CorDebugPlatform ICorDebugDataTarget.GetPlatform()
+        {
+            var arch = _dataReader.GetArchitecture();
+
+            switch (arch)
+            {
+                case Architecture.Amd64:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_AMD64;
+
+                case Architecture.X86:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_X86;
+
+                case Architecture.Arm:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM;
+
+                default:
+                    throw new Exception();
+            }
+        }
+
+        uint ICorDebugDataTarget.ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
+        {
+            if (ReadVirtual(IntPtr.Zero, address, buffer, (int)bytesRequested, out int read) >= 0)
+                return (uint)read;
+
+            throw new Exception();
+        }
+
+        void ICorDebugDataTarget.GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
+        {
+            if (!_dataReader.GetThreadContext(threadId, contextFlags, contextSize, context))
+                throw new Exception();
+        }
+
         #region Delegates
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int GetMetadataDelegate(IntPtr self, string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize);
@@ -343,5 +378,4 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         #endregion
     }
-
 }
