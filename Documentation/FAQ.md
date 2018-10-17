@@ -85,9 +85,9 @@ reasons:
 2. MethodTables are per-appdomain. This means if you use a MethodTable as a type
    identifier you will have to deal with the fact that there are multiple
    `System.Foo.Bar` method tables for that type. Contrast this with
-   `GCHeapType`, which has only one instance per class in the process.
+   `ClrType`, which has only one instance per class in the process.
 3. Everything you would need to do with a MethodTable is neatly wrapped into
-   `GCHeapType`.
+   `ClrType`.
 
 ## How do I get all pinned objects in the process?
 

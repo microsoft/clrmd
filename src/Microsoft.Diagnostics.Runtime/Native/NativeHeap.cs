@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             {
                 if (!isArray && _indices.TryGetValue(canonType, out int index))
                 {
-                    _indices[eeType] = index;  // Link the original eeType to its canonical GCHeapType.
+                    _indices[eeType] = index;  // Link the original eeType to its canonical ClrType.
                     return _types[index];
                 }
 

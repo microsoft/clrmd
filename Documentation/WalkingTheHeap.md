@@ -185,7 +185,7 @@ those point to, and so on. This is what we call the `!objsize` algorithm.
 (the total size of all objects the given object keeps alive.)
 
 Given an object, you can enumerate all objects it points to using
-`GCHeapType.Enumerate` object references. We will use that function to implement
+`ClrType.Enumerate` object references. We will use that function to implement
 `objsize`:
 
     private static void ObjSize(ClrHeap heap, ulong obj, out uint count, out ulong size)
@@ -213,7 +213,7 @@ Given an object, you can enumerate all objects it points to using
             considered.Add(obj);
 
             // Grab the type. We will only get null here in the case of heap corruption.
-            GCHeapType type = heap.GetObjectType(obj);
+            ClrType type = heap.GetObjectType(obj);
             if (type == null)
                 continue;
 
