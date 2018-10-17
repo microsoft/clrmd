@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="AppDomainTests.cs" />
     <Compile Include="Debugger.cs" />
+    <Compile Include="FinalizationQueueTests.cs" />
     <Compile Include="GCHandleTests.cs" />
     <None Include="project.json" />
     <None Include="Targets\GCHandles.cs">
@@ -55,6 +56,9 @@
     <None Include="Targets\GCRoot.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Targets\FinalizationQueue.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
     <Compile Include="TypeTests.cs" />
     <Compile Include="MinidumpTests.cs" />
     <Compile Include="ModuleTests.cs" />
