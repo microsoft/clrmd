@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe sealed class SOSDac : CallableCOMWrapper
     {
@@ -440,7 +440,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private byte[] AcquireBuffer(int size)
         {
             if (_buffer == null)
-                _buffer = new byte[256];
+                _buffer = new byte[CharBufferSize];
 
             if (size > _buffer.Length)
                 return new byte[size];

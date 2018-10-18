@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Threading;
-using Microsoft.Diagnostics.Runtime.ComWrappers;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 #pragma warning disable 649
 

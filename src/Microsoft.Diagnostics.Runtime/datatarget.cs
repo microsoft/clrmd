@@ -15,7 +15,7 @@ using System.Threading;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Text.RegularExpressions;
 using System.ComponentModel;
-using Microsoft.Diagnostics.Runtime.ComWrappers;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
