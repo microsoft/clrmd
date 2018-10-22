@@ -411,7 +411,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             RegisterForRelease(data);
 
             if (data != null && data.LegacyMetaDataImport != IntPtr.Zero)
-                return new MetaDataImport(data.LegacyMetaDataImport);
+                return new MetaDataImport(DacLibrary, data.LegacyMetaDataImport);
 
             return null;
         }

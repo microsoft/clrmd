@@ -15,11 +15,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         protected IntPtr Self { get; }
         private IUnknownVTable* _unknownVTable;
+        private readonly GCHandle _library;
+
         protected void* _vtable => _unknownVTable + 1;
 
         private ReleaseDelegate _release;
 
-        internal CallableCOMWrapper(ref Guid desiredInterface, IntPtr pUnknown)
+        internal CallableCOMWrapper(DacLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             Interlocked.Increment(ref _totalInstances);
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
@@ -34,6 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
+            _library = GCHandle.Alloc(library);
         }
 
         public void Release()
@@ -42,6 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 _release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
 
             _release(Self);
+            _library.Free();
         }
 
         public IntPtr QueryInterface(ref Guid riid)

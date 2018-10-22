@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private NextDelegate _next;
         private GetContextDelegate _getContext;
 
-        public ClrStackWalk(IntPtr pUnk)
-            : base(ref IID_IXCLRDataStackWalk, pUnk)
+        public ClrStackWalk(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_IXCLRDataStackWalk, pUnk)
         {
         }
 

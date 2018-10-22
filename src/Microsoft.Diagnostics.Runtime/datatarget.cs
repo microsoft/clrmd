@@ -1176,11 +1176,10 @@ namespace Microsoft.Diagnostics.Runtime
             _dataReader.Close();
         }
     }
-
-
+    
     public class DacLibrary
     {
-        private IntPtr _library;
+        private readonly IntPtr _library;
         private SOSDac _sos;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
@@ -1211,7 +1210,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (pUnk == IntPtr.Zero)
                 throw new ArgumentException("clrDataProcess not an instance of IXCLRDataProcess");
 
-            DacPrivateInterface = new ClrDataProcess(pUnk);
+            DacPrivateInterface = new ClrDataProcess(this, pUnk);
         }
 
         internal DacLibrary(DataTargetImpl dataTarget, string dacDll)
@@ -1243,7 +1242,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);
 
 
-            DacPrivateInterface = new ClrDataProcess(iUnk);
+            DacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

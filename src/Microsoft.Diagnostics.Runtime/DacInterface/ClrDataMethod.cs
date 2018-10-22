@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
         private GetILAddressMapDelegate _getILAddressMap;
 
-        public ClrDataMethod(IntPtr pUnk)
-            : base(ref IID_IXCLRDataMethodInstance, pUnk)
+        public ClrDataMethod(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_IXCLRDataMethodInstance, pUnk)
         {
         }
         

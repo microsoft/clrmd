@@ -23,10 +23,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private EnumMethodInstanceByAddressDelegate _enum;
         private EndEnumMethodInstancesByAddressDelegate _endEnum;
 
-        public ClrDataProcess(IntPtr pUnknown)
-            : base(ref IID_IXCLRDataProcess, pUnknown)
-        {
+        private readonly DacLibrary _library;
 
+        public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
+            : base(library, ref IID_IXCLRDataProcess, pUnknown)
+        {
+            _library = library;
         }
 
         public SOSDac GetSOSDacInterface()
@@ -37,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SOSDac(result);
+                return new SOSDac(_library, result);
             }
             catch (InvalidOperationException)
             {
@@ -66,8 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr != S_OK)
                 return null;
 
-            using (ClrDataTask dataTask = new ClrDataTask(pUnkTask))
-                return dataTask.CreateStackWalk(flags);
+            using (ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask))
+                return dataTask.CreateStackWalk(_library, flags);
         }
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ulong addr)
@@ -85,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 while ((hr = _enum(Self, ref handle, out IntPtr method)) == S_OK)
-                    result.Add(new ClrDataMethod(method));
+                    result.Add(new ClrDataMethod(_library, method));
             }
             finally
             {

@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private readonly Next _next;
 
-        public SOSStackRefEnum(IntPtr pUnk)
-            : base(ref IID_ISOSStackRefEnum, pUnk)
+        public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_ISOSStackRefEnum, pUnk)
         {
             ISOSStackRefEnumVTable* vtable = (ISOSStackRefEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);

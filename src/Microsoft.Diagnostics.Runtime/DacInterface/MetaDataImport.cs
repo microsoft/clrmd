@@ -28,8 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetCustomAttributeByNameDelegate _getCustomAttributeByName;
         private int[] _tokens;
 
-        public MetaDataImport(IntPtr pUnknown)
-            : base(ref IID_IMetaDataImport, pUnknown)
+        public MetaDataImport(DacLibrary library, IntPtr pUnknown)
+            : base(library, ref IID_IMetaDataImport, pUnknown)
         {
         }
 

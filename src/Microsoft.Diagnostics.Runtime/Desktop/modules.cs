@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // This is very expensive in the minidump case, as we may be heading out to the symbol server or
             // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
             if (!runtime.DataReader.IsMinidump && data.LegacyMetaDataImport != IntPtr.Zero)
-                _metadata = new MetaDataImport(data.LegacyMetaDataImport);
+                _metadata = new MetaDataImport(runtime.DacLibrary, data.LegacyMetaDataImport);
         }
 
         internal override ulong Address

@@ -16,10 +16,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
         private static RejitData[] s_emptyRejit;
+        private readonly DacLibrary _library;
 
-        public SOSDac(IntPtr ptr)
-            : base(ref IID_ISOSDac, ptr)
+        public SOSDac(DacLibrary library, IntPtr ptr)
+            : base(library, ref IID_ISOSDac, ptr)
         {
+            _library = library;
         }
 
         const int CharBufferSize = 256;
@@ -340,7 +342,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
                 return null;
 
-            return new MetaDataImport(iunk);
+            return new MetaDataImport(_library, iunk);
         }
 
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
@@ -637,7 +639,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
 
             int hr = _getHandleEnum(Self, out IntPtr ptrEnum);
-            return hr == S_OK ? new SOSHandleEnum(ptrEnum) : null;
+            return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
         }
 
         public SOSStackRefEnum EnumerateStackRefs(uint osThreadId)
@@ -645,7 +647,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
 
             int hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
-            return hr == S_OK ? new SOSStackRefEnum(ptrEnum) : null;
+            return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
         }
 
         #region Delegates
