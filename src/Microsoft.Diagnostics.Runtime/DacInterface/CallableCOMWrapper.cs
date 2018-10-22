@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe class CallableCOMWrapper : COMHelper, IDisposable
+    public unsafe class CallableCOMWrapper : COMHelper, IDisposable
     {
         private static int _totalInstances;
 
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ReleaseDelegate _release;
 
-        public CallableCOMWrapper(ref Guid desiredInterface, IntPtr pUnknown)
+        internal CallableCOMWrapper(ref Guid desiredInterface, IntPtr pUnknown)
         {
             Interlocked.Increment(ref _totalInstances);
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;

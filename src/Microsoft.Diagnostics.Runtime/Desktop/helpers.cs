@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private List<MemoryRegion> _regions = new List<MemoryRegion>();
-        private DesktopRuntimeBase.LoaderHeapTraverse _delegate;
+        private SOSDac.LoaderHeapTraverse _delegate;
         private ClrMemoryRegionType _type;
         private ulong _appDomain;
         private DesktopRuntimeBase _runtime;
@@ -32,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public AppDomainHeapWalker(DesktopRuntimeBase runtime)
         {
             _runtime = runtime;
-            _delegate = new DesktopRuntimeBase.LoaderHeapTraverse(VisitOneHeap);
+            _delegate = new SOSDac.LoaderHeapTraverse(VisitOneHeap);
         }
 
         public IEnumerable<MemoryRegion> EnumerateHeaps(IAppDomainData appDomain)

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe sealed class MetaDataImport : CallableCOMWrapper
+    public unsafe sealed class MetaDataImport : CallableCOMWrapper
     {
         private static Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
         private IMetaDataImportVTable* VTable => (IMetaDataImportVTable*)_vtable;

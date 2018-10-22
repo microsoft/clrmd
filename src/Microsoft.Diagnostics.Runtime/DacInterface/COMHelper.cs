@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal abstract class COMHelper
+    public abstract class COMHelper
     {
         protected const int S_OK = 0;
         protected const int E_FAIL = unchecked((int)0x80004005);

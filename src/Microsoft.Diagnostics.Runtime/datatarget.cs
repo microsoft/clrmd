@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacLibrary lib = new DacLibrary(_dataTarget, clrDataProcess);
 
             // Figure out what version we are on.
-            if (lib.SOSInterface != null)
+            if (lib.SOSDacInterface != null)
             {
                 return new V45Runtime(this, _dataTarget, lib);
             }
@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
 
-                int val = lib.DacInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+                int val = lib.DacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
                 if ((uint)val == 0x80070057)
                     return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
                 else
@@ -1178,27 +1178,27 @@ namespace Microsoft.Diagnostics.Runtime
     }
 
 
-    internal class DacLibrary
+    public class DacLibrary
     {
         private IntPtr _library;
         private SOSDac _sos;
 
-        public DacDataTargetWrapper DacDataTarget { get; }
+        internal DacDataTargetWrapper DacDataTarget { get; }
 
-        public ClrDataProcess DacInterface { get; }
+        public ClrDataProcess DacPrivateInterface { get; }
 
-        public SOSDac SOSInterface
+        public SOSDac SOSDacInterface
         {
             get
             {
                 if (_sos == null)
-                    _sos = DacInterface.GetSOSDacInterface();
+                    _sos = DacPrivateInterface.GetSOSDacInterface();
 
                 return _sos;
             }
         }
 
-        public DacLibrary(DataTargetImpl dataTarget, object ix)
+        internal DacLibrary(DataTargetImpl dataTarget, object ix)
         {
             if (!(ix is IntPtr pUnk))
             {
@@ -1211,10 +1211,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (pUnk == IntPtr.Zero)
                 throw new ArgumentException("clrDataProcess not an instance of IXCLRDataProcess");
 
-            DacInterface = new ClrDataProcess(pUnk);
+            DacPrivateInterface = new ClrDataProcess(pUnk);
         }
 
-        public DacLibrary(DataTargetImpl dataTarget, string dacDll)
+        internal DacLibrary(DataTargetImpl dataTarget, string dacDll)
         {
             if (dataTarget.ClrVersions.Count == 0)
                 throw new ClrDiagnosticsException(String.Format("Process is not a CLR process!"));
@@ -1243,7 +1243,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);
 
 
-            DacInterface = new ClrDataProcess(iUnk);
+            DacPrivateInterface = new ClrDataProcess(iUnk);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

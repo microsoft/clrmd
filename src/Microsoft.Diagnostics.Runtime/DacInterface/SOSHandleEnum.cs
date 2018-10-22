@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal sealed unsafe class SOSHandleEnum : CallableCOMWrapper
+    public sealed unsafe class SOSHandleEnum : CallableCOMWrapper
     {
         private static Guid IID_ISOSHandleEnum = new Guid("3E269830-4A2B-4301-8EE2-D6805B29B2FA");
 

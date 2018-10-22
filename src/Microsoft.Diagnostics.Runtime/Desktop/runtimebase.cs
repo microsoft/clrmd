@@ -844,8 +844,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
         internal abstract uint GetExceptionHROffset();
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
         internal abstract ulong[] GetAppDomainList(int count);
         internal abstract ulong[] GetAssemblyList(ulong appDomain, int count);
         internal abstract ulong[] GetModuleList(ulong assembly, int count);
@@ -857,8 +855,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IModuleData GetModuleData(ulong addr);
         internal abstract IAppDomainData GetAppDomainData(ulong addr);
         internal abstract string GetAppDomaminName(ulong addr);
-        internal abstract bool TraverseHeap(ulong heap, LoaderHeapTraverse callback);
-        internal abstract bool TraverseStubHeap(ulong appDomain, int type, LoaderHeapTraverse callback);
+        internal abstract bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback);
+        internal abstract bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback);
         internal abstract IEnumerable<ICodeHeap> EnumerateJitHeaps();
         internal abstract ulong GetModuleForMT(ulong mt);
         internal abstract IFieldInfo GetFieldInfo(ulong mt);
@@ -1200,12 +1198,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
     #region Data Interfaces
-    internal enum CodeHeapType
-    {
-        Loader,
-        Host,
-        Unknown
-    }
 
     internal interface ICodeHeap
     {
@@ -1455,24 +1447,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         uint TotalCount { get; }
     }
 
-    // This is consistent across all dac versions.  No need for interface.
-    internal struct CommonMethodTables
-    {
-        public ulong ArrayMethodTable;
-        public ulong StringMethodTable;
-        public ulong ObjectMethodTable;
-        public ulong ExceptionMethodTable;
-        public ulong FreeMethodTable;
-
-        public bool Validate()
-        {
-            return ArrayMethodTable != 0 &&
-                StringMethodTable != 0 &&
-                ObjectMethodTable != 0 &&
-                ExceptionMethodTable != 0 &&
-                FreeMethodTable != 0;
-        }
-    };
 
 
     internal interface IRWLockData
