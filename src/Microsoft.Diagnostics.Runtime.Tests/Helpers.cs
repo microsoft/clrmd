@@ -1,6 +1,6 @@
 ﻿
 using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
@@ -97,11 +97,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         #endregion
     }
 
-    [TestClass]
+    
     public class GlobalCleanup
     {
-
-        [AssemblyCleanup]
         public static void AssemblyCleanup()
         {
             GC.Collect();

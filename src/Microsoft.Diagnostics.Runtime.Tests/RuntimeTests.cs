@@ -1,35 +1,27 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Xunit;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class RuntimeTests
     {
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Fact]
         public void CreationSpecificDacNegativeTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
                 string badDac = dt.SymbolLocator.FindBinary(SymbolLocatorTests.WellKnownDac, SymbolLocatorTests.WellKnownDacTimeStamp, SymbolLocatorTests.WellKnownDacImageSize, false);
 
-                Assert.IsNotNull(badDac);
+                Assert.NotNull(badDac);
                 
-                dt.ClrVersions.Single().CreateRuntime(badDac);
-
-                if (dt.ClrVersions.Single().DacInfo.FileName.Equals(SymbolLocatorTests.WellKnownDac, StringComparison.OrdinalIgnoreCase))
-                    Assert.Inconclusive();
-
+                Assert.Throws<InvalidOperationException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void CreationSpecificDac()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
@@ -37,15 +29,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrInfo info = dt.ClrVersions.Single();
                 string dac = info.LocalMatchingDac;
 
-                Assert.IsNotNull(dac);
+                Assert.NotNull(dac);
 
                 ClrRuntime runtime = info.CreateRuntime(dac);
-                Assert.IsNotNull(runtime);
+                Assert.NotNull(runtime);
             }
         }
 
 
-        [TestMethod]
+        [Fact]
         public void RuntimeClrInfo()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
@@ -53,11 +45,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrInfo info = dt.ClrVersions.Single();
                 ClrRuntime runtime = info.CreateRuntime();
 
-                Assert.AreEqual(info, runtime.ClrInfo);
+                Assert.Equal(info, runtime.ClrInfo);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void ModuleEnumerationTest()
         {
             // This test ensures that we enumerate all modules in the process exactly once.
@@ -71,8 +63,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 foreach (ClrModule module in runtime.Modules)
                 {
-                    Assert.IsTrue(expected.Contains(Path.GetFileName(module.FileName)));
-                    Assert.IsFalse(modules.Contains(module));
+                    Assert.Contains(Path.GetFileName(module.FileName), expected);
+                    Assert.DoesNotContain(module, modules);
                     modules.Add(module);
                 }
             }

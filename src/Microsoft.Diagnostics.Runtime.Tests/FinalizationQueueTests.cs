@@ -1,12 +1,11 @@
 ﻿using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class FinalizationQueueTests
     {
-        [TestMethod]
+        [Fact]
         public void TestAllFinalizableObjects()
         {
             using (var dt = TestTargets.FinalizationQueue.LoadFullDump())
@@ -17,15 +16,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 foreach (var address in runtime.Heap.EnumerateFinalizableObjectAddresses())
                 {
                     var type = runtime.Heap.GetObjectType(address);
-                    if (type.Name == typeof(DieFastA).FullName)
+                    if (type.Name == "DieFastA")
                         targetObjectsCount++;
                 }
         
-                Assert.AreEqual(FinalizationQueueTarget.ObjectsCountA, targetObjectsCount);
+                Assert.Equal(42, targetObjectsCount);
             }
         }
         
-        [TestMethod]
+        [Fact]
         public void TestFinalizerQueueObjects()
         {
             using (var dt = TestTargets.FinalizationQueue.LoadFullDump())
@@ -36,11 +35,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 foreach (var address in runtime.EnumerateFinalizerQueueObjectAddresses())
                 {
                     var type = runtime.Heap.GetObjectType(address);
-                    if (type.Name == typeof(DieFastB).FullName)
+                    if (type.Name == "DieFastB")
                         targetObjectsCount++;
                 }
         
-                Assert.AreEqual(FinalizationQueueTarget.ObjectsCountB, targetObjectsCount);
+                Assert.Equal(13, targetObjectsCount);
             }
         }
     }

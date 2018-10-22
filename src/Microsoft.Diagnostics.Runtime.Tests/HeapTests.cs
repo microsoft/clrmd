@@ -1,17 +1,13 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using Xunit;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class HeapTests
     {
-        [TestMethod]
+        [Fact]
         public void HeapEnumeration()
         {
             // Simply test that we can enumerate the heap.
@@ -25,19 +21,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 foreach (ulong obj in heap.EnumerateObjectAddresses())
                 {
                     ClrType type = heap.GetObjectType(obj);
-                    Assert.IsNotNull(type);
+                    Assert.NotNull(type);
                     if (type.Name == "Foo")
                         encounteredFoo = true;
 
                     count++;
                 }
 
-                Assert.IsTrue(encounteredFoo);
-                Assert.IsTrue(count > 0);
+                Assert.True(encounteredFoo);
+                Assert.True(count > 0);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void HeapEnumerationMatches()
         {
             // Simply test that we can enumerate the heap.
@@ -53,17 +49,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     ClrObject actual = objects[count++];
 
-                    Assert.AreEqual(obj, actual.Address);
+                    Assert.Equal(obj, actual.Address);
 
                     ClrType type = heap.GetObjectType(obj);
-                    Assert.AreEqual(type, actual.Type);
+                    Assert.Equal(type, actual.Type);
                 }
 
-                Assert.IsTrue(count > 0);
+                Assert.True(count > 0);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void HeapCachedEnumerationMatches()
         {
             // Simply test that we can enumerate the heap.
@@ -75,24 +71,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 List<ClrObject> expectedList = new List<ClrObject>(heap.EnumerateObjects());
 
                 heap.CacheHeap(CancellationToken.None);
-                Assert.IsTrue(heap.IsHeapCached);
+                Assert.True(heap.IsHeapCached);
                 List<ClrObject> actualList = new List<ClrObject>(heap.EnumerateObjects());
 
-                Assert.IsTrue(actualList.Count > 0);
-                Assert.AreEqual(expectedList.Count, actualList.Count);
+                Assert.True(actualList.Count > 0);
+                Assert.Equal(expectedList.Count, actualList.Count);
 
                 for (int i = 0; i < actualList.Count; i++)
                 {
                     ClrObject expected = expectedList[i];
                     ClrObject actual = actualList[i];
 
-                    Assert.IsTrue(expected == actual);
-                    Assert.AreEqual(expected, actual);
+                    Assert.True(expected == actual);
+                    Assert.Equal(expected, actual);
                 }
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void ServerSegmentTests()
         {
             using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server))
@@ -100,13 +96,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.Heap;
 
-                Assert.IsTrue(runtime.ServerGC);
+                Assert.True(runtime.ServerGC);
                 
                 CheckSegments(heap);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void WorkstationSegmentTests()
         {
             using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation))
@@ -114,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.Heap;
 
-                Assert.IsFalse(runtime.ServerGC);
+                Assert.False(runtime.ServerGC);
 
                 CheckSegments(heap);
             }
@@ -124,23 +120,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             foreach (ClrSegment seg in heap.Segments)
             {
-                Assert.AreNotEqual(0ul, seg.Start);
-                Assert.AreNotEqual(0ul, seg.End);
-                Assert.IsTrue(seg.Start <= seg.End);
+                Assert.NotEqual(0ul, seg.Start);
+                Assert.NotEqual(0ul, seg.End);
+                Assert.True(seg.Start <= seg.End);
 
-                Assert.IsTrue(seg.Start < seg.CommittedEnd);
-                Assert.IsTrue(seg.CommittedEnd < seg.ReservedEnd);
+                Assert.True(seg.Start < seg.CommittedEnd);
+                Assert.True(seg.CommittedEnd < seg.ReservedEnd);
 
                 if (!seg.IsEphemeral)
                 {
-                    Assert.AreEqual(0ul, seg.Gen0Length);
-                    Assert.AreEqual(0ul, seg.Gen1Length);
+                    Assert.Equal(0ul, seg.Gen0Length);
+                    Assert.Equal(0ul, seg.Gen1Length);
                 }
 
                 foreach (ulong obj in seg.EnumerateObjectAddresses())
                 {
                     ClrSegment curr = heap.GetSegmentByAddress(obj);
-                    Assert.AreSame(seg, curr);
+                    Assert.Same(seg, curr);
                 }
             }
         }

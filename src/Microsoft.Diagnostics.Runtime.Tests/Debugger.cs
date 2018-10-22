@@ -1,5 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.Interop;
+﻿using Microsoft.Diagnostics.Runtime.Interop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         #region Private Helpers
-        [DllImport("dbgeng.dll")]
+        [DllImport(@"c:\debug64\dbgeng.dll")]
         static extern int DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
 
         static IDebugClient5 CreateIDebugClient()

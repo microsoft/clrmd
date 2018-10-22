@@ -1,16 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
+﻿using Xunit;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class MethodTests
     {
-        [TestMethod]
+        [Fact]
         public void MethodHandleMultiDomainTests()
         {
             ulong[] methodDescs;
@@ -23,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrMethod method = type.GetMethod("Bar");
                 methodDescs = method.EnumerateMethodDescs().ToArray();
 
-                Assert.AreEqual(2, methodDescs.Length);
+                Assert.Equal(2, methodDescs.Length);
             }
 
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
@@ -31,9 +26,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDescs[0]);
 
-                Assert.IsNotNull(method);
-                Assert.AreEqual("Bar", method.Name);
-                Assert.AreEqual("Foo", method.Type.Name);
+                Assert.NotNull(method);
+                Assert.Equal("Bar", method.Name);
+                Assert.Equal("Foo", method.Type.Name);
             }
 
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
@@ -41,13 +36,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDescs[1]);
 
-                Assert.IsNotNull(method);
-                Assert.AreEqual("Bar", method.Name);
-                Assert.AreEqual("Foo", method.Type.Name);
+                Assert.NotNull(method);
+                Assert.Equal("Bar", method.Name);
+                Assert.Equal("Foo", method.Type.Name);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void MethodHandleSingleDomainTests()
         {
             ulong methodDesc;
@@ -60,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrMethod method = type.GetMethod("Bar");
                 methodDesc = method.EnumerateMethodDescs().Single();
 
-                Assert.AreNotEqual(0ul, methodDesc);
+                Assert.NotEqual(0ul, methodDesc);
             }
 
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
@@ -68,9 +63,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDesc);
 
-                Assert.IsNotNull(method);
-                Assert.AreEqual("Bar", method.Name);
-                Assert.AreEqual("Foo", method.Type.Name);
+                Assert.NotNull(method);
+                Assert.Equal("Bar", method.Name);
+                Assert.Equal("Foo", method.Type.Name);
             }
 
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
@@ -81,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
-                Assert.AreEqual(methodDesc, method.EnumerateMethodDescs().Single());
+                Assert.Equal(methodDesc, method.EnumerateMethodDescs().Single());
             }
         }
 
@@ -89,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// This test tests a patch in v45runtime.GetNameForMD(ulong md) that
         /// corrects an error from sos
         /// </summary>
-        [TestMethod]
+        [Fact]
         public void CompleteSignatureIsRetrievedForMethodsWithGenericParameters()
         {
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
@@ -103,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 string methodName = genericMethod.GetFullSignature();
 
-                Assert.AreEqual(')', methodName.Last());
+                Assert.Equal(')', methodName.Last());
             }
         }
 	}

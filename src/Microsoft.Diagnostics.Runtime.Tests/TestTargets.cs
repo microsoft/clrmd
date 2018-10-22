@@ -1,13 +1,7 @@
-﻿using Microsoft.CSharp;
-using Microsoft.Diagnostics.Runtime.Interop;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.Diagnostics.Runtime.Interop;
+using Xunit;
 using System;
-using System.CodeDom.Compiler;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -130,33 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static string CompileCSharp(string source, string destination, bool isLibrary)
         {
-            CSharpCodeProvider provider = new CSharpCodeProvider();
-            CompilerParameters cp = new CompilerParameters();
-            cp.ReferencedAssemblies.Add("system.dll");
-            
-            if (isLibrary)
-            {
-                cp.GenerateExecutable = false;
-            }
-            else
-            {
-                cp.GenerateExecutable = true;
-                cp.ReferencedAssemblies.Add(_sharedLibrary.Executable);
-            }
-
-            cp.GenerateInMemory = false;
-            cp.CompilerOptions = "/unsafe " + (IntPtr.Size == 4 ? "/platform:x86" : "/platform:x64");
-
-            cp.IncludeDebugInformation = true;
-            cp.OutputAssembly = destination;
-            CompilerResults cr = provider.CompileAssemblyFromFile(cp, source);
-
-            if (cr.Errors.Count > 0 && System.Diagnostics.Debugger.IsAttached)
-                System.Diagnostics.Debugger.Break();
-
-            Assert.AreEqual(0, cr.Errors.Count);
-
-            return cr.PathToAssembly;
+            return null;
         }
 
         private void WriteCrashDumps(GCMode gc)
@@ -183,8 +151,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     status = dbg.ProcessEvents(0xffffffff);
                 } while (status != DEBUG_STATUS.NO_DEBUGGEE);
 
-                Assert.IsNotNull(_miniDumpPath[(int)gc]);
-                Assert.IsNotNull(_fullDumpPath[(int)gc]);
+                Assert.NotNull(_miniDumpPath[(int)gc]);
+                Assert.NotNull(_fullDumpPath[(int)gc]);
             }
         }
 
