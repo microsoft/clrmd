@@ -598,39 +598,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong BackgroundSavedLowestAddress;
         public readonly ulong BackgroundSavedHighestAddress;
 
-        public readonly GenerationData GenerationTable0;
-        public readonly GenerationData GenerationTable1;
-        public readonly GenerationData GenerationTable2;
-        public readonly GenerationData GenerationTable3;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+        public readonly GenerationData[] GenerationTable;
         public readonly ulong EphemeralHeapSegment;
-        public readonly ulong FinalizationFillPointers0;
-        public readonly ulong FinalizationFillPointers1;
-        public readonly ulong FinalizationFillPointers2;
-        public readonly ulong FinalizationFillPointers3;
-        public readonly ulong FinalizationFillPointers4;
-        public readonly ulong FinalizationFillPointers5;
-        public readonly ulong FinalizationFillPointers6;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
+        public readonly ulong[] FinalizationFillPointers;
         public readonly ulong LowestAddress;
         public readonly ulong HighestAddress;
         public readonly ulong CardTable;
 
-        ulong IHeapDetails.FirstHeapSegment => GenerationTable2.StartSegment;
+        ulong IHeapDetails.FirstHeapSegment => GenerationTable[2].StartSegment;
 
-        ulong IHeapDetails.FirstLargeHeapSegment => GenerationTable3.StartSegment;
+        ulong IHeapDetails.FirstLargeHeapSegment => GenerationTable[3].StartSegment;
         ulong IHeapDetails.EphemeralSegment => EphemeralHeapSegment;
         ulong IHeapDetails.EphemeralEnd => Allocated;
-        ulong IHeapDetails.EphemeralAllocContextPtr => GenerationTable0.AllocationContextPointer;
-        ulong IHeapDetails.EphemeralAllocContextLimit => GenerationTable0.AllocationContextLimit;
-        ulong IHeapDetails.FQAllObjectsStart => FinalizationFillPointers0;
-        ulong IHeapDetails.FQAllObjectsStop => FinalizationFillPointers3;
-        ulong IHeapDetails.FQRootsStart => FinalizationFillPointers3;
-        ulong IHeapDetails.FQRootsStop => FinalizationFillPointers5;
-        ulong IHeapDetails.Gen0Start => GenerationTable0.AllocationStart;
+        ulong IHeapDetails.EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
+        ulong IHeapDetails.EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
+        ulong IHeapDetails.FQAllObjectsStart => FinalizationFillPointers[0];
+        ulong IHeapDetails.FQAllObjectsStop => FinalizationFillPointers[3];
+        ulong IHeapDetails.FQRootsStart => FinalizationFillPointers[3];
+        ulong IHeapDetails.FQRootsStop => FinalizationFillPointers[5];
+        ulong IHeapDetails.Gen0Start => GenerationTable[0].AllocationStart;
         ulong IHeapDetails.Gen0Stop => Allocated;
-        ulong IHeapDetails.Gen1Start => GenerationTable1.AllocationStart;
-        ulong IHeapDetails.Gen1Stop => GenerationTable0.AllocationStart;
-        ulong IHeapDetails.Gen2Start => GenerationTable2.AllocationStart;
-        ulong IHeapDetails.Gen2Stop => GenerationTable1.AllocationStart;
+        ulong IHeapDetails.Gen1Start => GenerationTable[1].AllocationStart;
+        ulong IHeapDetails.Gen1Stop => GenerationTable[0].AllocationStart;
+        ulong IHeapDetails.Gen2Start => GenerationTable[2].AllocationStart;
+        ulong IHeapDetails.Gen2Stop => GenerationTable[1].AllocationStart;
     }
 
     public enum CodeHeapType : int
