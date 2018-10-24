@@ -120,8 +120,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 ;
 
             string name = Encoding.ASCII.GetString(_sectionNameTable, idx, len);
-
-            Console.WriteLine($"{idx:x}\t{name}");
             _sectionNames[section] = name;
 
             return _sectionNames[section];
