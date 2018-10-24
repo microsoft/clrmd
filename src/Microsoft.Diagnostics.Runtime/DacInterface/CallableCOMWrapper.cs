@@ -29,7 +29,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
             int hr = queryInterface(pUnknown, ref desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
+            {
+                GC.SuppressFinalize(this);
                 throw new InvalidOperationException();
+            }
 
             var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
             release(pUnknown);
