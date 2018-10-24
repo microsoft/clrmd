@@ -66,9 +66,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadInt16(out short value)
         {
-            value = (short)((_buffer[_offset + 0] & 0xFF) |
-                                    (_buffer[_offset + 1] << 8));
-            _offset += 2;
+            unchecked
+            {
+                value = (short)((_buffer[_offset + 0] & 0xFF) |
+                                        (_buffer[_offset + 1] << 8));
+                _offset += 2;
+            }
         }
 
         internal void ReadInt8(out sbyte value)
@@ -79,16 +82,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadInt32(out int value)
         {
-            value = (int)((_buffer[_offset + 0] & 0xFF) |
+            unchecked
+            {
+                value = (int)((_buffer[_offset + 0] & 0xFF) |
                                 (_buffer[_offset + 1] << 8) |
                                 (_buffer[_offset + 2] << 16) |
                                 (_buffer[_offset + 3] << 24));
+            }
             _offset += 4;
         }
 
         internal void ReadInt64(out long value)
         {
-            value = (long)(((ulong)_buffer[_offset + 0] & 0xFF) |
+
+            unchecked
+            {
+                value = (long)(((ulong)_buffer[_offset + 0] & 0xFF) |
                                     ((ulong)_buffer[_offset + 1] << 8) |
                                     ((ulong)_buffer[_offset + 2] << 16) |
                                     ((ulong)_buffer[_offset + 3] << 24) |
@@ -96,42 +105,57 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                                     ((ulong)_buffer[_offset + 5] << 40) |
                                     ((ulong)_buffer[_offset + 6] << 48) |
                                     ((ulong)_buffer[_offset + 7] << 56));
+            }
             _offset += 8;
         }
 
         internal void ReadUInt16(out ushort value)
         {
-            value = (ushort)((_buffer[_offset + 0] & 0xFF) |
+            unchecked
+            {
+                value = (ushort)((_buffer[_offset + 0] & 0xFF) |
                                     (_buffer[_offset + 1] << 8));
+            }
+
             _offset += 2;
         }
 
         internal void ReadUInt8(out byte value)
         {
-            value = (byte)((_buffer[_offset + 0] & 0xFF));
+            unchecked
+            {
+                value = (byte)((_buffer[_offset + 0] & 0xFF));
+            }
+
             _offset += 1;
         }
 
         internal void ReadUInt32(out uint value)
         {
-            value = (uint)((_buffer[_offset + 0] & 0xFF) |
-                                    (_buffer[_offset + 1] << 8) |
-                                    (_buffer[_offset + 2] << 16) |
-                                    (_buffer[_offset + 3] << 24));
-            _offset += 4;
+            unchecked
+            {
+                value = (uint)((_buffer[_offset + 0] & 0xFF) |
+                                        (_buffer[_offset + 1] << 8) |
+                                        (_buffer[_offset + 2] << 16) |
+                                        (_buffer[_offset + 3] << 24));
+                _offset += 4;
+            }
         }
 
         internal void ReadUInt64(out ulong value)
         {
-            value = (ulong)(((ulong)_buffer[_offset + 0] & 0xFF) |
-                                    ((ulong)_buffer[_offset + 1] << 8) |
-                                    ((ulong)_buffer[_offset + 2] << 16) |
-                                    ((ulong)_buffer[_offset + 3] << 24) |
-                                    ((ulong)_buffer[_offset + 4] << 32) |
-                                    ((ulong)_buffer[_offset + 5] << 40) |
-                                    ((ulong)_buffer[_offset + 6] << 48) |
-                                    ((ulong)_buffer[_offset + 7] << 56));
-            _offset += 8;
+            unchecked
+            {
+                value = (ulong)(((ulong)_buffer[_offset + 0] & 0xFF) |
+                                        ((ulong)_buffer[_offset + 1] << 8) |
+                                        ((ulong)_buffer[_offset + 2] << 16) |
+                                        ((ulong)_buffer[_offset + 3] << 24) |
+                                        ((ulong)_buffer[_offset + 4] << 32) |
+                                        ((ulong)_buffer[_offset + 5] << 40) |
+                                        ((ulong)_buffer[_offset + 6] << 48) |
+                                        ((ulong)_buffer[_offset + 7] << 56));
+                _offset += 8;
+            }
         }
 
         internal void ReadInt32(int[] values)

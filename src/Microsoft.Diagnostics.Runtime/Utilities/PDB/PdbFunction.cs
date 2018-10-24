@@ -300,8 +300,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                                         byte count;
                                         bits.ReadUInt8(out count);
                                         bits.Align(4);
-                                        while (count-- > 0)
-                                            this.ReadCustomMetadata(bits);
+                                        unchecked
+                                        {
+                                            while (count-- > 0)
+                                                this.ReadCustomMetadata(bits);
+                                        }
                                     }
                                 }
                                 bits.Position = stop;

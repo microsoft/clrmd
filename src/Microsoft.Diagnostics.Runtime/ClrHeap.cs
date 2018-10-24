@@ -984,15 +984,18 @@ namespace Microsoft.Diagnostics.Runtime
                 int curIdx = _lastSegmentIdx;
                 for (;;)
                 {
-                    var segment = _segments[curIdx];
-                    var offsetInSegment = (long)(objRef - segment.Start);
-                    if (0 <= offsetInSegment)
+                    ClrSegment segment = _segments[curIdx];
+                    unchecked
                     {
-                        var intOffsetInSegment = (long)offsetInSegment;
-                        if (intOffsetInSegment < (long)segment.Length)
+                        long offsetInSegment = (long)(objRef - segment.Start);
+                        if (0 <= offsetInSegment)
                         {
-                            _lastSegmentIdx = curIdx;
-                            return segment;
+                            var intOffsetInSegment = (long)offsetInSegment;
+                            if (intOffsetInSegment < (long)segment.Length)
+                            {
+                                _lastSegmentIdx = curIdx;
+                                return segment;
+                            }
                         }
                     }
 
