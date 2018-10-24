@@ -342,7 +342,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
                 return null;
 
-            return new MetaDataImport(_library, iunk);
+            try
+            {
+                return new MetaDataImport(_library, iunk);
+            }
+            catch (InvalidOperationException)
+            {
+                // QueryInterface on MetaDataImport seems to fail when we don't have full
+                // metadata available.
+                return null;
+            }
         }
 
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)

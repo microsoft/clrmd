@@ -26,12 +26,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (handles == null)
                 throw new ArgumentNullException(nameof(handles));
 
-            int hr = _next(handles.Length, handles, out int read);
+            int hr = _next(Self, handles.Length, handles, out int read);
             return hr >= S_OK ? read : 0;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int Next(int count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] stackRefs, out int pNeeded);
+        delegate int Next(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] stackRefs, out int pNeeded);
     }
 
 
