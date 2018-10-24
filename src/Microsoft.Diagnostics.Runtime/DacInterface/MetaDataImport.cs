@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe sealed class MetaDataImport : CallableCOMWrapper
+    public unsafe sealed class MetaDataImport : CallableCOMWrapper
     {
         private static Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
         private IMetaDataImportVTable* VTable => (IMetaDataImportVTable*)_vtable;
@@ -28,8 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private GetCustomAttributeByNameDelegate _getCustomAttributeByName;
         private int[] _tokens;
 
-        public MetaDataImport(IntPtr pUnknown)
-            : base(ref IID_IMetaDataImport, pUnknown)
+        public MetaDataImport(DacLibrary library, IntPtr pUnknown)
+            : base(library, ref IID_IMetaDataImport, pUnknown)
         {
         }
 

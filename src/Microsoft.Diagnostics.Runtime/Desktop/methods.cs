@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.ComWrappers;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,8 +21,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (mdData == null)
                 return null;
+            
+            MethodAttributes attrs = new MethodAttributes();
+            if (metadata != null)
+                attrs = metadata.GetMethodAttributes((int)mdData.MDToken);
 
-            MethodAttributes attrs = metadata.GetMethodAttributes((int)mdData.MDToken);
             return new DesktopMethod(runtime, mdData.MethodDesc, mdData, attrs);
         }
         

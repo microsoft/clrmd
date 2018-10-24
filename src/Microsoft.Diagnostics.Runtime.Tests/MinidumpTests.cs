@@ -1,9 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Xunit;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -14,10 +11,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public string MethodName { get; set; }
     }
 
-    [TestClass]
+    
     public class MinidumpTests
     {
-        [TestMethod]
+        [Fact]
         public void MinidumpCallstackTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
@@ -35,24 +32,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     if (frame.Kind == ClrStackFrameType.Runtime)
                     {
-                        Assert.AreEqual(0ul, frame.InstructionPointer);
-                        Assert.AreNotEqual(0ul, frame.StackPointer);
+                        Assert.Equal(0ul, frame.InstructionPointer);
+                        Assert.NotEqual(0ul, frame.StackPointer);
                     }
                     else
                     {
-                        Assert.AreNotEqual(0ul, frame.InstructionPointer);
-                        Assert.AreNotEqual(0ul, frame.StackPointer);
-                        Assert.IsNotNull(frame.Method);
-                        Assert.IsNotNull(frame.Method.Type);
-                        Assert.IsNotNull(frame.Method.Type.Module);
-                        Assert.AreEqual(frames[i++], frame.Method.Name);
+                        Assert.NotEqual(0ul, frame.InstructionPointer);
+                        Assert.NotEqual(0ul, frame.StackPointer);
+                        Assert.NotNull(frame.Method);
+                        Assert.NotNull(frame.Method.Type);
+                        Assert.NotNull(frame.Method.Type.Module);
+                        Assert.Equal(frames[i++], frame.Method.Name);
                     }
                 }
             }
         }
 
 
-        [TestMethod]
+        [Fact]
         public void MinidumpExceptionPropertiesTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())

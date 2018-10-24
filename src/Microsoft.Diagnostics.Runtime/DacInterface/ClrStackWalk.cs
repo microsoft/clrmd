@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe internal sealed class ClrStackWalk : CallableCOMWrapper
+    public unsafe sealed class ClrStackWalk : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private NextDelegate _next;
         private GetContextDelegate _getContext;
 
-        public ClrStackWalk(IntPtr pUnk)
-            : base(ref IID_IXCLRDataStackWalk, pUnk)
+        public ClrStackWalk(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_IXCLRDataStackWalk, pUnk)
         {
         }
 

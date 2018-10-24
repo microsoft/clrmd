@@ -5,17 +5,17 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal sealed unsafe class ClrDataMethod : CallableCOMWrapper
+    public sealed unsafe class ClrDataMethod : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
         private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
         private GetILAddressMapDelegate _getILAddressMap;
 
-        public ClrDataMethod(IntPtr pUnk)
-            : base(ref IID_IXCLRDataMethodInstance, pUnk)
+        public ClrDataMethod(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_IXCLRDataMethodInstance, pUnk)
         {
         }
         

@@ -1,17 +1,13 @@
-﻿
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System;
+using Xunit;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System.IO;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class SymbolLocatorTests
     {
         static public readonly string WellKnownDac = "mscordacwks_X86_X86_4.6.96.00.dll";
@@ -28,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
         
 
-        [TestMethod]
+        [Fact]
         public void SymbolLocatorTimeoutTest()
         {
             var locator = GetLocator();
@@ -36,25 +32,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             locator.SymbolCache += "\\TestTimeout";
 
             string pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
-            Assert.IsNotNull(pdb);
+            Assert.NotNull(pdb);
         }
 
-        [TestMethod]
+        [Fact]
         public void FindBinaryNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
             string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
-            Assert.IsNull(dac);
+            Assert.Null(dac);
         }
 
-        [TestMethod]
+        [Fact]
         public void FindPdbNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
             string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1);
-            Assert.IsNull(pdb);
+            Assert.Null(pdb);
         }
-        [TestMethod]
+        [Fact]
         public async Task FindBinaryAsyncNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
@@ -67,11 +63,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (var task in tasks)
             {
                 string dac = await task;
-                Assert.IsNull(dac);
+                Assert.Null(dac);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public async Task FindPdbAsyncNegativeTest()
         {
             SymbolLocator _locator = GetLocator();
@@ -84,28 +80,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (var task in tasks)
             {
                 string pdb = await task;
-                Assert.IsNull(pdb);
+                Assert.Null(pdb);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void FindBinaryTest()
         {
             SymbolLocator _locator = GetLocator();
             string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
-            Assert.IsNotNull(dac);
-            Assert.IsTrue(File.Exists(dac));
+            Assert.NotNull(dac);
+            Assert.True(File.Exists(dac));
         }
 
-        [TestMethod]
+        [Fact]
         public void FindPdbTest()
         {
             SymbolLocator _locator = GetLocator();
             string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
-            Assert.IsNotNull(pdb);
-            Assert.IsTrue(File.Exists(pdb));
+            Assert.NotNull(pdb);
+            Assert.True(File.Exists(pdb));
 
-            Assert.IsTrue(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
+            Assert.True(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
         }
 
         static bool PdbMatches(string pdb, Guid guid, int age)
@@ -115,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return guid == fileGuid;
         }
 
-        [TestMethod]
+        [Fact]
         public async Task FindBinaryAsyncTest()
         {
             SymbolLocator _locator = GetLocator();
@@ -127,20 +123,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             string dac = await first;
 
-            Assert.IsNotNull(dac);
-            Assert.IsTrue(File.Exists(dac));
+            Assert.NotNull(dac);
+            Assert.True(File.Exists(dac));
             new PEFile(dac).Dispose();  // This will throw if the image is invalid.
 
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)
             {
                 string taskDac = await task;
-                Assert.AreEqual(dac, taskDac);
+                Assert.Equal(dac, taskDac);
             }
         }
 
 
-        [TestMethod]
+        [Fact]
         public async Task FindPdbAsyncTest()
         {
             SymbolLocator _locator = GetLocator();
@@ -152,15 +148,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             string pdb = await first;
             
-            Assert.IsNotNull(pdb);
-            Assert.IsTrue(File.Exists(pdb));
-            Assert.IsTrue(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
+            Assert.NotNull(pdb);
+            Assert.True(File.Exists(pdb));
+            Assert.True(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
 
             // Ensure we got the same answer for everything.
             foreach (var task in tasks)
             {
                 string taskPdb = await task;
-                Assert.AreEqual(taskPdb, pdb);
+                Assert.Equal(taskPdb, pdb);
             }
         }
     }

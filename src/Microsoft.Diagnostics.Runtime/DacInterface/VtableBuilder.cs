@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     unsafe class VtableBuilder
     {

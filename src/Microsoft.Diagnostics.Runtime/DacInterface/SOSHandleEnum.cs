@@ -6,16 +6,16 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal sealed unsafe class SOSHandleEnum : CallableCOMWrapper
+    public sealed unsafe class SOSHandleEnum : CallableCOMWrapper
     {
         private static Guid IID_ISOSHandleEnum = new Guid("3E269830-4A2B-4301-8EE2-D6805B29B2FA");
 
         private readonly Next _next;
 
-        public SOSHandleEnum(IntPtr pUnk)
-            : base(ref IID_ISOSHandleEnum, pUnk)
+        public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_ISOSHandleEnum, pUnk)
         {
             ISOSHandleEnumVTable* vtable = (ISOSHandleEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);
@@ -26,12 +26,12 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             if (handles == null)
                 throw new ArgumentNullException(nameof(handles));
 
-            int hr = _next(handles.Length, handles, out int read);
+            int hr = _next(Self, handles.Length, handles, out int read);
             return hr >= S_OK ? read : 0;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int Next(int count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] stackRefs, out int pNeeded);
+        delegate int Next(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] stackRefs, out int pNeeded);
     }
 
 

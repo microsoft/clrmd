@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
@@ -45,14 +46,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             if (_sos == null)
             {
-                var dac = _library.DacInterface;
+                var dac = DacLibrary.DacPrivateInterface;
                 if (!(dac is ISOSNative))
                     throw new ClrDiagnosticsException("This version of mrt100 is too old.", ClrDiagnosticsException.HR.DataRequestError);
 
                 _sos = (ISOSNative)dac;
             }
 
-            _sosNativeSerializedExceptionSupport = _library.DacInterface as ISOSNativeSerializedExceptionSupport;
+            _sosNativeSerializedExceptionSupport = DacLibrary.DacPrivateInterface as ISOSNativeSerializedExceptionSupport;
         }
 
         public override ClrHeap Heap => _heap.Value;
@@ -447,7 +448,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         internal override IGCInfo GetGCInfo()
         {
-            if (_sos.GetGCHeapData(out LegacyGCInfo info) < 0)
+            if (_sos.GetGCHeapData(out GCInfo info) < 0)
                 return null;
 
             return info;

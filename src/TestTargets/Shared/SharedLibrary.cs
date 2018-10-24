@@ -1,5 +1,7 @@
 ﻿using System;
 
+#pragma warning disable 0414
+
 public class Foo
 {
     int i = 42;

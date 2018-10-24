@@ -291,11 +291,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     using (FileStream fs = File.OpenRead(fullPath))
                     {
-                        Console.WriteLine(Path.GetExtension(fullPath));
-
                         if (Path.GetExtension(fullPath) == ".so")
                         {
-                            Console.WriteLine($"Validate binary not yet implemented for .so!");
+                            Debug.WriteLine($"Validate binary not yet implemented for .so!");
                             Debugger.Break();
                             return true;
                         }

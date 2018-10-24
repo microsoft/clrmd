@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     unsafe class DacDataTargetWrapper : COMCallableIUnknown, ICorDebugDataTarget
     {
@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         #region Delegates
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetMetadataDelegate(IntPtr self, string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize);
+        delegate int GetMetadataDelegate(IntPtr self, [In, MarshalAs(UnmanagedType.LPWStr)] string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);

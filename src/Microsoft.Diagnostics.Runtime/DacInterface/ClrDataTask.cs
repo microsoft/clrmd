@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     unsafe class ClrDataTask : CallableCOMWrapper
     {
@@ -13,19 +13,19 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         private ClrDataTaskVTable* VTable => (ClrDataTaskVTable*)_vtable;
 
-        public ClrDataTask(IntPtr pUnk)
-            : base(ref IID_IXCLRDataTask, pUnk)
+        public ClrDataTask(DacLibrary library, IntPtr pUnk)
+            : base(library, ref IID_IXCLRDataTask, pUnk)
         {
         }
 
-        public ClrStackWalk CreateStackWalk(uint flags)
+        public ClrStackWalk CreateStackWalk(DacLibrary library, uint flags)
         {
             CreateStackWalkDelegate create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable->CreateStackWalk, typeof(CreateStackWalkDelegate));
             int hr = create(Self, flags, out IntPtr pUnk);
             if (hr != S_OK)
                 return null;
 
-            return new ClrStackWalk(pUnk);
+            return new ClrStackWalk(library, pUnk);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

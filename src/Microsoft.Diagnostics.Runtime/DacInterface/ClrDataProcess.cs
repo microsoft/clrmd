@@ -5,9 +5,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe class ClrDataProcess : CallableCOMWrapper
+    /// <summary>
+    /// This is an undocumented, untested, and unsupported interface.  Do not use.
+    /// </summary>
+    public unsafe class ClrDataProcess : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
@@ -20,10 +23,12 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private EnumMethodInstanceByAddressDelegate _enum;
         private EndEnumMethodInstancesByAddressDelegate _endEnum;
 
-        public ClrDataProcess(IntPtr pUnknown)
-            : base(ref IID_IXCLRDataProcess, pUnknown)
-        {
+        private readonly DacLibrary _library;
 
+        public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
+            : base(library, ref IID_IXCLRDataProcess, pUnknown)
+        {
+            _library = library;
         }
 
         public SOSDac GetSOSDacInterface()
@@ -34,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
             try
             {
-                return new SOSDac(result);
+                return new SOSDac(_library, result);
             }
             catch (InvalidOperationException)
             {
@@ -63,8 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             if (hr != S_OK)
                 return null;
 
-            using (ClrDataTask dataTask = new ClrDataTask(pUnkTask))
-                return dataTask.CreateStackWalk(flags);
+            using (ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask))
+                return dataTask.CreateStackWalk(_library, flags);
         }
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ulong addr)
@@ -82,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             try
             {
                 while ((hr = _enum(Self, ref handle, out IntPtr method)) == S_OK)
-                    result.Add(new ClrDataMethod(method));
+                    result.Add(new ClrDataMethod(_library, method));
             }
             finally
             {

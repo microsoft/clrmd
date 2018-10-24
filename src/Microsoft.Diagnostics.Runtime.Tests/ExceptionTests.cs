@@ -1,17 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
+﻿using Xunit;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class ExceptionTests
     {
-
-        [TestMethod]
+        [Fact]
         public void ExceptionPropertyTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
@@ -21,16 +15,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        public static void TestProperties(ClrRuntime runtime)
+        internal static void TestProperties(ClrRuntime runtime)
         {
             ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
             ClrException ex = thread.CurrentException;
-            Assert.IsNotNull(ex);
+            Assert.NotNull(ex);
 
             ExceptionTestData testData = TestTargets.NestedExceptionData;
-            Assert.AreEqual(testData.OuterExceptionMessage, ex.Message);
-            Assert.AreEqual(testData.OuterExceptionType, ex.Type.Name);
-            Assert.IsNotNull(ex.Inner);
+            Assert.Equal(testData.OuterExceptionMessage, ex.Message);
+            Assert.Equal(testData.OuterExceptionType, ex.Type.Name);
+            Assert.NotNull(ex.Inner);
         }
     }
 }

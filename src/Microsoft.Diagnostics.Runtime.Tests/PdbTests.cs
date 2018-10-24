@@ -1,19 +1,16 @@
 ﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class PdbTests
     {
-        [TestMethod]
+        [Fact]
         public void PdbEqualityTest()
         {
             // Ensure all methods in our source file is in the pdb.
@@ -22,22 +19,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 PdbInfo[] allPdbs = runtime.Modules.Where(m => m.Pdb != null).Select(m => m.Pdb).ToArray();
-                Assert.IsTrue(allPdbs.Length > 1);
+                Assert.True(allPdbs.Length > 1);
 
                 for (int i = 0; i < allPdbs.Length; i++)
                 {
-                    Assert.IsTrue(allPdbs[i].Equals(allPdbs[i]));
+                    Assert.True(allPdbs[i].Equals(allPdbs[i]));
                     for (int j = i + 1; j < allPdbs.Length; j++)
                     {
-                        Assert.IsFalse(allPdbs[i].Equals(allPdbs[j]));
-                        Assert.IsFalse(allPdbs[j].Equals(allPdbs[i]));
+                        Assert.False(allPdbs[i].Equals(allPdbs[j]));
+                        Assert.False(allPdbs[j].Equals(allPdbs[i]));
                     }
                 }
 
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void PdbGuidAgeTest()
         {
             PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out Guid pdbSignature, out int pdbAge);
@@ -45,19 +42,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Ensure we get the same answer a different way.
             using (PdbReader pdbReader = new PdbReader(TestTargets.NestedException.Pdb))
             {
-                Assert.AreEqual(pdbAge, pdbReader.Age);
-                Assert.AreEqual(pdbSignature, pdbReader.Signature);
+                Assert.Equal(pdbAge, pdbReader.Age);
+                Assert.Equal(pdbSignature, pdbReader.Signature);
             }
 
             // Ensure the PEFile has the same signature/age.
             using (PEFile peFile = new PEFile(TestTargets.NestedException.Executable))
             {
-                Assert.AreEqual(peFile.PdbInfo.Guid, pdbSignature);
-                Assert.AreEqual(peFile.PdbInfo.Revision, pdbAge);
+                Assert.Equal(peFile.PdbInfo.Guid, pdbSignature);
+                Assert.Equal(peFile.PdbInfo.Revision, pdbAge);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void PdbSourceLineTest()
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
@@ -68,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 HashSet<int> sourceLines = new HashSet<int>();
                 using (PdbReader reader = new PdbReader(TestTargets.NestedException.Pdb))
                 {
-                    Assert.IsTrue(TestTargets.NestedException.Source.Equals(reader.Sources.Single().Name, StringComparison.OrdinalIgnoreCase));
+                    Assert.Equal(TestTargets.NestedException.Source, reader.Sources.Single().Name, ignoreCase: true);
 
                     var functions = from frame in thread.StackTrace
                                             where frame.Kind != ClrStackFrameType.Runtime
@@ -89,12 +86,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     curr++;
                     if (line.Contains("/* seq */"))
-                        Assert.IsTrue(sourceLines.Contains(curr));
+                        Assert.Contains(curr, sourceLines);
                 }
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void PdbMethodTest()
         {
             // Ensure all methods in our source file is in the pdb.
@@ -112,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         if (method.Type != type || method.IsConstructor || method.IsClassConstructor)
                             continue;
 
-                        Assert.IsNotNull(pdb.GetFunctionFromToken(method.MetadataToken));
+                        Assert.NotNull(pdb.GetFunctionFromToken(method.MetadataToken));
                     }
                 }
             }

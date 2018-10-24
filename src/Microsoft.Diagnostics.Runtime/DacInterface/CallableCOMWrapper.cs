@@ -3,9 +3,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe class CallableCOMWrapper : COMHelper, IDisposable
+    public unsafe class CallableCOMWrapper : COMHelper, IDisposable
     {
         private static int _totalInstances;
 
@@ -15,11 +15,13 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
         protected IntPtr Self { get; }
         private IUnknownVTable* _unknownVTable;
+        private readonly GCHandle _library;
+
         protected void* _vtable => _unknownVTable + 1;
 
         private ReleaseDelegate _release;
 
-        public CallableCOMWrapper(ref Guid desiredInterface, IntPtr pUnknown)
+        internal CallableCOMWrapper(DacLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             Interlocked.Increment(ref _totalInstances);
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
@@ -27,13 +29,17 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
             int hr = queryInterface(pUnknown, ref desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
+            {
+                GC.SuppressFinalize(this);
                 throw new InvalidOperationException();
+            }
 
             var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
             release(pUnknown);
 
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
+            _library = GCHandle.Alloc(library);
         }
 
         public void Release()
@@ -42,6 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
                 _release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
 
             _release(Self);
+            _library.Free();
         }
 
         public IntPtr QueryInterface(ref Guid riid)

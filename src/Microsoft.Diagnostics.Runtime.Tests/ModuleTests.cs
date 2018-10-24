@@ -1,16 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
+﻿using Xunit;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    [TestClass]
     public class ModuleTests
     {
-        [TestMethod]
+        [Fact]
         public void TestGetTypeByName()
         {
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
@@ -19,12 +14,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrHeap heap = runtime.Heap;
 
                 ClrModule shared = runtime.GetModule("sharedlibrary.dll");
-                Assert.IsNotNull(shared.GetTypeByName("Foo"));
-                Assert.IsNull(shared.GetTypeByName("Types"));
+                Assert.NotNull(shared.GetTypeByName("Foo"));
+                Assert.Null(shared.GetTypeByName("Types"));
 
                 ClrModule types = runtime.GetModule("types.exe");
-                Assert.IsNotNull(types.GetTypeByName("Types"));
-                Assert.IsNull(types.GetTypeByName("Foo"));
+                Assert.NotNull(types.GetTypeByName("Types"));
+                Assert.Null(types.GetTypeByName("Foo"));
             }
         }
     }

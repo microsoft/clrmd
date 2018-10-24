@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.ComWrappers;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (assembly == 0)
                 return null;
 
-            return Request<IAssemblyData, LegacyAssemblyData>(DacRequests.ASSEMBLY_DATA, assembly);
+            return Request<IAssemblyData, AssemblyData>(DacRequests.ASSEMBLY_DATA, assembly);
         }
 
         public override IEnumerable<ClrHandle> EnumerateHandles()
@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return handleTable.Handles;
         }
 
-        internal override bool TraverseHeap(ulong heap, DesktopRuntimeBase.LoaderHeapTraverse callback)
+        internal override bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback)
         {
             byte[] input = new byte[sizeof(ulong) * 2];
             WriteValueToBuffer(heap, input, 0);
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Request(DacRequests.LOADERHEAP_TRAVERSE, input, null);
         }
 
-        internal override bool TraverseStubHeap(ulong appDomain, int type, LoaderHeapTraverse callback)
+        internal override bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback)
         {
             byte[] input;
             if (IntPtr.Size == 4)
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IThreadData, V2ThreadData>(DacRequests.THREAD_DATA, input);
 
-            return Request<IThreadData, V4ThreadData>(DacRequests.THREAD_DATA, input);
+            return Request<IThreadData, ThreadData>(DacRequests.THREAD_DATA, input);
         }
 
         internal override IHeapDetails GetSvrHeapDetails(ulong addr)
@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IHeapDetails, V2HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
 
-            return Request<IHeapDetails, V4HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
+            return Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
         }
 
         internal override IHeapDetails GetWksHeapDetails()
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IHeapDetails, V2HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
 
-            return Request<IHeapDetails, V4HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
+            return Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
         }
 
         internal override ulong[] GetServerHeapList()
@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IGCInfo GetGCInfoImpl()
         {
-            return Request<IGCInfo, LegacyGCInfo>(DacRequests.GCHEAP_DATA);
+            return Request<IGCInfo, GCInfo>(DacRequests.GCHEAP_DATA);
         }
 
         internal override ISegmentData GetSegmentData(ulong segmentAddr)
@@ -209,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<ISegmentData, V2SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
 
-            return Request<ISegmentData, V4SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
+            return Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
         }
 
         internal override string GetAppDomaminName(ulong addr)
@@ -245,12 +245,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IAppDomainStoreData GetAppDomainStoreData()
         {
-            return Request<IAppDomainStoreData, LegacyAppDomainStoreData>(DacRequests.APPDOMAIN_STORE_DATA);
+            return Request<IAppDomainStoreData, AppDomainStoreData>(DacRequests.APPDOMAIN_STORE_DATA);
         }
 
         internal override IAppDomainData GetAppDomainData(ulong addr)
         {
-            return Request<IAppDomainData, LegacyAppDomainData>(DacRequests.APPDOMAIN_DATA, addr);
+            return Request<IAppDomainData, AppDomainData>(DacRequests.APPDOMAIN_DATA, addr);
         }
 
         internal override bool GetCommonMethodTables(ref CommonMethodTables mCommonMTs)
@@ -321,7 +321,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             byte[] output = new byte[sizeof(int)];
             if (Request(DacRequests.JITLIST, null, output))
             {
-                int JitManagerSize = Marshal.SizeOf(typeof(LegacyJitManagerInfo));
+                int JitManagerSize = Marshal.SizeOf(typeof(JitManagerInfo));
                 int count = BitConverter.ToInt32(output, 0);
                 int size = JitManagerSize * count;
 
@@ -330,11 +330,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     output = new byte[size];
                     if (Request(DacRequests.MANAGER_LIST, null, output))
                     {
-                        LegacyJitCodeHeapInfo heapInfo = new LegacyJitCodeHeapInfo();
-                        int CodeHeapTypeOffset = Marshal.OffsetOf(typeof(LegacyJitCodeHeapInfo), "codeHeapType").ToInt32();
-                        int AddressOffset = Marshal.OffsetOf(typeof(LegacyJitCodeHeapInfo), "address").ToInt32();
-                        int CurrAddrOffset = Marshal.OffsetOf(typeof(LegacyJitCodeHeapInfo), "currentAddr").ToInt32();
-                        int JitCodeHeapInfoSize = Marshal.SizeOf(typeof(LegacyJitCodeHeapInfo));
+                        MutableJitCodeHeapInfo heapInfo = new MutableJitCodeHeapInfo();
+                        int CodeHeapTypeOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "codeHeapType").ToInt32();
+                        int AddressOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "address").ToInt32();
+                        int CurrAddrOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "currentAddr").ToInt32();
+                        int JitCodeHeapInfoSize = Marshal.SizeOf(typeof(JitCodeHeapInfo));
 
                         for (int i = 0; i < count; ++i)
                         {
@@ -357,11 +357,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 {
                                     for (int j = 0; j < heapCount; ++j)
                                     {
-                                        heapInfo.address = BitConverter.ToUInt64(codeHeapBuffer, j * JitCodeHeapInfoSize + AddressOffset);
-                                        heapInfo.codeHeapType = BitConverter.ToUInt32(codeHeapBuffer, j * JitCodeHeapInfoSize + CodeHeapTypeOffset);
-                                        heapInfo.currentAddr = BitConverter.ToUInt64(codeHeapBuffer, j * JitCodeHeapInfoSize + CurrAddrOffset);
+                                        heapInfo.Address = BitConverter.ToUInt64(codeHeapBuffer, j * JitCodeHeapInfoSize + AddressOffset);
+                                        heapInfo.Type = (CodeHeapType)BitConverter.ToUInt32(codeHeapBuffer, j * JitCodeHeapInfoSize + CodeHeapTypeOffset);
+                                        heapInfo.CurrentAddress = BitConverter.ToUInt64(codeHeapBuffer, j * JitCodeHeapInfoSize + CurrAddrOffset);
 
-                                        yield return (ICodeHeap)heapInfo;
+                                        yield return heapInfo;
                                     }
                                 }
                             }
@@ -369,6 +369,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                 }
             }
+        }
+
+        private struct MutableJitCodeHeapInfo : ICodeHeap
+        {
+            public CodeHeapType Type;
+            public ulong Address;
+            public ulong CurrentAddress;
+
+            CodeHeapType ICodeHeap.Type => Type;
+            ulong ICodeHeap.Address => Address;
         }
 
         internal override IFieldInfo GetFieldInfo(ulong mt)
@@ -387,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IFieldData GetFieldData(ulong fieldDesc)
         {
-            return Request<IFieldData, LegacyFieldData>(DacRequests.FIELDDESC_DATA, fieldDesc);
+            return Request<IFieldData, FieldData>(DacRequests.FIELDDESC_DATA, fieldDesc);
         }
 
         internal override IObjectData GetObjectData(ulong objRef)
@@ -401,7 +411,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             RegisterForRelease(data);
 
             if (data != null && data.LegacyMetaDataImport != IntPtr.Zero)
-                return new MetaDataImport(data.LegacyMetaDataImport);
+                return new MetaDataImport(DacLibrary, data.LegacyMetaDataImport);
 
             return null;
         }
@@ -679,8 +689,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IThreadStoreData GetThreadStoreData()
         {
-            LegacyThreadStoreData threadStore = new LegacyThreadStoreData();
-            if (!RequestStruct<LegacyThreadStoreData>(DacRequests.THREAD_STORE_DATA, ref threadStore))
+            ThreadStoreData threadStore = new ThreadStoreData();
+            if (!RequestStruct<ThreadStoreData>(DacRequests.THREAD_STORE_DATA, ref threadStore))
                 return null;
 
             return threadStore;
@@ -791,7 +801,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override int GetSyncblkCount()
         {
-            ISyncBlkData data = Request<ISyncBlkData, LegacySyncBlkData>(DacRequests.SYNCBLOCK_DATA, 1);
+            ISyncBlkData data = Request<ISyncBlkData, SyncBlockData>(DacRequests.SYNCBLOCK_DATA, 1);
             if (data == null)
                 return 0;
 
@@ -803,7 +813,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (index < 0)
                 return null;
 
-            return Request<ISyncBlkData, LegacySyncBlkData>(DacRequests.SYNCBLOCK_DATA, (uint)index + 1);
+            return Request<ISyncBlkData, SyncBlockData>(DacRequests.SYNCBLOCK_DATA, (uint)index + 1);
         }
 
         internal override IThreadPoolData GetThreadPoolData()
@@ -956,57 +966,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 #pragma warning disable 0169
 
     #region Common Dac Structs
-    internal struct LegacySyncBlkData : ISyncBlkData
-    {
-        private ulong _pObject;
-        private uint _bFree;
-        private ulong _syncBlockPointer;
-        private uint _COMFlags;
-        private uint _bMonitorHeld;
-        private uint _nRecursion;
-        private ulong _holdingThread;
-        private uint _additionalThreadCount;
-        private ulong _appDomainPtr;
-        private uint _syncBlockCount;
-
-        public bool Free
-        {
-            get { return _bFree != 0; }
-        }
-
-        public ulong Object
-        {
-            get { return _pObject; }
-        }
-
-        public bool MonitorHeld
-        {
-            get { return _bMonitorHeld != 0; }
-        }
-
-        public uint Recursion
-        {
-            get { return _nRecursion; }
-        }
-
-        public uint TotalCount
-        {
-            get { return _syncBlockCount; }
-        }
-
-        public ulong OwningThread
-        {
-            get { return _holdingThread; }
-        }
-
-
-        public ulong Address
-        {
-            get { return _syncBlockPointer; }
-        }
-    }
     [StructLayout(LayoutKind.Sequential)]
-
     // Same for v2 and v4
     internal struct LegacyModuleMapTraverseArgs
     {
@@ -1337,280 +1297,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ulong Module => 0;
     }
-
-    // Same for v2 and v4
-    internal struct LegacyGCInfo : IGCInfo
-    {
-        public int serverMode;
-        public int gcStructuresValid;
-        public uint heapCount;
-        public uint maxGeneration;
-
-        bool IGCInfo.ServerMode
-        {
-            get { return serverMode != 0; }
-        }
-
-        int IGCInfo.HeapCount
-        {
-            get { return (int)heapCount; }
-        }
-
-        int IGCInfo.MaxGeneration
-        {
-            get { return (int)maxGeneration; }
-        }
-
-
-        bool IGCInfo.GCStructuresValid
-        {
-            get { return gcStructuresValid != 0; }
-        }
-    }
-
-    internal struct V4GenerationData
-    {
-        public ulong StartSegment;
-        public ulong AllocationStart;
-
-        // These are examined only for generation 0, otherwise NULL
-        public ulong AllocContextPtr;
-        public ulong AllocContextLimit;
-    }
-
-    internal struct LegacyJitCodeHeapInfo : ICodeHeap
-    {
-        public uint codeHeapType;
-        public ulong address;
-        public ulong currentAddr;
-
-        public CodeHeapType Type
-        {
-            get { return (CodeHeapType)codeHeapType; }
-        }
-
-        public ulong Address
-        {
-            get { return address; }
-        }
-    }
-
-    internal struct LegacyJitManagerInfo
-    {
-        public ulong addr;
-        public CodeHeapType type;
-        public ulong ptrHeapList;
-    }
-
-    // Same for both v2 and v4.
-    internal struct LegacyAppDomainData : IAppDomainData
-    {
-        private ulong _address;
-        private ulong _appSecDesc;
-        private ulong _pLowFrequencyHeap;
-        private ulong _pHighFrequencyHeap;
-        private ulong _pStubHeap;
-        private ulong _pDomainLocalBlock;
-        private ulong _pDomainLocalModules;
-        private int _dwId;
-        private int _assemblyCount;
-        private int _failedAssemblyCount;
-        private int _appDomainStage;
-
-        public int Id
-        {
-            get { return _dwId; }
-        }
-
-        public ulong Address
-        {
-            get { return _address; }
-        }
-
-        public ulong LowFrequencyHeap { get { return _pLowFrequencyHeap; } }
-        public ulong HighFrequencyHeap { get { return _pHighFrequencyHeap; } }
-        public ulong StubHeap { get { return _pStubHeap; } }
-        public int AssemblyCount
-        {
-            get { return _assemblyCount; }
-        }
-    }
-
-    // Same for both v2 and v4.
-    internal struct LegacyAppDomainStoreData : IAppDomainStoreData
-    {
-        private ulong _shared;
-        private ulong _system;
-        private int _domainCount;
-
-        public ulong SharedDomain
-        {
-            get { return _shared; }
-        }
-
-        public ulong SystemDomain
-        {
-            get { return _system; }
-        }
-
-        public int Count
-        {
-            get { return _domainCount; }
-        }
-    }
-
-    internal struct LegacyAssemblyData : IAssemblyData
-    {
-        private ulong _assemblyPtr;
-        private ulong _classLoader;
-        private ulong _parentDomain;
-        private ulong _appDomainPtr;
-        private ulong _assemblySecDesc;
-        private int _isDynamic;
-        private int _moduleCount;
-        private uint _loadContext;
-        private int _isDomainNeutral;
-        private uint _dwLocationFlags;
-
-        public ulong Address
-        {
-            get { return _assemblyPtr; }
-        }
-
-        public ulong ParentDomain
-        {
-            get { return _parentDomain; }
-        }
-
-        public ulong AppDomain
-        {
-            get { return _appDomainPtr; }
-        }
-
-        public bool IsDynamic
-        {
-            get { return _isDynamic != 0; }
-        }
-
-        public bool IsDomainNeutral
-        {
-            get { return _isDomainNeutral != 0; }
-        }
-
-        public int ModuleCount
-        {
-            get { return _moduleCount; }
-        }
-    }
-
-    internal struct LegacyThreadStoreData : IThreadStoreData
-    {
-        public int threadCount;
-        public int unstartedThreadCount;
-        public int backgroundThreadCount;
-        public int pendingThreadCount;
-        public int deadThreadCount;
-        public ulong firstThread;
-        public ulong finalizerThread;
-        public ulong gcThread;
-        public uint fHostConfig;          // Uses hosting flags defined above
-
-        public ulong Finalizer
-        {
-            get { return finalizerThread; }
-        }
-
-        public int Count
-        {
-            get
-            {
-                return threadCount;
-            }
-        }
-
-        public ulong FirstThread
-        {
-            get { return firstThread; }
-        }
-    }
-
-    internal struct LegacyFieldData : IFieldData
-    {
-        private uint _type;      // CorElementType
-        private uint _sigType;   // CorElementType
-        private ulong _mtOfType; // NULL if Type is not loaded
-
-        private ulong _moduleOfType;
-        private uint _mdType;
-
-        private uint _mdField;
-        private ulong _MTOfEnclosingClass;
-        private uint _dwOffset;
-        private uint _bIsThreadLocal;
-        private uint _bIsContextLocal;
-        private uint _bIsStatic;
-        private ulong _nextField;
-
-        public uint CorElementType
-        {
-            get { return _type; }
-        }
-
-        public uint SigType
-        {
-            get { return _sigType; }
-        }
-
-        public ulong TypeMethodTable
-        {
-            get { return _mtOfType; }
-        }
-
-        public ulong Module
-        {
-            get { return _moduleOfType; }
-        }
-
-        public uint TypeToken
-        {
-            get { return _mdType; }
-        }
-
-        public uint FieldToken
-        {
-            get { return _mdField; }
-        }
-
-        public ulong EnclosingMethodTable
-        {
-            get { return _MTOfEnclosingClass; }
-        }
-
-        public uint Offset
-        {
-            get { return _dwOffset; }
-        }
-
-        public bool IsThreadLocal
-        {
-            get { return _bIsThreadLocal != 0; }
-        }
-
-        bool IFieldData.IsContextLocal
-        {
-            get { return _bIsContextLocal != 0; }
-        }
-
-        bool IFieldData.IsStatic
-        {
-            get { return _bIsStatic != 0; }
-        }
-
-        ulong IFieldData.NextField
-        {
-            get { return _nextField; }
-        }
-    }
+    
     #endregion
 
     #region V2 Dac Data Structs
@@ -2010,10 +1697,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong heapAddr;
         public ulong alloc_allocated;
 
-        public V4GenerationData generation_table0;
-        public V4GenerationData generation_table1;
-        public V4GenerationData generation_table2;
-        public V4GenerationData generation_table3;
+        public GenerationData generation_table0;
+        public GenerationData generation_table1;
+        public GenerationData generation_table2;
+        public GenerationData generation_table3;
         public ulong ephemeral_heap_segment;
         public ulong finalization_fill_pointers0;
         public ulong finalization_fill_pointers1;
@@ -2045,12 +1732,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ulong EphemeralAllocContextPtr
         {
-            get { return generation_table0.AllocContextPtr; }
+            get { return generation_table0.AllocationContextPointer; }
         }
 
         public ulong EphemeralAllocContextLimit
         {
-            get { return generation_table0.AllocContextLimit; }
+            get { return generation_table0.AllocationContextLimit; }
         }
 
         public ulong FQAllObjectsStart
@@ -2356,85 +2043,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
     }
 
-
-    internal struct V4ThreadData : IThreadData
-    {
-        public uint corThreadId;
-        public uint osThreadId;
-        public int state;
-        public uint preemptiveGCDisabled;
-        public ulong allocContextPtr;
-        public ulong allocContextLimit;
-        public ulong context;
-        public ulong domain;
-        public ulong pFrame;
-        public uint lockCount;
-        public ulong firstNestedException;
-        public ulong teb;
-        public ulong fiberData;
-        public ulong lastThrownObjectHandle;
-        public ulong nextThread;
-
-        public ulong Next
-        {
-            get { return IntPtr.Size == 8 ? nextThread : (ulong)(uint)nextThread; }
-        }
-
-        public ulong AllocPtr
-        {
-            get { return (IntPtr.Size == 8) ? allocContextPtr : (ulong)(uint)allocContextPtr; }
-        }
-
-        public ulong AllocLimit
-        {
-            get { return (IntPtr.Size == 8) ? allocContextLimit : (ulong)(uint)allocContextLimit; }
-        }
-
-
-        public uint OSThreadID
-        {
-            get { return osThreadId; }
-        }
-
-        public ulong Teb
-        {
-            get { return IntPtr.Size == 8 ? teb : (ulong)(uint)teb; }
-        }
-
-
-        public ulong AppDomain
-        {
-            get { return domain; }
-        }
-
-        public uint LockCount
-        {
-            get { return lockCount; }
-        }
-
-        public int State
-        {
-            get { return state; }
-        }
-
-        public ulong ExceptionPtr
-        {
-            get { return lastThrownObjectHandle; }
-        }
-
-
-        public uint ManagedThreadID
-        {
-            get { return corThreadId; }
-        }
-
-
-        public bool Preemptive
-        {
-            get { return preemptiveGCDisabled == 0; }
-        }
-    }
-
     internal struct V45AllocData
     {
         public ulong allocBytes;
@@ -2453,190 +2061,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong allocBytesLohGen3;
     }
 
-    internal struct V4FieldInfo : IFieldInfo
-    {
-        private short _wNumInstanceFields;
-        private short _wNumStaticFields;
-        private short _wNumThreadStaticFields;
-
-        private ulong _addrFirstField; // If non-null, you can retrieve more
-
-        private short _wContextStaticOffset;
-        private short _wContextStaticsSize;
-
-        public uint InstanceFields
-        {
-            get { return (uint)_wNumInstanceFields; }
-        }
-
-        public uint StaticFields
-        {
-            get { return (uint)_wNumStaticFields; }
-        }
-
-        public uint ThreadStaticFields
-        {
-            get { return (uint)_wNumThreadStaticFields; }
-        }
-
-        public ulong FirstField
-        {
-            get { return _addrFirstField; }
-        }
-    }
-
-    internal struct V4SegmentData : ISegmentData
-    {
-        public ulong segmentAddr;
-        public ulong allocated;
-        public ulong committed;
-        public ulong reserved;
-        public ulong used;
-        public ulong mem;
-        public ulong next;
-        public ulong gc_heap;
-        public ulong highAllocMark;
-        public IntPtr flags;
-        public ulong background_allocated;
-
-        public ulong Address
-        {
-            get { return segmentAddr; }
-        }
-
-        public ulong Next
-        {
-            get { return next; }
-        }
-
-        public ulong Start
-        {
-            get { return mem; }
-        }
-
-        public ulong End
-        {
-            get { return allocated; }
-        }
-
-        public ulong Reserved
-        {
-            get { return reserved; }
-        }
-
-        public ulong Committed
-        {
-            get { return committed; }
-        }
-    }
-
-    internal struct V4HeapDetails : IHeapDetails
-    {
-        public ulong heapAddr; // Only filled in in server mode, otherwise NULL
-
-        public ulong alloc_allocated;
-        public ulong mark_array;
-        public ulong c_allocate_lh;
-        public ulong next_sweep_obj;
-        public ulong saved_sweep_ephemeral_seg;
-        public ulong saved_sweep_ephemeral_start;
-        public ulong background_saved_lowest_address;
-        public ulong background_saved_highest_address;
-
-        public V4GenerationData generation_table0;
-        public V4GenerationData generation_table1;
-        public V4GenerationData generation_table2;
-        public V4GenerationData generation_table3;
-        public ulong ephemeral_heap_segment;
-        public ulong finalization_fill_pointers0;
-        public ulong finalization_fill_pointers1;
-        public ulong finalization_fill_pointers2;
-        public ulong finalization_fill_pointers3;
-        public ulong finalization_fill_pointers4;
-        public ulong finalization_fill_pointers5;
-        public ulong finalization_fill_pointers6;
-        public ulong lowest_address;
-        public ulong highest_address;
-        public ulong card_table;
-
-        public ulong FirstHeapSegment
-        {
-            get { return generation_table2.StartSegment; }
-        }
-
-        public ulong FirstLargeHeapSegment
-        {
-            get { return generation_table3.StartSegment; }
-        }
-
-        public ulong EphemeralSegment
-        {
-            get { return ephemeral_heap_segment; }
-        }
-
-        public ulong EphemeralEnd { get { return alloc_allocated; } }
-
-
-        public ulong EphemeralAllocContextPtr
-        {
-            get { return generation_table0.AllocContextPtr; }
-        }
-
-        public ulong EphemeralAllocContextLimit
-        {
-            get { return generation_table0.AllocContextLimit; }
-        }
-
-        public ulong FQAllObjectsStart
-        {
-            get { return finalization_fill_pointers0; }
-        }
-
-        public ulong FQAllObjectsStop
-        {
-            get { return finalization_fill_pointers3; }
-        }
-
-        public ulong FQRootsStart
-        {
-            get { return finalization_fill_pointers3; }
-        }
-
-        public ulong FQRootsStop
-        {
-            get { return finalization_fill_pointers5; }
-        }
-
-        public ulong Gen0Start
-        {
-            get { return generation_table0.AllocationStart; }
-        }
-
-        public ulong Gen0Stop
-        {
-            get { return alloc_allocated; }
-        }
-
-        public ulong Gen1Start
-        {
-            get { return generation_table1.AllocationStart; }
-        }
-
-        public ulong Gen1Stop
-        {
-            get { return generation_table0.AllocationStart; }
-        }
-
-        public ulong Gen2Start
-        {
-            get { return generation_table2.AllocationStart; }
-        }
-
-        public ulong Gen2Stop
-        {
-            get { return generation_table1.AllocationStart; }
-        }
-    }
     #endregion
 
 #pragma warning restore 0169

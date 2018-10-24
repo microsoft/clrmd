@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.ComWrappers;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,9 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class V45Runtime : DesktopRuntimeBase
     {
-        private SOSDac _sos;
 
-        #region Constructor
+        private List<ClrHandle> _handles;
+        private SOSDac _sos;
+        
         public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
         {
@@ -37,21 +38,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (v != 9)
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsException.HR.DacError);
         }
-        #endregion
 
-        #region Overrides
         protected override void InitApi()
         {
             if (_sos == null)
-                _sos = _library.SOSInterface;
+                _sos = DacLibrary.SOSDacInterface;
 
             Debug.Assert(_sos != null);
         }
+
         internal override DesktopVersion CLRVersion
         {
             get { return DesktopVersion.v45; }
         }
-        private List<ClrHandle> _handles;
 
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
@@ -75,13 +74,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     for (int i = 0; i < fetched; i++)
                     {
                         ClrHandle handle = new ClrHandle(this, Heap, handles[i]);
-                        _handles.Add(handle);
+                        result.Add(handle);
                         yield return handle;
 
                         handle = handle.GetInteriorHandle();
                         if (handle != null)
                         {
-                            _handles.Add(handle);
+                            result.Add(handle);
                             yield return handle;
                         }
                     }
@@ -182,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IThreadData GetThread(ulong addr)
         {
-            if (_sos.GetThreadData(addr, out V4ThreadData data))
+            if (_sos.GetThreadData(addr, out ThreadData data))
                 return data;
 
             return null;
@@ -190,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IHeapDetails GetSvrHeapDetails(ulong addr)
         {
-            if (_sos.GetServerHeapDetails(addr, out V4HeapDetails data))
+            if (_sos.GetServerHeapDetails(addr, out HeapDetails data))
                 return data;
 
             return null;
@@ -198,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IHeapDetails GetWksHeapDetails()
         {
-            if (_sos.GetWksHeapDetails(out V4HeapDetails details))
+            if (_sos.GetWksHeapDetails(out HeapDetails details))
                 return details;
 
             return null;
@@ -214,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IAssemblyData GetAssemblyData(ulong domain, ulong assembly)
         {
-            if (_sos.GetAssemblyData(domain, assembly, out LegacyAssemblyData data))
+            if (_sos.GetAssemblyData(domain, assembly, out AssemblyData data))
                 return data;
 
             return null;
@@ -222,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IAppDomainStoreData GetAppDomainStoreData()
         {
-            if (_sos.GetAppDomainStoreData(out LegacyAppDomainStoreData data))
+            if (_sos.GetAppDomainStoreData(out AppDomainStoreData data))
                 return data;
 
             return null;
@@ -230,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IMethodTableData GetMethodTableData(ulong addr)
         {
-            if (_sos.GetMethodTableData(addr, out V45MethodTableData data))
+            if (_sos.GetMethodTableData(addr, out MethodTableData data))
                 return data;
 
             return null;
@@ -240,7 +239,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IGCInfo GetGCInfoImpl()
         {
-            if (_sos.GetGcHeapData(out LegacyGCInfo data))
+            if (_sos.GetGcHeapData(out GCInfo data))
                 return data;
 
             return null;
@@ -254,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IModuleData GetModuleData(ulong addr)
         {
-            if (_sos.GetModuleData(addr, out V45ModuleData data))
+            if (_sos.GetModuleData(addr, out ModuleData data))
                 return data;
 
             return null;
@@ -262,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetModuleForMT(ulong addr)
         {
-            if (_sos.GetMethodTableData(addr, out V45MethodTableData data))
+            if (_sos.GetMethodTableData(addr, out MethodTableData data))
                 return data.Module;
 
             return 0;
@@ -270,7 +269,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ISegmentData GetSegmentData(ulong addr)
         {
-            if (_sos.GetSegmentData(addr, out V4SegmentData data))
+            if (_sos.GetSegmentData(addr, out SegmentData data))
                 return data;
 
             return null;
@@ -278,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IAppDomainData GetAppDomainData(ulong addr)
         {
-            if (_sos.GetAppDomainData(addr, out LegacyAppDomainData data))
+            if (_sos.GetAppDomainData(addr, out AppDomainData data))
                 return data;
 
             return null;
@@ -288,19 +287,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override string GetAssemblyName(ulong addr) => _sos.GetAssemblyName(addr);
 
-        internal override bool TraverseHeap(ulong heap, LoaderHeapTraverse callback) => _sos.TraverseLoaderHeap(heap, callback);
+        internal override bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback) => _sos.TraverseLoaderHeap(heap, callback);
 
-        internal override bool TraverseStubHeap(ulong appDomain, int type, LoaderHeapTraverse callback) => _sos.TraverseStubHeap(appDomain, type, callback);
+        internal override bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback) => _sos.TraverseStubHeap(appDomain, type, callback);
 
         internal override IEnumerable<ICodeHeap> EnumerateJitHeaps()
         {
-            LegacyJitManagerInfo[] jitManagers = _sos.GetJitManagers();
+            JitManagerInfo[] jitManagers = _sos.GetJitManagers();
             for (int i = 0; i < jitManagers.Length; ++i)
             {
-                if (jitManagers[i].type != CodeHeapType.Unknown)
+                if (jitManagers[i].Type != CodeHeapType.Unknown)
                     continue;
 
-                LegacyJitCodeHeapInfo[] heapInfo = _sos.GetCodeHeapList(jitManagers[i].addr);
+                JitCodeHeapInfo[] heapInfo = _sos.GetCodeHeapList(jitManagers[i].Address);
 
                 for (int j = 0; j < heapInfo.Length; ++j)
                     yield return heapInfo[i];
@@ -317,7 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IFieldData GetFieldData(ulong fieldDesc)
         {
-            if (_sos.GetFieldData(fieldDesc, out LegacyFieldData data))
+            if (_sos.GetFieldData(fieldDesc, out FieldData data))
                 return data;
 
             return null;
@@ -346,7 +345,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
         {
-            if (_sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id, out V45DomainLocalModuleData data))
+            if (_sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id, out DomainLocalModuleData data))
                 return data;
 
             return null;
@@ -358,7 +357,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ICCWData GetCCWData(ulong ccw)
         {
-            if (_sos.GetCCWData(ccw, out V45CCWData data))
+            if (_sos.GetCCWData(ccw, out CCWData data))
                 return data;
 
             return null;
@@ -366,12 +365,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IRCWData GetRCWData(ulong rcw)
         {
-            if (_sos.GetRCWData(rcw, out V45RCWData data))
+            if (_sos.GetRCWData(rcw, out RCWData data))
                 return data;
 
             return null;
         }
-        #endregion
 
         internal override ulong GetILForModule(ClrModule module, uint rva) => _sos.GetILForModule(module.Address, rva);
 
@@ -379,20 +377,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             ulong addr = offset;
 
-            if (!_sos.GetThreadLocalModuleData(thread, moduleId, out V45ThreadLocalModuleData data))
+            if (!_sos.GetThreadLocalModuleData(thread, moduleId, out ThreadLocalModuleData data))
                 return 0;
 
             if (IsObjectReference(type) || IsValueClass(type))
-                addr += data.pGCStaticDataStart;
+                addr += data.GCStaticDataStart;
             else
-                addr += data.pNonGCStaticDataStart;
+                addr += data.NonGCStaticDataStart;
 
             return addr;
         }
 
         internal override IDomainLocalModuleData GetDomainLocalModule(ulong module)
         {
-            if (_sos.GetDomainLocalModuleDataFromModule(module, out V45DomainLocalModuleData data))
+            if (_sos.GetDomainLocalModuleDataFromModule(module, out DomainLocalModuleData data))
                 return data;
 
             return null;
@@ -400,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IList<ulong> GetMethodDescList(ulong methodTable)
         {
-            if (!_sos.GetMethodTableData(methodTable, out V45MethodTableData mtData))
+            if (!_sos.GetMethodTableData(methodTable, out MethodTableData mtData))
                 return null;
 
             uint numMethods = mtData.NumMethods;
@@ -426,10 +424,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetMetadataToken(ulong mt)
         {
-            if (!_sos.GetMethodTableData(mt, out V45MethodTableData data))
+            if (!_sos.GetMethodTableData(mt, out MethodTableData data))
                 return uint.MaxValue;
 
-            return data.token;
+            return data.Token;
         }
 
         protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong framePtr, ulong frameVtbl)
@@ -534,7 +532,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IThreadStoreData GetThreadStoreData()
         {
-            if (!_sos.GetThreadStoreData(out LegacyThreadStoreData data))
+            if (!_sos.GetThreadStoreData(out ThreadStoreData data))
                 return null;
 
             return data;
@@ -566,15 +564,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override int GetSyncblkCount()
         {
-            if (_sos.GetSyncBlockData(1, out LegacySyncBlkData data))
-                return (int)data.TotalCount;
+            if (_sos.GetSyncBlockData(1, out SyncBlockData data))
+                return (int)data.TotalSyncBlockCount;
 
             return 0;
         }
 
         internal override ISyncBlkData GetSyncblkData(int index)
         {
-            if (_sos.GetSyncBlockData(index + 1, out LegacySyncBlkData data))
+            if (_sos.GetSyncBlockData(index + 1, out SyncBlockData data))
                 return data;
 
             return null;
@@ -582,7 +580,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IThreadPoolData GetThreadPoolData()
         {
-            if (_sos.GetThreadPoolData(out V45ThreadPoolData data))
+            if (_sos.GetThreadPoolData(out ThreadPoolData data))
                 return data;
 
             return null;
@@ -608,7 +606,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ulong request = data.FirstWorkRequest;
             while (request != 0)
             {
-                if (!_sos.GetWorkRequestData(request, out V45WorkRequestData requestData))
+                if (!_sos.GetWorkRequestData(request, out WorkRequestData requestData))
                     break;
 
                 yield return new DesktopNativeWorkItem(requestData);
@@ -641,201 +639,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 #pragma warning disable 0649
 #pragma warning disable 0169
 
-
-    #region V45 Structs
-    internal struct V45ThreadPoolData : IThreadPoolData
-    {
-        private int _cpuUtilization;
-        private int _numIdleWorkerThreads;
-        private int _numWorkingWorkerThreads;
-        private int _numRetiredWorkerThreads;
-        private int _minLimitTotalWorkerThreads;
-        private int _maxLimitTotalWorkerThreads;
-
-        private ulong _firstUnmanagedWorkRequest;
-
-        private ulong _hillClimbingLog;
-        private int _hillClimbingLogFirstIndex;
-        private int _hillClimbingLogSize;
-
-        private int _numTimers;
-
-        private int _numCPThreads;
-        private int _numFreeCPThreads;
-        private int _maxFreeCPThreads;
-        private int _numRetiredCPThreads;
-        private int _maxLimitTotalCPThreads;
-        private int _currentLimitTotalCPThreads;
-        private int _minLimitTotalCPThreads;
-
-        private ulong _asyncTimerCallbackCompletionFPtr;
-
-        public int MinCP
-        {
-            get { return _minLimitTotalCPThreads; }
-        }
-
-        public int MaxCP
-        {
-            get { return _maxLimitTotalCPThreads; }
-        }
-
-        public int CPU
-        {
-            get { return _cpuUtilization; }
-        }
-
-        public int NumFreeCP
-        {
-            get { return _numFreeCPThreads; }
-        }
-
-        public int MaxFreeCP
-        {
-            get { return _maxFreeCPThreads; }
-        }
-
-        public int TotalThreads
-        {
-            get { return _numIdleWorkerThreads + _numWorkingWorkerThreads + _numRetiredWorkerThreads; }
-        }
-
-        public int RunningThreads
-        {
-            get { return _numWorkingWorkerThreads; }
-        }
-
-        public int IdleThreads
-        {
-            get { return _numIdleWorkerThreads; }
-        }
-
-        public int MinThreads
-        {
-            get { return _minLimitTotalWorkerThreads; }
-        }
-
-        public int MaxThreads
-        {
-            get { return _maxLimitTotalWorkerThreads; }
-        }
-
-
-        public ulong FirstWorkRequest
-        {
-            get { return _firstUnmanagedWorkRequest; }
-        }
-
-
-        public ulong QueueUserWorkItemCallbackFPtr
-        {
-            get { return ulong.MaxValue; }
-        }
-
-        public ulong AsyncCallbackCompletionFPtr
-        {
-            get { return ulong.MaxValue; }
-        }
-
-        ulong IThreadPoolData.AsyncTimerCallbackCompletionFPtr
-        {
-            get { return ulong.MaxValue; }
-        }
-    }
-
-    internal struct V45ThreadLocalModuleData
-    {
-        private ulong _threadAddr;
-        private ulong _moduleIndex;
-
-        private ulong _pClassData;
-        private ulong _pDynamicClassTable;
-        public ulong pGCStaticDataStart;
-        public ulong pNonGCStaticDataStart;
-    }
-
-    internal struct V45DomainLocalModuleData : IDomainLocalModuleData
-    {
-        private ulong _appDomainAddr;
-        private ulong _moduleID;
-
-        private ulong _pClassData;
-        private ulong _pDynamicClassTable;
-        private ulong _pGCStaticDataStart;
-        private ulong _pNonGCStaticDataStart;
-
-        public ulong AppDomainAddr
-        {
-            get { return _appDomainAddr; }
-        }
-
-        public ulong ModuleID
-        {
-            get { return _moduleID; }
-        }
-
-        public ulong ClassData
-        {
-            get { return _pClassData; }
-        }
-
-        public ulong DynamicClassTable
-        {
-            get { return _pDynamicClassTable; }
-        }
-
-        public ulong GCStaticDataStart
-        {
-            get { return _pGCStaticDataStart; }
-        }
-
-        public ulong NonGCStaticDataStart
-        {
-            get { return _pNonGCStaticDataStart; }
-        }
-    }
-
-    internal struct StackRefData
-    {
-        public uint HasRegisterInformation;
-        public int Register;
-        public int Offset;
-        public ulong Address;
-        public ulong Object;
-        public uint Flags;
-
-        public uint SourceType;
-        public ulong Source;
-        public ulong StackPointer;
-    }
-    [StructLayout(LayoutKind.Sequential)]
-
-    internal struct HandleData
-    {
-        public ulong AppDomain;
-        public ulong Handle;
-        public ulong Secondary;
-        public uint Type;
-        public uint StrongReference;
-
-        // For RefCounted Handles
-        public uint RefCount;
-        public uint JupiterRefCount;
-        public uint IsPegged;
-    }
-
-    internal struct V45ReJitData
-    {
-        private ulong _rejitID;
-        private uint _flags;
-        private ulong _nativeCodeAddr;
-    }
-
     internal class V45MethodDescDataWrapper : IMethodDescData
     {
         public bool Init(SOSDac sos, ulong md)
         {
-            if (!sos.GetMethodDescData(md, 0, out V45MethodDescData data))
+            if (!sos.GetMethodDescData(md, 0, out MethodDescData data))
                 return false;
 
             _md = data.MethodDescPtr;
@@ -925,382 +733,4 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get { return _hotSize; }
         }
     }
-
-    internal struct V45MethodDescData
-    {
-        private uint _bHasNativeCode;
-        private uint _bIsDynamic;
-        private short _wSlotNumber;
-        internal ulong NativeCodeAddr;
-        // Useful for breaking when a method is jitted.
-        private ulong _addressOfNativeCodeSlot;
-
-        internal ulong MethodDescPtr;
-        internal ulong MethodTablePtr;
-        internal ulong ModulePtr;
-
-        internal uint MDToken;
-        public ulong GCInfo;
-        private ulong _GCStressCodeCopy;
-
-        // This is only valid if bIsDynamic is true
-        private ulong _managedDynamicMethodObject;
-
-        private ulong _requestedIP;
-
-        // Gives info for the single currently active version of a method
-        private V45ReJitData _rejitDataCurrent;
-
-        // Gives info corresponding to requestedIP (for !ip2md)
-        private V45ReJitData _rejitDataRequested;
-
-        // Total number of rejit versions that have been jitted
-        private uint _cJittedRejitVersions;
-    }
-
-    internal struct CodeHeaderData
-    {
-        public ulong GCInfo;
-        public uint JITType;
-        public ulong MethodDescPtr;
-        public ulong MethodStart;
-        public uint MethodSize;
-        public ulong ColdRegionStart;
-        public uint ColdRegionSize;
-        public uint HotRegionSize;
-    }
-
-    internal struct V45ModuleData : IModuleData
-    {
-        public ulong address;
-        public ulong peFile;
-        public ulong ilBase;
-        public ulong metadataStart;
-        public ulong metadataSize;
-        public ulong assembly;
-        public uint bIsReflection;
-        public uint bIsPEFile;
-        public ulong dwBaseClassIndex;
-        public ulong dwModuleID;
-        public uint dwTransientFlags;
-        public ulong TypeDefToMethodTableMap;
-        public ulong TypeRefToMethodTableMap;
-        public ulong MethodDefToDescMap;
-        public ulong FieldDefToDescMap;
-        public ulong MemberRefToDescMap;
-        public ulong FileReferencesMap;
-        public ulong ManifestModuleReferencesMap;
-        public ulong pLookupTableHeap;
-        public ulong pThunkHeap;
-        public ulong dwModuleIndex;
-
-        #region IModuleData
-        public ulong Assembly
-        {
-            get
-            {
-                return assembly;
-            }
-        }
-
-        public ulong PEFile
-        {
-            get
-            {
-                return (bIsPEFile == 0) ? ilBase : peFile;
-            }
-        }
-        public ulong LookupTableHeap
-        {
-            get { return pLookupTableHeap; }
-        }
-        public ulong ThunkHeap
-        {
-            get { return pThunkHeap; }
-        }
-
-
-        public IntPtr LegacyMetaDataImport
-        {
-            get { return IntPtr.Zero; }
-        }
-
-
-        public ulong ModuleId
-        {
-            get { return dwModuleID; }
-        }
-
-        public ulong ModuleIndex
-        {
-            get { return dwModuleIndex; }
-        }
-
-        public bool IsReflection
-        {
-            get { return bIsReflection != 0; }
-        }
-
-        public bool IsPEFile
-        {
-            get { return bIsPEFile != 0; }
-        }
-        public ulong ImageBase
-        {
-            get { return ilBase; }
-        }
-        public ulong MetdataStart
-        {
-            get { return metadataStart; }
-        }
-
-        public ulong MetadataLength
-        {
-            get { return metadataSize; }
-        }
-        #endregion
-    }
-
-    internal struct V45ObjectData : IObjectData
-    {
-        private ulong _methodTable;
-        private uint _objectType;
-        private ulong _size;
-        private ulong _elementTypeHandle;
-        private uint _elementType;
-        private uint _dwRank;
-        private ulong _dwNumComponents;
-        private ulong _dwComponentSize;
-        private ulong _arrayDataPtr;
-        private ulong _arrayBoundsPtr;
-        private ulong _arrayLowerBoundsPtr;
-
-        private ulong _rcw;
-        private ulong _ccw;
-
-        public ClrElementType ElementType { get { return (ClrElementType)_elementType; } }
-        public ulong ElementTypeHandle { get { return _elementTypeHandle; } }
-        public ulong RCW { get { return _rcw; } }
-        public ulong CCW { get { return _ccw; } }
-
-        public ulong DataPointer
-        {
-            get { return _arrayDataPtr; }
-        }
-    }
-
-    internal struct V45MethodTableData : IMethodTableData
-    {
-        public uint bIsFree; // everything else is NULL if this is true.
-        public ulong module;
-        public ulong eeClass;
-        public ulong parentMethodTable;
-        public ushort wNumInterfaces;
-        public ushort wNumMethods;
-        public ushort wNumVtableSlots;
-        public ushort wNumVirtuals;
-        public uint baseSize;
-        public uint componentSize;
-        public uint token;
-        public uint dwAttrClass;
-        public uint isShared; // flags & enum_flag_DomainNeutral
-        public uint isDynamic;
-        public uint containsPointers;
-
-        public uint Token => token;
-        public ulong Module => module;
-
-        public bool ContainsPointers
-        {
-            get { return containsPointers != 0; }
-        }
-
-        public uint BaseSize
-        {
-            get { return baseSize; }
-        }
-
-        public uint ComponentSize
-        {
-            get { return componentSize; }
-        }
-
-        public ulong EEClass
-        {
-            get { return eeClass; }
-        }
-
-        public bool Free
-        {
-            get { return bIsFree != 0; }
-        }
-
-        public ulong Parent
-        {
-            get { return parentMethodTable; }
-        }
-
-        public bool Shared
-        {
-            get { return isShared != 0; }
-        }
-
-
-        public uint NumMethods
-        {
-            get { return wNumMethods; }
-        }
-
-
-        public ulong ElementTypeHandle
-        {
-            get { throw new NotImplementedException(); }
-        }
-    }
-
-    internal struct V45CCWData : ICCWData
-    {
-        private ulong _outerIUnknown;
-        private ulong _managedObject;
-        private ulong _handle;
-        private ulong _ccwAddress;
-
-        private int _refCount;
-        private int _interfaceCount;
-        private uint _isNeutered;
-
-        private int _jupiterRefCount;
-        private uint _isPegged;
-        private uint _isGlobalPegged;
-        private uint _hasStrongRef;
-        private uint _isExtendsCOMObject;
-        private uint _hasWeakReference;
-        private uint _isAggregated;
-
-        public ulong IUnknown
-        {
-            get { return _outerIUnknown; }
-        }
-
-        public ulong Object
-        {
-            get { return _managedObject; }
-        }
-
-        public ulong Handle
-        {
-            get { return _handle; }
-        }
-
-        public ulong CCWAddress
-        {
-            get { return _ccwAddress; }
-        }
-
-        public int RefCount
-        {
-            get { return _refCount; }
-        }
-
-        public int JupiterRefCount
-        {
-            get { return _jupiterRefCount; }
-        }
-
-        public int InterfaceCount
-        {
-            get { return _interfaceCount; }
-        }
-    }
-
-    internal struct COMInterfacePointerData
-    {
-        public ulong MethodTable;
-        public ulong InterfacePtr;
-        public ulong ComContext;
-    }
-
-    internal struct V45RCWData : IRCWData
-    {
-        private ulong _identityPointer;
-        private ulong _unknownPointer;
-        private ulong _managedObject;
-        private ulong _jupiterObject;
-        private ulong _vtablePtr;
-        private ulong _creatorThread;
-        private ulong _ctxCookie;
-
-        private int _refCount;
-        private int _interfaceCount;
-
-        private uint _isJupiterObject;
-        private uint _supportsIInspectable;
-        private uint _isAggregated;
-        private uint _isContained;
-        private uint _isFreeThreaded;
-        private uint _isDisconnected;
-
-        public ulong IdentityPointer
-        {
-            get { return _identityPointer; }
-        }
-
-        public ulong UnknownPointer
-        {
-            get { return _unknownPointer; }
-        }
-
-        public ulong ManagedObject
-        {
-            get { return _managedObject; }
-        }
-
-        public ulong JupiterObject
-        {
-            get { return _jupiterObject; }
-        }
-
-        public ulong VTablePtr
-        {
-            get { return _vtablePtr; }
-        }
-
-        public ulong CreatorThread
-        {
-            get { return _creatorThread; }
-        }
-
-        public int RefCount
-        {
-            get { return _refCount; }
-        }
-
-        public int InterfaceCount
-        {
-            get { return _interfaceCount; }
-        }
-
-        public bool IsJupiterObject
-        {
-            get { return _isJupiterObject != 0; }
-        }
-
-        public bool IsDisconnected
-        {
-            get { return _isDisconnected != 0; }
-        }
-    }
-
-
-    internal struct V45WorkRequestData
-    {
-        public ulong Function;
-        public ulong Context;
-        public ulong NextWorkRequest;
-    }
-
-    #endregion
-
-#pragma warning restore 0169
-#pragma warning restore 0649
 }

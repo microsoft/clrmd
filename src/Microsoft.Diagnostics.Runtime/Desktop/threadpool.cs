@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -288,7 +289,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public DesktopNativeWorkItem(V45WorkRequestData result)
+        public DesktopNativeWorkItem(WorkRequestData result)
         {
             _callback = result.Function;
             _data = result.Context;

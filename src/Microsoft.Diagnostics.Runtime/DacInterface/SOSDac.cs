@@ -6,17 +6,22 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Diagnostics.Runtime.ComWrappers
+namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe sealed class SOSDac : CallableCOMWrapper
+    /// <summary>
+    /// This is an undocumented, untested, and unsupported interface.  Do not use.
+    /// </summary>
+    public unsafe sealed class SOSDac : CallableCOMWrapper
     {
         internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
-        private static V45ReJitData[] s_emptyRejit;
+        private static RejitData[] s_emptyRejit;
+        private readonly DacLibrary _library;
 
-        public SOSDac(IntPtr ptr)
-            : base(ref IID_ISOSDac, ptr)
+        public SOSDac(DacLibrary library, IntPtr ptr)
+            : base(library, ref IID_ISOSDac, ptr)
         {
+            _library = library;
         }
 
         const int CharBufferSize = 256;
@@ -77,33 +82,33 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private GetMethodDescDataDelegate _getMethodDescData;
         private GetMetaDataImportDelegate _getMetaData;
 
-        public V45ReJitData[] GetRejitData(ulong md, ulong ip = 0)
+        public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
             InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
-            int hr = _getMethodDescData(Self, md, ip, out V45MethodDescData data, 0, null, out int needed);
+            int hr = _getMethodDescData(Self, md, ip, out MethodDescData data, 0, null, out int needed);
 
             if (SUCCEEDED(hr) && needed > 1)
             {
-                V45ReJitData[] result = new V45ReJitData[needed];
+                RejitData[] result = new RejitData[needed];
                 hr = _getMethodDescData(Self, md, ip, out data, result.Length, result, out needed);
                 if (SUCCEEDED(hr))
                     return result;
             }
 
             if (s_emptyRejit == null)
-                s_emptyRejit = new V45ReJitData[0];
+                s_emptyRejit = new RejitData[0];
 
             return s_emptyRejit;
         }
 
-        public bool GetMethodDescData(ulong md, ulong ip, out V45MethodDescData data)
+        public bool GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
         {
             InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
             int hr = _getMethodDescData(Self, md, ip, out data, 0, null, out int needed);
             return SUCCEEDED(hr);
         }
 
-        public bool GetThreadStoreData(out LegacyThreadStoreData data)
+        public bool GetThreadStoreData(out ThreadStoreData data)
         {
             InitDelegate(ref _getThreadStoreData, VTable->GetThreadStoreData);
             return _getThreadStoreData(Self, out data) == S_OK;
@@ -171,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return 0;
         }
 
-        public bool GetThreadLocalModuleData(ulong thread, uint index, out V45ThreadLocalModuleData data)
+        public bool GetThreadLocalModuleData(ulong thread, uint index, out ThreadLocalModuleData data)
         {
             InitDelegate(ref _getThreadLocalModuleData, VTable->GetThreadLocalModuleData);
 
@@ -208,35 +213,35 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return null;
         }
 
-        public bool GetDomainLocalModuleDataFromModule(ulong module, out V45DomainLocalModuleData data)
+        public bool GetDomainLocalModuleDataFromModule(ulong module, out DomainLocalModuleData data)
         {
             InitDelegate(ref _getDomainLocalModuleDataFromModule, VTable->GetDomainLocalModuleDataFromModule);
             int res = _getDomainLocalModuleDataFromModule(Self, module, out data);
             return SUCCEEDED(res);
         }
 
-        public bool GetDomainLocalModuleDataFromAppDomain(ulong appDomain, int id, out V45DomainLocalModuleData data)
+        public bool GetDomainLocalModuleDataFromAppDomain(ulong appDomain, int id, out DomainLocalModuleData data)
         {
             InitDelegate(ref _getDomainLocalModuleDataFromAppDomain, VTable->GetDomainLocalModuleDataFromAppDomain);
             int res = _getDomainLocalModuleDataFromAppDomain(Self, appDomain, id, out data);
             return SUCCEEDED(res);
         }
         
-        public bool GetWorkRequestData(ulong request, out V45WorkRequestData data)
+        public bool GetWorkRequestData(ulong request, out WorkRequestData data)
         {
             InitDelegate(ref _getWorkRequestData, VTable->GetWorkRequestData);
             int hr = _getWorkRequestData(Self, request, out data);
             return SUCCEEDED(hr);
         }
 
-        public bool GetThreadPoolData(out V45ThreadPoolData data)
+        public bool GetThreadPoolData(out ThreadPoolData data)
         {
             InitDelegate(ref _getThreadPoolData, VTable->GetThreadpoolData);
             int hr = _getThreadPoolData(Self, out data);
             return SUCCEEDED(hr);
         }
         
-        public bool GetSyncBlockData(int index, out LegacySyncBlkData data)
+        public bool GetSyncBlockData(int index, out SyncBlockData data)
         {
             InitDelegate(ref _getSyncBlock, VTable->GetSyncBlockData);
             int hr = _getSyncBlock(Self, index, out data);
@@ -300,7 +305,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return SUCCEEDED(hr);
         }
 
-        public bool GetFieldData(ulong fieldDesc, out LegacyFieldData data)
+        public bool GetFieldData(ulong fieldDesc, out FieldData data)
         {
             InitDelegate(ref _getFieldData, VTable->GetFieldDescData);
             int hr = _getFieldData(Self, fieldDesc, out data);
@@ -314,14 +319,14 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return SUCCEEDED(hr);
         }
 
-        public bool GetCCWData(ulong ccw, out V45CCWData data)
+        public bool GetCCWData(ulong ccw, out CCWData data)
         {
             InitDelegate(ref _getCCWData, VTable->GetCCWData);
             int hr = _getCCWData(Self, ccw, out data);
             return SUCCEEDED(hr);
         }
 
-        public bool GetRCWData(ulong rcw, out V45RCWData data)
+        public bool GetRCWData(ulong rcw, out RCWData data)
         {
             InitDelegate(ref _getRCWData, VTable->GetRCWData);
             int hr = _getRCWData(Self, rcw, out data);
@@ -337,7 +342,16 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
                 return null;
 
-            return new MetaDataImport(iunk);
+            try
+            {
+                return new MetaDataImport(_library, iunk);
+            }
+            catch (InvalidOperationException)
+            {
+                // QueryInterface on MetaDataImport seems to fail when we don't have full
+                // metadata available.
+                return null;
+            }
         }
 
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
@@ -349,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         public ulong[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
         public ulong[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable->GetAssemblyList);
 
-        public bool GetAssemblyData(ulong domain, ulong assembly, out LegacyAssemblyData data)
+        public bool GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
         {
             InitDelegate(ref _getAssemblyData, VTable->GetAssemblyData);
 
@@ -360,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return SUCCEEDED(hr) || data.Address == assembly;
         }
 
-        public bool GetAppDomainData(ulong addr, out LegacyAppDomainData data)
+        public bool GetAppDomainData(ulong addr, out AppDomainData data)
         {
             InitDelegate(ref _getAppDomainData, VTable->GetAppDomainData);
 
@@ -384,14 +398,14 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return GetString(_getAssemblyName, assembly);
         }
 
-        public bool GetAppDomainStoreData(out LegacyAppDomainStoreData data)
+        public bool GetAppDomainStoreData(out AppDomainStoreData data)
         {
             InitDelegate(ref _getAppDomainStoreData, VTable->GetAppDomainStoreData);
             int hr = _getAppDomainStoreData(Self, out data);
             return SUCCEEDED(hr);
         }
 
-        public bool GetMethodTableData(ulong addr, out V45MethodTableData data)
+        public bool GetMethodTableData(ulong addr, out MethodTableData data)
         {
             InitDelegate(ref _getMethodTableData, VTable->GetMethodTableData);
             int hr = _getMethodTableData(Self, addr, out data);
@@ -440,7 +454,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         private byte[] AcquireBuffer(int size)
         {
             if (_buffer == null)
-                _buffer = new byte[256];
+                _buffer = new byte[CharBufferSize];
 
             if (size > _buffer.Length)
                 return new byte[size];
@@ -466,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         }
 
 
-        public bool GetModuleData(ulong module, out V45ModuleData data)
+        public bool GetModuleData(ulong module, out ModuleData data)
         {
             InitDelegate(ref _getModuleData, VTable->GetModuleData);
             int hr = _getModuleData(Self, module, out data);
@@ -502,10 +516,10 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
             if (count <= 0)
             {
-                if (!GetAppDomainStoreData(out LegacyAppDomainStoreData addata))
+                if (!GetAppDomainStoreData(out AppDomainStoreData addata))
                     return new ulong[0];
 
-                count = addata.Count;
+                count = addata.AppDomainCount;
             }
 
             ulong[] data = new ulong[count];
@@ -513,11 +527,11 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return hr == S_OK ? data : new ulong[0];
         }
 
-        public bool GetThreadData(ulong address, out V4ThreadData data)
+        public bool GetThreadData(ulong address, out ThreadData data)
         {
             if (address == 0)
             {
-                data = new V4ThreadData();
+                data = new ThreadData();
                 return false;
             }
 
@@ -527,14 +541,14 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return SUCCEEDED(hr);
         }
 
-        public bool GetGcHeapData(out LegacyGCInfo data)
+        public bool GetGcHeapData(out GCInfo data)
         {
             InitDelegate(ref _getGCHeapData, VTable->GetGCHeapData);
             int hr = _getGCHeapData(Self, out data);
             return SUCCEEDED(hr);
         }
 
-        public bool GetSegmentData(ulong addr, out V4SegmentData data)
+        public bool GetSegmentData(ulong addr, out SegmentData data)
         {
             InitDelegate(ref _getSegmentData, VTable->GetHeapSegmentData);
             int hr = _getSegmentData(Self, addr, out data);
@@ -550,44 +564,44 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return hr == S_OK ? refs : null;
         }
 
-        public bool GetServerHeapDetails(ulong addr, out V4HeapDetails data)
+        public bool GetServerHeapDetails(ulong addr, out HeapDetails data)
         {
             InitDelegate(ref _getGCHeapDetails, VTable->GetGCHeapDetails);
             int hr = _getGCHeapDetails(Self, addr, out data);
             return SUCCEEDED(hr);
         }
 
-        public bool GetWksHeapDetails(out V4HeapDetails data)
+        public bool GetWksHeapDetails(out HeapDetails data)
         {
             InitDelegate(ref _getGCHeapStaticData, VTable->GetGCHeapStaticData);
             int hr = _getGCHeapStaticData(Self, out data);
             return SUCCEEDED(hr);
         }
         
-        public LegacyJitManagerInfo[] GetJitManagers()
+        public JitManagerInfo[] GetJitManagers()
         {
             InitDelegate(ref _getJitManagers, VTable->GetJitManagerList);
             int hr = _getJitManagers(Self, 0, null, out int needed);
             if (hr != S_OK || needed == 0)
-                return new LegacyJitManagerInfo[0];
+                return new JitManagerInfo[0];
 
-            LegacyJitManagerInfo[] result = new LegacyJitManagerInfo[needed];
+            JitManagerInfo[] result = new JitManagerInfo[needed];
             hr = _getJitManagers(Self, result.Length, result, out needed);
 
-            return hr == S_OK ? result : new LegacyJitManagerInfo[0];
+            return hr == S_OK ? result : new JitManagerInfo[0];
         }
 
-        public LegacyJitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
+        public JitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
         {
             InitDelegate(ref _getCodeHeaps, VTable->GetCodeHeapList);
             int hr = _getCodeHeaps(Self, jitManager, 0, null, out int needed);
             if (hr != S_OK || needed == 0)
-                return new LegacyJitCodeHeapInfo[0];
+                return new JitCodeHeapInfo[0];
 
-            LegacyJitCodeHeapInfo[] result = new LegacyJitCodeHeapInfo[needed];
+            JitCodeHeapInfo[] result = new JitCodeHeapInfo[needed];
             hr = _getCodeHeaps(Self, jitManager, result.Length, result, out needed);
 
-            return hr == S_OK ? result : new LegacyJitCodeHeapInfo[0];
+            return hr == S_OK ? result : new JitCodeHeapInfo[0];
         }
 
         public enum ModuleMapTraverseKind
@@ -597,7 +611,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         }
         
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
+        public delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
 
         public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
@@ -607,8 +621,11 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             GC.KeepAlive(traverse);
             return hr == S_OK;
         }
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
 
-        public bool TraverseLoaderHeap(ulong heap, DesktopRuntimeBase.LoaderHeapTraverse callback)
+        public bool TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
         {
             InitDelegate(ref _traverseLoaderHeap, VTable->TraverseLoaderHeap);
 
@@ -617,7 +634,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             return hr == S_OK;
         }
 
-        public bool TraverseStubHeap(ulong heap, int type, DesktopRuntimeBase.LoaderHeapTraverse callback)
+        public bool TraverseStubHeap(ulong heap, int type, LoaderHeapTraverse callback)
         {
             InitDelegate(ref _traverseStubHeap, VTable->TraverseVirtCallStubHeap);
 
@@ -631,7 +648,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
 
             int hr = _getHandleEnum(Self, out IntPtr ptrEnum);
-            return hr == S_OK ? new SOSHandleEnum(ptrEnum) : null;
+            return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
         }
 
         public SOSStackRefEnum EnumerateStackRefs(uint osThreadId)
@@ -639,13 +656,13 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
             InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
 
             int hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
-            return hr == S_OK ? new SOSStackRefEnum(ptrEnum) : null;
+            return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
         }
 
         #region Delegates
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out V45MethodDescData data, int count, [Out] V45ReJitData[] rejitData, out int needed);
+        delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[] rejitData, out int needed);
         
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetIntPtr(IntPtr self, out IntPtr data);
@@ -663,13 +680,13 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         delegate int DacGetIntPtrWithArg(IntPtr self, ulong addr, out IntPtr data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetThreadData(IntPtr self, ulong addr, [Out] out V4ThreadData data);
+        delegate int DacGetThreadData(IntPtr self, ulong addr, [Out] out ThreadData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetHeapDetailsWithArg(IntPtr self, ulong addr, out V4HeapDetails data);
+        delegate int DacGetHeapDetailsWithArg(IntPtr self, ulong addr, out HeapDetails data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetHeapDetails(IntPtr self, out V4HeapDetails data);
+        delegate int DacGetHeapDetails(IntPtr self, out HeapDetails data);
         
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetUlongArray(IntPtr self, int count, [Out] ulong[] values, out int needed);
@@ -681,40 +698,40 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
         
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out LegacyAssemblyData data);
+        delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out AssemblyData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetADStoreData(IntPtr self, out LegacyAppDomainStoreData data);
+        delegate int DacGetADStoreData(IntPtr self, out AppDomainStoreData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetGCInfoData(IntPtr self, out LegacyGCInfo data);
+        delegate int DacGetGCInfoData(IntPtr self, out GCInfo data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetCommonMethodTables(IntPtr self, out CommonMethodTables data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetThreadPoolData(IntPtr self, out V45ThreadPoolData data);
+        delegate int DacGetThreadPoolData(IntPtr self, out ThreadPoolData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetThreadStoreData(IntPtr self, out LegacyThreadStoreData data);
+        delegate int DacGetThreadStoreData(IntPtr self, out ThreadStoreData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetMTData(IntPtr self, ulong addr, out V45MethodTableData data);
+        delegate int DacGetMTData(IntPtr self, ulong addr, out MethodTableData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetModuleData(IntPtr self, ulong addr, out V45ModuleData data);
+        delegate int DacGetModuleData(IntPtr self, ulong addr, out ModuleData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetSegmentData(IntPtr self, ulong addr, out V4SegmentData data);
+        delegate int DacGetSegmentData(IntPtr self, ulong addr, out SegmentData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetAppDomainData(IntPtr self, ulong addr, out LegacyAppDomainData data);
+        delegate int DacGetAppDomainData(IntPtr self, ulong addr, out AppDomainData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetJitManagerInfo(IntPtr self, ulong addr, out LegacyJitManagerInfo data);
+        delegate int DacGetJitManagerInfo(IntPtr self, ulong addr, out JitManagerInfo data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetSyncBlockData(IntPtr self, int index, out LegacySyncBlkData data);
+        delegate int DacGetSyncBlockData(IntPtr self, int index, out SyncBlockData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetCodeHeaderData(IntPtr self, ulong addr, out CodeHeaderData data);
@@ -723,37 +740,37 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
         delegate int DacGetFieldInfo(IntPtr self, ulong addr, out V4FieldInfo data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetFieldData(IntPtr self, ulong addr, out LegacyFieldData data);
+        delegate int DacGetFieldData(IntPtr self, ulong addr, out FieldData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetObjectData(IntPtr self, ulong addr, out V45ObjectData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetCCWData(IntPtr self, ulong addr, out V45CCWData data);
+        delegate int DacGetCCWData(IntPtr self, ulong addr, out CCWData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetRCWData(IntPtr self, ulong addr, out V45RCWData data);
+        delegate int DacGetRCWData(IntPtr self, ulong addr, out RCWData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetWorkRequestData(IntPtr self, ulong addr, out V45WorkRequestData data);
+        delegate int DacGetWorkRequestData(IntPtr self, ulong addr, out WorkRequestData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetLocalModuleData(IntPtr self, ulong addr, out V45DomainLocalModuleData data);
+        delegate int DacGetLocalModuleData(IntPtr self, ulong addr, out DomainLocalModuleData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ulong data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] LegacyJitCodeHeapInfo[] values, out int needed);
+        delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] JitCodeHeapInfo[] values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetCOMPointers(IntPtr self, ulong addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ulong appDomainAddr, int moduleID, out V45DomainLocalModuleData data);
+        delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ulong appDomainAddr, int moduleID, out DomainLocalModuleData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetThreadLocalModuleData(IntPtr self, ulong addr, uint id, out V45ThreadLocalModuleData data);
+        delegate int DacGetThreadLocalModuleData(IntPtr self, ulong addr, uint id, out ThreadLocalModuleData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacTraverseLoaderHeap(IntPtr self, ulong addr, IntPtr callback);
@@ -766,7 +783,7 @@ namespace Microsoft.Diagnostics.Runtime.ComWrappers
 
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetJitManagers(IntPtr self, int count, [Out] LegacyJitManagerInfo[] jitManagers, out int pNeeded);
+        delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[] jitManagers, out int pNeeded);
 
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

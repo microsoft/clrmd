@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.ComWrappers;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
@@ -22,6 +22,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// In .NET native crash dumps, we have a list of serialized exceptions objects. This property expose them as ClrException objects.
         /// </summary>
         public abstract IEnumerable<ClrException> EnumerateSerializedExceptions();
+
+        /// <summary>
+        /// Used for internal purposes.
+        /// </summary>
+        public DacLibrary DacLibrary { get; protected set; }
 
         /// <summary>
         /// The ClrInfo of the current runtime.
@@ -811,7 +816,6 @@ namespace Microsoft.Diagnostics.Runtime
     internal abstract class RuntimeBase : ClrRuntime
     {
         private static ulong[] s_emptyPointerArray = new ulong[0];
-        protected DacLibrary _library;
         protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
         protected IDataReader _dataReader;
@@ -823,7 +827,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_corDebugProcess == null)
-                    _corDebugProcess = ICorDebug.CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, _library.DacDataTarget, _dataTarget.FileLoader);
+                    _corDebugProcess = ICorDebug.CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, DacLibrary.DacDataTarget, _dataTarget.FileLoader);
 
                 return _corDebugProcess;
             }
@@ -832,12 +836,12 @@ namespace Microsoft.Diagnostics.Runtime
         public RuntimeBase(ClrInfo info, DataTargetImpl dataTarget, DacLibrary lib)
         {
             Debug.Assert(lib != null);
-            Debug.Assert(lib.DacInterface != null);
+            Debug.Assert(lib.DacPrivateInterface != null);
 
             ClrInfo = info;
             _dataTarget = dataTarget;
-            _library = lib;
-            _dacInterface = _library.DacInterface;
+            DacLibrary = lib;
+            _dacInterface = DacLibrary.DacPrivateInterface;
             InitApi();
 
             _dacInterface.Flush();

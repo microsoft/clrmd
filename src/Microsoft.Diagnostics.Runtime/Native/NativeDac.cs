@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Runtime.InteropServices;
@@ -81,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         [PreserveSig]
         int GetGcHeapAnalyzeData_do_not_use();//(CLRDATA_ADDRESS addr, struct DacpGcHeapAnalyzeData *pData);
         [PreserveSig]
-        int GetGCHeapData(out LegacyGCInfo pData);
+        int GetGCHeapData(out GCInfo pData);
         [PreserveSig]
         int GetGCHeapList(int count, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] ulong[] heaps, out int pNeeded);
         [PreserveSig]
@@ -371,10 +372,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public ulong alloc_allocated;
 
-        public V4GenerationData generation_table0;
-        public V4GenerationData generation_table1;
-        public V4GenerationData generation_table2;
-        public V4GenerationData generation_table3;
+        public GenerationData generation_table0;
+        public GenerationData generation_table1;
+        public GenerationData generation_table2;
+        public GenerationData generation_table3;
         public ulong ephemeral_heap_segment;
         public ulong finalization_fill_pointers0;
         public ulong finalization_fill_pointers1;
@@ -407,12 +408,12 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public ulong EphemeralAllocContextPtr
         {
-            get { return generation_table0.AllocContextPtr; }
+            get { return generation_table0.AllocationContextPointer; }
         }
 
         public ulong EphemeralAllocContextLimit
         {
-            get { return generation_table0.AllocContextLimit; }
+            get { return generation_table0.AllocationContextLimit; }
         }
 
         public ulong FQAllObjectsStart
