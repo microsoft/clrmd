@@ -5,7 +5,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class ExceptionTests
     {
-
         [Fact]
         public void ExceptionPropertyTest()
         {

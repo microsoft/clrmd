@@ -138,7 +138,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Contains("s_foo", staticRoot.Name);
 
                 var arr = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
-                ClrRoot localVarRoot = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).Single();
+
+                ClrRoot[] localVarRoots = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
 
                 ClrThread thread = runtime.GetMainThread();
                 ClrStackFrame main = thread.GetFrame("Main");
@@ -155,8 +156,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     high = tmp;
                 }
 
-
-                Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
+                foreach (ClrRoot localVarRoot in localVarRoots)
+                    Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
             }
         }
 

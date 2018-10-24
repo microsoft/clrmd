@@ -1,7 +1,8 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
-using Xunit;
+﻿using Xunit;
 using System;
 using System.IO;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -19,169 +20,80 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public class TestTargets
     {
-        static Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
-        static Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
-        static Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
-        static Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
-        static Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs", NestedException));
-        static Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
+        static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
+        static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
+        static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
+        static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
+        static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
+        static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
 
-        public static TestTarget GCRoot { get { return _gcroot.Value; } }
-        public static TestTarget NestedException { get { return _nestedException.Value; } }
-        public static ExceptionTestData NestedExceptionData = new ExceptionTestData();
-        public static TestTarget GCHandles { get { return _gcHandles.Value; } }
-        public static TestTarget Types { get { return _types.Value; } }
-        public static TestTarget AppDomains { get { return _appDomains.Value; } }
-        public static TestTarget FinalizationQueue { get { return _finalizationQueue.Value; } }
+        public static TestTarget GCRoot => _gcroot.Value;
+        public static TestTarget NestedException => _nestedException.Value;
+        public static ExceptionTestData NestedExceptionData => new ExceptionTestData();
+        public static TestTarget GCHandles => _gcHandles.Value;
+        public static TestTarget Types => _types.Value;
+        public static TestTarget AppDomains => _appDomains.Value;
+        public static TestTarget FinalizationQueue => _finalizationQueue.Value;
     }
 
     public class TestTarget
     {
-        static TestTarget _sharedLibrary = new TestTarget("SharedLibrary.cs", true);
+        public string Executable { get; }
 
-        private bool _isLibrary;
-        private string _source;
-        private string _executable;
-        private object _sync = new object();
-        private string[] _miniDumpPath = new string[2];
-        private string[] _fullDumpPath = new string[2];
+        public string Pdb { get; }
 
-        public string Executable
+        public string Source { get; }
+
+        private static string Architecture { get; }
+        private static string TestRoot { get; }
+
+        static TestTarget()
         {
-            get
+            Architecture = IntPtr.Size == 4 ? "x86" : "x64";
+
+            DirectoryInfo info = new DirectoryInfo(Environment.CurrentDirectory);
+            while (info.GetFiles(".gitignore").Length != 1)
+                info = info.Parent;
+
+            TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
+        }
+
+        public TestTarget(string source)
+        {
+            Source = Path.Combine(TestRoot, source);
+            if (!File.Exists(Source))
+                throw new FileNotFoundException($"Could not find source file: {source}");
+            
+            Executable = Path.Combine(Path.GetDirectoryName(Source), "bin", Architecture, Path.ChangeExtension(source, ".exe"));
+            Pdb = Path.ChangeExtension(Executable, ".pdb");
+
+            if (!File.Exists(Executable) || !File.Exists(Pdb))
             {
-                if (_executable == null)
-                    CompileSource();
-                return _executable;
+                string buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
+                throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: {buildTestAssets}");
             }
         }
 
-        public string Pdb
+        private string BuildDumpName(GCMode gcmode, bool full)
         {
-            get
-            {
-                return Path.ChangeExtension(Executable, "pdb");
-            }
-        }
+            string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
-        public string Source { get { return _source; } }
-        
-        public TestTarget(string source, bool isLibrary = false)
-        {
-            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
-            _isLibrary = isLibrary;
-        }
-
-        public TestTarget(string source, params TestTarget[] required)
-        {
-            _source = Path.Combine(Environment.CurrentDirectory, "Targets", source);
-            _isLibrary = false;
-
-            foreach (var item in required)
-                item.CompileSource();
+            string gc = gcmode == GCMode.Server ? "svr" : "wks";
+            string dumpType = full ? "" : "_mini";
+            filename = $"{filename}_{gc}{dumpType}.dmp";
+            return filename;
         }
 
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
         {
-            string path = GetMiniDumpName(Executable, gc);
-            if (File.Exists(path))
-                return DataTarget.LoadCrashDump(path);
-
-            WriteCrashDumps(gc);
-
-            return DataTarget.LoadCrashDump(_miniDumpPath[(int)gc]);
+            string path = BuildDumpName(gc, full: false);
+            return DataTarget.LoadCrashDump(path);
         }
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
         {
-            string path = GetFullDumpName(Executable, gc);
-            if (File.Exists(path))
-                return DataTarget.LoadCrashDump(path);
-
-            WriteCrashDumps(gc);
-
-            return DataTarget.LoadCrashDump(_fullDumpPath[(int)gc]);
-        }
-
-        void CompileSource()
-        {
-            if (_executable != null)
-                return;
-
-            // Don't recompile if it's there.
-            string destination = GetOutputAssembly();
-            if (!File.Exists(destination))
-                _executable = CompileCSharp(_source, destination, _isLibrary);
-            else
-                _executable = destination;
-        }
-
-        private string GetOutputAssembly()
-        {
-            string extension = _isLibrary ? "dll" : "exe";
-            return Path.Combine(Helpers.TestWorkingDirectory, Path.ChangeExtension(Path.GetFileNameWithoutExtension(_source), extension));
-        }
-
-        private static string CompileCSharp(string source, string destination, bool isLibrary)
-        {
-            return null;
-        }
-
-        private void WriteCrashDumps(GCMode gc)
-        {
-            if (_fullDumpPath[(int)gc] != null)
-                return;
-
-            string executable = Executable;
-            DebuggerStartInfo info = new DebuggerStartInfo();
-            if (gc == GCMode.Server)
-                info.SetEnvironmentVariable("COMPlus_BuildFlavor", "svr");
-
-            using (Debugger dbg = info.LaunchProcess(executable, Helpers.TestWorkingDirectory))
-            {
-                dbg.SecondChanceExceptionEvent += delegate (Debugger d, EXCEPTION_RECORD64 ex)
-                {
-                    if (ex.ExceptionCode == (uint)ExceptionTypes.Clr)
-                        WriteDumps(dbg, executable, gc);
-                };
-
-                DEBUG_STATUS status;
-                do
-                {
-                    status = dbg.ProcessEvents(0xffffffff);
-                } while (status != DEBUG_STATUS.NO_DEBUGGEE);
-
-                Assert.NotNull(_miniDumpPath[(int)gc]);
-                Assert.NotNull(_fullDumpPath[(int)gc]);
-            }
-        }
-
-        private void WriteDumps(Debugger dbg, string exe, GCMode gc)
-        {
-            string dump = GetMiniDumpName(exe, gc);
-            dbg.WriteDumpFile(dump, DEBUG_DUMP.SMALL);
-            _miniDumpPath[(int)gc] = dump;
-
-            dump = GetFullDumpName(exe, gc);
-            dbg.WriteDumpFile(dump, DEBUG_DUMP.DEFAULT);
-            _fullDumpPath[(int)gc] = dump;
-
-            dbg.TerminateProcess();
-        }
-
-        private static string GetMiniDumpName(string executable, GCMode gc)
-        {
-            string basePath = Path.Combine(Path.GetDirectoryName(executable), Path.GetFileNameWithoutExtension(executable));
-            basePath += gc == GCMode.Workstation ? "_wks" : "_svr";
-            basePath += "_mini.dmp";
-            return basePath;
-        }
-        private static string GetFullDumpName(string executable, GCMode gc)
-        {
-            string basePath = Path.Combine(Path.GetDirectoryName(executable), Path.GetFileNameWithoutExtension(executable));
-            basePath += gc == GCMode.Workstation ? "_wks" : "_svr";
-            basePath += "_full.dmp";
-            return basePath;
+            string path = BuildDumpName(gc, full: true);
+            return DataTarget.LoadCrashDump(path);
         }
     }
 }

@@ -15,28 +15,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                List<ClrHandle> handles = new List<ClrHandle>();
-
-                bool cont;
-                do
-                {
-                    cont = false;
-                    int i = 0;
-                    foreach (var hnd in runtime.EnumerateHandles())
-                    {
-                        if (i > handles.Count)
-                            break;
-
-                        if (i == handles.Count)
-                        {
-                            cont = true;
-                            handles.Add(hnd);
-                            break;
-                        }
-
-                        Assert.Equal(handles[i++], hnd);
-                    }
-                } while (cont);
+                List<ClrHandle> handles = new List<ClrHandle>(runtime.EnumerateHandles());
+                
+                int i = 0;
+                foreach (var hnd in runtime.EnumerateHandles())
+                    Assert.Equal(handles[i++], hnd);
 
                 // We create at least this many handles in the test, plus the runtime uses some.
                 Assert.True(handles.Count > 4);
