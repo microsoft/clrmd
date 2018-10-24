@@ -74,13 +74,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     for (int i = 0; i < fetched; i++)
                     {
                         ClrHandle handle = new ClrHandle(this, Heap, handles[i]);
-                        _handles.Add(handle);
+                        result.Add(handle);
                         yield return handle;
 
                         handle = handle.GetInteriorHandle();
                         if (handle != null)
                         {
-                            _handles.Add(handle);
+                            result.Add(handle);
                             yield return handle;
                         }
                     }
