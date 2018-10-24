@@ -1294,8 +1294,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void SetClientInstance()
         {
-            Debug.Assert(s_totalInstanceCount > 0);
-
             if (_systemObjects3 != null && s_totalInstanceCount > 1)
                 _systemObjects3.SetCurrentSystemId(_instance);
         }
