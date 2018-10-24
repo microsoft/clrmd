@@ -21,8 +21,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (mdData == null)
                 return null;
+            
+            MethodAttributes attrs = new MethodAttributes();
+            if (metadata != null)
+                attrs = metadata.GetMethodAttributes((int)mdData.MDToken);
 
-            MethodAttributes attrs = metadata.GetMethodAttributes((int)mdData.MDToken);
             return new DesktopMethod(runtime, mdData.MethodDesc, mdData, attrs);
         }
         
