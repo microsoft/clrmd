@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime
                 dac = _dataTarget.SymbolLocator.FindBinary(DacInfo);
 
             if (!File.Exists(dac))
-                throw new FileNotFoundException(DacInfo.FileName);
+                throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.FileName);
 
             if (IntPtr.Size != (int)_dataTarget.DataReader.GetPointerSize())
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrRuntime CreateRuntime(object clrDataProcess)
         {
-            DacLibrary lib = new DacLibrary(_dataTarget, clrDataProcess);
+            DacLibrary lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
 
             // Figure out what version we are on.
             if (lib.SOSDacInterface != null)
@@ -1197,7 +1197,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal DacLibrary(DataTargetImpl dataTarget, object ix)
+        internal static IntPtr TryGetDacPtr(object ix)
         {
             if (!(ix is IntPtr pUnk))
             {
@@ -1210,10 +1210,15 @@ namespace Microsoft.Diagnostics.Runtime
             if (pUnk == IntPtr.Zero)
                 throw new ArgumentException("clrDataProcess not an instance of IXCLRDataProcess");
 
+            return pUnk;
+        }
+
+        internal DacLibrary(DataTargetImpl dataTarget, IntPtr pUnk)
+        {
             DacPrivateInterface = new ClrDataProcess(this, pUnk);
         }
 
-        internal DacLibrary(DataTargetImpl dataTarget, string dacDll)
+        public DacLibrary(DataTarget dataTarget, string dacDll)
         {
             if (dataTarget.ClrVersions.Count == 0)
                 throw new ClrDiagnosticsException(String.Format("Process is not a CLR process!"));

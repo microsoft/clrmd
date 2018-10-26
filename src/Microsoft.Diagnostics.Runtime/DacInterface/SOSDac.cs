@@ -510,7 +510,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return modules;
         }
 
-        internal ulong[] GetAppDomainList(int count = 0)
+        public ulong[] GetAppDomainList(int count = 0)
         {
             InitDelegate(ref _getAppDomainList, VTable->GetAppDomainList);
 
