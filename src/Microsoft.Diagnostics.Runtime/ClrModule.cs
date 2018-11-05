@@ -9,7 +9,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrModule
     {
-        internal virtual ulong Address { get { return 0; } }
+        /// <summary>
+        /// This is the address of the clr!Module object.
+        /// </summary>
+        public virtual ulong Address { get { return 0; } }
 
         /// <summary>
         /// Gets the runtime which contains this module.
