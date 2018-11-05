@@ -61,9 +61,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // Useful for breaking when a method is jitted.
         public readonly ulong AddressOfNativeCodeSlot;
 
-        public readonly ulong MethodDescPtr;
-        public readonly ulong MethodTablePtr;
-        public readonly ulong ModulePtr;
+        public readonly ulong MethodDesc;
+        public readonly ulong MethodTable;
+        public readonly ulong Module;
 
         public readonly uint MDToken;
         public readonly ulong GCInfo;
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public readonly ulong GCInfo;
         public readonly uint JITType;
-        public readonly ulong MethodDescPtr;
+        public readonly ulong MethodDesc;
         public readonly ulong MethodStart;
         public readonly uint MethodSize;
         public readonly ulong ColdRegionStart;
@@ -268,7 +268,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public readonly struct COMInterfacePointerData
     {
         public readonly ulong MethodTable;
-        public readonly ulong InterfacePtr;
+        public readonly ulong InterfacePointer;
         public readonly ulong ComContext;
     }
 

@@ -406,7 +406,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             for (int i = 0; i < numMethods; ++i)
                 if (_sos.GetCodeHeaderData(_sos.GetMethodTableSlot(methodTable, i), out CodeHeaderData header))
-                    mds[i] = header.MethodDescPtr;
+                    mds[i] = header.MethodDesc;
 
             return mds;
         }
@@ -549,7 +549,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
                     return null;
 
-                if ((md = codeHeaderData.MethodDescPtr) == 0)
+                if ((md = codeHeaderData.MethodDesc) == 0)
                     return null;
             }
 
@@ -646,11 +646,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!sos.GetMethodDescData(md, 0, out MethodDescData data))
                 return false;
 
-            _md = data.MethodDescPtr;
+            _md = data.MethodDesc;
             _ip = data.NativeCodeAddr;
-            _module = data.ModulePtr;
+            _module = data.Module;
             _token = data.MDToken;
-            _mt = data.MethodTablePtr;
+            _mt = data.MethodTable;
 
             if (sos.GetCodeHeaderData(data.NativeCodeAddr, out CodeHeaderData header))
             {

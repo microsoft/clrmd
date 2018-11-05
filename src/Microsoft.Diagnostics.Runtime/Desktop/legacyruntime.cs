@@ -495,7 +495,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 CodeHeaderData codeHeaderData = new CodeHeaderData();
                 if (RequestStruct<CodeHeaderData>(DacRequests.CODEHEADER_DATA, ip, ref codeHeaderData))
-                    return codeHeaderData.MethodDescPtr;
+                    return codeHeaderData.MethodDesc;
             }
 
             return data != null ? data.MethodDesc : 0;
@@ -675,7 +675,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 if (!RequestStruct<CodeHeaderData>(DacRequests.CODEHEADER_DATA, ip, ref codeHeader))
                     continue;
-                values[i] = codeHeader.MethodDescPtr;
+                values[i] = codeHeader.MethodDesc;
             }
 
             return values;
@@ -781,7 +781,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 CodeHeaderData codeHeaderData = new CodeHeaderData();
 
                 if (RequestStruct<CodeHeaderData>(DacRequests.CODEHEADER_DATA, addr, ref codeHeaderData))
-                    result = GetMethodDescData(DacRequests.METHODDESC_DATA, codeHeaderData.MethodDescPtr);
+                    result = GetMethodDescData(DacRequests.METHODDESC_DATA, codeHeaderData.MethodDesc);
             }
 
             return result;
