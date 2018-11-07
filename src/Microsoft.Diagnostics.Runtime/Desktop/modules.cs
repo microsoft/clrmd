@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _metadata = new MetaDataImport(runtime.DacLibrary, data.LegacyMetaDataImport);
         }
 
-        internal override ulong Address
+        public override ulong Address
         {
             get
             {

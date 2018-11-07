@@ -81,6 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private DacGetThreadStoreData _getThreadStoreData;
         private GetMethodDescDataDelegate _getMethodDescData;
         private GetMetaDataImportDelegate _getMetaData;
+        private GetMethodDescFromTokenDelegate _getMethodDescFromToken;
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
@@ -510,7 +511,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return modules;
         }
 
-        internal ulong[] GetAppDomainList(int count = 0)
+        public ulong[] GetAppDomainList(int count = 0)
         {
             InitDelegate(ref _getAppDomainList, VTable->GetAppDomainList);
 
@@ -659,7 +660,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
         }
 
+        public ulong GetMethodDescFromToken(ulong module, uint token)
+        {
+            InitDelegate(ref _getMethodDescFromToken, VTable->GetMethodDescFromToken);
+
+            int hr = _getMethodDescFromToken(Self, module, token, out ulong md);
+            return hr == S_OK ? md : 0;
+        }
+
+
         #region Delegates
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);
+
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[] rejitData, out int needed);
