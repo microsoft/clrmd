@@ -8,7 +8,7 @@
     <PackageReleaseNotes>$(Description)</PackageReleaseNotes>
     <PackageTags></PackageTags>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyOriginatorKeyFile>..\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\eng\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
     <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
@@ -17,4 +17,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net45|AnyCPU'">
     <DefineConstants>TRACE;NET45</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="License-Stable.rtf">
+      <Pack>true</Pack>
+
+      <!-- Put this file in the root of the package -->
+      <PackagePath></PackagePath>
+    </Content>
+  </ItemGroup>
 </Project>
