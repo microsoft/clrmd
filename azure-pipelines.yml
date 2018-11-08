@@ -1,5 +1,6 @@
 variables:
   Build.Repository.Clean: true
+  _TeamName: DotNetCore
   
   # Variables for public PR builds
   ${{ if or(eq(variables['System.TeamProject'], 'public'), in(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.DefinitionName'], 'github')) }}:
@@ -10,9 +11,8 @@ variables:
   ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.DefinitionName'], 'official')) }}:
     _HelixType: build/product
     _HelixSource: official/Microsoft/clrmd/$(Build.SourceBranch)
-    SignType: test
-    TeamName: DotNetCore
-    _SignArgs: /p:DotNetSignType=$(SignType) /p:TeamName=$(TeamName)
+    _SignType: test
+    _SignArgs: /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName)
     _OfficialBuildIdArgs: /p:OfficialBuildId=$(Build.BuildNumber)
  
 resources:
