@@ -10,9 +10,9 @@ variables:
   ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.DefinitionName'], 'official')) }}:
     _HelixType: build/product
     _HelixSource: official/Microsoft/clrmd/$(Build.SourceBranch)
-    _SignType: test
-    _TeamName: DotNetCore
-    _SignArgs: /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName)
+    SignType: test
+    TeamName: DotNetCore
+    _SignArgs: /p:DotNetSignType=$(SignType) /p:TeamName=$(TeamName)
     _OfficialBuildIdArgs: /p:OfficialBuildId=$(Build.BuildNumber)
  
 resources:
@@ -41,7 +41,7 @@ phases:
       ${{ if or(eq(variables['System.TeamProject'], 'public'), in(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.DefinitionName'], 'github')) }}:
         name: dotnet-external-temp
       ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.DefinitionName'], 'official')) }}:
-        name: DotNetCore-Windows
+        name: dotnet-internal-temp
       parallel: 99
       matrix:
         debug:
