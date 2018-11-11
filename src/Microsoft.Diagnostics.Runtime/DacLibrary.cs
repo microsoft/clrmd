@@ -94,6 +94,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         ~DacLibrary()
         {
+            if (Environment.HasShutdownStarted)
+                return;
             if (_library != IntPtr.Zero)
                 DataTarget.PlatformFunctions.FreeLibrary(_library);
         }
