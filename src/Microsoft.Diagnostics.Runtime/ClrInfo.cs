@@ -68,21 +68,27 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrRuntime CreateRuntime(object clrDataProcess)
         {
             DacLibrary lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
-
-            // Figure out what version we are on.
-            if (lib.SOSDacInterface != null)
+            try
             {
-                return new V45Runtime(this, _dataTarget, lib);
-            }
-            else
-            {
-                byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
-
-                int val = lib.DacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
-                if ((uint)val == 0x80070057)
-                    return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
+                // Figure out what version we are on.
+                if (lib.SOSDacInterface != null)
+                {
+                    return new V45Runtime(this, _dataTarget, lib);
+                }
                 else
-                    return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v2, 3054);
+                {
+                    byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
+
+                    int val = lib.DacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+                    if ((uint)val == 0x80070057)
+                        return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
+                    else
+                        return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v2, 3054);
+                }
+            }
+            finally
+            {
+                lib.Release();
             }
         }
 
@@ -120,31 +126,37 @@ namespace Microsoft.Diagnostics.Runtime
                 _dataTarget.SymbolLocator.PrefetchBinary(ModuleInfo.FileName, (int)ModuleInfo.TimeStamp, (int)ModuleInfo.FileSize);
 
             DacLibrary lib = new DacLibrary(_dataTarget, dac);
+            try
+            {
+                Desktop.DesktopVersion ver;
+                if (Flavor == ClrFlavor.Core)
+                {
+                    return new Desktop.V45Runtime(this, _dataTarget, lib);
+                }
+                else if (Flavor == ClrFlavor.Native)
+                {
+                    return new Native.NativeRuntime(this, _dataTarget, lib);
+                }
+                else if (Version.Major == 2)
+                {
+                    ver = Desktop.DesktopVersion.v2;
+                }
+                else if (Version.Major == 4 && Version.Minor == 0 && Version.Patch < 10000)
+                {
+                    ver = Desktop.DesktopVersion.v4;
+                }
+                else
+                {
+                    // Assume future versions will all work on the newest runtime version.
+                    return new Desktop.V45Runtime(this, _dataTarget, lib);
+                }
 
-            Desktop.DesktopVersion ver;
-            if (Flavor == ClrFlavor.Core)
-            {
-                return new Desktop.V45Runtime(this, _dataTarget, lib);
+                return new Desktop.LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
             }
-            else if (Flavor == ClrFlavor.Native)
+            finally
             {
-                return new Native.NativeRuntime(this, _dataTarget, lib);
+                lib.Release();
             }
-            else if (Version.Major == 2)
-            {
-                ver = Desktop.DesktopVersion.v2;
-            }
-            else if (Version.Major == 4 && Version.Minor == 0 && Version.Patch < 10000)
-            {
-                ver = Desktop.DesktopVersion.v4;
-            }
-            else
-            {
-                // Assume future versions will all work on the newest runtime version.
-                return new Desktop.V45Runtime(this, _dataTarget, lib);
-            }
-
-            return new Desktop.LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
         }
 
         /// <summary>

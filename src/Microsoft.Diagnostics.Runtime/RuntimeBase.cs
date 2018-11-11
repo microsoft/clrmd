@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrInfo = info;
             _dataTarget = dataTarget;
-            DacLibrary = lib;
+            DacLibrary = lib.AddRef();
             _dacInterface = DacLibrary.DacPrivateInterface;
             InitApi();
 

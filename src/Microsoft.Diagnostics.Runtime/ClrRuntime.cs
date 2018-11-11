@@ -16,8 +16,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents a single runtime in a target process or crash dump.  This serves as the primary
     /// entry point for getting diagnostic information.
     /// </summary>
-    public abstract class ClrRuntime
+    public abstract class ClrRuntime : IDisposable
     {
+        private bool _disposed;
+
         /// <summary>
         /// In .NET native crash dumps, we have a list of serialized exceptions objects. This property expose them as ClrException objects.
         /// </summary>
@@ -299,6 +301,23 @@ namespace Microsoft.Diagnostics.Runtime
                 default:
                     return null;
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                DacLibrary.Release();
+                _disposed = true;
+            }
+        }
+
+        ~ClrRuntime() => Dispose(false);
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

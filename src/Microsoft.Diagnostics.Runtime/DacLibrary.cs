@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -11,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IntPtr _library;
         private SOSDac _sos;
+        private int _refCount;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
@@ -45,11 +48,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal DacLibrary(DataTargetImpl dataTarget, IntPtr pUnk)
         {
+            _refCount = 1;
             DacPrivateInterface = new ClrDataProcess(this, pUnk);
         }
 
         public DacLibrary(DataTarget dataTarget, string dacDll)
         {
+            _refCount = 1;
             if (dataTarget.ClrVersions.Count == 0)
                 throw new ClrDiagnosticsException(String.Format("Process is not a CLR process!"));
 
@@ -92,8 +97,18 @@ namespace Microsoft.Diagnostics.Runtime
                                IntPtr dacDataInterface,
                                out IntPtr ppObj);
 
-        ~DacLibrary()
+        public DacLibrary AddRef()
         {
+            Interlocked.Increment(ref _refCount);
+            return this;
+        }
+
+        public void Release()
+        {
+            int newRefCount = Interlocked.Decrement(ref _refCount);
+            Debug.Assert(newRefCount >= 0);
+            if (newRefCount != 0)
+                return;
             if (_library != IntPtr.Zero)
                 DataTarget.PlatformFunctions.FreeLibrary(_library);
         }
