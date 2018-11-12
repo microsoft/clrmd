@@ -504,9 +504,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         ulong IAppDomainStoreData.SystemDomain => SystemDomain;
         int IAppDomainStoreData.Count => AppDomainCount;
     }
-
+    
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ThreadData : IThreadData
+    public struct ThreadData : IThreadData
     {
         public readonly uint ManagedThreadId;
         public readonly uint OSThreadId;
@@ -524,11 +524,36 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong LastThrownObjectHandle;
         public readonly ulong NextThread;
 
-        ulong IThreadData.Next => IntPtr.Size == 8 ? NextThread : (uint)NextThread;
-        ulong IThreadData.AllocPtr => IntPtr.Size == 8 ? AllocationContextPointer : (uint)AllocationContextPointer;
-        ulong IThreadData.AllocLimit => IntPtr.Size == 8 ? AllocationContextLimit : (uint)AllocationContextLimit;
+        internal ThreadData(ref ThreadData other)
+        {
+            this = other;
+
+            // Sign extension issues
+            unchecked
+            {
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref AllocationContextPointer);
+                    FixupPointer(ref AllocationContextLimit);
+                    FixupPointer(ref Context);
+                    FixupPointer(ref Domain);
+                    FixupPointer(ref Frame);
+                    FixupPointer(ref FirstNestedException);
+                    FixupPointer(ref Teb);
+                    FixupPointer(ref FiberData);
+                    FixupPointer(ref LastThrownObjectHandle);
+                    FixupPointer(ref NextThread);
+                }
+            }
+        }
+
+        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
+
+        ulong IThreadData.Next => NextThread;
+        ulong IThreadData.AllocPtr => AllocationContextPointer;
+        ulong IThreadData.AllocLimit => AllocationContextLimit;
         uint IThreadData.OSThreadID => OSThreadId;
-        ulong IThreadData.Teb => IntPtr.Size == 8 ? Teb : (uint)Teb;
+        ulong IThreadData.Teb => Teb;
         ulong IThreadData.AppDomain => Domain;
         uint IThreadData.LockCount => LockCount;
         int IThreadData.State => State;
@@ -566,6 +591,30 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr Flags;
         public readonly ulong BackgroundAllocated;
 
+        internal SegmentData(ref SegmentData data)
+        {
+            this = data;
+            
+            // Sign extension issues
+            unchecked
+            {
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref Address);
+                    FixupPointer(ref Allocated);
+                    FixupPointer(ref Committed);
+                    FixupPointer(ref Reserved);
+                    FixupPointer(ref Used);
+                    FixupPointer(ref Mem);
+                    FixupPointer(ref Next);
+                    FixupPointer(ref Heap);
+                    FixupPointer(ref HighAllocMark);
+                    FixupPointer(ref BackgroundAllocated);
+                }
+            }
+        }
+        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
+
         ulong ISegmentData.Address => Address;
         ulong ISegmentData.Next => Next;
         ulong ISegmentData.Start => Mem;
@@ -583,6 +632,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // These are examined only for generation 0, otherwise NULL
         public readonly ulong AllocationContextPointer;
         public readonly ulong AllocationContextLimit;
+
+        internal GenerationData(ref GenerationData other)
+        {
+            this = other;
+
+            unchecked
+            {
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref StartSegment);
+                    FixupPointer(ref AllocationStart);
+                    FixupPointer(ref AllocationContextPointer);
+                    FixupPointer(ref AllocationContextLimit);
+                }
+            }
+        }
+
+        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -607,6 +674,40 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong LowestAddress;
         public readonly ulong HighestAddress;
         public readonly ulong CardTable;
+
+        internal HeapDetails(ref HeapDetails other)
+        {
+            this = other;
+
+            unchecked
+            {
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref Address);
+                    FixupPointer(ref Allocated);
+                    FixupPointer(ref MarkArray);
+                    FixupPointer(ref CAllocateLH);
+                    FixupPointer(ref NextSweepObj);
+                    FixupPointer(ref SavedSweepEphemeralSeg);
+                    FixupPointer(ref SavedSweepEphemeralStart);
+                    FixupPointer(ref BackgroundSavedHighestAddress);
+                    FixupPointer(ref BackgroundSavedLowestAddress);
+
+                    FixupPointer(ref EphemeralHeapSegment);
+                    FixupPointer(ref LowestAddress);
+                    FixupPointer(ref HighestAddress);
+                    FixupPointer(ref CardTable);
+
+                    for (int i = 0; i < FinalizationFillPointers.Length; i++)
+                        FixupPointer(ref FinalizationFillPointers[i]);
+
+                    for (int i = 0; i < GenerationTable.Length; i++)
+                        GenerationTable[i] = new GenerationData(ref GenerationTable[i]);
+                }
+            }
+        }
+
+        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
 
         ulong IHeapDetails.FirstHeapSegment => GenerationTable[2].StartSegment;
 

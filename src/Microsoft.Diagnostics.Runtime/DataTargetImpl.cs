@@ -17,6 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         private Architecture _architecture;
         private Lazy<ClrInfo[]> _versions;
         private Lazy<ModuleInfo[]> _modules;
+        private List<DacLibrary> _dacLibraries = new List<DacLibrary>(2);
         
         public DataTargetImpl(IDataReader dataReader, IDebugClient client)
         {
@@ -159,6 +160,10 @@ namespace Microsoft.Diagnostics.Runtime
         public override void Dispose()
         {
             _dataReader.Close();
+            foreach (DacLibrary library in _dacLibraries)
+                library.Dispose();
         }
+
+        internal override void AddDacLibrary(DacLibrary dacLibrary) => _dacLibraries.Add(dacLibrary);
     }
 }

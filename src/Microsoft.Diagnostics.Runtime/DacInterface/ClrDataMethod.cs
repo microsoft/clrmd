@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetILAddressMapDelegate _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
-            : base(library, ref IID_IXCLRDataMethodInstance, pUnk)
+            : base(library.OwningLibrary, ref IID_IXCLRDataMethodInstance, pUnk)
         {
         }
         
