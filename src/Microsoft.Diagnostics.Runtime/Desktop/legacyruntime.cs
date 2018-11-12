@@ -148,7 +148,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IThreadData, V2ThreadData>(DacRequests.THREAD_DATA, input);
 
-            return Request<IThreadData, ThreadData>(DacRequests.THREAD_DATA, input);
+            ThreadData result = (ThreadData)Request<IThreadData, ThreadData>(DacRequests.THREAD_DATA, input);
+            if (IntPtr.Size == 4)
+                result = new ThreadData(ref result);
+            return result;
         }
 
         internal override IHeapDetails GetSvrHeapDetails(ulong addr)
@@ -156,7 +159,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IHeapDetails, V2HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
 
-            return Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
+            HeapDetails result = (HeapDetails)Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
+            result = new HeapDetails(ref result);
+            return result;
         }
 
         internal override IHeapDetails GetWksHeapDetails()
@@ -164,7 +169,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IHeapDetails, V2HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
 
-            return Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
+            HeapDetails result = (HeapDetails)Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
+            result = new HeapDetails(ref result);
+            return result;
         }
 
         internal override ulong[] GetServerHeapList()
@@ -209,7 +216,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<ISegmentData, V2SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
 
-            return Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
+            SegmentData result = (SegmentData)Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
+            if (IntPtr.Size == 4)
+                result = new SegmentData(ref result);
+
+            return result;
         }
 
         internal override string GetAppDomaminName(ulong addr)
