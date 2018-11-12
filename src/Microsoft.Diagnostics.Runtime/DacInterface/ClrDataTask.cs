@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private ClrDataTaskVTable* VTable => (ClrDataTaskVTable*)_vtable;
 
         public ClrDataTask(DacLibrary library, IntPtr pUnk)
-            : base(library, ref IID_IXCLRDataTask, pUnk)
+            : base(library.OwningLibrary, ref IID_IXCLRDataTask, pUnk)
         {
         }
 

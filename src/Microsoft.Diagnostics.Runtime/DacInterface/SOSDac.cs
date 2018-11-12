@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly DacLibrary _library;
 
         public SOSDac(DacLibrary library, IntPtr ptr)
-            : base(library, ref IID_ISOSDac, ptr)
+            : base(library.OwningLibrary, ref IID_ISOSDac, ptr)
         {
             _library = library;
         }

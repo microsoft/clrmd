@@ -274,5 +274,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// IDisposable implementation.
         /// </summary>
         public abstract void Dispose();
+
+        internal abstract void AddDacLibrary(DacLibrary dacLibrary);
     }
 }

@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private int[] _tokens;
 
         public MetaDataImport(DacLibrary library, IntPtr pUnknown)
-            : base(library, ref IID_IMetaDataImport, pUnknown)
+            : base(library.OwningLibrary, ref IID_IMetaDataImport, pUnknown)
         {
         }
 

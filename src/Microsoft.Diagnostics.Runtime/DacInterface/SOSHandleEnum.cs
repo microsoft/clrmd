@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly Next _next;
 
         public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
-            : base(library, ref IID_ISOSHandleEnum, pUnk)
+            : base(library.OwningLibrary, ref IID_ISOSHandleEnum, pUnk)
         {
             ISOSHandleEnumVTable* vtable = (ISOSHandleEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);
