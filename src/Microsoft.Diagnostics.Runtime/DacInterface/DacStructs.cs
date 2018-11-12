@@ -529,18 +529,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             this = other;
 
             // Sign extension issues
-            if (IntPtr.Size == 4)
+            unchecked
             {
-                FixupPointer(ref AllocationContextPointer);
-                FixupPointer(ref AllocationContextLimit);
-                FixupPointer(ref Context);
-                FixupPointer(ref Domain);
-                FixupPointer(ref Frame);
-                FixupPointer(ref FirstNestedException);
-                FixupPointer(ref Teb);
-                FixupPointer(ref FiberData);
-                FixupPointer(ref LastThrownObjectHandle);
-                FixupPointer(ref NextThread);
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref AllocationContextPointer);
+                    FixupPointer(ref AllocationContextLimit);
+                    FixupPointer(ref Context);
+                    FixupPointer(ref Domain);
+                    FixupPointer(ref Frame);
+                    FixupPointer(ref FirstNestedException);
+                    FixupPointer(ref Teb);
+                    FixupPointer(ref FiberData);
+                    FixupPointer(ref LastThrownObjectHandle);
+                    FixupPointer(ref NextThread);
+                }
             }
         }
 
@@ -591,21 +594,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal SegmentData(ref SegmentData data)
         {
             this = data;
-
-
+            
             // Sign extension issues
-            if (IntPtr.Size == 4)
+            unchecked
             {
-                FixupPointer(ref Address);
-                FixupPointer(ref Allocated);
-                FixupPointer(ref Committed);
-                FixupPointer(ref Reserved);
-                FixupPointer(ref Used);
-                FixupPointer(ref Mem);
-                FixupPointer(ref Next);
-                FixupPointer(ref Heap);
-                FixupPointer(ref HighAllocMark);
-                FixupPointer(ref BackgroundAllocated);
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref Address);
+                    FixupPointer(ref Allocated);
+                    FixupPointer(ref Committed);
+                    FixupPointer(ref Reserved);
+                    FixupPointer(ref Used);
+                    FixupPointer(ref Mem);
+                    FixupPointer(ref Next);
+                    FixupPointer(ref Heap);
+                    FixupPointer(ref HighAllocMark);
+                    FixupPointer(ref BackgroundAllocated);
+                }
             }
         }
         private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
@@ -631,10 +636,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal GenerationData(ref GenerationData other)
         {
             this = other;
-            FixupPointer(ref StartSegment);
-            FixupPointer(ref AllocationStart);
-            FixupPointer(ref AllocationContextPointer);
-            FixupPointer(ref AllocationContextLimit);
+
+            unchecked
+            {
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref StartSegment);
+                    FixupPointer(ref AllocationStart);
+                    FixupPointer(ref AllocationContextPointer);
+                    FixupPointer(ref AllocationContextLimit);
+                }
+            }
         }
 
         private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
@@ -667,28 +679,31 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             this = other;
 
-            if (IntPtr.Size == 4)
+            unchecked
             {
-                FixupPointer(ref Address);
-                FixupPointer(ref Allocated);
-                FixupPointer(ref MarkArray);
-                FixupPointer(ref CAllocateLH);
-                FixupPointer(ref NextSweepObj);
-                FixupPointer(ref SavedSweepEphemeralSeg);
-                FixupPointer(ref SavedSweepEphemeralStart);
-                FixupPointer(ref BackgroundSavedHighestAddress);
-                FixupPointer(ref BackgroundSavedLowestAddress);
+                if (IntPtr.Size == 4)
+                {
+                    FixupPointer(ref Address);
+                    FixupPointer(ref Allocated);
+                    FixupPointer(ref MarkArray);
+                    FixupPointer(ref CAllocateLH);
+                    FixupPointer(ref NextSweepObj);
+                    FixupPointer(ref SavedSweepEphemeralSeg);
+                    FixupPointer(ref SavedSweepEphemeralStart);
+                    FixupPointer(ref BackgroundSavedHighestAddress);
+                    FixupPointer(ref BackgroundSavedLowestAddress);
 
-                FixupPointer(ref EphemeralHeapSegment);
-                FixupPointer(ref LowestAddress);
-                FixupPointer(ref HighestAddress);
-                FixupPointer(ref CardTable);
+                    FixupPointer(ref EphemeralHeapSegment);
+                    FixupPointer(ref LowestAddress);
+                    FixupPointer(ref HighestAddress);
+                    FixupPointer(ref CardTable);
 
-                for (int i = 0; i < FinalizationFillPointers.Length; i++)
-                    FixupPointer(ref FinalizationFillPointers[i]);
+                    for (int i = 0; i < FinalizationFillPointers.Length; i++)
+                        FixupPointer(ref FinalizationFillPointers[i]);
 
-                for (int i = 0; i < GenerationTable.Length; i++)
-                    GenerationTable[i] = new GenerationData(ref GenerationTable[i]);
+                    for (int i = 0; i < GenerationTable.Length; i++)
+                        GenerationTable[i] = new GenerationData(ref GenerationTable[i]);
+                }
             }
         }
 
