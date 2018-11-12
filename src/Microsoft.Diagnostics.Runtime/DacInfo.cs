@@ -3,6 +3,7 @@
 
 using System;
 
+#pragma warning disable 0618
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
