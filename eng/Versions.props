@@ -4,5 +4,9 @@
     <!-- This repo version -->
     <VersionPrefix>1.0.0</VersionPrefix>
     <PreReleaseVersionLabel>preview1</PreReleaseVersionLabel>
+
+    <!-- Use SemVer1 (for broader NuGet compatibility) -->
+    <!-- REVIEW: We can disable this, but it means NuGet 3.0 or higher is needed to restore the package -->
+    <SemanticVersioningV1>true</SemanticVersioningV1>
   </PropertyGroup>
 </Project>
