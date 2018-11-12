@@ -90,6 +90,7 @@ namespace Microsoft.Diagnostics.Runtime
             return sortedModules.ToArray();
         }
 
+#pragma warning disable 0618
         private ClrInfo[] InitVersions()
         {
 
