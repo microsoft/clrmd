@@ -7,10 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public unsafe class CallableCOMWrapper : COMHelper, IDisposable
     {
-        private static int _totalInstances;
-
-        public static int TotalInstances => _totalInstances;
-
         private bool _disposed = false;
 
         protected IntPtr Self { get; }
@@ -21,12 +17,25 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ReleaseDelegate _release;
 
+        internal CallableCOMWrapper(CallableCOMWrapper toClone)
+        {
+            if (toClone._disposed)
+                throw new ObjectDisposedException(GetType().FullName);
+
+            Self = toClone.Self;
+            _unknownVTable = toClone._unknownVTable;
+            _library = toClone._library;
+            
+            AddRefDelegate addRef = (AddRefDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->AddRef, typeof(AddRefDelegate));
+            addRef(Self);
+            _library.AddRef();
+        }
+
         internal CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library;
             _library.AddRef();
-
-            Interlocked.Increment(ref _totalInstances);
+            
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
             var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
@@ -83,7 +92,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!_disposed)
             {
                 Release();
-                Interlocked.Decrement(ref _totalInstances);
                 _disposed = true;
             }
         }

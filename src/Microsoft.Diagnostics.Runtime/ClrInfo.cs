@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacLibrary lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
 
             // Figure out what version we are on.
-            if (lib.SOSDacInterface != null)
+            if (lib.GetSOSInterfaceNoAddRef() != null)
             {
                 return new V45Runtime(this, _dataTarget, lib);
             }
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
 
-                int val = lib.DacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+                int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
                 if ((uint)val == 0x80070057)
                     return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
                 else
