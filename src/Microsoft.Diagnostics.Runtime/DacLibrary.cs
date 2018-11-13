@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     public sealed class DacLibrary : IDisposable
     {
-        private volatile bool _disposed;
+        private bool _disposed;
         private SOSDac _sos;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
