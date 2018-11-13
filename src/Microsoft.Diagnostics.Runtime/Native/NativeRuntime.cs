@@ -46,14 +46,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             if (_sos == null)
             {
-                var dac = DacLibrary.DacPrivateInterface;
+                var dac = DacLibrary.InternalDacPrivateInterface;
                 if (!(dac is ISOSNative))
                     throw new ClrDiagnosticsException("This version of mrt100 is too old.", ClrDiagnosticsException.HR.DataRequestError);
 
                 _sos = (ISOSNative)dac;
             }
 
-            _sosNativeSerializedExceptionSupport = DacLibrary.DacPrivateInterface as ISOSNativeSerializedExceptionSupport;
+            _sosNativeSerializedExceptionSupport = DacLibrary.InternalDacPrivateInterface as ISOSNativeSerializedExceptionSupport;
         }
 
         public override ClrHeap Heap => _heap.Value;

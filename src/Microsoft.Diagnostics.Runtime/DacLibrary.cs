@@ -16,16 +16,25 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal RefCountedFreeLibrary OwningLibrary { get; }
 
-        public ClrDataProcess DacPrivateInterface { get; }
+        internal ClrDataProcess InternalDacPrivateInterface { get; }
+
+        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(InternalDacPrivateInterface);
+
+        internal SOSDac GetSOSInterfaceNoAddRef()
+        {
+            if (_sos == null)
+                _sos = InternalDacPrivateInterface.GetSOSDacInterface();
+
+            return _sos;
+        }
 
         public SOSDac SOSDacInterface
         {
             get
             {
-                if (_sos == null)
-                    _sos = DacPrivateInterface.GetSOSDacInterface();
+                SOSDac sos = GetSOSInterfaceNoAddRef();
 
-                return _sos;
+                return sos != null ? new SOSDac(sos) : null;
             }
         }
 
@@ -47,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal DacLibrary(DataTargetImpl dataTarget, IntPtr pUnk)
         {
-            DacPrivateInterface = new ClrDataProcess(this, pUnk);
+            InternalDacPrivateInterface = new ClrDataProcess(this, pUnk);
         }
 
         public DacLibrary(DataTarget dataTarget, string dacDll)
@@ -80,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (res != 0)
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);
             
-            DacPrivateInterface = new ClrDataProcess(this, iUnk);
+            InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
          
         public void Dispose()
@@ -95,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (!_disposed)
             {
-                DacPrivateInterface?.Dispose();
+                InternalDacPrivateInterface?.Dispose();
                 _sos?.Dispose();
                 OwningLibrary?.Release();
                 

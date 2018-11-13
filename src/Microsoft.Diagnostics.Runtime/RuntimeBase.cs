@@ -34,12 +34,12 @@ namespace Microsoft.Diagnostics.Runtime
         public RuntimeBase(ClrInfo info, DataTargetImpl dataTarget, DacLibrary lib)
         {
             Debug.Assert(lib != null);
-            Debug.Assert(lib.DacPrivateInterface != null);
+            Debug.Assert(lib.InternalDacPrivateInterface != null);
 
             ClrInfo = info;
             _dataTarget = dataTarget;
             DacLibrary = lib;
-            _dacInterface = DacLibrary.DacPrivateInterface;
+            _dacInterface = DacLibrary.InternalDacPrivateInterface;
             InitApi();
 
             _dacInterface.Flush();

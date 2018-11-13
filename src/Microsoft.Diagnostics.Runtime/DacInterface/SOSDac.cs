@@ -24,6 +24,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
+        public SOSDac(CallableCOMWrapper toClone) : base(toClone)
+        {
+        }
+
         const int CharBufferSize = 256;
         private byte[] _buffer = new byte[CharBufferSize];
 
