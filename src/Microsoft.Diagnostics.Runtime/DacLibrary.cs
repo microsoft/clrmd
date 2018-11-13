@@ -7,14 +7,14 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class DacLibrary : IDisposable
+    public sealed class DacLibrary : IDisposable
     {
-        private volatile RefCountedFreeLibrary _library;
+        private volatile bool _disposed;
         private SOSDac _sos;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
-        internal RefCountedFreeLibrary OwningLibrary => _library;
+        internal RefCountedFreeLibrary OwningLibrary { get; }
 
         public ClrDataProcess DacPrivateInterface { get; }
 
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (dacLibrary == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to load dac: " + dacLibrary);
 
-            _library = new RefCountedFreeLibrary(dacLibrary);
+            OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
             dataTarget.AddDacLibrary(this);
 
             IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
@@ -79,24 +79,29 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (res != 0)
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);
-
-
+            
             DacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
-
+         
         public void Dispose()
         {
-            lock (this)
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        
+        ~DacLibrary() => Dispose(false);
+
+        private void Dispose(bool disposing)
+        {
+            if (!_disposed)
             {
-                if (_library != null)
-                {
-                    _library.Release();
-                    _library = null;
-                }
+                DacPrivateInterface?.Dispose();
+                _sos?.Dispose();
+                OwningLibrary?.Release();
+                
+                _disposed = true;
             }
         }
-
-        ~DacLibrary() => Dispose();
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DllMain(IntPtr instance, int reason, IntPtr reserved);
