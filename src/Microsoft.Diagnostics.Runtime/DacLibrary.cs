@@ -72,6 +72,9 @@ namespace Microsoft.Diagnostics.Runtime
             dataTarget.AddDacLibrary(this);
 
             IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
+            if (initAddr == IntPtr.Zero)
+                initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "PAL_InitializeDLL");
+
             if (initAddr != IntPtr.Zero)
             {
                 IntPtr dllMain = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DllMain");
