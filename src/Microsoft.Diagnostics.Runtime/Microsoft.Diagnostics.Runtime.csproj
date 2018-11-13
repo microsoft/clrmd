@@ -10,16 +10,15 @@
     <PackageReleaseNotes>$(Description)</PackageReleaseNotes>
     <PackageTags></PackageTags>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\eng\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
     <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net45|AnyCPU'">
     <DefineConstants>TRACE;NET45</DefineConstants>
     <DocumentationFile>Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
   </PropertyGroup>
 
   <ItemGroup>
