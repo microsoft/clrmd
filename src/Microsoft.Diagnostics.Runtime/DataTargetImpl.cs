@@ -15,7 +15,9 @@ namespace Microsoft.Diagnostics.Runtime
         private IDataReader _dataReader;
         private IDebugClient _client;
         private Architecture _architecture;
-        private Lazy<ClrInfo[]> _versions;
+        private ClrInfo[] _versions;
+        private ModuleInfo _native;
+
         private Lazy<ModuleInfo[]> _modules;
         private List<DacLibrary> _dacLibraries = new List<DacLibrary>(2);
         
@@ -25,7 +27,17 @@ namespace Microsoft.Diagnostics.Runtime
             _client = client;
             _architecture = _dataReader.GetArchitecture();
             _modules = new Lazy<ModuleInfo[]>(InitModules);
-            _versions = new Lazy<ClrInfo[]>(InitVersions);
+        }
+
+        internal ModuleInfo NativeRuntime
+        {
+            get
+            {
+                if (_versions == null)
+                    _versions = InitVersions();
+
+                return _native;
+            }
         }
 
         public override IDataReader DataReader
@@ -53,7 +65,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IList<ClrInfo> ClrVersions
         {
-            get { return _versions.Value; }
+            get
+            {
+                if (_versions == null)
+                    _versions = InitVersions();
+
+                return _versions;
+            }
         }
 
         public override bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
@@ -106,8 +124,8 @@ namespace Microsoft.Diagnostics.Runtime
                 switch (clrName)
                 {
                     case "mrt100_app":
-                        flavor = ClrFlavor.Native;
-                        break;
+                        _native = module;
+                        continue;
 
                     case "libcoreclr":
                     case "coreclr":
