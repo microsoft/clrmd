@@ -14,12 +14,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// This is the full version of CLR included with windows.
         /// </summary>
         Desktop = 0,
-        
-        /// <summary>
-        /// Used for .Net Native.
-        /// </summary>
-        [Obsolete(".Net Native support has been split out of this library into a different one.")]
-        Native = 2,
 
         /// <summary>
         /// For .Net Core
