@@ -73,7 +73,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return null;
 
             using (ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask))
-                return dataTask.CreateStackWalk(_library, flags);
+            {
+                // There's a bug in certain runtimes where we will fail to release data deep in the runtime
+                // when a C++ exception occurs while constructing a ClrDataStackWalk.  This is a workaround
+                // for the largest of the leaks caused by this issue.
+                //     https://github.com/Microsoft/clrmd/issues/47
+                int count = AddRef();
+                var res = dataTask.CreateStackWalk(_library, flags);
+                int released = Release();
+                if (released == count && res == null)
+                    Release();
+                return res;
+            }
         }
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ulong addr)
