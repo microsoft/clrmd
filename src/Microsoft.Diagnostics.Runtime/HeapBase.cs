@@ -267,10 +267,11 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             List<ClrObject> result = new List<ClrObject>();
-            gcdesc.WalkObject(obj, size, GetMemoryReaderForAddress(obj), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
+            MemoryReader reader = GetMemoryReaderForAddress(obj);
+            gcdesc.WalkObject(obj, size, (ptr) => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
             return result;
         }
-
+        
         internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
         {
             if (type == null)
@@ -293,7 +294,16 @@ namespace Microsoft.Diagnostics.Runtime
                     return;
             }
 
-            gcdesc.WalkObject(obj, size, GetMemoryReaderForAddress(obj), callback);
+            MemoryReader reader = GetMemoryReaderForAddress(obj);
+            gcdesc.WalkObject(obj, size, (ptr) => ReadPointer(reader, ptr), callback);
+        }
+
+        private ulong ReadPointer(MemoryReader reader, ulong addr)
+        {
+            if (reader.ReadPtr(addr, out ulong result))
+                return result;
+
+            return 0;
         }
 
         protected abstract MemoryReader GetMemoryReaderForAddress(ulong obj);

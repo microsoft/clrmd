@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class GCDesc
+    public class GCDesc
     {
         private static readonly int s_GCDescSize = IntPtr.Size * 2;
 
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
             _data = data;
         }
 
-        public void WalkObject(ulong addr, ulong size, MemoryReader cache, Action<ulong, int> refCallback)
+        public void WalkObject(ulong addr, ulong size, Func<ulong, ulong> readPointer, Action<ulong, int> refCallback)
         {
             Debug.Assert(size >= (ulong)IntPtr.Size);
 
@@ -38,7 +38,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                     while (ptr < stop)
                     {
-                        if (cache.ReadPtr(ptr, out ulong ret) && ret != 0)
+                        ulong ret = readPointer(ptr);
+                        if (ret != 0)
                             refCallback(ret, (int)(ptr - addr));
 
                         ptr += (ulong)IntPtr.Size;
@@ -61,7 +62,8 @@ namespace Microsoft.Diagnostics.Runtime
                         ulong stop = ptr + (ulong)(nptrs * IntPtr.Size);
                         do
                         {
-                            if (cache.ReadPtr(ptr, out ulong ret) && ret != 0)
+                            ulong ret = readPointer(ptr);
+                            if (ret != 0)
                                 refCallback(ret, (int)(ptr - addr));
 
                             ptr += (ulong)IntPtr.Size;

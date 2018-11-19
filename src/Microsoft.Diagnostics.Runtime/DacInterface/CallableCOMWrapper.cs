@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ReleaseDelegate _release;
 
-        internal CallableCOMWrapper(CallableCOMWrapper toClone)
+        protected CallableCOMWrapper(CallableCOMWrapper toClone)
         {
             if (toClone._disposed)
                 throw new ObjectDisposedException(GetType().FullName);
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library.AddRef();
         }
 
-        internal CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
+        private protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library;
             _library.AddRef();

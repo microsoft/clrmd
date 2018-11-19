@@ -10,149 +10,53 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
-    internal class NativeHeap : HeapBase
+    public class NativeHeap
     {
-        internal NativeRuntime NativeRuntime { get; set; }
-        private ulong _lastObj;
-        private ClrType _lastType;
-        private Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
-        private List<NativeType> _types = new List<NativeType>(1024);
-        private NativeModule[] _modules;
-        private NativeModule _mrtModule;
-        private NativeType _free;
-        private ISymbolProvider _symProvider;
-        private Dictionary<NativeModule, ISymbolResolver> _resolvers = new Dictionary<NativeModule, ISymbolResolver>();
+        public NativeRuntime Runtime { get; }
 
-        public override ClrType Free => _free;
-
-        internal class NativeStackFrame : ClrStackFrame
+        internal NativeHeap(NativeRuntime runtime)
         {
-            private ulong _ip;
-            private string _symbolName;
-            private ClrModule _module;
-
-            public NativeStackFrame(ulong ip, string symbolName, ClrModule module)
-            {
-                _ip = ip;
-                _symbolName = symbolName;
-                _module = module;
-            }
-
-            public override string DisplayString
-            {
-                get
-                {
-                    return _symbolName;
-                }
-            }
-
-            public ClrModule Module
-            {
-                get
-                {
-                    return _module;
-                }
-            }
-
-            public override ulong InstructionPointer
-            {
-                get
-                {
-                    return _ip;
-                }
-            }
-
-            public override ClrStackFrameType Kind
-            {
-                get
-                {
-                    return ClrStackFrameType.Unknown;
-                }
-            }
-
-            public override ClrMethod Method
-            {
-                get
-                {
-                    return null;
-                }
-            }
-
-            public override ulong StackPointer
-            {
-                get
-                {
-                    return 0;
-                }
-            }
-
-            public override ClrThread Thread
-            {
-                get
-                {
-                    return null;
-                }
-            }
+            Runtime = runtime;
         }
 
-        internal NativeHeap(NativeRuntime runtime, NativeModule[] modules)
-            : base(runtime)
+        /*
+        private void InitSegments()
         {
-            NativeRuntime = runtime;
-            _modules = modules;
-
-            _symProvider = runtime.DataTarget.SymbolProvider;
-            if (_symProvider == null)
-                throw new InvalidOperationException("You must set DataTarget.SymbolProvider to enumerate the heap on a .Net Native runtime.");
-
-            _mrtModule = FindMrtModule();
-
-            CreateFreeType();
-            InitSegments(runtime);
-
-        }
-
-        protected override MemoryReader GetMemoryReaderForAddress(ulong obj)
-        {
-            var cache = MemoryReader;
-            if (!cache.Contains(obj))
-                cache = NativeRuntime.MemoryReader;
-
-            return cache;
-        }
-
-        public override bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ClrRuntime Runtime
-        {
-            get
+            if (runtime.GetHeaps(out SubHeap[] heaps))
             {
-                return NativeRuntime;
+                var segments = new List<HeapSegment>();
+                foreach (var heap in heaps)
+                {
+                    if (heap != null)
+                    {
+                        ISegmentData seg = runtime.GetSegmentData(heap.FirstLargeSegment);
+                        while (seg != null)
+                        {
+                            var segment = new HeapSegment(runtime, seg, heap, true, this);
+                            segments.Add(segment);
+
+                            UpdateSegmentData(segment);
+                            seg = runtime.GetSegmentData(seg.Next);
+                        }
+
+                        seg = runtime.GetSegmentData(heap.FirstSegment);
+                        while (seg != null)
+                        {
+                            var segment = new HeapSegment(runtime, seg, heap, false, this);
+                            segments.Add(segment);
+
+                            UpdateSegmentData(segment);
+                            seg = runtime.GetSegmentData(seg.Next);
+                        }
+                    }
+                }
+
+                UpdateSegments(segments.ToArray());
             }
-        }
-
-        public override ClrRootStackwalkPolicy StackwalkPolicy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        public override bool AreRootsCached => false;
-
-        public override ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable)
-        {
-            if ((((int)methodTable) & 3) != 0)
-                methodTable &= ~3UL;
-
-            if (componentMethodTable != 0)
-                return null;
-
-            ClrType clrType = null;
-            if (_indices.TryGetValue(methodTable, out int index))
-                clrType = _types[index];
             else
-                clrType = ConstructObjectType(methodTable);
-
-            return clrType;
+            {
+                _segments = new ClrSegment[0];
+            }
         }
 
         private NativeModule FindMrtModule()
@@ -163,15 +67,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
                     return module;
 
             return null;
-        }
-
-        private void CreateFreeType()
-        {
-            ulong free = NativeRuntime.GetFreeType();
-            IMethodTableData mtData = NativeRuntime.GetMethodTableData(free);
-            _free = new NativeType(this, _types.Count, _mrtModule, "Free", free, mtData);
-            _indices[free] = _types.Count;
-            _types.Add(_free);
         }
 
         public override ClrType GetObjectType(ulong objRef)
@@ -334,67 +229,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return 0;
             return bytesRead;
         }
-
-        public override IEnumerable<ClrType> EnumerateTypes() { return null; }
-        public override IEnumerable<ulong> EnumerateFinalizableObjectAddresses() { throw new NotImplementedException(); }
-        public override IEnumerable<BlockingObject> EnumerateBlockingObjects() { throw new NotImplementedException(); }
-        public override ClrException GetExceptionObject(ulong objRef) { throw new NotImplementedException(); }
-
-        protected override int GetRuntimeRevision()
-        {
-            return 0;
-        }
-
-        public override void CacheRoots(CancellationToken cancelToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void ClearRootCache()
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-
-    internal class NativeFinalizerRoot : ClrRoot
-    {
-        private string _name;
-        private ClrType _type;
-        private ClrAppDomain _appDomain;
-
-        public override GCRootKind Kind
-        {
-            get { return GCRootKind.Finalizer; }
-        }
-
-        public override ClrType Type
-        {
-            get { return _type; }
-        }
-
-        public override string Name
-        {
-            get
-            {
-                return _name;
-            }
-        }
-
-        public override ClrAppDomain AppDomain
-        {
-            get
-            {
-                return _appDomain;
-            }
-        }
-
-        public NativeFinalizerRoot(ulong obj, ClrType type, ClrAppDomain domain, string name)
-        {
-            Object = obj;
-            _name = name;
-            _type = type;
-            _appDomain = domain;
-        }
+    */
     }
 }

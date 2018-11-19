@@ -126,10 +126,6 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 return new Desktop.V45Runtime(this, _dataTarget, lib);
             }
-            else if (Flavor == ClrFlavor.Native)
-            {
-                return new Native.NativeRuntime(this, _dataTarget, lib);
-            }
             else if (Version.Major == 2)
             {
                 ver = Desktop.DesktopVersion.v2;
