@@ -130,13 +130,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>The list of GC handles in the process, NULL on catastrophic error.</returns>
         public abstract IEnumerable<ClrHandle> EnumerateHandles();
-
-        /// <summary>
-        /// Gets the GC heap of the process.
-        /// </summary>
-        [Obsolete("Use the Heap property instead.")]
-        abstract public ClrHeap GetHeap();
-
+        
         /// <summary>
         /// Gets the GC heap of the process.
         /// </summary>
@@ -146,12 +140,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns data on the CLR thread pool for this runtime.
         /// </summary>
         virtual public ClrThreadPool ThreadPool { get { throw new NotImplementedException(); } }
-
-        /// <summary>
-        /// Returns data on the CLR thread pool for this runtime.
-        /// </summary>
-        [Obsolete("Use ThreadPool property instead.")]
-        virtual public ClrThreadPool GetThreadPool() { throw new NotImplementedException(); }
 
         /// <summary>
         /// Enumerates regions of memory which CLR has allocated with a description of what data
