@@ -7,11 +7,17 @@
     <NoWarn>;1591;1701</NoWarn>
     <IsPackable>true</IsPackable>
     <Description></Description>
-    <PackageReleaseNotes>$(Description)</PackageReleaseNotes>
+    <PackageReleaseNotes>ClrMD 1.0.
+
+There's been a lot of changes since the previous version, but the highlights include:
+- .Net Core support.  This project targets net45 and .Net Standard 2.0.
+- Experimental support for Linux core dump debugging.  (Linux live process debugging not yet implemented.)
+- Split .Net Native support out of this library into its own library.  Unfortunately this is not completed/released yet.</PackageReleaseNotes>
     <PackageTags></PackageTags>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\eng\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
+    <RepositoryUrl>https://github.com/Microsoft/clrmd</RepositoryUrl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
     <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
