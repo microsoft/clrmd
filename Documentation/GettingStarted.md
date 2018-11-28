@@ -131,6 +131,31 @@ the correct dac from the symbol server using `DataTarget.SymbolLocator.FindBinar
 We will cover what to actually do with a `ClrRuntime` object in the next few
 tutorials.
 
+## Getting the Dac from the Symbol Server
+
+When you call CreateRuntime without specifying the location of mscordacwks.dll,
+ClrMD attempts to locate the dac for you.  It does this through a few mechanisms,
+first it checks to see if you have the same version of CLR that you are attempting
+to debug on your local machine.  If so, it loads the dac from there.  (This is usually
+at c:\windows\Framework[64]\[version]\mscordacwks.dll.)  If you are debugging a crash
+dump that came from another computer, you will have to find the dac that matches the
+crash dump you are debugging.
+
+All versions of the dac are requried to be on the Microsoft public symbol server,
+located here:  https://msdl.microsoft.com/download/symbols.  The DataTarget.SymbolLocator
+property is how ClrMD interacts with symbol servers.  If you have set the _NT_SYMBOL_PATH
+environment variable, ClrMD will use that string as your symbol path.  If this
+environment variable is not set, it will default to the Microsoft Symbol Server.
+
+With any luck, you should never have to manually locate the dac or interact with
+DataTarget.SymbolLocator.  CreateRuntime should be able to successfully locate
+all released builds of CLR.
+
+However, if you have built .Net Core yourself from source or are using a non-standard
+build, you will have to keep track of the correct dac yourself (these will not be
+on the symbol servers).  In that case you will need to pass the path of the dac
+on disk to ClrInfo.CreateRuntime manually.
+
 ## Attaching to a live process
 
 CLRMD can also attach to a live process (not just work from a crashdump). To do
