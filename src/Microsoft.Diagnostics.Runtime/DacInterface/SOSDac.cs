@@ -672,7 +672,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSStackRefEnum EnumerateStackRefs(uint osThreadId)
         {
             InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
-
+            
             int hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
             return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
         }
@@ -707,7 +707,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         delegate int DacGetUInt(IntPtr self, out uint data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int DacGetIntPtrWithArg(IntPtr self, ulong addr, out IntPtr data);
+        delegate int DacGetIntPtrWithArg(IntPtr self, uint addr, out IntPtr data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate int DacGetThreadData(IntPtr self, ulong addr, [Out] out ThreadData data);
