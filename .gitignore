@@ -2,6 +2,7 @@ syntax: glob
 
 .dotnet
 .packages
+.idea
 artifacts/
 
 ### VisualStudio ###
