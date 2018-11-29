@@ -1,5 +1,8 @@
 ﻿using System;
 
+#pragma warning disable 0649
+#pragma warning disable 0169
+
 namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 {
     internal readonly struct ISOSNativeVTable
