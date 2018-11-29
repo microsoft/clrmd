@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TestTargets\**\*.*">
-      <Link>TestTargets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
 </Project>
