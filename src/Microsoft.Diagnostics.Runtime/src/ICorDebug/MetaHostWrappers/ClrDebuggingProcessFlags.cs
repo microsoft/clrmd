@@ -1,0 +1,12 @@
+﻿namespace Microsoft.Diagnostics.Runtime.ICorDebug
+{
+    /// <summary>
+    /// Information flags about the state of a CLR when it is being attached
+    /// to in the native pipeline debugging model
+    /// </summary>
+    public enum ClrDebuggingProcessFlags
+    {
+        // This CLR has a non-catchup managed debug event to send after jit attach is complete
+        ManagedDebugEventPending = 1
+    }
+}
