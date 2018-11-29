@@ -1,5 +1,7 @@
 # Microsoft.Diagnostics.Runtime
 
+[![ClrMD version](https://img.shields.io/nuget/v/Microsoft.Diagnostics.Runtime.svg)](https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/)
+
 `Microsoft.Diagnostics.Runtime.dll` (nicknamed "CLR MD") is a process and crash
 dump introspection library. This allows you to write tools and debugger plugins
 which can do thing similar to SOS and PSSCOR.
