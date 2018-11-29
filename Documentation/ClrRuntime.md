@@ -17,7 +17,7 @@ well as the GC Handle table and finalizer queue.
 
 `ClrRuntime` implements a handful of grab-bag operations which you can use to
 get some bits of information about the runtime. The first (and simplest) is that
-`ClrRuntime`.PointerSize returns to you the size of a pointer in the target
+`ClrRuntime.PointerSize` returns to you the size of a pointer in the target
 process. All functions in ClrMD use a ulong (64bit int) every time a pointer
 would be required, but this field tells you what bitness the target process is.
 
@@ -28,9 +28,9 @@ target process was running the Server GC. Otherwise it returns `false` if the
 process was running a Workstation GC.
 
 `ClrRuntime.HeapCount` returns the number of logical GC heaps in the process.
-For a workstation GC, there is only ever 1 logical GC heap. For a server GC,
+For a workstation GC, there is only ever one logical GC heap. For a server GC,
 there may be any number of logical GC heaps in the process (though in reality,
-we generally keep the number of heaps at the number of cores on the box...with a
+we generally keep the number of heaps at the number of cores on the box... with a
 few exceptions). This is important because if your logical GC heaps become
 imbalanced (meaning one heap has MUCH more data than another heap) then this
 will quickly become a perf problem in your server application. We will cover
@@ -42,7 +42,7 @@ read a raw buffer out of the target process. `ReadPtr` is special in that it wil
 only read a single pointer out of the target process (either 4 or 8 bytes
 depending on the architecture).
 
-Lastly, `ClrRuntime` has 3 static functions for telling whether a
+Lastly, `ClrRuntime` has three static functions for telling whether a
 `ClrElementType` (an enum we'll cover in a later tutorial about types and
 fields) is a primitive, object reference, or value class (`struct`).
 
@@ -50,11 +50,6 @@ That's it for the most basic functions in `ClrRuntime`. Now off to the more
 structured data...
 
 ## AppDomains
-
-AppDomains in ClrMD are (for now!) one of the simplest data structures to walk.
-This is because as of Beta 0.3, we do not expose a lot of information about
-them. Future versions of ClrMD will be able to enumerate modules loaded into the
-AppDomain as well as more information about the state of the AppDomain.
 
 ### Enumerating AppDomains
 
@@ -71,16 +66,18 @@ foreach (ClrAppDomain domain in runtime.AppDomains)
 }
 ```
 
-This is the entirety of what you can do with AppDomains (as of Beta 0.3). The
-primary reason for exposing AppDomains at all is to be able to get at the name
-of the AppDomain. Other data in ClrMD contains AppDomain data (for example,
-memory regions, which we will cover later). The intent is that when we have
-AppDomain information, you can display either the AppDomain ID or Name
-associated with it.
+You can see the modules loaded for rach `ClrAppDomain` instance via the `Modules`
+property:
+
+```c#
+foreach (ClrModule module in domain.Modules)
+{
+    Console.WriteLine("Module: {0}", module.Name);
+}
+```
 
 ## Threads
 
-Thankfully, you can do a lot more with threads in ClrMD than you can AppDomains.
 Similar to `ClrRuntime.AppDomains`, there is a `ClrRuntime.Threads` property,
 which holds the current list of all managed threads in the process.
 
@@ -106,13 +103,13 @@ foreach (ClrThread thread in runtime.Threads)
     Console.WriteLine("Thread {0:X}:", thread.OSThreadId);
 
     foreach (ClrStackFrame frame in thread.StackTrace)
-        Console.WriteLine("{0,12:X} {1,12:X} {2}", frame.StackPointer, frame.InstructionPointer, frame.ToString());
+        Console.WriteLine("{0,12:X} {1,12:X} {2}", frame.StackPointer, frame.InstructionPointer, frame);
 
     Console.WriteLine();
 }
 ```
 
-Note that to get the class/function name that we are currently executing,
+Note that to get the class/function name of a given stack frame,
 calling `ClrStackFrame.ToString` will give you output roughly equivalent to
 SOS's `!ClrStack`.
 
@@ -120,15 +117,15 @@ SOS's `!ClrStack`.
 
 There are a few caveats to `ClrThread` objects which you should be aware of:
 
-First, we only create `ClrThread` objects (internally this is the clr!Thread
-object in clr.dll) for threads which have run managed code, or might soon run
+First, we only create `ClrThread` objects (internally this is the `clr!Thread`
+object in `clr.dll`) for threads which have run managed code, or might soon run
 managed code. This means that there is NOT a 1-1 mapping of all threads in the
 process to a `ClrThread` object. If a thread has never run managed code before,
 chances are there's not a `ClrThread` for it.
 
-Second, we keep these clr!Thread objects around for a short while after the
+Second, we keep these `clr!Thread` objects around for a short while after the
 actual underlying OS thread has died. Since `ClrThread` is basically a wrapper
-around clr!Thread, we expose that out here. The `ClrThread.IsAlive` property
+around `clr!Thread`, we expose that out here. The `ClrThread.IsAlive` property
 tells you whether a thread is alive (meaning the thread is still active and
 running in the process) or dead (the underlying OS thread has been terminated
 and thus this thread is no longer running anymore).
@@ -198,25 +195,25 @@ foreach (var region in (from r in runtime.EnumerateMemoryRegions()
                             Type = g.Key
                         }))
 {
-    Console.WriteLine("{0,6:n0} {1,12:n0} {2}", region.Count, region.TotalSize, region.Type.ToString());
+    Console.WriteLine("{0,6:n0} {1,12:n0} {2}", region.Count, region.TotalSize, region.Type);
 }
 ```
 
-Note that I have eliminated `ReservedGCSegments` from this table. That's because
-`ReserveGCSegments` are just that...reserved memory which isn't counting toward
+Note that `ReservedGCSegments` are excluded from this table. That's because
+`ReserveGCSegments` are just that... reserved memory which isn't counting toward
 your workingset.
 
 ## A quick word about Enumerators vs. Properties in ClrMD
 
 As you have probably noticed, `ClrRuntime.Threads` and `ClrRuntime.AppDomains`
-are properties, yet `ClrRuntime.EnumerateMemoryRegions` is a function (which
+are properties, yet `ClrRuntime.EnumerateMemoryRegions` is a method (which
 returns an enumerator instead of a collection/list/set). Why is that?
 
 ClrMD follows the convention that anything it can quickly calculate (and then
 likely cache), it exposes through properties. Anything which is expected to take
-a long time to calculate or enumerate is exposed through a function, like
-EnumerateMemoryRegions. For example, on significantly large dumps,
-EnumerateMemoryRegions can take up to a few seconds to complete (compared to
+a long time to calculate or enumerate is exposed through a method, like
+`EnumerateMemoryRegions`. For example, on significantly large dumps,
+`EnumerateMemoryRegions` can take up to a few seconds to complete (compared to
 only a few hundred milliseconds for getting the threads/AppDomains in a
 process).
 
@@ -234,7 +231,7 @@ will soon have their finalizer run. Enumerating all objects on the finalizer
 queue is as simple as calling
 
 ```cs
-foreach (ulong obj in runtime.FinalizerQueue)
+foreach (ulong obj in runtime.EnumerateFinalizerQueueObjectAddresses())
 {
 }
 ```
@@ -257,7 +254,7 @@ handles and their types:
 foreach (GCHeapHandle handle in runtime.EnumerateHandles())
 {
     string objectType = heap.GetObjectType(handle.Object).Name;
-    Console.WriteLine("{0,12:X} {1,12:X} {2,12} {3}", handle.Address, handle.Object, handle.Type.ToString(), objectType);
+    Console.WriteLine("{0,12:X} {1,12:X} {2,12} {3}", handle.Address, handle.Object, handle.Type, objectType);
 }
 ```
 
@@ -269,11 +266,11 @@ see the `GCHandles` code snippet for a different way of breaking down handles.
 Each handle type is either weak (meaning it does not keep the object alive from
 the GC's perspective) or strong (meaning as long as the handle exists we will
 not collect the object). RefCount handles are the exception: They are
-conditionally strong or week depending on whether the RefCount is 0 or greater
+conditionally strong or weak depending on whether the RefCount is 0, or greater
 than 0. You can tell if a particular handle is strong with the
 `GCHeapHandle.Strong` property.
 
-There are 9 handle types, each with a special meaning:
+There are nine handle types, each with a special meaning:
 1. **WeakShort** - A weak handle which is meant to be short lived in the
    process.
 2. **WeakLong** - A weak handle which is meant to be long lived in the process.
@@ -287,7 +284,7 @@ There are 9 handle types, each with a special meaning:
 7. **RefCount** - A reference counted strong handle (used for COM interop).
    When the RefCount hits 0 the handle becomes a weak handle.
 8. **Dependent** - A weak handle. Please see below.
-9. **SizedRef** - A strong handle used by ASP.Net.
+9. **SizedRef** - A strong handle used by ASP.NET.
 
 The last three, RefCount handles, Dependent handles, and SizedRef handles each
 have caveats that you should be aware of.
@@ -299,7 +296,7 @@ important things to know about a RefCount handle is the actual refcount itself.
 For v4 and v4.5 CLR, we have that data. However, in v2 CLR we did not expose the
 reference count out through the Dac. This means that if you are debugging a v2
 process we do not have a reference count we can give you. The
-GCHeapHandle.RefCount field will always return 1. This means ClrMD always treats
+`GCHeapHandle.RefCount` property will always return 1. This means ClrMD always treats
 RefCount handles as Strong handles in CLR v2. This is mostly true, RefCount
 handles get cleaned up when their count hits 0. So the only time you would get a
 false-positive in v2 is if the crash dump was taken after the real ref count hit
@@ -307,7 +304,7 @@ false-positive in v2 is if the crash dump was taken after the real ref count hit
 
 ### SizedRef Handles
 
-SizedRef handles are used exclusively by Asp.Net to hold onto caches of objects.
+SizedRef handles are used exclusively by ASP.NET to hold onto caches of objects.
 As the GC marks objects it keeps track of what objects the handle keeps alive.
 When the GC is complete it updates a field on the SizedRef handle which is an
 estimate of how much memory that object holds onto. This is similar to a
@@ -326,7 +323,7 @@ alive if the "source" object is alive. However, the handle itself is a weak
 handle, meaning it does not root the "source" object.
 
 Users can create dependent handles through the
-System.Runtime.CompilerServices.ConditionalWeakTable class.
+`System.Runtime.CompilerServices.ConditionalWeakTable` class.
 
 The major caveat here is that dependent handle support was not added to the dac
 until CLR v4.5. This means that on CLR v4 runtimes, you will know if there are
@@ -335,7 +332,7 @@ cannot get the "target" object unless you are running on CLR v4.5.
 
 All of this is important because if you are attempting to write the equivalent
 code to `!objsize` or `!gcroot`, you must take dependent handles into account. A
-dependent handle adds real edges to the graph and need to be treated as any
+dependent handle adds real edges to the graph and needs to be treated as any
 other object reference to get accurate results.
 
 ### A word about v2 and v4 CLR handle walking
@@ -349,17 +346,17 @@ we finally cleaned up walking the HandleTable once and for all, replacing the
 old algorithm with the correct way of enumerating handles: Asking CLR to do it
 for us instead of mimicing what CLR does.
 
-The long story short is, if you are on v2, you very likely to be not getting all
-of the handles. On v4, it's possible that you are getting most (but not all) of
-the handles. On v4.5, you get 100% of the handles on the handle table. Note that
+The long story short is, if you are on v2, you are very likely not getting all
+handles. On v4, it's possible that you are getting most (but not all)
+handles. On v4.5, you get 100% of the handles in the handle table. Note that
 this is a fundamental bug in the dac which we cannot work around (SOS and PSSCOR
-is also affected by this issue).
+are also affected by this issue).
 
 ## Conclusion
 
 In this tutorial we covered the `ClrRuntime` object and the data it provides.
 Please keep in mind the difference between properties in ClrMD (fast, you can
-keep referring back to the property) and functions which produce a list or
+keep referring back to the property) and methods which produce a list or
 enumeration (slow, you should cache the result and not call again).
 
 Next tutorial: [Walking the Heap](WalkingTheHeap.md)
