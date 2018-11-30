@@ -12,10 +12,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     internal unsafe class VTableBuilder
     {
         private readonly Guid _guid;
-        private readonly ComCallableIUnknown _wrapper;
+        private readonly COMCallableIUnknown _wrapper;
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
-        public VTableBuilder(ComCallableIUnknown wrapper, Guid guid)
+        public VTableBuilder(COMCallableIUnknown wrapper, Guid guid)
         {
             _guid = guid;
             _wrapper = wrapper;

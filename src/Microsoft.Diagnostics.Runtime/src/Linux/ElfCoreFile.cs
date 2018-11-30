@@ -11,9 +11,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfCoreFile
     {
-        private readonly ElfReader _elfReader;
+        private readonly Reader _reader;
         private ElfLoadedImage[] _loadedImages;
-        private ElfVirtualAddressSpace _virtualAddressSpace;
+        private ELFVirtualAddressSpace _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
         public ElfMachine Architecture => (ElfMachine)ElfFile.Header.Machine;
@@ -34,8 +34,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfCoreFile(Stream stream)
         {
-            _elfReader = new ElfReader(new StreamAddressSpace(stream));
-            ElfFile = new ElfFile(_elfReader);
+            _reader = new Reader(new StreamAddressSpace(stream));
+            ElfFile = new ElfFile(_reader);
 
             if (ElfFile.Header.Type != ElfHeaderType.Core)
                 throw new InvalidDataException($"{stream.GetFilename() ?? "The given stream"} is not a coredump");
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public int ReadMemory(long address, byte[] buffer, int bytesRequested)
         {
             if (_virtualAddressSpace == null)
-                _virtualAddressSpace = new ElfVirtualAddressSpace(ElfFile.ProgramHeaders, _elfReader.DataSource);
+                _virtualAddressSpace = new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
 
             return _virtualAddressSpace.Read(address, buffer, 0, bytesRequested);
         }

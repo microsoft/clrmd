@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class V45Runtime : DesktopRuntimeBase
     {
         private List<ClrHandle> _handles;
-        private SosDac _sos;
+        private SOSDac _sos;
 
         public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Debug.Assert(_handles == null);
             List<ClrHandle> result = new List<ClrHandle>();
 
-            using (SosHandleEnum handleEnum = _sos.EnumerateHandles())
+            using (SOSHandleEnum handleEnum = _sos.EnumerateHandles())
             {
                 HandleData[] handles = new HandleData[8];
                 int fetched = 0;
@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Dictionary<ulong, List<ulong>> result = new Dictionary<ulong, List<ulong>>();
 
-            using (SosHandleEnum handleEnum = _sos.EnumerateHandles())
+            using (SOSHandleEnum handleEnum = _sos.EnumerateHandles())
             {
                 if (handleEnum == null)
                     return result;
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ClrRoot> EnumerateStackReferencesWorker(ClrThread thread)
         {
-            using (SosStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId))
+            using (SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId))
             {
                 if (stackRefEnum == null)
                     yield break;
@@ -313,12 +313,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sos.GetAssemblyName(addr);
         }
 
-        internal override bool TraverseHeap(ulong heap, SosDac.LoaderHeapTraverse callback)
+        internal override bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback)
         {
             return _sos.TraverseLoaderHeap(heap, callback);
         }
 
-        internal override bool TraverseStubHeap(ulong appDomain, int type, SosDac.LoaderHeapTraverse callback)
+        internal override bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback)
         {
             return _sos.TraverseStubHeap(appDomain, type, callback);
         }
@@ -371,7 +371,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
             _sos.TraverseModuleMap(
-                SosDac.ModuleMapTraverseKind.TypeDefToMethodTable,
+                SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable,
                 module,
                 delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); });
 

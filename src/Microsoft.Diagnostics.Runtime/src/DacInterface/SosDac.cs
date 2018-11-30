@@ -11,20 +11,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use.
     /// </summary>
-    public sealed unsafe class SosDac : CallableComWrapper
+    public sealed unsafe class SOSDac : CallableCOMWrapper
     {
         internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
         private static RejitData[] s_emptyRejit;
         private readonly DacLibrary _library;
 
-        public SosDac(DacLibrary library, IntPtr ptr)
+        public SOSDac(DacLibrary library, IntPtr ptr)
             : base(library.OwningLibrary, ref IID_ISOSDac, ptr)
         {
             _library = library;
         }
 
-        public SosDac(CallableComWrapper toClone) : base(toClone)
+        public SOSDac(CallableCOMWrapper toClone) : base(toClone)
         {
         }
 
@@ -673,20 +673,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public SosHandleEnum EnumerateHandles()
+        public SOSHandleEnum EnumerateHandles()
         {
             InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
 
             int hr = _getHandleEnum(Self, out IntPtr ptrEnum);
-            return hr == S_OK ? new SosHandleEnum(_library, ptrEnum) : null;
+            return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
         }
 
-        public SosStackRefEnum EnumerateStackRefs(uint osThreadId)
+        public SOSStackRefEnum EnumerateStackRefs(uint osThreadId)
         {
             InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
 
             int hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
-            return hr == S_OK ? new SosStackRefEnum(_library, ptrEnum) : null;
+            return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
         }
 
         public ulong GetMethodDescFromToken(ulong module, uint token)
@@ -806,7 +806,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetCOMPointers(IntPtr self, ulong addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ulong appDomainAddr, int moduleId, out DomainLocalModuleData data);
+        private delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ulong appDomainAddr, int moduleID, out DomainLocalModuleData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetThreadLocalModuleData(IntPtr self, ulong addr, uint id, out ThreadLocalModuleData data);

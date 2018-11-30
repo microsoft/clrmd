@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     internal class V45MethodDescDataWrapper : IMethodDescData
     {
-        public bool Init(SosDac sos, ulong md)
+        public bool Init(SOSDac sos, ulong md)
         {
             if (!sos.GetMethodDescData(md, 0, out MethodDescData data))
                 return false;

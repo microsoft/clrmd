@@ -30,11 +30,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             _clrDebugging = (ICLRDebugging)o;
         }
 
-        public static ICorDebug GetDebuggerForProcess(int processId, string minimumVersion, DebuggerCallBacks callBacks = null)
+        public static ICorDebug GetDebuggerForProcess(int processID, string minimumVersion, DebuggerCallBacks callBacks = null)
         {
             CLRMetaHost mh = new CLRMetaHost();
             CLRRuntimeInfo highestLoadedRuntime = null;
-            foreach (CLRRuntimeInfo runtime in mh.EnumerateLoadedRuntimes(processId))
+            foreach (CLRRuntimeInfo runtime in mh.EnumerateLoadedRuntimes(processID))
             {
                 if (highestLoadedRuntime == null ||
                     string.Compare(highestLoadedRuntime.GetVersionString(), runtime.GetVersionString(), StringComparison.OrdinalIgnoreCase) < 0)

@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int hr = _control.GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType);
             if (0 != hr)
-                throw new ClrDiagnosticsException($"Failed to get proessor type, HRESULT: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Failed to get processor type, HRESULT: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
 
             switch (machineType)
             {
@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (hr == 1)
                 return 4;
 
-            throw new ClrDiagnosticsException($"IsPointer64Bit failed: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
+            throw new ClrDiagnosticsException(string.Format("IsPointer64Bit failed: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
         }
 
         public void Flush()
@@ -191,9 +191,9 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = null;
         }
 
-        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            GetThreadIdBySystemId(threadId, out uint id);
+            GetThreadIdBySystemId(threadID, out uint id);
 
             SetCurrentThreadId(id);
             GetThreadContext(context, contextSize);
@@ -478,10 +478,10 @@ namespace Microsoft.Diagnostics.Runtime
             return _symbols.GetModuleParameters(Count, Bases, Start, Params);
         }
 
-        internal void GetThreadIdBySystemId(uint threadId, out uint id)
+        internal void GetThreadIdBySystemId(uint threadID, out uint id)
         {
             SetClientInstance();
-            _systemObjects.GetThreadIdBySystemId(threadId, out id);
+            _systemObjects.GetThreadIdBySystemId(threadID, out id);
         }
 
         internal void SetCurrentThreadId(uint id)
@@ -574,9 +574,9 @@ namespace Microsoft.Diagnostics.Runtime
                 s_needRelease = true;
         }
 
-        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
-            GetThreadIdBySystemId(threadId, out uint id);
+            GetThreadIdBySystemId(threadID, out uint id);
 
             SetCurrentThreadId(id);
             fixed (byte* pContext = &context[0])

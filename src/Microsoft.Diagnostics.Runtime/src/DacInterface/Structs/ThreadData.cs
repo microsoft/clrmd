@@ -55,13 +55,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         ulong IThreadData.Next => NextThread;
         ulong IThreadData.AllocPtr => AllocationContextPointer;
         ulong IThreadData.AllocLimit => AllocationContextLimit;
-        uint IThreadData.OSThreadId => OSThreadId;
+        uint IThreadData.OSThreadID => OSThreadId;
         ulong IThreadData.Teb => Teb;
         ulong IThreadData.AppDomain => Domain;
         uint IThreadData.LockCount => LockCount;
         int IThreadData.State => State;
         ulong IThreadData.ExceptionPtr => LastThrownObjectHandle;
-        uint IThreadData.ManagedThreadId => ManagedThreadId;
+        uint IThreadData.ManagedThreadID => ManagedThreadId;
         bool IThreadData.Preemptive => PreemptiveGCDisabled == 0;
     }
 }

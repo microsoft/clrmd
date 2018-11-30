@@ -7,11 +7,11 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class ClrStackWalk : CallableComWrapper
+    public sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
-        private ClrStackWalkVTable* VTable => (ClrStackWalkVTable*)_vtable;
+        private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
 
         private readonly byte[] _ulongBuffer = new byte[8];
         private RequestDelegate _request;
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 
-    internal struct ClrStackWalkVTable
+    internal struct IXCLRDataStackWalkVTable
     {
         public readonly IntPtr GetContext;
         private readonly IntPtr GetContext2;

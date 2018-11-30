@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// Represents a native module in a dump file. This is a flyweight object.

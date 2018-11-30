@@ -11,11 +11,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfFile
     {
-        private readonly ElfReader _elfReader;
+        private readonly Reader _reader;
         private readonly long _position;
         private readonly bool _virtual;
 
-        private ElfReader _virtualAddressElfReader;
+        private Reader _virtualAddressReader;
         private ElfNote[] _notes;
         private ElfProgramHeader[] _programHeaders;
         private ElfSectionHeader[] _sections;
@@ -40,23 +40,23 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public ElfReader VirtualAddressElfReader
+        public Reader VirtualAddressReader
         {
             get
             {
                 CreateVirtualAddressReader();
-                return _virtualAddressElfReader;
+                return _virtualAddressReader;
             }
         }
 
-        public ElfFile(ElfReader reader, long position = 0, bool virt = false)
+        public ElfFile(Reader reader, long position = 0, bool virt = false)
         {
-            _elfReader = reader;
+            _reader = reader;
             _position = position;
             _virtual = virt;
 
             if (virt)
-                _virtualAddressElfReader = reader;
+                _virtualAddressReader = reader;
 
             Header = reader.Read<ElfHeader>(position);
             Header.Validate(reader.DataSource.Name);
@@ -71,10 +71,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void CreateVirtualAddressReader()
         {
-            if (_virtualAddressElfReader != null)
+            if (_virtualAddressReader != null)
                 return;
 
-            _virtualAddressElfReader = new ElfReader(new ElfVirtualAddressSpace(ProgramHeaders, _elfReader.DataSource));
+            _virtualAddressReader = new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
         }
 
         private void LoadNotes()
@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             List<ElfNote> notes = new List<ElfNote>();
 
-            ElfReader reader = new ElfReader(noteHeader.AddressSpace);
+            Reader reader = new Reader(noteHeader.AddressSpace);
             long position = 0;
             while (position < reader.DataSource.Length)
             {
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             _programHeaders = new ElfProgramHeader[Header.ProgramHeaderCount];
             for (int i = 0; i < _programHeaders.Length; i++)
-                _programHeaders[i] = new ElfProgramHeader(_elfReader, _position + (long)Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+                _programHeaders[i] = new ElfProgramHeader(_reader, _position + (long)Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
 
         private string GetSectionName(int section)
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 long offset = hdr.FileOffset.ToInt64();
                 int size = checked((int)hdr.FileSize.ToInt64());
 
-                _sectionNameTable = _elfReader.ReadBytes(offset, size);
+                _sectionNameTable = _reader.ReadBytes(offset, size);
             }
         }
 
@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             _sections = new ElfSectionHeader[Header.SectionHeaderCount];
             for (int i = 0; i < _sections.Length; i++)
-                _sections[i] = _elfReader.Read<ElfSectionHeader>(_position + (long)Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
+                _sections[i] = _reader.Read<ElfSectionHeader>(_position + (long)Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
         }
 
 #if DEBUG

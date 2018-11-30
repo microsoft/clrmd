@@ -5,13 +5,14 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class LinuxFunctions : PlatformFunctions
     {
         public override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             //TODO
+
             major = minor = revision = patch = 0;
             return true;
         }

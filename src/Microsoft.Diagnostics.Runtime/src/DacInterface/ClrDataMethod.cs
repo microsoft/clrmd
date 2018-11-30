@@ -7,11 +7,11 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class ClrDataMethod : CallableComWrapper
+    public sealed unsafe class ClrDataMethod : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
-        private ClrDataMethodVTable* VTable => (ClrDataMethodVTable*)_vtable;
+        private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
         private GetILAddressMapDelegate _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 
-    internal struct ClrDataMethodVTable
+    internal struct IXCLRDataMethodInstanceVTable
     {
         private readonly IntPtr GetTypeInstance;
         private readonly IntPtr GetDefinition;

@@ -8,10 +8,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct LegacyDomainLocalModuleData : IDomainLocalModuleData
     {
-        private IntPtr _moduleId;
-
+        private IntPtr _moduleID;
+        
         public ulong AppDomainAddr { get; }
-        public ulong ModuleId => (ulong)_moduleId.ToInt64();
+        public ulong ModuleID => (ulong)_moduleID.ToInt64();
         public ulong ClassData { get; }
         public ulong DynamicClassTable { get; }
         public ulong GCStaticDataStart { get; }

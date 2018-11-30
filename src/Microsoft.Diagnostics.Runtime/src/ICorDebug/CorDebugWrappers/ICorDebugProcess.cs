@@ -71,11 +71,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         void IsTransitionStub([In] ulong address, [Out] out int pbTransitionStub);
 
-        void IsOSSuspended([In] uint threadId, [Out] out int pbSuspended);
+        void IsOSSuspended([In] uint threadID, [Out] out int pbSuspended);
 
-        void GetThreadContext([In] uint threadId, [In] uint contextSize, [In][ComAliasName("BYTE*")] IntPtr context);
+        void GetThreadContext([In] uint threadID, [In] uint contextSize, [In][ComAliasName("BYTE*")] IntPtr context);
 
-        void SetThreadContext([In] uint threadId, [In] uint contextSize, [In][ComAliasName("BYTE*")] IntPtr context);
+        void SetThreadContext([In] uint threadID, [In] uint contextSize, [In][ComAliasName("BYTE*")] IntPtr context);
 
         void ReadMemory(
             [In] ulong address,
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         void WriteMemory([In] ulong address, [In] uint size, [In][MarshalAs(UnmanagedType.LPArray)] byte[] buffer, [Out][ComAliasName("SIZE_T*")] out IntPtr written);
 
-        void ClearCurrentException([In] uint threadId);
+        void ClearCurrentException([In] uint threadID);
 
         void EnableLogMessages([In] int fOnOff);
 
@@ -105,6 +105,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             [Out][MarshalAs(UnmanagedType.Interface)]
             out ICorDebugThread ppThread);
 
-        void GetHelperThreadID([Out] out uint pThreadId);
+        void GetHelperThreadID([Out] out uint pThreadID);
     }
 }

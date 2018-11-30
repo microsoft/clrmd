@@ -4,15 +4,14 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// If the dump doesn't have memory contents, we can try to load the file
-    /// off disk and report as if memory contents were present.
-    /// Run through loader to simplify getting the in-memory layout correct, rather than using a FileStream
-    /// and playing around with trying to mimic the loader.
+    ///  If the dump doesn't have memory contents, we can try to load the file
+    ///  off disk and report as if memory contents were present.
+    ///  Run through loader to simplify getting the in-memory layout correct, rather than using a FileStream
+    ///  and playing around with trying to mimic the loader.
     /// </summary>
     internal class LoadedFileMemoryLookups
     {
@@ -46,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // to the base address of the module in mdbg's process, not the base address in the dump.
                 file = WindowsFunctions.NativeMethods.LoadLibraryEx(fileName, 0, WindowsFunctions.NativeMethods.LoadLibraryFlags.DontResolveDllReferences);
                 _files[fileName] = new SafeLoadLibraryHandle(file);
-                // TODO: Attempted file load order is NOT guaranteed, so the uncertainty will make output order non-deterministic.
+                //TODO: Attempted file load order is NOT guaranteed, so the uncertainty will make output order non-deterministic.
                 // Find/create an appropriate global verbosity setting.
             }
             else

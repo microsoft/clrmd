@@ -4,7 +4,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// The struct that holds contents of a dump's MINIDUMP_STREAM_TYPE.ExceptionStream

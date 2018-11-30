@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void RegisterForRelease(IModuleData module)
         {
             if (module != null)
-                ComHelper.Release(module.LegacyMetaDataImport);
+                COMHelper.Release(module.LegacyMetaDataImport);
         }
 
         public IDataReader DataReader => _dataReader;

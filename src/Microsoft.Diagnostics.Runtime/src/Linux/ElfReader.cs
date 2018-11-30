@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfReader : IDisposable
+    internal class Reader : IDisposable
     {
         public const int MaxHeldBuffer = 4096;
         public const int InitialBufferSize = 64;
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public IAddressSpace DataSource { get; }
 
-        public ElfReader(IAddressSpace source)
+        public Reader(IAddressSpace source)
         {
             DataSource = source;
             _buffer = new byte[512];
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        ~ElfReader()
+        ~Reader()
         {
             Dispose(false);
         }

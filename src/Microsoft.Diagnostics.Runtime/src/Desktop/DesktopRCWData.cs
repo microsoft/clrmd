@@ -9,6 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopRCWData : RcwData
     {
+        //public ulong IdentityPointer { get; }
         public override ulong IUnknown => _rcw.UnknownPointer;
         public override ulong VTablePointer => _rcw.VTablePtr;
         public override int RefCount => _rcw.RefCount;
@@ -22,10 +23,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_osThreadID == uint.MaxValue)
                 {
                     IThreadData data = _heap.DesktopRuntime.GetThread(_rcw.CreatorThread);
-                    if (data == null || data.OSThreadId == uint.MaxValue)
+                    if (data == null || data.OSThreadID == uint.MaxValue)
                         _osThreadID = 0;
                     else
-                        _osThreadID = data.OSThreadId;
+                        _osThreadID = data.OSThreadID;
                 }
 
                 return _osThreadID;

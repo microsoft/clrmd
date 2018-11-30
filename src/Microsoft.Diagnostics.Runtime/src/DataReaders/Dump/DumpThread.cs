@@ -5,7 +5,7 @@
 using System;
 using System.Globalization;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// Represents a thread from a minidump file. This is a flyweight object.

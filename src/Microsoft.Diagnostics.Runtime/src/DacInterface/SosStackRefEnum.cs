@@ -7,13 +7,13 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class SosStackRefEnum : CallableComWrapper
+    public sealed unsafe class SOSStackRefEnum : CallableCOMWrapper
     {
         private static Guid IID_ISOSStackRefEnum = new Guid("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
 
         private readonly Next _next;
 
-        public SosStackRefEnum(DacLibrary library, IntPtr pUnk)
+        public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, ref IID_ISOSStackRefEnum, pUnk)
         {
             ISOSStackRefEnumVTable* vtable = (ISOSStackRefEnumVTable*)_vtable;

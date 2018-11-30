@@ -29,13 +29,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong Next => IntPtr.Size == 8 ? nextThread : (uint)nextThread;
         public ulong AllocPtr => IntPtr.Size == 8 ? allocContextPtr : (uint)allocContextPtr;
         public ulong AllocLimit => IntPtr.Size == 8 ? allocContextLimit : (uint)allocContextLimit;
-        public uint OSThreadId => osThreadId;
+        public uint OSThreadID => osThreadId;
         public ulong Teb => IntPtr.Size == 8 ? teb : (uint)teb;
         public ulong AppDomain => domain;
         public uint LockCount => lockCount;
         public int State => state;
         public ulong ExceptionPtr => lastThrownObjectHandle;
-        public uint ManagedThreadId => corThreadId;
+        public uint ManagedThreadID => corThreadId;
         public bool Preemptive => preemptiveGCDisabled == 0;
     }
 }

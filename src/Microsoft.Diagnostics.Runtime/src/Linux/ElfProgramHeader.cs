@@ -6,17 +6,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfProgramHeader
     {
-        private readonly ElfReader _elfReader;
+        private readonly Reader _reader;
         private ElfProgramHeader64 _header;
 
         public ElfProgramHeader64 Header => _header;
         public ref ElfProgramHeader64 RefHeader => ref _header;
         public IAddressSpace AddressSpace { get; }
 
-        public ElfProgramHeader(ElfReader reader, long headerPositon, long fileOffset, bool virt = false)
+        public ElfProgramHeader(Reader reader, long headerPositon, long fileOffset, bool virt = false)
         {
-            _elfReader = reader;
-            _header = _elfReader.Read<ElfProgramHeader64>(headerPositon);
+            _reader = reader;
+            _header = _reader.Read<ElfProgramHeader64>(headerPositon);
 
             if (virt && _header.Type == ElfProgramHeaderType.Load)
                 AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", _header.VirtualAddress, _header.VirtualSize);

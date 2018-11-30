@@ -8,14 +8,14 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfVirtualAddressSpace : IAddressSpace
+    internal class ELFVirtualAddressSpace : IAddressSpace
     {
         private readonly IReadOnlyList<ElfProgramHeader> _segments;
         private readonly IAddressSpace _addressSpace;
 
         public string Name => _addressSpace.Name;
 
-        public ElfVirtualAddressSpace(IReadOnlyList<ElfProgramHeader> segments, IAddressSpace addressSpace)
+        public ELFVirtualAddressSpace(IReadOnlyList<ElfProgramHeader> segments, IAddressSpace addressSpace)
         {
             _segments = segments;
             Length = _segments.Max(s => s.Header.VirtualAddress + s.Header.VirtualSize);

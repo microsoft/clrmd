@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private readonly List<MemoryRegion> _regions = new List<MemoryRegion>();
-        private readonly SosDac.LoaderHeapTraverse _delegate;
+        private readonly SOSDac.LoaderHeapTraverse _delegate;
         private ClrMemoryRegionType _type;
         private ulong _appDomain;
         private readonly DesktopRuntimeBase _runtime;

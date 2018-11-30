@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class ClrDataTask : CallableComWrapper
+    internal unsafe class ClrDataTask : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataTask = new Guid("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 
@@ -39,14 +39,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private readonly IntPtr GetProcess;
         private readonly IntPtr GetCurrentAppDomain;
-        private readonly IntPtr GetUniqueId;
+        private readonly IntPtr GetUniqueID;
         private readonly IntPtr GetFlags;
         private readonly IntPtr IsSameObject;
         private readonly IntPtr GetManagedObject;
         private readonly IntPtr GetDesiredExecutionState;
         private readonly IntPtr SetDesiredExecutionState;
         public readonly IntPtr CreateStackWalk;
-        private readonly IntPtr GetOSThreadId;
+        private readonly IntPtr GetOSThreadID;
         private readonly IntPtr GetContext;
         private readonly IntPtr SetContext;
         private readonly IntPtr GetCurrentExceptionState;

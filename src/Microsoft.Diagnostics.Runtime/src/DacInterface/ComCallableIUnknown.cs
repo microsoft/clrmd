@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class ComCallableIUnknown : ComHelper
+    internal unsafe class COMCallableIUnknown : COMHelper
     {
         private readonly GCHandle _handle;
         private int _refCount;
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public IntPtr IUnknownObject { get; }
         public IUnknownVTable IUnknown => **(IUnknownVTable**)IUnknownObject;
 
-        public ComCallableIUnknown()
+        public COMCallableIUnknown()
         {
             _handle = GCHandle.Alloc(this);
 

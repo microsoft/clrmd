@@ -9,8 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong Next { get; }
         ulong AllocPtr { get; }
         ulong AllocLimit { get; }
-        uint OSThreadId { get; }
-        uint ManagedThreadId { get; }
+        uint OSThreadID { get; }
+        uint ManagedThreadID { get; }
         ulong Teb { get; }
         ulong AppDomain { get; }
         uint LockCount { get; }

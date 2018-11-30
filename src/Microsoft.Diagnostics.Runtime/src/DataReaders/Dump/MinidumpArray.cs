@@ -4,19 +4,19 @@
 
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// Minidumps have a common variable length list structure for modules and threads implemented
-    /// as an array.
-    /// MINIDUMP_MODULE_LIST, MINIDUMP_THREAD_LIST, and MINIDUMP_THREAD_EX_LIST are the three streams
-    /// which use this implementation.
-    /// Others are similar in idea, such as MINIDUMP_THREAD_INFO_LIST, but are not the
-    /// same implementation and will not work with this class.  Thus, although this class
-    /// is generic, it's currently tightly bound to the implementation of those three streams.
-    /// This is a var-args structure defined as:
-    /// ULONG32 NumberOfNodesInList;
-    /// T ListNodes[];
+    ///  Minidumps have a common variable length list structure for modules and threads implemented
+    ///  as an array.
+    ///  MINIDUMP_MODULE_LIST, MINIDUMP_THREAD_LIST, and MINIDUMP_THREAD_EX_LIST are the three streams
+    ///  which use this implementation.
+    ///  Others are similar in idea, such as MINIDUMP_THREAD_INFO_LIST, but are not the
+    ///  same implementation and will not work with this class.  Thus, although this class
+    ///  is generic, it's currently tightly bound to the implementation of those three streams.
+    ///  This is a var-args structure defined as:
+    ///    ULONG32 NumberOfNodesInList;
+    ///    T ListNodes[];
     /// </summary>
     internal class MinidumpArray<T>
     {

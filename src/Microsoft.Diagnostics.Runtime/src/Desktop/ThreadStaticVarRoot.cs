@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Address = addr;
             Object = obj;
-            Name = $"thread static var {typeName}.{variableName}";
+            Name = string.Format("thread static var {0}.{1}", typeName, variableName);
             AppDomain = appDomain;
             Type = type;
         }

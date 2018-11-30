@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// Usually about 300-500 elements long.
-    /// This does not have the right layout to use MinidumpArray
+    ///  Usually about 300-500 elements long.
+    ///  This does not have the right layout to use MinidumpArray
     /// </summary>
     internal class MinidumpMemory64List
     {

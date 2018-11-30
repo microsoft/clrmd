@@ -14,7 +14,7 @@ using IMAGE_DATA_DIRECTORY = Microsoft.Diagnostics.Runtime.Utilities.IMAGE_DATA_
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class DacDataTargetWrapper : ComCallableIUnknown, ICorDebugDataTarget
+    internal unsafe class DacDataTargetWrapper : COMCallableIUnknown, ICorDebugDataTarget
     {
         private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
@@ -210,32 +210,32 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return S_OK;
         }
 
-        public int GetTLSValue(IntPtr self, uint threadId, uint index, out ulong value)
+        public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
             value = 0;
             return E_FAIL;
         }
 
-        public int SetTLSValue(IntPtr self, uint threadId, uint index, ulong value)
+        public int SetTLSValue(IntPtr self, uint threadID, uint index, ulong value)
         {
             return E_FAIL;
         }
 
-        public int GetCurrentThreadID(IntPtr self, out uint threadId)
+        public int GetCurrentThreadID(IntPtr self, out uint threadID)
         {
-            threadId = 0;
+            threadID = 0;
             return E_FAIL;
         }
 
-        public int GetThreadContext(IntPtr self, uint threadId, uint contextFlags, uint contextSize, IntPtr context)
+        public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            if (_dataReader.GetThreadContext(threadId, contextFlags, contextSize, context))
+            if (_dataReader.GetThreadContext(threadID, contextFlags, contextSize, context))
                 return S_OK;
 
             return E_FAIL;
         }
 
-        public int SetThreadContext(IntPtr self, uint threadId, uint contextSize, IntPtr context)
+        public int SetThreadContext(IntPtr self, uint threadID, uint contextSize, IntPtr context)
         {
             return E_NOTIMPL;
         }
@@ -369,24 +369,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetTLSValueDelegate(
             IntPtr self,
-            uint threadId,
+            uint threadID,
             uint index,
             out ulong value);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int SetTLSValueDelegate(
             IntPtr self,
-            uint threadId,
+            uint threadID,
             uint index,
             ulong value);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadId);
+        private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetThreadContextDelegate(
             IntPtr self,
-            uint threadId,
+            uint threadID,
             uint contextFlags,
             uint contextSize,
             IntPtr context);
@@ -394,7 +394,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int SetThreadContextDelegate(
             IntPtr self,
-            uint threadId,
+            uint threadID,
             uint contextSize,
             IntPtr context);
 

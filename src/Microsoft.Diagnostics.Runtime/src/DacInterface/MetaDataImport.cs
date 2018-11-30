@@ -10,10 +10,10 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class MetaDataImport : CallableComWrapper
+    public sealed unsafe class MetaDataImport : CallableCOMWrapper
     {
         private static Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
-        private MetaDataImportVTable* VTable => (MetaDataImportVTable*)_vtable;
+        private IMetaDataImportVTable* VTable => (IMetaDataImportVTable*)_vtable;
         private IntPtr EnumInterfaceImpls => VTable->EnumInterfaceImpls;
         private IntPtr EnumFieldPtr => VTable->EnumFields;
 
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 
-    internal struct MetaDataImportVTable
+    internal struct IMetaDataImportVTable
     {
         public readonly IntPtr CloseEnum;
         private readonly IntPtr CountEnum;
