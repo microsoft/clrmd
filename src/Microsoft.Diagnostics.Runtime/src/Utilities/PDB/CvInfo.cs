@@ -755,20 +755,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             internal uint utype; // (type index) type index of the underlying type
             internal LeafPointerAttr attr;
         }
-#if false
-        union {
-            internal struct {
-                uint    pmclass;    // (type index) index of containing class for pointer to member
-                ushort  pmenum;     // enumeration specifying pm format (CV_pmtype)
-            };
-            ushort  bseg;           // base segment if PTR_BASE_SEG
-            byte[]  Sym;            // copy of base symbol record (including length)
-            internal struct  {
-                uint    index;      // (type index) type index if CV_PTR_BASE_TYPE
-                string  name;       // name of base type
-            } btype;
-        } pbase;
-#endif
     }
 
     //  type record for LF_ARRAY

@@ -38,41 +38,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(DirectoryRoot);
         }
 
-        //internal string Magic {
-        //  get { return StringFromBytesUTF8(magic); }
-        //}
-
-        //internal void Write(Stream writer, BitAccess bits) {
-        //  bits.MinCapacity(pageSize);
-        //  bits.WriteBytes(magic);                     //   0..31
-        //  bits.WriteInt32(pageSize);                  //  32..35
-        //  bits.WriteInt32(freePageMap);               //  36..39
-        //  bits.WriteInt32(pagesUsed);                 //  40..43
-        //  bits.WriteInt32(directorySize);             //  44..47
-        //  bits.WriteInt32(zero);                      //  48..51
-        //  bits.WriteInt32(directoryRoot);             //  52..55
-
-        //  writer.Seek(0, SeekOrigin.Begin);
-        //  bits.WriteBuffer(writer, pageSize);
-        //}
-
-        //////////////////////////////////////////////////// Helper Functions.
-        //
-        //internal static string StringFromBytesUTF8(byte[] bytes) {
-        //  return StringFromBytesUTF8(bytes, 0, bytes.Length);
-        //}
-
-        //internal static string StringFromBytesUTF8(byte[] bytes, int offset, int length) {
-        //  for (int i = 0; i < length; i++) {
-        //    if (bytes[offset + i] < ' ') {
-        //      length = i;
-        //    }
-        //  }
-        //  return Encoding.UTF8.GetString(bytes, offset, length);
-        //}
-
-        ////////////////////////////////////////////////////////////// Fields.
-        //
         internal readonly byte[] Magic;
         internal readonly int PageSize;
         internal int FreePageMap;

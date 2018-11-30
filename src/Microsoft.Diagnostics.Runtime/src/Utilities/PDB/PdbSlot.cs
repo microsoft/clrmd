@@ -23,8 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// the flags associated with this slot.
         /// </summary>
         public ushort Flags { get; }
-        //internal uint segment;
-        //internal uint address;
 
         internal PdbSlot(BitAccess bits, out uint typind)
         {
@@ -40,8 +38,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             Slot = slot.index;
             Name = slot.name;
             Flags = slot.flags;
-            //Console.WriteLinesegment = slot.segCod;
-            //Console.WriteLineaddress = slot.offCod;
 
             typind = slot.typind;
         }

@@ -57,25 +57,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int ThreadId => (int)_raw.ThreadId;
 
-        /* todo
-            /// <summary>
-            /// Safe way to get a thread's context
-            /// </summary>
-            /// <returns>a native context object representing the thread context</returns>
-            public NativeContext GetThreadContext()
-            {
-                return _owner.GetThreadContext(_raw.ThreadContext);
-            }
-    
-            /// <summary>
-            /// Safe way to get a thread's context
-            /// </summary>
-            public void GetThreadContext(NativeContext context)
-            {
-                _owner.GetThreadContext(_raw.ThreadContext, context);
-            }
-             */
-
         /// <summary>
         /// Get a thread's context using a raw buffer and size
         /// </summary>

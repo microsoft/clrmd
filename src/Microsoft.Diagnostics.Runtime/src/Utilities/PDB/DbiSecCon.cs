@@ -17,11 +17,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt16(out pad2);
             bits.ReadUInt32(out dataCrc);
             bits.ReadUInt32(out relocCrc);
-            //if (pad1 != 0 || pad2 != 0) {
-            //  throw new PdbException("Invalid DBI section. "+
-            //                                 "(pad1={0}, pad2={1})",
-            //                         pad1, pad2);
-            //}
         }
 
         internal short section; // 0..1

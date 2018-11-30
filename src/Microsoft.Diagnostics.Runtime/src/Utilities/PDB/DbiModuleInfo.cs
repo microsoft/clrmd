@@ -34,10 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
 
             bits.Align(4);
-            //if (opened != 0 || pad1 != 0) {
-            //  throw new PdbException("Invalid DBI module. "+
-            //                                 "(opened={0}, pad={1})", opened, pad1);
-            //}
         }
 
         public override string ToString()
