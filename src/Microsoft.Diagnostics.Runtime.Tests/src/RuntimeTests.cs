@@ -24,7 +24,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     false);
 
                 Assert.NotNull(badDac);
-
                 Assert.Throws<InvalidOperationException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
             }
         }

@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public readonly string OuterExceptionType = "System.InvalidOperationException";
     }
 
-    public class TestTargets
+    public static class TestTargets
     {
         private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
         private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));

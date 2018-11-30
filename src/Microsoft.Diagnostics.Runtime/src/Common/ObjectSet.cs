@@ -148,12 +148,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (obj != 0)
             {
-                var i = _segments.Length >> 1;
-                int mid, lower = 0, upper = _segments.Length - 1;
+                var lower = 0;
+                var upper = _segments.Length - 1;
 
                 while (lower <= upper)
                 {
-                    mid = (lower + upper) >> 1;
+                    var mid = (lower + upper) >> 1;
 
                     if (obj < _segments[mid].StartAddress)
                     {

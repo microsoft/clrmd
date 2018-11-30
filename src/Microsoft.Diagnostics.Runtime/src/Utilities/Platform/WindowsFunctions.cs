@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal sealed class WindowsFunctions : PlatformFunctions
     {
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
             return NativeMethods.LoadLibraryEx(lpFileName, 0, NativeMethods.LoadLibraryFlags.NoFlags);
         }
 
-        internal class NativeMethods
+        internal static class NativeMethods
         {
             private const string Kernel32LibraryName = "kernel32.dll";
 

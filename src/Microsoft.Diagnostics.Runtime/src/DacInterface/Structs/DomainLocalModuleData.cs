@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong NonGCStaticDataStart;
 
         ulong IDomainLocalModuleData.AppDomainAddr => AppDomainAddress;
-        ulong IDomainLocalModuleData.ModuleID => ModuleID;
+        ulong IDomainLocalModuleData.ModuleId => ModuleID;
         ulong IDomainLocalModuleData.ClassData => ClassData;
         ulong IDomainLocalModuleData.DynamicClassTable => DynamicClassTable;
         ulong IDomainLocalModuleData.GCStaticDataStart => GCStaticDataStart;

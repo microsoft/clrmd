@@ -9,7 +9,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 {
-    internal readonly struct ISOSNativeVTable
+    internal readonly struct SosNativeVTable
     {
         public readonly IntPtr Flush;
 

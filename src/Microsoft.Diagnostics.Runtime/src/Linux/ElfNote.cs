@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfNote
     {
-        private readonly Reader _reader;
+        private readonly ElfReader _elfReader;
         private readonly long _position;
         private string _name;
 
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     return _name;
 
                 var namePosition = _position + HeaderSize;
-                _name = _reader.ReadNullTerminatedAscii(namePosition, (int)Header.NameSize);
+                _name = _elfReader.ReadNullTerminatedAscii(namePosition, (int)Header.NameSize);
                 return _name;
             }
         }
@@ -36,14 +36,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public byte[] ReadContents(long position, int length)
         {
             var contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
-            return _reader.ReadBytes(position + contentsoffset, length);
+            return _elfReader.ReadBytes(position + contentsoffset, length);
         }
 
         public T ReadContents<T>(long position, uint nameSize)
             where T : struct
         {
             var contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
-            return _reader.Read<T>(contentsoffset + position);
+            return _elfReader.Read<T>(contentsoffset + position);
         }
 
         public T ReadContents<T>(ref long position)
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             var contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
             var locationOrig = contentsOffset + position;
             var location = locationOrig;
-            var result = _reader.Read<T>(ref location);
+            var result = _elfReader.Read<T>(ref location);
 
             position += location - locationOrig;
             return result;
@@ -63,16 +63,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             var contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
             var location = contentsOffset + position;
-            var result = _reader.Read<T>(location);
+            var result = _elfReader.Read<T>(location);
             return result;
         }
 
-        public ElfNote(Reader reader, long position)
+        public ElfNote(ElfReader reader, long position)
         {
             _position = position;
-            _reader = reader;
+            _elfReader = reader;
 
-            Header = _reader.Read<ElfNoteHeader>(_position);
+            Header = _elfReader.Read<ElfNoteHeader>(_position);
         }
 
         private uint Align4(uint x)

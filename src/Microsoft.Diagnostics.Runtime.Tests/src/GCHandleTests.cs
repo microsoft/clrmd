@@ -41,9 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 var runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 foreach (var handle in runtime.EnumerateHandles())
-                {
                     Assert.True(handles.Add(handle));
-                }
 
                 // Make sure we had at least one AsyncPinned handle
                 Assert.Contains(handles, h => h.HandleType == HandleType.AsyncPinned);

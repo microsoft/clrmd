@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return handleTable.Handles;
         }
 
-        internal override bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback)
+        internal override bool TraverseHeap(ulong heap, SosDac.LoaderHeapTraverse callback)
         {
             var input = new byte[sizeof(ulong) * 2];
             WriteValueToBuffer(heap, input, 0);
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Request(DacRequests.LOADERHEAP_TRAVERSE, input, null);
         }
 
-        internal override bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback)
+        internal override bool TraverseStubHeap(ulong appDomain, int type, SosDac.LoaderHeapTraverse callback)
         {
             byte[] input;
             if (IntPtr.Size == 4)
@@ -455,7 +455,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             var mts = new List<MethodTableTokenPair>();
 
-            SOSDac.ModuleMapTraverse traverse = delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
+            SosDac.ModuleMapTraverse traverse = delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
             var args = new LegacyModuleMapTraverseArgs
             {
                 pCallback = Marshal.GetFunctionPointerForDelegate(traverse),

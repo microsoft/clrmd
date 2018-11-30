@@ -6,17 +6,17 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    ///  Class to represent chunks of memory from the target.
-    ///  To add support for mapping files in and pretending they were part
-    ///  of the dump, say for a MinidumpNormal when you can find the module
-    ///  image on disk, you'd fall back on the image contents when 
-    ///  ReadPartialMemory failed checking the chunks from the dump.
-    ///  Practically speaking, that fallback could be in the
-    ///  implementation of ICorDebugDataTarget.ReadVirtual.
-    ///  Keep in mind this list presumes there are no overlapping chunks.
+    /// Class to represent chunks of memory from the target.
+    /// To add support for mapping files in and pretending they were part
+    /// of the dump, say for a MinidumpNormal when you can find the module
+    /// image on disk, you'd fall back on the image contents when
+    /// ReadPartialMemory failed checking the chunks from the dump.
+    /// Practically speaking, that fallback could be in the
+    /// implementation of ICorDebugDataTarget.ReadVirtual.
+    /// Keep in mind this list presumes there are no overlapping chunks.
     /// </summary>
     internal class MinidumpMemoryChunks
     {

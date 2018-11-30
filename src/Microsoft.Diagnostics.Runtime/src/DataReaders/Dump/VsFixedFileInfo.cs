@@ -4,7 +4,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Sequential)]
     internal struct VS_FIXEDFILEINFO

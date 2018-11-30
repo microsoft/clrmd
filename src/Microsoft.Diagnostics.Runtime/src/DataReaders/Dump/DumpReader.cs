@@ -15,6 +15,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Win32.SafeHandles;
 
 // This provides a managed wrapper over the unmanaged dump-reading APIs in DbgHelp.dll.
@@ -44,10 +45,9 @@ using Microsoft.Win32.SafeHandles;
 // However, the app consuming the DumpReader is probably doing a lot of caching on its own, so
 // extra caching in the dump reader may make microbenchmarks go faster, but just increase the
 // working set and complexity of real clients.
-// 
-//     
+//
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Read contents of a minidump.

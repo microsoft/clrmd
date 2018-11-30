@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DataTargetImpl(IDataReader dataReader, IDebugClient client)
         {
-            _dataReader = dataReader ?? throw new ArgumentNullException("dataReader");
+            _dataReader = dataReader ?? throw new ArgumentNullException(nameof(dataReader));
             DebuggerInterface = client;
             Architecture = _dataReader.GetArchitecture();
             _modules = new Lazy<ModuleInfo[]>(InitModules);

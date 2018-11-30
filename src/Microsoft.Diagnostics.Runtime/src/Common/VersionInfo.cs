@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The A.B.C.D version prepended with 'v'.</returns>
         public override string ToString()
         {
-            return string.Format("v{0}.{1}.{2}.{3:D2}", Major, Minor, Revision, Patch);
+            return $"v{Major}.{Minor}.{Revision}.{Patch:D2}";
         }
     }
 }

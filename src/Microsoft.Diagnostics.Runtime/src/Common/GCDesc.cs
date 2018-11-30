@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     public class GCDesc
     {
-        private static readonly int s_GCDescSize = IntPtr.Size * 2;
+        private static readonly int s_gcDescSize = IntPtr.Size * 2;
 
         private readonly byte[] _data;
 
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
                         ptr += (ulong)IntPtr.Size;
                     }
 
-                    curr -= s_GCDescSize;
+                    curr -= s_gcDescSize;
                 } while (curr >= lowest);
             }
             else

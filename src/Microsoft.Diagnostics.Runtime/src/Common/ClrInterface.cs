@@ -43,9 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             if (BaseInterface == null)
-            {
                 return rhs.BaseInterface == null;
-            }
 
             return BaseInterface.Equals(rhs.BaseInterface);
         }

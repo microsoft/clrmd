@@ -28,10 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadGuid(out doctype);
             bits.ReadGuid(out algorithmId);
 
-            int checksumSize;
-            bits.ReadInt32(out checksumSize);
-            int sourceSize;
-            bits.ReadInt32(out sourceSize);
+            bits.ReadInt32(out var checksumSize);
+            bits.ReadInt32(out var sourceSize);
             checksum = new byte[checksumSize];
             bits.ReadBytes(checksum);
             embeddedSource = new byte[sourceSize];

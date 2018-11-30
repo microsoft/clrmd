@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly uint IsReflection;
         public readonly uint IsPEFile;
         public readonly ulong BaseClassIndex;
-        public readonly ulong ModuleID;
+        public readonly ulong ModuleId;
         public readonly uint TransientFlags;
         public readonly ulong TypeDefToMethodTableMap;
         public readonly ulong TypeRefToMethodTableMap;
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         ulong IModuleData.LookupTableHeap => LookupTableHeap;
         ulong IModuleData.ThunkHeap => ThunkHeap;
         IntPtr IModuleData.LegacyMetaDataImport => IntPtr.Zero;
-        ulong IModuleData.ModuleId => ModuleID;
+        ulong IModuleData.ModuleId => ModuleId;
         ulong IModuleData.ModuleIndex => ModuleIndex;
         bool IModuleData.IsReflection => IsReflection != 0;
         bool IModuleData.IsPEFile => IsPEFile != 0;

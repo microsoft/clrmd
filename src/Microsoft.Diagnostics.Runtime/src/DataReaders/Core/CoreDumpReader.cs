@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            return _core.LoadedImages.Select(img => CreateModuleInfo(img)).ToArray();
+            return _core.LoadedImages.Select(CreateModuleInfo).ToArray();
         }
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime
             return (uint)_pointerSize;
         }
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public unsafe bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
             if (contextSize != AMD64Context.Size)
                 return false;
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             var ctx = (AMD64Context*)context.ToPointer();
             ctx->ContextFlags = (int)contextFlags;
-            if (_threads.TryGetValue(threadID, out var status))
+            if (_threads.TryGetValue(threadId, out var status))
             {
                 CopyContext(ctx, ref status.RegisterSet);
                 return true;
@@ -124,14 +124,14 @@ namespace Microsoft.Diagnostics.Runtime
             ctx->Rsp = registerSet.Rsp;
         }
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        public unsafe bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
             if (contextSize != AMD64Context.Size)
                 return false;
 
             InitThreads();
 
-            if (_threads.TryGetValue(threadID, out var status))
+            if (_threads.TryGetValue(threadId, out var status))
             {
                 fixed (byte* ptr = context)
                 {

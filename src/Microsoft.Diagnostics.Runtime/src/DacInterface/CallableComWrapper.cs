@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public unsafe class CallableCOMWrapper : COMHelper, IDisposable
+    public unsafe class CallableComWrapper : ComHelper, IDisposable
     {
         private bool _disposed;
 
@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private ReleaseDelegate _release;
         private AddRefDelegate _addRef;
 
-        protected CallableCOMWrapper(CallableCOMWrapper toClone)
+        protected CallableComWrapper(CallableComWrapper toClone)
         {
             if (toClone._disposed)
                 throw new ObjectDisposedException(GetType().FullName);
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return count;
         }
 
-        private protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
+        private protected CallableComWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library;
             _library.AddRef();
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        ~CallableCOMWrapper()
+        ~CallableComWrapper()
         {
             Dispose(false);
         }

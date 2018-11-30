@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
                 NoWindow = true
             };
 
-            var cmd = Command.Run(string.Format("expand -F:*dmp {0} {1}", file, _generatedPath), options);
+            var cmd = Command.Run($"expand -F:*dmp {file} {_generatedPath}", options);
 
             var error = false;
             if (cmd.ExitCode != 0)
@@ -236,9 +236,9 @@ namespace Microsoft.Diagnostics.Runtime
             return _dumpReader.VirtualQuery(addr, out vq);
         }
 
-        public bool GetThreadContext(uint id, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            var thread = _dumpReader.GetThread((int)id);
+            var thread = _dumpReader.GetThread((int)threadId);
             if (thread == null)
                 return false;
 
@@ -246,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
             throw new NotImplementedException();
         }

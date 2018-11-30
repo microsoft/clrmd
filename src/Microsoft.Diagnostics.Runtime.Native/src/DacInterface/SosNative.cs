@@ -8,13 +8,13 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 {
-    public unsafe class SOSNative : CallableCOMWrapper
+    public unsafe class SosNative : CallableComWrapper
     {
         public static Guid IID_ISOSNative = new Guid("90456375-3774-4c70-999a-a6fa78aab107");
 
-        private ISOSNativeVTable* VTable => (ISOSNativeVTable*)_vtable;
+        private SosNativeVTable* VTable => (SosNativeVTable*)_vtable;
 
-        public SOSNative(DacLibrary library, IntPtr pUnk) : base(library.OwningLibrary, ref IID_ISOSNative, pUnk)
+        public SosNative(DacLibrary library, IntPtr pUnk) : base(library.OwningLibrary, ref IID_ISOSNative, pUnk)
         {
         }
 

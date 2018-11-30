@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     internal class MinidumpMemoryChunk : IComparable<MinidumpMemoryChunk>
     {

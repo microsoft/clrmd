@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -18,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         static DataTarget()
         {
-#if false //!NET45
+#if !NET45
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 PlatformFunctions = new LinuxFunctions();
             else

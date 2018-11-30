@@ -442,7 +442,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 }
                                 catch (Exception e)
                                 {
-                                    Trace.WriteLine(string.Format("Error getting stack field {0}.{1}: {2}", type.Name, staticField.Name, e.Message));
+                                    Trace.WriteLine($"Error getting stack field {type.Name}.{staticField.Name}: {e.Message}");
                                     goto NextStatic;
                                 }
 

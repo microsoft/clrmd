@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class DacLibrary : IDisposable
     {
         private bool _disposed;
-        private SOSDac _sos;
+        private SosDac _sos;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrDataProcess DacPrivateInterface => new ClrDataProcess(InternalDacPrivateInterface);
 
-        internal SOSDac GetSOSInterfaceNoAddRef()
+        internal SosDac GetSOSInterfaceNoAddRef()
         {
             if (_sos == null)
                 _sos = InternalDacPrivateInterface.GetSOSDacInterface();
@@ -29,18 +29,18 @@ namespace Microsoft.Diagnostics.Runtime
             return _sos;
         }
 
-        public SOSDac SOSDacInterface
+        public SosDac SOSDacInterface
         {
             get
             {
                 var sos = GetSOSInterfaceNoAddRef();
 
-                return sos != null ? new SOSDac(sos) : null;
+                return sos != null ? new SosDac(sos) : null;
             }
         }
 
         public T GetInterface<T>(ref Guid riid)
-            where T : CallableCOMWrapper
+            where T : CallableComWrapper
         {
             var pUnknown = InternalDacPrivateInterface.QueryInterface(ref riid);
             if (pUnknown == IntPtr.Zero)

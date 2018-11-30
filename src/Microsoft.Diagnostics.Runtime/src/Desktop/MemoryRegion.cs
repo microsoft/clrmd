@@ -154,26 +154,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     if (_domainModuleHeap == _runtime.SharedDomainAddress)
                     {
-                        value = string.Format("{0} for Shared AppDomain", value);
+                        value = $"{value} for Shared AppDomain";
                     }
                     else if (_domainModuleHeap == _runtime.SystemDomainAddress)
                     {
-                        value = string.Format("{0} for System AppDomain", value);
+                        value = $"{value} for System AppDomain";
                     }
                     else
                     {
                         var domain = AppDomain;
-                        value = string.Format("{0} for AppDomain {1}: {2}", value, domain.Id, domain.Name);
+                        value = $"{value} for AppDomain {domain.Id}: {domain.Name}";
                     }
                 }
                 else if (HasModuleData)
                 {
                     var fn = _runtime.GetModule(_domainModuleHeap).FileName;
-                    value = string.Format("{0} for Module: {1}", value, Path.GetFileName(fn));
+                    value = $"{value} for Module: {Path.GetFileName(fn)}";
                 }
                 else if (HasGCHeapData)
                 {
-                    value = string.Format("{0} for Heap {1}", value, HeapNumber);
+                    value = $"{value} for Heap {HeapNumber}";
                 }
             }
 

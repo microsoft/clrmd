@@ -121,16 +121,16 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            var result = _reader.GetThreadContext(threadID, contextFlags, contextSize, context);
+            var result = _reader.GetThreadContext(threadId, contextFlags, contextSize, context);
             _file.WriteLine("GetThreadContext - {0}", result);
             return result;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
-            var result = _reader.GetThreadContext(threadID, contextFlags, contextSize, context);
+            var result = _reader.GetThreadContext(threadId, contextFlags, contextSize, context);
             _file.WriteLine("GetThreadContext - {0}", result);
             return result;
         }

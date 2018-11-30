@@ -1901,7 +1901,7 @@
             <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
             <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
         </member>
-        <member name="M:Microsoft.Diagnostics.Runtime.ClrRuntime.GetCcwDataByAddress(System.UInt64)">
+        <member name="M:Microsoft.Diagnostics.Runtime.ClrRuntime.GetCCWDataByAddress(System.UInt64)">
             <summary>
             Returns the CCW data associated with the given address.  This is used when looking at stowed
             exceptions in CLR.
@@ -3089,7 +3089,7 @@
             This is an undocumented, untested, and unsupported interface.  Do not use.
             </summary>
         </member>
-        <member name="T:Microsoft.Diagnostics.Runtime.DacInterface.SOSDac">
+        <member name="T:Microsoft.Diagnostics.Runtime.DacInterface.SosDac">
             <summary>
             This is an undocumented, untested, and unsupported interface.  Do not use.
             </summary>
@@ -4086,7 +4086,7 @@
             <summary>
             Gets the thread context for the given thread.
             </summary>
-            <param name="threadID">The OS thread ID to read the context from.</param>
+            <param name="threadId">The OS thread ID to read the context from.</param>
             <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
             <param name="contextSize">The size (in bytes) of the context parameter.</param>
             <param name="context">A pointer to the buffer to write to.</param>
@@ -4095,7 +4095,7 @@
             <summary>
             Gets the thread context for the given thread.
             </summary>
-            <param name="threadID">The OS thread ID to read the context from.</param>
+            <param name="threadId">The OS thread ID to read the context from.</param>
             <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
             <param name="contextSize">The size (in bytes) of the context parameter.</param>
             <param name="context">A pointer to the buffer to write to.</param>

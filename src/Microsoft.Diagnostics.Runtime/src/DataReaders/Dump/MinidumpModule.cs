@@ -5,11 +5,11 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    ///  Default Pack of 8 makes this struct 4 bytes too long
-    ///  and so retrieving the last one will fail.
+    /// Default Pack of 8 makes this struct 4 bytes too long
+    /// and so retrieving the last one will fail.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     internal sealed class MINIDUMP_MODULE

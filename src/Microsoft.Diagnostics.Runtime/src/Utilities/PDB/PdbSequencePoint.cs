@@ -49,9 +49,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         public override string ToString()
         {
             if (LineBegin == LineEnd)
-                return string.Format("iloffs: {0} line: {1}", Offset, LineBegin);
+                return $"iloffs: {Offset} line: {LineBegin}";
 
-            return string.Format("iloffs: {0} lines: {1}-{2}", Offset, LineBegin, LineEnd);
+            return $"iloffs: {Offset} lines: {LineBegin}-{LineEnd}";
         }
     }
 }

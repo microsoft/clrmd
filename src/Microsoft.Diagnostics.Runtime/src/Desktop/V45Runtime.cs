@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class V45Runtime : DesktopRuntimeBase
     {
         private List<ClrHandle> _handles;
-        private SOSDac _sos;
+        private SosDac _sos;
 
         public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -313,12 +313,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sos.GetAssemblyName(addr);
         }
 
-        internal override bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback)
+        internal override bool TraverseHeap(ulong heap, SosDac.LoaderHeapTraverse callback)
         {
             return _sos.TraverseLoaderHeap(heap, callback);
         }
 
-        internal override bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback)
+        internal override bool TraverseStubHeap(ulong appDomain, int type, SosDac.LoaderHeapTraverse callback)
         {
             return _sos.TraverseStubHeap(appDomain, type, callback);
         }
@@ -371,7 +371,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             var mts = new List<MethodTableTokenPair>();
             _sos.TraverseModuleMap(
-                SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable,
+                SosDac.ModuleMapTraverseKind.TypeDefToMethodTable,
                 module,
                 delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); });
 

@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         private static string _userSetWorkingPath;
-        private static readonly Lazy<string> _workingPath = new Lazy<string>(() => CreateWorkingPath(), true);
+        private static readonly Lazy<string> _workingPath = new Lazy<string>(CreateWorkingPath, true);
 
         private static string CreateWorkingPath()
         {

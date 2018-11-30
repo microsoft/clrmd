@@ -323,9 +323,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The string representation of this heap.</returns>
         public override string ToString()
         {
-            var sizeMB = TotalHeapSize / 1000000.0;
+            var sizeMb = TotalHeapSize / 1000000.0;
             var segCount = Segments != null ? Segments.Count : 0;
-            return string.Format("ClrHeap {0}mb {1} segments", sizeMB, segCount);
+            return $"ClrHeap {sizeMb}mb {segCount} segments";
         }
 
         /// <summary>

@@ -9,13 +9,13 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class VtableBuilder
+    internal unsafe class VTableBuilder
     {
         private readonly Guid _guid;
-        private readonly COMCallableIUnknown _wrapper;
+        private readonly ComCallableIUnknown _wrapper;
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
-        public VtableBuilder(COMCallableIUnknown wrapper, Guid guid)
+        public VTableBuilder(ComCallableIUnknown wrapper, Guid guid)
         {
             _guid = guid;
             _wrapper = wrapper;
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 throw new InvalidOperationException();
 
             var attrs = func.GetType().GetCustomAttributes(false);
-            if (attrs.Where(c => c is UnmanagedFunctionPointerAttribute).Count() != 1)
+            if (attrs.Count(c => c is UnmanagedFunctionPointerAttribute) != 1)
                 throw new InvalidOperationException();
 
             if (func.Method.ReturnType != typeof(int))

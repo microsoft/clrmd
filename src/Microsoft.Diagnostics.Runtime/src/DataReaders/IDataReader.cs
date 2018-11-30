@@ -97,20 +97,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the thread context for the given thread.
         /// </summary>
-        /// <param name="threadID">The OS thread ID to read the context from.</param>
+        /// <param name="threadId">The OS thread ID to read the context from.</param>
         /// <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
         /// <param name="contextSize">The size (in bytes) of the context parameter.</param>
         /// <param name="context">A pointer to the buffer to write to.</param>
-        bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context);
+        bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context);
 
         /// <summary>
         /// Gets the thread context for the given thread.
         /// </summary>
-        /// <param name="threadID">The OS thread ID to read the context from.</param>
+        /// <param name="threadId">The OS thread ID to read the context from.</param>
         /// <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
         /// <param name="contextSize">The size (in bytes) of the context parameter.</param>
         /// <param name="context">A pointer to the buffer to write to.</param>
-        bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context);
+        bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context);
 
         /// <summary>
         /// Read a pointer out of the target process.

@@ -13,9 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public override GCRootKind Kind => GCRootKind.Finalizer;
-
         public override string Name => "finalization handle";
-
         public override ClrType Type { get; }
     }
 }

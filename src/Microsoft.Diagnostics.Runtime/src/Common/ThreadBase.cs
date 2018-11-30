@@ -184,8 +184,8 @@ namespace Microsoft.Diagnostics.Runtime
             Debug.Assert(thread != null);
             if (thread != null)
             {
-                _osThreadId = thread.OSThreadID;
-                _managedThreadId = thread.ManagedThreadID;
+                _osThreadId = thread.OSThreadId;
+                _managedThreadId = thread.ManagedThreadId;
                 _appDomain = thread.AppDomain;
                 _lockCount = thread.LockCount;
                 _teb = thread.Teb;
@@ -198,7 +198,6 @@ namespace Microsoft.Diagnostics.Runtime
         protected uint _osThreadId;
         protected IList<ClrStackFrame> _stackTrace;
         protected bool _finalizer;
-
         protected bool _tlsInit;
         protected int _threadType;
         protected int _threadState;

@@ -118,8 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             finally
             {
-                if (file != null)
-                    file.Dispose();
+                file?.Dispose();
             }
         }
 

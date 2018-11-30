@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public ModuleInfo Module { get; }
         public DataTarget DataTarget { get; }
-        internal SOSNative SOSNative { get; }
+        internal SosNative SOSNative { get; }
 
         public NativeHeap Heap
         {
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             Module = module;
             DataTarget = dt;
-            SOSNative = lib.GetInterface<SOSNative>(ref SOSNative.IID_ISOSNative);
+            SOSNative = lib.GetInterface<SosNative>(ref SosNative.IID_ISOSNative);
             _dataReader = dt.DataReader;
             _modules = dt.EnumerateModules().ToArray();
 
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             fixed (byte* b = &context[0])
             {
                 IntPtr ctx = new IntPtr(b);
-                SOSNative.TraverseStackRoots(thread.Address, ctx, contextSize, callback, IntPtr.Zero);
+                SosNative.TraverseStackRoots(thread.Address, ctx, contextSize, callback, IntPtr.Zero);
             }
 
             GC.KeepAlive(del);
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             var walker = new NativeStaticRootWalker(this, resolveStatics);
             STATICROOTCALLBACK del = new STATICROOTCALLBACK(walker.Callback);
             IntPtr ptr = Marshal.GetFunctionPointerForDelegate(del);
-            SOSNative.TraverseStaticRoots(ptr);
+            SosNative.TraverseStaticRoots(ptr);
             GC.KeepAlive(del);
 
             return walker.Roots;
@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             var walker = new NativeHandleRootWalker(this, _dacRawVersion != 10);
             HANDLECALLBACK callback = new HANDLECALLBACK(walker.RootCallback);
             IntPtr ptr = Marshal.GetFunctionPointerForDelegate(callback);
-            SOSNative.TraverseHandleTable(ptr, IntPtr.Zero);
+            SosNative.TraverseHandleTable(ptr, IntPtr.Zero);
             GC.KeepAlive(callback);
 
             return walker.Roots;

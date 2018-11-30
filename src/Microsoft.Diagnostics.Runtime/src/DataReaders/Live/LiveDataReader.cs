@@ -31,13 +31,13 @@ namespace Microsoft.Diagnostics.Runtime
                 var hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if (hr != 0)
                 {
-                    throw new ClrDiagnosticsException(string.Format("Could not create snapshot to process. Error {0}.", hr));
+                    throw new ClrDiagnosticsException($"Could not create snapshot to process. Error {hr}.");
                 }
 
                 hr = PssQuerySnapshot(_snapshotHandle, PSS_QUERY_INFORMATION_CLASS.PSS_QUERY_VA_CLONE_INFORMATION, out _cloneHandle, IntPtr.Size);
                 if (hr != 0)
                 {
-                    throw new ClrDiagnosticsException(string.Format("Could not query the snapshot. Error {0}.", hr));
+                    throw new ClrDiagnosticsException($"Could not query the snapshot. Error {hr}.");
                 }
 
                 _pid = GetProcessId(_cloneHandle);
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
             _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
 
             if (_process == IntPtr.Zero)
-                throw new ClrDiagnosticsException(string.Format("Could not attach to process. Error {0}.", Marshal.GetLastWin32Error()));
+                throw new ClrDiagnosticsException($"Could not attach to process. Error {Marshal.GetLastWin32Error()}.");
 
             using (var p = Process.GetCurrentProcess())
                 if (DataTarget.PlatformFunctions.TryGetWow64(p.Handle, out var wow64) &&
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
                 var hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
                 if (hr != 0)
                 {
-                    throw new ClrDiagnosticsException(string.Format("Could not free the snapshot. Error {0}.", hr));
+                    throw new ClrDiagnosticsException($"Could not free the snapshot. Error {hr}.");
                 }
 
                 try
@@ -242,9 +242,9 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            using (var thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID))
+            using (var thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadId))
             {
                 if (thread.IsInvalid)
                     return false;
@@ -254,9 +254,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
-            using (var thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID))
+            using (var thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadId))
             {
                 if (thread.IsInvalid)
                     return false;

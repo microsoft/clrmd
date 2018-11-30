@@ -7,11 +7,11 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class ClrDataMethod : CallableCOMWrapper
+    public sealed unsafe class ClrDataMethod : CallableComWrapper
     {
         private static Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
-        private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
+        private ClrDataMethodVTable* VTable => (ClrDataMethodVTable*)_vtable;
         private GetILAddressMapDelegate _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 
-    internal struct IXCLRDataMethodInstanceVTable
+    internal struct ClrDataMethodVTable
     {
         private readonly IntPtr GetTypeInstance;
         private readonly IntPtr GetDefinition;
@@ -56,10 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetEnCVersion;
         private readonly IntPtr GetNumTypeArguments;
         private readonly IntPtr GetTypeArgumentByIndex;
-        private readonly IntPtr
-            GetILOffsetsByAddress; // (ulong address, uint offsetsLen, out uint offsetsNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] ilOffsets);
-        private readonly IntPtr
-            GetAddressRangesByILOffset; //(uint ilOffset, uint rangesLen, out uint rangesNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] addressRanges);
+        private readonly IntPtr GetILOffsetsByAddress; // (ulong address, uint offsetsLen, out uint offsetsNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] ilOffsets);
+        private readonly IntPtr GetAddressRangesByILOffset; //(uint ilOffset, uint rangesLen, out uint rangesNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] addressRanges);
         public readonly IntPtr GetILAddressMap;
         private readonly IntPtr StartEnumExtents;
         private readonly IntPtr EnumExtent;

@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal interface IDomainLocalModuleData
     {
         ulong AppDomainAddr { get; }
-        ulong ModuleID { get; }
+        ulong ModuleId { get; }
 
         ulong ClassData { get; }
         ulong DynamicClassTable { get; }

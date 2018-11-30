@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use.
     /// </summary>
-    public unsafe class ClrDataProcess : CallableCOMWrapper
+    public unsafe class ClrDataProcess : CallableComWrapper
     {
         private static Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
@@ -32,19 +32,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
-        public ClrDataProcess(CallableCOMWrapper toClone) : base(toClone)
+        public ClrDataProcess(CallableComWrapper toClone) : base(toClone)
         {
         }
 
-        public SOSDac GetSOSDacInterface()
+        public SosDac GetSOSDacInterface()
         {
-            var result = QueryInterface(ref SOSDac.IID_ISOSDac);
+            var result = QueryInterface(ref SosDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
                 return null;
 
             try
             {
-                return new SOSDac(_library, result);
+                return new SosDac(_library, result);
             }
             catch (InvalidOperationException)
             {
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk CreateStackWalk(uint id, uint flags)
         {
-            InitDelegate(ref _getTask, VTable->GetTaskByOSThreadID);
+            InitDelegate(ref _getTask, VTable->GetTaskByOSThreadId);
 
             var hr = _getTask(Self, id, out var pUnkTask);
             if (hr != S_OK)
@@ -151,9 +151,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr EndEnumTasks;
 
         //(uint id, [Out, MarshalAs(UnmanagedType.IUnknown)] out object task);
-        public readonly IntPtr GetTaskByOSThreadID;
+        public readonly IntPtr GetTaskByOSThreadId;
 
-        private readonly IntPtr GetTaskByUniqueID;
+        private readonly IntPtr GetTaskByUniqueId;
         private readonly IntPtr GetFlags;
         private readonly IntPtr IsSameObject;
         private readonly IntPtr GetManagedObject;
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr StartEnumAppDomains;
         private readonly IntPtr EnumAppDomain;
         private readonly IntPtr EndEnumAppDomains;
-        private readonly IntPtr GetAppDomainByUniqueID;
+        private readonly IntPtr GetAppDomainByUniqueId;
         private readonly IntPtr StartEnumAssemblie;
         private readonly IntPtr EnumAssembly;
         private readonly IntPtr EndEnumAssemblies;

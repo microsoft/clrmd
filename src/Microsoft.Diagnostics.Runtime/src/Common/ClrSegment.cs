@@ -138,19 +138,13 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual int GetGeneration(ulong obj)
         {
             if (Gen0Start <= obj && obj < Gen0Start + Gen0Length)
-            {
                 return 0;
-            }
 
             if (Gen1Start <= obj && obj < Gen1Start + Gen1Length)
-            {
                 return 1;
-            }
 
             if (Gen2Start <= obj && obj < Gen2Start + Gen2Length)
-            {
                 return 2;
-            }
 
             return -1;
         }
@@ -161,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return string.Format("HeapSegment {0:n2}mb [{1:X8}, {2:X8}]", Length / 1000000.0, Start, End);
+            return $"HeapSegment {Length / 1000000.0:n2}mb [{Start:X8}, {End:X8}]";
         }
     }
 }

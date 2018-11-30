@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
             var hr = client.OpenDumpFile(dumpFile);
 
             if (hr != 0)
-                throw new ClrDiagnosticsException(string.Format("Could not load crash dump '{0}', HRESULT: 0x{1:x8}", dumpFile, hr), ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Could not load crash dump '{dumpFile}', HRESULT: 0x{hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
 
             CreateClient(client);
 
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if ((uint)hr == 0xd00000bb)
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
-                throw new ClrDiagnosticsException(string.Format("Could not attach to pid {0:X}, HRESULT: 0x{1:x8}", pid, hr), ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Could not attach to pid {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
             }
         }
 
@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             var hr = _control.GetExecutingProcessorType(out var machineType);
             if (0 != hr)
-                throw new ClrDiagnosticsException(string.Format("Failed to get proessor type, HRESULT: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Failed to get proessor type, HRESULT: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
 
             switch (machineType)
             {
@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (hr == 1)
                 return 4;
 
-            throw new ClrDiagnosticsException(string.Format("IsPointer64Bit failed: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
+            throw new ClrDiagnosticsException($"IsPointer64Bit failed: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
         }
 
         public void Flush()
@@ -191,9 +191,9 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = null;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            GetThreadIdBySystemId(threadID, out var id);
+            GetThreadIdBySystemId(threadId, out var id);
 
             SetCurrentThreadId(id);
             GetThreadContext(context, contextSize);
@@ -478,10 +478,10 @@ namespace Microsoft.Diagnostics.Runtime
             return _symbols.GetModuleParameters(Count, Bases, Start, Params);
         }
 
-        internal void GetThreadIdBySystemId(uint threadID, out uint id)
+        internal void GetThreadIdBySystemId(uint threadId, out uint id)
         {
             SetClientInstance();
-            _systemObjects.GetThreadIdBySystemId(threadID, out id);
+            _systemObjects.GetThreadIdBySystemId(threadId, out id);
         }
 
         internal void SetCurrentThreadId(uint id)
@@ -574,9 +574,9 @@ namespace Microsoft.Diagnostics.Runtime
                 s_needRelease = true;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
-            GetThreadIdBySystemId(threadID, out var id);
+            GetThreadIdBySystemId(threadId, out var id);
 
             SetCurrentThreadId(id);
             fixed (byte* pContext = &context[0])

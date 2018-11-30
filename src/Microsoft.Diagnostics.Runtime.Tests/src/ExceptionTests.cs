@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         internal static void TestProperties(ClrRuntime runtime)
         {
-            var thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
+            var thread = runtime.Threads.Single(t => !t.IsFinalizer);
             var ex = thread.CurrentException;
             Assert.NotNull(ex);
 

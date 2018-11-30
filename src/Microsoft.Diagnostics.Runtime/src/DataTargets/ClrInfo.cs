@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 DataTarget.PlatformFunctions.GetFileVersion(dacFilename, out var major, out var minor, out var revision, out var patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
-                    throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
+                    throw new InvalidOperationException($"Mismatched dac. Version: {major}.{minor}.{revision}.{patch}");
             }
 
             return ConstructRuntime(dacFilename);

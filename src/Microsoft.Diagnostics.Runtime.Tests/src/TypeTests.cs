@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(2, types.Length);
                 Assert.NotSame(types[0], types[1]);
 
-                var module = runtime.Modules.Where(m => Path.GetFileName(m.FileName).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase)).Single();
+                var module = runtime.Modules.Single(m => Path.GetFileName(m.FileName).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase));
                 var typeFromModule = module.GetTypeByName(TypeName);
 
                 Assert.Equal(TypeName, typeFromModule.Name);
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                                where root.Type.Name == "Foo"
                                select root;
 
-                var staticRoot = fooRoots.Where(r => r.Kind == GCRootKind.StaticVar).Single();
+                var staticRoot = fooRoots.Single(r => r.Kind == GCRootKind.StaticVar);
                 Assert.Contains("s_foo", staticRoot.Name);
 
                 var arr = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
@@ -237,8 +237,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                     if (type.IsArray)
                     {
-                        ulong mt, cmt;
-                        var result = heap.TryGetMethodTable(obj, out mt, out cmt);
+                        var result = heap.TryGetMethodTable(obj, out var mt, out var cmt);
 
                         Assert.True(result);
                         Assert.NotEqual(0ul, mt);
@@ -256,8 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         Assert.Same(type, heap.GetTypeByMethodTable(mt));
                         Assert.Same(type, heap.GetTypeByMethodTable(mt, 0));
 
-                        ulong mt2, cmt;
-                        var res = heap.TryGetMethodTable(obj, out mt2, out cmt);
+                        var res = heap.TryGetMethodTable(obj, out var mt2, out var cmt);
 
                         Assert.True(res);
                         Assert.Equal(mt, mt2);
@@ -291,7 +289,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                                      where root.Kind == GCRootKind.StaticVar && root.Type == fooType
                                      select root).Single();
 
-                var nestedExceptionFoo = fooObjects.Where(obj => obj != appDomainsFoo.Object).Single();
+                var nestedExceptionFoo = fooObjects.Single(obj => obj != appDomainsFoo.Object);
                 var nestedExceptionFooType = heap.GetObjectType(nestedExceptionFoo);
 
                 Assert.NotSame(nestedExceptionFooType, appDomainsFoo.Type);

@@ -199,10 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (HandleType != HandleType.AsyncPinned)
                 return null;
 
-            if (Type == null)
-                return null;
-
-            var field = Type.GetFieldByName("m_userObject");
+            var field = Type?.GetFieldByName("m_userObject");
             if (field == null)
                 return null;
 

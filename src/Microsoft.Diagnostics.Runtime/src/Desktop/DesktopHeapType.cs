@@ -613,7 +613,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 // If we couldn't figure out the name, at least give the token.
                 if (import == null || name == null)
                 {
-                    name = string.Format("<ERROR:{0:X}>", field.FieldToken);
+                    name = $"<ERROR:{field.FieldToken:X}>";
                 }
 
                 // construct the appropriate type of field.

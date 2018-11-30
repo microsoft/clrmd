@@ -797,8 +797,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IModuleData GetModuleData(ulong addr);
         internal abstract IAppDomainData GetAppDomainData(ulong addr);
         internal abstract string GetAppDomaminName(ulong addr);
-        internal abstract bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback);
-        internal abstract bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback);
+        internal abstract bool TraverseHeap(ulong heap, SosDac.LoaderHeapTraverse callback);
+        internal abstract bool TraverseStubHeap(ulong appDomain, int type, SosDac.LoaderHeapTraverse callback);
         internal abstract IEnumerable<ICodeHeap> EnumerateJitHeaps();
         internal abstract ulong GetModuleForMT(ulong mt);
         internal abstract IFieldInfo GetFieldInfo(ulong mt);

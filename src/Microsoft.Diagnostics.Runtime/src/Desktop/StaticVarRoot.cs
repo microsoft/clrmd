@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Address = addr;
             Object = obj;
-            Name = string.Format("static var {0}.{1}", typeName, variableName);
+            Name = $"static var {typeName}.{variableName}";
             AppDomain = appDomain;
             Type = type;
         }

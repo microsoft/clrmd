@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">The address of memory that could not be read.</param>
         public MemoryReadException(ulong address)
-            : base(string.Format("Could not read memory at {0:x}.", address))
+            : base($"Could not read memory at {address:x}.")
         {
         }
     }
