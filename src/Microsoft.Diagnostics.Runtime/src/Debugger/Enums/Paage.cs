@@ -15,6 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EXECUTE_WRITECOPY = 0x80,
         GUARD = 0x100,
         NOCACHE = 0x200,
-        WRITECOMBINE = 0x400,
+        WRITECOMBINE = 0x400
     }
 }

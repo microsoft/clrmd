@@ -85,8 +85,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates the GC references (objects) on the stack.
         /// </summary>
-        /// <param name="includePossiblyDead">Include all objects found on the stack.  Passing
-        /// false attempts to replicate the behavior of the GC, reporting only live objects.</param>
+        /// <param name="includePossiblyDead">
+        /// Include all objects found on the stack.  Passing
+        /// false attempts to replicate the behavior of the GC, reporting only live objects.
+        /// </param>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
         public abstract IEnumerable<ClrRoot> EnumerateStackObjects(bool includePossiblyDead);
 
@@ -95,13 +97,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// data in the case of a bad stack unwind or if there is a very large number of methods on the stack.
         /// (This is usually caused by a stack overflow on the target thread, stack corruption which leads to
         /// a bad stack unwind, or other inconsistent state in the target debuggee.)
-        /// 
         /// Note: This property uses a heuristic to attempt to detect bad unwinds to stop enumerating
         /// frames by inspecting the stack pointer and instruction pointer of each frame to ensure the stack
         /// walk is "making progress".  Additionally we cap the number of frames returned by this method
         /// as another safegaurd.  This means we may not have all frames even if the stack walk was making
         /// progress.
-        /// 
         /// If you want to ensure that you receive an un-clipped stack trace, you should use EnumerateStackTrace
         /// instead of this property, and be sure to handle the case of repeating stack frames.
         /// </summary>
@@ -142,7 +142,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// cleared off the field.
         /// </summary>
         public abstract ClrException CurrentException { get; }
-
 
         /// <summary>
         /// Returns if this thread is a GC thread.  If the runtime is using a server GC, then there will be

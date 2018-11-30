@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         NONE = 0,
         LOADED_SUPPORT_DLL = 1,
-        LOAD_STATUS = 2,
+        LOAD_STATUS = 2
     }
 }

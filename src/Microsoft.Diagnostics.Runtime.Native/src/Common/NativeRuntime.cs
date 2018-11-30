@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return _heap;
             }
         }
-        
+
         public NativeRuntime(ModuleInfo module, DataTarget dt, DacLibrary lib)
         {
             Module = module;
@@ -54,19 +54,19 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         private void InitThreads()
         {
-            List<NativeThread> threads = new List<NativeThread>();
+            var threads = new List<NativeThread>();
 
-            if (SOSNative.GetThreadStoreData(out NativeThreadStoreData data))
+            if (SOSNative.GetThreadStoreData(out var data))
             {
-                HashSet<ulong> seen = new HashSet<ulong>() { 0 };
+                var seen = new HashSet<ulong> {0};
 
-                ulong addr = data.FirstThread;
+                var addr = data.FirstThread;
                 while (seen.Add(addr))
                 {
-                    if (!SOSNative.GetThreadData(addr, out NativeThreadData threadData))
+                    if (!SOSNative.GetThreadData(addr, out var threadData))
                         break;
 
-                    NativeThread thread = new NativeThread(this, ref threadData, addr, addr == data.FinalizerThread);
+                    var thread = new NativeThread(this, ref threadData, addr, addr == data.FinalizerThread);
                     threads.Add(thread);
                     addr = threadData.NextThread;
                 }
@@ -74,6 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             _threads = threads.ToArray();
         }
+
         /*
 
         internal unsafe IList<ClrRoot> EnumerateStackRoots(ClrThread thread)
@@ -90,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             else
                 throw new InvalidOperationException("Unexpected architecture.");
 
-            byte[] context = new byte[contextSize];
+            var context = new byte[contextSize];
             _dataReader.GetThreadContext(thread.OSThreadId, 0, (uint)contextSize, context);
 
             var walker = new NativeStackRootWalker(_heap.Value, GetRhAppDomain(), thread);
@@ -102,6 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 IntPtr ctx = new IntPtr(b);
                 SOSNative.TraverseStackRoots(thread.Address, ctx, contextSize, callback, IntPtr.Zero);
             }
+
             GC.KeepAlive(del);
 
             return walker.Roots;
@@ -140,14 +142,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
             ISerializedExceptionEnumerator serializedExceptionEnumerator = _sosNativeSerializedExceptionSupport.GetSerializedExceptions();
             while (serializedExceptionEnumerator.HasNext())
             {
-                ISerializedException serializedException = serializedExceptionEnumerator.Next();
+                var serializedException = serializedExceptionEnumerator.Next();
 
                 //build the stack frames
                 IList<ClrStackFrame> stackFrames = new List<ClrStackFrame>();
-                ISerializedStackFrameEnumerator serializedStackFrameEnumerator = serializedException.StackFrames;
+                var serializedStackFrameEnumerator = serializedException.StackFrames;
                 while (serializedStackFrameEnumerator.HasNext())
                 {
-                    ISerializedStackFrame serializedStackFrame = serializedStackFrameEnumerator.Next();
+                    var serializedStackFrame = serializedStackFrameEnumerator.Next();
 
                     NativeModule nativeModule = _heap.GetModuleFromAddress(serializedStackFrame.IP);
                     string symbolName = null;
@@ -157,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                         {
                             try
                             {
-                                ISymbolResolver resolver = this.DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
+                                var resolver = DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
 
                                 if (resolver != null)
                                 {
@@ -165,12 +167,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
                                 }
                                 else
                                 {
-                                    Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
+                                    Trace.WriteLine(
+                                        $"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
                                 }
                             }
                             catch (Exception e)
                             {
-                                Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
+                                Trace.WriteLine(
+                                    $"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
                                 Trace.WriteLine("Check previous traces for additional information");
                             }
                         }
@@ -189,15 +193,17 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
                 //create a new exception and populate the fields
 
-                exceptionById.Add(serializedException.ExceptionId, new NativeException(
-                    _heap.GetTypeByMethodTable(serializedException.ExceptionEEType),
-                    serializedException.ExceptionCCWPtr,
-                    serializedException.HResult,
-                    serializedException.ThreadId,
+                exceptionById.Add(
                     serializedException.ExceptionId,
-                    serializedException.InnerExceptionId,
-                    serializedException.NestingLevel,
-                    stackFrames));
+                    new NativeException(
+                        _heap.GetTypeByMethodTable(serializedException.ExceptionEEType),
+                        serializedException.ExceptionCCWPtr,
+                        serializedException.HResult,
+                        serializedException.ThreadId,
+                        serializedException.ExceptionId,
+                        serializedException.InnerExceptionId,
+                        serializedException.NestingLevel,
+                        stackFrames));
             }
 
             var usedAsInnerException = new HashSet<ulong>();
@@ -206,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             {
                 if (nativeException.InnerExceptionId > 0)
                 {
-                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out NativeException innerException))
+                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out var innerException))
                     {
                         nativeException.SetInnerException(innerException);
                         usedAsInnerException.Add(innerException.ExceptionId);

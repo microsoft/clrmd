@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    public enum BUS_DATA_TYPE : int
+    public enum BUS_DATA_TYPE
     {
         ConfigurationSpaceUndefined = -1,
         Cmos,

@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EFFECTIVE_ADDRESS = 1,
         MATCHING_SYMBOLS = 2,
         SOURCE_LINE_NUMBER = 4,
-        SOURCE_FILE_NAME = 8,
+        SOURCE_FILE_NAME = 8
     }
 }

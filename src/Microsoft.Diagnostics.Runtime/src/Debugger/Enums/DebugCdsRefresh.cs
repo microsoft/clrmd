@@ -22,6 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         SETSCOPEFROMJITDEBUGINFO = 14,
         SETSCOPEFROMSTOREDEVENT = 15,
         INLINESTEP = 16,
-        INLINESTEP_PSEUDO = 17,
+        INLINESTEP_PSEUDO = 17
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,8 +6,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct LANGANDCODEPAGE
     {
         [FieldOffset(0)]
-        public UInt16 wLanguage;
+        public ushort wLanguage;
         [FieldOffset(2)]
-        public UInt16 wCodePage;
+        public ushort wCodePage;
     }
 }

@@ -9,6 +9,6 @@
         EXPORT = 4,
         DEFERRED = 5,
         SYM = 6,
-        DIA = 7,
+        DIA = 7
     }
 }

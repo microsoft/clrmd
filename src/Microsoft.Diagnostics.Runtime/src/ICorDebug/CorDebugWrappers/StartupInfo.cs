@@ -4,7 +4,8 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 8), ComVisible(false)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 8)]
+    [ComVisible(false)]
     public class STARTUPINFO
     {
         public int cb;
@@ -25,15 +26,16 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public SafeFileHandle hStdInput;
         public SafeFileHandle hStdOutput;
         public SafeFileHandle hStdError;
+
         public STARTUPINFO()
         {
             // Initialize size field.
-            this.cb = Marshal.SizeOf(this);
+            cb = Marshal.SizeOf(this);
 
             // initialize safe handles 
-            this.hStdInput = new Win32.SafeHandles.SafeFileHandle(new IntPtr(0), false);
-            this.hStdOutput = new Win32.SafeHandles.SafeFileHandle(new IntPtr(0), false);
-            this.hStdError = new Win32.SafeHandles.SafeFileHandle(new IntPtr(0), false);
+            hStdInput = new SafeFileHandle(new IntPtr(0), false);
+            hStdOutput = new SafeFileHandle(new IntPtr(0), false);
+            hStdError = new SafeFileHandle(new IntPtr(0), false);
         }
     }
 }

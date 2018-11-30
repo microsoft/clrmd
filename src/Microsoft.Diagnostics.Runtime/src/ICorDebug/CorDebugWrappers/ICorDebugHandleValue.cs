@@ -2,18 +2,20 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [ComImport, Guid("029596E8-276B-46A1-9821-732E96BBB00B"), InterfaceType(1)]
+    [ComImport]
+    [Guid("029596E8-276B-46A1-9821-732E96BBB00B")]
+    [InterfaceType(1)]
     public interface ICorDebugHandleValue : ICorDebugReferenceValue
     {
-
         new void GetType([Out] out CorElementType pType);
 
         new void GetSize([Out] out uint pSize);
 
         new void GetAddress([Out] out ulong pAddress);
 
-        new void CreateBreakpoint([Out, MarshalAs(UnmanagedType.Interface)] out ICorDebugValueBreakpoint ppBreakpoint);
-
+        new void CreateBreakpoint(
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out ICorDebugValueBreakpoint ppBreakpoint);
 
         new void IsNull([Out] out int pbNull);
 
@@ -21,10 +23,13 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         new void SetValue([In] ulong value);
 
-        new void Dereference([Out, MarshalAs(UnmanagedType.Interface)] out ICorDebugValue ppValue);
+        new void Dereference(
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out ICorDebugValue ppValue);
 
-        new void DereferenceStrong([Out, MarshalAs(UnmanagedType.Interface)] out ICorDebugValue ppValue);
-
+        new void DereferenceStrong(
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out ICorDebugValue ppValue);
 
         void GetHandleType([Out] out CorDebugHandleType pType);
 

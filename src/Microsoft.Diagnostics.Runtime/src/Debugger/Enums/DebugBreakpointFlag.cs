@@ -9,6 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         DEFERRED = 2,
         ENABLED = 4,
         ADDER_ONLY = 8,
-        ONE_SHOT = 0x10,
+        ONE_SHOT = 0x10
     }
 }

@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         DEFAULT = 0,
         APPEND = 1,
         UNICODE = 2,
-        DML = 4,
+        DML = 4
     }
 }

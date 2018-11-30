@@ -9,6 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         FULL_PATH = 1,
         BEST_MATCH = 2,
         NO_SRCSRV = 4,
-        TOKEN_LOOKUP = 8,
+        TOKEN_LOOKUP = 8
     }
 }

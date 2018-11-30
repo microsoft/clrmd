@@ -3,7 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [ComImport, Guid("809C652E-7396-11D2-9771-00A0C9B4D50C"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [ComImport]
+    [Guid("809C652E-7396-11D2-9771-00A0C9B4D50C")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IMetaDataDispenser
     {
         /// <summary>
@@ -13,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// <param name="dwCreateFlags">[in] Flags that specify options. This value must be zero.</param>
         /// <param name="riid">
         /// [in] The IID of the desired metadata interface to be returned; the caller will use the interface to create the new metadata.
-        /// The value of riid must specify one of the "emit" interfaces. Valid values are IID_IMetaDataEmit, IID_IMetaDataAssemblyEmit, or IID_IMetaDataEmit2. 
+        /// The value of riid must specify one of the "emit" interfaces. Valid values are IID_IMetaDataEmit, IID_IMetaDataAssemblyEmit, or IID_IMetaDataEmit2.
         /// </param>
         /// <param name="ppIUnk">[out] The pointer to the returned interface.</param>
         /// <remarks>
@@ -28,7 +30,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             [In] ref Guid rclsid,
             [In] uint dwCreateFlags,
             [In] ref Guid riid,
-            [Out, MarshalAs(UnmanagedType.Interface)] out object ppIUnk);
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out object ppIUnk);
 
         /// <summary>
         /// Opens an existing, on-disk file and maps its metadata into memory.
@@ -36,8 +39,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// <param name="szScope">[in] The name of the file to be opened. The file must contain common language runtime (CLR) metadata.</param>
         /// <param name="dwOpenFlags">[in] A value of the <c>CorOpenFlags</c> enumeration to specify the mode (read, write, and so on) for opening. </param>
         /// <param name="riid">
-        /// [in] The IID of the desired metadata interface to be returned; the caller will use the interface to import (read) or emit (write) metadata. 
-        /// The value of riid must specify one of the "import" or "emit" interfaces. Valid values are IID_IMetaDataEmit, IID_IMetaDataImport, IID_IMetaDataAssemblyEmit, IID_IMetaDataAssemblyImport, IID_IMetaDataEmit2, or IID_IMetaDataImport2. 
+        /// [in] The IID of the desired metadata interface to be returned; the caller will use the interface to import (read) or emit (write) metadata.
+        /// The value of riid must specify one of the "import" or "emit" interfaces. Valid values are IID_IMetaDataEmit, IID_IMetaDataImport, IID_IMetaDataAssemblyEmit,
+        /// IID_IMetaDataAssemblyImport, IID_IMetaDataEmit2, or IID_IMetaDataImport2.
         /// </param>
         /// <param name="ppIUnk">[out] The pointer to the returned interface.</param>
         /// <remarks>
@@ -49,10 +53,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// </remarks>
         [PreserveSig]
         void OpenScope(
-            [In, MarshalAs(UnmanagedType.LPWStr)] string szScope,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string szScope,
             [In] int dwOpenFlags,
             [In] ref Guid riid,
-            [Out, MarshalAs(UnmanagedType.Interface)] out object ppIUnk);
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out object ppIUnk);
 
         /// <summary>
         /// Opens an area of memory that contains existing metadata. That is, this method opens a specified area of memory in which the existing data is treated as metadata.
@@ -61,8 +66,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// <param name="cbData">[in] The size of the memory area, in bytes.</param>
         /// <param name="dwOpenFlags">[in] A value of the <c>CorOpenFlags</c> enumeration to specify the mode (read, write, and so on) for opening.</param>
         /// <param name="riid">
-        /// [in] The IID of the desired metadata interface to be returned; the caller will use the interface to import (read) or emit (write) metadata. 
-        /// The value of riid must specify one of the "import" or "emit" interfaces. Valid values are IID_IMetaDataEmit, IID_IMetaDataImport, IID_IMetaDataAssemblyEmit, IID_IMetaDataAssemblyImport, IID_IMetaDataEmit2, or IID_IMetaDataImport2. 
+        /// [in] The IID of the desired metadata interface to be returned; the caller will use the interface to import (read) or emit (write) metadata.
+        /// The value of riid must specify one of the "import" or "emit" interfaces. Valid values are IID_IMetaDataEmit, IID_IMetaDataImport, IID_IMetaDataAssemblyEmit,
+        /// IID_IMetaDataAssemblyImport, IID_IMetaDataEmit2, or IID_IMetaDataImport2.
         /// </param>
         /// <param name="ppIUnk">[out] The pointer to the returned interface.</param>
         /// <remarks>
@@ -79,6 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             [In] uint cbData,
             [In] int dwOpenFlags,
             [In] ref Guid riid,
-            [Out, MarshalAs(UnmanagedType.IUnknown)] out object ppIUnk);
+            [Out][MarshalAs(UnmanagedType.IUnknown)]
+            out object ppIUnk);
     }
 }

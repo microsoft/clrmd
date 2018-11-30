@@ -11,27 +11,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <summary>
         /// The IL offset of this line.
         /// </summary>
-        public uint Offset { get; private set; }
+        public uint Offset { get; }
 
         /// <summary>
         /// The first line of this sequence point.
         /// </summary>
-        public uint LineBegin { get; private set; }
+        public uint LineBegin { get; }
 
         /// <summary>
         /// The last line of this sequence point.
         /// </summary>
-        public uint LineEnd { get; private set; }
+        public uint LineEnd { get; }
 
         /// <summary>
         /// The first column of the first line of this sequence point.
         /// </summary>
-        public ushort ColBegin { get; private set; }
+        public ushort ColBegin { get; }
 
         /// <summary>
         /// The last column of the last line of this sequence point.
         /// </summary>
-        public ushort ColEnd { get; private set; }
+        public ushort ColEnd { get; }
 
         internal PdbSequencePoint(uint offset, uint lineBegin, ushort colBegin, uint lineEnd, ushort colEnd)
         {

@@ -31,6 +31,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         FAVOR_COMPRESSED = 0x00800000,
         ALLOW_ZERO_ADDRESS = 0x01000000,
         DISABLE_SYMSRV_AUTODETECT = 0x02000000,
-        DEBUG = 0x80000000,
+        DEBUG = 0x80000000
     }
 }

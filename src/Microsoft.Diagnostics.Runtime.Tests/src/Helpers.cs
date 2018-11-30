@@ -1,10 +1,8 @@
-﻿
-using System;
-using Xunit;
-using System.IO;
-using System.Diagnostics;
-using System.Linq;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -20,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
-            ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
-            ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
+            var field = mainType.GetStaticFieldByName(fieldName);
+            var obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
             return new ClrObject(obj, mainType.Heap.GetObjectType(obj));
         }
 
@@ -42,8 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static HashSet<T> Unique<T>(this IEnumerable<T> self)
         {
-            HashSet<T> set = new HashSet<T>();
-            foreach (T t in self)
+            var set = new HashSet<T>();
+            foreach (var t in self)
                 set.Add(t);
 
             return set;
@@ -62,10 +60,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     select module).Single();
         }
 
-
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
-            ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
+            var thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
             return thread;
         }
 
@@ -74,30 +71,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return thread.StackTrace.Where(sf => sf.Method != null ? sf.Method.Name == functionName : false).Single();
         }
 
-        public static string TestWorkingDirectory { get { return _userSetWorkingPath ?? _workingPath.Value; } set { Debug.Assert(!_workingPath.IsValueCreated); _userSetWorkingPath = value; } }
+        public static string TestWorkingDirectory
+        {
+            get => _userSetWorkingPath ?? _workingPath.Value;
+            set
+            {
+                Debug.Assert(!_workingPath.IsValueCreated);
+                _userSetWorkingPath = value;
+            }
+        }
 
-        #region Working Path Helpers
-        static string _userSetWorkingPath = null;
-        static Lazy<string> _workingPath = new Lazy<string>(() => CreateWorkingPath(), true);
+        private static string _userSetWorkingPath;
+        private static readonly Lazy<string> _workingPath = new Lazy<string>(() => CreateWorkingPath(), true);
+
         private static string CreateWorkingPath()
         {
-            Random r = new Random();
+            var r = new Random();
             string path;
             do
             {
-                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next().ToString());
+                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next());
             } while (Directory.Exists(path));
 
             Directory.CreateDirectory(path);
             return path;
         }
 
-
         internal static readonly string TempRoot = "clrmd_removeme_";
-        #endregion
     }
 
-    
     public class GlobalCleanup
     {
         public static void AssemblyCleanup()
@@ -105,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
+            foreach (var directory in Directory.GetDirectories(Environment.CurrentDirectory))
                 if (directory.Contains(Helpers.TempRoot))
                     Directory.Delete(directory, true);
         }

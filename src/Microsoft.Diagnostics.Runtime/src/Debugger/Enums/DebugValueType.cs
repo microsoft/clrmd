@@ -14,6 +14,6 @@
         FLOAT128 = 9,
         VECTOR64 = 10,
         VECTOR128 = 11,
-        TYPES = 12,
+        TYPES = 12
     }
 }

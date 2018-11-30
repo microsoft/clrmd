@@ -4,22 +4,34 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class LockInspection
     {
-        private DesktopGCHeap _heap;
-        private DesktopRuntimeBase _runtime;
+        private const int HASHCODE_BITS = 25;
+        private const int SYNCBLOCKINDEX_BITS = 26;
+        private const uint BIT_SBLK_IS_HASH_OR_SYNCBLKINDEX = 0x08000000;
+        private const uint BIT_SBLK_FINALIZER_RUN = 0x40000000;
+        private const uint BIT_SBLK_SPIN_LOCK = 0x10000000;
+        private const uint SBLK_MASK_LOCK_THREADID = 0x000003FF; // special value of 0 + 1023 thread ids
+        private const int SBLK_MASK_LOCK_RECLEVEL = 0x0000FC00; // 64 recursion levels
+        private const uint SBLK_APPDOMAIN_SHIFT = 16; // shift right this much to get appdomain index
+        private const uint SBLK_MASK_APPDOMAININDEX = 0x000007FF; // 2048 appdomain indices
+        private const int SBLK_RECLEVEL_SHIFT = 10; // shift right this much to get recursion level
+        private const uint BIT_SBLK_IS_HASHCODE = 0x04000000;
+        private const uint MASK_HASHCODE = (1 << HASHCODE_BITS) - 1;
+        private const uint MASK_SYNCBLOCKINDEX = (1 << SYNCBLOCKINDEX_BITS) - 1;
+
+        private readonly DesktopGCHeap _heap;
+        private readonly DesktopRuntimeBase _runtime;
         private ClrType _rwType, _rwsType;
         private Dictionary<ulong, DesktopBlockingObject> _monitors = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ulong, DesktopBlockingObject> _locks = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ClrThread, DesktopBlockingObject> _joinLocks = new Dictionary<ClrThread, DesktopBlockingObject>();
         private Dictionary<ulong, DesktopBlockingObject> _waitLocks = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ulong, ulong> _syncblks = new Dictionary<ulong, ulong>();
-        private DesktopBlockingObject[] _result = null;
+        private DesktopBlockingObject[] _result;
 
         internal LockInspection(DesktopGCHeap heap, DesktopRuntimeBase runtime)
         {
@@ -35,39 +47,39 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // First, enumerate all thinlocks on the heap.
             foreach (var seg in _heap.Segments)
             {
-                for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
+                for (var obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
                 {
-                    ClrType type = _heap.GetObjectType(obj);
+                    var type = _heap.GetObjectType(obj);
                     if (IsReaderWriterLock(obj, type))
                         _locks[obj] = CreateRWLObject(obj, type);
                     else if (IsReaderWriterSlim(obj, type))
                         _locks[obj] = CreateRWSObject(obj, type);
 
                     // Does this object have a syncblk with monitor associated with it?
-                    if (!_heap.GetObjectHeader(obj, out uint header))
+                    if (!_heap.GetObjectHeader(obj, out var header))
                         continue;
 
                     if ((header & (BIT_SBLK_IS_HASH_OR_SYNCBLKINDEX | BIT_SBLK_SPIN_LOCK)) != 0)
                         continue;
 
-                    uint threadId = header & SBLK_MASK_LOCK_THREADID;
+                    var threadId = header & SBLK_MASK_LOCK_THREADID;
                     if (threadId == 0)
                         continue;
 
-                    ClrThread thread = _runtime.GetThreadFromThinlockID(threadId);
+                    var thread = _runtime.GetThreadFromThinlockID(threadId);
                     if (thread != null)
                     {
-                        int recursion = ((int)header & SBLK_MASK_LOCK_RECLEVEL) >> SBLK_RECLEVEL_SHIFT;
+                        var recursion = ((int)header & SBLK_MASK_LOCK_RECLEVEL) >> SBLK_RECLEVEL_SHIFT;
                         _monitors[obj] = new DesktopBlockingObject(obj, true, recursion + 1, thread, BlockingReason.Monitor);
                     }
                 }
             }
 
             // Enumerate syncblocks to find locks
-            int syncblkCnt = _runtime.GetSyncblkCount();
-            for (int i = 0; i < syncblkCnt; ++i)
+            var syncblkCnt = _runtime.GetSyncblkCount();
+            for (var i = 0; i < syncblkCnt; ++i)
             {
-                ISyncBlkData data = _runtime.GetSyncblkData(i);
+                var data = _runtime.GetSyncblkData(i);
                 if (data == null || data.Free)
                     continue;
 
@@ -76,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 ClrThread thread = null;
                 if (data.MonitorHeld)
                 {
-                    ulong threadAddr = data.OwningThread;
+                    var threadAddr = data.OwningThread;
                     foreach (var clrThread in _runtime.Threads)
                     {
                         if (clrThread.Address == threadAddr)
@@ -92,20 +104,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             SetThreadWaiters();
 
-            int total = _monitors.Count + _locks.Count + _joinLocks.Count + _waitLocks.Count;
+            var total = _monitors.Count + _locks.Count + _joinLocks.Count + _waitLocks.Count;
             _result = new DesktopBlockingObject[total];
 
-            int j = 0;
-            foreach (DesktopBlockingObject blocker in _monitors.Values)
+            var j = 0;
+            foreach (var blocker in _monitors.Values)
                 _result[j++] = blocker;
 
-            foreach (DesktopBlockingObject blocker in _locks.Values)
+            foreach (var blocker in _locks.Values)
                 _result[j++] = blocker;
 
-            foreach (DesktopBlockingObject blocker in _joinLocks.Values)
+            foreach (var blocker in _joinLocks.Values)
                 _result[j++] = blocker;
 
-            foreach (DesktopBlockingObject blocker in _waitLocks.Values)
+            foreach (var blocker in _waitLocks.Values)
                 _result[j++] = blocker;
 
             Debug.Assert(j == _result.Length);
@@ -136,6 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return _rwType == type;
         }
+
         private bool IsReaderWriterSlim(ulong obj, ClrType type)
         {
             if (type == null)
@@ -156,23 +169,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private void SetThreadWaiters()
         {
             HashSet<string> eventTypes = null;
-            List<BlockingObject> blobjs = new List<BlockingObject>();
+            var blobjs = new List<BlockingObject>();
 
             foreach (DesktopThread thread in _runtime.Threads)
             {
-                int max = thread.StackTrace.Count;
+                var max = thread.StackTrace.Count;
                 if (max > 10)
                     max = 10;
 
                 blobjs.Clear();
-                for (int i = 0; i < max; ++i)
+                for (var i = 0; i < max; ++i)
                 {
                     DesktopBlockingObject blockingObj = null;
-                    ClrMethod method = thread.StackTrace[i].Method;
+                    var method = thread.StackTrace[i].Method;
                     if (method == null)
                         continue;
 
-                    ClrType type = method.Type;
+                    var type = method.Type;
                     if (type == null)
                         continue;
 
@@ -198,6 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                         blockingObj.Reason = BlockingReason.ReaderAcquired;
                                 }
                             }
+
                             break;
 
                         case "TryEnterReadLockCore":
@@ -211,7 +225,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 blockingObj = FindLocks(thread.StackLimit, thread.StackTrace[i].StackPointer, IsReaderWriterSlim);
                                 if (blockingObj == null)
                                     blockingObj = FindLocks(thread.StackTrace[i].StackPointer, thread.StackBase, IsReaderWriterSlim);
-
 
                                 if (blockingObj != null && (blockingObj.Reason == BlockingReason.Unknown || blockingObj.Reason == BlockingReason.None))
                                 {
@@ -229,13 +242,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         case "Join":
                             if (type.Name == "System.Threading.Thread")
                             {
-                                if (FindThread(thread.StackLimit, thread.StackTrace[i].StackPointer, out ulong threadAddr, out ClrThread target) ||
+                                if (FindThread(thread.StackLimit, thread.StackTrace[i].StackPointer, out var threadAddr, out var target) ||
                                     FindThread(thread.StackTrace[i].StackPointer, thread.StackBase, out threadAddr, out target))
                                 {
                                     if (!_joinLocks.TryGetValue(target, out blockingObj))
                                         _joinLocks[target] = blockingObj = new DesktopBlockingObject(threadAddr, true, 0, target, BlockingReason.ThreadJoin);
                                 }
                             }
+
                             break;
 
                         case "Wait":
@@ -248,23 +262,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                                 blockingObj.Reason = BlockingReason.MonitorWait;
                             }
+
                             break;
 
                         case "WaitAny":
                         case "WaitAll":
                             if (type.Name == "System.Threading.WaitHandle")
                             {
-                                ulong obj = FindWaitObjects(thread.StackLimit, thread.StackTrace[i].StackPointer, "System.Threading.WaitHandle[]");
+                                var obj = FindWaitObjects(thread.StackLimit, thread.StackTrace[i].StackPointer, "System.Threading.WaitHandle[]");
                                 if (obj == 0)
                                     obj = FindWaitObjects(thread.StackTrace[i].StackPointer, thread.StackBase, "System.Threading.WaitHandle[]");
 
                                 if (obj != 0)
                                 {
-                                    BlockingReason reason = method.Name == "WaitAny" ? BlockingReason.WaitAny : BlockingReason.WaitAll;
+                                    var reason = method.Name == "WaitAny" ? BlockingReason.WaitAny : BlockingReason.WaitAll;
                                     if (!_waitLocks.TryGetValue(obj, out blockingObj))
                                         _waitLocks[obj] = blockingObj = new DesktopBlockingObject(obj, true, 0, null, reason);
                                 }
                             }
+
                             break;
 
                         case "WaitOne":
@@ -285,7 +301,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                     };
                                 }
 
-                                ulong obj = FindWaitHandle(thread.StackLimit, thread.StackTrace[i].StackPointer, eventTypes);
+                                var obj = FindWaitHandle(thread.StackLimit, thread.StackTrace[i].StackPointer, eventTypes);
                                 if (obj == 0)
                                     obj = FindWaitHandle(thread.StackTrace[i].StackPointer, thread.StackBase, eventTypes);
 
@@ -298,8 +314,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                         _waitLocks[obj] = blockingObj = new DesktopBlockingObject(obj, true, 0, null, BlockingReason.WaitOne);
                                 }
                             }
-                            break;
 
+                            break;
 
                         case "TryEnter":
                         case "ReliableEnterTimeout":
@@ -312,13 +328,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 if (blockingObj != null)
                                     blockingObj.Reason = BlockingReason.Monitor;
                             }
+
                             break;
                     }
 
-
                     if (blockingObj != null)
                     {
-                        bool alreadyEncountered = false;
+                        var alreadyEncountered = false;
                         foreach (var blobj in blobjs)
                         {
                             if (blobj.Object == blockingObj.Object)
@@ -339,37 +355,35 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-
         private DesktopBlockingObject CreateRWLObject(ulong obj, ClrType type)
         {
             if (type == null)
                 return new DesktopBlockingObject(obj, false, 0, null, BlockingReason.None);
 
-            ClrInstanceField writerID = type.GetFieldByName("_dwWriterID");
+            var writerID = type.GetFieldByName("_dwWriterID");
             if (writerID != null && writerID.ElementType == ClrElementType.Int32)
             {
-                int id = (int)writerID.GetValue(obj);
+                var id = (int)writerID.GetValue(obj);
                 if (id > 0)
                 {
-                    ClrThread thread = GetThreadById(id);
+                    var thread = GetThreadById(id);
                     if (thread != null)
                         return new DesktopBlockingObject(obj, true, 0, thread, BlockingReason.ReaderAcquired);
                 }
             }
 
-            ClrInstanceField uLock = type.GetFieldByName("_dwULockID");
-            ClrInstanceField lLock = type.GetFieldByName("_dwLLockID");
+            var uLock = type.GetFieldByName("_dwULockID");
+            var lLock = type.GetFieldByName("_dwLLockID");
 
             if (uLock != null && uLock.ElementType == ClrElementType.Int32 && lLock != null && lLock.ElementType == ClrElementType.Int32)
             {
-                int uId = (int)uLock.GetValue(obj);
-                int lId = (int)lLock.GetValue(obj);
-
+                var uId = (int)uLock.GetValue(obj);
+                var lId = (int)lLock.GetValue(obj);
 
                 List<ClrThread> threads = null;
-                foreach (ClrThread thread in _runtime.Threads)
+                foreach (var thread in _runtime.Threads)
                 {
-                    foreach (IRWLockData l in _runtime.EnumerateLockData(thread.Address))
+                    foreach (var l in _runtime.EnumerateLockData(thread.Address))
                     {
                         if (l.LLockID == lId && l.ULockID == uId && l.Level > 0)
                         {
@@ -394,11 +408,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (type == null)
                 return new DesktopBlockingObject(obj, false, 0, null, BlockingReason.None);
 
-            ClrInstanceField field = type.GetFieldByName("writeLockOwnerId");
+            var field = type.GetFieldByName("writeLockOwnerId");
             if (field != null && field.ElementType == ClrElementType.Int32)
             {
-                int id = (int)field.GetValue(obj);
-                ClrThread thread = GetThreadById(id);
+                var id = (int)field.GetValue(obj);
+                var thread = GetThreadById(id);
                 if (thread != null)
                     return new DesktopBlockingObject(obj, true, 0, thread, BlockingReason.WriterAcquired);
             }
@@ -406,8 +420,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             field = type.GetFieldByName("upgradeLockOwnerId");
             if (field != null && field.ElementType == ClrElementType.Int32)
             {
-                int id = (int)field.GetValue(obj);
-                ClrThread thread = GetThreadById(id);
+                var id = (int)field.GetValue(obj);
+                var thread = GetThreadById(id);
                 if (thread != null)
                     return new DesktopBlockingObject(obj, true, 0, thread, BlockingReason.WriterAcquired);
             }
@@ -416,19 +430,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (field != null)
             {
                 List<ClrThread> threads = null;
-                ulong rwc = (ulong)field.GetValue(obj);
-                ClrType rwcArrayType = _heap.GetObjectType(rwc);
+                var rwc = (ulong)field.GetValue(obj);
+                var rwcArrayType = _heap.GetObjectType(rwc);
                 if (rwcArrayType != null && rwcArrayType.IsArray && rwcArrayType.ComponentType != null)
                 {
-                    ClrType rwcType = rwcArrayType.ComponentType;
-                    ClrInstanceField threadId = rwcType.GetFieldByName("threadid");
-                    ClrInstanceField next = rwcType.GetFieldByName("next");
+                    var rwcType = rwcArrayType.ComponentType;
+                    var threadId = rwcType.GetFieldByName("threadid");
+                    var next = rwcType.GetFieldByName("next");
                     if (threadId != null && next != null)
                     {
-                        int count = rwcArrayType.GetArrayLength(rwc);
-                        for (int i = 0; i < count; ++i)
+                        var count = rwcArrayType.GetArrayLength(rwc);
+                        for (var i = 0; i < count; ++i)
                         {
-                            ulong entry = (ulong)rwcArrayType.GetArrayElementValue(rwc, i);
+                            var entry = (ulong)rwcArrayType.GetArrayElementValue(rwc, i);
                             GetThreadEntry(ref threads, threadId, next, entry, false);
                         }
                     }
@@ -446,8 +460,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (curr == 0)
                 return;
 
-            int id = (int)threadId.GetValue(curr, interior);
-            ClrThread thread = GetThreadById(id);
+            var id = (int)threadId.GetValue(curr, interior);
+            var thread = GetThreadById(id);
             if (thread != null)
             {
                 if (threads == null)
@@ -462,8 +476,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ulong FindWaitHandle(ulong start, ulong stop, HashSet<string> eventTypes)
         {
-            ClrHeap heap = _runtime.Heap;
-            foreach (ulong obj in EnumerateObjectsOfTypes(start, stop, eventTypes))
+            var heap = _runtime.Heap;
+            foreach (var obj in EnumerateObjectsOfTypes(start, stop, eventTypes))
                 return obj;
 
             return 0;
@@ -471,8 +485,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ulong FindWaitObjects(ulong start, ulong stop, string typeName)
         {
-            ClrHeap heap = _runtime.Heap;
-            foreach (ulong obj in EnumerateObjectsOfType(start, stop, typeName))
+            var heap = _runtime.Heap;
+            foreach (var obj in EnumerateObjectsOfType(start, stop, typeName))
                 return obj;
 
             return 0;
@@ -480,21 +494,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ulong> EnumerateObjectsOfTypes(ulong start, ulong stop, HashSet<string> types)
         {
-            ClrHeap heap = _runtime.Heap;
-            foreach (ulong ptr in EnumeratePointersInRange(start, stop))
+            var heap = _runtime.Heap;
+            foreach (var ptr in EnumeratePointersInRange(start, stop))
             {
-                if (_runtime.ReadPointer(ptr, out ulong obj))
+                if (_runtime.ReadPointer(ptr, out var obj))
                 {
                     if (heap.IsInHeap(obj))
                     {
-                        ClrType type = heap.GetObjectType(obj);
+                        var type = heap.GetObjectType(obj);
 
-                        int sanity = 0;
+                        var sanity = 0;
                         while (type != null)
                         {
                             if (types.Contains(type.Name))
                             {
                                 yield return obj;
+
                                 break;
                             }
 
@@ -508,25 +523,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-
         private IEnumerable<ulong> EnumerateObjectsOfType(ulong start, ulong stop, string typeName)
         {
-            ClrHeap heap = _runtime.Heap;
-            foreach (ulong ptr in EnumeratePointersInRange(start, stop))
+            var heap = _runtime.Heap;
+            foreach (var ptr in EnumeratePointersInRange(start, stop))
             {
-                if (_runtime.ReadPointer(ptr, out ulong obj))
+                if (_runtime.ReadPointer(ptr, out var obj))
                 {
                     if (heap.IsInHeap(obj))
                     {
-                        ClrType type = heap.GetObjectType(obj);
+                        var type = heap.GetObjectType(obj);
 
-
-                        int sanity = 0;
+                        var sanity = 0;
                         while (type != null)
                         {
                             if (type.Name == typeName)
                             {
                                 yield return obj;
+
                                 break;
                             }
 
@@ -542,15 +556,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private bool FindThread(ulong start, ulong stop, out ulong threadAddr, out ClrThread target)
         {
-            ClrHeap heap = _runtime.Heap;
-            foreach (ulong obj in EnumerateObjectsOfType(start, stop, "System.Threading.Thread"))
+            var heap = _runtime.Heap;
+            foreach (var obj in EnumerateObjectsOfType(start, stop, "System.Threading.Thread"))
             {
-                ClrType type = heap.GetObjectType(obj);
-                ClrInstanceField threadIdField = type.GetFieldByName("m_ManagedThreadId");
+                var type = heap.GetObjectType(obj);
+                var threadIdField = type.GetFieldByName("m_ManagedThreadId");
                 if (threadIdField != null && threadIdField.ElementType == ClrElementType.Int32)
                 {
-                    int id = (int)threadIdField.GetValue(obj);
-                    ClrThread thread = GetThreadById(id);
+                    var id = (int)threadIdField.GetValue(obj);
+                    var thread = GetThreadById(id);
                     if (thread != null)
                     {
                         threadAddr = obj;
@@ -567,25 +581,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ulong> EnumeratePointersInRange(ulong start, ulong stop)
         {
-            uint diff = (uint)_runtime.PointerSize;
+            var diff = (uint)_runtime.PointerSize;
 
             if (start > stop)
-                for (ulong ptr = stop; ptr <= start; ptr += diff)
+                for (var ptr = stop; ptr <= start; ptr += diff)
                     yield return ptr;
             else
-                for (ulong ptr = stop; ptr >= start; ptr -= diff)
+                for (var ptr = stop; ptr >= start; ptr -= diff)
                     yield return ptr;
         }
 
-
-
         private DesktopBlockingObject FindLocks(ulong start, ulong stop, Func<ulong, ClrType, bool> isCorrectType)
         {
-            foreach (ulong ptr in EnumeratePointersInRange(start, stop))
+            foreach (var ptr in EnumeratePointersInRange(start, stop))
             {
-                if (_runtime.ReadPointer(ptr, out ulong val))
+                if (_runtime.ReadPointer(ptr, out var val))
                 {
-                    if (_locks.TryGetValue(val, out DesktopBlockingObject result) && isCorrectType(val, _heap.GetObjectType(val)))
+                    if (_locks.TryGetValue(val, out var result) && isCorrectType(val, _heap.GetObjectType(val)))
                         return result;
                 }
             }
@@ -596,9 +608,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private DesktopBlockingObject FindMonitor(ulong start, ulong stop)
         {
             ulong obj = 0;
-            foreach (ulong ptr in EnumeratePointersInRange(start, stop))
+            foreach (var ptr in EnumeratePointersInRange(start, stop))
             {
-                if (_runtime.ReadPointer(ptr, out ulong tmp))
+                if (_runtime.ReadPointer(ptr, out var tmp))
                 {
                     if (_syncblks.TryGetValue(tmp, out tmp))
                     {
@@ -608,7 +620,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            if (obj != 0 && _monitors.TryGetValue(obj, out DesktopBlockingObject result))
+            if (obj != 0 && _monitors.TryGetValue(obj, out var result))
                 return result;
 
             return null;
@@ -619,25 +631,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (id < 0)
                 return null;
 
-            foreach (ClrThread thread in _runtime.Threads)
+            foreach (var thread in _runtime.Threads)
                 if (thread.ManagedThreadId == id)
                     return thread;
 
             return null;
         }
-
-        private const int HASHCODE_BITS = 25;
-        private const int SYNCBLOCKINDEX_BITS = 26;
-        private const uint BIT_SBLK_IS_HASH_OR_SYNCBLKINDEX = 0x08000000;
-        private const uint BIT_SBLK_FINALIZER_RUN = 0x40000000;
-        private const uint BIT_SBLK_SPIN_LOCK = 0x10000000;
-        private const uint SBLK_MASK_LOCK_THREADID = 0x000003FF;   // special value of 0 + 1023 thread ids
-        private const int SBLK_MASK_LOCK_RECLEVEL = 0x0000FC00;   // 64 recursion levels
-        private const uint SBLK_APPDOMAIN_SHIFT = 16;           // shift right this much to get appdomain index
-        private const uint SBLK_MASK_APPDOMAININDEX = 0x000007FF;   // 2048 appdomain indices
-        private const int SBLK_RECLEVEL_SHIFT = 10;           // shift right this much to get recursion level
-        private const uint BIT_SBLK_IS_HASHCODE = 0x04000000;
-        private const uint MASK_HASHCODE = ((1 << HASHCODE_BITS) - 1);
-        private const uint MASK_SYNCBLOCKINDEX = ((1 << SYNCBLOCKINDEX_BITS) - 1);
     }
 }

@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         CODEVIEW = 2,
         FPO = 3,
         MISC = 4,
-        BBT = 10,
-    };
+        BBT = 10
+    }
 }

@@ -14,6 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EXTENSION_WARNING = 0x40,
         DEBUGGEE = 0x80,
         DEBUGGEE_PROMPT = 0x100,
-        SYMBOLS = 0x200,
+        SYMBOLS = 0x200
     }
 }

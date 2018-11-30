@@ -10,32 +10,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class HandleTableWalker
     {
-        #region Variables
-        private DesktopRuntimeBase _runtime;
-        private ClrHeap _heap;
+        private readonly DesktopRuntimeBase _runtime;
+        private readonly ClrHeap _heap;
         private int _max = 10000;
         private VISITHANDLEV2 _mV2Delegate;
         private VISITHANDLEV4 _mV4Delegate;
-        #endregion
 
-        #region Properties
-        public List<ClrHandle> Handles { get; private set; }
+        public List<ClrHandle> Handles { get; }
         public byte[] V4Request
         {
             get
             {
                 // MULTITHREAD ISSUE
                 if (_mV4Delegate == null)
-                    _mV4Delegate = new VISITHANDLEV4(VisitHandleV4);
+                    _mV4Delegate = VisitHandleV4;
 
-                IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(_mV4Delegate);
-                byte[] request = new byte[IntPtr.Size * 2];
+                var functionPtr = Marshal.GetFunctionPointerForDelegate(_mV4Delegate);
+                var request = new byte[IntPtr.Size * 2];
                 FunctionPointerToByteArray(functionPtr, request, 0);
 
                 return request;
             }
         }
-
 
         public byte[] V2Request
         {
@@ -43,27 +39,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 // MULTITHREAD ISSUE
                 if (_mV2Delegate == null)
-                    _mV2Delegate = new VISITHANDLEV2(VisitHandleV2);
+                    _mV2Delegate = VisitHandleV2;
 
-                IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(_mV2Delegate);
-                byte[] request = new byte[IntPtr.Size * 2];
+                var functionPtr = Marshal.GetFunctionPointerForDelegate(_mV2Delegate);
+                var request = new byte[IntPtr.Size * 2];
 
                 FunctionPointerToByteArray(functionPtr, request, 0);
 
                 return request;
             }
         }
-        #endregion
 
-        #region Functions
         public HandleTableWalker(DesktopRuntimeBase dac)
         {
             _runtime = dac;
             _heap = dac.Heap;
             Handles = new List<ClrHandle>();
         }
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
 
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int VISITHANDLEV4(ulong HandleAddr, ulong HandleValue, int HandleType, uint ulRefCount, ulong appDomainPtr, IntPtr token);
 
         private int VisitHandleV4(ulong addr, ulong obj, int hndType, uint refCnt, ulong appDomain, IntPtr unused)
@@ -72,9 +66,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return AddHandle(addr, obj, hndType, refCnt, 0, appDomain);
         }
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-
-
         private delegate int VISITHANDLEV2(ulong HandleAddr, ulong HandleValue, int HandleType, ulong appDomainPtr, IntPtr token);
 
         private int VisitHandleV2(ulong addr, ulong obj, int hndType, ulong appDomain, IntPtr unused)
@@ -94,10 +87,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public int AddHandle(ulong addr, ulong obj, int hndType, uint refCnt, uint dependentTarget, ulong appDomain)
         {
             // If we fail to get the MT of this object, just skip it and keep going
-            if (!GetMethodTables(obj, out ulong mt, out ulong cmt))
+            if (!GetMethodTables(obj, out var mt, out var cmt))
                 return _max-- > 0 ? 1 : 0;
 
-            ClrHandle handle = new ClrHandle()
+            var handle = new ClrHandle
             {
                 Address = addr,
                 Object = obj,
@@ -126,8 +119,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             mt = 0;
             cmt = 0;
 
-            byte[] data = new byte[IntPtr.Size * 3];        // TODO assumes bitness same as dump
-            if (!_runtime.ReadMemory(obj, data, data.Length, out int read) || read != data.Length)
+            var data = new byte[IntPtr.Size * 3]; // TODO assumes bitness same as dump
+            if (!_runtime.ReadMemory(obj, data, data.Length, out var read) || read != data.Length)
                 return false;
 
             if (IntPtr.Size == 4)
@@ -148,14 +141,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private static void FunctionPointerToByteArray(IntPtr functionPtr, byte[] request, int start)
         {
-            long ptr = functionPtr.ToInt64();
+            var ptr = functionPtr.ToInt64();
 
-            for (int i = start; i < start + sizeof(ulong); ++i)
+            for (var i = start; i < start + sizeof(ulong); ++i)
             {
                 request[i] = (byte)ptr;
                 ptr >>= 8;
             }
         }
-        #endregion
     }
 }

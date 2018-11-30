@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public int VirtualAddress;
         /// <summary>
-        /// The length of the data blob.  
+        /// The length of the data blob.
         /// </summary>
         public int Size;
     }

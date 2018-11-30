@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (Method == null || Method.Type == null || Method.Type.Module == null)
                     return UnknownModuleName;
 
-                string result = Method.Type.Module.Name;
+                var result = Method.Type.Module.Name;
                 try
                 {
                     return Path.GetFileNameWithoutExtension(result);

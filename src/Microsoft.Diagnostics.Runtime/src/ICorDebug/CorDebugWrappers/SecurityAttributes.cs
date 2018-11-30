@@ -10,13 +10,13 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public IntPtr lpSecurityDescriptor;
         public int bInheritHandle;
     }
-    
-    [StructLayout(LayoutKind.Sequential, Pack = 8), ComVisible(false)]
+
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [ComVisible(false)]
     public class SECURITY_ATTRIBUTES
     {
         public int nLength;
         public IntPtr lpSecurityDescriptor;
         public bool bInheritHandle;
-        public SECURITY_ATTRIBUTES() { }
     }
 }

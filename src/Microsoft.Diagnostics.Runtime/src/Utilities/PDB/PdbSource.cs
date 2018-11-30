@@ -13,36 +13,36 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <summary>
         /// The name of the source file.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
         /// <summary>
         /// The DocType for this source.
         /// </summary>
-        public Guid DocType { get; private set; }
+        public Guid DocType { get; }
 
         /// <summary>
         /// Pdb source language.
         /// </summary>
-        public Guid Language { get; private set; }
+        public Guid Language { get; }
 
         /// <summary>
         /// Pdb source vendor
         /// </summary>
-        public Guid Vendor { get; private set; }
+        public Guid Vendor { get; }
 
         /// <summary>
         /// Pdb algorithm id.
         /// </summary>
-        public Guid AlgorithmId { get; private set; }
+        public Guid AlgorithmId { get; }
 
         /// <summary>
         /// Checksum for this pdb.
         /// </summary>
-        public byte[] Checksum { get; private set; }
+        public byte[] Checksum { get; }
 
         /// <summary>
         /// The embeded source in this pdb.
         /// </summary>
-        public byte[] Source { get; private set; }
+        public byte[] Source { get; }
 
         internal PdbSource(string name, Guid doctype, Guid language, Guid vendor, Guid algorithmId, byte[] checksum, byte[] source)
         {

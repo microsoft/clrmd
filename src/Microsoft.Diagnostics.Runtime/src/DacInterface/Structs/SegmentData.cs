@@ -22,26 +22,27 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal SegmentData(ref SegmentData data)
         {
             this = data;
-            
+
             // Sign extension issues
-            unchecked
+            if (IntPtr.Size == 4)
             {
-                if (IntPtr.Size == 4)
-                {
-                    FixupPointer(ref Address);
-                    FixupPointer(ref Allocated);
-                    FixupPointer(ref Committed);
-                    FixupPointer(ref Reserved);
-                    FixupPointer(ref Used);
-                    FixupPointer(ref Mem);
-                    FixupPointer(ref Next);
-                    FixupPointer(ref Heap);
-                    FixupPointer(ref HighAllocMark);
-                    FixupPointer(ref BackgroundAllocated);
-                }
+                FixupPointer(ref Address);
+                FixupPointer(ref Allocated);
+                FixupPointer(ref Committed);
+                FixupPointer(ref Reserved);
+                FixupPointer(ref Used);
+                FixupPointer(ref Mem);
+                FixupPointer(ref Next);
+                FixupPointer(ref Heap);
+                FixupPointer(ref HighAllocMark);
+                FixupPointer(ref BackgroundAllocated);
             }
         }
-        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
+
+        private static void FixupPointer(ref ulong ptr)
+        {
+            ptr = (uint)ptr;
+        }
 
         ulong ISegmentData.Address => Address;
         ulong ISegmentData.Next => Next;

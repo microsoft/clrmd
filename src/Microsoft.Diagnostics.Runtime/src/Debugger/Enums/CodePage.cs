@@ -9,6 +9,6 @@
         SYMBOL = 42, // SYMBOL translations
 
         UTF7 = 65000, // UTF-7 translation
-        UTF8 = 65001, // UTF-8 translation
+        UTF8 = 65001 // UTF-8 translation
     }
 }

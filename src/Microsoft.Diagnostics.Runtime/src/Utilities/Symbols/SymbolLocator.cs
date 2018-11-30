@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -15,8 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public abstract partial class SymbolLocator
     {
-        private static string[] s_microsoftSymbolServers = {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
-
         /// <summary>
         /// The raw symbol path.  You should probably use the SymbolPath property instead.
         /// </summary>
@@ -24,7 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The raw symbol cache.  You should probably use the SymbolCache property instead.
         /// </summary>
-        /// 
         protected volatile string _symbolCache;
 
         /// <summary>
@@ -58,17 +55,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Return the string representing a symbol path for the 'standard' microsoft symbol servers.   
-        /// This returns the public msdl.microsoft.com server if outside Microsoft.  
+        /// Return the string representing a symbol path for the 'standard' microsoft symbol servers.
+        /// This returns the public msdl.microsoft.com server if outside Microsoft.
         /// </summary>
         public static string MicrosoftSymbolServerPath
         {
             get
             {
-                bool first = true;
-                StringBuilder result = new StringBuilder();
+                var first = true;
+                var result = new StringBuilder();
 
-                foreach (var path in s_microsoftSymbolServers)
+                foreach (var path in MicrosoftSymbolServers)
                 {
                     if (!first)
                         result.Append(';');
@@ -85,10 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Retrieves a list of the default Microsoft symbol servers.
         /// </summary>
-        public static string[] MicrosoftSymbolServers
-        {
-            get { return s_microsoftSymbolServers; }
-        }
+        public static string[] MicrosoftSymbolServers { get; } = {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
 
         /// <summary>
         /// This property gets and sets the global _NT_SYMBOL_PATH environment variable.
@@ -101,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 var ret = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
                 return ret ?? "";
             }
-            set { Environment.SetEnvironmentVariable("_NT_SYMBOL_PATH", value); }
+            set => Environment.SetEnvironmentVariable("_NT_SYMBOL_PATH", value);
         }
 
         /// <summary>
@@ -116,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (!string.IsNullOrEmpty(cache))
                     return cache;
 
-                string tmp = Path.GetTempPath();
+                var tmp = Path.GetTempPath();
                 if (string.IsNullOrEmpty(tmp))
                     tmp = ".";
 
@@ -137,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public string SymbolPath
         {
-            get { return _symbolPath ?? ""; }
+            get => _symbolPath ?? "";
 
             set
             {
@@ -206,7 +200,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (module == null)
                 throw new ArgumentNullException("module");
 
-            PdbInfo pdb = module.Pdb;
+            var pdb = module.Pdb;
             if (pdb == null)
                 return null;
 
@@ -246,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                PdbReader.GetPdbProperties(pdbName, out Guid fileGuid, out int fileAge);
+                PdbReader.GetPdbProperties(pdbName, out var fileGuid, out var fileAge);
                 return guid == fileGuid && age == fileAge;
             }
             catch (IOException)
@@ -277,30 +271,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 try
                 {
-                    using (FileStream fs = File.OpenRead(fullPath))
+                    using (var fs = File.OpenRead(fullPath))
                     {
                         if (Path.GetExtension(fullPath) == ".so")
                         {
-                            Debug.WriteLine($"Validate binary not yet implemented for .so!");
+                            Debug.WriteLine("Validate binary not yet implemented for .so!");
                             Debugger.Break();
                             return true;
                         }
-                        else
+
+                        using (var pefile = PEFile.TryLoad(fs, false))
                         {
-                            using (PEFile pefile = PEFile.TryLoad(fs, false))
+                            if (pefile != null)
                             {
-                                if (pefile != null)
+                                var header = pefile.Header;
+                                if (!checkProperties || header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize)
                                 {
-                                    var header = pefile.Header;
-                                    if (!checkProperties || (header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize))
-                                    {
-                                        return true;
-                                    }
-                                    else
-                                    {
-                                        Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
-                                    }
+                                    return true;
                                 }
+
+                                Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
                             }
                         }
                     }
@@ -328,18 +318,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             try
             {
-                FileInfo fi = new FileInfo(fullDestPath);
+                var fi = new FileInfo(fullDestPath);
                 if (fi.Exists && fi.Length == size)
                     return;
 
-                string folder = Path.GetDirectoryName(fullDestPath);
+                var folder = Path.GetDirectoryName(fullDestPath);
                 Directory.CreateDirectory(folder);
 
                 FileStream file = null;
                 try
                 {
                     file = new FileStream(fullDestPath, FileMode.OpenOrCreate);
-                    byte[] buffer = new byte[2048];
+                    var buffer = new byte[2048];
                     int read;
                     while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
                         file.Write(buffer, 0, read);

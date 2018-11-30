@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,14 +6,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct DEBUG_THREAD_BASIC_INFORMATION
     {
         public DEBUG_TBINFO Valid;
-        public UInt32 ExitStatus;
-        public UInt32 PriorityClass;
-        public UInt32 Priority;
-        public UInt64 CreateTime;
-        public UInt64 ExitTime;
-        public UInt64 KernelTime;
-        public UInt64 UserTime;
-        public UInt64 StartOffset;
-        public UInt64 Affinity;
+        public uint ExitStatus;
+        public uint PriorityClass;
+        public uint Priority;
+        public ulong CreateTime;
+        public ulong ExitTime;
+        public ulong KernelTime;
+        public ulong UserTime;
+        public ulong StartOffset;
+        public ulong Affinity;
     }
 }

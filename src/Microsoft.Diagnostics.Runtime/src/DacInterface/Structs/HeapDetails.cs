@@ -50,16 +50,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     FixupPointer(ref HighestAddress);
                     FixupPointer(ref CardTable);
 
-                    for (int i = 0; i < FinalizationFillPointers.Length; i++)
+                    for (var i = 0; i < FinalizationFillPointers.Length; i++)
                         FixupPointer(ref FinalizationFillPointers[i]);
 
-                    for (int i = 0; i < GenerationTable.Length; i++)
+                    for (var i = 0; i < GenerationTable.Length; i++)
                         GenerationTable[i] = new GenerationData(ref GenerationTable[i]);
                 }
             }
         }
 
-        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
+        private static void FixupPointer(ref ulong ptr)
+        {
+            ptr = (uint)ptr;
+        }
 
         ulong IHeapDetails.FirstHeapSegment => GenerationTable[2].StartSegment;
 

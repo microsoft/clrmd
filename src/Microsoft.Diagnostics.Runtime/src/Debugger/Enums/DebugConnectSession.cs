@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         DEFAULT = 0,
         NO_VERSION = 1,
-        NO_ANNOUNCE = 2,
+        NO_ANNOUNCE = 2
     }
 }

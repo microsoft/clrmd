@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,13 +6,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct IMAGE_COR20_HEADER
     {
         // Header versioning
-        public UInt32 cb;
-        public UInt16 MajorRuntimeVersion;
-        public UInt16 MinorRuntimeVersion;
+        public uint cb;
+        public ushort MajorRuntimeVersion;
+        public ushort MinorRuntimeVersion;
 
         // Symbol table and startup information
         public IMAGE_DATA_DIRECTORY MetaData;
-        public UInt32 Flags;
+        public uint Flags;
 
         // The main program if it is an EXE (not used if a DLL?)
         // If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is not set, EntryPointToken represents a managed entrypoint.

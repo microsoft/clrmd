@@ -1,22 +1,21 @@
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// FileVersionInfo reprents the extended version formation that is optionally placed in the PE file resource area. 
+    /// FileVersionInfo reprents the extended version formation that is optionally placed in the PE file resource area.
     /// </summary>
-    public unsafe sealed class FileVersionInfo
+    public sealed unsafe class FileVersionInfo
     {
         // TODO incomplete, but this is all I need.  
         /// <summary>
-        /// The verison string 
+        /// The verison string
         /// </summary>
-        public string FileVersion { get; private set; }
+        public string FileVersion { get; }
 
         /// <summary>
         /// Comments to supplement the file version
         /// </summary>
-        public string Comments { get; private set; }
+        public string Comments { get; }
 
-        #region private
         internal FileVersionInfo(byte* data, int dataLen)
         {
             FileVersion = "";
@@ -24,10 +23,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return;
 
             // See http://msdn.microsoft.com/en-us/library/ms647001(v=VS.85).aspx
-            byte* stringInfoPtr = data + 0x5c; // Gets to first StringInfo
+            var stringInfoPtr = data + 0x5c; // Gets to first StringInfo
 
             // TODO search for FileVersion string ... 
-            string dataAsString = new string((char*)stringInfoPtr, 0, (dataLen - 0x5c) / 2);
+            var dataAsString = new string((char*)stringInfoPtr, 0, (dataLen - 0x5c) / 2);
 
             FileVersion = GetDataString(dataAsString, "FileVersion");
             Comments = GetDataString(dataAsString, "Comments");
@@ -35,10 +34,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private static string GetDataString(string dataAsString, string fileVersionKey)
         {
-            int fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
+            var fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIdx >= 0)
             {
-                int valIdx = fileVersionIdx + fileVersionKey.Length;
+                var valIdx = fileVersionIdx + fileVersionKey.Length;
                 for (;;)
                 {
                     valIdx++;
@@ -49,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         break;
                 }
 
-                int varEndIdx = dataAsString.IndexOf((char)0, valIdx);
+                var varEndIdx = dataAsString.IndexOf((char)0, valIdx);
                 if (varEndIdx < 0)
                     return null;
 
@@ -58,6 +57,5 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return null;
         }
-        #endregion
     }
 }

@@ -99,13 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Whether or not the handle pins the object (doesn't allow the GC to
         /// relocate it) or not.
         /// </summary>
-        public virtual bool IsPinned
-        {
-            get
-            {
-                return HandleType == Runtime.HandleType.AsyncPinned || HandleType == Runtime.HandleType.Pinned;
-            }
-        }
+        public virtual bool IsPinned => HandleType == HandleType.AsyncPinned || HandleType == HandleType.Pinned;
 
         /// <summary>
         /// Gets the type of handle.
@@ -116,17 +110,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// If this handle is a RefCount handle, this returns the reference count.
         /// RefCount handles with a RefCount > 0 are strong.
         /// NOTE: v2 CLR CANNOT determine the RefCount.  We always set the RefCount
-        ///       to 1 in a v2 query since a strong RefCount handle is the common case.
+        /// to 1 in a v2 query since a strong RefCount handle is the common case.
         /// </summary>
         public uint RefCount { get; set; }
-
 
         /// <summary>
         /// Set only if the handle type is a DependentHandle.  Dependent handles add
         /// an extra edge to the object graph.  Meaning, this.Object now roots the
         /// dependent target, but only if this.Object is alive itself.
         /// NOTE: CLRs prior to v4.5 cannot obtain the dependent target.  This field will
-        ///       be 0 for any CLR prior to v4.5.
+        /// be 0 for any CLR prior to v4.5.
         /// </summary>
         public ulong DependentTarget { get; set; }
 
@@ -146,10 +139,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return HandleType.ToString() + " " + (Type != null ? Type.Name : "");
+            return HandleType + " " + (Type != null ? Type.Name : "");
         }
 
-        #region Internal
         internal ClrHandle()
         {
         }
@@ -157,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrHandle(V45Runtime clr, ClrHeap heap, HandleData handleData)
         {
             Address = handleData.Handle;
-            clr.ReadPointer(Address, out ulong obj);
+            clr.ReadPointer(Address, out var obj);
 
             Object = obj;
             Type = heap.GetObjectType(obj);
@@ -176,13 +168,13 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     if (Type.IsCCW(obj))
                     {
-                        CcwData data = Type.GetCCWData(obj);
+                        var data = Type.GetCCWData(obj);
                         if (data != null && refCount < data.RefCount)
                             refCount = (uint)data.RefCount;
                     }
                     else if (Type.IsRCW(obj))
                     {
-                        RcwData data = Type.GetRCWData(obj);
+                        var data = Type.GetRCWData(obj);
                         if (data != null && refCount < data.RefCount)
                             refCount = (uint)data.RefCount;
                     }
@@ -190,7 +182,6 @@ namespace Microsoft.Diagnostics.Runtime
 
                 RefCount = refCount;
             }
-
 
             HandleType = (HandleType)handleData.Type;
             AppDomain = clr.GetAppDomainByAddress(handleData.AppDomain);
@@ -201,7 +192,6 @@ namespace Microsoft.Diagnostics.Runtime
                 DependentType = heap.GetObjectType(handleData.Secondary);
             }
         }
-        #endregion
 
         internal ClrHandle GetInteriorHandle()
         {
@@ -211,20 +201,20 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type == null)
                 return null;
 
-            var field = this.Type.GetFieldByName("m_userObject");
+            var field = Type.GetFieldByName("m_userObject");
             if (field == null)
                 return null;
 
             ulong obj;
-            object tmp = field.GetValue(this.Object);
+            var tmp = field.GetValue(Object);
             if (!(tmp is ulong) || (obj = (ulong)tmp) == 0)
                 return null;
 
-            ClrType type = Type.Heap.GetObjectType(obj);
+            var type = Type.Heap.GetObjectType(obj);
             if (type == null)
                 return null;
 
-            ClrHandle result = new ClrHandle()
+            var result = new ClrHandle
             {
                 Object = obj,
                 Type = type,

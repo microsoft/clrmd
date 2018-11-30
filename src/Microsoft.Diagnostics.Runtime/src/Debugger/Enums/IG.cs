@@ -51,6 +51,6 @@
         PHYSICAL_TO_VIRTUAL = 47,
         GET_CONTEXT_EX = 48,
         GET_TEB_ADDRESS = 128,
-        GET_PEB_ADDRESS = 129,
+        GET_PEB_ADDRESS = 129
     }
 }

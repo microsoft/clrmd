@@ -14,14 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
         public uint Protect;
         public uint Type;
 
-        public ulong BaseAddress
-        {
-            get { return (ulong)Address; }
-        }
-
-        public ulong Size
-        {
-            get { return (ulong)RegionSize; }
-        }
+        public ulong BaseAddress => (ulong)Address;
+        public ulong Size => (ulong)RegionSize;
     }
 }

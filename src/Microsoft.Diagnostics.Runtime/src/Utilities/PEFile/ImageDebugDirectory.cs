@@ -10,5 +10,5 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int SizeOfData;
         public int AddressOfRawData;
         public int PointerToRawData;
-    };
+    }
 }

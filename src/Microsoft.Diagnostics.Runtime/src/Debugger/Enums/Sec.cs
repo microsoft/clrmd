@@ -13,6 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NOCACHE = 0x10000000,
         WRITECOMBINE = 0x40000000,
         LARGE_PAGES = 0x80000000,
-        MEM_IMAGE = IMAGE,
+        MEM_IMAGE = IMAGE
     }
 }

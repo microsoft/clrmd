@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    public enum INTERFACE_TYPE : int
+    public enum INTERFACE_TYPE
     {
         InterfaceTypeUndefined = -1,
         Internal,

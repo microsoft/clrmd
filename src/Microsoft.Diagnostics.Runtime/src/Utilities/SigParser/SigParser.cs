@@ -20,7 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _offs = 0;
         }
 
-
         public SigParser(SigParser rhs)
         {
             _sig = rhs._sig;
@@ -40,8 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 _sig = null;
             }
 
-
-
             _len = len;
             _offs = 0;
         }
@@ -58,7 +55,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _offs = rhs._offs;
         }
 
-
         private void SkipBytes(int bytes)
         {
             Debug.Assert(bytes <= _len);
@@ -69,12 +65,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipInt()
         {
-            return GetData(out int tmp);
+            return GetData(out var tmp);
         }
 
         public bool GetData(out int data)
         {
-            if (UncompressData(out data, out int size))
+            if (UncompressData(out data, out var size))
             {
                 SkipBytes(size);
                 return true;
@@ -110,10 +106,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool GetElemTypeSlow(out int etype)
         {
-            SigParser sigTemp = new SigParser(this);
+            var sigTemp = new SigParser(this);
             if (sigTemp.SkipCustomModifiers())
             {
-                if (sigTemp.GetByte(out byte elemType))
+                if (sigTemp.GetByte(out var elemType))
                 {
                     etype = elemType;
                     CopyFrom(sigTemp);
@@ -129,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (_len > 0)
             {
-                byte type = _sig[_offs];
+                var type = _sig[_offs];
 
                 if (type < ELEMENT_TYPE_CMOD_REQD) // fast path with no modifiers: single byte
                 {
@@ -142,7 +138,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // Slower/normal path
             return GetElemTypeSlow(out etype);
         }
-
 
         public bool PeekCallingConvInfo(out int data)
         {
@@ -174,12 +169,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool PeekData(out int data)
         {
-            return UncompressData(out data, out int size);
+            return UncompressData(out data, out var size);
         }
 
         private bool PeekElemTypeSlow(out int etype)
         {
-            SigParser sigTemp = new SigParser(this);
+            var sigTemp = new SigParser(this);
             return sigTemp.GetElemType(out etype);
         }
 
@@ -187,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (_len > 0)
             {
-                byte type = _sig[_offs];
+                var type = _sig[_offs];
                 if (type < ELEMENT_TYPE_CMOD_REQD)
                 {
                     etype = type;
@@ -201,14 +196,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool PeekElemTypeSize(out int pSize)
         {
             pSize = 0;
-            SigParser sigTemp = new SigParser(this);
+            var sigTemp = new SigParser(this);
 
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
-            if (!sigTemp.GetByte(out byte bElementType))
+            if (!sigTemp.GetByte(out var bElementType))
                 return false;
-
 
             switch (bElementType)
             {
@@ -265,20 +259,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return false;
             }
 
-            return true; ;
+            return true;
+
+            ;
         }
 
         private bool AtSentinel()
         {
             if (_len > 0)
                 return _sig[_offs] == ELEMENT_TYPE_SENTINEL;
-            else
-                return false;
+
+            return false;
         }
 
         public bool GetToken(out int token)
         {
-            if (UncompressToken(out token, out int size))
+            if (UncompressToken(out token, out var size))
             {
                 SkipBytes(size);
                 return true;
@@ -289,19 +285,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool SkipCustomModifiers()
         {
-            SigParser sigTemp = new SigParser(this);
+            var sigTemp = new SigParser(this);
 
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
-            
-            while ((ELEMENT_TYPE_CMOD_REQD == bElementType) || (ELEMENT_TYPE_CMOD_OPT == bElementType))
+
+            while (ELEMENT_TYPE_CMOD_REQD == bElementType || ELEMENT_TYPE_CMOD_OPT == bElementType)
             {
                 sigTemp.SkipBytes(1);
 
-                if (!sigTemp.GetToken(out int token))
+                if (!sigTemp.GetToken(out var token))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -327,7 +323,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipFunkyAndCustomModifiers()
         {
-            SigParser sigTemp = new SigParser(this);
+            var sigTemp = new SigParser(this);
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
@@ -335,13 +331,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return false;
 
             while (ELEMENT_TYPE_CMOD_REQD == bElementType ||
-                   ELEMENT_TYPE_CMOD_OPT == bElementType ||
-                   ELEMENT_TYPE_MODIFIER == bElementType ||
-                   ELEMENT_TYPE_PINNED == bElementType)
+                ELEMENT_TYPE_CMOD_OPT == bElementType ||
+                ELEMENT_TYPE_MODIFIER == bElementType ||
+                ELEMENT_TYPE_PINNED == bElementType)
             {
                 sigTemp.SkipBytes(1);
 
-                if (!sigTemp.GetToken(out int token))
+                if (!sigTemp.GetToken(out var token))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -363,7 +359,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             CopyFrom(sigTemp);
             return true;
-        }// SkipFunkyAndCustomModifiers
+        } // SkipFunkyAndCustomModifiers
 
         private bool SkipAnyVASentinel()
         {
@@ -374,12 +370,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 SkipBytes(1);
 
             return true;
-        }// SkipAnyVASentinel
-
+        } // SkipAnyVASentinel
 
         public bool SkipExactlyOne()
         {
-            if (!GetElemType(out int typ))
+            if (!GetElemType(out var typ))
                 return false;
 
             int tmp;
@@ -394,6 +389,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case ELEMENT_TYPE_MVAR:
                         if (!GetData(out tmp))
                             return false;
+
                         break;
 
                     case ELEMENT_TYPE_OBJECT:
@@ -407,17 +403,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case ELEMENT_TYPE_SZARRAY:
                         if (!SkipExactlyOne())
                             return false;
+
                         break;
 
                     case ELEMENT_TYPE_VALUETYPE:
                     case ELEMENT_TYPE_CLASS:
                         if (!GetToken(out tmp))
                             return false;
+
                         break;
 
                     case ELEMENT_TYPE_FNPTR:
                         if (!SkipSignature())
                             return false;
+
                         break;
 
                     case ELEMENT_TYPE_ARRAY:
@@ -432,19 +431,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         if (rank > 0)
                         {
-                            if (!GetData(out int sizes))
+                            if (!GetData(out var sizes))
                                 return false;
 
                             while (sizes-- != 0)
                                 if (!GetData(out tmp))
                                     return false;
 
-                            if (!GetData(out int bounds))
+                            if (!GetData(out var bounds))
                                 return false;
+
                             while (bounds-- != 0)
                                 if (!GetData(out tmp))
                                     return false;
                         }
+
                         break;
 
                     case ELEMENT_TYPE_SENTINEL:
@@ -454,6 +455,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case ELEMENT_TYPE_INTERNAL:
                         if (!GetData(out tmp))
                             return false;
+
                         break;
 
                     case ELEMENT_TYPE_GENERICINST:
@@ -481,7 +483,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pcArgs = 0;
 
             // Skip calling convention
-            if (!GetCallingConvInfo(out int uCallConv))
+            if (!GetCallingConvInfo(out var uCallConv))
                 return false;
 
             if (uCallConv == IMAGE_CEE_CS_CALLCONV_FIELD || uCallConv == IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
@@ -489,7 +491,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Skip type parameter count
             if ((uCallConv & IMAGE_CEE_CS_CALLCONV_GENERIC) == IMAGE_CEE_CS_CALLCONV_GENERIC)
-                if (!GetData(out int tmp))
+                if (!GetData(out var tmp))
                     return false;
 
             // Get arg count;
@@ -503,12 +505,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         } // SigParser::SkipMethodHeaderSignature
 
-
         private bool SkipSignature()
         {
-            if (!SkipMethodHeaderSignature(out int args))
+            if (!SkipMethodHeaderSignature(out var args))
                 return false;
-            
+
             // Skip args.
             while (args-- > 0)
                 if (!SkipExactlyOne())
@@ -541,45 +542,39 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_len <= 0)
                 return false;
 
-            byte byte0 = GetSig(0);
+            var byte0 = GetSig(0);
 
             // Smallest.
-            if ((byte0 & 0x80) == 0x00)       // 0??? ????
+            if ((byte0 & 0x80) == 0x00) // 0??? ????
             {
                 if (_len < 1)
                 {
                     return false;
                 }
-                else
-                {
-                    pDataOut = byte0;
-                    pDataLen = 1;
-                }
+
+                pDataOut = byte0;
+                pDataLen = 1;
             }
             // Medium.
-            else if ((byte0 & 0xC0) == 0x80)  // 10?? ????
+            else if ((byte0 & 0xC0) == 0x80) // 10?? ????
             {
                 if (_len < 2)
                 {
                     return false;
                 }
-                else
-                {
-                    pDataOut = (int)(((byte0 & 0x3f) << 8 | GetSig(1)));
-                    pDataLen = 2;
-                }
+
+                pDataOut = ((byte0 & 0x3f) << 8) | GetSig(1);
+                pDataLen = 2;
             }
-            else if ((byte0 & 0xE0) == 0xC0)      // 110? ????
+            else if ((byte0 & 0xE0) == 0xC0) // 110? ????
             {
                 if (_len < 4)
                 {
                     return false;
                 }
-                else
-                {
-                    pDataOut = (int)(((byte0 & 0x1f) << 24 | GetSig(1) << 16 | GetSig(2) << 8 | GetSig(3)));
-                    pDataLen = 4;
-                }
+
+                pDataOut = ((byte0 & 0x1f) << 24) | (GetSig(1) << 16) | (GetSig(2) << 8) | GetSig(3);
+                pDataLen = 4;
             }
             else // We don't recognize this encoding
             {
@@ -588,9 +583,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return true;
         }
-
-
-
 
         private bool PeekByte(out int data)
         {
@@ -604,38 +596,36 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
-
-
-        private const int mdtModule = 0x00000000;       //
-        private const int mdtTypeRef = 0x01000000;       //
-        private const int mdtTypeDef = 0x02000000;       //
-        private const int mdtFieldDef = 0x04000000;       //
-        private const int mdtMethodDef = 0x06000000;       //
-        private const int mdtParamDef = 0x08000000;       //
-        private const int mdtInterfaceImpl = 0x09000000;       //
-        private const int mdtMemberRef = 0x0a000000;       //
-        private const int mdtCustomAttribute = 0x0c000000;       //
-        private const int mdtPermission = 0x0e000000;       //
-        private const int mdtSignature = 0x11000000;       //
-        private const int mdtEvent = 0x14000000;       //
-        private const int mdtProperty = 0x17000000;       //
-        private const int mdtMethodImpl = 0x19000000;       //
-        private const int mdtModuleRef = 0x1a000000;       //
-        private const int mdtTypeSpec = 0x1b000000;       //
-        private const int mdtAssembly = 0x20000000;       //
-        private const int mdtAssemblyRef = 0x23000000;       //
-        private const int mdtFile = 0x26000000;       //
-        private const int mdtExportedType = 0x27000000;       //
-        private const int mdtManifestResource = 0x28000000;       //
-        private const int mdtGenericParam = 0x2a000000;       //
-        private const int mdtMethodSpec = 0x2b000000;       //
+        private const int mdtModule = 0x00000000; //
+        private const int mdtTypeRef = 0x01000000; //
+        private const int mdtTypeDef = 0x02000000; //
+        private const int mdtFieldDef = 0x04000000; //
+        private const int mdtMethodDef = 0x06000000; //
+        private const int mdtParamDef = 0x08000000; //
+        private const int mdtInterfaceImpl = 0x09000000; //
+        private const int mdtMemberRef = 0x0a000000; //
+        private const int mdtCustomAttribute = 0x0c000000; //
+        private const int mdtPermission = 0x0e000000; //
+        private const int mdtSignature = 0x11000000; //
+        private const int mdtEvent = 0x14000000; //
+        private const int mdtProperty = 0x17000000; //
+        private const int mdtMethodImpl = 0x19000000; //
+        private const int mdtModuleRef = 0x1a000000; //
+        private const int mdtTypeSpec = 0x1b000000; //
+        private const int mdtAssembly = 0x20000000; //
+        private const int mdtAssemblyRef = 0x23000000; //
+        private const int mdtFile = 0x26000000; //
+        private const int mdtExportedType = 0x27000000; //
+        private const int mdtManifestResource = 0x28000000; //
+        private const int mdtGenericParam = 0x2a000000; //
+        private const int mdtMethodSpec = 0x2b000000; //
         private const int mdtGenericParamConstraint = 0x2c000000;
 
-        private const int mdtString = 0x70000000;       //
-        private const int mdtName = 0x71000000;       //
-        private const int mdtBaseType = 0x72000000;       // Leave this on the high end value. This does not correspond to metadata table
+        private const int mdtString = 0x70000000; //
+        private const int mdtName = 0x71000000; //
+        private const int mdtBaseType = 0x72000000; // Leave this on the high end value. This does not correspond to metadata table
 
-        private readonly static int[] s_tkCorEncodeToken = new int[] { mdtTypeDef, mdtTypeRef, mdtTypeSpec, mdtBaseType };
+        private static readonly int[] s_tkCorEncodeToken = {mdtTypeDef, mdtTypeRef, mdtTypeSpec, mdtBaseType};
 
         private const int IMAGE_CEE_CS_CALLCONV_DEFAULT = 0x0;
 
@@ -652,7 +642,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public const int IMAGE_CEE_CS_CALLCONV_HASTHIS = 0x20;
         public const int IMAGE_CEE_CS_CALLCONV_EXPLICITTHIS = 0x40;
         public const int IMAGE_CEE_CS_CALLCONV_GENERIC = 0x10;
-
 
         private const int ELEMENT_TYPE_END = 0x0;
         private const int ELEMENT_TYPE_VOID = 0x1;

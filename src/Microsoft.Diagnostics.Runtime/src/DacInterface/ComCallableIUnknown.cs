@@ -5,44 +5,44 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe class COMCallableIUnknown : COMHelper
+    internal unsafe class COMCallableIUnknown : COMHelper
     {
         private readonly GCHandle _handle;
-        private int _refCount = 0;
+        private int _refCount;
 
         private readonly Dictionary<Guid, IntPtr> _interfaces = new Dictionary<Guid, IntPtr>();
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
         public IntPtr IUnknownObject { get; }
-
         public IUnknownVTable IUnknown => **(IUnknownVTable**)IUnknownObject;
-
 
         public COMCallableIUnknown()
         {
             _handle = GCHandle.Alloc(this);
 
-            IUnknownVTable* vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
-            QueryInterfaceDelegate qi = new QueryInterfaceDelegate(QueryInterfaceImpl);
+            var vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
+            QueryInterfaceDelegate qi = QueryInterfaceImpl;
             vtable->QueryInterface = Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
-            AddRefDelegate addRef = new AddRefDelegate(AddRefImpl);
+            var addRef = new AddRefDelegate(AddRefImpl);
             vtable->AddRef = Marshal.GetFunctionPointerForDelegate(addRef);
             _delegates.Add(addRef);
 
-
-            ReleaseDelegate release = new ReleaseDelegate(ReleaseImpl);
+            var release = new ReleaseDelegate(ReleaseImpl);
             vtable->Release = Marshal.GetFunctionPointerForDelegate(release);
             _delegates.Add(release);
-
 
             IUnknownObject = Marshal.AllocHGlobal(IntPtr.Size);
             *(void**)IUnknownObject = vtable;
 
             _interfaces.Add(IUnknownGuid, IUnknownObject);
         }
-        public VtableBuilder AddInterface(Guid guid) => new VtableBuilder(this, guid);
+
+        public VtableBuilder AddInterface(Guid guid)
+        {
+            return new VtableBuilder(this, guid);
+        }
 
         internal void RegisterInterface(Guid guid, IntPtr clsPtr, List<Delegate> keepAlive)
         {
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int QueryInterfaceImpl(IntPtr self, ref Guid guid, out IntPtr ptr)
         {
-            if (_interfaces.TryGetValue(guid, out IntPtr value))
+            if (_interfaces.TryGetValue(guid, out var value))
             {
                 Interlocked.Increment(ref _refCount);
                 ptr = value;
@@ -65,12 +65,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int ReleaseImpl(IntPtr self)
         {
-            int count = Interlocked.Decrement(ref _refCount);
+            var count = Interlocked.Decrement(ref _refCount);
             if (count <= 0)
             {
-                foreach (IntPtr ptr in _interfaces.Values)
+                foreach (var ptr in _interfaces.Values)
                 {
-                    IntPtr* val = (IntPtr*)ptr;
+                    var val = (IntPtr*)ptr;
                     Marshal.FreeHGlobal(*val);
                     Marshal.FreeHGlobal(ptr);
                 }
@@ -81,6 +81,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return count;
         }
 
-        private int AddRefImpl(IntPtr self) => Interlocked.Increment(ref _refCount);
+        private int AddRefImpl(IntPtr self)
+        {
+            return Interlocked.Increment(ref _refCount);
+        }
     }
 }

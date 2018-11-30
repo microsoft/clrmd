@@ -4,6 +4,6 @@
     {
         ERROR = 1,
         MINORERROR = 2,
-        WARNING = 3,
+        WARNING = 3
     }
 }

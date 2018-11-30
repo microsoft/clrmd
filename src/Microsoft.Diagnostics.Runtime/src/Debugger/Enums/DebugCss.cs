@@ -11,6 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         SCOPE = 4,
         PATHS = 8,
         SYMBOL_OPTIONS = 0x10,
-        TYPE_OPTIONS = 0x20,
+        TYPE_OPTIONS = 0x20
     }
 }

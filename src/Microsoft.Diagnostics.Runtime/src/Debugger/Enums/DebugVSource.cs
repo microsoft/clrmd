@@ -5,6 +5,6 @@
         INVALID = 0,
         DEBUGGEE = 1,
         MAPPED_IMAGE = 2,
-        DUMP_WITHOUT_MEMINFO = 3,
+        DUMP_WITHOUT_MEMINFO = 3
     }
 }

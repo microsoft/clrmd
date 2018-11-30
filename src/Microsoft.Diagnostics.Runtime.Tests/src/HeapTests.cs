@@ -1,7 +1,7 @@
-﻿using Xunit;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -11,16 +11,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void HeapEnumeration()
         {
             // Simply test that we can enumerate the heap.
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (var dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var heap = runtime.Heap;
 
-                bool encounteredFoo = false;
-                int count = 0;
-                foreach (ulong obj in heap.EnumerateObjectAddresses())
+                var encounteredFoo = false;
+                var count = 0;
+                foreach (var obj in heap.EnumerateObjectAddresses())
                 {
-                    ClrType type = heap.GetObjectType(obj);
+                    var type = heap.GetObjectType(obj);
                     Assert.NotNull(type);
                     if (type.Name == "Foo")
                         encounteredFoo = true;
@@ -37,21 +37,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void HeapEnumerationMatches()
         {
             // Simply test that we can enumerate the heap.
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (var dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var heap = runtime.Heap;
 
-                List<ClrObject> objects = new List<ClrObject>(heap.EnumerateObjects());
-                
-                int count = 0;
-                foreach (ulong obj in heap.EnumerateObjectAddresses())
+                var objects = new List<ClrObject>(heap.EnumerateObjects());
+
+                var count = 0;
+                foreach (var obj in heap.EnumerateObjectAddresses())
                 {
-                    ClrObject actual = objects[count++];
+                    var actual = objects[count++];
 
                     Assert.Equal(obj, actual.Address);
 
-                    ClrType type = heap.GetObjectType(obj);
+                    var type = heap.GetObjectType(obj);
                     Assert.Equal(type, actual.Type);
                 }
 
@@ -63,24 +63,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void HeapCachedEnumerationMatches()
         {
             // Simply test that we can enumerate the heap.
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (var dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var heap = runtime.Heap;
 
-                List<ClrObject> expectedList = new List<ClrObject>(heap.EnumerateObjects());
+                var expectedList = new List<ClrObject>(heap.EnumerateObjects());
 
                 heap.CacheHeap(CancellationToken.None);
                 Assert.True(heap.IsHeapCached);
-                List<ClrObject> actualList = new List<ClrObject>(heap.EnumerateObjects());
+                var actualList = new List<ClrObject>(heap.EnumerateObjects());
 
                 Assert.True(actualList.Count > 0);
                 Assert.Equal(expectedList.Count, actualList.Count);
 
-                for (int i = 0; i < actualList.Count; i++)
+                for (var i = 0; i < actualList.Count; i++)
                 {
-                    ClrObject expected = expectedList[i];
-                    ClrObject actual = actualList[i];
+                    var expected = expectedList[i];
+                    var actual = actualList[i];
 
                     Assert.True(expected == actual);
                     Assert.Equal(expected, actual);
@@ -91,13 +91,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void ServerSegmentTests()
         {
-            using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server))
+            using (var dt = TestTargets.Types.LoadFullDump(GCMode.Server))
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var heap = runtime.Heap;
 
                 Assert.True(runtime.ServerGC);
-                
+
                 CheckSegments(heap);
             }
         }
@@ -105,10 +105,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void WorkstationSegmentTests()
         {
-            using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation))
+            using (var dt = TestTargets.Types.LoadFullDump(GCMode.Workstation))
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var heap = runtime.Heap;
 
                 Assert.False(runtime.ServerGC);
 
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static void CheckSegments(ClrHeap heap)
         {
-            foreach (ClrSegment seg in heap.Segments)
+            foreach (var seg in heap.Segments)
             {
                 Assert.NotEqual(0ul, seg.Start);
                 Assert.NotEqual(0ul, seg.End);
@@ -133,9 +133,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.Equal(0ul, seg.Gen1Length);
                 }
 
-                foreach (ulong obj in seg.EnumerateObjectAddresses())
+                foreach (var obj in seg.EnumerateObjectAddresses())
                 {
-                    ClrSegment curr = heap.GetSegmentByAddress(obj);
+                    var curr = heap.GetSegmentByAddress(obj);
                     Assert.Same(seg, curr);
                 }
             }

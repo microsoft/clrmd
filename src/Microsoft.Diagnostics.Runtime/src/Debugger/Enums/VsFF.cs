@@ -10,6 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         PATCHED = 0x00000004,
         PRIVATEBUILD = 0x00000008,
         INFOINFERRED = 0x00000010,
-        SPECIALBUILD = 0x00000020,
+        SPECIALBUILD = 0x00000020
     }
 }

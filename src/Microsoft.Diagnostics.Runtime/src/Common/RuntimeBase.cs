@@ -1,31 +1,32 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal abstract class RuntimeBase : ClrRuntime
     {
-        private static ulong[] s_emptyPointerArray = new ulong[0];
+        private static readonly ulong[] s_emptyPointerArray = new ulong[0];
         protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
         protected IDataReader _dataReader;
         protected DataTargetImpl _dataTarget;
 
-        protected ICorDebug.ICorDebugProcess _corDebugProcess;
-        internal ICorDebug.ICorDebugProcess CorDebugProcess
+        protected ICorDebugProcess _corDebugProcess;
+        internal ICorDebugProcess CorDebugProcess
         {
             get
             {
                 if (_corDebugProcess == null)
-                    _corDebugProcess = ICorDebug.CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, DacLibrary.DacDataTarget, _dataTarget.FileLoader);
+                    _corDebugProcess = CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, DacLibrary.DacDataTarget, _dataTarget.FileLoader);
 
                 return _corDebugProcess;
             }
@@ -44,20 +45,18 @@ namespace Microsoft.Diagnostics.Runtime
 
             _dacInterface.Flush();
 
-            IGCInfo data = GetGCInfo();
+            var data = GetGCInfo();
             if (data != null)
             {
                 ServerGC = data.ServerMode;
                 HeapCount = data.HeapCount;
                 CanWalkHeap = data.GCStructuresValid;
             }
+
             _dataReader = dataTarget.DataReader;
         }
 
-        public override DataTarget DataTarget
-        {
-            get { return _dataTarget; }
-        }
+        public override DataTarget DataTarget => _dataTarget;
 
         public void RegisterForRelease(IModuleData module)
         {
@@ -65,19 +64,13 @@ namespace Microsoft.Diagnostics.Runtime
                 COMHelper.Release(module.LegacyMetaDataImport);
         }
 
-        public IDataReader DataReader
-        {
-            get { return _dataReader; }
-        }
+        public IDataReader DataReader => _dataReader;
 
         protected abstract void InitApi();
 
-        public override int PointerSize
-        {
-            get { return IntPtr.Size; }
-        }
+        public override int PointerSize => IntPtr.Size;
 
-        internal protected bool CanWalkHeap { get; protected set; }
+        protected internal bool CanWalkHeap { get; protected set; }
 
         internal MemoryReader MemoryReader
         {
@@ -87,26 +80,23 @@ namespace Microsoft.Diagnostics.Runtime
                     _cache = new MemoryReader(DataReader, 0x200);
                 return _cache;
             }
-            set
-            {
-                _cache = value;
-            }
+            set => _cache = value;
         }
 
         internal bool GetHeaps(out SubHeap[] heaps)
         {
             heaps = new SubHeap[HeapCount];
-            Dictionary<ulong, ulong> allocContexts = GetAllocContexts();
+            var allocContexts = GetAllocContexts();
             if (ServerGC)
             {
-                ulong[] heapList = GetServerHeapList();
+                var heapList = GetServerHeapList();
                 if (heapList == null)
                     return false;
 
-                bool succeeded = false;
-                for (int i = 0; i < heapList.Length; ++i)
+                var succeeded = false;
+                for (var i = 0; i < heapList.Length; ++i)
                 {
-                    IHeapDetails heap = GetSvrHeapDetails(heapList[i]);
+                    var heap = GetSvrHeapDetails(heapList[i]);
                     if (heap == null)
                         continue;
 
@@ -119,9 +109,9 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return succeeded;
             }
-            else
+
             {
-                IHeapDetails heap = GetWksHeapDetails();
+                var heap = GetWksHeapDetails();
                 if (heap == null)
                     return false;
 
@@ -134,13 +124,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal Dictionary<ulong, ulong> GetAllocContexts()
         {
-            Dictionary<ulong, ulong> ret = new Dictionary<ulong, ulong>();
+            var ret = new Dictionary<ulong, ulong>();
 
             // Give a max number of threads to walk to ensure no infinite loops due to data
             // inconsistency.
-            int max = 1024;
+            var max = 1024;
 
-            IThreadData thread = GetThread(GetFirstThread());
+            var thread = GetThread(GetFirstThread());
 
             while (max-- > 0 && thread != null)
             {
@@ -149,6 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (thread.Next == 0)
                     break;
+
                 thread = GetThread(thread.Next);
             }
 
@@ -169,11 +160,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<ulong> EnumerateFinalizerQueueObjectAddresses()
         {
-            if (GetHeaps(out SubHeap[] heaps))
+            if (GetHeaps(out var heaps))
             {
-                foreach (SubHeap heap in heaps)
+                foreach (var heap in heaps)
                 {
-                    foreach (ulong objAddr in GetPointersInRange(heap.FQRootsStart, heap.FQRootsStop))
+                    foreach (var objAddr in GetPointersInRange(heap.FQRootsStart, heap.FQRootsStop))
                     {
                         if (objAddr != 0)
                             yield return objAddr;
@@ -184,28 +175,28 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal virtual IEnumerable<ClrRoot> EnumerateStackReferences(ClrThread thread, bool includeDead)
         {
-            ulong stackBase = thread.StackBase;
-            ulong stackLimit = thread.StackLimit;
+            var stackBase = thread.StackBase;
+            var stackLimit = thread.StackLimit;
             if (stackLimit <= stackBase)
             {
-                ulong tmp = stackLimit;
+                var tmp = stackLimit;
                 stackLimit = stackBase;
                 stackBase = tmp;
             }
 
-            ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
-            ClrHeap heap = Heap;
-            var mask = ((ulong)(PointerSize - 1));
+            var domain = GetAppDomainByAddress(thread.AppDomain);
+            var heap = Heap;
+            var mask = (ulong)(PointerSize - 1);
             var cache = MemoryReader;
             cache.EnsureRangeInCache(stackBase);
-            for (ulong stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
+            for (var stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
             {
-                if (cache.ReadPtr(stackPtr, out ulong objRef))
+                if (cache.ReadPtr(stackPtr, out var objRef))
                 {
                     // If the value isn't pointer aligned, it cannot be a managed pointer.
                     if (heap.IsInHeap(objRef))
                     {
-                        if (heap.ReadPointer(objRef, out ulong mt))
+                        if (heap.ReadPointer(objRef, out var mt))
                         {
                             ClrType type = null;
 
@@ -220,7 +211,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        #region Abstract
         internal abstract ulong GetFirstThread();
         internal abstract IThreadData GetThread(ulong addr);
         internal abstract IHeapDetails GetSvrHeapDetails(ulong addr);
@@ -234,20 +224,17 @@ namespace Microsoft.Diagnostics.Runtime
         internal abstract uint GetThreadTypeIndex();
 
         internal abstract ClrAppDomain GetAppDomainByAddress(ulong addr);
-        #endregion
 
-        #region Helpers
-        #region Request Helpers
         protected bool Request(uint id, ulong param, byte[] output)
         {
-            byte[] input = BitConverter.GetBytes(param);
+            var input = BitConverter.GetBytes(param);
 
             return Request(id, input, output);
         }
 
         protected bool Request(uint id, uint param, byte[] output)
         {
-            byte[] input = BitConverter.GetBytes(param);
+            var input = BitConverter.GetBytes(param);
 
             return Request(id, input, output);
         }
@@ -262,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (output != null)
                 outSize = (uint)output.Length;
 
-            int result = _dacInterface.Request(id, inSize, input, outSize, output);
+            var result = _dacInterface.Request(id, inSize, input, outSize, output);
 
             return result >= 0;
         }
@@ -271,7 +258,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : struct, I
             where I : class
         {
-            byte[] output = GetByteArrayForStruct<T>();
+            var output = GetByteArrayForStruct<T>();
 
             if (!Request(id, input, output))
                 return null;
@@ -283,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : struct, I
             where I : class
         {
-            byte[] output = GetByteArrayForStruct<T>();
+            var output = GetByteArrayForStruct<T>();
 
             if (!Request(id, param, output))
                 return null;
@@ -295,7 +282,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : struct, I
             where I : class
         {
-            byte[] output = GetByteArrayForStruct<T>();
+            var output = GetByteArrayForStruct<T>();
 
             if (!Request(id, param, output))
                 return null;
@@ -307,7 +294,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : struct, I
             where I : class
         {
-            byte[] output = GetByteArrayForStruct<T>();
+            var output = GetByteArrayForStruct<T>();
 
             if (!Request(id, null, output))
                 return null;
@@ -318,12 +305,12 @@ namespace Microsoft.Diagnostics.Runtime
         protected bool RequestStruct<T>(uint id, ref T t)
             where T : struct
         {
-            byte[] output = GetByteArrayForStruct<T>();
+            var output = GetByteArrayForStruct<T>();
 
             if (!Request(id, null, output))
                 return false;
 
-            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+            var handle = GCHandle.Alloc(output, GCHandleType.Pinned);
             t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
             handle.Free();
             return true;
@@ -332,15 +319,15 @@ namespace Microsoft.Diagnostics.Runtime
         protected bool RequestStruct<T>(uint id, ulong addr, ref T t)
             where T : struct
         {
-            byte[] input = new byte[sizeof(ulong)];
-            byte[] output = GetByteArrayForStruct<T>();
+            var input = new byte[sizeof(ulong)];
+            var output = GetByteArrayForStruct<T>();
 
             WriteValueToBuffer(addr, input, 0);
 
             if (!Request(id, input, output))
                 return false;
 
-            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+            var handle = GCHandle.Alloc(output, GCHandleType.Pinned);
             t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
             handle.Free();
             return true;
@@ -348,36 +335,33 @@ namespace Microsoft.Diagnostics.Runtime
 
         protected ulong[] RequestAddrList(uint id, int length)
         {
-            byte[] bytes = new byte[length * sizeof(ulong)];
+            var bytes = new byte[length * sizeof(ulong)];
             if (!Request(id, null, bytes))
                 return null;
 
-            ulong[] result = new ulong[length];
+            var result = new ulong[length];
             for (uint i = 0; i < length; ++i)
                 result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
 
             return result;
         }
-
 
         protected ulong[] RequestAddrList(uint id, ulong param, int length)
         {
-            byte[] bytes = new byte[length * sizeof(ulong)];
+            var bytes = new byte[length * sizeof(ulong)];
             if (!Request(id, param, bytes))
                 return null;
 
-            ulong[] result = new ulong[length];
+            var result = new ulong[length];
             for (uint i = 0; i < length; ++i)
                 result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
 
             return result;
         }
-        #endregion
 
-        #region Marshalling Helpers
         protected static string BytesToString(byte[] output)
         {
-            int len = 0;
+            var len = 0;
             while (len < output.Length && (output[len] != 0 || output[len + 1] != 0))
                 len += 2;
 
@@ -387,7 +371,8 @@ namespace Microsoft.Diagnostics.Runtime
             return Encoding.Unicode.GetString(output, 0, len);
         }
 
-        protected byte[] GetByteArrayForStruct<T>() where T : struct
+        protected byte[] GetByteArrayForStruct<T>()
+            where T : struct
         {
             return new byte[Marshal.SizeOf(typeof(T))];
         }
@@ -396,16 +381,16 @@ namespace Microsoft.Diagnostics.Runtime
             where I : class
             where T : I
         {
-            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            I result = (I)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            var result = (I)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
             handle.Free();
             return result;
         }
 
         protected int WriteValueToBuffer(IntPtr ptr, byte[] buffer, int offset)
         {
-            ulong value = (ulong)ptr.ToInt64();
-            for (int i = offset; i < offset + IntPtr.Size; ++i)
+            var value = (ulong)ptr.ToInt64();
+            for (var i = offset; i < offset + IntPtr.Size; ++i)
             {
                 buffer[i] = (byte)value;
                 value >>= 8;
@@ -416,7 +401,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         protected int WriteValueToBuffer(int value, byte[] buffer, int offset)
         {
-            for (int i = offset; i < offset + sizeof(int); ++i)
+            for (var i = offset; i < offset + sizeof(int); ++i)
             {
                 buffer[i] = (byte)value;
                 value >>= 8;
@@ -427,7 +412,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         protected int WriteValueToBuffer(uint value, byte[] buffer, int offset)
         {
-            for (int i = offset; i < offset + sizeof(int); ++i)
+            for (var i = offset; i < offset + sizeof(int); ++i)
             {
                 buffer[i] = (byte)value;
                 value >>= 8;
@@ -438,7 +423,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         protected int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
         {
-            for (int i = offset; i < offset + sizeof(ulong); ++i)
+            for (var i = offset; i < offset + sizeof(ulong); ++i)
             {
                 buffer[i] = (byte)value;
                 value >>= 8;
@@ -446,23 +431,20 @@ namespace Microsoft.Diagnostics.Runtime
 
             return offset + sizeof(ulong);
         }
-        #endregion
-
-        #region Data Read
-
 
         public override bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
-        private byte[] _dataBuffer = new byte[8];
+        private readonly byte[] _dataBuffer = new byte[8];
+
         public bool ReadByte(ulong addr, out byte value)
         {
             // todo: There's probably a more efficient way to implement this if ReadVirtual accepted an "out byte"
             //       "out dword", "out long", etc.
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
+            if (!ReadMemory(addr, _dataBuffer, 1, out var read))
                 return false;
 
             Debug.Assert(read == 1);
@@ -474,7 +456,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadByte(ulong addr, out sbyte value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
+            if (!ReadMemory(addr, _dataBuffer, 1, out var read))
                 return false;
 
             Debug.Assert(read == 1);
@@ -486,7 +468,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadDword(ulong addr, out int value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(int), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(int), out var read))
                 return false;
 
             Debug.Assert(read == 4);
@@ -498,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadDword(ulong addr, out uint value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(uint), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(uint), out var read))
                 return false;
 
             Debug.Assert(read == 4);
@@ -510,7 +492,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadFloat(ulong addr, out float value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out var read))
                 return false;
 
             Debug.Assert(read == sizeof(float));
@@ -522,7 +504,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadFloat(ulong addr, out double value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(double), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(double), out var read))
                 return false;
 
             Debug.Assert(read == sizeof(double));
@@ -540,7 +522,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadShort(ulong addr, out short value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(short), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(short), out var read))
                 return false;
 
             Debug.Assert(read == sizeof(short));
@@ -552,7 +534,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadShort(ulong addr, out ushort value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ushort), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(ushort), out var read))
                 return false;
 
             Debug.Assert(read == sizeof(ushort));
@@ -564,7 +546,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadQword(ulong addr, out ulong value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ulong), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(ulong), out var read))
                 return false;
 
             Debug.Assert(read == sizeof(ulong));
@@ -576,7 +558,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadQword(ulong addr, out long value)
         {
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(long), out int read))
+            if (!ReadMemory(addr, _dataBuffer, sizeof(long), out var read))
                 return false;
 
             Debug.Assert(read == sizeof(long));
@@ -587,8 +569,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool ReadPointer(ulong addr, out ulong value)
         {
-            int ptrSize = PointerSize;
-            if (!ReadMemory(addr, _dataBuffer, ptrSize, out int read))
+            var ptrSize = PointerSize;
+            if (!ReadMemory(addr, _dataBuffer, ptrSize, out var read))
             {
                 value = 0xcccccccc;
                 return false;
@@ -611,13 +593,13 @@ namespace Microsoft.Diagnostics.Runtime
                 return s_emptyPointerArray;
 
             // Enumerate individually if we have too many.
-            ulong count = (stop - start) / (ulong)IntPtr.Size;
+            var count = (stop - start) / (ulong)IntPtr.Size;
             if (count > 4096)
                 return EnumeratePointersInRange(start, stop);
 
-            ulong[] array = new ulong[count];
-            byte[] tmp = new byte[(int)count * IntPtr.Size];
-            if (!ReadMemory(start, tmp, tmp.Length, out int read))
+            var array = new ulong[count];
+            var tmp = new byte[(int)count * IntPtr.Size];
+            if (!ReadMemory(start, tmp, tmp.Length, out var read))
                 return s_emptyPointerArray;
 
             if (IntPtr.Size == 4)
@@ -632,15 +614,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         private IEnumerable<ulong> EnumeratePointersInRange(ulong start, ulong stop)
         {
-            for (ulong ptr = start; ptr < stop; ptr += (uint)IntPtr.Size)
+            for (var ptr = start; ptr < stop; ptr += (uint)IntPtr.Size)
             {
-                if (!ReadPointer(ptr, out ulong obj))
+                if (!ReadPointer(ptr, out var obj))
                     break;
 
                 yield return obj;
             }
         }
-        #endregion
-        #endregion
     }
 }

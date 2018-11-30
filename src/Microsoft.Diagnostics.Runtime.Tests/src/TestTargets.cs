@@ -1,6 +1,6 @@
-﻿using Xunit;
-using System;
+﻿using System;
 using System.IO;
+using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -20,12 +20,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public class TestTargets
     {
-        static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
-        static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
-        static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
-        static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
-        static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
-        static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
+        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
+        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
+        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
+        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
+        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
+        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget NestedException => _nestedException.Value;
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             Architecture = IntPtr.Size == 4 ? "x86" : "x64";
 
-            DirectoryInfo info = new DirectoryInfo(Environment.CurrentDirectory);
+            var info = new DirectoryInfo(Environment.CurrentDirectory);
             while (info.GetFiles(".gitignore").Length != 1)
                 info = info.Parent;
 
@@ -63,36 +63,36 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Source = Path.Combine(TestRoot, source);
             if (!File.Exists(Source))
                 throw new FileNotFoundException($"Could not find source file: {source}");
-            
+
             Executable = Path.Combine(Path.GetDirectoryName(Source), "bin", Architecture, Path.ChangeExtension(source, ".exe"));
             Pdb = Path.ChangeExtension(Executable, ".pdb");
 
             if (!File.Exists(Executable) || !File.Exists(Pdb))
             {
-                string buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
+                var buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
                 throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: {buildTestAssets}");
             }
         }
 
         private string BuildDumpName(GCMode gcmode, bool full)
         {
-            string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
+            var filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
-            string gc = gcmode == GCMode.Server ? "svr" : "wks";
-            string dumpType = full ? "" : "_mini";
+            var gc = gcmode == GCMode.Server ? "svr" : "wks";
+            var dumpType = full ? "" : "_mini";
             filename = $"{filename}_{gc}{dumpType}.dmp";
             return filename;
         }
 
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
         {
-            string path = BuildDumpName(gc, full: false);
+            var path = BuildDumpName(gc, false);
             return DataTarget.LoadCrashDump(path);
         }
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
         {
-            string path = BuildDumpName(gc, full: true);
+            var path = BuildDumpName(gc, true);
             return DataTarget.LoadCrashDump(path);
         }
     }

@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         MASK = 0xF0000000,
         LOADTIME = 0x10000000,
-        MODULENAME = 0x20000000,
+        MODULENAME = 0x20000000
     }
 }

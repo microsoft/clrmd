@@ -5,6 +5,6 @@
         UNINITIALIZED = 0,
         KERNEL = 1,
         USER_WINDOWS = 2,
-        IMAGE_FILE = 3,
+        IMAGE_FILE = 3
     }
 }

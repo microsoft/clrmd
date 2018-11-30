@@ -3,6 +3,6 @@
     public enum DEBUG_EXPR : uint
     {
         MASM = 0,
-        CPLUSPLUS = 1,
+        CPLUSPLUS = 1
     }
 }

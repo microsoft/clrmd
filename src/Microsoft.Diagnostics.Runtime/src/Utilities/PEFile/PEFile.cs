@@ -4,11 +4,10 @@ using System.IO;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// PEFile is a reader for the information in a Portable Exectable (PE) FILE.   This is what EXEs and DLLs are.  
-    /// 
-    /// It can read both 32 and 64 bit PE files.  
+    /// PEFile is a reader for the information in a Portable Exectable (PE) FILE.   This is what EXEs and DLLs are.
+    /// It can read both 32 and 64 bit PE files.
     /// </summary>
-    public unsafe sealed class PEFile : IDisposable
+    public sealed unsafe class PEFile : IDisposable
     {
         /// <summary>
         /// Parses a PEFile from a given stream. If it is valid, a new PEFile object is
@@ -16,13 +15,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static PEFile TryLoad(Stream stream, bool virt)
         {
-            PEBuffer headerBuff = new PEBuffer(stream);
-            PEHeader hdr = PEHeader.FromBuffer(headerBuff, virt);
+            var headerBuff = new PEBuffer(stream);
+            var hdr = PEHeader.FromBuffer(headerBuff, virt);
 
             if (hdr == null)
                 return null;
 
-            PEFile pefile = new PEFile();
+            var pefile = new PEFile();
             pefile.Init(stream, "stream", virt, headerBuff, hdr);
             return pefile;
         }
@@ -44,8 +43,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Constructor which allows you to specify a stream instead of file on disk.
         /// </summary>
         /// <param name="stream">The stream to read.</param>
-        /// <param name="virt">Whether the stream is currently in virtual memory (true)
-        /// or if this reading from disk (false).</param>
+        /// <param name="virt">
+        /// Whether the stream is currently in virtual memory (true)
+        /// or if this reading from disk (false).
+        /// </param>
         public PEFile(Stream stream, bool virt)
         {
             Init(stream, "stream", virt);
@@ -68,15 +69,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// The Header for the PE file.  This contains the infor in a link /dump /headers 
+        /// The Header for the PE file.  This contains the infor in a link /dump /headers
         /// </summary>
         public PEHeader Header { get; private set; }
 
         /// <summary>
-        /// Looks up the debug signature information in the EXE.   Returns true and sets the parameters if it is found. 
-        /// 
-        /// If 'first' is true then the first entry is returned, otherwise (by default) the last entry is used 
-        /// (this is what debuggers do today).   Thus NGEN images put the IL PDB last (which means debuggers 
+        /// Looks up the debug signature information in the EXE.   Returns true and sets the parameters if it is found.
+        /// If 'first' is true then the first entry is returned, otherwise (by default) the last entry is used
+        /// (this is what debuggers do today).   Thus NGEN images put the IL PDB last (which means debuggers
         /// pick up that one), but we can set it to 'first' if we want the NGEN PDB.
         /// </summary>
         public bool GetPdbSignature(out string pdbName, out Guid pdbGuid, out int pdbAge, bool first = false)
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pdbName = null;
             pdbGuid = Guid.Empty;
             pdbAge = 0;
-            bool ret = false;
+            var ret = false;
 
             if (Header == null)
                 return false;
@@ -96,13 +96,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (Header.DebugDirectory.Size % sizeof(IMAGE_DEBUG_DIRECTORY) != 0)
                     return false;
 
-                int debugCount = Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
-                for (int i = 0; i < debugCount; i++)
+                var debugCount = Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+                for (var i = 0; i < debugCount; i++)
                 {
                     if (debugEntries[i].Type == IMAGE_DEBUG_TYPE.CODEVIEW)
                     {
                         var stringBuff = AllocBuff();
-                        int ptr = _virt ? (int)debugEntries[i].AddressOfRawData : (int)debugEntries[i].PointerToRawData;
+                        var ptr = _virt ? debugEntries[i].AddressOfRawData : debugEntries[i].PointerToRawData;
                         var info = (CV_INFO_PDB70*)stringBuff.Fetch(ptr, debugEntries[i].SizeOfData);
                         if (info->CvSignature == CV_INFO_PDB70.PDB70CvSignature)
                         {
@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (_pdb == null && GetPdbSignature(out string pdbName, out Guid pdbGuid, out int pdbAge))
+                if (_pdb == null && GetPdbSignature(out var pdbName, out var pdbGuid, out var pdbAge))
                     _pdb = new PdbInfo(pdbName, pdbGuid, pdbAge);
 
                 return _pdb;
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                using (PEFile pefile = new PEFile(filename))
+                using (var pefile = new PEFile(filename))
                 {
                     var header = pefile.Header;
                     timestamp = header.TimeDateStampSec;
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                using (PEFile pefile = new PEFile(stream, virt))
+                using (var pefile = new PEFile(stream, virt))
                 {
                     var header = pefile.Header;
                     timestamp = header.TimeDateStampSec;
@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
-        /// version tab a file's property page is populated with).  
+        /// version tab a file's property page is populated with).
         /// </summary>
         public FileVersionInfo GetFileVersionInfo()
         {
@@ -200,7 +200,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 versionNode = versionNode.Children[0];
 
             var buff = AllocBuff();
-            byte* bytes = versionNode.FetchData(0, versionNode.DataLength, buff);
+            var bytes = versionNode.FetchData(0, versionNode.DataLength, buff);
             var ret = new FileVersionInfo(bytes, versionNode.DataLength);
 
             FreeBuff(buff);
@@ -209,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// For side by side dlls, the manifest that decribes the binding information is stored as the RT_MANIFEST resource, and it
-        /// is an XML string.   This routine returns this.  
+        /// is an XML string.   This routine returns this.
         /// </summary>
         /// <returns></returns>
         public string GetSxSManfest()
@@ -223,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 manifest = manifest.Children[0];
 
             var buff = AllocBuff();
-            byte* bytes = manifest.FetchData(0, manifest.DataLength, buff);
+            var bytes = manifest.FetchData(0, manifest.DataLength, buff);
             string ret = null;
             using (var stream = new UnmanagedMemoryStream(bytes, manifest.DataLength))
             using (var textReader = new StreamReader(stream))
@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Closes any file handles and cleans up resources.  
+        /// Closes any file handles and cleans up resources.
         /// </summary>
         public void Dispose()
         {
@@ -256,7 +256,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return ret;
         }
 
-        #region private
         private PEBuffer _headerBuff;
         private PEBuffer _freeBuff;
         private Stream _stream;
@@ -264,7 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal byte* FetchRVA(int rva, int size, PEBuffer buffer)
         {
-            int offset = Header.RvaToFileOffset(rva);
+            var offset = Header.RvaToFileOffset(rva);
             return buffer.Fetch(offset, size);
         }
 
@@ -287,6 +286,5 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             _freeBuff = buffer;
         }
-        #endregion
-    };
+    }
 }

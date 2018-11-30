@@ -8,9 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopBlockingObject : BlockingObject
     {
-        private ulong _obj;
         private bool _locked;
-        private int _recursion;
         private IList<ClrThread> _waiters;
         private BlockingReason _reason;
         private ClrThread[] _owners;
@@ -30,9 +28,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public DesktopBlockingObject(ulong obj, bool locked, int recursion, ClrThread owner, BlockingReason reason)
         {
-            _obj = obj;
+            Object = obj;
             _locked = locked;
-            _recursion = recursion;
+            RecursionCount = recursion;
             _reason = reason;
             _owners = new ClrThread[1];
             _owners[0] = owner;
@@ -40,41 +38,31 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public DesktopBlockingObject(ulong obj, bool locked, int recursion, BlockingReason reason, ClrThread[] owners)
         {
-            _obj = obj;
+            Object = obj;
             _locked = locked;
-            _recursion = recursion;
+            RecursionCount = recursion;
             _reason = reason;
             _owners = owners;
         }
 
         public DesktopBlockingObject(ulong obj, bool locked, int recursion, BlockingReason reason)
         {
-            _obj = obj;
+            Object = obj;
             _locked = locked;
-            _recursion = recursion;
+            RecursionCount = recursion;
             _reason = reason;
         }
 
-        public override ulong Object
-        {
-            get { return _obj; }
-        }
+        public override ulong Object { get; }
 
-        public override bool Taken
-        {
-            get { return _locked; }
-        }
+        public override bool Taken => _locked;
 
         public void SetTaken(bool status)
         {
             _locked = status;
         }
 
-        public override int RecursionCount
-        {
-            get { return _recursion; }
-        }
-
+        public override int RecursionCount { get; }
 
         public override IList<ClrThread> Waiters
         {
@@ -101,8 +89,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override BlockingReason Reason
         {
-            get { return _reason; }
-            internal set { _reason = value; }
+            get => _reason;
+            internal set => _reason = value;
         }
 
         public override ClrThread Owner
@@ -116,17 +104,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override bool HasSingleOwner
-        {
-            get { return _owners.Length == 1; }
-        }
+        public override bool HasSingleOwner => _owners.Length == 1;
 
-        public override IList<ClrThread> Owners
-        {
-            get
-            {
-                return _owners ?? new ClrThread[0];
-            }
-        }
+        public override IList<ClrThread> Owners => _owners ?? new ClrThread[0];
     }
 }

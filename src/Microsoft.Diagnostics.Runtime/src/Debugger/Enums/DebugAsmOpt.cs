@@ -9,6 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         VERBOSE = 0x00000001,
         NO_CODE_BYTES = 0x00000002,
         IGNORE_OUTPUT_WIDTH = 0x00000004,
-        SOURCE_LINE_NUMBER = 0x00000008,
+        SOURCE_LINE_NUMBER = 0x00000008
     }
 }

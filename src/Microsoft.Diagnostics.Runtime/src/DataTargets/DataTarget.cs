@@ -1,21 +1,10 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.Desktop;
-using Microsoft.Diagnostics.Runtime.Interop;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
-using System.Text.RegularExpressions;
-using System.ComponentModel;
-using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -28,14 +17,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         static DataTarget()
         {
-#if !NET45
+#if false //!NET45
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 PlatformFunctions = new LinuxFunctions();
             else
 #endif
             PlatformFunctions = new WindowsFunctions();
         }
-
 
         /// <summary>
         /// Creates a DataTarget from a crash dump.
@@ -44,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget LoadCrashDump(string fileName)
         {
-            DbgEngDataReader reader = new DbgEngDataReader(fileName);
+            var reader = new DbgEngDataReader(fileName);
             return CreateFromReader(reader, reader.DebuggerInterface);
         }
 
@@ -56,10 +44,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget LoadCoreDump(string filename)
         {
-            CoreDumpReader reader = new CoreDumpReader(filename);
+            var reader = new CoreDumpReader(filename);
             return CreateFromReader(reader, null);
         }
-
 
         /// <summary>
         /// Creates a DataTarget from a crash dump, specifying the dump reader to use.
@@ -71,12 +58,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (dumpReader == CrashDumpReader.DbgEng)
             {
-                DbgEngDataReader reader = new DbgEngDataReader(fileName);
+                var reader = new DbgEngDataReader(fileName);
                 return CreateFromReader(reader, reader.DebuggerInterface);
             }
             else
             {
-                DumpDataReader reader = new DumpDataReader(fileName);
+                var reader = new DumpDataReader(fileName);
                 return CreateFromReader(reader, null);
             }
         }
@@ -91,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime
             return CreateFromReader(reader, null);
         }
 
-        private static DataTarget CreateFromReader(IDataReader reader, Interop.IDebugClient client)
+        private static DataTarget CreateFromReader(IDataReader reader, IDebugClient client)
         {
 #if _TRACING
             reader = new TraceDataReader(reader);
@@ -108,8 +95,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget CreateFromDebuggerInterface(IDebugClient client)
         {
-            DbgEngDataReader reader = new DbgEngDataReader(client);
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, reader.DebuggerInterface);
+            var reader = new DbgEngDataReader(client);
+            var dataTarget = new DataTargetImpl(reader, reader.DebuggerInterface);
 
             return dataTarget;
         }
@@ -138,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime
             IDataReader reader;
             if (attachFlag == AttachFlag.Passive)
             {
-                reader = new LiveDataReader(pid, createSnapshot: false);
+                reader = new LiveDataReader(pid, false);
             }
             else
             {
@@ -147,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
                 client = dbgeng.DebuggerInterface;
             }
 
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
+            var dataTarget = new DataTargetImpl(reader, client);
             return dataTarget;
         }
 
@@ -158,8 +145,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget CreateSnapshotAndAttach(int pid)
         {
-            IDataReader reader = new LiveDataReader(pid, createSnapshot: true);
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, null);
+            IDataReader reader = new LiveDataReader(pid, true);
+            var dataTarget = new DataTargetImpl(reader, null);
             return dataTarget;
         }
 
@@ -181,10 +168,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return _symbolLocator;
             }
-            set
-            {
-                _symbolLocator = value;
-            }
+            set => _symbolLocator = value;
         }
 
         /// <summary>
@@ -193,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ISymbolProvider SymbolProvider { get; set; }
 
-        FileLoader _fileLoader;
+        private FileLoader _fileLoader;
         internal FileLoader FileLoader
         {
             get
@@ -231,12 +215,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Reads memory from the target.
         /// </summary>
         /// <param name="address">The address to read from.</param>
-        /// <param name="buffer">The buffer to store the data in.  Size must be greator or equal to
-        /// bytesRequested.</param>
+        /// <param name="buffer">
+        /// The buffer to store the data in.  Size must be greator or equal to
+        /// bytesRequested.
+        /// </param>
         /// <param name="bytesRequested">The amount of bytes to read from the target process.</param>
         /// <param name="bytesRead">The actual number of bytes read.</param>
-        /// <returns>True if any bytes were read out of the process (including a partial read).  False
-        /// if no bytes could be read from the address.</returns>
+        /// <returns>
+        /// True if any bytes were read out of the process (including a partial read).  False
+        /// if no bytes could be read from the address.
+        /// </returns>
         public abstract bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead);
 
         /// <summary>

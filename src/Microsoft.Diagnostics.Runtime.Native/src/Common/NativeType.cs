@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Microsoft.Diagnostics.Runtime.Native.DacInterface;
-using System;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -26,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _data = data;
         }
 
-        /*        
+        /*
         public ModuleInfo Module
         {
             get
@@ -40,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public ulong GetSize(ulong objRef)
         {
-            uint pointerSize = (uint)IntPtr.Size;
+            var pointerSize = (uint)IntPtr.Size;
 
             ulong size;
             if (_data.ComponentSize == 0)
@@ -49,16 +48,16 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
             else
             {
-                uint countOffset = pointerSize;
-                ulong loc = objRef + countOffset;
-                
+                var countOffset = pointerSize;
+                var loc = objRef + countOffset;
+
                 if (!Heap.ReadDword(loc, out uint count))
                     throw new Exception("Could not read from heap at " + objRef.ToString("x"));
-                
+
                 size = count * (ulong)_data.ComponentSize + _data.BaseSize;
             }
 
-            uint minSize = pointerSize * 3;
+            var minSize = pointerSize * 3;
             if (size < minSize)
                 size = minSize;
             return size;
@@ -74,8 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 _gcdesc.WalkObject(objRef, GetSize(objRef), ReadPointer, callback);
             }
         }
-        
-        
+
         public void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> callback)
         {
             if (ContainsPointers)
@@ -86,6 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 _gcdesc.WalkObject(objRef, GetSize(objRef), ReadPointer, callback);
             }
         }
+
         private GCDesc GetGCDesc()
         {
             NativeRuntime runtime = Heap.NativeRuntime;
@@ -97,8 +96,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (entries < 0)
                 entries = -entries;
 
-            int slots = 1 + entries * 2;
-            byte[] buffer = new byte[slots * IntPtr.Size];
+            var slots = 1 + entries * 2;
+            var buffer = new byte[slots * IntPtr.Size];
             if (!runtime.ReadMemory(EEType - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
                 return null;
 

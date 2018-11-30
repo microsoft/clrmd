@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Microsoft.Diagnostics.Runtime.Native
+﻿namespace Microsoft.Diagnostics.Runtime.Native
 {
-    class NativeRoot
+    internal class NativeRoot
     {
         public ulong Address { get; internal set; }
         public ulong Object { get; internal set; }

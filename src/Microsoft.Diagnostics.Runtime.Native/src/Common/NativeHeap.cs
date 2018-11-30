@@ -1,13 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.Desktop;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading;
-
 namespace Microsoft.Diagnostics.Runtime.Native
 {
     public class NativeHeap
@@ -94,23 +87,22 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return null;
 
             ulong componentType = mtData.ElementTypeHandle;
-            bool isArray = componentType != 0;
+            var isArray = componentType != 0;
 
             // EEClass is the canonical method table.  I stuffed the pointer there instead of creating a new property.
-            ulong canonType = isArray ? componentType : mtData.EEClass;
+            var canonType = isArray ? componentType : mtData.EEClass;
             if (!isArray && canonType != 0)
             {
                 if (!isArray && _indices.TryGetValue(canonType, out int index))
                 {
-                    _indices[eeType] = index;  // Link the original eeType to its canonical ClrType.
+                    _indices[eeType] = index; // Link the original eeType to its canonical ClrType.
                     return _types[index];
                 }
 
-                ulong tmp = eeType;
+                var tmp = eeType;
                 eeType = canonType;
                 canonType = tmp;
             }
-
 
             NativeModule module = FindContainingModule(eeType);
             if (module == null && canonType != 0)
@@ -134,25 +126,24 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (name == null)
             {
-                string moduleName = module != null ? Path.GetFileNameWithoutExtension(module.FileName) : "UNKNWON";
+                var moduleName = module != null ? Path.GetFileNameWithoutExtension(module.FileName) : "UNKNWON";
                 name = string.Format("{0}_{1:x}", moduleName, eeType);
             }
-            
-            int len = name.Length;
+
+            var len = name.Length;
             if (name.EndsWith("::`vftable'"))
                 len -= 11;
 
-            int i = name.IndexOf('!') + 1;
+            var i = name.IndexOf('!') + 1;
             name = name.Substring(i, len - i);
 
             if (isArray)
                 name += "[]";
-            
 
             if (module == null)
                 module = _mrtModule;
 
-            NativeType type = new NativeType(this, _types.Count, module, name, eeType, mtData);
+            var type = new NativeType(this, _types.Count, module, name, eeType, mtData);
             _indices[eeType] = _types.Count;
             if (!isArray)
                 _indices[canonType] = _types.Count;
@@ -173,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             while (min <= max)
             {
-                int mid = (min + max) / 2;
+                var mid = (min + max) / 2;
 
                 int compare = _modules[mid].ComparePointer(eeType);
                 if (compare < 0)
@@ -191,7 +182,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             return EnumerateRoots(true);
         }
-
 
         public override IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics)
         {
@@ -212,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             ClrAppDomain domain = NativeRuntime.AppDomains[0];
             foreach (ulong obj in NativeRuntime.EnumerateFinalizerQueueObjectAddresses())
             {
-                ClrType type = GetObjectType(obj);
+                var type = GetObjectType(obj);
                 if (type == null)
                     continue;
 
@@ -227,8 +217,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (!NativeRuntime.ReadMemory(address, buffer, count, out int bytesRead))
                 return 0;
+
             return bytesRead;
         }
-    */
+        */
     }
 }

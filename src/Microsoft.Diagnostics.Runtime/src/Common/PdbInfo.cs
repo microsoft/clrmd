@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the 
+        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
@@ -68,11 +68,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (obj is PdbInfo rhs)
             {
-
                 if (Revision == rhs.Revision && Guid == rhs.Guid)
                 {
-                    string lhsFilename = Path.GetFileName(FileName);
-                    string rhsFilename = Path.GetFileName(rhs.FileName);
+                    var lhsFilename = Path.GetFileName(FileName);
+                    var rhsFilename = Path.GetFileName(rhs.FileName);
                     return lhsFilename.Equals(rhsFilename, StringComparison.OrdinalIgnoreCase);
                 }
             }

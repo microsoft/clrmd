@@ -5,6 +5,6 @@
         NAME = 0,
         FROM_START = 0,
         FROM_END = 1,
-        FROM_CURRENT = 2,
+        FROM_CURRENT = 2
     }
 }

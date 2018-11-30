@@ -6,6 +6,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public enum DEBUG_FRAME : uint
     {
         DEFAULT = 0,
-        IGNORE_INLINE = 1,
+        IGNORE_INLINE = 1
     }
 }

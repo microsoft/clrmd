@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
@@ -5,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     [StructLayout(LayoutKind.Sequential)]
     public struct CorDebugGuidToTypeMapping
     {
-        public System.Guid iid;
+        public Guid iid;
         public ICorDebugType icdType;
     }
 }

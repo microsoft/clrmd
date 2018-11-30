@@ -8,10 +8,10 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
     internal readonly struct ISOSNativeVTable
     {
         public readonly IntPtr Flush;
-        
+
         public readonly IntPtr GetThreadStoreData;
         private readonly IntPtr GetThreadAddress;
-        public readonly IntPtr  GetThreadData;
+        public readonly IntPtr GetThreadData;
         public readonly IntPtr GetCurrentExceptionObject;
 
         public readonly IntPtr GetObjectData;
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         public readonly IntPtr GetGCHeapStaticData;
         public readonly IntPtr GetGCHeapSegmentData;
         public readonly IntPtr GetFreeEEType;
-        
+
         private readonly IntPtr DumpGCInfo;
         private readonly IntPtr DumpEHInfo;
 
@@ -36,12 +36,12 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 
         public readonly IntPtr GetCodeHeaderData;
         public readonly IntPtr GetModuleList;
-        
+
         private readonly IntPtr GetStressLogAddress;
         private readonly IntPtr GetStressLogData;
         private readonly IntPtr EnumStressLogMessages;
         private readonly IntPtr EnumStressLogMemRanges;
-        
+
         private readonly IntPtr UpdateDebugEventFilter;
 
         private readonly IntPtr UpdateCurrentExceptionNotificationFrame;

@@ -6,8 +6,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct FieldData : IFieldData
     {
-        public readonly uint ElementType;      // CorElementType
-        public readonly uint SigType;   // CorElementType
+        public readonly uint ElementType; // CorElementType
+        public readonly uint SigType; // CorElementType
         public readonly ulong TypeMethodTable; // NULL if Type is not loaded
         public readonly ulong TypeModule;
         public readonly uint MDType;

@@ -4,6 +4,6 @@
     {
         DEBUGGER = 1,
         PROCESS = 2,
-        ALL = 3,
+        ALL = 3
     }
 }

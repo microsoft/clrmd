@@ -9,6 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NO_NAMES = 1,
         NO_OFFSETS = 2,
         NO_VALUES = 4,
-        NO_TYPES = 0x10,
+        NO_TYPES = 0x10
     }
 }

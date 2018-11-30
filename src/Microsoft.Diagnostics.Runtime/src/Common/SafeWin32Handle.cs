@@ -9,7 +9,9 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class SafeWin32Handle : SafeHandleZeroOrMinusOneIsInvalid
     {
-        public SafeWin32Handle() : base(true) { }
+        public SafeWin32Handle() : base(true)
+        {
+        }
 
         public SafeWin32Handle(IntPtr handle)
             : this(handle, true)

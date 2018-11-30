@@ -6,6 +6,6 @@
         SECOND_CHANCE_BREAK = 0x00000001,
         OUTPUT = 0x00000002,
         IGNORE = 0x00000003,
-        REMOVE = 0x00000004,
+        REMOVE = 0x00000004
     }
 }

@@ -12,6 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         STUBFRAME_CLASS_INIT,
         STUBFRAME_EXCEPTION,
         STUBFRAME_SECURITY,
-        STUBFRAME_JIT_COMPILATION,
+        STUBFRAME_JIT_COMPILATION
     }
 }

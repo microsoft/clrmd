@@ -20,6 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         LARGE_PAGES = 0x20000000,
         FOURMB_PAGES = 0x80000000,
 
-        IMAGE = SEC.IMAGE,
+        IMAGE = SEC.IMAGE
     }
 }

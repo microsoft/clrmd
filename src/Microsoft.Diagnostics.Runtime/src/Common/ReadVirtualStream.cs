@@ -10,9 +10,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private byte[] _tmp;
         private long _pos;
-        private long _disp;
+        private readonly long _disp;
         private long _len;
-        private IDataReader _dataReader;
+        private readonly IDataReader _dataReader;
 
         public ReadVirtualStream(IDataReader dataReader, long displacement, long len)
         {
@@ -21,36 +21,21 @@ namespace Microsoft.Diagnostics.Runtime
             _len = len;
         }
 
-        public override bool CanRead
-        {
-            get { return true; }
-        }
+        public override bool CanRead => true;
 
-        public override bool CanSeek
-        {
-            get { return true; }
-        }
+        public override bool CanSeek => true;
 
-        public override bool CanWrite
-        {
-            get { return true; }
-        }
+        public override bool CanWrite => true;
 
         public override void Flush()
         {
         }
 
-        public override long Length
-        {
-            get { throw new NotImplementedException(); }
-        }
+        public override long Length => throw new NotImplementedException();
 
         public override long Position
         {
-            get
-            {
-                return _pos;
-            }
+            get => _pos;
             set
             {
                 _pos = value;
@@ -63,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (offset == 0)
             {
-                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out int read))
+                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out var read))
                     return read;
 
                 return 0;
@@ -73,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_tmp == null || _tmp.Length < count)
                     _tmp = new byte[count];
 
-                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out int read))
+                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out var read))
                     return 0;
 
                 Buffer.BlockCopy(_tmp, 0, buffer, offset, read);

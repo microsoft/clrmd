@@ -6,7 +6,6 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
     public readonly struct NativeHeapDetails
     {
         public readonly ulong Address;
-
         public readonly ulong AllocAllocated;
 
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]

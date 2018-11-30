@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Security.Permissions;
-using System.Reflection;
+using Microsoft.Win32.SafeHandles;
 
 #pragma warning disable 1591
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    class ProcessSafeHandle : Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
+    internal class ProcessSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         private ProcessSafeHandle()
             : base(true)
@@ -18,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         {
             SetHandle(handle);
         }
-        
-        override protected bool ReleaseHandle()
+
+        protected override bool ReleaseHandle()
         {
             return NativeMethods.CloseHandle(handle);
         }

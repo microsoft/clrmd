@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -8,9 +7,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         public DEBUG_FILTER_EXEC_OPTION ExecutionOption;
         public DEBUG_FILTER_CONTINUE_OPTION ContinueOption;
-        public UInt32 TextSize;
-        public UInt32 CommandSize;
-        public UInt32 SecondCommandSize;
-        public UInt32 ExceptionCode;
+        public uint TextSize;
+        public uint CommandSize;
+        public uint SecondCommandSize;
+        public uint ExceptionCode;
     }
 }

@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         DEFAULT = 0,
         NO_LOADED_MODULES = 1,
-        NO_UNLOADED_MODULES = 2,
+        NO_UNLOADED_MODULES = 2
     }
 }

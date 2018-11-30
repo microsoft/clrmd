@@ -17,10 +17,9 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong BaseAddress;
 
         /// <summary>
-        ///  The size of the allocation.
+        /// The size of the allocation.
         /// </summary>
         public ulong Size;
-
 
         /// <summary>
         /// Constructor.

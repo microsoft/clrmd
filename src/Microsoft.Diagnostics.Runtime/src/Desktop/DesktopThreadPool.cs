@@ -7,58 +7,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThreadPool : ClrThreadPool
     {
-        private DesktopRuntimeBase _runtime;
+        private readonly DesktopRuntimeBase _runtime;
         private ClrHeap _heap;
-        private int _totalThreads;
-        private int _runningThreads;
-        private int _idleThreads;
-        private int _minThreads;
-        private int _maxThreads;
-        private int _minCP;
-        private int _maxCP;
-        private int _cpu;
-        private int _freeCP;
-        private int _maxFreeCP;
 
         public DesktopThreadPool(DesktopRuntimeBase runtime, IThreadPoolData data)
         {
             _runtime = runtime;
-            _totalThreads = data.TotalThreads;
-            _runningThreads = data.RunningThreads;
-            _idleThreads = data.IdleThreads;
-            _minThreads = data.MinThreads;
-            _maxThreads = data.MaxThreads;
-            _minCP = data.MinCP;
-            _maxCP = data.MaxCP;
-            _cpu = data.CPU;
-            _freeCP = data.NumFreeCP;
-            _maxFreeCP = data.MaxFreeCP;
+            TotalThreads = data.TotalThreads;
+            RunningThreads = data.RunningThreads;
+            IdleThreads = data.IdleThreads;
+            MinThreads = data.MinThreads;
+            MaxThreads = data.MaxThreads;
+            MinCompletionPorts = data.MinCP;
+            MaxCompletionPorts = data.MaxCP;
+            CpuUtilization = data.CPU;
+            FreeCompletionPortCount = data.NumFreeCP;
+            MaxFreeCompletionPorts = data.MaxFreeCP;
         }
 
-        public override int TotalThreads
-        {
-            get { return _totalThreads; }
-        }
-
-        public override int RunningThreads
-        {
-            get { return _runningThreads; }
-        }
-
-        public override int IdleThreads
-        {
-            get { return _idleThreads; }
-        }
-
-        public override int MinThreads
-        {
-            get { return _minThreads; }
-        }
-
-        public override int MaxThreads
-        {
-            get { return _maxThreads; }
-        }
+        public override int TotalThreads { get; }
+        public override int RunningThreads { get; }
+        public override int IdleThreads { get; }
+        public override int MinThreads { get; }
+        public override int MaxThreads { get; }
 
         public override IEnumerable<NativeWorkItem> EnumerateNativeWorkItems()
         {
@@ -67,11 +38,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ManagedWorkItem> EnumerateManagedWorkItems()
         {
-            foreach (ulong obj in EnumerateManagedThreadpoolObjects())
+            foreach (var obj in EnumerateManagedThreadpoolObjects())
             {
                 if (obj != 0)
                 {
-                    ClrType type = _heap.GetObjectType(obj);
+                    var type = _heap.GetObjectType(obj);
                     if (type != null)
                         yield return new DesktopManagedWorkItem(type, obj);
                 }
@@ -82,20 +53,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _heap = _runtime.Heap;
 
-            ClrModule mscorlib = GetMscorlib();
+            var mscorlib = GetMscorlib();
             if (mscorlib != null)
             {
-                ClrType queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolGlobals");
+                var queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolGlobals");
                 if (queueType != null)
                 {
-                    ClrStaticField workQueueField = queueType.GetStaticFieldByName("workQueue");
+                    var workQueueField = queueType.GetStaticFieldByName("workQueue");
                     if (workQueueField != null)
                     {
                         foreach (var appDomain in _runtime.AppDomains)
                         {
-                            object workQueueValue = workQueueField.GetValue(appDomain);
-                            ulong workQueue = workQueueValue == null ? 0L : (ulong)workQueueValue;
-                            ClrType workQueueType = _heap.GetObjectType(workQueue);
+                            var workQueueValue = workQueueField.GetValue(appDomain);
+                            var workQueue = workQueueValue == null ? 0L : (ulong)workQueueValue;
+                            var workQueueType = _heap.GetObjectType(workQueue);
 
                             if (workQueue == 0 || workQueueType == null)
                                 continue;
@@ -103,15 +74,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             ulong queueHead;
                             do
                             {
-                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out ClrType queueHeadType, out queueHead))
+                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out var queueHeadType, out queueHead))
                                     break;
 
-                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out ClrType nodesType, out ulong nodes) && nodesType.IsArray)
+                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out var nodesType, out var nodes) && nodesType.IsArray)
                                 {
-                                    int len = nodesType.GetArrayLength(nodes);
-                                    for (int i = 0; i < len; ++i)
+                                    var len = nodesType.GetArrayLength(nodes);
+                                    for (var i = 0; i < len; ++i)
                                     {
-                                        ulong addr = (ulong)nodesType.GetArrayElementValue(nodes, i);
+                                        var addr = (ulong)nodesType.GetArrayElementValue(nodes, i);
                                         if (addr != 0)
                                             yield return addr;
                                     }
@@ -124,44 +95,43 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                 }
 
-
                 queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolWorkQueue");
                 if (queueType != null)
                 {
-                    ClrStaticField threadQueuesField = queueType.GetStaticFieldByName("allThreadQueues");
+                    var threadQueuesField = queueType.GetStaticFieldByName("allThreadQueues");
                     if (threadQueuesField != null)
                     {
-                        foreach (ClrAppDomain domain in _runtime.AppDomains)
+                        foreach (var domain in _runtime.AppDomains)
                         {
-                            ulong? threadQueue = (ulong?)threadQueuesField.GetValue(domain);
+                            var threadQueue = (ulong?)threadQueuesField.GetValue(domain);
                             if (!threadQueue.HasValue || threadQueue.Value == 0)
                                 continue;
 
-                            ClrType threadQueueType = _heap.GetObjectType(threadQueue.Value);
+                            var threadQueueType = _heap.GetObjectType(threadQueue.Value);
                             if (threadQueueType == null)
                                 continue;
 
-                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out ClrType outerArrayType, out ulong outerArray) || !outerArrayType.IsArray)
+                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out var outerArrayType, out var outerArray) || !outerArrayType.IsArray)
                                 continue;
 
-                            int outerLen = outerArrayType.GetArrayLength(outerArray);
-                            for (int i = 0; i < outerLen; ++i)
+                            var outerLen = outerArrayType.GetArrayLength(outerArray);
+                            for (var i = 0; i < outerLen; ++i)
                             {
-                                ulong entry = (ulong)outerArrayType.GetArrayElementValue(outerArray, i);
+                                var entry = (ulong)outerArrayType.GetArrayElementValue(outerArray, i);
                                 if (entry == 0)
                                     continue;
 
-                                ClrType entryType = _heap.GetObjectType(entry);
+                                var entryType = _heap.GetObjectType(entry);
                                 if (entryType == null)
                                     continue;
 
-                                if (!GetFieldObject(entryType, entry, "m_array", out ClrType arrayType, out ulong array) || !arrayType.IsArray)
+                                if (!GetFieldObject(entryType, entry, "m_array", out var arrayType, out var array) || !arrayType.IsArray)
                                     continue;
 
-                                int len = arrayType.GetArrayLength(array);
-                                for (int j = 0; j < len; ++j)
+                                var len = arrayType.GetArrayLength(array);
+                                for (var j = 0; j < len; ++j)
                                 {
-                                    ulong addr = (ulong)arrayType.GetArrayElementValue(array, i);
+                                    var addr = (ulong)arrayType.GetArrayElementValue(array, i);
                                     if (addr != 0)
                                         yield return addr;
                                 }
@@ -174,12 +144,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrModule GetMscorlib()
         {
-            foreach (ClrModule module in _runtime.Modules)
+            foreach (var module in _runtime.Modules)
                 if (module.AssemblyName.Contains("mscorlib.dll"))
                     return module;
 
             // Uh oh, this shouldn't have happened.  Let's look more carefully (slowly).
-            foreach (ClrModule module in _runtime.Modules)
+            foreach (var module in _runtime.Modules)
                 if (module.AssemblyName.ToLower().Contains("mscorlib"))
                     return module;
 
@@ -192,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             value = 0;
             valueType = null;
 
-            ClrInstanceField field = type.GetFieldByName(fieldName);
+            var field = type.GetFieldByName(fieldName);
             if (field == null)
                 return false;
 
@@ -204,29 +174,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return valueType != null;
         }
 
-        public override int MinCompletionPorts
-        {
-            get { return _minCP; }
-        }
-
-        public override int MaxCompletionPorts
-        {
-            get { return _maxCP; }
-        }
-
-        public override int CpuUtilization
-        {
-            get { return _cpu; }
-        }
-
-        public override int FreeCompletionPortCount
-        {
-            get { return _freeCP; }
-        }
-
-        public override int MaxFreeCompletionPorts
-        {
-            get { return _maxFreeCP; }
-        }
+        public override int MinCompletionPorts { get; }
+        public override int MaxCompletionPorts { get; }
+        public override int CpuUtilization { get; }
+        public override int FreeCompletionPortCount { get; }
+        public override int MaxFreeCompletionPorts { get; }
     }
 }

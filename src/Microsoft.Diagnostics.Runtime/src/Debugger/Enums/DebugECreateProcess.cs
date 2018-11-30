@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         DEFAULT = 0,
         INHERIT_HANDLES = 1,
         USE_VERIFIER_FLAGS = 2,
-        USE_IMPLICIT_COMMAND_LINE = 4,
+        USE_IMPLICIT_COMMAND_LINE = 4
     }
 }

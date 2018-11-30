@@ -12,6 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         COMPACT_OUTPUT = 8,
         ADDRESS_OF_FIELD = 0x10000,
         ADDRESS_ANT_END = 0x20000,
-        BLOCK_RECURSE = 0x200000,
+        BLOCK_RECURSE = 0x200000
     }
 }

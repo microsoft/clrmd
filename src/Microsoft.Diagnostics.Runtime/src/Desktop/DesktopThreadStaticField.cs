@@ -11,8 +11,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public DesktopThreadStaticField(DesktopGCHeap heap, IFieldData field, string name)
         {
             _field = field;
-            _name = name;
-            _token = field.FieldToken;
+            Name = name;
+            Token = field.FieldToken;
             _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(field.TypeMethodTable, 0);
         }
 
@@ -21,13 +21,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!HasSimpleValue)
                 return null;
 
-            ulong addr = GetAddress(appDomain, thread);
+            var addr = GetAddress(appDomain, thread);
             if (addr == 0)
                 return null;
 
             if (ElementType == ClrElementType.String)
             {
-                object val = _type.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
+                var val = _type.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
@@ -41,74 +41,44 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _type.DesktopHeap.GetValueAtAddress(ElementType, addr);
         }
 
-        public override uint Token { get { return _token; } }
+        public override uint Token { get; }
 
         public override ulong GetAddress(ClrAppDomain appDomain, ClrThread thread)
         {
             if (_type == null)
                 return 0;
 
-            DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
-            IModuleData moduleData = runtime.GetModuleData(_field.Module);
+            var runtime = _type.DesktopHeap.DesktopRuntime;
+            var moduleData = runtime.GetModuleData(_field.Module);
 
             return runtime.GetThreadStaticPointer(thread.Address, (ClrElementType)_field.CorElementType, (uint)Offset, (uint)moduleData.ModuleId, _type.Shared);
         }
 
+        public override ClrElementType ElementType => (ClrElementType)_field.CorElementType;
 
-        public override ClrElementType ElementType
-        {
-            get { return (ClrElementType)_field.CorElementType; }
-        }
+        public override string Name { get; }
 
-        public override string Name { get { return _name; } }
-
-        public override ClrType Type { get { return _type; } }
+        public override ClrType Type => _type;
 
         // these are optional.  
         /// <summary>
-        /// If the field has a well defined offset from the base of the object, return it (otherwise -1). 
+        /// If the field has a well defined offset from the base of the object, return it (otherwise -1).
         /// </summary>
-        public override int Offset { get { return (int)_field.Offset; } }
+        public override int Offset => (int)_field.Offset;
 
         /// <summary>
-        /// Given an object reference, fetch the address of the field. 
+        /// Given an object reference, fetch the address of the field.
         /// </summary>
 
-        public override bool HasSimpleValue
-        {
-            get { return _type != null && !DesktopRuntimeBase.IsValueClass(ElementType); }
-        }
-        public override int Size
-        {
-            get
-            {
-                return DesktopInstanceField.GetSize(_type, ElementType);
-            }
-        }
+        public override bool HasSimpleValue => _type != null && !ClrRuntime.IsValueClass(ElementType);
+        public override int Size => DesktopInstanceField.GetSize(_type, ElementType);
 
-        public override bool IsPublic
-        {
-            get { throw new NotImplementedException(); }
-        }
+        public override bool IsPublic => throw new NotImplementedException();
+        public override bool IsPrivate => throw new NotImplementedException();
+        public override bool IsInternal => throw new NotImplementedException();
+        public override bool IsProtected => throw new NotImplementedException();
 
-        public override bool IsPrivate
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public override bool IsInternal
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public override bool IsProtected
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        private IFieldData _field;
-        private string _name;
-        private BaseDesktopHeapType _type;
-        private uint _token;
+        private readonly IFieldData _field;
+        private readonly BaseDesktopHeapType _type;
     }
 }

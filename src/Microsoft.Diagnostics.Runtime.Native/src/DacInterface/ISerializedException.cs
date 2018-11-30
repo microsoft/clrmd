@@ -2,7 +2,9 @@
 
 namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 {
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("d681b4fd-87e1-42ec-af44-4938e62bd266")]
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("d681b4fd-87e1-42ec-af44-4938e62bd266")]
     internal interface ISerializedException
     {
         ulong ExceptionId { get; }

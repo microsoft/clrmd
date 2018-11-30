@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -12,12 +11,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The typename of the interface.
         /// </summary>
-        abstract public string Name { get; }
+        public abstract string Name { get; }
 
         /// <summary>
         /// The interface that this interface inherits from.
         /// </summary>
-        abstract public ClrInterface BaseInterface { get; }
+        public abstract ClrInterface BaseInterface { get; }
 
         /// <summary>
         /// Display string for this interface.
@@ -38,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (obj == null || !(obj is ClrInterface))
                 return false;
 
-            ClrInterface rhs = (ClrInterface)obj;
+            var rhs = (ClrInterface)obj;
             if (Name != rhs.Name)
                 return false;
 
@@ -46,10 +45,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 return rhs.BaseInterface == null;
             }
-            else
-            {
-                return BaseInterface.Equals(rhs.BaseInterface);
-            }
+
+            return BaseInterface.Equals(rhs.BaseInterface);
         }
 
         /// <summary>
@@ -58,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A hashcode for this object.</returns>
         public override int GetHashCode()
         {
-            int hashCode = 0;
+            var hashCode = 0;
 
             if (Name != null)
                 hashCode ^= Name.GetHashCode();
@@ -69,5 +66,4 @@ namespace Microsoft.Diagnostics.Runtime
             return hashCode;
         }
     }
-
 }

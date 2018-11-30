@@ -6,6 +6,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     public enum CorDebugFilterFlagsWindows
     {
         None = 0,
-        IS_FIRST_CHANCE = 0x1,
-    };
+        IS_FIRST_CHANCE = 0x1
+    }
 }

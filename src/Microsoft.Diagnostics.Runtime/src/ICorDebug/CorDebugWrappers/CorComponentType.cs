@@ -5,5 +5,5 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         CorComponentGCRef,
         CorComponentValueClass,
         CorComponentPrimitive
-    };
+    }
 }

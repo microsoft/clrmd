@@ -4,6 +4,6 @@
     {
         CODE = 0,
         DATA = 1,
-        TIME = 2,
+        TIME = 2
     }
 }

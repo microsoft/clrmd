@@ -14,10 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _type = type;
         }
 
-        public override ClrType Type
-        {
-            get { return _type; }
-        }
+        public override ClrType Type => _type;
 
         public override string Message
         {
@@ -28,10 +25,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return (string)field.GetValue(_object);
 
                 var runtime = _type.DesktopHeap.DesktopRuntime;
-                uint offset = runtime.GetExceptionMessageOffset();
+                var offset = runtime.GetExceptionMessageOffset();
                 Debug.Assert(offset > 0);
 
-                ulong message = _object + offset;
+                var message = _object + offset;
                 if (!runtime.ReadPointer(message, out message))
                     return null;
 
@@ -39,10 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ulong Address
-        {
-            get { return _object; }
-        }
+        public override ulong Address => _object;
 
         public override ClrException Inner
         {
@@ -52,12 +46,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 var field = _type.GetFieldByName("_innerException");
                 if (field == null)
                     return null;
-                object inner = field.GetValue(_object);
-                if (inner == null || !(inner is ulong) || ((ulong)inner == 0))
+
+                var inner = field.GetValue(_object);
+                if (inner == null || !(inner is ulong) || (ulong)inner == 0)
                     return null;
 
-                ulong ex = (ulong)inner;
-                BaseDesktopHeapType type = (BaseDesktopHeapType)_type.DesktopHeap.GetObjectType(ex);
+                var ex = (ulong)inner;
+                var type = (BaseDesktopHeapType)_type.DesktopHeap.GetObjectType(ex);
 
                 return new DesktopException(ex, type);
             }
@@ -83,17 +78,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return (int)field.GetValue(_object);
 
                 var runtime = _type.DesktopHeap.DesktopRuntime;
-                uint offset = runtime.GetExceptionHROffset();
+                var offset = runtime.GetExceptionHROffset();
                 runtime.ReadDword(_object + offset, out int hr);
 
                 return hr;
             }
         }
 
-        #region Private
-        private ulong _object;
-        private BaseDesktopHeapType _type;
+        private readonly ulong _object;
+        private readonly BaseDesktopHeapType _type;
         private IList<ClrStackFrame> _stackTrace;
-        #endregion
     }
 }

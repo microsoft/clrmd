@@ -12,18 +12,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 var runtime = dt.ClrVersions.Single().CreateRuntime();
                 var targetObjectsCount = 0;
-                
+
                 foreach (var address in runtime.Heap.EnumerateFinalizableObjectAddresses())
                 {
                     var type = runtime.Heap.GetObjectType(address);
                     if (type.Name == "DieFastA")
                         targetObjectsCount++;
                 }
-        
+
                 Assert.Equal(42, targetObjectsCount);
             }
         }
-        
+
         [Fact]
         public void TestFinalizerQueueObjects()
         {
@@ -31,14 +31,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 var runtime = dt.ClrVersions.Single().CreateRuntime();
                 var targetObjectsCount = 0;
-                
+
                 foreach (var address in runtime.EnumerateFinalizerQueueObjectAddresses())
                 {
                     var type = runtime.Heap.GetObjectType(address);
                     if (type.Name == "DieFastB")
                         targetObjectsCount++;
                 }
-        
+
                 Assert.Equal(13, targetObjectsCount);
             }
         }

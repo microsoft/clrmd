@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,8 +6,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct I64PARTS32
     {
         [FieldOffset(0)]
-        public UInt32 LowPart;
+        public uint LowPart;
         [FieldOffset(4)]
-        public UInt32 HighPart;
+        public uint HighPart;
     }
 }

@@ -8,10 +8,10 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     /// Wrapper for the ICLRDebugging shim interface. This interface exposes the native pipeline
     /// architecture startup APIs
     /// </summary>
-    sealed class CLRDebugging
+    internal sealed class CLRDebugging
     {
         private static readonly Guid clsidCLRDebugging = new Guid("BACC578D-FBDD-48a4-969F-02D932B74634");
-        private ICLRDebugging _clrDebugging;
+        private readonly ICLRDebugging _clrDebugging;
 
         /// <summary>
         /// Constructor
@@ -20,16 +20,15 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public CLRDebugging()
         {
             object o;
-            Guid ifaceId = typeof(ICLRDebugging).GetGuid();
-            Guid clsid = clsidCLRDebugging;
+            var ifaceId = typeof(ICLRDebugging).GetGuid();
+            var clsid = clsidCLRDebugging;
             NativeMethods.CLRCreateInstance(ref clsid, ref ifaceId, out o);
             _clrDebugging = (ICLRDebugging)o;
         }
 
-
         public static ICorDebug GetDebuggerForProcess(int processID, string minimumVersion, DebuggerCallBacks callBacks = null)
         {
-            CLRMetaHost mh = new CLRMetaHost();
+            var mh = new CLRMetaHost();
             CLRRuntimeInfo highestLoadedRuntime = null;
             foreach (var runtime in mh.EnumerateLoadedRuntimes(processID))
             {
@@ -37,6 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
                     string.Compare(highestLoadedRuntime.GetVersionString(), runtime.GetVersionString(), StringComparison.OrdinalIgnoreCase) < 0)
                     highestLoadedRuntime = runtime;
             }
+
             if (highestLoadedRuntime == null)
                 throw new Exception("Could not enumerate .NET runtimes on the system.");
 
@@ -44,9 +44,10 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             if (string.Compare(runtimeVersion, minimumVersion, StringComparison.OrdinalIgnoreCase) < 0)
                 throw new Exception("Runtime in process " + runtimeVersion + " below the minimum of " + minimumVersion);
 
-            ICorDebug rawDebuggingAPI = highestLoadedRuntime.GetLegacyICorDebugInterface();
+            var rawDebuggingAPI = highestLoadedRuntime.GetLegacyICorDebugInterface();
             if (rawDebuggingAPI == null)
                 throw new ArgumentException("Cannot be null.", "rawDebugggingAPI");
+
             rawDebuggingAPI.Initialize();
             if (callBacks == null)
                 callBacks = new DebuggerCallBacks();
@@ -57,21 +58,28 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public static ICorDebugProcess CreateICorDebugProcess(ulong baseAddress, ICorDebugDataTarget dataTarget, ICLRDebuggingLibraryProvider libraryProvider)
         {
             Debug.Assert(baseAddress != 0);
-            
+
             Version version;
             ClrDebuggingProcessFlags flags;
             ICorDebugProcess process;
-            int errorCode = new CLRDebugging().TryOpenVirtualProcess(baseAddress, dataTarget, libraryProvider, new Version(4, 6, 0x7fff, 0x7fff), out version, out flags, out process);
+            var errorCode = new CLRDebugging().TryOpenVirtualProcess(
+                baseAddress,
+                dataTarget,
+                libraryProvider,
+                new Version(4, 6, 0x7fff, 0x7fff),
+                out version,
+                out flags,
+                out process);
             if (errorCode < 0)
             {
-                if (((errorCode != -2146231228) && (errorCode != -2146231226)) && (errorCode != -2146231225))
+                if (errorCode != -2146231228 && errorCode != -2146231226 && errorCode != -2146231225)
                 {
                     Marshal.ThrowExceptionForHR(errorCode);
                 }
 
                 process = null;
             }
-            
+
             return process;
         }
 
@@ -81,41 +89,50 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// </summary>
         /// <param name="moduleBaseAddress">The native base address of a module which might be a CLR</param>
         /// <param name="dataTarget">The process abstraction which can be used for inspection</param>
-        /// <param name="libraryProvider">A callback interface for locating version specific debug libraries
-        /// such as mscordbi.dll and mscordacwks.dll</param>
-        /// <param name="maxDebuggerSupportedVersion">The highest version of the CLR/debugging libraries which
-        /// the caller can support</param>
+        /// <param name="libraryProvider">
+        /// A callback interface for locating version specific debug libraries
+        /// such as mscordbi.dll and mscordacwks.dll
+        /// </param>
+        /// <param name="maxDebuggerSupportedVersion">
+        /// The highest version of the CLR/debugging libraries which
+        /// the caller can support
+        /// </param>
         /// <param name="version">The version of the CLR detected or null if no CLR was detected</param>
-        /// <param name="flags">Flags which have additional information about the CLR.
-        /// See ClrDebuggingProcessFlags for more details</param>
+        /// <param name="flags">
+        /// Flags which have additional information about the CLR.
+        /// See ClrDebuggingProcessFlags for more details
+        /// </param>
         /// <returns>The CLR's debugging interface</returns>
-        public ICorDebugProcess OpenVirtualProcess(ulong moduleBaseAddress,
-                                                   ICorDebugDataTarget dataTarget,
-                                                   ICLRDebuggingLibraryProvider libraryProvider,
-                                                   Version maxDebuggerSupportedVersion,
-                                                   out Version version,
-                                                   out ClrDebuggingProcessFlags flags)
+        public ICorDebugProcess OpenVirtualProcess(
+            ulong moduleBaseAddress,
+            ICorDebugDataTarget dataTarget,
+            ICLRDebuggingLibraryProvider libraryProvider,
+            Version maxDebuggerSupportedVersion,
+            out Version version,
+            out ClrDebuggingProcessFlags flags)
         {
             ICorDebugProcess process;
-            int hr = TryOpenVirtualProcess(moduleBaseAddress, dataTarget, libraryProvider, maxDebuggerSupportedVersion, out version, out flags, out process);
+            var hr = TryOpenVirtualProcess(moduleBaseAddress, dataTarget, libraryProvider, maxDebuggerSupportedVersion, out version, out flags, out process);
             if (hr < 0)
                 throw new Exception("Failed to OpenVirtualProcess for module at " + moduleBaseAddress + ".  hr = " + hr.ToString("x"));
+
             return process;
         }
 
         /// <summary>
         /// Version of the above that doesn't throw exceptions on failure
-        /// </summary>        
-        public int TryOpenVirtualProcess(ulong moduleBaseAddress,
-                                         ICorDebugDataTarget dataTarget,
-                                         ICLRDebuggingLibraryProvider libraryProvider,
-                                         Version maxDebuggerSupportedVersion,
-                                         out Version version,
-                                         out ClrDebuggingProcessFlags flags,
-                                         out ICorDebugProcess process)
+        /// </summary>
+        public int TryOpenVirtualProcess(
+            ulong moduleBaseAddress,
+            ICorDebugDataTarget dataTarget,
+            ICLRDebuggingLibraryProvider libraryProvider,
+            Version maxDebuggerSupportedVersion,
+            out Version version,
+            out ClrDebuggingProcessFlags flags,
+            out ICorDebugProcess process)
         {
-            ClrDebuggingVersion maxSupport = new ClrDebuggingVersion();
-            ClrDebuggingVersion clrVersion = new ClrDebuggingVersion();
+            var maxSupport = new ClrDebuggingVersion();
+            var clrVersion = new ClrDebuggingVersion();
             maxSupport.StructVersion = 0;
             maxSupport.Major = (short)maxDebuggerSupportedVersion.Major;
             maxSupport.Minor = (short)maxDebuggerSupportedVersion.Minor;
@@ -123,10 +140,17 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             maxSupport.Revision = (short)maxDebuggerSupportedVersion.Revision;
             object processIface = null;
             clrVersion.StructVersion = 0;
-            Guid iid = typeof(ICorDebugProcess).GetGuid();
+            var iid = typeof(ICorDebugProcess).GetGuid();
 
-            int result = _clrDebugging.OpenVirtualProcess(moduleBaseAddress, dataTarget, libraryProvider,
-                                                          ref maxSupport, ref iid, out processIface, ref clrVersion, out flags);
+            var result = _clrDebugging.OpenVirtualProcess(
+                moduleBaseAddress,
+                dataTarget,
+                libraryProvider,
+                ref maxSupport,
+                ref iid,
+                out processIface,
+                ref clrVersion,
+                out flags);
 
             // This may be set regardless of success/failure
             version = new Version(clrVersion.Major, clrVersion.Minor, clrVersion.Build, clrVersion.Revision);
@@ -150,17 +174,16 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// <returns>True if the module can be unloaded, False otherwise</returns>
         public bool CanUnloadNow(IntPtr moduleHandle)
         {
-            int ret = _clrDebugging.CanUnloadNow(moduleHandle);
-            if (ret == 0)   // S_OK
+            var ret = _clrDebugging.CanUnloadNow(moduleHandle);
+            if (ret == 0) // S_OK
                 return true;
-            else if (ret == (int)1) // S_FALSE
+            if (ret == 1) // S_FALSE
                 return false;
-            else
-                Marshal.ThrowExceptionForHR(ret);
+
+            Marshal.ThrowExceptionForHR(ret);
 
             //unreachable
             throw new Exception();
         }
-
     }
 }

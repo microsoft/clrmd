@@ -20,6 +20,6 @@
         OUT_OF_SYNC = 15,
         WAIT_INPUT = 16,
         TIMEOUT = 17,
-        MASK = 0x1f,
+        MASK = 0x1f
     }
 }

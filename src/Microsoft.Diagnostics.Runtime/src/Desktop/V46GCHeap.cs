@@ -9,12 +9,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class V46GCHeap : DesktopGCHeap
     {
         private ClrObject _lastObject;
-        private Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
-        
+        private readonly Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
+
         public V46GCHeap(DesktopRuntimeBase runtime)
             : base(runtime)
         {
-
         }
 
         public override ClrType GetObjectType(ulong objRef)
@@ -47,11 +46,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             unchecked
             {
-                if ((((byte)mt) & 3) != 0)
+                if (((byte)mt & 3) != 0)
                     mt &= ~3UL;
             }
-            
-            ClrType type = GetTypeByMethodTable(mt, 0, objRef);
+
+            var type = GetTypeByMethodTable(mt, 0, objRef);
             _lastObject = ClrObject.Create(objRef, type);
 
             return type;
@@ -70,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ClrType ret = null;
 
             // See if we already have the type.
-            if (_indices.TryGetValue(mt, out int index))
+            if (_indices.TryGetValue(mt, out var index))
             {
                 ret = _types[index];
             }
@@ -78,23 +77,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 // No, so we'll have to construct it.
                 var moduleAddr = DesktopRuntime.GetModuleForMT(mt);
-                DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
-                uint token = DesktopRuntime.GetMetadataToken(mt);
+                var module = DesktopRuntime.GetModule(moduleAddr);
+                var token = DesktopRuntime.GetMetadataToken(mt);
 
-                bool isFree = mt == DesktopRuntime.FreeMethodTable;
+                var isFree = mt == DesktopRuntime.FreeMethodTable;
                 if (token == 0xffffffff && !isFree)
                     return null;
 
                 // Dynamic functions/modules
-                uint tokenEnt = token;
+                var tokenEnt = token;
                 if (!isFree && (module == null || module.IsDynamic))
                     tokenEnt = unchecked((uint)mt);
 
-                ModuleEntry modEnt = new ModuleEntry(module, tokenEnt);
+                var modEnt = new ModuleEntry(module, tokenEnt);
 
                 if (ret == null)
                 {
-                    IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
+                    var mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
                         return null;
 

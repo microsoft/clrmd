@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -121,7 +120,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// ELEMENT_TYPE_SZARRAY
         /// </summary>
-        SZArray = 0x1D,
+        SZArray = 0x1D
     }
-
 }

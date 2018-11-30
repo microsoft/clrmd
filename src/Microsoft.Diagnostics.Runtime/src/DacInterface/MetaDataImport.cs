@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public unsafe sealed class MetaDataImport : CallableCOMWrapper
+    public sealed unsafe class MetaDataImport : CallableCOMWrapper
     {
         private static Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
         private IMetaDataImportVTable* VTable => (IMetaDataImportVTable*)_vtable;
@@ -37,12 +35,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _enumInterfaceImpls, EnumInterfaceImpls);
 
-            IntPtr handle = IntPtr.Zero;
+            var handle = IntPtr.Zero;
             int hr;
-            int[] tokens = AcquireIntArray();
+            var tokens = AcquireIntArray();
 
-            while ((hr = _enumInterfaceImpls(Self, ref handle, token, tokens, tokens.Length, out int count)) >= S_OK && count > 0)
-                for (int i = 0; i < count; i++)
+            while ((hr = _enumInterfaceImpls(Self, ref handle, token, tokens, tokens.Length, out var count)) >= S_OK && count > 0)
+                for (var i = 0; i < count; i++)
                     yield return tokens[i];
 
             ReleaseIntArray(tokens);
@@ -53,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getMethodProps, VTable->GetMethodProps);
 
-            int hr = _getMethodProps(Self, token, out int cls, null, 0, out int needed, out MethodAttributes result, out IntPtr sigBlob, out uint sigBlobLen, out uint codeRVA, out uint implFlags);
+            var hr = _getMethodProps(Self, token, out var cls, null, 0, out var needed, out var result, out var sigBlob, out var sigBlobLen, out var codeRVA, out var implFlags);
             return hr == S_OK ? result : default;
         }
 
@@ -61,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getRVA, VTable->GetRVA);
 
-            int hr = _getRVA(Self, token, out uint rva, out uint flags);
+            var hr = _getRVA(Self, token, out var rva, out var flags);
             return hr == S_OK ? rva : 0;
         }
 
@@ -70,11 +68,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getTypeDefProps, VTable->GetTypeDefProps);
 
             name = null;
-            int hr = _getTypeDefProps(Self, token, null, 0, out int needed, out attributes, out mdParent);
+            var hr = _getTypeDefProps(Self, token, null, 0, out var needed, out attributes, out mdParent);
             if (hr < 0)
                 return false;
 
-            StringBuilder sb = new StringBuilder(needed + 1);
+            var sb = new StringBuilder(needed + 1);
             hr = _getTypeDefProps(Self, token, sb, sb.Capacity, out needed, out attributes, out mdParent);
 
             if (hr != S_OK)
@@ -88,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getCustomAttributeByName, VTable->GetCustomAttributeByName);
 
-            int hr = _getCustomAttributeByName(Self, token, name, out data, out cbData);
+            var hr = _getCustomAttributeByName(Self, token, name, out data, out cbData);
             return hr == S_OK;
         }
 
@@ -97,11 +95,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getFieldProps, VTable->GetFieldProps);
 
             name = null;
-            int hr = _getFieldProps(Self, token, out int typeDef, null, 0, out int needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out int pcchValue);
+            var hr = _getFieldProps(
+                Self,
+                token,
+                out var typeDef,
+                null,
+                0,
+                out var needed,
+                out attrs,
+                out ppvSigBlob,
+                out pcbSigBlob,
+                out pdwCPlusTypeFlag,
+                out ppValue,
+                out var pcchValue);
             if (hr < 0)
                 return false;
 
-            StringBuilder sb = new StringBuilder(needed + 1);
+            var sb = new StringBuilder(needed + 1);
             hr = _getFieldProps(Self, token, out typeDef, sb, sb.Capacity, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
             if (hr >= 0)
             {
@@ -116,14 +126,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _enumFields, EnumFieldPtr);
 
-            int[] tokens = AcquireIntArray();
-            IntPtr handle = IntPtr.Zero;
+            var tokens = AcquireIntArray();
+            var handle = IntPtr.Zero;
             int hr;
 
-            while ((hr = _enumFields(Self, ref handle, token, tokens, tokens.Length, out int count)) >= 0 && count > 0)
-                for (int i = 0; i < count; i++)
+            while ((hr = _enumFields(Self, ref handle, token, tokens, tokens.Length, out var count)) >= 0 && count > 0)
+                for (var i = 0; i < count; i++)
                     yield return tokens[i];
-            
+
             CloseEnum(handle);
             ReleaseIntArray(tokens);
         }
@@ -132,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTypeDefProps, VTable->GetTypeDefProps);
 
-            int hr = _getTypeDefProps(Self, token, null, 0, out int needed, out attrs, out int extends);
+            var hr = _getTypeDefProps(Self, token, null, 0, out var needed, out attrs, out var extends);
             return hr == S_OK;
         }
 
@@ -140,21 +150,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTypeRefProps, VTable->GetTypeRefProps);
 
-            int hr = _getTypeRefProps(Self, token, out int scope, null, 0, out int needed);
+            var hr = _getTypeRefProps(Self, token, out var scope, null, 0, out var needed);
             if (hr < 0)
                 return null;
 
-            StringBuilder sb = new StringBuilder(needed + 1);
+            var sb = new StringBuilder(needed + 1);
             hr = _getTypeRefProps(Self, token, out scope, sb, sb.Capacity, out needed);
 
             return hr == S_OK ? sb.ToString() : null;
         }
 
-
         public bool GetNestedClassProperties(int token, out int enclosing)
         {
             InitDelegate(ref _getNestedClassProps, VTable->GetNestedClassProps);
-            int hr = _getNestedClassProps(Self, token, out enclosing);
+            var hr = _getNestedClassProps(Self, token, out enclosing);
             return hr == S_OK;
         }
 
@@ -162,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getInterfaceImplProps, VTable->GetInterfaceImplProps);
 
-            int hr = _getInterfaceImplProps(Self, token, out mdClass, out mdInterface);
+            var hr = _getInterfaceImplProps(Self, token, out mdClass, out mdInterface);
             return hr == S_OK;
         }
 
@@ -182,13 +191,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int[] AcquireIntArray()
         {
-            int[] tokens = _tokens;
+            var tokens = _tokens;
             _tokens = null;
             if (tokens == null)
                 tokens = new int[32];
             return tokens;
         }
-
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CloseEnumDelegate(IntPtr self, IntPtr e);
@@ -200,12 +208,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetInterfaceImplPropsDelegate(IntPtr self, int mdImpl, out int mdClass, out int mdIFace);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetTypeRefPropsDelegate(IntPtr self, int token, out int resolutionScopeToken, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
-                                             int bufferSize, out int needed);
-        
+        private delegate int GetTypeRefPropsDelegate(
+            IntPtr self,
+            int token,
+            out int resolutionScopeToken,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
+            int bufferSize,
+            out int needed);
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetTypeDefPropsDelegate(IntPtr self, int token, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef, int cchTypeDef, out int pchTypeDef,
-                                                     out System.Reflection.TypeAttributes pdwTypeDefFlags, out int ptkExtends);
+        private delegate int GetTypeDefPropsDelegate(
+            IntPtr self,
+            int token,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef,
+            int cchTypeDef,
+            out int pchTypeDef,
+            out TypeAttributes pdwTypeDefFlags,
+            out int ptkExtends);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int EnumFieldsDelegate(IntPtr self, ref IntPtr phEnum, int cl, int[] mdFieldDef, int cMax, out int pcTokens);
@@ -214,25 +233,45 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetRVADelegate(IntPtr self, int token, out uint pRva, out uint flags);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMethodPropsDelegate(IntPtr self, int md, out int pClass, StringBuilder szMethod, int cchMethod, out int pchMethod, out System.Reflection.MethodAttributes pdwAttr,
-                            out IntPtr ppvSigBlob, out uint pcbSigBlob, out uint pulCodeRVA, out uint pdwImplFlags);
+        private delegate int GetMethodPropsDelegate(
+            IntPtr self,
+            int md,
+            out int pClass,
+            StringBuilder szMethod,
+            int cchMethod,
+            out int pchMethod,
+            out MethodAttributes pdwAttr,
+            out IntPtr ppvSigBlob,
+            out uint pcbSigBlob,
+            out uint pulCodeRVA,
+            out uint pdwImplFlags);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetNestedClassPropsDelegate(IntPtr self, int tdNestedClass, out int tdEnclosingClass);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetFieldPropsDelegate(IntPtr self, int mb, out int mdTypeDef,
-                           [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField, int cchField,
-                           out int pchField, out System.Reflection.FieldAttributes pdwAttr,
-                           out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlab, out IntPtr ppValue, out int pcchValue);
+        private delegate int GetFieldPropsDelegate(
+            IntPtr self,
+            int mb,
+            out int mdTypeDef,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField,
+            int cchField,
+            out int pchField,
+            out FieldAttributes pdwAttr,
+            out IntPtr ppvSigBlob,
+            out int pcbSigBlob,
+            out int pdwCPlusTypeFlab,
+            out IntPtr ppValue,
+            out int pcchValue);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetCustomAttributeByNameDelegate(IntPtr self, int tkObj, [MarshalAs(UnmanagedType.LPWStr)]string szName, out IntPtr ppData, out uint pcbData);
+        private delegate int GetCustomAttributeByNameDelegate(IntPtr self, int tkObj, [MarshalAs(UnmanagedType.LPWStr)] string szName, out IntPtr ppData, out uint pcbData);
     }
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
-    struct IMetaDataImportVTable
+
+    internal struct IMetaDataImportVTable
     {
         public readonly IntPtr CloseEnum;
         private readonly IntPtr CountEnum;
@@ -251,10 +290,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr EnumMembersWithName;
         private readonly IntPtr EnumMethods;
         private readonly IntPtr EnumMethodsWithName;
-        public readonly IntPtr EnumFields; 
+        public readonly IntPtr EnumFields;
         private readonly IntPtr EnumFieldsWithName;
         private readonly IntPtr EnumParams;
-        private readonly IntPtr EnumMemberRefs;    
+        private readonly IntPtr EnumMemberRefs;
         private readonly IntPtr EnumMethodImpls;
         private readonly IntPtr EnumPermissionSets;
         private readonly IntPtr FindMember;
@@ -264,7 +303,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetMethodProps;
         private readonly IntPtr GetMemberRefProps;
         private readonly IntPtr EnumProperties;
-        private readonly IntPtr EnumEvents; 
+        private readonly IntPtr EnumEvents;
         private readonly IntPtr GetEventProps;
         private readonly IntPtr EnumMethodSemantics;
         private readonly IntPtr GetMethodSemantics;
@@ -272,7 +311,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetFieldMarshal;
         public readonly IntPtr GetRVA;
         private readonly IntPtr GetPermissionSetProps;
-        private readonly IntPtr GetSigFromToken; 
+        private readonly IntPtr GetSigFromToken;
         private readonly IntPtr GetModuleRefProps;
         private readonly IntPtr EnumModuleRefs;
         private readonly IntPtr GetTypeSpecFromToken;

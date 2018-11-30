@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 namespace Microsoft.Diagnostics.Runtime
-{    /// <summary>
-     /// Types of memory regions in a Clr process.
-     /// </summary>
+{
+    /// <summary>
+    /// Types of memory regions in a Clr process.
+    /// </summary>
     public enum ClrMemoryRegionType
     {
         // Loader heaps
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         HandleTableChunk
     }
-    
+
     /// <summary>
     /// Represents a region of memory in the process which Clr allocated and controls.
     /// </summary>
@@ -111,34 +111,36 @@ namespace Microsoft.Diagnostics.Runtime
         /// on RuntimeBase.
         /// Note:  HasAppDomainData must be true before getting this property.
         /// </summary>
-        abstract public ClrAppDomain AppDomain { get; }
+        public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// The Module pointer that corresponds to this heap.  You can obtain the
         /// filename of the module with this property.
         /// Note:  HasModuleData must be true or this property will be null.
         /// </summary>
-        abstract public string Module { get; }
+        public abstract string Module { get; }
 
         /// <summary>
         /// Returns the heap number associated with this data.  Returns -1 if no
         /// GC heap is associated with this memory region.
         /// </summary>
-        abstract public int HeapNumber { get; set; }
+        public abstract int HeapNumber { get; set; }
 
         /// <summary>
         /// Returns the gc segment type associated with this data.  Only callable if
         /// HasGCHeapData is true.
         /// </summary>
-        abstract public GCSegmentType GCSegmentType { get; set; }
+        public abstract GCSegmentType GCSegmentType { get; set; }
 
         /// <summary>
         /// Returns a string describing the region of memory (for example "JIT Code Heap"
         /// or "GC Segment").
         /// </summary>
-        /// <param name="detailed">Whether or not to include additional data such as the module,
-        /// AppDomain, or GC Heap associaed with it.</param>
-        abstract public string ToString(bool detailed);
+        /// <param name="detailed">
+        /// Whether or not to include additional data such as the module,
+        /// AppDomain, or GC Heap associaed with it.
+        /// </param>
+        public abstract string ToString(bool detailed);
 
         /// <summary>
         /// Equivalent to GetDisplayString(false).

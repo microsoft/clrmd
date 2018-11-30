@@ -1,34 +1,31 @@
-﻿using Xunit;
-using System;
+﻿using System;
 using System.Linq;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    class StackTraceEntry
+    internal class StackTraceEntry
     {
         public ClrStackFrameType Kind { get; set; }
         public string ModuleString { get; set; }
         public string MethodName { get; set; }
     }
 
-    
     public class MinidumpTests
     {
         [Fact]
         public void MinidumpCallstackTest()
         {
-            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
+            using (var dt = TestTargets.NestedException.LoadMiniDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrThread thread = runtime.GetMainThread();
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var thread = runtime.GetMainThread();
 
-                string[] frames = IntPtr.Size == 8 ?
-                    new string[] { "Inner", "Inner", "Middle", "Outer", "Main" } : 
-                    new string[] { "Inner", "Middle", "Outer", "Main" };
+                var frames = IntPtr.Size == 8 ? new[] {"Inner", "Inner", "Middle", "Outer", "Main"} : new[] {"Inner", "Middle", "Outer", "Main"};
 
-                int i = 0;
+                var i = 0;
 
-                foreach (ClrStackFrame frame in thread.StackTrace)
+                foreach (var frame in thread.StackTrace)
                 {
                     if (frame.Kind == ClrStackFrameType.Runtime)
                     {
@@ -48,13 +45,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-
         [Fact]
         public void MinidumpExceptionPropertiesTest()
         {
-            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
+            using (var dt = TestTargets.NestedException.LoadMiniDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
                 ExceptionTests.TestProperties(runtime);
             }
         }

@@ -11,6 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NO_SYMBOLS = 4,
         IS_DOT_COMMAND = 1,
         IS_EXTENSION_COMMAND = 2,
-        IS_SYMBOL = 4,
+        IS_SYMBOL = 4
     }
 }

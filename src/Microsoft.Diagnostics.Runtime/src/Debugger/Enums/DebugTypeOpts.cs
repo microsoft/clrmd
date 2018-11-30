@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         UNICODE_DISPLAY = 1,
         LONGSTATUS_DISPLAY = 2,
         FORCERADIX_OUTPUT = 4,
-        MATCH_MAXSIZE = 8,
+        MATCH_MAXSIZE = 8
     }
 }

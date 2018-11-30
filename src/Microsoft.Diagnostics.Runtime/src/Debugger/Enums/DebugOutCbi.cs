@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EXPLICIT_FLUSH = 1,
         TEXT = 2,
         DML = 4,
-        ANY_FORMAT = 6,
+        ANY_FORMAT = 6
     }
 }

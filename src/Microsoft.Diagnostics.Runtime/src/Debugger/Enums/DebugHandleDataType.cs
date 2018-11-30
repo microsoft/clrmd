@@ -14,6 +14,6 @@
         PER_HANDLE_OPERATIONS = 9,
         ALL_HANDLE_OPERATIONS = 10,
         MINI_PROCESS_1 = 11,
-        MINI_PROCESS_2 = 12,
+        MINI_PROCESS_2 = 12
     }
 }

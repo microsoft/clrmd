@@ -12,94 +12,46 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         public bool Init(SOSDac sos, ulong md)
         {
-            if (!sos.GetMethodDescData(md, 0, out MethodDescData data))
+            if (!sos.GetMethodDescData(md, 0, out var data))
                 return false;
 
-            _md = data.MethodDesc;
-            _ip = data.NativeCodeAddr;
-            _module = data.Module;
-            _token = data.MDToken;
-            _mt = data.MethodTable;
+            MethodDesc = data.MethodDesc;
+            NativeCodeAddr = data.NativeCodeAddr;
+            Module = data.Module;
+            MDToken = data.MDToken;
+            MethodTable = data.MethodTable;
 
-            if (sos.GetCodeHeaderData(data.NativeCodeAddr, out CodeHeaderData header))
+            if (sos.GetCodeHeaderData(data.NativeCodeAddr, out var header))
             {
                 if (header.JITType == 1)
-                    _jitType = MethodCompilationType.Jit;
+                    JITType = MethodCompilationType.Jit;
                 else if (header.JITType == 2)
-                    _jitType = MethodCompilationType.Ngen;
+                    JITType = MethodCompilationType.Ngen;
                 else
-                    _jitType = MethodCompilationType.None;
+                    JITType = MethodCompilationType.None;
 
-                _gcInfo = header.GCInfo;
-                _coldStart = header.ColdRegionStart;
-                _coldSize = header.ColdRegionSize;
-                _hotSize = header.HotRegionSize;
+                GCInfo = header.GCInfo;
+                ColdStart = header.ColdRegionStart;
+                ColdSize = header.ColdRegionSize;
+                HotSize = header.HotRegionSize;
             }
             else
             {
-                _jitType = MethodCompilationType.None;
+                JITType = MethodCompilationType.None;
             }
 
             return true;
         }
 
-        private MethodCompilationType _jitType;
-        private ulong _gcInfo, _md, _module, _ip, _coldStart;
-        private uint _token, _coldSize, _hotSize;
-        private ulong _mt;
-        
-        public ulong GCInfo
-        {
-            get
-            {
-                return _gcInfo;
-            }
-        }
-
-        public ulong MethodDesc
-        {
-            get { return _md; }
-        }
-
-        public ulong Module
-        {
-            get { return _module; }
-        }
-
-        public uint MDToken
-        {
-            get { return _token; }
-        }
-
-        public ulong NativeCodeAddr
-        {
-            get { return _ip; }
-        }
-
-        public MethodCompilationType JITType
-        {
-            get { return _jitType; }
-        }
-
-
-        public ulong MethodTable
-        {
-            get { return _mt; }
-        }
-
-        public ulong ColdStart
-        {
-            get { return _coldStart; }
-        }
-
-        public uint ColdSize
-        {
-            get { return _coldSize; }
-        }
-
-        public uint HotSize
-        {
-            get { return _hotSize; }
-        }
+        public ulong GCInfo { get; private set; }
+        public ulong MethodDesc { get; private set; }
+        public ulong Module { get; private set; }
+        public uint MDToken { get; private set; }
+        public ulong NativeCodeAddr { get; private set; }
+        public MethodCompilationType JITType { get; private set; }
+        public ulong MethodTable { get; private set; }
+        public ulong ColdStart { get; private set; }
+        public uint ColdSize { get; private set; }
+        public uint HotSize { get; private set; }
     }
 }

@@ -11,10 +11,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public abstract IntPtr GetProcAddress(IntPtr module, string method);
 
-
         public virtual bool IsEqualFileVersion(string file, VersionInfo version)
         {
-            if (!GetFileVersion(file, out int major, out int minor, out int revision, out int patch))
+            if (!GetFileVersion(file, out var major, out var minor, out var revision, out var patch))
                 return false;
 
             return major == version.Major && minor == version.Minor && revision == version.Revision && patch == version.Patch;

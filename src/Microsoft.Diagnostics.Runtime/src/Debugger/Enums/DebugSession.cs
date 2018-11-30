@@ -9,6 +9,6 @@
         END = 4,
         REBOOT = 5,
         HIBERNATE = 6,
-        FAILURE = 7,
+        FAILURE = 7
     }
 }

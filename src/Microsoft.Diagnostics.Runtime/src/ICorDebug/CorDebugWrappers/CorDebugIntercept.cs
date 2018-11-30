@@ -12,6 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         INTERCEPT_EXCEPTION_FILTER = 2,
         INTERCEPT_SECURITY = 4,
         INTERCEPT_CONTEXT_POLICY = 8,
-        INTERCEPT_INTERCEPTION = 0x10,
+        INTERCEPT_INTERCEPTION = 0x10
     }
 }

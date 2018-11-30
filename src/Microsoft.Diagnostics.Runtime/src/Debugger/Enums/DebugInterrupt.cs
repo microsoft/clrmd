@@ -4,6 +4,6 @@
     {
         ACTIVE = 0,
         PASSIVE = 1,
-        EXIT = 2,
+        EXIT = 2
     }
 }

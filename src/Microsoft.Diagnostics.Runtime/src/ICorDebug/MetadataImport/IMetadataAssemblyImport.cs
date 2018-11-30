@@ -2,9 +2,9 @@
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [Guid("EE62470B-E94B-424e-9B7C-2F00C9249F93"),
-     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)
-    ] // IID_IMetadataAssemblyImport from cor.h
+    [Guid("EE62470B-E94B-424e-9B7C-2F00C9249F93")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    // IID_IMetadataAssemblyImport from cor.h
 
     // GUID Copied from Cor.h
     internal interface IMetadataAssemblyImport

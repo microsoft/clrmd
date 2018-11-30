@@ -3,16 +3,13 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal unsafe sealed class ResourceNode
+    internal sealed unsafe class ResourceNode
     {
-        public string Name { get; private set; }
-        public bool IsLeaf { get; private set; }
+        public string Name { get; }
+        public bool IsLeaf { get; }
 
         // If IsLeaf is true
-        public int DataLength
-        {
-            get { return _dataLen; }
-        }
+        public int DataLength { get; }
 
         public byte* FetchData(int offsetInResourceData, int size, PEBuffer buff)
         {
@@ -22,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public FileVersionInfo GetFileVersionInfo()
         {
             var buff = _file.AllocBuff();
-            byte* bytes = FetchData(0, DataLength, buff);
+            var bytes = FetchData(0, DataLength, buff);
             var ret = new FileVersionInfo(bytes, DataLength);
             _file.FreeBuff(buff);
             return ret;
@@ -30,12 +27,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public override string ToString()
         {
-            StringWriter sw = new StringWriter();
+            var sw = new StringWriter();
             ToString(sw, "");
             return sw.ToString();
         }
 
-        static public ResourceNode GetChild(ResourceNode node, string name)
+        public static ResourceNode GetChild(ResourceNode node, string name)
         {
             if (node == null)
                 return null;
@@ -57,20 +54,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     var buff = _file.AllocBuff();
                     var resourceStartFileOffset = _file.Header.FileOffsetOfResources;
 
-                    IMAGE_RESOURCE_DIRECTORY* resourceHeader = (IMAGE_RESOURCE_DIRECTORY*)buff.Fetch(
+                    var resourceHeader = (IMAGE_RESOURCE_DIRECTORY*)buff.Fetch(
                         _nodeFileOffset,
                         sizeof(IMAGE_RESOURCE_DIRECTORY));
 
-                    int totalCount = resourceHeader->NumberOfNamedEntries + resourceHeader->NumberOfIdEntries;
-                    int totalSize = totalCount * sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
+                    var totalCount = resourceHeader->NumberOfNamedEntries + resourceHeader->NumberOfIdEntries;
+                    var totalSize = totalCount * sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
 
-                    IMAGE_RESOURCE_DIRECTORY_ENTRY* entries = (IMAGE_RESOURCE_DIRECTORY_ENTRY*)buff.Fetch(
+                    var entries = (IMAGE_RESOURCE_DIRECTORY_ENTRY*)buff.Fetch(
                         _nodeFileOffset + sizeof(IMAGE_RESOURCE_DIRECTORY),
                         totalSize);
 
                     var nameBuff = _file.AllocBuff();
                     _children = new List<ResourceNode>();
-                    for (int i = 0; i < totalCount; i++)
+                    for (var i = 0; i < totalCount; i++)
                     {
                         var entry = &entries[i];
                         string entryName = null;
@@ -89,7 +86,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        #region private
         private void ToString(StringWriter sw, string indent)
         {
             sw.Write("{0}<ResourceNode", indent);
@@ -122,21 +118,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (isLeaf)
             {
                 var buff = _file.AllocBuff();
-                IMAGE_RESOURCE_DATA_ENTRY* dataDescr = (IMAGE_RESOURCE_DATA_ENTRY*)buff.Fetch(nodeFileOffset, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
+                var dataDescr = (IMAGE_RESOURCE_DATA_ENTRY*)buff.Fetch(nodeFileOffset, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
 
-                _dataLen = dataDescr->Size;
+                DataLength = dataDescr->Size;
                 _dataFileOffset = file.Header.RvaToFileOffset(dataDescr->RvaToData);
-                var data = FetchData(0, _dataLen, buff);
+                var data = FetchData(0, DataLength, buff);
                 _file.FreeBuff(buff);
             }
         }
 
-        private PEFile _file;
-        private int _nodeFileOffset;
+        private readonly PEFile _file;
+        private readonly int _nodeFileOffset;
         private List<ResourceNode> _children;
-        private bool _isTop;
-        private int _dataLen;
-        private int _dataFileOffset;
-        #endregion
+        private readonly bool _isTop;
+        private readonly int _dataFileOffset;
     }
 }

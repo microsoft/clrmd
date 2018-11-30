@@ -1,20 +1,17 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class DumpDataReader : IDataReader, IDisposable
     {
-        private string _fileName;
-        private DumpReader _dumpReader;
+        private readonly string _fileName;
+        private readonly DumpReader _dumpReader;
         private List<ModuleInfo> _modules;
         private string _generatedPath;
 
@@ -44,15 +41,15 @@ namespace Microsoft.Diagnostics.Runtime
 
             Directory.CreateDirectory(_generatedPath);
 
-            CommandOptions options = new CommandOptions()
+            var options = new CommandOptions
             {
                 NoThrow = true,
                 NoWindow = true
             };
 
-            Command cmd = Command.Run(string.Format("expand -F:*dmp {0} {1}", file, _generatedPath), options);
+            var cmd = Command.Run(string.Format("expand -F:*dmp {0} {1}", file, _generatedPath), options);
 
-            bool error = false;
+            var error = false;
             if (cmd.ExitCode != 0)
             {
                 error = true;
@@ -62,14 +59,13 @@ namespace Microsoft.Diagnostics.Runtime
                 file = null;
                 foreach (var item in Directory.GetFiles(_generatedPath))
                 {
-                    string ext = Path.GetExtension(item).ToLower();
+                    var ext = Path.GetExtension(item).ToLower();
                     if (ext == ".dll" || ext == ".pdb" || ext == ".exe")
                         continue;
 
                     file = item;
                     break;
                 }
-
 
                 error |= file == null;
             }
@@ -83,14 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
             return file;
         }
 
-
-        public bool IsMinidump
-        {
-            get
-            {
-                return _dumpReader.IsMinidump;
-            }
-        }
+        public bool IsMinidump => _dumpReader.IsMinidump;
 
         public override string ToString()
         {
@@ -161,13 +150,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (_modules != null)
                 return _modules;
 
-            List<ModuleInfo> modules = new List<ModuleInfo>();
+            var modules = new List<ModuleInfo>();
 
             foreach (var mod in _dumpReader.EnumerateModules())
             {
                 var raw = mod.Raw;
 
-                ModuleInfo module = new ModuleInfo(this)
+                var module = new ModuleInfo(this)
                 {
                     FileName = mod.FullName,
                     ImageBase = raw.BaseOfImage,
@@ -185,8 +174,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            DumpModule module = _dumpReader.TryLookupModuleByAddress(baseAddress);
-            version = (module != null) ? GetVersionInfo(module) : new VersionInfo();
+            var module = _dumpReader.TryLookupModuleByAddress(baseAddress);
+            version = module != null ? GetVersionInfo(module) : new VersionInfo();
         }
 
         private static VersionInfo GetVersionInfo(DumpModule module)
@@ -202,8 +191,8 @@ namespace Microsoft.Diagnostics.Runtime
             return versionInfo;
         }
 
-
         private byte[] _ptrBuffer = new byte[IntPtr.Size];
+
         public ulong ReadPointerUnsafe(ulong addr)
         {
             return _dumpReader.ReadPointerUnsafe(addr);
@@ -213,7 +202,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return _dumpReader.ReadDwordUnsafe(addr);
         }
-
 
         public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
@@ -226,7 +214,6 @@ namespace Microsoft.Diagnostics.Runtime
             bytesRead = (int)_dumpReader.ReadPartialMemory(address, buffer, (uint)bytesRequested);
             return bytesRead > 0;
         }
-
 
         public ulong GetThreadTeb(uint id)
         {

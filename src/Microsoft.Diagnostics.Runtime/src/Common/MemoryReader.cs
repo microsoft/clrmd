@@ -7,7 +7,6 @@ using System.Diagnostics;
 namespace Microsoft.Diagnostics.Runtime
 {
 #if _TRACING
-
     class TraceDataReader : IDataReader
     {
         private IDataReader _reader;
@@ -120,24 +119,21 @@ namespace Microsoft.Diagnostics.Runtime
     }
 #endif
 
-
     internal unsafe class MemoryReader
     {
-        #region Variables
         protected ulong _currPageStart;
         protected int _currPageSize;
         protected byte[] _data;
-        private byte[] _ptr;
-        private byte[] _dword;
+        private readonly byte[] _ptr;
+        private readonly byte[] _dword;
         protected IDataReader _dataReader;
         protected int _cacheSize;
-        #endregion
 
         public MemoryReader(IDataReader dataReader, int cacheSize)
         {
             _data = new byte[cacheSize];
             _dataReader = dataReader;
-            uint sz = _dataReader.GetPointerSize();
+            var sz = _dataReader.GetPointerSize();
             if (sz != 4 && sz != 8)
                 throw new InvalidOperationException("DataReader reported an invalid pointer size.");
 
@@ -152,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Is addr on the current page?  If not read the page of memory addr is on.
             // If this fails, we will fall back to a raw read out of the process (which
             // is what MisalignedRead does).
-            if ((addr < _currPageStart) || (addr >= _currPageStart + (uint)_currPageSize))
+            if (addr < _currPageStart || addr >= _currPageStart + (uint)_currPageSize)
                 if (!MoveToPage(addr))
                     return MisalignedRead(addr, out value);
 
@@ -161,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // However, the amount of data requested may fall off of the page.  In that case,
             // fall back to MisalignedRead.
-            ulong offset = addr - _currPageStart;
+            var offset = addr - _currPageStart;
             if (offset + size > (uint)_currPageSize)
                 return MisalignedRead(addr, out value);
 
@@ -173,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadDword(ulong addr, out int value)
         {
-            bool res = ReadDword(addr, out uint tmp);
+            var res = ReadDword(addr, out uint tmp);
 
             value = (int)tmp;
             return res;
@@ -181,14 +177,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal bool TryReadPtr(ulong addr, out ulong value)
         {
-            if ((_currPageStart <= addr) && (addr - _currPageStart < (uint)_currPageSize))
+            if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
-                ulong offset = addr - _currPageStart;
+                var offset = addr - _currPageStart;
                 fixed (byte* b = &_data[offset])
                     if (_ptr.Length == 4)
-                    value = *((uint*)b);
-                else
-                    value = *((ulong*)b);
+                        value = *((uint*)b);
+                    else
+                        value = *((ulong*)b);
 
                 return true;
             }
@@ -198,9 +194,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal bool TryReadDword(ulong addr, out uint value)
         {
-            if ((_currPageStart <= addr) && (addr - _currPageStart < (uint)_currPageSize))
+            if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
-                ulong offset = addr - _currPageStart;
+                var offset = addr - _currPageStart;
                 value = BitConverter.ToUInt32(_data, (int)offset);
                 fixed (byte* b = &_data[offset])
                     value = *((uint*)b);
@@ -212,9 +208,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal bool TryReadDword(ulong addr, out int value)
         {
-            if ((_currPageStart <= addr) && (addr - _currPageStart < (uint)_currPageSize))
+            if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
-                ulong offset = addr - _currPageStart;
+                var offset = addr - _currPageStart;
                 fixed (byte* b = &_data[offset])
                     value = *((int*)b);
 
@@ -229,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Is addr on the current page?  If not read the page of memory addr is on.
             // If this fails, we will fall back to a raw read out of the process (which
             // is what MisalignedRead does).
-            if ((addr < _currPageStart) || (addr - _currPageStart > (uint)_currPageSize))
+            if (addr < _currPageStart || addr - _currPageStart > (uint)_currPageSize)
                 if (!MoveToPage(addr))
                     return MisalignedRead(addr, out value);
 
@@ -238,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // However, the amount of data requested may fall off of the page.  In that case,
             // fall back to MisalignedRead.
-            ulong offset = addr - _currPageStart;
+            var offset = addr - _currPageStart;
             if (offset + (uint)_ptr.Length > (uint)_currPageSize)
             {
                 if (!MoveToPage(addr))
@@ -251,52 +247,50 @@ namespace Microsoft.Diagnostics.Runtime
             // that the read won't fall off of the end of the page.
             fixed (byte* b = &_data[offset])
                 if (_ptr.Length == 4)
-                value = *((uint*)b);
-            else
-                value = *((ulong*)b);
+                    value = *((uint*)b);
+                else
+                    value = *((ulong*)b);
 
             return true;
         }
 
-        virtual public void EnsureRangeInCache(ulong addr)
+        public virtual void EnsureRangeInCache(ulong addr)
         {
             if (!Contains(addr))
                 MoveToPage(addr);
         }
 
-
         public bool Contains(ulong addr)
         {
-            return ((_currPageStart <= addr) && (addr - _currPageStart < (uint)_currPageSize));
+            return _currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize;
         }
 
-        #region Private Functions
         private bool MisalignedRead(ulong addr, out ulong value)
         {
-            bool res = _dataReader.ReadMemory(addr, _ptr, _ptr.Length, out int size);
+            var res = _dataReader.ReadMemory(addr, _ptr, _ptr.Length, out var size);
             fixed (byte* b = _ptr)
                 if (_ptr.Length == 4)
-                value = *((uint*)b);
-            else
-                value = *((ulong*)b);
+                    value = *((uint*)b);
+                else
+                    value = *((ulong*)b);
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out uint value)
         {
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out int size);
+            var res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out var size);
             value = BitConverter.ToUInt32(_dword, 0);
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out int value)
         {
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out int size);
+            var res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out var size);
             value = BitConverter.ToInt32(_dword, 0);
             return res;
         }
 
-        virtual protected bool MoveToPage(ulong addr)
+        protected virtual bool MoveToPage(ulong addr)
         {
             return ReadMemory(addr);
         }
@@ -304,7 +298,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected virtual bool ReadMemory(ulong addr)
         {
             _currPageStart = addr;
-            bool res = _dataReader.ReadMemory(_currPageStart, _data, _cacheSize, out _currPageSize);
+            var res = _dataReader.ReadMemory(_currPageStart, _data, _cacheSize, out _currPageSize);
 
             if (!res)
             {
@@ -314,6 +308,5 @@ namespace Microsoft.Diagnostics.Runtime
 
             return res;
         }
-        #endregion
     }
 }

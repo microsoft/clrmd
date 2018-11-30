@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public unsafe struct WDBGEXTS_CLR_DATA_INTERFACE
     {
         public Guid* Iid;
-        private void* _iface;
+        private readonly void* _iface;
 
         public WDBGEXTS_CLR_DATA_INTERFACE(Guid* iid)
         {
@@ -15,9 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             _iface = null;
         }
 
-        public object Interface
-        {
-            get { return (_iface != null) ? Marshal.GetObjectForIUnknown((IntPtr)_iface) : null; }
-        }
+        public object Interface => _iface != null ? Marshal.GetObjectForIUnknown((IntPtr)_iface) : null;
     }
 }

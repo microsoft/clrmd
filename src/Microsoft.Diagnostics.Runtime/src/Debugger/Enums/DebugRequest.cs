@@ -212,6 +212,6 @@
         /// OutBuffer - Unused
         /// return - ResumeThreads() return.
         /// </summary>
-        RESUME_THREAD = 34,
+        RESUME_THREAD = 34
     }
 }

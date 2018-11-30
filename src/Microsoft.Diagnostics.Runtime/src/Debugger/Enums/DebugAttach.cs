@@ -15,6 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NONINVASIVE_NO_SUSPEND = 4,
         INVASIVE_NO_INITIAL_BREAK = 8,
         INVASIVE_RESUME_PROCESS = 0x10,
-        NONINVASIVE_ALLOW_PARTIAL = 0x20,
+        NONINVASIVE_ALLOW_PARTIAL = 0x20
     }
 }

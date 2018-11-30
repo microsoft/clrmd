@@ -2,10 +2,11 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [ComImport, Guid("CC7BCAEC-8A68-11D2-983C-0000F808342D"), InterfaceType(1)]
+    [ComImport]
+    [Guid("CC7BCAEC-8A68-11D2-983C-0000F808342D")]
+    [InterfaceType(1)]
     public interface ICorDebugStepper
     {
-
         void IsActive([Out] out int pbActive);
 
         void Deactivate();
@@ -16,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         void Step([In] int bStepIn);
 
-        void StepRange([In] int bStepIn, [In, MarshalAs(UnmanagedType.LPArray)] COR_DEBUG_STEP_RANGE[] ranges, [In] uint cRangeCount);
+        void StepRange([In] int bStepIn, [In][MarshalAs(UnmanagedType.LPArray)] COR_DEBUG_STEP_RANGE[] ranges, [In] uint cRangeCount);
 
         void StepOut();
 

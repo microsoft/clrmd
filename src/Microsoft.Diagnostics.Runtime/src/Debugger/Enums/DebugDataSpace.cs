@@ -8,6 +8,6 @@
         IO = 3,
         MSR = 4,
         BUS_DATA = 5,
-        DEBUGGER_DATA = 6,
+        DEBUGGER_DATA = 6
     }
 }

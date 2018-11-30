@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -39,11 +38,11 @@ namespace Microsoft.Diagnostics.Runtime
 
             _segments = new HeapHashSegment[_heap.Segments.Count];
 
-            for (int i = 0; i < _segments.Length; i++)
+            for (var i = 0; i < _segments.Length; i++)
             {
-                ulong start = _heap.Segments[i].Start;
-                ulong end = _heap.Segments[i].End;
-                _segments[i] = new HeapHashSegment()
+                var start = _heap.Segments[i].Start;
+                var end = _heap.Segments[i].End;
+                _segments[i] = new HeapHashSegment
                 {
                     StartAddress = start,
                     EndAddress = end,
@@ -60,15 +59,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if this set contains the given object, false otherwise.</returns>
         public virtual bool Contains(ulong obj)
         {
-            if (GetSegment(obj, out HeapHashSegment seg))
+            if (GetSegment(obj, out var seg))
             {
-                int offset = GetOffset(obj, seg);
+                var offset = GetOffset(obj, seg);
                 return seg.Objects[offset];
             }
 
             return false;
         }
-
 
         /// <summary>
         /// Adds the given object to the set.  Returns true if the object was added to the set, returns false if the object was already in the set.
@@ -77,19 +75,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if the object was added to the set, returns false if the object was already in the set.</returns>
         public virtual bool Add(ulong obj)
         {
-            if (GetSegment(obj, out HeapHashSegment seg))
+            if (GetSegment(obj, out var seg))
             {
-                int offset = GetOffset(obj, seg);
+                var offset = GetOffset(obj, seg);
                 if (seg.Objects[offset])
                 {
                     return false;
                 }
-                else
-                {
-                    seg.Objects.Set(offset, true);
-                    Count++;
-                    return true;
-                }
+
+                seg.Objects.Set(offset, true);
+                Count++;
+                return true;
             }
 
             return false;
@@ -102,9 +98,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if the object was removed, returns false if the object was not in the set.</returns>
         public virtual bool Remove(ulong obj)
         {
-            if (GetSegment(obj, out HeapHashSegment seg))
+            if (GetSegment(obj, out var seg))
             {
-                int offset = GetOffset(obj, seg);
+                var offset = GetOffset(obj, seg);
                 if (seg.Objects[offset])
                 {
                     seg.Objects.Set(offset, false);
@@ -121,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual void Clear()
         {
-            for (int i = 0; i < _segments.Length; i++)
+            for (var i = 0; i < _segments.Length; i++)
                 _segments[i].Objects.SetAll(false);
 
             Count = 0;
@@ -148,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (obj != 0)
             {
-                int i = _segments.Length >> 1;
+                var i = _segments.Length >> 1;
                 int mid, lower = 0, upper = _segments.Length - 1;
 
                 while (lower <= upper)
@@ -174,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
             seg = new HeapHashSegment();
             return false;
         }
-        
+
         /// <summary>
         /// A segment of memory in the heap.
         /// </summary>

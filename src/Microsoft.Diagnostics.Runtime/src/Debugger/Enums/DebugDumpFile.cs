@@ -3,6 +3,6 @@
     public enum DEBUG_DUMP_FILE : uint
     {
         BASE = 0xffffffff,
-        PAGE_FILE_DUMP = 0,
+        PAGE_FILE_DUMP = 0
     }
 }

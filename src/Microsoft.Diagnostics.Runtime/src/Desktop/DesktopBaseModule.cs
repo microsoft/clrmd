@@ -9,13 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         protected DesktopRuntimeBase _runtime;
 
-        public override ClrRuntime Runtime
-        {
-            get
-            {
-                return _runtime;
-            }
-        }
+        public override ClrRuntime Runtime => _runtime;
 
         internal abstract ulong GetDomainModule(ClrAppDomain appDomain);
 

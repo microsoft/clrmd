@@ -18,6 +18,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         SESSION_STATUS = 0x200,
         CHANGE_DEBUGGEE_STATE = 0x400,
         CHANGE_ENGINE_STATE = 0x800,
-        CHANGE_SYMBOL_STATE = 0x1000,
+        CHANGE_SYMBOL_STATE = 0x1000
     }
 }

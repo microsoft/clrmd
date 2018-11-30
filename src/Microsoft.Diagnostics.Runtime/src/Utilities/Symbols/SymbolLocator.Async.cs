@@ -3,8 +3,6 @@
 
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -70,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (module == null)
                 throw new ArgumentNullException("module");
 
-            PdbInfo pdb = module.Pdb;
+            var pdb = module.Pdb;
             if (pdb == null)
                 return null;
 

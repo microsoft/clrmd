@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         ARGUMENTS = 1,
         LOCALS = 2,
-        ALL = 3,
+        ALL = 3
     }
 }

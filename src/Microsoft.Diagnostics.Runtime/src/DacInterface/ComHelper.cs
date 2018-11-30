@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (pUnk == IntPtr.Zero)
                 return 0;
 
-            IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
+            var vtable = *(IUnknownVTable**)pUnk;
 
             var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
             return release(pUnk);

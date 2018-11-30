@@ -4,6 +4,6 @@
     {
         DEBUGGEE = 0,
         EXPLICIT = 1,
-        FRAME = 2,
+        FRAME = 2
     }
 }

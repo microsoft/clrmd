@@ -5,6 +5,6 @@
         DEFAULT = 0,
         CACHED = 1,
         UNCACHED = 2,
-        WRITE_COMBINED = 3,
+        WRITE_COMBINED = 3
     }
 }

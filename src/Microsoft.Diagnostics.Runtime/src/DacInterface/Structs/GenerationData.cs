@@ -17,18 +17,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             this = other;
 
-            unchecked
+            if (IntPtr.Size == 4)
             {
-                if (IntPtr.Size == 4)
-                {
-                    FixupPointer(ref StartSegment);
-                    FixupPointer(ref AllocationStart);
-                    FixupPointer(ref AllocationContextPointer);
-                    FixupPointer(ref AllocationContextLimit);
-                }
+                FixupPointer(ref StartSegment);
+                FixupPointer(ref AllocationStart);
+                FixupPointer(ref AllocationContextPointer);
+                FixupPointer(ref AllocationContextLimit);
             }
         }
 
-        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
+        private static void FixupPointer(ref ulong ptr)
+        {
+            ptr = (uint)ptr;
+        }
     }
 }

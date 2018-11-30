@@ -52,5 +52,4 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract IList<ComInterfaceData> Interfaces { get; }
     }
-
 }

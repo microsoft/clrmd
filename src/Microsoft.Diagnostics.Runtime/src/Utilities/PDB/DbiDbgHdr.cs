@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     internal struct DbiDbgHdr
@@ -22,16 +20,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadUInt16(out snSectionHdrOrig);
         }
 
-        internal ushort snFPO;                 // 0..1
-        internal ushort snException;           // 2..3 (deprecated)
-        internal ushort snFixup;               // 4..5
-        internal ushort snOmapToSrc;           // 6..7
-        internal ushort snOmapFromSrc;         // 8..9
-        internal ushort snSectionHdr;          // 10..11
-        internal ushort snTokenRidMap;         // 12..13
-        internal ushort snXdata;               // 14..15
-        internal ushort snPdata;               // 16..17
-        internal ushort snNewFPO;              // 18..19
-        internal ushort snSectionHdrOrig;      // 20..21
+        internal ushort snFPO; // 0..1
+        internal ushort snException; // 2..3 (deprecated)
+        internal ushort snFixup; // 4..5
+        internal ushort snOmapToSrc; // 6..7
+        internal ushort snOmapFromSrc; // 8..9
+        internal ushort snSectionHdr; // 10..11
+        internal ushort snTokenRidMap; // 12..13
+        internal ushort snXdata; // 14..15
+        internal ushort snPdata; // 16..17
+        internal ushort snNewFPO; // 18..19
+        internal ushort snSectionHdrOrig; // 20..21
     }
 }

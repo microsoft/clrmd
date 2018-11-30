@@ -2,14 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 
 #pragma warning disable 1591
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("edbed635-372e-4dab-bbfe-ed0d2f63be81")]
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("edbed635-372e-4dab-bbfe-ed0d2f63be81")]
     public interface IDebugClient2 : IDebugClient
     {
         /* IDebugClient */
@@ -17,77 +19,78 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int AttachKernel(
             [In] DEBUG_ATTACH Flags,
-            [In, MarshalAs(UnmanagedType.LPStr)] string ConnectOptions);
+            [In][MarshalAs(UnmanagedType.LPStr)] string ConnectOptions);
 
         [PreserveSig]
         new int GetKernelConnectionOptions(
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] Int32 BufferSize,
-            [Out] out UInt32 OptionsSize);
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
+            [In] int BufferSize,
+            [Out] out uint OptionsSize);
 
         [PreserveSig]
         new int SetKernelConnectionOptions(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Options);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Options);
 
         [PreserveSig]
         new int StartProcessServer(
             [In] DEBUG_CLASS Flags,
-            [In, MarshalAs(UnmanagedType.LPStr)] string Options,
+            [In][MarshalAs(UnmanagedType.LPStr)] string Options,
             [In] IntPtr Reserved);
 
         [PreserveSig]
         new int ConnectProcessServer(
-            [In, MarshalAs(UnmanagedType.LPStr)] string RemoteOptions,
-            [Out] out UInt64 Server);
+            [In][MarshalAs(UnmanagedType.LPStr)] string RemoteOptions,
+            [Out] out ulong Server);
 
         [PreserveSig]
         new int DisconnectProcessServer(
-            [In] UInt64 Server);
+            [In] ulong Server);
 
         [PreserveSig]
         new int GetRunningProcessSystemIds(
-            [In] UInt64 Server,
-            [Out, MarshalAs(UnmanagedType.LPArray)] UInt32[] Ids,
-            [In] UInt32 Count,
-            [Out] out UInt32 ActualCount);
+            [In] ulong Server,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            uint[] Ids,
+            [In] uint Count,
+            [Out] out uint ActualCount);
 
         [PreserveSig]
         new int GetRunningProcessSystemIdByExecutableName(
-            [In] UInt64 Server,
-            [In, MarshalAs(UnmanagedType.LPStr)] string ExeName,
+            [In] ulong Server,
+            [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
-            [Out] out UInt32 Id);
+            [Out] out uint Id);
 
         [PreserveSig]
         new int GetRunningProcessDescription(
-            [In] UInt64 Server,
-            [In] UInt32 SystemId,
+            [In] ulong Server,
+            [In] uint SystemId,
             [In] DEBUG_PROC_DESC Flags,
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
-            [In] Int32 ExeNameSize,
-            [Out] out UInt32 ActualExeNameSize,
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
-            [In] Int32 DescriptionSize,
-            [Out] out UInt32 ActualDescriptionSize);
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
+            [In] int ExeNameSize,
+            [Out] out uint ActualExeNameSize,
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
+            [In] int DescriptionSize,
+            [Out] out uint ActualDescriptionSize);
 
         [PreserveSig]
         new int AttachProcess(
-            [In] UInt64 Server,
-            [In] UInt32 ProcessID,
+            [In] ulong Server,
+            [In] uint ProcessID,
             [In] DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         new int CreateProcess(
-            [In] UInt64 Server,
-            [In, MarshalAs(UnmanagedType.LPStr)] string CommandLine,
+            [In] ulong Server,
+            [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS Flags);
 
         [PreserveSig]
         new int CreateProcessAndAttach(
-            [In] UInt64 Server,
-            [In, MarshalAs(UnmanagedType.LPStr)] string CommandLine,
+            [In] ulong Server,
+            [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS Flags,
-            [In] UInt32 ProcessId,
+            [In] uint ProcessId,
             [In] DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
@@ -108,26 +111,26 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OpenDumpFile(
-            [In, MarshalAs(UnmanagedType.LPStr)] string DumpFile);
+            [In][MarshalAs(UnmanagedType.LPStr)] string DumpFile);
 
         [PreserveSig]
         new int WriteDumpFile(
-            [In, MarshalAs(UnmanagedType.LPStr)] string DumpFile,
+            [In][MarshalAs(UnmanagedType.LPStr)] string DumpFile,
             [In] DEBUG_DUMP Qualifier);
 
         [PreserveSig]
         new int ConnectSession(
             [In] DEBUG_CONNECT_SESSION Flags,
-            [In] UInt32 HistoryLimit);
+            [In] uint HistoryLimit);
 
         [PreserveSig]
         new int StartServer(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Options);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Options);
 
         [PreserveSig]
         new int OutputServer(
             [In] DEBUG_OUTCTL OutputControl,
-            [In, MarshalAs(UnmanagedType.LPStr)] string Machine,
+            [In][MarshalAs(UnmanagedType.LPStr)] string Machine,
             [In] DEBUG_SERVERS Flags);
 
         [PreserveSig]
@@ -142,27 +145,31 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetExitCode(
-            [Out] out UInt32 Code);
+            [Out] out uint Code);
 
         [PreserveSig]
         new int DispatchCallbacks(
-            [In] UInt32 Timeout);
+            [In] uint Timeout);
 
         [PreserveSig]
         new int ExitDispatch(
-            [In, MarshalAs(UnmanagedType.Interface)] IDebugClient Client);
+            [In][MarshalAs(UnmanagedType.Interface)]
+            IDebugClient Client);
 
         [PreserveSig]
         new int CreateClient(
-            [Out, MarshalAs(UnmanagedType.Interface)] out IDebugClient Client);
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out IDebugClient Client);
 
         [PreserveSig]
         new int GetInputCallbacks(
-            [Out, MarshalAs(UnmanagedType.Interface)] out IDebugInputCallbacks Callbacks);
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out IDebugInputCallbacks Callbacks);
 
         [PreserveSig]
         new int SetInputCallbacks(
-            [In, MarshalAs(UnmanagedType.Interface)] IDebugInputCallbacks Callbacks);
+            [In][MarshalAs(UnmanagedType.Interface)]
+            IDebugInputCallbacks Callbacks);
 
         /* GetOutputCallbacks could a conversion thunk from the debugger engine so we can't specify a specific interface */
 
@@ -186,43 +193,45 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetOtherOutputMask(
-            [In, MarshalAs(UnmanagedType.Interface)] IDebugClient Client,
+            [In][MarshalAs(UnmanagedType.Interface)]
+            IDebugClient Client,
             [Out] out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         new int SetOtherOutputMask(
-            [In, MarshalAs(UnmanagedType.Interface)] IDebugClient Client,
+            [In][MarshalAs(UnmanagedType.Interface)]
+            IDebugClient Client,
             [In] DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         new int GetOutputWidth(
-            [Out] out UInt32 Columns);
+            [Out] out uint Columns);
 
         [PreserveSig]
         new int SetOutputWidth(
-            [In] UInt32 Columns);
+            [In] uint Columns);
 
         [PreserveSig]
         new int GetOutputLinePrefix(
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] Int32 BufferSize,
-            [Out] out UInt32 PrefixSize);
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
+            [In] int BufferSize,
+            [Out] out uint PrefixSize);
 
         [PreserveSig]
         new int SetOutputLinePrefix(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Prefix);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Prefix);
 
         [PreserveSig]
         new int GetIdentity(
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] Int32 BufferSize,
-            [Out] out UInt32 IdentitySize);
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
+            [In] int BufferSize,
+            [Out] out uint IdentitySize);
 
         [PreserveSig]
         new int OutputIdentity(
             [In] DEBUG_OUTCTL OutputControl,
-            [In] UInt32 Flags,
-            [In, MarshalAs(UnmanagedType.LPStr)] string Format);
+            [In] uint Flags,
+            [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         /* GetEventCallbacks could a conversion thunk from the debugger engine so we can't specify a specific interface */
 
@@ -243,23 +252,23 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int WriteDumpFile2(
-            [In, MarshalAs(UnmanagedType.LPStr)] string DumpFile,
+            [In][MarshalAs(UnmanagedType.LPStr)] string DumpFile,
             [In] DEBUG_DUMP Qualifier,
             [In] DEBUG_FORMAT FormatFlags,
-            [In, MarshalAs(UnmanagedType.LPStr)] string Comment);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Comment);
 
         [PreserveSig]
         int AddDumpInformationFile(
-            [In, MarshalAs(UnmanagedType.LPStr)] string InfoFile,
+            [In][MarshalAs(UnmanagedType.LPStr)] string InfoFile,
             [In] DEBUG_DUMP_FILE Type);
 
         [PreserveSig]
         int EndProcessServer(
-            [In] UInt64 Server);
+            [In] ulong Server);
 
         [PreserveSig]
         int WaitForProcessServerEnd(
-            [In] UInt32 Timeout);
+            [In] uint Timeout);
 
         [PreserveSig]
         int IsKernelDebuggerEnabled();

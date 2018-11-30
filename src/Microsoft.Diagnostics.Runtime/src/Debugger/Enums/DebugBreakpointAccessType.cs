@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         READ = 1,
         WRITE = 2,
         EXECUTE = 4,
-        IO = 8,
+        IO = 8
     }
 }

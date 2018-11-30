@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class FileLoader : ICorDebug.ICLRDebuggingLibraryProvider
+    internal class FileLoader : ICLRDebuggingLibraryProvider
     {
-        private Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
-        private DataTarget _dataTarget;
+        private readonly Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
+        private readonly DataTarget _dataTarget;
 
         public FileLoader(DataTarget dt)
         {
@@ -19,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out PEFile result))
+            if (_pefileCache.TryGetValue(fileName, out var result))
             {
                 if (!result.Disposed)
                     return result;
@@ -40,9 +41,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        public int ProvideLibrary([In, MarshalAs(UnmanagedType.LPWStr)] string fileName, int timestamp, int sizeOfImage, out IntPtr hModule)
+        public int ProvideLibrary([In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int timestamp, int sizeOfImage, out IntPtr hModule)
         {
-            string result = _dataTarget.SymbolLocator.FindBinary(fileName, timestamp, sizeOfImage, false);
+            var result = _dataTarget.SymbolLocator.FindBinary(fileName, timestamp, sizeOfImage, false);
             if (result == null)
             {
                 hModule = IntPtr.Zero;

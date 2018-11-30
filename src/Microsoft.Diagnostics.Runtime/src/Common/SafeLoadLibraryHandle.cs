@@ -9,7 +9,10 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class SafeLoadLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
-        private SafeLoadLibraryHandle() : base(true) { }
+        private SafeLoadLibraryHandle() : base(true)
+        {
+        }
+
         public SafeLoadLibraryHandle(IntPtr handle)
             : base(true)
         {
@@ -20,19 +23,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return FreeLibrary(handle);
         }
-        
-        [DllImportAttribute("kernel32.dll")]
+
+        [DllImport("kernel32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool FreeLibrary(IntPtr hModule);
+        private static extern bool FreeLibrary(IntPtr hModule);
 
         // This is technically equivalent to DangerousGetHandle, but it's safer for loaded
         // libraries where the HMODULE is also the base address the module is loaded at.
-        public IntPtr BaseAddress
-        {
-            get
-            {
-                return handle;
-            }
-        }
+        public IntPtr BaseAddress => handle;
     }
 }

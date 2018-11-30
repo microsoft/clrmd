@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public enum CodeHeapType : int
+    public enum CodeHeapType
     {
         Loader,
         Host,

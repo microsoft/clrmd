@@ -3,7 +3,6 @@ using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-
     /// <summary>
     /// Represents a managed module in the target process.
     /// </summary>
@@ -12,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// This is the address of the clr!Module object.
         /// </summary>
-        public virtual ulong Address { get { return 0; } }
+        public virtual ulong Address => 0;
 
         /// <summary>
         /// Gets the runtime which contains this module.

@@ -12,6 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EXPLICIT = 8,
         SECONDARY = 0x10,
         SYNTHETIC = 0x20,
-        SYM_BAD_CHECKSUM = 0x10000,
+        SYM_BAD_CHECKSUM = 0x10000
     }
 }

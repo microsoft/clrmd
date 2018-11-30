@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -45,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [FieldOffset(0)]
         public fixed byte RawBytes[24];
         [FieldOffset(24)]
-        public UInt32 TailOfRawBytes;
+        public uint TailOfRawBytes;
         [FieldOffset(28)]
         public DEBUG_VALUE_TYPE Type;
     }

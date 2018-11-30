@@ -4,14 +4,15 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal class ParallelObjectSet : ObjectSet
     {
-        public ParallelObjectSet(ClrHeap heap) : base(heap) { }
+        public ParallelObjectSet(ClrHeap heap) : base(heap)
+        {
+        }
 
-        
         public override bool Contains(ulong obj)
         {
-            if (GetSegment(obj, out HeapHashSegment seg))
+            if (GetSegment(obj, out var seg))
             {
-                int offset = GetOffset(obj, seg);
+                var offset = GetOffset(obj, seg);
 
                 lock (seg.Objects.SyncRoot)
                     return seg.Objects[offset];
@@ -22,9 +23,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool Add(ulong obj)
         {
-            if (GetSegment(obj, out HeapHashSegment seg))
+            if (GetSegment(obj, out var seg))
             {
-                int offset = GetOffset(obj, seg);
+                var offset = GetOffset(obj, seg);
 
                 lock (seg.Objects.SyncRoot)
                 {
@@ -32,23 +33,21 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         return false;
                     }
-                    else
-                    {
-                        seg.Objects.Set(offset, true);
-                        Count++;
-                        return true;
-                    }
+
+                    seg.Objects.Set(offset, true);
+                    Count++;
+                    return true;
                 }
             }
 
             return false;
         }
-        
+
         public override bool Remove(ulong obj)
         {
-            if (GetSegment(obj, out HeapHashSegment seg))
+            if (GetSegment(obj, out var seg))
             {
-                int offset = GetOffset(obj, seg);
+                var offset = GetOffset(obj, seg);
                 lock (seg.Objects.SyncRoot)
                 {
                     if (seg.Objects[offset])

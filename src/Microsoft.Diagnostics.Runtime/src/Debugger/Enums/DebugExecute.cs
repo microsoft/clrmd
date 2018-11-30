@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         DEFAULT = 0,
         ECHO = 1,
         NOT_LOGGED = 2,
-        NO_REPEAT = 4,
+        NO_REPEAT = 4
     }
 }

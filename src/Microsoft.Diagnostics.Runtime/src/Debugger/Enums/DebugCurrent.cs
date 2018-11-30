@@ -9,6 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         SYMBOL = 1,
         DISASM = 2,
         REGISTERS = 4,
-        SOURCE_LINE = 8,
+        SOURCE_LINE = 8
     }
 }

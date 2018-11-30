@@ -1,9 +1,9 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [Guid("D8F579AB-402D-4b8e-82D9-5D63B1065C68"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("D8F579AB-402D-4b8e-82D9-5D63B1065C68")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     // Get the geometry of the tables. This is useful for GetTableInfo, which can tell how
     // many rows a table has, which can then be used for quick enumeration of tokens.
     internal interface IMetadataTables
@@ -28,12 +28,10 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //    ULONG   *pcTables) PURE;            // [OUT] Count of tables.
         void GetNumTables(out uint countTables);
 
-
         //STDMETHOD (GetTableIndex) (   
         //    ULONG   token,                      // [IN] Token for which to get table index.
         //    ULONG   *pixTbl) PURE;              // [OUT] Put table index here.
         void GetTableIndex(uint token, out uint tableIndex);
-
 
         //STDMETHOD (GetTableInfo) (    
         //    ULONG   ixTbl,                      // [IN] Which table.
@@ -48,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             out uint countRows,
             out uint countColumns,
             out uint columnPrimaryKey,
-            [Out, MarshalAs(UnmanagedType.LPStr)] out String name);
+            [Out][MarshalAs(UnmanagedType.LPStr)] out string name);
 
         // Other methods are not yet imported...
     }

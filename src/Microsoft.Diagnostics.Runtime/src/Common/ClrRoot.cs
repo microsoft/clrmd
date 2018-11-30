@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -33,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Do not walk stack roots.
         /// </summary>
-        SkipStack,
+        SkipStack
     }
 
     /// <summary>
@@ -95,62 +94,61 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// A GC Root also has a Kind, which says if it is a strong or weak root
         /// </summary>
-        abstract public GCRootKind Kind { get; }
+        public abstract GCRootKind Kind { get; }
 
         /// <summary>
-        /// The name of the root. 
+        /// The name of the root.
         /// </summary>
-        virtual public string Name { get { return ""; } }
+        public virtual string Name => "";
 
         /// <summary>
         /// The type of the object this root points to.  That is, ClrHeap.GetObjectType(ClrRoot.Object).
         /// </summary>
-        abstract public ClrType Type { get; }
+        public abstract ClrType Type { get; }
 
         /// <summary>
         /// The object on the GC heap that this root keeps alive.
         /// </summary>
-        virtual public ulong Object { get; protected set; }
+        public virtual ulong Object { get; protected set; }
 
         /// <summary>
         /// The address of the root in the target process.
         /// </summary>
-        virtual public ulong Address { get; protected set; }
+        public virtual ulong Address { get; protected set; }
 
         /// <summary>
         /// If the root can be identified as belonging to a particular AppDomain this is that AppDomain.
-        /// It an be null if there is no AppDomain associated with the root.  
+        /// It an be null if there is no AppDomain associated with the root.
         /// </summary>
-        virtual public ClrAppDomain AppDomain { get { return null; } }
+        public virtual ClrAppDomain AppDomain => null;
 
         /// <summary>
         /// If the root has a thread associated with it, this will return that thread.
         /// </summary>
-        virtual public ClrThread Thread { get { return null; } }
+        public virtual ClrThread Thread => null;
 
         /// <summary>
         /// Returns true if Object is an "interior" pointer.  This means that the pointer may actually
         /// point inside an object instead of to the start of the object.
         /// </summary>
-        virtual public bool IsInterior { get { return false; } }
+        public virtual bool IsInterior => false;
 
         /// <summary>
         /// Returns true if the root "pins" the object, preventing the GC from relocating it.
         /// </summary>
-        virtual public bool IsPinned { get { return false; } }
+        public virtual bool IsPinned => false;
 
         /// <summary>
         /// Unfortunately some versions of the APIs we consume do not give us perfect information.  If
         /// this property is true it means we used a heuristic to find the value, and it might not
         /// actually be considered a root by the GC.
         /// </summary>
-        virtual public bool IsPossibleFalsePositive { get { return false; } }
-
+        public virtual bool IsPossibleFalsePositive => false;
 
         /// <summary>
         /// Returns the stack frame associated with this stack root.
         /// </summary>
-        virtual public ClrStackFrame StackFrame { get { return null; } }
+        public virtual ClrStackFrame StackFrame => null;
 
         /// <summary>
         /// Returns a string representation of this object.
@@ -161,5 +159,4 @@ namespace Microsoft.Diagnostics.Runtime
             return string.Format("GCRoot {0:X8}->{1:X8} {2}", Address, Object, Name);
         }
     }
-
 }

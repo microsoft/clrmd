@@ -20,6 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         SYSTEMS = 0x800,
         ASSEMBLY_OPTIONS = 0x1000,
         EXPRESSION_SYNTAX = 0x2000,
-        TEXT_REPLACEMENTS = 0x4000,
+        TEXT_REPLACEMENTS = 0x4000
     }
 }

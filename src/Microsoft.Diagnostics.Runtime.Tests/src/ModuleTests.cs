@@ -1,5 +1,5 @@
-﻿using Xunit;
-using System.Linq;
+﻿using System.Linq;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -8,16 +8,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestGetTypeByName()
         {
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (var dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                var heap = runtime.Heap;
 
-                ClrModule shared = runtime.GetModule("sharedlibrary.dll");
+                var shared = runtime.GetModule("sharedlibrary.dll");
                 Assert.NotNull(shared.GetTypeByName("Foo"));
                 Assert.Null(shared.GetTypeByName("Types"));
 
-                ClrModule types = runtime.GetModule("types.exe");
+                var types = runtime.GetModule("types.exe");
                 Assert.NotNull(types.GetTypeByName("Types"));
                 Assert.Null(types.GetTypeByName("Foo"));
             }

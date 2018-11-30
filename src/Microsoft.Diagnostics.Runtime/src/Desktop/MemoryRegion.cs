@@ -11,36 +11,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class MemoryRegion : ClrMemoryRegion
     {
-        #region Private Variables
-        private DesktopRuntimeBase _runtime;
+        private readonly DesktopRuntimeBase _runtime;
         private ulong _domainModuleHeap;
         private GCSegmentType _segmentType;
-        #endregion
 
-        private bool HasAppDomainData
-        {
-            get
-            {
-                return Type <= ClrMemoryRegionType.CacheEntryHeap || Type == ClrMemoryRegionType.HandleTableChunk;
-            }
-        }
+        private bool HasAppDomainData => Type <= ClrMemoryRegionType.CacheEntryHeap || Type == ClrMemoryRegionType.HandleTableChunk;
 
-        private bool HasModuleData
-        {
-            get
-            {
-                return Type == ClrMemoryRegionType.ModuleThunkHeap || Type == ClrMemoryRegionType.ModuleLookupTableHeap;
-            }
-        }
+        private bool HasModuleData => Type == ClrMemoryRegionType.ModuleThunkHeap || Type == ClrMemoryRegionType.ModuleLookupTableHeap;
 
-        private bool HasGCHeapData
-        {
-            get
-            {
-                return Type == ClrMemoryRegionType.GCSegment || Type == ClrMemoryRegionType.ReservedGCSegment;
-            }
-        }
-
+        private bool HasGCHeapData => Type == ClrMemoryRegionType.GCSegment || Type == ClrMemoryRegionType.ReservedGCSegment;
 
         public override ClrAppDomain AppDomain
         {
@@ -48,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (!HasAppDomainData)
                     return null;
+
                 return _runtime.GetAppDomainByAddress(_domainModuleHeap);
             }
         }
@@ -73,10 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 Debug.Assert(_domainModuleHeap < uint.MaxValue);
                 return (int)_domainModuleHeap;
             }
-            set
-            {
-                _domainModuleHeap = (ulong)value;
-            }
+            set => _domainModuleHeap = (ulong)value;
         }
 
         public override GCSegmentType GCSegmentType
@@ -88,10 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 return _segmentType;
             }
-            set
-            {
-                _segmentType = value;
-            }
+            set => _segmentType = value;
         }
 
         public override string ToString(bool detailed)
@@ -187,13 +161,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                     else
                     {
-                        ClrAppDomain domain = AppDomain;
+                        var domain = AppDomain;
                         value = string.Format("{0} for AppDomain {1}: {2}", value, domain.Id, domain.Name);
                     }
                 }
                 else if (HasModuleData)
                 {
-                    string fn = _runtime.GetModule(_domainModuleHeap).FileName;
+                    var fn = _runtime.GetModule(_domainModuleHeap).FileName;
                     value = string.Format("{0} for Module: {1}", value, Path.GetFileName(fn));
                 }
                 else if (HasGCHeapData)
@@ -213,7 +187,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return ToString(false);
         }
 
-        #region Constructors
         internal MemoryRegion(DesktopRuntimeBase clr, ulong addr, ulong size, ClrMemoryRegionType type, ulong moduleOrAppDomain)
         {
             Address = addr;
@@ -249,6 +222,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _domainModuleHeap = heap;
             _segmentType = seg;
         }
-        #endregion
     }
 }

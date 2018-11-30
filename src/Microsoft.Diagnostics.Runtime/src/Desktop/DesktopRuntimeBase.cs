@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
 
@@ -20,22 +20,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         v45
     }
 
-    abstract internal class DesktopRuntimeBase : RuntimeBase
+    internal abstract class DesktopRuntimeBase : RuntimeBase
     {
-        #region Variables
         protected CommonMethodTables _commonMTs;
-        private Dictionary<uint, ICorDebug.ICorDebugThread> _corDebugThreads;
-        private ClrModule[] _moduleList = null;
+        private Dictionary<uint, ICorDebugThread> _corDebugThreads;
+        private ClrModule[] _moduleList;
         private Lazy<List<ClrThread>> _threads;
         private Lazy<DesktopGCHeap> _heap;
         private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
-        private Lazy<Dictionary<ulong, uint>> _moduleSizes;
+        private readonly Lazy<Dictionary<ulong, uint>> _moduleSizes;
         private Dictionary<ulong, DesktopModule> _modules = new Dictionary<ulong, DesktopModule>();
         private Dictionary<string, DesktopModule> _moduleFiles = new Dictionary<string, DesktopModule>();
         private Lazy<ClrModule> _mscorlib;
-        #endregion
 
         internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -48,7 +46,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _mscorlib = new Lazy<ClrModule>(GetMscorlib);
         }
 
-
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
         /// but expect different results.  For example, after walking the heap, you need to call Flush before
@@ -60,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Revision++;
             _dacInterface.Flush();
-            
+
             MemoryReader = null;
             _moduleList = null;
             _modules = new Dictionary<ulong, DesktopModule>();
@@ -74,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ulong GetModuleSize(ulong address)
         {
-            _moduleSizes.Value.TryGetValue(address, out uint size);
+            _moduleSizes.Value.TryGetValue(address, out var size);
             return size;
         }
 
@@ -93,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IGCInfo GetGCInfo()
         {
-            IGCInfo data = GetGCInfoImpl();
+            var data = GetGCInfoImpl();
             if (data == null)
             {
                 throw new ClrDiagnosticsException("This runtime is not initialized and contains no data.", ClrDiagnosticsException.HR.RuntimeUninitialized);
@@ -109,15 +106,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<int> EnumerateGCThreads()
         {
-            foreach (uint thread in _dataReader.EnumerateAllThreads())
+            foreach (var thread in _dataReader.EnumerateAllThreads())
             {
-                ulong teb = _dataReader.GetThreadTeb(thread);
-                int threadType = DesktopThread.GetTlsSlotForThread(this, teb);
-                if ((threadType & (int)DesktopThread.TlsThreadType.ThreadType_GC) == (int)DesktopThread.TlsThreadType.ThreadType_GC)
+                var teb = _dataReader.GetThreadTeb(thread);
+                var threadType = ThreadBase.GetTlsSlotForThread(this, teb);
+                if ((threadType & (int)ThreadBase.TlsThreadType.ThreadType_GC) == (int)ThreadBase.TlsThreadType.ThreadType_GC)
                     yield return (int)thread;
             }
         }
-
 
         /// <summary>
         /// Returns the version of the target process (v2, v4, v45)
@@ -129,25 +125,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// <summary>
         /// Returns the pointer size of the target process.
         /// </summary>
-        public override int PointerSize
-        {
-            get
-            {
-                return IntPtr.Size;
-            }
-        }
+        public override int PointerSize => IntPtr.Size;
 
         /// <summary>
         /// Returns the MethodTable for an array of objects.
         /// </summary>
-        public ulong ArrayMethodTable
-        {
-            get
-            {
-                return _commonMTs.ArrayMethodTable;
-            }
-        }
-
+        public ulong ArrayMethodTable => _commonMTs.ArrayMethodTable;
 
         public override CcwData GetCcwDataByAddress(ulong addr)
         {
@@ -155,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (ccw == null)
                 return null;
 
-            return new DesktopCCWData((DesktopGCHeap)_heap.Value, addr, ccw);
+            return new DesktopCCWData(_heap.Value, addr, ccw);
         }
 
         internal ICorDebugThread GetCorDebugThread(uint osid)
@@ -164,18 +147,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 _corDebugThreads = new Dictionary<uint, ICorDebugThread>();
 
-                ICorDebugProcess process = CorDebugProcess;
+                var process = CorDebugProcess;
                 if (process == null)
                     return null;
 
-                process.EnumerateThreads(out ICorDebugThreadEnum threadEnum);
+                process.EnumerateThreads(out var threadEnum);
 
-                ICorDebugThread[] threads = new ICorDebugThread[1];
-                while (threadEnum.Next(1, threads, out uint fetched) == 0 && fetched == 1)
+                var threads = new ICorDebugThread[1];
+                while (threadEnum.Next(1, threads, out var fetched) == 0 && fetched == 1)
                 {
                     try
                     {
-                        threads[0].GetID(out uint id);
+                        threads[0].GetID(out var id);
                         _corDebugThreads[id] = threads[0];
                     }
                     catch
@@ -184,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            _corDebugThreads.TryGetValue(osid, out ICorDebugThread result);
+            _corDebugThreads.TryGetValue(osid, out var result);
             return result;
         }
 
@@ -193,18 +176,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private List<ClrThread> CreateThreadList()
         {
-            IThreadStoreData threadStore = GetThreadStoreData();
-            ulong finalizer = ulong.MaxValue - 1;
+            var threadStore = GetThreadStoreData();
+            var finalizer = ulong.MaxValue - 1;
             if (threadStore != null)
                 finalizer = threadStore.Finalizer;
 
-            List<ClrThread> threads = new List<ClrThread>();
+            var threads = new List<ClrThread>();
 
-            ulong addr = GetFirstThread();
-            IThreadData thread = GetThread(addr);
+            var addr = GetFirstThread();
+            var thread = GetThread(addr);
 
             // Ensure we don't hit an infinite loop
-            HashSet<ulong> seen = new HashSet<ulong> { addr };
+            var seen = new HashSet<ulong> {addr};
             while (thread != null)
             {
                 threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
@@ -219,45 +202,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return threads;
         }
 
-        public ulong ExceptionMethodTable { get { return _commonMTs.ExceptionMethodTable; } }
-        public ulong ObjectMethodTable
-        {
-            get
-            {
-                return _commonMTs.ObjectMethodTable;
-            }
-        }
+        public ulong ExceptionMethodTable => _commonMTs.ExceptionMethodTable;
+        public ulong ObjectMethodTable => _commonMTs.ObjectMethodTable;
 
         /// <summary>
         /// Returns the MethodTable for string objects.
         /// </summary>
-        public ulong StringMethodTable
-        {
-            get
-            {
-                return _commonMTs.StringMethodTable;
-            }
-        }
+        public ulong StringMethodTable => _commonMTs.StringMethodTable;
 
         /// <summary>
         /// Returns the MethodTable for free space markers.
         /// </summary>
-        public ulong FreeMethodTable
-        {
-            get
-            {
-                return _commonMTs.FreeMethodTable;
-            }
-        }
+        public ulong FreeMethodTable => _commonMTs.FreeMethodTable;
 
         public override ClrHeap Heap => _heap.Value;
-        
+
         private DesktopGCHeap CreateHeap()
         {
             if (HasArrayComponentMethodTables)
                 return new LegacyGCHeap(this);
-            else
-                return  new V46GCHeap(this);
+
+            return new V46GCHeap(this);
         }
 
         public override ClrThreadPool ThreadPool => _threadpool.Value;
@@ -272,11 +237,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (methodHandle == 0)
                 return null;
 
-            IMethodDescData methodDesc = GetMethodDescData(methodHandle);
+            var methodDesc = GetMethodDescData(methodHandle);
             if (methodDesc == null)
                 return null;
 
-            ClrType type = Heap.GetTypeByMethodTable(methodDesc.MethodTable);
+            var type = Heap.GetTypeByMethodTable(methodDesc.MethodTable);
             if (type == null)
                 return null;
 
@@ -296,11 +261,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (ServerGC)
             {
                 heaps = new IHeapDetails[HeapCount];
-                int i = 0;
-                ulong[] heapList = GetServerHeapList();
+                var i = 0;
+                var heapList = GetServerHeapList();
                 if (heapList != null)
                 {
-                    foreach (ulong addr in heapList)
+                    foreach (var addr in heapList)
                     {
                         heaps[i++] = GetSvrHeapDetails(addr);
                         if (i == heaps.Length)
@@ -319,16 +284,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 heaps[0] = GetWksHeapDetails();
             }
 
-            HashSet<ulong> addresses = new HashSet<ulong>();
-            for (int i = 0; i < heaps.Length; ++i)
+            var addresses = new HashSet<ulong>();
+            for (var i = 0; i < heaps.Length; ++i)
             {
                 // Small heap
-                ISegmentData segment = GetSegmentData(heaps[i].FirstHeapSegment);
+                var segment = GetSegmentData(heaps[i].FirstHeapSegment);
                 while (segment != null)
                 {
                     Debug.Assert(segment.Start < segment.Committed);
 
-                    GCSegmentType type = (segment.Address == heaps[i].EphemeralSegment) ? GCSegmentType.Ephemeral : GCSegmentType.Regular;
+                    var type = segment.Address == heaps[i].EphemeralSegment ? GCSegmentType.Ephemeral : GCSegmentType.Regular;
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, type);
 
                     if (segment.Committed <= segment.Reserved)
@@ -338,13 +303,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         break;
                     }
-                    else
-                    {
-                        if (!addresses.Add(segment.Next))
-                            break;
 
-                        segment = GetSegmentData(segment.Next);
-                    }
+                    if (!addresses.Add(segment.Next))
+                        break;
+
+                    segment = GetSegmentData(segment.Next);
                 }
 
                 segment = GetSegmentData(heaps[i].FirstLargeHeapSegment);
@@ -355,27 +318,31 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, GCSegmentType.LargeObject);
 
                     if (segment.Committed <= segment.Reserved)
-                        yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, GCSegmentType.LargeObject);
+                        yield return new MemoryRegion(
+                            this,
+                            segment.Committed,
+                            segment.Reserved - segment.Committed,
+                            ClrMemoryRegionType.ReservedGCSegment,
+                            (uint)i,
+                            GCSegmentType.LargeObject);
 
                     if (segment.Address == segment.Next || segment.Address == 0)
                     {
                         break;
                     }
-                    else
-                    {
-                        if (!addresses.Add(segment.Next))
-                            break;
 
-                        segment = GetSegmentData(segment.Next);
-                    }
+                    if (!addresses.Add(segment.Next))
+                        break;
+
+                    segment = GetSegmentData(segment.Next);
                 }
             }
 
             // Enumerate handle table regions.
-            HashSet<ulong> regions = new HashSet<ulong>();
-            foreach (ClrHandle handle in EnumerateHandles())
+            var regions = new HashSet<ulong>();
+            foreach (var handle in EnumerateHandles())
             {
-                if (!_dataReader.VirtualQuery(handle.Address, out VirtualQueryData vq))
+                if (!_dataReader.VirtualQuery(handle.Address, out var vq))
                     continue;
 
                 if (regions.Contains(vq.BaseAddress))
@@ -386,57 +353,56 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Enumerate each AppDomain and Module specific heap.
-            AppDomainHeapWalker adhw = new AppDomainHeapWalker(this);
-            IAppDomainData ad = GetAppDomainData(SystemDomainAddress);
-            foreach (MemoryRegion region in adhw.EnumerateHeaps(ad))
+            var adhw = new AppDomainHeapWalker(this);
+            var ad = GetAppDomainData(SystemDomainAddress);
+            foreach (var region in adhw.EnumerateHeaps(ad))
                 yield return region;
 
-            foreach (ulong module in EnumerateModules(ad))
-                foreach (MemoryRegion region in adhw.EnumerateModuleHeaps(ad, module))
+            foreach (var module in EnumerateModules(ad))
+                foreach (var region in adhw.EnumerateModuleHeaps(ad, module))
                     yield return region;
 
             ad = GetAppDomainData(SharedDomainAddress);
-            foreach (MemoryRegion region in adhw.EnumerateHeaps(ad))
+            foreach (var region in adhw.EnumerateHeaps(ad))
                 yield return region;
 
-            foreach (ulong module in EnumerateModules(ad))
-                foreach (MemoryRegion region in adhw.EnumerateModuleHeaps(ad, module))
+            foreach (var module in EnumerateModules(ad))
+                foreach (var region in adhw.EnumerateModuleHeaps(ad, module))
                     yield return region;
 
-            IAppDomainStoreData ads = GetAppDomainStoreData();
+            var ads = GetAppDomainStoreData();
             if (ads != null)
             {
-                ulong[] appDomains = GetAppDomainList(ads.Count);
+                var appDomains = GetAppDomainList(ads.Count);
                 if (appDomains != null)
                 {
-                    foreach (ulong addr in appDomains)
+                    foreach (var addr in appDomains)
                     {
                         ad = GetAppDomainData(addr);
-                        foreach (MemoryRegion region in adhw.EnumerateHeaps(ad))
+                        foreach (var region in adhw.EnumerateHeaps(ad))
                             yield return region;
 
-                        foreach (ulong module in EnumerateModules(ad))
-                            foreach (MemoryRegion region in adhw.EnumerateModuleHeaps(ad, module))
+                        foreach (var module in EnumerateModules(ad))
+                            foreach (var region in adhw.EnumerateModuleHeaps(ad, module))
                                 yield return region;
                     }
                 }
             }
 
-
             // Enumerate each JIT code heap.
             regions.Clear();
-            foreach (ICodeHeap jitHeap in EnumerateJitHeaps())
+            foreach (var jitHeap in EnumerateJitHeaps())
             {
                 if (jitHeap.Type == CodeHeapType.Host)
                 {
-                    if (_dataReader.VirtualQuery(jitHeap.Address, out VirtualQueryData vq))
+                    if (_dataReader.VirtualQuery(jitHeap.Address, out var vq))
                         yield return new MemoryRegion(this, vq.BaseAddress, vq.Size, ClrMemoryRegionType.JitHostCodeHeap);
                     else
                         yield return new MemoryRegion(this, jitHeap.Address, 0, ClrMemoryRegionType.JitHostCodeHeap);
                 }
                 else if (jitHeap.Type == CodeHeapType.Loader)
                 {
-                    foreach (MemoryRegion region in adhw.EnumerateJitHeap(jitHeap.Address))
+                    foreach (var region in adhw.EnumerateJitHeap(jitHeap.Address))
                         yield return region;
                 }
             }
@@ -456,7 +422,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrMethod GetMethodByAddress(ulong ip)
         {
-            IMethodDescData mdData = GetMDForIP(ip);
+            var mdData = GetMDForIP(ip);
             if (mdData == null)
                 return null;
 
@@ -467,16 +433,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             // add offset of the m_pHead (tagLockEntry) field
             thread += GetRWLockDataOffset();
-            if (ReadPointer(thread, out ulong firstEntry))
+            if (ReadPointer(thread, out var firstEntry))
             {
-                ulong lockEntry = firstEntry;
-                byte[] output = GetByteArrayForStruct<RWLockData>();
+                var lockEntry = firstEntry;
+                var output = GetByteArrayForStruct<RWLockData>();
                 do
                 {
-                    if (!ReadMemory(lockEntry, output, output.Length, out int read) || read != output.Length)
+                    if (!ReadMemory(lockEntry, output, output.Length, out var read) || read != output.Length)
                         break;
 
-                    IRWLockData result = ConvertStruct<IRWLockData, RWLockData>(output);
+                    var result = ConvertStruct<IRWLockData, RWLockData>(output);
                     if (result != null)
                         yield return result;
 
@@ -488,19 +454,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        #region Internal Functions
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0 || _dataReader.IsMinidump);
 
-            foreach (ClrThread thread in _threads.Value)
+            foreach (var thread in _threads.Value)
             {
-                ulong min = thread.StackBase;
-                ulong max = thread.StackLimit;
+                var min = thread.StackBase;
+                var max = thread.StackLimit;
 
                 if (min > max)
                 {
-                    ulong tmp = min;
+                    var tmp = min;
                     min = max;
                     max = tmp;
                 }
@@ -530,10 +495,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ClrThread GetThreadFromThinlockID(uint threadId)
         {
-            ulong thread = GetThreadFromThinlock(threadId);
+            var thread = GetThreadFromThinlock(threadId);
             if (thread == 0)
                 return null;
-            
+
             foreach (var clrThread in _threads.Value)
                 if (clrThread.Address == thread)
                     return clrThread;
@@ -564,10 +529,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrModule GetMscorlib()
         {
             ClrModule mscorlib = null;
-            string moduleName = ClrInfo.Flavor == ClrFlavor.Core
-                                    ? "system.private.corelib"
-                                    : "mscorlib";
-
+            var moduleName = ClrInfo.Flavor == ClrFlavor.Core
+                ? "system.private.corelib"
+                : "mscorlib";
 
             foreach (ClrModule module in _modules.Values)
                 if (module.Name.ToLowerInvariant().Contains(moduleName))
@@ -578,15 +542,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (mscorlib == null)
             {
-                IAppDomainStoreData ads = GetAppDomainStoreData();
-                IAppDomainData sharedDomain = GetAppDomainData(ads.SharedDomain);
-                foreach (ulong assembly in GetAssemblyList(ads.SharedDomain, sharedDomain.AssemblyCount))
+                var ads = GetAppDomainStoreData();
+                var sharedDomain = GetAppDomainData(ads.SharedDomain);
+                foreach (var assembly in GetAssemblyList(ads.SharedDomain, sharedDomain.AssemblyCount))
                 {
-                    string name = GetAssemblyName(assembly);
+                    var name = GetAssemblyName(assembly);
                     if (name.ToLowerInvariant().Contains(moduleName))
                     {
-                        IAssemblyData assemblyData = GetAssemblyData(ads.SharedDomain, assembly);
-                        ulong module = GetModuleList(assembly, assemblyData.ModuleCount).Single();
+                        var assemblyData = GetAssemblyData(ads.SharedDomain, assembly);
+                        var module = GetModuleList(assembly, assemblyData.ModuleCount).Single();
                         mscorlib = GetModule(module);
                     }
                 }
@@ -595,11 +559,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mscorlib;
         }
 
-        static IEnumerable<ClrModule> UniqueModules(Dictionary<ulong, DesktopModule>.ValueCollection self)
+        private static IEnumerable<ClrModule> UniqueModules(Dictionary<ulong, DesktopModule>.ValueCollection self)
         {
-            HashSet<DesktopModule> set = new HashSet<DesktopModule>();
+            var set = new HashSet<DesktopModule>();
 
-            foreach (DesktopModule value in self)
+            foreach (var value in self)
             {
                 if (set.Contains(value))
                     continue;
@@ -613,28 +577,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (appDomain != null)
             {
-                ulong[] assemblies = GetAssemblyList(appDomain.Address, appDomain.AssemblyCount);
+                var assemblies = GetAssemblyList(appDomain.Address, appDomain.AssemblyCount);
                 if (assemblies != null)
                 {
-                    foreach (ulong assembly in assemblies)
+                    foreach (var assembly in assemblies)
                     {
-                        IAssemblyData data = GetAssemblyData(appDomain.Address, assembly);
+                        var data = GetAssemblyData(appDomain.Address, assembly);
                         if (data == null)
                             continue;
 
-                        ulong[] moduleList = GetModuleList(assembly, (int)data.ModuleCount);
+                        var moduleList = GetModuleList(assembly, data.ModuleCount);
                         if (moduleList != null)
-                            foreach (ulong module in moduleList)
+                            foreach (var module in moduleList)
                                 yield return module;
                     }
                 }
             }
         }
 
-
         private DesktopThreadPool CreateThreadPoolData()
         {
-            IThreadPoolData data = GetThreadPoolData();
+            var data = GetThreadPoolData();
             if (data == null)
                 return null;
 
@@ -643,17 +606,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private DomainContainer CreateAppDomainList()
         {
-            IAppDomainStoreData ads = GetAppDomainStoreData();
+            var ads = GetAppDomainStoreData();
             if (ads == null)
                 return new DomainContainer();
 
-            ulong[] domains = GetAppDomainList(ads.Count);
+            var domains = GetAppDomainList(ads.Count);
             if (domains == null)
                 return new DomainContainer();
 
-            return new DomainContainer()
+            return new DomainContainer
             {
-                Domains = domains.Select(ad=>(ClrAppDomain)InitDomain(ad)).Where(ad => ad != null).ToList(),
+                Domains = domains.Select(ad => (ClrAppDomain)InitDomain(ad)).Where(ad => ad != null).ToList(),
                 Shared = InitDomain(ads.SharedDomain, "Shared Domain"),
                 System = InitDomain(ads.SystemDomain, "System Domain")
             };
@@ -661,26 +624,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private DesktopAppDomain InitDomain(ulong domain, string name = null)
         {
-            ulong[] bases = new ulong[1];
-            IAppDomainData domainData = GetAppDomainData(domain);
+            var bases = new ulong[1];
+            var domainData = GetAppDomainData(domain);
             if (domainData == null)
                 return null;
 
-            DesktopAppDomain appDomain = new DesktopAppDomain(this, domainData, name ?? GetAppDomaminName(domain));
+            var appDomain = new DesktopAppDomain(this, domainData, name ?? GetAppDomaminName(domain));
 
             if (domainData.AssemblyCount > 0)
             {
-                foreach (ulong assembly in GetAssemblyList(domain, domainData.AssemblyCount))
+                foreach (var assembly in GetAssemblyList(domain, domainData.AssemblyCount))
                 {
-                    IAssemblyData assemblyData = GetAssemblyData(domain, assembly);
+                    var assemblyData = GetAssemblyData(domain, assembly);
                     if (assemblyData == null)
                         continue;
 
                     if (assemblyData.ModuleCount > 0)
                     {
-                        foreach (ulong module in GetModuleList(assembly, assemblyData.ModuleCount))
+                        foreach (var module in GetModuleList(assembly, assemblyData.ModuleCount))
                         {
-                            DesktopModule clrModule = GetModule(module);
+                            var clrModule = GetModule(module);
                             if (clrModule != null)
                             {
                                 clrModule.AddMapping(appDomain, module);
@@ -699,15 +662,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (module == 0)
                 return null;
 
-            if (_modules.TryGetValue(module, out DesktopModule res))
+            if (_modules.TryGetValue(module, out var res))
                 return res;
 
-            IModuleData moduleData = GetModuleData(module);
+            var moduleData = GetModuleData(module);
             if (moduleData == null)
                 return null;
-            
-            string peFile = GetPEFileName(moduleData.PEFile);
-            string assemblyName = GetAssemblyName(moduleData.Assembly);
+
+            var peFile = GetPEFileName(moduleData.PEFile);
+            var assemblyName = GetAssemblyName(moduleData.Assembly);
 
             if (peFile == null)
             {
@@ -726,11 +689,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         /// <summary>
-        /// 
         /// Returns the name of the type as specified by the TypeHandle.  Note this returns the name as specified by the
         /// metadata, NOT as you would expect to see it in a C# program.  For example, generics are denoted with a ` and
         /// the number of params.  Thus a Dictionary (with two type params) would look like:
-        ///     System.Collections.Generics.Dictionary`2
+        /// System.Collections.Generics.Dictionary`2
         /// </summary>
         /// <param name="id">The TypeHandle to get the name of.</param>
         /// <returns>The name of the type, or null on error.</returns>
@@ -741,7 +703,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (id.MethodTable == ArrayMethodTable && id.ComponentMethodTable != 0)
             {
-                string name = GetNameForMT(id.ComponentMethodTable);
+                var name = GetNameForMT(id.ComponentMethodTable);
                 if (name != null)
                     return name + "[]";
             }
@@ -749,21 +711,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return GetNameForMT(id.MethodTable);
         }
 
-
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
-            using (ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf))
+            using (var stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf))
             {
                 if (stackwalk == null)
                     yield break;
 
-                byte[] ulongBuffer = new byte[8];
-                byte[] context = ContextHelper.Context;
+                var ulongBuffer = new byte[8];
+                var context = ContextHelper.Context;
                 do
                 {
-                    if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, context))
+                    if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out var size, context))
                         break;
-                    
+
                     ulong ip, sp;
 
                     if (PointerSize == 4)
@@ -776,15 +737,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
                         sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
                     }
-                    
-                    ulong frameVtbl = stackwalk.GetFrameVtable();
+
+                    var frameVtbl = stackwalk.GetFrameVtable();
                     if (frameVtbl != 0)
                     {
                         sp = frameVtbl;
                         ReadPointer(sp, out frameVtbl);
                     }
 
-                    DesktopStackFrame frame = GetStackFrame(thread, ip, sp, frameVtbl);
+                    var frame = GetStackFrame(thread, ip, sp, frameVtbl);
                     yield return frame;
                 } while (stackwalk.Next());
             }
@@ -792,14 +753,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ILToNativeMap[] GetILMap(ulong ip)
         {
-            List<ILToNativeMap> list = new List<ILToNativeMap>();
+            var list = new List<ILToNativeMap>();
 
-            foreach (ClrDataMethod method in _dacInterface.EnumerateMethodInstancesByAddress(ip))
+            foreach (var method in _dacInterface.EnumerateMethodInstancesByAddress(ip))
             {
-                ILToNativeMap[] map = method.GetILToNativeMap();
+                var map = method.GetILToNativeMap();
                 if (map != null)
                 {
-                    for (int i = 0; i < map.Length; i++)
+                    for (var i = 0; i < map.Length; i++)
                     {
                         // There seems to be a bug in IL to native mappings where a throw statement
                         // may end up with an end address lower than the start address.  This is a
@@ -821,10 +782,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return list.ToArray();
         }
-
-        #endregion
-
-        #region Abstract Functions
 
         internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
         internal abstract uint GetExceptionHROffset();
@@ -875,9 +832,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract uint GetStringFirstCharOffset();
         internal abstract uint GetStringLengthOffset();
         internal abstract ulong GetILForModule(ClrModule module, uint rva);
-        #endregion
-        
-        struct DomainContainer
+
+        private struct DomainContainer
         {
             public List<ClrAppDomain> Domains;
             public DesktopAppDomain System;

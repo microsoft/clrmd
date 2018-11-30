@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
-    [Guid("FCE5EFA0-8BBA-4f8e-A036-8F2022B08466"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("FCE5EFA0-8BBA-4f8e-A036-8F2022B08466")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IMetadataImport2 : IMetadataImport
     {
-        #region inheritted methods from IMetadataImport
         // <strip>@todo - check if there will be be better way how to declare IMetadataImport2 interface.
         //       - Would be very nice if we could avoid this (tried deriving from IM, doesn't work).</strip>
         // Need imports from IMetaDataImport to adjust IM2 vtable slots.
@@ -31,9 +32,13 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             [ComAliasName("ULONG*")] out uint pcTypeDefs);
 
         //STDMETHOD(EnumInterfaceImpls)(HCORENUM *phEnum, mdTypeDef td, mdInterfaceImpl rImpls[], ULONG cMax, ULONG* pcImpls) PURE;
-        new int EnumInterfaceImpls(ref IntPtr phEnum, int td,
-                                   [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] int[] rImpls,
-                                   int cMax, out int pCount);
+        new int EnumInterfaceImpls(
+            ref IntPtr phEnum,
+            int td,
+            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
+            int[] rImpls,
+            int cMax,
+            out int pCount);
 
         //STDMETHOD(EnumTypeRefs)(HCORENUM *phEnum, mdTypeRef rTypeRefs[], ULONG cMax, ULONG* pcTypeRefs) PURE;
         new void EnumTypeRefs_();
@@ -43,9 +48,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdToken     tkEnclosingClass,       // [IN] TypeDef/TypeRef for Enclosing class.
         //         mdTypeDef   *ptd) PURE;             // [OUT] Put the TypeDef token here.
         new void FindTypeDefByName(
-            [In, MarshalAs(UnmanagedType.LPWStr)] string szTypeDef,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string szTypeDef,
             [In] int tkEnclosingClass,
-            [ComAliasName("mdTypeDef*")] [Out] out int token
+            [ComAliasName("mdTypeDef*")][Out] out int token
         );
 
         //     STDMETHOD(GetScopeProps)(               // S_OK or error.
@@ -54,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       *pchName,               // [OUT] Put size of name (wide chars) here.
         //         GUID        *pmvid) PURE;           // [OUT, OPTIONAL] Put MVID here.
         new void GetScopeProps(
-            [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
             [In] int cchName,
             [ComAliasName("ULONG*")] out int pchName,
             out Guid mvid
@@ -71,12 +76,13 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       *pchTypeDef,            // [OUT] put size of name (wide chars) here.
         //         DWORD       *pdwTypeDefFlags,       // [OUT] Put flags here.
         //         mdToken     *ptkExtends) PURE;      // [OUT] Put base class TypeDef/TypeRef here.
-        new void GetTypeDefProps([In] int td,
-                                 [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef,
-                                 [In] int cchTypeDef,
-                                 [ComAliasName("ULONG*")] [Out] out int pchTypeDef,
-                                 [Out, MarshalAs(UnmanagedType.U4)] out System.Reflection.TypeAttributes pdwTypeDefFlags,
-                                 [ComAliasName("mdToken*")] [Out] out int ptkExtends
+        new void GetTypeDefProps(
+            [In] int td,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef,
+            [In] int cchTypeDef,
+            [ComAliasName("ULONG*")][Out] out int pchTypeDef,
+            [Out][MarshalAs(UnmanagedType.U4)] out TypeAttributes pdwTypeDefFlags,
+            [ComAliasName("mdToken*")][Out] out int ptkExtends
         );
 
         //     STDMETHOD(GetInterfaceImplProps)(       // S_OK or error.
@@ -94,8 +100,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       *pchName) PURE;         // [OUT] Size of Name.
         new void GetTypeRefProps(
             int tr,
-            [ComAliasName("mdToken*")] [Out] out int ptkResolutionScope,
-            [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
+            [ComAliasName("mdToken*")][Out] out int ptkResolutionScope,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
             [In] int cchName,
             [ComAliasName("ULONG*")] out int pchName
         );
@@ -127,11 +133,12 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdMethodDef rMethods[],             // [OUT] Put MethodDefs here.   
         //         ULONG       cMax,                   // [IN] Max MethodDefs to put.  
         //         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.    
-        new void EnumMethods(ref IntPtr phEnum,
-                             int cl,
-                             [ComAliasName("mdMethodDef*")] out int mdMethodDef,
-                             int cMax, /*must be 1*/
-                             [ComAliasName("ULONG*")] out int pcTokens
+        new void EnumMethods(
+            ref IntPtr phEnum,
+            int cl,
+            [ComAliasName("mdMethodDef*")] out int mdMethodDef,
+            int cMax, /*must be 1*/
+            [ComAliasName("ULONG*")] out int pcTokens
         );
 
         //     STDMETHOD(EnumMethodsWithName)(         // S_OK, S_FALSE, or error.             
@@ -150,11 +157,13 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       cMax,                   // [IN] Max FieldDefs to put.   
         //         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.    
         [PreserveSig]
-        new int EnumFields(ref IntPtr phEnum,
-                           int cl,
-                           [ComAliasName("mdFieldDef*"), MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] int[] mdFieldDef,
-                           int cMax /*must be 1*/,
-                           [ComAliasName("ULONG*")] out int pcTokens);
+        new int EnumFields(
+            ref IntPtr phEnum,
+            int cl,
+            [ComAliasName("mdFieldDef*")][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
+            int[] mdFieldDef,
+            int cMax /*must be 1*/,
+            [ComAliasName("ULONG*")] out int pcTokens);
 
         //     STDMETHOD(EnumFieldsWithName)(         // S_OK, S_FALSE, or error.              
         //         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.                
@@ -171,11 +180,12 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdParamDef  rParams[],              // [OUT] Put ParamDefs here.    
         //         ULONG       cMax,                   // [IN] Max ParamDefs to put.   
         //         ULONG       *pcTokens) PURE;        // [OUT] Put # put here.
-        new void EnumParams(ref IntPtr phEnum,
-                            int mdMethodDef,
-                            [ComAliasName("mdParamDef*")] out int mdParamDef,
-                            int cMax /*must be 1*/,
-                            [ComAliasName("ULONG*")] out uint pcTokens);
+        new void EnumParams(
+            ref IntPtr phEnum,
+            int mdMethodDef,
+            [ComAliasName("mdParamDef*")] out int mdParamDef,
+            int cMax /*must be 1*/,
+            [ComAliasName("ULONG*")] out uint pcTokens);
 
         //     STDMETHOD(EnumMemberRefs)(              // S_OK, S_FALSE, or error. 
         //         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.    
@@ -247,16 +257,18 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       *pulCodeRVA,            // [OUT] codeRVA    
         //         DWORD       *pdwImplFlags) PURE;    // [OUT] Impl. Flags    
         [PreserveSig]
-        new int GetMethodProps([In] uint md,
-                               [ComAliasName("mdTypeDef*")] [Out] out int pClass,
-                               [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szMethod,
-                               [In] int cchMethod,
-                               [ComAliasName("ULONG*")] [Out] out int pchMethod,
-                               [ComAliasName("DWORD*")] [Out] out System.Reflection.MethodAttributes pdwAttr,
-                               [ComAliasName("PCCOR_SIGNATURE*")] [Out] out IntPtr ppvSigBlob,
-                               [ComAliasName("ULONG*")] [Out] out uint pcbSigBlob,
-                               [ComAliasName("ULONG*")] [Out] out uint pulCodeRVA,
-                               [ComAliasName("DWORD*")] [Out] out uint pdwImplFlags
+        new int GetMethodProps(
+            [In] uint md,
+            [ComAliasName("mdTypeDef*")][Out] out int pClass,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szMethod,
+            [In] int cchMethod,
+            [ComAliasName("ULONG*")][Out] out int pchMethod,
+            [ComAliasName("DWORD*")][Out] out MethodAttributes pdwAttr,
+            [ComAliasName("PCCOR_SIGNATURE*")][Out]
+            out IntPtr ppvSigBlob,
+            [ComAliasName("ULONG*")][Out] out uint pcbSigBlob,
+            [ComAliasName("ULONG*")][Out] out uint pulCodeRVA,
+            [ComAliasName("DWORD*")][Out] out uint pdwImplFlags
         );
 
         //     STDMETHOD(GetMemberRefProps)(           // S_OK or error.   
@@ -267,13 +279,15 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       *pchMember,             // [OUT] actual count of char in member name    
         //         PCCOR_SIGNATURE *ppvSigBlob,        // [OUT] point to meta data blob value  
         //         ULONG       *pbSig) PURE;           // [OUT] actual size of signature blob  
-        new void GetMemberRefProps([In] uint mr,
-                                   [ComAliasName("mdMemberRef*")] [Out] out int ptk,
-                                   [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szMember,
-                                   [In] int cchMember,
-                                   [ComAliasName("ULONG*")] [Out] out uint pchMember,
-                                   [ComAliasName("PCCOR_SIGNATURE*")] [Out] out IntPtr ppvSigBlob,
-                                   [ComAliasName("ULONG*")] [Out] out int pbSig
+        new void GetMemberRefProps(
+            [In] uint mr,
+            [ComAliasName("mdMemberRef*")][Out] out int ptk,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szMember,
+            [In] int cchMember,
+            [ComAliasName("ULONG*")][Out] out uint pchMember,
+            [ComAliasName("PCCOR_SIGNATURE*")][Out]
+            out IntPtr ppvSigBlob,
+            [ComAliasName("ULONG*")][Out] out int pbSig
         );
 
         //     STDMETHOD(EnumProperties)(              // S_OK, S_FALSE, or error. 
@@ -282,11 +296,12 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdProperty  rProperties[],          // [OUT] Put Properties here.   
         //         ULONG       cMax,                   // [IN] Max properties to put.  
         //         ULONG       *pcProperties) PURE;    // [OUT] Put # put here.    
-        new void EnumProperties(ref IntPtr phEnum,
-                                int mdTypeDef,
-                                [ComAliasName("mdPropertyDef*")] out int mdPropertyDef,
-                                int countMax /*must be 1*/,
-                                [ComAliasName("ULONG*")] out uint pcTokens);
+        new void EnumProperties(
+            ref IntPtr phEnum,
+            int mdTypeDef,
+            [ComAliasName("mdPropertyDef*")] out int mdPropertyDef,
+            int countMax /*must be 1*/,
+            [ComAliasName("ULONG*")] out uint pcTokens);
 
         //     STDMETHOD(EnumEvents)(                  // S_OK, S_FALSE, or error. 
         //         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.    
@@ -387,7 +402,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         MDUTF8CSTR  *pszUtf8NamePtr) PURE;  // [OUT] Return pointer to UTF8 name in heap.
         new void GetNameFromToken_();
 
-
         //     STDMETHOD(EnumUnresolvedMethods)(       // S_OK, S_FALSE, or error. 
         //         HCORENUM    *phEnum,                // [IN|OUT] Pointer to the enum.    
         //         mdToken     rMethods[],             // [OUT] Put MemberDefs here.   
@@ -400,10 +414,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         LPWSTR      szString,               // [OUT] Copy of string.
         //         ULONG       cchString,              // [IN] Max chars of room in szString.
         //         ULONG       *pchString) PURE;       // [OUT] How many chars in actual string.
-        new void GetUserString([In] int stk,
-                               [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szString,
-                               [In] int cchString,
-                               [ComAliasName("ULONG*")] out int pchString
+        new void GetUserString(
+            [In] int stk,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szString,
+            [In] int cchString,
+            [ComAliasName("ULONG*")] out int pchString
         );
 
         //     STDMETHOD(GetPinvokeMap)(               // S_OK or error.
@@ -449,12 +464,13 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdCustomAttribute rCustomAttributes[], // [OUT] Put custom attribute tokens here.
         //         ULONG       cMax,                   // [IN] Size of rCustomAttributes.
         //         ULONG       *pcCustomAttributes) PURE;  // [OUT, OPTIONAL] Put count of token values here.
-        new void EnumCustomAttributes(ref IntPtr phEnum,
-                                      int tk,
-                                      int tkType,
-                                      [ComAliasName("mdCustomAttribute*")]out int mdCustomAttribute,
-                                      uint cMax /*must be 1*/,
-                                      [ComAliasName("ULONG*")]out uint pcTokens
+        new void EnumCustomAttributes(
+            ref IntPtr phEnum,
+            int tk,
+            int tkType,
+            [ComAliasName("mdCustomAttribute*")] out int mdCustomAttribute,
+            uint cMax /*must be 1*/,
+            [ComAliasName("ULONG*")] out uint pcTokens
         );
 
         //     STDMETHOD(GetCustomAttributeProps)(     // S_OK or error.
@@ -499,17 +515,18 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         DWORD       *pdwCPlusTypeFlag,      // [OUT] flag for value type. selected ELEMENT_TYPE_*   
         //         void const  **ppValue,              // [OUT] constant value 
         //         ULONG       *pcchValue) PURE;       // [OUT] size of constant string in chars, 0 for non-strings.
-        new void GetFieldProps(int mb,
-                               [ComAliasName("mdTypeDef*")] out int mdTypeDef,
-                               [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField,
-                               int cchField,
-                               [ComAliasName("ULONG*")] out int pchField,
-                               [ComAliasName("DWORD*")] out System.Reflection.FieldAttributes pdwAttr,
-                               [ComAliasName("PCCOR_SIGNATURE*")] out IntPtr ppvSigBlob,
-                               [ComAliasName("ULONG*")] out int pcbSigBlob,
-                               [ComAliasName("DWORD*")] out int pdwCPlusTypeFlab,
-                               [ComAliasName("UVCP_CONSTANT*")] out IntPtr ppValue,
-                               [ComAliasName("ULONG*")] out int pcchValue
+        new void GetFieldProps(
+            int mb,
+            [ComAliasName("mdTypeDef*")] out int mdTypeDef,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField,
+            int cchField,
+            [ComAliasName("ULONG*")] out int pchField,
+            [ComAliasName("DWORD*")] out FieldAttributes pdwAttr,
+            [ComAliasName("PCCOR_SIGNATURE*")] out IntPtr ppvSigBlob,
+            [ComAliasName("ULONG*")] out int pcbSigBlob,
+            [ComAliasName("DWORD*")] out int pdwCPlusTypeFlab,
+            [ComAliasName("UVCP_CONSTANT*")] out IntPtr ppValue,
+            [ComAliasName("ULONG*")] out int pcchValue
         );
 
         //     STDMETHOD(GetPropertyProps)(            // S_OK, S_FALSE, or error. 
@@ -529,24 +546,24 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         mdMethodDef rmdOtherMethod[],       // [OUT] other method of the property   
         //         ULONG       cMax,                   // [IN] size of rmdOtherMethod  
         //         ULONG       *pcOtherMethod) PURE;   // [OUT] total number of other method of this property
-        new void GetPropertyProps(int mb,
-                                  [ComAliasName("mdTypeDef*")] out int mdTypeDef,
-                                  [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szProperty,
-                                  int cchProperty,
-                                  [ComAliasName("ULONG*")] out int pchProperty,
-                                  [ComAliasName("DWORD*")] out int pdwPropFlags,
-                                  [ComAliasName("PCCOR_SIGNATURE*")] out IntPtr ppvSigBlob,
-                                  [ComAliasName("ULONG*")] out int pcbSigBlob,
-                                  [ComAliasName("DWORD*")] out int pdwCPlusTypeFlag,
-                                  [ComAliasName("UVCP_CONSTANT*")] out IntPtr ppDefaultValue,
-                                  [ComAliasName("ULONG*")] out int pcchDefaultValue,
-                                  [ComAliasName("mdMethodDef*")] out int mdSetter,
-                                  [ComAliasName("mdMethodDef*")] out int mdGetter,
-                                  [ComAliasName("mdMethodDef*")] out int rmdOtherMethod,
-                                  [ComAliasName("ULONG")] int cMax, /* must be 1 */
-                                  [ComAliasName("ULONG*")] out int pcOtherMethod
+        new void GetPropertyProps(
+            int mb,
+            [ComAliasName("mdTypeDef*")] out int mdTypeDef,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szProperty,
+            int cchProperty,
+            [ComAliasName("ULONG*")] out int pchProperty,
+            [ComAliasName("DWORD*")] out int pdwPropFlags,
+            [ComAliasName("PCCOR_SIGNATURE*")] out IntPtr ppvSigBlob,
+            [ComAliasName("ULONG*")] out int pcbSigBlob,
+            [ComAliasName("DWORD*")] out int pdwCPlusTypeFlag,
+            [ComAliasName("UVCP_CONSTANT*")] out IntPtr ppDefaultValue,
+            [ComAliasName("ULONG*")] out int pcchDefaultValue,
+            [ComAliasName("mdMethodDef*")] out int mdSetter,
+            [ComAliasName("mdMethodDef*")] out int mdGetter,
+            [ComAliasName("mdMethodDef*")] out int rmdOtherMethod,
+            [ComAliasName("ULONG")] int cMax, /* must be 1 */
+            [ComAliasName("ULONG*")] out int pcOtherMethod
         );
-
 
         //     STDMETHOD(GetParamProps)(               // S_OK or error.
         //         mdParamDef  tk,                     // [IN]The Parameter.
@@ -559,16 +576,17 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         DWORD       *pdwCPlusTypeFlag,      // [OUT] Flag for value type. selected ELEMENT_TYPE_*.
         //         void const  **ppValue,              // [OUT] Constant value.
         //         ULONG       *pcchValue) PURE;       // [OUT] size of constant string in chars, 0 for non-strings.
-        new void GetParamProps(int tk,
-                               [ComAliasName("mdMethodDef*")] out int pmd,
-                               [ComAliasName("ULONG*")] out uint pulSequence,
-                               [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
-                               uint cchName,
-                               [ComAliasName("ULONG*")] out uint pchName,
-                               [ComAliasName("DWORD*")] out uint pdwAttr,
-                               [ComAliasName("DWORD*")] out uint pdwCPlusTypeFlag,
-                               [ComAliasName("UVCP_CONSTANT*")] out IntPtr ppValue,
-                               [ComAliasName("ULONG*")] out uint pcchValue
+        new void GetParamProps(
+            int tk,
+            [ComAliasName("mdMethodDef*")] out int pmd,
+            [ComAliasName("ULONG*")] out uint pulSequence,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
+            uint cchName,
+            [ComAliasName("ULONG*")] out uint pchName,
+            [ComAliasName("DWORD*")] out uint pdwAttr,
+            [ComAliasName("DWORD*")] out uint pdwCPlusTypeFlag,
+            [ComAliasName("UVCP_CONSTANT*")] out IntPtr ppValue,
+            [ComAliasName("ULONG*")] out uint pcchValue
         );
 
         //     STDMETHOD(GetCustomAttributeByName)(    // S_OK or error.
@@ -579,14 +597,14 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         [PreserveSig]
         new int GetCustomAttributeByName(
             int tkObj,
-            [MarshalAs(UnmanagedType.LPWStr)]string szName,
+            [MarshalAs(UnmanagedType.LPWStr)] string szName,
             out IntPtr ppData,
             out uint pcbData);
 
         //     STDMETHOD_(BOOL, IsValidToken)(         // True or False.
         //         mdToken     tk) PURE;               // [IN] Given token.
         [PreserveSig]
-        new bool IsValidToken([In, MarshalAs(UnmanagedType.U4)] uint tk);
+        new bool IsValidToken([In][MarshalAs(UnmanagedType.U4)] uint tk);
 
         //     STDMETHOD(GetNestedClassProps)(         // S_OK or error.
         //         mdTypeDef   tdNestedClass,          // [IN] NestedClass token.
@@ -599,12 +617,10 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         ULONG       *pCallConv) PURE;       // [OUT] Put calling conv here (see CorPinvokemap).
         new void GetNativeCallConvFromSig_();
 
-
         //     STDMETHOD(IsGlobal)(                    // S_OK or error.
         //         mdToken     pd,                     // [IN] Type, Field, or Method token.
         //         int         *pbGlobal) PURE;        // [OUT] Put 1 if global, 0 otherwise.
         new void IsGlobal_();
-        #endregion // inheritted methods from IMetadataImport
 
         //-----------------------------------------------------------------------------
         // Begin IMetaDataImport2
@@ -635,14 +651,15 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         LPWSTR       wzname,                // [OUT] Put name here
         //         ULONG        cchName,               // [IN] Size of buffer
         //         ULONG        *pchName) PURE;        // [OUT] Put size of name (wide chars) here.
-        void GetGenericParamProps(int gp,
-                                  [ComAliasName("ULONG*")] out uint pulParamSeq,
-                                  [ComAliasName("DWORD*")] out int pdwParamFlags,
-                                  [ComAliasName("mdToken*")] out int ptOwner,
-                                  [ComAliasName("mdToken*")] out int ptkKind,
-                                  [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder wzName,
-                                  ulong cchName,
-                                  [ComAliasName("ULONG*")] out ulong pchName
+        void GetGenericParamProps(
+            int gp,
+            [ComAliasName("ULONG*")] out uint pulParamSeq,
+            [ComAliasName("DWORD*")] out int pdwParamFlags,
+            [ComAliasName("mdToken*")] out int ptOwner,
+            [ComAliasName("mdToken*")] out int ptkKind,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder wzName,
+            ulong cchName,
+            [ComAliasName("ULONG*")] out ulong pchName
         );
 
         //         STDMETHOD(GetMethodSpecProps)(
@@ -651,10 +668,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         //         PCCOR_SIGNATURE *ppvSigBlob,        // [OUT] point to the blob value of meta data   
         //         ULONG       *pcbSigBlob) PURE;      // [OUT] actual size of signature blob  
 
-        void GetMethodSpecProps([ComAliasName("mdMethodSpec")] int mi,
-                                [ComAliasName("mdToken*")] out int tkParent,
-                                [ComAliasName("PCCOR_SIGNATURE*")] out IntPtr ppvSigBlob,
-                                [ComAliasName("ULONG*")] out int pcbSigBlob
+        void GetMethodSpecProps(
+            [ComAliasName("mdMethodSpec")] int mi,
+            [ComAliasName("mdToken*")] out int tkParent,
+            [ComAliasName("PCCOR_SIGNATURE*")] out IntPtr ppvSigBlob,
+            [ComAliasName("ULONG*")] out int pcbSigBlob
         );
 
         //         STDMETHOD(EnumGenericParamConstraints)(

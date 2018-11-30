@@ -5,6 +5,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [Flags]
     public enum DEBUG_WAIT : uint
     {
-        DEFAULT = 0,
+        DEFAULT = 0
     }
 }

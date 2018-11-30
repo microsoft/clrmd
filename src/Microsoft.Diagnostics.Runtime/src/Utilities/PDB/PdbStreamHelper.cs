@@ -9,8 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
     {
         internal PdbStreamHelper(Stream reader, int pageSize)
         {
-            this.PageSize = pageSize;
-            this.Reader = reader;
+            PageSize = pageSize;
+            Reader = reader;
         }
 
         internal void Seek(int page, int offset)
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal int PagesFromSize(int size)
         {
-            return (size + PageSize - 1) / (PageSize);
+            return (size + PageSize - 1) / PageSize;
         }
 
         internal readonly int PageSize;

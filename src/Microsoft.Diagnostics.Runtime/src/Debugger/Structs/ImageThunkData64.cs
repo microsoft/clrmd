@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,12 +6,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct IMAGE_THUNK_DATA64
     {
         [FieldOffset(0)]
-        public UInt64 ForwarderString; // PBYTE
+        public ulong ForwarderString; // PBYTE
         [FieldOffset(0)]
-        public UInt64 Function; // PDWORD
+        public ulong Function; // PDWORD
         [FieldOffset(0)]
-        public UInt64 Ordinal;
+        public ulong Ordinal;
         [FieldOffset(0)]
-        public UInt64 AddressOfData; // PIMAGE_IMPORT_BY_NAME
+        public ulong AddressOfData; // PIMAGE_IMPORT_BY_NAME
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,18 +6,18 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct IMAGE_FILE_HEADER
     {
         [FieldOffset(0)]
-        public UInt16 Machine;
+        public ushort Machine;
         [FieldOffset(2)]
-        public UInt16 NumberOfSections;
+        public ushort NumberOfSections;
         [FieldOffset(4)]
-        public UInt32 TimeDateStamp;
+        public uint TimeDateStamp;
         [FieldOffset(8)]
-        public UInt32 PointerToSymbolTable;
+        public uint PointerToSymbolTable;
         [FieldOffset(12)]
-        public UInt32 NumberOfSymbols;
+        public uint NumberOfSymbols;
         [FieldOffset(16)]
-        public UInt16 SizeOfOptionalHeader;
+        public ushort SizeOfOptionalHeader;
         [FieldOffset(18)]
-        public UInt16 Characteristics;
+        public ushort Characteristics;
     }
 }

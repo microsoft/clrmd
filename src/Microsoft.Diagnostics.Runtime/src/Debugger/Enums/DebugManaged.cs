@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         DISABLED = 0,
         ALLOWED = 1,
-        DLL_LOADED = 2,
+        DLL_LOADED = 2
     }
 }

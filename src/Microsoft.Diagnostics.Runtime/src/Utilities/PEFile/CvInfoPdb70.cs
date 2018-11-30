@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -15,8 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 fixed (byte* ptr = bytePdbFileName)
-                    return System.Runtime.InteropServices.Marshal.PtrToStringAnsi((IntPtr)ptr);
+                    return Marshal.PtrToStringAnsi((IntPtr)ptr);
             }
         }
-    };
+    }
 }

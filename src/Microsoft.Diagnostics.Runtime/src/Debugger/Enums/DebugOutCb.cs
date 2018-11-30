@@ -4,6 +4,6 @@
     {
         TEXT = 0,
         DML = 1,
-        EXPLICIT_FLUSH = 2,
+        EXPLICIT_FLUSH = 2
     }
 }

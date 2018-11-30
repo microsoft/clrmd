@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -18,35 +18,35 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The version number of this runtime.
         /// </summary>
-        public VersionInfo Version { get { return ModuleInfo.Version; } }
+        public VersionInfo Version => ModuleInfo.Version;
 
         /// <summary>
         /// The type of CLR this module represents.
         /// </summary>
-        public ClrFlavor Flavor { get; private set; }
+        public ClrFlavor Flavor { get; }
 
         /// <summary>
         /// Returns module information about the Dac needed create a ClrRuntime instance for this runtime.
         /// </summary>
-        public DacInfo DacInfo { get; private set; }
+        public DacInfo DacInfo { get; }
 
         /// <summary>
         /// Returns module information about the ClrInstance.
         /// </summary>
-        public ModuleInfo ModuleInfo { get; private set; }
+        public ModuleInfo ModuleInfo { get; }
 
         /// <summary>
         /// Returns the location of the local dac on your machine which matches this version of Clr, or null
         /// if one could not be found.
         /// </summary>
-        public string LocalMatchingDac { get { return _dacLocation; } }
-        
+        public string LocalMatchingDac { get; }
+
         /// <summary>
         /// Creates a runtime from the given Dac file on disk.
         /// </summary>
         public ClrRuntime CreateRuntime()
         {
-            string dac = _dacLocation;
+            var dac = LocalMatchingDac;
             if (dac != null && !File.Exists(dac))
                 dac = null;
 
@@ -67,23 +67,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrRuntime CreateRuntime(object clrDataProcess)
         {
-            DacLibrary lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
+            var lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
 
             // Figure out what version we are on.
             if (lib.GetSOSInterfaceNoAddRef() != null)
             {
                 return new V45Runtime(this, _dataTarget, lib);
             }
-            else
-            {
-                byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
 
-                int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
-                if ((uint)val == 0x80070057)
-                    return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v4, 10000);
-                else
-                    return new LegacyRuntime(this, _dataTarget, lib, Desktop.DesktopVersion.v2, 3054);
-            }
+            var buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
+
+            var val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+            if ((uint)val == 0x80070057)
+                return new LegacyRuntime(this, _dataTarget, lib, DesktopVersion.v4, 10000);
+
+            return new LegacyRuntime(this, _dataTarget, lib, DesktopVersion.v2, 3054);
         }
 
         /// <summary>
@@ -102,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!ignoreMismatch)
             {
-                DataTarget.PlatformFunctions.GetFileVersion(dacFilename, out int major, out int minor, out int revision, out int patch);
+                DataTarget.PlatformFunctions.GetFileVersion(dacFilename, out var major, out var minor, out var revision, out var patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException(string.Format("Mismatched dac. Version: {0}.{1}.{2}.{3}", major, minor, revision, patch));
             }
@@ -119,28 +117,29 @@ namespace Microsoft.Diagnostics.Runtime
             if (_dataTarget.IsMinidump)
                 _dataTarget.SymbolLocator.PrefetchBinary(ModuleInfo.FileName, (int)ModuleInfo.TimeStamp, (int)ModuleInfo.FileSize);
 
-            DacLibrary lib = new DacLibrary(_dataTarget, dac);
+            var lib = new DacLibrary(_dataTarget, dac);
 
-            Desktop.DesktopVersion ver;
+            DesktopVersion ver;
             if (Flavor == ClrFlavor.Core)
             {
-                return new Desktop.V45Runtime(this, _dataTarget, lib);
+                return new V45Runtime(this, _dataTarget, lib);
             }
-            else if (Version.Major == 2)
+
+            if (Version.Major == 2)
             {
-                ver = Desktop.DesktopVersion.v2;
+                ver = DesktopVersion.v2;
             }
             else if (Version.Major == 4 && Version.Minor == 0 && Version.Patch < 10000)
             {
-                ver = Desktop.DesktopVersion.v4;
+                ver = DesktopVersion.v4;
             }
             else
             {
                 // Assume future versions will all work on the newest runtime version.
-                return new Desktop.V45Runtime(this, _dataTarget, lib);
+                return new V45Runtime(this, _dataTarget, lib);
             }
 
-            return new Desktop.LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
+            return new LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
         }
 
         /// <summary>
@@ -161,15 +160,14 @@ namespace Microsoft.Diagnostics.Runtime
             ModuleInfo = module;
             module.IsRuntime = true;
             _dataTarget = dt;
-            _dacLocation = dacLocation;
+            LocalMatchingDac = dacLocation;
         }
 
         internal ClrInfo()
         {
         }
 
-        private string _dacLocation;
-        private DataTargetImpl _dataTarget;
+        private readonly DataTargetImpl _dataTarget;
 
         /// <summary>
         /// IComparable.  Sorts the object by version.
@@ -184,18 +182,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (!(obj is ClrInfo))
                 throw new InvalidOperationException("Object not ClrInfo.");
 
-            ClrFlavor flv = ((ClrInfo)obj).Flavor;
+            var flv = ((ClrInfo)obj).Flavor;
             if (flv != Flavor)
-                return flv.CompareTo(Flavor);  // Intentionally reversed.
+                return flv.CompareTo(Flavor); // Intentionally reversed.
 
-            VersionInfo rhs = ((ClrInfo)obj).Version;
+            var rhs = ((ClrInfo)obj).Version;
             if (Version.Major != rhs.Major)
                 return Version.Major.CompareTo(rhs.Major);
 
-
             if (Version.Minor != rhs.Minor)
                 return Version.Minor.CompareTo(rhs.Minor);
-
 
             if (Version.Revision != rhs.Revision)
                 return Version.Revision.CompareTo(rhs.Revision);

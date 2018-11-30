@@ -6,6 +6,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public enum DEBUG_MANRESET : uint
     {
         DEFAULT = 0,
-        LOAD_DLL = 1,
+        LOAD_DLL = 1
     }
 }

@@ -1,57 +1,59 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 
 #pragma warning disable 1591
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("ce289126-9e84-45a7-937e-67bb18691493")]
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("ce289126-9e84-45a7-937e-67bb18691493")]
     public interface IDebugRegisters
     {
         [PreserveSig]
         int GetNumberRegisters(
-            [Out] out UInt32 Number);
+            [Out] out uint Number);
 
         [PreserveSig]
         int GetDescription(
-            [In] UInt32 Register,
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] Int32 NameBufferSize,
-            [Out] out UInt32 NameSize,
+            [In] uint Register,
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
+            [In] int NameBufferSize,
+            [Out] out uint NameSize,
             [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         int GetIndexByName(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out UInt32 Index);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Name,
+            [Out] out uint Index);
 
         [PreserveSig]
         int GetValue(
-            [In] UInt32 Register,
+            [In] uint Register,
             [Out] out DEBUG_VALUE Value);
 
         [PreserveSig]
         int SetValue(
-            [In] UInt32 Register,
+            [In] uint Register,
             [In] ref DEBUG_VALUE Value);
 
         [PreserveSig]
         int GetValues( //FIX ME!!! This needs to be tested
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [Out, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            DEBUG_VALUE[] Values);
 
         [PreserveSig]
         int SetValues(
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [In, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
 
         [PreserveSig]
         int OutputRegisters(
@@ -60,14 +62,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetInstructionOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
 
         [PreserveSig]
         int GetStackOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
 
         [PreserveSig]
         int GetFrameOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
     }
 }

@@ -10,6 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         ALLOW_LOWER = 2,
         ALLOW_HIGHER = 4,
         NEAREST_ONLY = 8,
-        INLINE_CALLSITE = 0x10,
+        INLINE_CALLSITE = 0x10
     }
 }

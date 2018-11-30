@@ -11,6 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         IS_ARRAY = 0x40,
         IS_FLOAT = 0x80,
         IS_ARGUMENT = 0x100,
-        IS_LOCAL = 0x200,
+        IS_LOCAL = 0x200
     }
 }

@@ -10,5 +10,5 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public int numFields;
         public int boxOffset;
         public CorElementType type;
-    };
+    }
 }

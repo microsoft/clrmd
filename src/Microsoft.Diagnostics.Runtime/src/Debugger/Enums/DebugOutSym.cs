@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         DEFAULT = 0,
         FORCE_OFFSET = 1,
         SOURCE_LINE = 2,
-        ALLOW_DISPLACEMENT = 4,
+        ALLOW_DISPLACEMENT = 4
     }
 }

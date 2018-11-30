@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         EXPLICIT_FLUSH = 1,
         DML_HAS_TAGS = 2,
-        DML_HAS_SPECIAL_CHARACTERS = 4,
+        DML_HAS_SPECIAL_CHARACTERS = 4
     }
 }

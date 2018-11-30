@@ -7,8 +7,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct ArrayRankHandle : IEquatable<ArrayRankHandle>
     {
-        private ClrElementType _type;
-        private int _ranks;
+        private readonly ClrElementType _type;
+        private readonly int _ranks;
 
         public ArrayRankHandle(ClrElementType eltype, int ranks)
         {

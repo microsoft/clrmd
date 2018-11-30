@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -7,19 +6,19 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public unsafe struct DEBUG_STACK_FRAME_EX
     {
         /* DEBUG_STACK_FRAME */
-        public UInt64 InstructionOffset;
-        public UInt64 ReturnOffset;
-        public UInt64 FrameOffset;
-        public UInt64 StackOffset;
-        public UInt64 FuncTableEntry;
-        public fixed UInt64 Params[4];
-        public fixed UInt64 Reserved[6];
-        public UInt32 Virtual;
-        public UInt32 FrameNumber;
+        public ulong InstructionOffset;
+        public ulong ReturnOffset;
+        public ulong FrameOffset;
+        public ulong StackOffset;
+        public ulong FuncTableEntry;
+        public fixed ulong Params[4];
+        public fixed ulong Reserved[6];
+        public uint Virtual;
+        public uint FrameNumber;
 
         /* DEBUG_STACK_FRAME_EX */
-        public UInt32 InlineFrameContext;
-        public UInt32 Reserved1;
+        public uint InlineFrameContext;
+        public uint Reserved1;
 
         public DEBUG_STACK_FRAME_EX(DEBUG_STACK_FRAME dsf)
         {
@@ -28,16 +27,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             FrameOffset = dsf.FrameOffset;
             StackOffset = dsf.StackOffset;
             FuncTableEntry = dsf.FuncTableEntry;
-            fixed (UInt64* pParams = Params)
-            {
-                for (int i = 0; i < 4; ++i)
-                    pParams[i] = dsf.Params[i];
-            }
-            fixed (UInt64* pReserved = Reserved)
-            {
-                for (int i = 0; i < 6; ++i)
-                    pReserved[i] = dsf.Reserved[i];
-            }
+            for (var i = 0; i < 4; ++i)
+                Params[i] = dsf.Params[i];
+            for (var i = 0; i < 6; ++i)
+                Reserved[i] = dsf.Reserved[i];
             Virtual = dsf.Virtual;
             FrameNumber = dsf.FrameNumber;
             InlineFrameContext = 0xFFFFFFFF;

@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
         /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
         bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead);
-        
+
         /// <summary>
         /// Returns true if the data target is a minidump (or otherwise may not contain full heap data).
         /// </summary>
@@ -114,15 +114,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Read a pointer out of the target process.
         /// </summary>
-        /// <returns>The pointer at the give address, or 0 if that pointer doesn't exist in
-        /// the data target.</returns>
+        /// <returns>
+        /// The pointer at the give address, or 0 if that pointer doesn't exist in
+        /// the data target.
+        /// </returns>
         ulong ReadPointerUnsafe(ulong addr);
 
         /// <summary>
         /// Read an int out of the target process.
         /// </summary>
-        /// <returns>The int at the give address, or 0 if that pointer doesn't exist in
-        /// the data target.</returns>
+        /// <returns>
+        /// The int at the give address, or 0 if that pointer doesn't exist in
+        /// the data target.
+        /// </returns>
         uint ReadDwordUnsafe(ulong addr);
     }
 }

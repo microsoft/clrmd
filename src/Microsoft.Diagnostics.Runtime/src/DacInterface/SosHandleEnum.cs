@@ -1,10 +1,5 @@
-﻿using Microsoft.Diagnostics.Runtime.Desktop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -17,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, ref IID_ISOSHandleEnum, pUnk)
         {
-            ISOSHandleEnumVTable* vtable = (ISOSHandleEnumVTable*)_vtable;
+            var vtable = (ISOSHandleEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);
         }
 
@@ -26,17 +21,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (handles == null)
                 throw new ArgumentNullException(nameof(handles));
 
-            int hr = _next(Self, handles.Length, handles, out int read);
+            var hr = _next(Self, handles.Length, handles, out var read);
             return hr >= S_OK ? read : 0;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int Next(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] stackRefs, out int pNeeded);
+        private delegate int Next(
+            IntPtr self,
+            int count,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            HandleData[] stackRefs,
+            out int pNeeded);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
+
     internal struct ISOSHandleEnumVTable
     {
         private readonly IntPtr Skip;

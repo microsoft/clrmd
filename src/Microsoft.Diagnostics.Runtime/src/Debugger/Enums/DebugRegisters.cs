@@ -9,6 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         INT32 = 1,
         INT64 = 2,
         FLOAT = 4,
-        ALL = 7,
+        ALL = 7
     }
 }
