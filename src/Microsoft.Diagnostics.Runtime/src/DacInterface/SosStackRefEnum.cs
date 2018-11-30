@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SosStackRefEnum(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, ref IID_ISOSStackRefEnum, pUnk)
         {
-            var vtable = (ISOSStackRefEnumVTable*)_vtable;
+            ISOSStackRefEnumVTable* vtable = (ISOSStackRefEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);
         }
 
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (stackRefs == null)
                 throw new ArgumentNullException(nameof(stackRefs));
 
-            var hr = _next(Self, stackRefs.Length, stackRefs, out var read);
+            int hr = _next(Self, stackRefs.Length, stackRefs, out int read);
             return hr >= S_OK ? read : 0;
         }
 

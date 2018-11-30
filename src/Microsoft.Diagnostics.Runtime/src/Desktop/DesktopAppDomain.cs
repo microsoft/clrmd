@@ -35,11 +35,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                var appBase = _runtime.GetAppBase(_address);
+                string appBase = _runtime.GetAppBase(_address);
                 if (string.IsNullOrEmpty(appBase))
                     return null;
 
-                var uri = new Uri(appBase);
+                Uri uri = new Uri(appBase);
                 try
                 {
                     return uri.AbsolutePath.Replace('/', '\\');

@@ -26,10 +26,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void Append(Stream stream, int count)
         {
-            var newCapacity = Position + count;
+            int newCapacity = Position + count;
             if (Buffer.Length < newCapacity)
             {
-                var newBuffer = new byte[newCapacity];
+                byte[] newBuffer = new byte[newCapacity];
                 Array.Copy(Buffer, newBuffer, Buffer.Length);
                 Buffer = newBuffer;
             }
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadInt32(int[] values)
         {
-            for (var i = 0; i < values.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
                 ReadInt32(out values[i]);
             }
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadUInt32(uint[] values)
         {
-            for (var i = 0; i < values.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
                 ReadUInt32(out values[i]);
             }
@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadBytes(byte[] bytes)
         {
-            for (var i = 0; i < bytes.Length; i++)
+            for (int i = 0; i < bytes.Length; i++)
             {
                 bytes[i] = Buffer[Position++];
             }
@@ -179,21 +179,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal float ReadFloat()
         {
-            var result = BitConverter.ToSingle(Buffer, Position);
+            float result = BitConverter.ToSingle(Buffer, Position);
             Position += 4;
             return result;
         }
 
         internal double ReadDouble()
         {
-            var result = BitConverter.ToDouble(Buffer, Position);
+            double result = BitConverter.ToDouble(Buffer, Position);
             Position += 8;
             return result;
         }
 
         internal decimal ReadDecimal()
         {
-            var bits = new int[4];
+            int[] bits = new int[4];
             ReadInt32(bits);
             return new decimal(bits[2], bits[3], bits[1], bits[0] < 0, (byte)((bits[0] & 0x00FF0000) >> 16));
         }
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadCString(out string value)
         {
-            var len = 0;
+            int len = 0;
             while (Position + len < Buffer.Length && Buffer[Position + len] != 0)
             {
                 len++;
@@ -220,7 +220,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void SkipCString(out string value)
         {
-            var len = 0;
+            int len = 0;
             while (Position + len < Buffer.Length && Buffer[Position + len] != 0)
             {
                 len++;
@@ -232,30 +232,30 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal void ReadGuid(out Guid guid)
         {
-            ReadUInt32(out var a);
-            ReadUInt16(out var b);
-            ReadUInt16(out var c);
-            ReadUInt8(out var d);
-            ReadUInt8(out var e);
-            ReadUInt8(out var f);
-            ReadUInt8(out var g);
-            ReadUInt8(out var h);
-            ReadUInt8(out var i);
-            ReadUInt8(out var j);
-            ReadUInt8(out var k);
+            ReadUInt32(out uint a);
+            ReadUInt16(out ushort b);
+            ReadUInt16(out ushort c);
+            ReadUInt8(out byte d);
+            ReadUInt8(out byte e);
+            ReadUInt8(out byte f);
+            ReadUInt8(out byte g);
+            ReadUInt8(out byte h);
+            ReadUInt8(out byte i);
+            ReadUInt8(out byte j);
+            ReadUInt8(out byte k);
 
             guid = new Guid(a, b, c, d, e, f, g, h, i, j, k);
         }
 
         internal string ReadString()
         {
-            var len = 0;
+            int len = 0;
             while (Position + len < Buffer.Length && Buffer[Position + len] != 0)
             {
                 len += 2;
             }
 
-            var result = Encoding.Unicode.GetString(Buffer, Position, len);
+            string result = Encoding.Unicode.GetString(Buffer, Position, len);
             Position += len + 2;
             return result;
         }

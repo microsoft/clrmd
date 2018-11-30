@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(out DirectorySize); //  44..47
             bits.ReadInt32(out Zero); //  48..51
 
-            var directoryPages = ((DirectorySize + PageSize - 1) / PageSize * 4 + PageSize - 1) / PageSize;
+            int directoryPages = ((DirectorySize + PageSize - 1) / PageSize * 4 + PageSize - 1) / PageSize;
             DirectoryRoot = new int[directoryPages];
             bits.FillBuffer(reader, directoryPages * 4);
             bits.ReadInt32(DirectoryRoot);

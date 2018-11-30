@@ -141,10 +141,10 @@ namespace Microsoft.Diagnostics.Runtime
             const int maxTlsSlot = 64;
             const int tlsSlotOffset = 0x1480; // Same on x86 and amd64
             const int tlsExpansionSlotsOffset = 0x1780;
-            var ptrSize = (uint)runtime.PointerSize;
+            uint ptrSize = (uint)runtime.PointerSize;
 
-            var lowerTlsSlots = teb + tlsSlotOffset;
-            var clrTlsSlot = runtime.GetTlsSlot();
+            ulong lowerTlsSlots = teb + tlsSlotOffset;
+            uint clrTlsSlot = runtime.GetTlsSlot();
             if (clrTlsSlot == uint.MaxValue)
                 return 0;
 
@@ -161,16 +161,16 @@ namespace Microsoft.Diagnostics.Runtime
                 tlsSlot += ptrSize * (clrTlsSlot - maxTlsSlot);
             }
 
-            if (!runtime.ReadPointer(tlsSlot, out var clrTls))
+            if (!runtime.ReadPointer(tlsSlot, out ulong clrTls))
                 return 0;
 
             // Get thread data;
 
-            var tlsThreadTypeIndex = runtime.GetThreadTypeIndex();
+            uint tlsThreadTypeIndex = runtime.GetThreadTypeIndex();
             if (tlsThreadTypeIndex == uint.MaxValue)
                 return 0;
 
-            if (!runtime.ReadPointer(clrTls + ptrSize * tlsThreadTypeIndex, out var threadType))
+            if (!runtime.ReadPointer(clrTls + ptrSize * tlsThreadTypeIndex, out ulong threadType))
                 return 0;
 
             return (int)threadType;

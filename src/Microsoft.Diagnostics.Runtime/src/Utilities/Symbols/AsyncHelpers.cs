@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             while (tasks.Count > 0)
             {
-                var task = await Task.WhenAny(tasks);
+                Task<T> task = await Task.WhenAny(tasks);
 
-                var result = task.Result;
+                T result = task.Result;
                 if (result != null)
                     return result;
 

@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                var ex = _exception;
+                ulong ex = _exception;
                 if (ex == 0)
                     return null;
 
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_teb == 0)
                     return 0;
 
-                var ptr = _teb + (ulong)IntPtr.Size;
+                ulong ptr = _teb + (ulong)IntPtr.Size;
                 if (!DesktopRuntime.ReadPointer(ptr, out ptr))
                     return 0;
 
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_teb == 0)
                     return 0;
 
-                var ptr = _teb + (ulong)IntPtr.Size * 2;
+                ulong ptr = _teb + (ulong)IntPtr.Size * 2;
                 if (!DesktopRuntime.ReadPointer(ptr, out ptr))
                     return 0;
 
@@ -76,13 +76,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (_stackTrace == null)
                 {
-                    var frames = new List<ClrStackFrame>(32);
+                    List<ClrStackFrame> frames = new List<ClrStackFrame>(32);
 
-                    var lastSP = ulong.MaxValue;
-                    var spCount = 0;
+                    ulong lastSP = ulong.MaxValue;
+                    int spCount = 0;
 
-                    var max = 4096;
-                    foreach (var frame in DesktopRuntime.EnumerateStackFrames(this))
+                    int max = 4096;
+                    foreach (ClrStackFrame frame in DesktopRuntime.EnumerateStackFrames(this))
                     {
                         // We only allow a maximum of 4096 frames to be enumerated out of this stack trace to
                         // ensure we don't hit degenerate cases of stack unwind where we never make progress
@@ -120,26 +120,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             _corDebugInit = true;
 
-            var thread = (ICorDebugThread3)CorDebugThread;
-            thread.CreateStackWalk(out var stackwalk);
+            ICorDebugThread3 thread = (ICorDebugThread3)CorDebugThread;
+            thread.CreateStackWalk(out ICorDebugStackWalk stackwalk);
 
             do
             {
-                stackwalk.GetFrame(out var frame);
+                stackwalk.GetFrame(out ICorDebugFrame frame);
 
-                var ilFrame = frame as ICorDebugILFrame;
+                ICorDebugILFrame ilFrame = frame as ICorDebugILFrame;
                 if (ilFrame == null)
                     continue;
 
-                var context = ContextHelper.Context;
+                byte[] context = ContextHelper.Context;
 
                 fixed (byte* ptr = context)
-                    stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out var size, new IntPtr(ptr));
+                    stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, new IntPtr(ptr));
 
                 ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
                 ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
 
-                var result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
+                DesktopStackFrame result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
                 if (result != null)
                     result.CordbFrame = ilFrame;
             } while (stackwalk.Next() == 0);

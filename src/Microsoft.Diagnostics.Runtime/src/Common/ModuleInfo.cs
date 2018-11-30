@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _managed = file.Header.ComDescriptorDirectory.VirtualAddress != 0;
 
-                if (file.GetPdbSignature(out var pdbName, out var guid, out var age))
+                if (file.GetPdbSignature(out string pdbName, out Guid guid, out int age))
                 {
                     _pdb = new PdbInfo
                     {

@@ -31,9 +31,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             FrameOffset = dsf.FrameOffset;
             StackOffset = dsf.StackOffset;
             FuncTableEntry = dsf.FuncTableEntry;
-            for (var i = 0; i < 4; ++i)
+            for (int i = 0; i < 4; ++i)
                 Params[i] = dsf.Params[i];
-            for (var i = 0; i < 6; ++i)
+            for (int i = 0; i < 6; ++i)
                 Reserved[i] = dsf.Reserved[i];
             Virtual = dsf.Virtual;
             FrameNumber = dsf.FrameNumber;

@@ -13,32 +13,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void MethodHandleMultiDomainTests()
         {
             ulong[] methodDescs;
-            using (var dt = TestTargets.AppDomains.LoadFullDump())
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                var module = runtime.GetModule("sharedlibrary.dll");
-                var type = module.GetTypeByName("Foo");
-                var method = type.GetMethod("Bar");
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
+                ClrMethod method = type.GetMethod("Bar");
                 methodDescs = method.EnumerateMethodDescs().ToArray();
 
                 Assert.Equal(2, methodDescs.Length);
             }
 
-            using (var dt = TestTargets.AppDomains.LoadFullDump())
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var method = runtime.GetMethodByHandle(methodDescs[0]);
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrMethod method = runtime.GetMethodByHandle(methodDescs[0]);
 
                 Assert.NotNull(method);
                 Assert.Equal("Bar", method.Name);
                 Assert.Equal("Foo", method.Type.Name);
             }
 
-            using (var dt = TestTargets.AppDomains.LoadFullDump())
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var method = runtime.GetMethodByHandle(methodDescs[1]);
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrMethod method = runtime.GetMethodByHandle(methodDescs[1]);
 
                 Assert.NotNull(method);
                 Assert.Equal("Bar", method.Name);
@@ -50,35 +50,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void MethodHandleSingleDomainTests()
         {
             ulong methodDesc;
-            using (var dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                var module = runtime.GetModule("sharedlibrary.dll");
-                var type = module.GetTypeByName("Foo");
-                var method = type.GetMethod("Bar");
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
+                ClrMethod method = type.GetMethod("Bar");
                 methodDesc = method.EnumerateMethodDescs().Single();
 
                 Assert.NotEqual(0ul, methodDesc);
             }
 
-            using (var dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var method = runtime.GetMethodByHandle(methodDesc);
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrMethod method = runtime.GetMethodByHandle(methodDesc);
 
                 Assert.NotNull(method);
                 Assert.Equal("Bar", method.Name);
                 Assert.Equal("Foo", method.Type.Name);
             }
 
-            using (var dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                var module = runtime.GetModule("sharedlibrary.dll");
-                var type = module.GetTypeByName("Foo");
-                var method = type.GetMethod("Bar");
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
+                ClrMethod method = type.GetMethod("Bar");
                 Assert.Equal(methodDesc, method.EnumerateMethodDescs().Single());
             }
         }
@@ -90,16 +90,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void CompleteSignatureIsRetrievedForMethodsWithGenericParameters()
         {
-            using (var dt = TestTargets.AppDomains.LoadFullDump())
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                var module = runtime.GetModule("sharedlibrary.dll");
-                var type = module.GetTypeByName("Foo");
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
 
-                var genericMethod = type.GetMethod("GenericBar");
+                ClrMethod genericMethod = type.GetMethod("GenericBar");
 
-                var methodName = genericMethod.GetFullSignature();
+                string methodName = genericMethod.GetFullSignature();
 
                 Assert.Equal(')', methodName.Last());
             }

@@ -24,16 +24,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             _handle = GCHandle.Alloc(this);
 
-            var vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
+            IUnknownVTable* vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
             QueryInterfaceDelegate qi = QueryInterfaceImpl;
             vtable->QueryInterface = Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
-            var addRef = new AddRefDelegate(AddRefImpl);
+            AddRefDelegate addRef = new AddRefDelegate(AddRefImpl);
             vtable->AddRef = Marshal.GetFunctionPointerForDelegate(addRef);
             _delegates.Add(addRef);
 
-            var release = new ReleaseDelegate(ReleaseImpl);
+            ReleaseDelegate release = new ReleaseDelegate(ReleaseImpl);
             vtable->Release = Marshal.GetFunctionPointerForDelegate(release);
             _delegates.Add(release);
 
@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int QueryInterfaceImpl(IntPtr self, ref Guid guid, out IntPtr ptr)
         {
-            if (_interfaces.TryGetValue(guid, out var value))
+            if (_interfaces.TryGetValue(guid, out IntPtr value))
             {
                 Interlocked.Increment(ref _refCount);
                 ptr = value;
@@ -69,12 +69,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int ReleaseImpl(IntPtr self)
         {
-            var count = Interlocked.Decrement(ref _refCount);
+            int count = Interlocked.Decrement(ref _refCount);
             if (count <= 0)
             {
-                foreach (var ptr in _interfaces.Values)
+                foreach (IntPtr ptr in _interfaces.Values)
                 {
-                    var val = (IntPtr*)ptr;
+                    IntPtr* val = (IntPtr*)ptr;
                     Marshal.FreeHGlobal(*val);
                     Marshal.FreeHGlobal(ptr);
                 }

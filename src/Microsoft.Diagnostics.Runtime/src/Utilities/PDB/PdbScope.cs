@@ -74,10 +74,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             Scopes = new PdbScope[scopeCount];
             Slots = new PdbSlot[slotCount];
             UsedNamespaces = new string[namespaceCount];
-            var constant = 0;
-            var scope = 0;
-            var slot = 0;
-            var usedNs = 0;
+            int constant = 0;
+            int scope = 0;
+            int slot = 0;
+            int usedNs = 0;
 
             while (bits.Position < block.end)
             {
@@ -85,8 +85,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 ushort rec;
 
                 bits.ReadUInt16(out siz);
-                var star = bits.Position;
-                var stop = bits.Position + siz;
+                int star = bits.Position;
+                int stop = bits.Position + siz;
                 bits.Position = star;
                 bits.ReadUInt16(out rec);
 
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 {
                     case SYM.S_BLOCK32:
                     {
-                        var sub = new BlockSym32();
+                        BlockSym32 sub = new BlockSym32();
 
                         bits.ReadUInt32(out sub.parent);
                         bits.ReadUInt32(out sub.end);

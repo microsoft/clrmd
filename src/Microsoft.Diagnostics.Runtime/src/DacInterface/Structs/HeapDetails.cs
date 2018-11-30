@@ -54,10 +54,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     FixupPointer(ref HighestAddress);
                     FixupPointer(ref CardTable);
 
-                    for (var i = 0; i < FinalizationFillPointers.Length; i++)
+                    for (int i = 0; i < FinalizationFillPointers.Length; i++)
                         FixupPointer(ref FinalizationFillPointers[i]);
 
-                    for (var i = 0; i < GenerationTable.Length; i++)
+                    for (int i = 0; i < GenerationTable.Length; i++)
                         GenerationTable[i] = new GenerationData(ref GenerationTable[i]);
                 }
             }

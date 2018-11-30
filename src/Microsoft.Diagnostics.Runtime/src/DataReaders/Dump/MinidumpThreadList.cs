@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         // IMinidumpThreadList
         public new MINIDUMP_THREAD GetElement(uint idx)
         {
-            var t = base.GetElement(idx);
+            T t = base.GetElement(idx);
             return t;
         }
 

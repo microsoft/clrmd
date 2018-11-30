@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         internal static PEHeader FromBuffer(PEBuffer buffer, bool virt)
         {
-            var ptr = buffer.Fetch(0, 0x300);
-            var tmpDos = (IMAGE_DOS_HEADER*)ptr;
-            var needed = tmpDos->e_lfanew + sizeof(IMAGE_NT_HEADERS);
+            byte* ptr = buffer.Fetch(0, 0x300);
+            IMAGE_DOS_HEADER* tmpDos = (IMAGE_DOS_HEADER*)ptr;
+            int needed = tmpDos->e_lfanew + sizeof(IMAGE_NT_HEADERS);
             if (buffer.Length < needed)
             {
                 ptr = buffer.Fetch(0, needed);
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 tmpDos = (IMAGE_DOS_HEADER*)ptr;
             }
 
-            var tmpNt = (IMAGE_NT_HEADERS*)((byte*)tmpDos + tmpDos->e_lfanew);
+            IMAGE_NT_HEADERS* tmpNt = (IMAGE_NT_HEADERS*)((byte*)tmpDos + tmpDos->e_lfanew);
             needed += tmpNt->FileHeader.SizeOfOptionalHeader + sizeof(IMAGE_SECTION_HEADER) * tmpNt->FileHeader.NumberOfSections;
 
             if (buffer.Length < needed)
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             _virt = virt;
 
-            var ptr = buffer.Fetch(0, 0x300);
+            byte* ptr = buffer.Fetch(0, 0x300);
             _dosHeader = (IMAGE_DOS_HEADER*)ptr;
             _ntHeader = (IMAGE_NT_HEADERS*)(ptr + _dosHeader->e_lfanew);
             _sections = (IMAGE_SECTION_HEADER*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS) + _ntHeader->FileHeader.SizeOfOptionalHeader);
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_virt)
                 return rva;
 
-            for (var i = 0; i < _ntHeader->FileHeader.NumberOfSections; i++)
+            for (int i = 0; i < _ntHeader->FileHeader.NumberOfSections; i++)
             {
                 if (_sections[i].VirtualAddress <= rva && rva < _sections[i].VirtualAddress + _sections[i].VirtualSize)
                     return (int)_sections[i].PointerToRawData + (rva - (int)_sections[i].VirtualAddress);
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return true;
             }
 
-            for (var i = 0; i < _ntHeader->FileHeader.NumberOfSections; i++)
+            for (int i = 0; i < _ntHeader->FileHeader.NumberOfSections; i++)
             {
                 if (_sections[i].VirtualAddress <= rva && rva < _sections[i].VirtualAddress + _sections[i].VirtualSize)
                 {
@@ -544,7 +544,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             // Convert seconds from Jan 1 1970 to DateTime ticks.  
             // The 621356004000000000L represents Jan 1 1970 as DateTime 100ns ticks.  
-            var ret = new DateTime((long)timeDateStampSec * 10000000 + 621356004000000000L, DateTimeKind.Utc).ToLocalTime();
+            DateTime ret = new DateTime((long)timeDateStampSec * 10000000 + 621356004000000000L, DateTimeKind.Utc).ToLocalTime();
 
             // From what I can tell TimeDateSec does not take into account daylight savings time when
             // computing the UTC time. Because of this we adjust here to get the proper local time.  

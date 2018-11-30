@@ -100,14 +100,14 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
-            var totalObjects = Heap.TotalObjects;
+            long totalObjects = Heap.TotalObjects;
             long lastObjectReported = 0;
 
-            var parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
+            bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
 
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks;
             ObjectSet processedObjects;
-            var knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
 
             if (parallel)
                 processedObjects = new ParallelObjectSet(Heap);
@@ -115,10 +115,10 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 processedObjects = new ObjectSet(Heap);
 
-            var initial = 0;
+            int initial = 0;
             tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
 
-            foreach (var handle in Heap.EnumerateStrongHandles())
+            foreach (ClrHandle handle in Heap.EnumerateStrongHandles())
             {
                 Debug.Assert(handle.HandleType != HandleType.Dependent);
                 Debug.Assert(handle.Object != 0);
@@ -130,15 +130,15 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (parallel)
                 {
-                    var task = PathToParallel(processedObjects, knownEndPoints, handle, target, unique, cancelToken);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, handle, target, unique, cancelToken);
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
                     }
                     else
                     {
-                        var i = Task.WaitAny(tasks);
-                        var completed = tasks[i];
+                        int i = Task.WaitAny(tasks);
+                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> completed = tasks[i];
                         tasks[i] = task;
 
                         if (completed.Result.Item1 != null)
@@ -147,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    var path = PathTo(processedObjects, knownEndPoints, new ClrObject(handle.Object, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(handle.Object, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath {Root = GetHandleRoot(handle), Path = path.ToArray()};
                 }
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
             }
 
-            foreach (var root in Heap.EnumerateStackRoots())
+            foreach (ClrRoot root in Heap.EnumerateStackRoots())
             {
                 if (!processedObjects.Contains(root.Object))
                 {
@@ -163,15 +163,15 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (parallel)
                     {
-                        var task = PathToParallel(processedObjects, knownEndPoints, root, target, unique, cancelToken);
+                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, root, target, unique, cancelToken);
                         if (initial < tasks.Length)
                         {
                             tasks[initial++] = task;
                         }
                         else
                         {
-                            var i = Task.WaitAny(tasks);
-                            var completed = tasks[i];
+                            int i = Task.WaitAny(tasks);
+                            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> completed = tasks[i];
                             tasks[i] = task;
 
                             if (completed.Result.Item1 != null)
@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     else
                     {
-                        var path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
+                        LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
                         if (path != null)
                             yield return new GCRootPath {Root = root, Path = path.ToArray()};
                     }
@@ -189,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            foreach (var result in WhenEach(tasks))
+            foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
             {
                 ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
                 yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
@@ -209,15 +209,15 @@ namespace Microsoft.Diagnostics.Runtime
 
         private static IEnumerable<Tuple<LinkedList<ClrObject>, ClrRoot>> WhenEach(Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks)
         {
-            var taskList = tasks.Where(t => t != null).ToList();
+            List<Task<Tuple<LinkedList<ClrObject>, ClrRoot>>> taskList = tasks.Where(t => t != null).ToList();
 
             while (taskList.Count > 0)
             {
-                var task = Task.WhenAny(taskList).Result;
+                Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = Task.WhenAny(taskList).Result;
                 if (task.Result.Item1 != null)
                     yield return task.Result;
 
-                var removed = taskList.Remove(task);
+                bool removed = taskList.Remove(task);
                 Debug.Assert(removed);
             }
         }
@@ -289,10 +289,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Debug.Assert(IsFullyCached);
 
-            var t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
+            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
                 () =>
                     {
-                        var path = PathTo(seen, knownEndPoints, ClrObject.Create(handle.Object, handle.Type), target, unique, true, cancelToken).FirstOrDefault();
+                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, ClrObject.Create(handle.Object, handle.Type), target, unique, true, cancelToken).FirstOrDefault();
                         return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path != null ? GetHandleRoot(handle) : null);
                     });
 
@@ -310,7 +310,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Debug.Assert(IsFullyCached);
 
-            var t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
+            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
                 () => new Tuple<LinkedList<ClrObject>, ClrRoot>(
                     PathTo(seen, knownEndPoints, ClrObject.Create(root.Object, root.Type), target, unique, true, cancelToken).FirstOrDefault(),
                     root));
@@ -332,7 +332,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (source.Type == null)
                 yield break;
 
-            var path = new LinkedList<PathEntry>();
+            LinkedList<PathEntry> path = new LinkedList<PathEntry>();
 
             if (source.Address == target)
             {
@@ -346,7 +346,7 @@ namespace Microsoft.Diagnostics.Runtime
                 new PathEntry
                 {
                     Object = source,
-                    Todo = GetRefs(seen, knownEndPoints, source, target, unique, parallel, cancelToken, out var foundTarget, out var foundEnding)
+                    Todo = GetRefs(seen, knownEndPoints, source, target, unique, parallel, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
                 });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
@@ -365,7 +365,7 @@ namespace Microsoft.Diagnostics.Runtime
                 cancelToken.ThrowIfCancellationRequested();
 
                 TraceFullPath(null, path);
-                var last = path.Last.Value;
+                PathEntry last = path.Last.Value;
 
                 if (last.Todo.Count == 0)
                 {
@@ -380,7 +380,7 @@ namespace Microsoft.Diagnostics.Runtime
                     do
                     {
                         cancelToken.ThrowIfCancellationRequested();
-                        var next = last.Todo.Pop();
+                        ClrObject next = last.Todo.Pop();
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
@@ -391,7 +391,7 @@ namespace Microsoft.Diagnostics.Runtime
                         // value when adding refs below.
                         Debug.Assert(next.Address != target);
 
-                        var nextPathEntry = new PathEntry
+                        PathEntry nextPathEntry = new PathEntry
                         {
                             Object = next,
                             Todo = GetRefs(seen, knownEndPoints, next, target, unique, parallel, cancelToken, out foundTarget, out foundEnding)
@@ -440,13 +440,13 @@ namespace Microsoft.Diagnostics.Runtime
             //Debug.Assert(obj.Type != null);
             //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
-            var result = s_emptyStack;
+            Stack<ClrObject> result = s_emptyStack;
 
-            var found = false;
+            bool found = false;
             LinkedListNode<ClrObject> ending = null;
             if (obj.ContainsPointers)
             {
-                foreach (var reference in obj.EnumerateObjectReferences(true))
+                foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
                 {
                     cancelToken.ThrowIfCancellationRequested();
                     if (ending == null && knownEndPoints != null)
@@ -489,14 +489,14 @@ namespace Microsoft.Diagnostics.Runtime
             LinkedListNode<ClrObject> ending,
             ulong target)
         {
-            var result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
+            LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
 
             for (; ending != null; ending = ending.Next)
                 result.AddLast(ending.Value);
 
             if (knownEndPoints != null)
                 lock (knownEndPoints)
-                    for (var node = result.First; node != null; node = node.Next)
+                    for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
                         if (node.Value.Address != target)
                             knownEndPoints[node.Value.Address] = node;
 
@@ -505,7 +505,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRoot GetHandleRoot(ClrHandle handle)
         {
-            var kind = GCRootKind.Strong;
+            GCRootKind kind = GCRootKind.Strong;
 
             switch (handle.HandleType)
             {
@@ -523,7 +523,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
-            var size = type.GetSize(obj);
+            ulong size = type.GetSize(obj);
             if (!seg.IsLarge && size >= 85000)
                 return true;
 
@@ -538,7 +538,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
-            var list = new List<string>();
+            List<string> list = new List<string>();
             for (; tmp != null; tmp = tmp.Next)
                 list.Add(tmp.Value.ToString());
 

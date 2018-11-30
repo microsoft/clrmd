@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             LoadProgramHeaders();
-            var noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ElfProgramHeaderType.Note);
+            ElfProgramHeader noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ElfProgramHeaderType.Note);
 
             if (noteHeader == null)
             {
@@ -91,13 +91,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
             }
 
-            var notes = new List<ElfNote>();
+            List<ElfNote> notes = new List<ElfNote>();
 
-            var reader = new ElfReader(noteHeader.AddressSpace);
+            ElfReader reader = new ElfReader(noteHeader.AddressSpace);
             long position = 0;
             while (position < reader.DataSource.Length)
             {
-                var note = new ElfNote(reader, position);
+                ElfNote note = new ElfNote(reader, position);
                 notes.Add(note);
 
                 position += note.TotalSize;
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             _programHeaders = new ElfProgramHeader[Header.ProgramHeaderCount];
-            for (var i = 0; i < _programHeaders.Length; i++)
+            for (int i = 0; i < _programHeaders.Length; i++)
                 _programHeaders[i] = new ElfProgramHeader(_elfReader, _position + (long)Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
 
@@ -129,17 +129,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return _sectionNames[section];
 
             LoadSectionNameTable();
-            ref var hdr = ref _sections[section];
-            var idx = hdr.NameIndex;
+            ref ElfSectionHeader hdr = ref _sections[section];
+            int idx = hdr.NameIndex;
 
             if (hdr.Type == ElfSectionHeaderType.Null || idx == 0)
                 return _sectionNames[section] = string.Empty;
 
-            var len = 0;
+            int len = 0;
             for (len = 0; idx + len < _sectionNameTable.Length && _sectionNameTable[idx + len] != 0; len++)
                 ;
 
-            var name = Encoding.ASCII.GetString(_sectionNameTable, idx, len);
+            string name = Encoding.ASCII.GetString(_sectionNameTable, idx, len);
             _sectionNames[section] = name;
 
             return _sectionNames[section];
@@ -155,9 +155,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             int nameTableIndex = Header.SectionHeaderStringIndex;
             if (Header.SectionHeaderOffset != IntPtr.Zero && Header.SectionHeaderCount > 0 && nameTableIndex != 0)
             {
-                ref var hdr = ref _sections[nameTableIndex];
-                var offset = hdr.FileOffset.ToInt64();
-                var size = checked((int)hdr.FileSize.ToInt64());
+                ref ElfSectionHeader hdr = ref _sections[nameTableIndex];
+                long offset = hdr.FileOffset.ToInt64();
+                int size = checked((int)hdr.FileSize.ToInt64());
 
                 _sectionNameTable = _elfReader.ReadBytes(offset, size);
             }
@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             _sections = new ElfSectionHeader[Header.SectionHeaderCount];
-            for (var i = 0; i < _sections.Length; i++)
+            for (int i = 0; i < _sections.Length; i++)
                 _sections[i] = _elfReader.Read<ElfSectionHeader>(_position + (long)Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
         }
 
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             LoadSections();
 
-            for (var i = 0; i < _sections.Length; i++)
+            for (int i = 0; i < _sections.Length; i++)
                 GetSectionName(i);
         }
 #endif

@@ -50,8 +50,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (!File.Exists(dumpFile))
                 throw new FileNotFoundException(dumpFile);
 
-            var client = CreateIDebugClient();
-            var hr = client.OpenDumpFile(dumpFile);
+            IDebugClient client = CreateIDebugClient();
+            int hr = client.OpenDumpFile(dumpFile);
 
             if (hr != 0)
                 throw new ClrDiagnosticsException($"Could not load crash dump '{dumpFile}', HRESULT: 0x{hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
@@ -79,11 +79,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DbgEngDataReader(int pid, AttachFlag flags, uint msecTimeout)
         {
-            var client = CreateIDebugClient();
+            IDebugClient client = CreateIDebugClient();
             CreateClient(client);
 
-            var attach = flags == AttachFlag.Invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
-            var hr = _control.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
+            DEBUG_ATTACH attach = flags == AttachFlag.Invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
+            int hr = _control.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
 
             if (hr == 0)
                 hr = client.AttachProcess(0, (uint)pid, attach);
@@ -114,11 +114,11 @@ namespace Microsoft.Diagnostics.Runtime
 
                 SetClientInstance();
 
-                _control.GetDebuggeeType(out var cls, out var qual);
+                _control.GetDebuggeeType(out DEBUG_CLASS cls, out DEBUG_CLASS_QUALIFIER qual);
 
                 if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
                 {
-                    _control.GetDumpFormatFlags(out var flags);
+                    _control.GetDumpFormatFlags(out DEBUG_FORMAT flags);
                     _minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
                     return _minidump.Value;
                 }
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            var hr = _control.GetExecutingProcessorType(out var machineType);
+            int hr = _control.GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType);
             if (0 != hr)
                 throw new ClrDiagnosticsException($"Failed to get proessor type, HRESULT: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
 
@@ -156,10 +156,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         private static IDebugClient CreateIDebugClient()
         {
-            var guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            DebugCreate(ref guid, out var obj);
+            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+            DebugCreate(ref guid, out object obj);
 
-            var client = (IDebugClient)obj;
+            IDebugClient client = (IDebugClient)obj;
             return client;
         }
 
@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime
         public uint GetPointerSize()
         {
             SetClientInstance();
-            var hr = _control.IsPointer64Bit();
+            int hr = _control.IsPointer64Bit();
             if (hr == 0)
                 return 8;
             if (hr == 1)
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            GetThreadIdBySystemId(threadId, out var id);
+            GetThreadIdBySystemId(threadId, out uint id);
 
             SetCurrentThreadId(id);
             GetThreadContext(context, contextSize);
@@ -216,20 +216,20 @@ namespace Microsoft.Diagnostics.Runtime
             if (buffer.Length < bytesRequested)
                 bytesRequested = buffer.Length;
 
-            var res = _spaces.ReadVirtual(address, buffer, (uint)bytesRequested, out var read);
+            int res = _spaces.ReadVirtual(address, buffer, (uint)bytesRequested, out uint read);
             bytesRead = (int)read;
             return res;
         }
 
         private ulong[] GetImageBases()
         {
-            if (GetNumberModules(out var count, out var unloadedCount) < 0)
+            if (GetNumberModules(out uint count, out uint unloadedCount) < 0)
                 return null;
 
-            var bases = new List<ulong>((int)count);
+            List<ulong> bases = new List<ulong>((int)count);
             for (uint i = 0; i < count; ++i)
             {
-                if (GetModuleByIndex(i, out var image) < 0)
+                if (GetModuleByIndex(i, out ulong image) < 0)
                     continue;
 
                 bases.Add(image);
@@ -243,30 +243,30 @@ namespace Microsoft.Diagnostics.Runtime
             if (_modules != null)
                 return _modules;
 
-            var bases = GetImageBases();
+            ulong[] bases = GetImageBases();
             if (bases == null || bases.Length == 0)
                 return new ModuleInfo[0];
 
-            var mods = new DEBUG_MODULE_PARAMETERS[bases.Length];
-            var modules = new List<ModuleInfo>();
-            var encounteredBases = new HashSet<ulong>();
+            DEBUG_MODULE_PARAMETERS[] mods = new DEBUG_MODULE_PARAMETERS[bases.Length];
+            List<ModuleInfo> modules = new List<ModuleInfo>();
+            HashSet<ulong> encounteredBases = new HashSet<ulong>();
 
             if (bases != null && CanEnumerateModules)
             {
-                var hr = GetModuleParameters(bases.Length, bases, 0, mods);
+                int hr = GetModuleParameters(bases.Length, bases, 0, mods);
                 if (hr >= 0)
                 {
-                    for (var i = 0; i < bases.Length; ++i)
+                    for (int i = 0; i < bases.Length; ++i)
                     {
-                        var info = new ModuleInfo(this)
+                        ModuleInfo info = new ModuleInfo(this)
                         {
                             TimeStamp = mods[i].TimeDateStamp,
                             FileSize = mods[i].Size,
                             ImageBase = bases[i]
                         };
 
-                        var sbpath = new StringBuilder();
-                        if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], null, 0, out var needed) >= 0 && needed > 1)
+                        StringBuilder sbpath = new StringBuilder();
+                        if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], null, 0, out uint needed) >= 0 && needed > 1)
                         {
                             sbpath.EnsureCapacity((int)needed);
                             if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], sbpath, needed, out needed) >= 0)
@@ -365,7 +365,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             SetClientInstance();
-            var hr = _spaces2.QueryVirtual(addr, out var mem);
+            int hr = _spaces2.QueryVirtual(addr, out MEMORY_BASIC_INFORMATION64 mem);
             vq.BaseAddress = mem.BaseAddress;
             vq.Size = mem.RegionSize;
 
@@ -379,7 +379,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            if (ReadVirtual(addr, _ptrBuffer, IntPtr.Size, out var read) != 0)
+            if (ReadVirtual(addr, _ptrBuffer, IntPtr.Size, out int read) != 0)
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -393,7 +393,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            if (ReadVirtual(addr, _ptrBuffer, 4, out var read) != 0)
+            if (ReadVirtual(addr, _ptrBuffer, 4, out int read) != 0)
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -429,15 +429,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             version = new VersionInfo();
 
-            var hr = _symbols.GetModuleByOffset(addr, 0, out var index, out var baseAddr);
+            int hr = _symbols.GetModuleByOffset(addr, 0, out uint index, out ulong baseAddr);
             if (hr != 0)
                 return;
 
-            hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out var needed);
+            hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out uint needed);
             if (hr != 0)
                 return;
 
-            var buffer = new byte[needed];
+            byte[] buffer = new byte[needed];
             hr = GetModuleVersionInformation(index, baseAddr, "\\", buffer, needed, out needed);
             if (hr != 0)
                 return;
@@ -500,7 +500,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            var res = _spacesPtr.ReadVirtual(address, buffer, (uint)bytesRequested, out var read) >= 0;
+            bool res = _spacesPtr.ReadVirtual(address, buffer, (uint)bytesRequested, out uint read) >= 0;
             bytesRead = res ? (int)read : 0;
             return res;
         }
@@ -515,10 +515,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            var hr = _systemObjects.GetNumberThreads(out var count);
+            int hr = _systemObjects.GetNumberThreads(out uint count);
             if (hr == 0)
             {
-                var sysIds = new uint[count];
+                uint[] sysIds = new uint[count];
 
                 hr = _systemObjects.GetThreadIdsByIndex(0, count, null, sysIds);
                 if (hr == 0)
@@ -533,8 +533,8 @@ namespace Microsoft.Diagnostics.Runtime
             SetClientInstance();
 
             ulong teb = 0;
-            var hr = _systemObjects.GetCurrentThreadId(out var id);
-            var haveId = hr == 0;
+            int hr = _systemObjects.GetCurrentThreadId(out uint id);
+            bool haveId = hr == 0;
 
             if (_systemObjects.GetThreadIdBySystemId(thread, out id) == 0 && _systemObjects.SetCurrentThreadId(id) == 0)
                 _systemObjects.GetCurrentThreadTeb(out teb);
@@ -558,7 +558,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             _disposed = true;
 
-            var count = Interlocked.Decrement(ref s_totalInstanceCount);
+            int count = Interlocked.Decrement(ref s_totalInstanceCount);
             if (count == 0 && s_needRelease && disposing)
             {
                 if (_systemObjects3 != null)
@@ -576,7 +576,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
-            GetThreadIdBySystemId(threadId, out var id);
+            GetThreadIdBySystemId(threadId, out uint id);
 
             SetCurrentThreadId(id);
             fixed (byte* pContext = &context[0])

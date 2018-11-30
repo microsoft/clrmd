@@ -48,8 +48,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int GetChunkContainingAddress(ulong address)
         {
-            var targetChunk = new MinidumpMemoryChunk {TargetStartAddress = address};
-            var index = Array.BinarySearch(_chunks, targetChunk);
+            MinidumpMemoryChunk targetChunk = new MinidumpMemoryChunk {TargetStartAddress = address};
+            int index = Array.BinarySearch(_chunks, targetChunk);
             if (index >= 0)
             {
                 Debug.Assert(_chunks[index].TargetStartAddress == address);
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (~index != 0)
             {
-                var possibleIndex = Math.Min(_chunks.Length, ~index) - 1;
+                int possibleIndex = Math.Min(_chunks.Length, ~index) - 1;
                 if (_chunks[possibleIndex].TargetStartAddress <= address &&
                     _chunks[possibleIndex].TargetEndAddress > address)
                     return possibleIndex;
@@ -96,16 +96,16 @@ namespace Microsoft.Diagnostics.Runtime
         {
             _memory64List = new MinidumpMemory64List(_dumpStream);
 
-            var currentRVA = _memory64List.BaseRva;
-            var count = _memory64List.Count;
+            RVA64 currentRVA = _memory64List.BaseRva;
+            ulong count = _memory64List.Count;
 
             // Initialize all chunks.
             MINIDUMP_MEMORY_DESCRIPTOR64 tempMD;
-            var chunks = new List<MinidumpMemoryChunk>();
+            List<MinidumpMemoryChunk> chunks = new List<MinidumpMemoryChunk>();
             for (ulong i = 0; i < count; i++)
             {
                 tempMD = _memory64List.GetElement((uint)i);
-                var chunk = new MinidumpMemoryChunk
+                MinidumpMemoryChunk chunk = new MinidumpMemoryChunk
                 {
                     Size = tempMD.DataSize,
                     TargetStartAddress = tempMD.StartOfMemoryRange,
@@ -128,13 +128,13 @@ namespace Microsoft.Diagnostics.Runtime
         public void InitFromMemoryList()
         {
             _memoryList = new MinidumpMemoryList(_dumpStream);
-            var count = _memoryList.Count;
+            uint count = _memoryList.Count;
 
             MINIDUMP_MEMORY_DESCRIPTOR tempMD;
-            var chunks = new List<MinidumpMemoryChunk>();
+            List<MinidumpMemoryChunk> chunks = new List<MinidumpMemoryChunk>();
             for (ulong i = 0; i < count; i++)
             {
-                var chunk = new MinidumpMemoryChunk();
+                MinidumpMemoryChunk chunk = new MinidumpMemoryChunk();
                 tempMD = _memoryList.GetElement((uint)i);
                 chunk.Size = tempMD.Memory.DataSize;
                 chunk.TargetStartAddress = tempMD.StartOfMemoryRange;
@@ -155,10 +155,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void SplitAndMergeChunks(List<MinidumpMemoryChunk> chunks)
         {
-            for (var i = 1; i < chunks.Count; i++)
+            for (int i = 1; i < chunks.Count; i++)
             {
-                var prevChunk = chunks[i - 1];
-                var curChunk = chunks[i];
+                MinidumpMemoryChunk prevChunk = chunks[i - 1];
+                MinidumpMemoryChunk curChunk = chunks[i];
 
                 // we already sorted
                 Debug.Assert(prevChunk.TargetStartAddress <= curChunk.TargetStartAddress);
@@ -176,14 +176,14 @@ namespace Microsoft.Diagnostics.Runtime
                     // of this chunk and resort it if needed
                     else
                     {
-                        var overlap = prevChunk.TargetEndAddress - curChunk.TargetStartAddress;
+                        ulong overlap = prevChunk.TargetEndAddress - curChunk.TargetStartAddress;
                         curChunk.TargetStartAddress += overlap;
                         curChunk.RVA += overlap;
                         curChunk.Size -= overlap;
 
                         // now that we changes the start address it might not be sorted anymore
                         // find the correct index
-                        var newIndex = i;
+                        int newIndex = i;
                         for (; newIndex < chunks.Count - 1; newIndex++)
                         {
                             if (curChunk.TargetStartAddress <= chunks[newIndex + 1].TargetStartAddress)

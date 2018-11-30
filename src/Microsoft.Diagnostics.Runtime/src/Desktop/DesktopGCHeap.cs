@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -29,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ObjectType = DesktopRuntime.ObjectMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) : ErrorType;
             if (DesktopRuntime.FreeMethodTable != 0)
             {
-                var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+                ClrType free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
 
                 ((DesktopHeapType)free).Shared = true;
                 ((BaseDesktopHeapType)free).DesktopModule = ObjectType.Module as DesktopModule;
@@ -45,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrType CreateFree()
         {
-            var free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+            ClrType free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
 
             ((DesktopHeapType)free).Shared = true;
             ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
@@ -54,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrType CreateArrayType()
         {
-            var type = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
+            ClrType type = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
             type.ComponentType = ObjectType;
             return type;
         }
@@ -68,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrException GetExceptionObject(ulong objRef)
         {
-            var type = GetObjectType(objRef);
+            ClrType type = GetObjectType(objRef);
             if (type == null)
                 return null;
 
@@ -86,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (methodTable == 0)
                 return 0;
 
-            var mtData = DesktopRuntime.GetMethodTableData(methodTable);
+            IMethodTableData mtData = DesktopRuntime.GetMethodTableData(methodTable);
             if (mtData == null)
                 return 0;
 
@@ -124,19 +126,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ClrType GetGCHeapTypeFromModuleAndToken(ulong moduleAddr, uint token)
         {
-            var module = DesktopRuntime.GetModule(moduleAddr);
-            var modEnt = new ModuleEntry(module, token);
+            DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
+            ModuleEntry modEnt = new ModuleEntry(module, token);
 
-            if (_typeEntry.TryGetValue(modEnt, out var index))
+            if (_typeEntry.TryGetValue(modEnt, out int index))
             {
-                var match = (BaseDesktopHeapType)_types[index];
+                BaseDesktopHeapType match = (BaseDesktopHeapType)_types[index];
                 if (match.MetadataToken == token)
                     return match;
             }
             else
             {
                 // TODO: TypeRefTokens do not work with this code
-                foreach (var type in module.EnumerateTypes())
+                foreach (ClrType type in module.EnumerateTypes())
                 {
                     if (type.MetadataToken == token)
                         return type;
@@ -151,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrType TryGetComponentType(ulong obj, ulong cmt)
         {
             ClrType result = null;
-            var data = GetObjectData(obj);
+            IObjectData data = GetObjectData(obj);
             if (data != null)
             {
                 if (data.ElementTypeHandle != 0)
@@ -173,17 +175,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (module == null)
                 return null;
 
-            var meta = module.GetMetadataImport();
+            MetaDataImport meta = module.GetMetadataImport();
             if (meta == null)
                 return null;
 
             // Get type name.
-            if (!meta.GetTypeDefProperties((int)token, out var name, out var attrs, out var parent))
+            if (!meta.GetTypeDefProperties((int)token, out string name, out TypeAttributes attrs, out int parent))
                 return null;
 
-            if (meta.GetNestedClassProperties((int)token, out var enclosing) && token != enclosing)
+            if (meta.GetNestedClassProperties((int)token, out int enclosing) && token != enclosing)
             {
-                var inner = GetTypeNameFromToken(module, (uint)enclosing);
+                string inner = GetTypeNameFromToken(module, (uint)enclosing);
                 if (inner == null)
                     inner = "<UNKNOWN>";
 
@@ -195,16 +197,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateFinalizableObjectAddresses()
         {
-            if (DesktopRuntime.GetHeaps(out var heaps))
+            if (DesktopRuntime.GetHeaps(out SubHeap[] heaps))
             {
-                foreach (var heap in heaps)
+                foreach (SubHeap heap in heaps)
                 {
-                    foreach (var obj in DesktopRuntime.GetPointersInRange(heap.FQAllObjectsStart, heap.FQAllObjectsStop))
+                    foreach (ulong obj in DesktopRuntime.GetPointersInRange(heap.FQAllObjectsStart, heap.FQAllObjectsStop))
                     {
                         if (obj == 0)
                             continue;
 
-                        var type = GetObjectType(obj);
+                        ClrType type = GetObjectType(obj);
                         if (type != null && !type.IsFinalizeSuppressed(obj))
                             yield return obj;
                     }
@@ -225,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_managedLocks != null)
                 return;
 
-            var li = new LockInspection(this, DesktopRuntime);
+            LockInspection li = new LockInspection(this, DesktopRuntime);
             _managedLocks = li.InitLockInspection();
         }
 
@@ -251,10 +253,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (StackwalkPolicy != ClrRootStackwalkPolicy.SkipStack && (_stackCache == null || _currentStackCache != StackwalkPolicy))
             {
-                var cache = new Dictionary<ClrThread, ClrRoot[]>();
+                Dictionary<ClrThread, ClrRoot[]> cache = new Dictionary<ClrThread, ClrRoot[]>();
 
-                var exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
-                foreach (var thread in Runtime.Threads)
+                bool exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
+                foreach (ClrThread thread in Runtime.Threads)
                 {
                     cancelToken.ThrowIfCancellationRequested();
                     if (thread.IsAlive)
@@ -332,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_dependentHandles == null)
                 dependentHandles = new Dictionary<ulong, List<ulong>>();
 
-            foreach (var handle in Runtime.EnumerateHandles())
+            foreach (ClrHandle handle in Runtime.EnumerateHandles())
             {
                 cancelToken.ThrowIfCancellationRequested();
 
@@ -357,7 +359,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         case HandleType.Dependent:
                             if (dependentHandles != null)
                             {
-                                if (!dependentHandles.TryGetValue(handle.Object, out var list))
+                                if (!dependentHandles.TryGetValue(handle.Object, out List<ulong> list))
                                     dependentHandles[handle.Object] = list = new List<ulong>();
 
                                 list.Add(handle.DependentTarget);
@@ -389,20 +391,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ClrRoot> EnumerateStackRootsWorker()
         {
-            var exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
-            foreach (var thread in DesktopRuntime.Threads)
+            bool exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
+            foreach (ClrThread thread in DesktopRuntime.Threads)
             {
                 if (thread.IsAlive)
                 {
                     if (exactStackwalk)
                     {
-                        foreach (var root in thread.EnumerateStackObjects(false))
+                        foreach (ClrRoot root in thread.EnumerateStackObjects(false))
                             yield return root;
                     }
                     else
                     {
-                        var seen = new HashSet<ulong>();
-                        foreach (var root in thread.EnumerateStackObjects(true))
+                        HashSet<ulong> seen = new HashSet<ulong>();
+                        foreach (ClrRoot root in thread.EnumerateStackObjects(true))
                         {
                             if (!seen.Contains(root.Object))
                             {
@@ -425,14 +427,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (enumerateStatics)
             {
                 // Statics
-                foreach (var type in EnumerateTypes())
+                foreach (ClrType type in EnumerateTypes())
                 {
                     // Statics
-                    foreach (var staticField in type.StaticFields)
+                    foreach (ClrStaticField staticField in type.StaticFields)
                     {
                         if (!ClrRuntime.IsPrimitive(staticField.ElementType))
                         {
-                            foreach (var ad in DesktopRuntime.AppDomains)
+                            foreach (ClrAppDomain ad in DesktopRuntime.AppDomains)
                             {
                                 ulong addr = 0;
                                 // We must manually get the value, as strings will not be returned as an object address.
@@ -446,9 +448,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                     goto NextStatic;
                                 }
 
-                                if (DesktopRuntime.ReadPointer(addr, out var value) && value != 0)
+                                if (DesktopRuntime.ReadPointer(addr, out ulong value) && value != 0)
                                 {
-                                    var objType = GetObjectType(value);
+                                    ClrType objType = GetObjectType(value);
                                     if (objType != null)
                                         yield return new StaticVarRoot(addr, value, objType, type.Name, staticField.Name, ad);
                                 }
@@ -459,20 +461,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
 
                     // Thread statics
-                    foreach (var tsf in type.ThreadStaticFields)
+                    foreach (ClrThreadStaticField tsf in type.ThreadStaticFields)
                     {
                         if (ClrRuntime.IsObjectReference(tsf.ElementType))
                         {
-                            foreach (var ad in DesktopRuntime.AppDomains)
+                            foreach (ClrAppDomain ad in DesktopRuntime.AppDomains)
                             {
-                                foreach (var thread in DesktopRuntime.Threads)
+                                foreach (ClrThread thread in DesktopRuntime.Threads)
                                 {
                                     // We must manually get the value, as strings will not be returned as an object address.
-                                    var addr = tsf.GetAddress(ad, thread);
+                                    ulong addr = tsf.GetAddress(ad, thread);
 
-                                    if (DesktopRuntime.ReadPointer(addr, out var value) && value != 0)
+                                    if (DesktopRuntime.ReadPointer(addr, out ulong value) && value != 0)
                                     {
-                                        var objType = GetObjectType(value);
+                                        ClrType objType = GetObjectType(value);
                                         if (objType != null)
                                             yield return new ThreadStaticVarRoot(addr, value, objType, type.Name, tsf.Name, ad);
                                     }
@@ -484,13 +486,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Handles
-            foreach (var handle in EnumerateStrongHandles())
+            foreach (ClrHandle handle in EnumerateStrongHandles())
             {
-                var objAddr = handle.Object;
-                var kind = GCRootKind.Strong;
+                ulong objAddr = handle.Object;
+                GCRootKind kind = GCRootKind.Strong;
                 if (objAddr != 0)
                 {
-                    var type = GetObjectType(objAddr);
+                    ClrType type = GetObjectType(objAddr);
                     if (type != null)
                     {
                         switch (handle.HandleType)
@@ -516,12 +518,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 // Async pinned handles keep 1 or more "sub objects" alive.  I will report them here as their own pinned handle.
                                 if (handle.HandleType == HandleType.AsyncPinned)
                                 {
-                                    var userObjectField = type.GetFieldByName("m_userObject");
+                                    ClrInstanceField userObjectField = type.GetFieldByName("m_userObject");
                                     if (userObjectField != null)
                                     {
-                                        var _userObjAddr = userObjectField.GetAddress(objAddr);
-                                        var _userObj = (ulong)userObjectField.GetValue(objAddr);
-                                        var _userObjType = GetObjectType(_userObj);
+                                        ulong _userObjAddr = userObjectField.GetAddress(objAddr);
+                                        ulong _userObj = (ulong)userObjectField.GetValue(objAddr);
+                                        ClrType _userObjType = GetObjectType(_userObj);
                                         if (_userObjType != null)
                                         {
                                             if (_userObjType.IsArray)
@@ -531,12 +533,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                                     if (_userObjType.ComponentType.ElementType == ClrElementType.Object)
                                                     {
                                                         // report elements
-                                                        var len = _userObjType.GetArrayLength(_userObj);
-                                                        for (var i = 0; i < len; ++i)
+                                                        int len = _userObjType.GetArrayLength(_userObj);
+                                                        for (int i = 0; i < len; ++i)
                                                         {
-                                                            var indexAddr = _userObjType.GetArrayElementAddress(_userObj, i);
-                                                            var indexObj = (ulong)_userObjType.GetArrayElementValue(_userObj, i);
-                                                            var indexObjType = GetObjectType(indexObj);
+                                                            ulong indexAddr = _userObjType.GetArrayElementAddress(_userObj, i);
+                                                            ulong indexObj = (ulong)_userObjType.GetArrayElementValue(_userObj, i);
+                                                            ClrType indexObjType = GetObjectType(indexObj);
 
                                                             if (indexObj != 0 && indexObjType != null)
                                                                 yield return new HandleRoot(
@@ -584,16 +586,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Finalization Queue
-            foreach (var objAddr in DesktopRuntime.EnumerateFinalizerQueueObjectAddresses())
+            foreach (ulong objAddr in DesktopRuntime.EnumerateFinalizerQueueObjectAddresses())
                 if (objAddr != 0)
                 {
-                    var type = GetObjectType(objAddr);
+                    ClrType type = GetObjectType(objAddr);
                     if (type != null)
                         yield return new FinalizerRoot(objAddr, type);
                 }
 
             // Threads
-            foreach (var root in EnumerateStackRoots())
+            foreach (ClrRoot root in EnumerateStackRoots())
                 yield return root;
         }
 
@@ -618,7 +620,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _initializedStringFields = true;
             }
 
-            var length = 0;
+            int length = 0;
             if (_stringLength != null)
                 length = (int)_stringLength.GetValue(strAddr);
             else if (!DesktopRuntime.ReadDword(strAddr + DesktopRuntime.GetStringLengthOffset(), out length))
@@ -633,8 +635,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else
                 data = strAddr + DesktopRuntime.GetStringFirstCharOffset();
 
-            var buffer = new byte[length * 2];
-            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out var read))
+            byte[] buffer = new byte[length * 2];
+            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out int read))
                 return null;
 
             return Encoding.Unicode.GetString(buffer);
@@ -645,7 +647,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (offset != 0)
                 throw new NotImplementedException("Non-zero offsets not supported (yet)");
 
-            if (!DesktopRuntime.ReadMemory(address, buffer, count, out var bytesRead))
+            if (!DesktopRuntime.ReadMemory(address, buffer, count, out int bytesRead))
                 return 0;
 
             return bytesRead;
@@ -655,7 +657,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             LoadAllTypes();
 
-            for (var i = 0; i < _types.Count; ++i)
+            for (int i = 0; i < _types.Count; ++i)
                 yield return _types[i];
         }
 
@@ -669,47 +671,47 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             TypesLoaded = true;
 
             // Walking a module is sloooow.  Ensure we only walk each module once.
-            var modules = new HashSet<ulong>();
+            HashSet<ulong> modules = new HashSet<ulong>();
 
-            foreach (var module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SystemDomainAddress)))
+            foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SystemDomainAddress)))
                 modules.Add(module);
 
-            foreach (var module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SharedDomainAddress)))
+            foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SharedDomainAddress)))
                 modules.Add(module);
 
-            var ads = DesktopRuntime.GetAppDomainStoreData();
+            IAppDomainStoreData ads = DesktopRuntime.GetAppDomainStoreData();
             if (ads == null)
                 return;
 
-            var appDomains = DesktopRuntime.GetAppDomainList(ads.Count);
+            ulong[] appDomains = DesktopRuntime.GetAppDomainList(ads.Count);
             if (appDomains == null)
                 return;
 
-            foreach (var ad in appDomains)
+            foreach (ulong ad in appDomains)
             {
-                var adData = DesktopRuntime.GetAppDomainData(ad);
+                IAppDomainData adData = DesktopRuntime.GetAppDomainData(ad);
                 if (adData != null)
                 {
-                    foreach (var module in DesktopRuntime.EnumerateModules(adData))
+                    foreach (ulong module in DesktopRuntime.EnumerateModules(adData))
                         modules.Add(module);
                 }
             }
 
-            var arrayMt = DesktopRuntime.ArrayMethodTable;
-            foreach (var module in modules)
+            ulong arrayMt = DesktopRuntime.ArrayMethodTable;
+            foreach (ulong module in modules)
             {
-                var mtList = DesktopRuntime.GetMethodTableList(module);
+                IList<MethodTableTokenPair> mtList = DesktopRuntime.GetMethodTableList(module);
                 if (mtList != null)
                 {
-                    foreach (var pair in mtList)
+                    foreach (MethodTableTokenPair pair in mtList)
                     {
                         if (pair.MethodTable != arrayMt)
                         {
                             // prefetch element type, as this also can load types
-                            var type = GetTypeByMethodTable(pair.MethodTable, 0, 0);
+                            ClrType type = GetTypeByMethodTable(pair.MethodTable, 0, 0);
                             if (type != null)
                             {
-                                var cet = type.ElementType;
+                                ClrElementType cet = type.ElementType;
                             }
                         }
                     }
@@ -739,7 +741,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 case ClrElementType.SZArray:
                 case ClrElementType.Object:
                 {
-                    if (!MemoryReader.TryReadPtr(addr, out var val))
+                    if (!MemoryReader.TryReadPtr(addr, out ulong val))
                         return null;
 
                     return val;
@@ -789,7 +791,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 case ClrElementType.Pointer:
                 case ClrElementType.FunctionPointer:
                 {
-                    if (!MemoryReader.TryReadPtr(addr, out var val))
+                    if (!MemoryReader.TryReadPtr(addr, out ulong val))
                         return null;
 
                     return val;
@@ -797,7 +799,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.NativeInt: // native int
                 {
-                    if (!MemoryReader.TryReadPtr(addr, out var val))
+                    if (!MemoryReader.TryReadPtr(addr, out ulong val))
                         return null;
 
                     return (long)val;
@@ -877,11 +879,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (type.ElementSize > 0)
                 return ClrElementType.SZArray;
 
-            var baseType = (BaseDesktopHeapType)type.BaseType;
+            BaseDesktopHeapType baseType = (BaseDesktopHeapType)type.BaseType;
             if (baseType == null || baseType == ObjectType)
                 return ClrElementType.Object;
 
-            var vc = false;
+            bool vc = false;
             if (ValueType == null)
             {
                 if (baseType.Name == "System.ValueType")
@@ -897,7 +899,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (!vc)
             {
-                var et = baseType.ElementType;
+                ClrElementType et = baseType.ElementType;
                 if (et == ClrElementType.Unknown)
                 {
                     et = GetElementType(baseType, depth + 1);
@@ -1056,12 +1058,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _basicTypes[(int)ClrElementType.Object] = ObjectType;
             _basicTypes[(int)ClrElementType.Class] = ObjectType;
 
-            var mscorlib = DesktopRuntime.Mscorlib;
+            ClrModule mscorlib = DesktopRuntime.Mscorlib;
             if (mscorlib == null)
                 return;
 
-            var count = 0;
-            foreach (var type in mscorlib.EnumerateTypes())
+            int count = 0;
+            foreach (ClrType type in mscorlib.EnumerateTypes())
             {
                 if (count == 14)
                     break;
@@ -1173,8 +1175,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_arrayTypes == null)
                 _arrayTypes = new Dictionary<ArrayRankHandle, BaseDesktopHeapType>();
 
-            var handle = new ArrayRankHandle(clrElementType, ranks);
-            if (!_arrayTypes.TryGetValue(handle, out var result))
+            ArrayRankHandle handle = new ArrayRankHandle(clrElementType, ranks);
+            if (!_arrayTypes.TryGetValue(handle, out BaseDesktopHeapType result))
                 _arrayTypes[handle] = result = new DesktopArrayType(this, (DesktopBaseModule)DesktopRuntime.Mscorlib, clrElementType, ranks, ArrayType.MetadataToken, nameHint);
 
             return result;
@@ -1196,25 +1198,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // TODO
             Action<long, long> progressReport = null;
 
-            var objmap = new DictionaryList();
-            var gcrefs = new ExtendedArray<ulong>();
-            var objInfo = new ExtendedArray<ObjectInfo>();
+            DictionaryList objmap = new DictionaryList();
+            ExtendedArray<ulong> gcrefs = new ExtendedArray<ulong>();
+            ExtendedArray<ObjectInfo> objInfo = new ExtendedArray<ObjectInfo>();
 
-            var totalBytes = Segments.Sum(s => (long)s.Length);
+            long totalBytes = Segments.Sum(s => (long)s.Length);
             long completed = 0;
 
-            var pointerSize = (uint)PointerSize;
+            uint pointerSize = (uint)PointerSize;
 
-            foreach (var seg in Segments)
+            foreach (ClrSegment seg in Segments)
             {
                 progressReport?.Invoke(completed, totalBytes);
 
-                for (var obj = seg.FirstObject; obj < seg.End && obj != 0; obj = seg.NextObject(obj))
+                for (ulong obj = seg.FirstObject; obj < seg.End && obj != 0; obj = seg.NextObject(obj))
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
                     // We may
-                    var type = GetObjectType(obj);
+                    ClrType type = GetObjectType(obj);
                     if (type == null || GCRoot.IsTooLarge(obj, type, seg))
                     {
                         AddObject(objmap, gcrefs, objInfo, obj, Free);
@@ -1272,7 +1274,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Debug.Assert(IsHeapCached);
 
-            if (!_objectMap.TryGetValue(objRef, out var index))
+            if (!_objectMap.TryGetValue(objRef, out int index))
                 return null;
 
             return _objects[index].Type;
@@ -1282,12 +1284,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (IsHeapCached)
             {
-                if (type.ContainsPointers && _objectMap.TryGetValue(obj, out var index))
+                if (type.ContainsPointers && _objectMap.TryGetValue(obj, out int index))
                 {
-                    var count = _objects[index].RefCount;
-                    var offset = _objects[index].RefOffset;
+                    uint count = _objects[index].RefCount;
+                    uint offset = _objects[index].RefOffset;
 
-                    for (var i = offset; i < offset + count; i++)
+                    for (uint i = offset; i < offset + count; i++)
                         callback(_gcRefs[i], 0);
                 }
             }
@@ -1300,8 +1302,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 BuildDependentHandleMap(CancellationToken.None);
 
             Debug.Assert(_dependentHandles != null);
-            if (_dependentHandles.TryGetValue(obj, out var value))
-                foreach (var item in value)
+            if (_dependentHandles.TryGetValue(obj, out List<ulong> value))
+                foreach (ulong item in value)
                     callback(item, -1);
         }
 
@@ -1310,10 +1312,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IEnumerable<ClrObject> result = null;
             if (IsHeapCached)
             {
-                if (type.ContainsPointers && _objectMap.TryGetValue(obj, out var index))
+                if (type.ContainsPointers && _objectMap.TryGetValue(obj, out int index))
                 {
-                    var count = _objects[index].RefCount;
-                    var offset = _objects[index].RefOffset;
+                    uint count = _objects[index].RefCount;
+                    uint offset = _objects[index].RefOffset;
 
                     result = EnumerateRefs(offset, count);
                 }
@@ -1331,7 +1333,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 BuildDependentHandleMap(CancellationToken.None);
 
             Debug.Assert(_dependentHandles != null);
-            if (_dependentHandles.TryGetValue(obj, out var values))
+            if (_dependentHandles.TryGetValue(obj, out List<ulong> values))
                 result = result.Union(values.Select(v => ClrObject.Create(v, GetObjectType(v))));
 
             return result;
@@ -1339,23 +1341,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ClrObject> EnumerateRefs(uint offset, uint count)
         {
-            for (var i = offset; i < offset + count; i++)
+            for (uint i = offset; i < offset + count; i++)
             {
-                var obj = _gcRefs[i];
+                ulong obj = _gcRefs[i];
                 yield return ClrObject.Create(obj, GetObjectType(obj));
             }
         }
 
         private void AddObject(DictionaryList objmap, ExtendedArray<ulong> gcrefs, ExtendedArray<ObjectInfo> objInfo, ulong obj, ClrType type)
         {
-            var offset = (uint)gcrefs.Count;
+            uint offset = (uint)gcrefs.Count;
 
             if (type.ContainsPointers)
             {
                 EnumerateObjectReferences(obj, type, true, (addr, offs) => { gcrefs.Add(addr); });
             }
 
-            var refCount = (uint)gcrefs.Count - offset;
+            uint refCount = (uint)gcrefs.Count - offset;
             objmap.Add(obj, checked((int)objInfo.Count));
             objInfo.Add(
                 new ObjectInfo
@@ -1368,13 +1370,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         protected string GetTypeName(ulong mt, DesktopModule module, uint token)
         {
-            var typeName = DesktopRuntime.GetNameForMT(mt);
+            string typeName = DesktopRuntime.GetNameForMT(mt);
             return GetBetterTypeName(typeName, module, token);
         }
 
         protected string GetTypeName(TypeHandle hnd, DesktopModule module, uint token)
         {
-            var typeName = DesktopRuntime.GetTypeName(hnd);
+            string typeName = DesktopRuntime.GetTypeName(hnd);
             return GetBetterTypeName(typeName, module, token);
         }
 
@@ -1382,8 +1384,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (typeName == null || typeName == "<Unloaded Type>")
             {
-                var builder = GetTypeNameFromToken(module, token);
-                var newName = builder;
+                string builder = GetTypeNameFromToken(module, token);
+                string newName = builder;
                 if (newName != null && newName != "<UNKNOWN>")
                     typeName = newName;
             }
@@ -1423,7 +1425,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (_lists.Count <= 0)
                         return 0;
 
-                    var total = (_lists.Count - 1) * (long)Complete;
+                    long total = (_lists.Count - 1) * (long)Complete;
                     total += _curr;
                     return total;
                 }
@@ -1433,14 +1435,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 get
                 {
-                    var arrayIndex = index / Complete;
+                    int arrayIndex = index / Complete;
                     index %= Complete;
 
                     return _lists[arrayIndex][index];
                 }
                 set
                 {
-                    var arrayIndex = index / Complete;
+                    int arrayIndex = index / Complete;
                     index %= Complete;
 
                     _lists[arrayIndex][index] = value;
@@ -1451,14 +1453,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 get
                 {
-                    var arrayIndex = index / Complete;
+                    long arrayIndex = index / Complete;
                     index %= Complete;
 
                     return _lists[(int)arrayIndex][index];
                 }
                 set
                 {
-                    var arrayIndex = index / Complete;
+                    long arrayIndex = index / Complete;
                     index %= Complete;
 
                     _lists[(int)arrayIndex][index] = value;
@@ -1467,7 +1469,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             public void Add(T t)
             {
-                var arr = _lists.LastOrDefault();
+                T[] arr = _lists.LastOrDefault();
                 if (arr == null || _curr == Complete)
                 {
                     arr = new T[Initial];
@@ -1485,7 +1487,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                     else
                     {
-                        var newSize = arr.Length == Initial ? Secondary : Complete;
+                        int newSize = arr.Length == Initial ? Secondary : Complete;
 
                         _lists.RemoveAt(_lists.Count - 1);
                         Array.Resize(ref arr, newSize);
@@ -1498,7 +1500,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             public void Condense()
             {
-                var arr = _lists.LastOrDefault();
+                T[] arr = _lists.LastOrDefault();
                 if (arr != null && _curr < arr.Length)
                 {
                     _lists.RemoveAt(_lists.Count - 1);
@@ -1520,14 +1522,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             public void Add(ulong obj, int index)
             {
-                var curr = GetOrCreateEntry(obj);
+                Entry curr = GetOrCreateEntry(obj);
                 curr.End = obj;
                 curr.Dictionary.Add(obj, index);
             }
 
             public bool TryGetValue(ulong obj, out int index)
             {
-                foreach (var entry in _entries)
+                foreach (Entry entry in _entries)
                     if (entry.Start <= obj && obj <= entry.End)
                         return entry.Dictionary.TryGetValue(obj, out index);
 
@@ -1542,7 +1544,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return NewEntry(obj);
                 }
 
-                var last = _entries.Last();
+                Entry last = _entries.Last();
                 if (last.Dictionary.Count > MaxEntries)
                     return NewEntry(obj);
 
@@ -1551,7 +1553,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             private Entry NewEntry(ulong obj)
             {
-                var result = new Entry {Start = obj, End = obj, Dictionary = new SortedDictionary<ulong, int>()};
+                Entry result = new Entry {Start = obj, End = obj, Dictionary = new SortedDictionary<ulong, int>()};
                 _entries.Add(result);
                 return result;
             }

@@ -20,8 +20,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk CreateStackWalk(DacLibrary library, uint flags)
         {
-            var create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable->CreateStackWalk, typeof(CreateStackWalkDelegate));
-            var hr = create(Self, flags, out var pUnk);
+            CreateStackWalkDelegate create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable->CreateStackWalk, typeof(CreateStackWalkDelegate));
+            int hr = create(Self, flags, out IntPtr pUnk);
             if (hr != S_OK)
                 return null;
 

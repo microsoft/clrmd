@@ -27,8 +27,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (createSnapshot)
             {
                 _originalPid = pid;
-                var process = Process.GetProcessById(pid);
-                var hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
+                Process process = Process.GetProcessById(pid);
+                int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if (hr != 0)
                 {
                     throw new ClrDiagnosticsException($"Could not create snapshot to process. Error {hr}.");
@@ -52,9 +52,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (_process == IntPtr.Zero)
                 throw new ClrDiagnosticsException($"Could not attach to process. Error {Marshal.GetLastWin32Error()}.");
 
-            using (var p = Process.GetCurrentProcess())
-                if (DataTarget.PlatformFunctions.TryGetWow64(p.Handle, out var wow64) &&
-                    DataTarget.PlatformFunctions.TryGetWow64(_process, out var targetWow64) &&
+            using (Process p = Process.GetCurrentProcess())
+                if (DataTarget.PlatformFunctions.TryGetWow64(p.Handle, out bool wow64) &&
+                    DataTarget.PlatformFunctions.TryGetWow64(_process, out bool targetWow64) &&
                     wow64 != targetWow64)
                 {
                     throw new ClrDiagnosticsException("Dac architecture mismatch!");
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_originalPid != 0)
             {
                 CloseHandle(_cloneHandle);
-                var hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
+                int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
                 if (hr != 0)
                 {
                     throw new ClrDiagnosticsException($"Could not free the snapshot. Error {hr}.");
@@ -109,33 +109,33 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            var result = new List<ModuleInfo>();
+            List<ModuleInfo> result = new List<ModuleInfo>();
 
-            EnumProcessModules(_process, null, 0, out var needed);
+            EnumProcessModules(_process, null, 0, out uint needed);
 
-            var modules = new IntPtr[needed / 4];
-            var size = (uint)modules.Length * sizeof(uint);
+            IntPtr[] modules = new IntPtr[needed / 4];
+            uint size = (uint)modules.Length * sizeof(uint);
 
             if (!EnumProcessModules(_process, modules, size, out needed))
                 throw new ClrDiagnosticsException("Unable to get process modules.", ClrDiagnosticsException.HR.DataRequestError);
 
-            for (var i = 0; i < modules.Length; i++)
+            for (int i = 0; i < modules.Length; i++)
             {
-                var ptr = modules[i];
+                IntPtr ptr = modules[i];
 
                 if (ptr == IntPtr.Zero)
                 {
                     break;
                 }
 
-                var sb = new StringBuilder(1024);
+                StringBuilder sb = new StringBuilder(1024);
                 GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
 
-                var baseAddr = (ulong)ptr.ToInt64();
-                GetFileProperties(baseAddr, out var filesize, out var timestamp);
+                ulong baseAddr = (ulong)ptr.ToInt64();
+                GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
 
-                var filename = sb.ToString();
-                var module = new ModuleInfo(this)
+                string filename = sb.ToString();
+                ModuleInfo module = new ModuleInfo(this)
                 {
                     ImageBase = baseAddr,
                     FileName = filename,
@@ -151,10 +151,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
-            var filename = new StringBuilder(1024);
+            StringBuilder filename = new StringBuilder(1024);
             GetModuleFileNameExA(_process, new IntPtr((long)addr), filename, filename.Capacity);
 
-            if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out var major, out var minor, out var revision, out var patch))
+            if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
             else
                 version = new VersionInfo();
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                var res = ReadProcessMemory(_process, new IntPtr((long)address), buffer, bytesRequested, out bytesRead);
+                int res = ReadProcessMemory(_process, new IntPtr((long)address), buffer, bytesRequested, out bytesRead);
                 return res != 0;
             }
             catch
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                var res = ReadProcessMemory(_process, new IntPtr((long)address), buffer, bytesRequested, out bytesRead);
+                int res = ReadProcessMemory(_process, new IntPtr((long)address), buffer, bytesRequested, out bytesRead);
                 return res != 0;
             }
             catch
@@ -192,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            if (!ReadMemory(addr, _ptrBuffer, IntPtr.Size, out var read))
+            if (!ReadMemory(addr, _ptrBuffer, IntPtr.Size, out int read))
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -206,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            if (!ReadMemory(addr, _ptrBuffer, 4, out var read))
+            if (!ReadMemory(addr, _ptrBuffer, 4, out int read))
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<uint> EnumerateAllThreads()
         {
-            var p = Process.GetProcessById(_pid);
+            Process p = Process.GetProcessById(_pid);
             foreach (ProcessThread thread in p.Threads)
                 yield return (uint)thread.Id;
         }
@@ -230,10 +230,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             vq = new VirtualQueryData();
 
-            var mem = new MEMORY_BASIC_INFORMATION();
-            var ptr = new IntPtr((long)addr);
+            MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
+            IntPtr ptr = new IntPtr((long)addr);
 
-            var res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
+            int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
             if (res == 0)
                 return false;
 
@@ -244,26 +244,26 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            using (var thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadId))
+            using (SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadId))
             {
                 if (thread.IsInvalid)
                     return false;
 
-                var res = GetThreadContext(thread.DangerousGetHandle(), context);
+                bool res = GetThreadContext(thread.DangerousGetHandle(), context);
                 return res;
             }
         }
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
-            using (var thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadId))
+            using (SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadId))
             {
                 if (thread.IsInvalid)
                     return false;
 
                 fixed (byte* b = context)
                 {
-                    var res = GetThreadContext(thread.DangerousGetHandle(), new IntPtr(b));
+                    bool res = GetThreadContext(thread.DangerousGetHandle(), new IntPtr(b));
                     return res;
                 }
             }
@@ -273,16 +273,16 @@ namespace Microsoft.Diagnostics.Runtime
         {
             filesize = 0;
             timestamp = 0;
-            var buffer = new byte[4];
+            byte[] buffer = new byte[4];
 
-            if (ReadMemory(moduleBase + 0x3c, buffer, buffer.Length, out var read) && read == buffer.Length)
+            if (ReadMemory(moduleBase + 0x3c, buffer, buffer.Length, out int read) && read == buffer.Length)
             {
-                var sigOffset = (uint)BitConverter.ToInt32(buffer, 0);
-                var sigLength = 4;
+                uint sigOffset = (uint)BitConverter.ToInt32(buffer, 0);
+                int sigLength = 4;
 
                 if (ReadMemory(moduleBase + sigOffset, buffer, buffer.Length, out read) && read == buffer.Length)
                 {
-                    var header = (uint)BitConverter.ToInt32(buffer, 0);
+                    uint header = (uint)BitConverter.ToInt32(buffer, 0);
 
                     // Ensure the module contains the magic "PE" value at the offset it says it does.  This check should
                     // never fail unless we have the wrong base address for CLR.

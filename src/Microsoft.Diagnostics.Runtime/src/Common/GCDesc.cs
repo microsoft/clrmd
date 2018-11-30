@@ -22,21 +22,21 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Debug.Assert(size >= (ulong)IntPtr.Size);
 
-            var series = GetNumSeries();
-            var highest = GetHighestSeries();
-            var curr = highest;
+            int series = GetNumSeries();
+            int highest = GetHighestSeries();
+            int curr = highest;
 
             if (series > 0)
             {
-                var lowest = GetLowestSeries();
+                int lowest = GetLowestSeries();
                 do
                 {
-                    var ptr = addr + GetSeriesOffset(curr);
-                    var stop = (ulong)((long)ptr + GetSeriesSize(curr) + (long)size);
+                    ulong ptr = addr + GetSeriesOffset(curr);
+                    ulong stop = (ulong)((long)ptr + GetSeriesSize(curr) + (long)size);
 
                     while (ptr < stop)
                     {
-                        var ret = readPointer(ptr);
+                        ulong ret = readPointer(ptr);
                         if (ret != 0)
                             refCallback(ret, (int)(ptr - addr));
 
@@ -48,19 +48,19 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                var ptr = addr + GetSeriesOffset(curr);
+                ulong ptr = addr + GetSeriesOffset(curr);
 
                 while (ptr < addr + size - (ulong)IntPtr.Size)
                 {
-                    for (var i = 0; i > series; i--)
+                    for (int i = 0; i > series; i--)
                     {
-                        var nptrs = GetPointers(curr, i);
-                        var skip = GetSkip(curr, i);
+                        uint nptrs = GetPointers(curr, i);
+                        uint skip = GetSkip(curr, i);
 
-                        var stop = ptr + (ulong)(nptrs * IntPtr.Size);
+                        ulong stop = ptr + (ulong)(nptrs * IntPtr.Size);
                         do
                         {
-                            var ret = readPointer(ptr);
+                            ulong ret = readPointer(ptr);
                             if (ret != 0)
                                 refCallback(ret, (int)(ptr - addr));
 
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private uint GetPointers(int curr, int i)
         {
-            var offset = i * IntPtr.Size;
+            int offset = i * IntPtr.Size;
             if (IntPtr.Size == 4)
                 return BitConverter.ToUInt16(_data, curr + offset);
 
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private uint GetSkip(int curr, int i)
         {
-            var offset = i * IntPtr.Size + IntPtr.Size / 2;
+            int offset = i * IntPtr.Size + IntPtr.Size / 2;
             if (IntPtr.Size == 4)
                 return BitConverter.ToUInt16(_data, curr + offset);
 

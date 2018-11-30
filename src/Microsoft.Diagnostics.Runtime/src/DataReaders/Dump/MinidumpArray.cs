@@ -53,9 +53,9 @@ namespace Microsoft.Diagnostics.Runtime
             // MINIDUMP_THREAD    : 0n48 bytes
             // MINIDUMP_THREAD_EX : 0n64 bytes
             const uint OffsetOfArray = 4;
-            var offset = OffsetOfArray + idx * (uint)Marshal.SizeOf(typeof(T));
+            uint offset = OffsetOfArray + idx * (uint)Marshal.SizeOf(typeof(T));
 
-            var element = _streamPointer.PtrToStructure<T>(+offset);
+            T element = _streamPointer.PtrToStructure<T>(+offset);
             return element;
         }
     }

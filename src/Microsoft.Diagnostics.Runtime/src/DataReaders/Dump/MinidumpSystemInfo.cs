@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
             // System.Version is a managed abstraction on top of version numbers.
             get
             {
-                var v = new Version((int)MajorVersion, (int)MinorVersion, (int)BuildNumber);
+                Version v = new Version((int)MajorVersion, (int)MinorVersion, (int)BuildNumber);
                 return v;
             }
         }

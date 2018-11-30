@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // A Location has both an RVA and Size. If we just TranslateRVA, then that would be a
             // DumpPointer associated with a larger size (to the end of the dump-file). 
-            var p = TranslateRVA(location.Rva);
+            DumpPointer p = TranslateRVA(location.Rva);
             p.Shrink(location.DataSize);
             return p;
         }
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>System.String representing contents of MINIDUMP_STRING at the given RVA</returns>
         protected internal string GetString(RVA rva)
         {
-            var p = TranslateRVA(rva);
+            DumpPointer p = TranslateRVA(rva);
             return GetString(p);
         }
 
@@ -126,12 +126,12 @@ namespace Microsoft.Diagnostics.Runtime
             //   ULONG32 Length;         // Length in bytes of the string
             //    WCHAR   Buffer [0];     // Variable size buffer
             // } MINIDUMP_STRING, *PMINIDUMP_STRING;
-            var lengthBytes = ptr.ReadInt32();
+            int lengthBytes = ptr.ReadInt32();
 
             ptr = ptr.Adjust(4); // move past the Length field
 
-            var lengthChars = lengthBytes / 2;
-            var s = ptr.ReadAsUnicodeString(lengthChars);
+            int lengthChars = lengthBytes / 2;
+            string s = ptr.ReadAsUnicodeString(lengthChars);
             return s;
         }
 
@@ -141,9 +141,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             while (min <= max)
             {
-                var mid = (max + min) / 2;
+                uint mid = (max + min) / 2;
 
-                var targetStartAddress = _memoryChunks.StartAddress(mid);
+                ulong targetStartAddress = _memoryChunks.StartAddress(mid);
 
                 if (addr < targetStartAddress)
                 {
@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    var targetEndAddress = _memoryChunks.EndAddress(mid);
+                    ulong targetEndAddress = _memoryChunks.EndAddress(mid);
                     if (targetEndAddress < addr)
                     {
                         min = mid + 1;
@@ -172,15 +172,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             for (ulong i = 0; i < _memoryChunks.Count; i++)
             {
-                var targetStartAddress = _memoryChunks.StartAddress(i);
-                var targetEndAddress = _memoryChunks.EndAddress(i);
+                ulong targetStartAddress = _memoryChunks.StartAddress(i);
+                ulong targetEndAddress = _memoryChunks.EndAddress(i);
 
                 if (targetEndAddress < startAddress)
                     continue;
                 if (endAddress < targetStartAddress)
                     continue;
 
-                var size = _memoryChunks.Size(i);
+                ulong size = _memoryChunks.Size(i);
                 yield return new VirtualQueryData(targetStartAddress, size);
             }
         }
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <remarks>All memory requested must be readable or it throws.</remarks>
         public byte[] ReadMemory(ulong targetAddress, int length)
         {
-            var buffer = new byte[length];
+            byte[] buffer = new byte[length];
             ReadMemory(targetAddress, buffer, length);
             return buffer;
         }
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <remarks>All memory requested must be readable or it throws.</remarks>
         public void ReadMemory(ulong targetAddress, byte[] buffer, int cbRequestSize)
         {
-            var h = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+            GCHandle h = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             try
             {
                 ReadMemory(targetAddress, h.AddrOfPinnedObject(), (uint)cbRequestSize);
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="destinationBufferSizeInBytes">size of the destinationBuffer in bytes.</param>
         public void ReadMemory(ulong targetRequestStart, IntPtr destinationBuffer, uint destinationBufferSizeInBytes)
         {
-            var bytesRead = ReadPartialMemory(targetRequestStart, destinationBuffer, destinationBufferSizeInBytes);
+            uint bytesRead = ReadPartialMemory(targetRequestStart, destinationBuffer, destinationBufferSizeInBytes);
             if (bytesRead != destinationBufferSizeInBytes)
             {
                 throw new ClrDiagnosticsException(
@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>Number of contiguous bytes successfuly copied into the destination buffer.</returns>
         public virtual uint ReadPartialMemory(ulong targetRequestStart, IntPtr destinationBuffer, uint destinationBufferSizeInBytes)
         {
-            var bytesRead = ReadPartialMemoryInternal(
+            uint bytesRead = ReadPartialMemoryInternal(
                 targetRequestStart,
                 destinationBuffer,
                 destinationBufferSizeInBytes,
@@ -267,12 +267,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ulong ReadPointerUnsafe(ulong addr)
         {
-            var chunkIndex = _memoryChunks.GetChunkContainingAddress(addr);
+            int chunkIndex = _memoryChunks.GetChunkContainingAddress(addr);
             if (chunkIndex == -1)
                 return 0;
 
-            var chunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
-            var offset = addr - _memoryChunks.StartAddress((uint)chunkIndex);
+            DumpPointer chunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
+            ulong offset = addr - _memoryChunks.StartAddress((uint)chunkIndex);
 
             if (IntPtr.Size == 4)
                 return chunk.Adjust(offset).GetDword();
@@ -282,12 +282,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal uint ReadDwordUnsafe(ulong addr)
         {
-            var chunkIndex = _memoryChunks.GetChunkContainingAddress(addr);
+            int chunkIndex = _memoryChunks.GetChunkContainingAddress(addr);
             if (chunkIndex == -1)
                 return 0;
 
-            var chunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
-            var offset = addr - _memoryChunks.StartAddress((uint)chunkIndex);
+            DumpPointer chunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
+            ulong offset = addr - _memoryChunks.StartAddress((uint)chunkIndex);
             return chunk.Adjust(offset).GetDword();
         }
 
@@ -301,19 +301,19 @@ namespace Microsoft.Diagnostics.Runtime
             if (bytesRequested > destinationBuffer.Length)
                 bytesRequested = destinationBuffer.Length;
 
-            var bytesRead = 0;
+            int bytesRead = 0;
             do
             {
-                var chunkIndex = _memoryChunks.GetChunkContainingAddress(targetRequestStart + (uint)bytesRead);
+                int chunkIndex = _memoryChunks.GetChunkContainingAddress(targetRequestStart + (uint)bytesRead);
                 if (chunkIndex == -1)
                     break;
 
-                var pointerCurrentChunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
-                var startAddr = targetRequestStart + (uint)bytesRead - _memoryChunks.StartAddress((uint)chunkIndex);
-                var bytesAvailable = _memoryChunks.Size((uint)chunkIndex) - startAddr;
+                DumpPointer pointerCurrentChunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
+                ulong startAddr = targetRequestStart + (uint)bytesRead - _memoryChunks.StartAddress((uint)chunkIndex);
+                ulong bytesAvailable = _memoryChunks.Size((uint)chunkIndex) - startAddr;
 
                 Debug.Assert(bytesRequested >= bytesRead);
-                var bytesToCopy = bytesRequested - bytesRead;
+                int bytesToCopy = bytesRequested - bytesRead;
                 if (bytesAvailable < (uint)bytesToCopy)
                     bytesToCopy = (int)bytesAvailable;
 
@@ -334,8 +334,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool AcquireReadLock()
         {
-            var result = 0;
-            var value = 0;
+            int result = 0;
+            int value = 0;
             do
             {
                 value = _lock;
@@ -355,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool AcquireWriteLock()
         {
-            var result = 0;
+            int result = 0;
             result = Interlocked.CompareExchange(ref _lock, -1, 0);
             while (result != 0)
             {
@@ -388,22 +388,22 @@ namespace Microsoft.Diagnostics.Runtime
             uint bytesRead = 0;
             do
             {
-                var chunkIndex = _memoryChunks.GetChunkContainingAddress(targetRequestStart + bytesRead);
+                int chunkIndex = _memoryChunks.GetChunkContainingAddress(targetRequestStart + bytesRead);
                 if (chunkIndex == -1)
                     break;
 
-                var pointerCurrentChunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
-                var idxStart = (uint)(targetRequestStart + bytesRead - _memoryChunks.StartAddress((uint)chunkIndex));
-                var bytesAvailable = (uint)_memoryChunks.Size((uint)chunkIndex) - idxStart;
-                var bytesNeeded = destinationBufferSizeInBytes - bytesRead;
-                var bytesToCopy = Math.Min(bytesAvailable, bytesNeeded);
+                DumpPointer pointerCurrentChunk = TranslateRVA(_memoryChunks.RVA((uint)chunkIndex));
+                uint idxStart = (uint)(targetRequestStart + bytesRead - _memoryChunks.StartAddress((uint)chunkIndex));
+                uint bytesAvailable = (uint)_memoryChunks.Size((uint)chunkIndex) - idxStart;
+                uint bytesNeeded = destinationBufferSizeInBytes - bytesRead;
+                uint bytesToCopy = Math.Min(bytesAvailable, bytesNeeded);
 
                 Debug.Assert(bytesToCopy > 0);
                 if (bytesToCopy == 0)
                     break;
 
-                var dest = new IntPtr(destinationBuffer.ToInt64() + bytesRead);
-                var destSize = destinationBufferSizeInBytes - bytesRead;
+                IntPtr dest = new IntPtr(destinationBuffer.ToInt64() + bytesRead);
+                uint destSize = destinationBufferSizeInBytes - bytesRead;
                 pointerCurrentChunk.Adjust(idxStart).Copy(dest, destSize, bytesToCopy);
                 bytesRead += bytesToCopy;
             } while (bytesRead < destinationBufferSizeInBytes);
@@ -443,7 +443,7 @@ namespace Microsoft.Diagnostics.Runtime
         public DumpReader(string path)
         {
             _file = File.OpenRead(path);
-            var length = _file.Length;
+            long length = _file.Length;
 
             // The dump file may be many megabytes large, so we don't want to
             // read it all at once. Instead, doing a mapping.
@@ -451,14 +451,14 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_fileMapping.IsInvalid)
             {
-                var error = Marshal.GetHRForLastWin32Error();
+                int error = Marshal.GetHRForLastWin32Error();
                 Marshal.ThrowExceptionForHR(error, new IntPtr(-1));
             }
 
             _view = MapViewOfFile(_fileMapping, WindowsFunctions.NativeMethods.FILE_MAP_READ, 0, 0, IntPtr.Zero);
             if (_view.IsInvalid)
             {
-                var error = Marshal.GetHRForLastWin32Error();
+                int error = Marshal.GetHRForLastWin32Error();
                 Marshal.ThrowExceptionForHR(error, new IntPtr(-1));
             }
 
@@ -563,7 +563,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>DumpPointer refering into the stream. </returns>
         private DumpPointer GetStream(MINIDUMP_STREAM_TYPE type)
         {
-            if (!TryGetStream(type, out var stream))
+            if (!TryGetStream(type, out DumpPointer stream))
                 throw new ClrDiagnosticsException("Dump does not contain a " + type + " stream.", ClrDiagnosticsException.HR.CrashDumpError);
 
             return stream;
@@ -579,7 +579,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             EnsureValid();
 
-            var fOk = DumpNative.MiniDumpReadDumpStream(_view.BaseAddress, type, out var pStream, out var cbStreamSize);
+            bool fOk = DumpNative.MiniDumpReadDumpStream(_view.BaseAddress, type, out IntPtr pStream, out uint cbStreamSize);
 
             if (!fOk || IntPtr.Zero == pStream || cbStreamSize < 1)
             {
@@ -619,7 +619,7 @@ namespace Microsoft.Diagnostics.Runtime
         public DumpThread GetThread(int threadId)
         {
             EnsureValid();
-            var raw = GetRawThread(threadId);
+            MINIDUMP_THREAD raw = GetRawThread(threadId);
             if (raw == null)
                 return null;
 
@@ -658,12 +658,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>an enumerate of DumpThread objects</returns>
         public IEnumerable<DumpThread> EnumerateThreads()
         {
-            var list = GetThreadList();
-            var num = list.Count();
+            IMinidumpThreadList list = GetThreadList();
+            uint num = list.Count();
 
             for (uint i = 0; i < num; i++)
             {
-                var rawThread = list.GetElement(i);
+                MINIDUMP_THREAD rawThread = list.GetElement(i);
                 yield return new DumpThread(this, rawThread);
             }
         }
@@ -672,12 +672,12 @@ namespace Microsoft.Diagnostics.Runtime
         // Throws if thread is not found.
         private MINIDUMP_THREAD GetRawThread(int threadId)
         {
-            var list = GetThreadList();
-            var num = list.Count();
+            IMinidumpThreadList list = GetThreadList();
+            uint num = list.Count();
 
             for (uint i = 0; i < num; i++)
             {
-                var thread = list.GetElement(i);
+                MINIDUMP_THREAD thread = list.GetElement(i);
                 if (threadId == thread.ThreadId)
                 {
                     return thread;
@@ -694,8 +694,8 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException("Context not present", ClrDiagnosticsException.HR.CrashDumpError);
             }
 
-            var pContext = TranslateDescriptor(loc);
-            var sizeContext = (int)loc.DataSize;
+            DumpPointer pContext = TranslateDescriptor(loc);
+            int sizeContext = (int)loc.DataSize;
 
             if (sizeBufferBytes < sizeContext)
             {
@@ -713,15 +713,15 @@ namespace Microsoft.Diagnostics.Runtime
         private MINIDUMP_MODULE_LIST GetModuleList()
         {
             EnsureValid();
-            var pStream = GetStream(MINIDUMP_STREAM_TYPE.ModuleListStream);
-            var list = new MINIDUMP_MODULE_LIST(pStream);
+            DumpPointer pStream = GetStream(MINIDUMP_STREAM_TYPE.ModuleListStream);
+            MINIDUMP_MODULE_LIST list = new MINIDUMP_MODULE_LIST(pStream);
 
             return list;
         }
 
         private MINIDUMP_EXCEPTION_STREAM GetExceptionStream()
         {
-            var pStream = GetStream(MINIDUMP_STREAM_TYPE.ExceptionStream);
+            DumpPointer pStream = GetStream(MINIDUMP_STREAM_TYPE.ExceptionStream);
             return new MINIDUMP_EXCEPTION_STREAM(pStream);
         }
 
@@ -731,7 +731,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns> true iff there is a MINIDUMP_EXCEPTION_STREAM in the dump. </returns>
         public bool IsExceptionStream()
         {
-            var ret = true;
+            bool ret = true;
             try
             {
                 GetExceptionStream();
@@ -750,7 +750,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns> The TID from the exception stream. </returns>
         public uint ExceptionStreamThreadId()
         {
-            var es = GetExceptionStream();
+            MINIDUMP_EXCEPTION_STREAM es = GetExceptionStream();
             return es.ThreadId;
         }
 
@@ -770,17 +770,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The first DumpModule that has a matching name. </returns>
         public DumpModule LookupModule(string nameModule)
         {
-            var list = GetModuleList();
-            var num = list.Count;
+            MINIDUMP_MODULE_LIST list = GetModuleList();
+            uint num = list.Count;
 
             for (uint i = 0; i < num; i++)
             {
-                var module = list.GetElement(i);
-                var rva = module.ModuleNameRva;
+                MINIDUMP_MODULE module = list.GetElement(i);
+                RVA rva = module.ModuleNameRva;
 
-                var ptr = TranslateRVA(rva);
+                DumpPointer ptr = TranslateRVA(rva);
 
-                var name = GetString(ptr);
+                string name = GetString(ptr);
                 if (nameModule == name ||
                     name.EndsWith(nameModule))
                 {
@@ -807,15 +807,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // This is an optimized lookup path, which avoids using IEnumerable or creating
             // unnecessary DumpModule objects.
-            var list = GetModuleList();
+            MINIDUMP_MODULE_LIST list = GetModuleList();
 
-            var num = list.Count;
+            uint num = list.Count;
 
             for (uint i = 0; i < num; i++)
             {
-                var module = list.GetElement(i);
-                var targetStart = module.BaseOfImage;
-                var targetEnd = targetStart + module.SizeOfImage;
+                MINIDUMP_MODULE module = list.GetElement(i);
+                ulong targetStart = module.BaseOfImage;
+                ulong targetEnd = targetStart + module.SizeOfImage;
                 if (targetStart <= targetAddress && targetEnd > targetAddress)
                 {
                     return new DumpModule(this, module);
@@ -831,13 +831,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public IEnumerable<DumpModule> EnumerateModules()
         {
-            var list = GetModuleList();
+            MINIDUMP_MODULE_LIST list = GetModuleList();
 
-            var num = list.Count;
+            uint num = list.Count;
 
             for (uint i = 0; i < num; i++)
             {
-                var module = list.GetElement(i);
+                MINIDUMP_MODULE module = list.GetElement(i);
                 yield return new DumpModule(this, module);
             }
         }

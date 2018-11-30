@@ -20,19 +20,19 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public string GetVersionString()
         {
-            var sb = new StringBuilder(CLRMetaHost.MaxVersionStringLength);
-            var verStrLength = sb.Capacity;
+            StringBuilder sb = new StringBuilder(CLRMetaHost.MaxVersionStringLength);
+            int verStrLength = sb.Capacity;
             m_runtimeInfo.GetVersionString(sb, ref verStrLength);
             return sb.ToString();
         }
 
         public string GetRuntimeDirectory()
         {
-            var sb = new StringBuilder();
-            var strLength = 0;
+            StringBuilder sb = new StringBuilder();
+            int strLength = 0;
             m_runtimeInfo.GetRuntimeDirectory(sb, ref strLength);
             sb.Capacity = strLength;
-            var ret = m_runtimeInfo.GetRuntimeDirectory(sb, ref strLength);
+            int ret = m_runtimeInfo.GetRuntimeDirectory(sb, ref strLength);
             if (ret < 0)
                 Marshal.ThrowExceptionForHR(ret);
             return sb.ToString();
@@ -40,8 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public ICorDebug GetLegacyICorDebugInterface()
         {
-            var ifaceId = typeof(ICorDebug).GetGuid();
-            var clsId = s_ClsIdClrDebuggingLegacy;
+            Guid ifaceId = typeof(ICorDebug).GetGuid();
+            Guid clsId = s_ClsIdClrDebuggingLegacy;
             return (ICorDebug)m_runtimeInfo.GetInterface(ref clsId, ref ifaceId);
         }
 

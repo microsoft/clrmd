@@ -8,16 +8,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
     {
         internal MsfDirectory(PdbStreamHelper reader, PdbFileHeader head, BitAccess bits)
         {
-            var pages = reader.PagesFromSize(head.DirectorySize);
+            int pages = reader.PagesFromSize(head.DirectorySize);
 
             // 0..n in page of directory pages.
             bits.MinCapacity(head.DirectorySize);
-            var directoryRootPages = head.DirectoryRoot.Length;
-            var pagesPerPage = head.PageSize / 4;
-            var pagesToGo = pages;
-            for (var i = 0; i < directoryRootPages; i++)
+            int directoryRootPages = head.DirectoryRoot.Length;
+            int pagesPerPage = head.PageSize / 4;
+            int pagesToGo = pages;
+            for (int i = 0; i < directoryRootPages; i++)
             {
-                var pagesInThisPage = pagesToGo <= pagesPerPage ? pagesToGo : pagesPerPage;
+                int pagesInThisPage = pagesToGo <= pagesPerPage ? pagesToGo : pagesPerPage;
                 reader.Seek(head.DirectoryRoot[i], 0);
                 bits.Append(reader.Reader, pagesInThisPage * 4);
                 pagesToGo -= pagesInThisPage;
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
             bits.Position = 0;
 
-            var stream = new DataStream(head.DirectorySize, bits, pages);
+            DataStream stream = new DataStream(head.DirectorySize, bits, pages);
             bits.MinCapacity(head.DirectorySize);
             stream.Read(reader, bits);
 
@@ -34,12 +34,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(out count);
 
             // 4..n
-            var sizes = new int[count];
+            int[] sizes = new int[count];
             bits.ReadInt32(sizes);
 
             // n..m
             _streams = new DataStream[count];
-            for (var i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 if (sizes[i] <= 0)
                 {

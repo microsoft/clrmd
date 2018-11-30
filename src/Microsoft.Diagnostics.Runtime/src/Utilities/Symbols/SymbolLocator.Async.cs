@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (module == null)
                 throw new ArgumentNullException("module");
 
-            var pdb = module.Pdb;
+            PdbInfo pdb = module.Pdb;
             if (pdb == null)
                 return null;
 

@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<ulong> EnumerateObjectAddresses()
         {
-            for (var obj = FirstObject; obj != 0; obj = NextObject(obj))
+            for (ulong obj = FirstObject; obj != 0; obj = NextObject(obj))
                 yield return obj;
         }
 
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                var start = Gen2Start;
+                ulong start = Gen2Start;
                 if (start >= End)
                     return 0;
 
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override ulong GetFirstObject(out ClrType type)
         {
-            var start = Gen2Start;
+            ulong start = Gen2Start;
             if (start >= End)
             {
                 type = null;
@@ -83,13 +83,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (objRef >= CommittedEnd)
                 return 0;
 
-            var minObjSize = (uint)_clr.PointerSize * 3;
+            uint minObjSize = (uint)_clr.PointerSize * 3;
 
-            var currType = _heap.GetObjectType(objRef);
+            ClrType currType = _heap.GetObjectType(objRef);
             if (currType == null)
                 return 0;
 
-            var size = currType.GetSize(objRef);
+            ulong size = currType.GetSize(objRef);
             size = Align(size, _large);
             if (size < minObjSize)
                 size = minObjSize;
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return 0;
 
             // Ensure we aren't at the start of an alloc context
-            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out var tmp))
+            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
             {
                 tmp += Align(minObjSize, _large);
 
@@ -129,16 +129,16 @@ namespace Microsoft.Diagnostics.Runtime
                 return 0;
             }
 
-            var minObjSize = (uint)_clr.PointerSize * 3;
+            uint minObjSize = (uint)_clr.PointerSize * 3;
 
-            var currType = _heap.GetObjectType(objRef);
+            ClrType currType = _heap.GetObjectType(objRef);
             if (currType == null)
             {
                 type = null;
                 return 0;
             }
 
-            var size = currType.GetSize(objRef);
+            ulong size = currType.GetSize(objRef);
             size = Align(size, _large);
             if (size < minObjSize)
                 size = minObjSize;
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Ensure we aren't at the start of an alloc context
-            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out var tmp))
+            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
             {
                 tmp += Align(minObjSize, _large);
 

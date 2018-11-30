@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A Command structure that can be queried to determine ExitCode, Output, etc.</returns>
         public static Command Run(string commandLine, CommandOptions options)
         {
-            var run = new Command(commandLine, options);
+            Command run = new Command(commandLine, options);
             run.Wait();
             return run;
         }
@@ -129,11 +129,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _commandLine = commandLine;
 
             // See if the command is quoted and match it in that case
-            var m = Regex.Match(commandLine, "^\\s*\"(.*?)\"\\s*(.*)");
+            Match m = Regex.Match(commandLine, "^\\s*\"(.*?)\"\\s*(.*)");
             if (!m.Success)
                 m = Regex.Match(commandLine, @"\s*(\S*)\s*(.*)"); // thing before first space is command
 
-            var startInfo = new ProcessStartInfo(m.Groups[1].Value, m.Groups[2].Value)
+            ProcessStartInfo startInfo = new ProcessStartInfo(m.Groups[1].Value, m.Groups[2].Value)
             {
                 UseShellExecute = false,
                 RedirectStandardError = true,
@@ -160,19 +160,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (options.environmentVariables != null)
             {
                 // copy over the environment variables to the process startInfo options. 
-                foreach (var key in options.environmentVariables.Keys)
+                foreach (string key in options.environmentVariables.Keys)
                 {
                     // look for %VAR% strings in the value and subtitute the appropriate environment variable. 
-                    var value = options.environmentVariables[key];
+                    string value = options.environmentVariables[key];
                     if (value != null)
                     {
-                        var startAt = 0;
+                        int startAt = 0;
                         for (;;)
                         {
                             m = new Regex(@"%(\w+)%").Match(value, startAt);
                             if (!m.Success) break;
 
-                            var varName = m.Groups[1].Value;
+                            string varName = m.Groups[1].Value;
                             string varValue;
                             if (startInfo.EnvironmentVariables.ContainsKey(varName))
                                 varValue = startInfo.EnvironmentVariables[varName];
@@ -184,8 +184,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             }
 
                             // replace this instance of the variable with its definition.  
-                            var varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
-                            var varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
+                            int varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
+                            int varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
                             value = value.Substring(0, varStart) + varValue + value.Substring(varEnd, value.Length - varEnd);
                             startAt = varStart + varValue.Length;
                         }
@@ -209,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
             catch (Exception e)
             {
-                var msg = "Failure starting Process\r\n" +
+                string msg = "Failure starting Process\r\n" +
                     "    Exception: " + e.Message + "\r\n" +
                     "    Cmd: " + commandLine + "\r\n";
 
@@ -252,8 +252,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (Options.noWait)
                 return this;
 
-            var waitReturned = false;
-            var killed = false;
+            bool waitReturned = false;
+            bool killed = false;
             try
             {
                 Process.WaitForExit(Options.timeoutMSec);
@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 //  TODO : HACK we see to have a race in the async process stuff
                 //  If you do Run("cmd /c set") you get truncated output at the
                 //  Looks like the problem in the framework.  
-                for (var i = 0; i < 10; i++)
+                for (int i = 0; i < 10; i++)
                     Thread.Sleep(1);
             }
             finally
@@ -298,12 +298,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (Process.ExitCode != 0)
             {
-                var outSpec = "";
+                string outSpec = "";
                 if (_outputStream == null)
                 {
-                    var outStr = _output.ToString();
+                    string outStr = _output.ToString();
                     // Only show the first lineNumber the last two lines if there are alot of output. 
-                    var m = Regex.Match(outStr, @"^(\s*\n)?(.+\n)(.|\n)*?(.+\n.*\S)\s*$");
+                    Match m = Regex.Match(outStr, @"^(\s*\n)?(.+\n)(.|\n)*?(.+\n.*\S)\s*$");
                     if (m.Success)
                         outStr = m.Groups[2].Value + "    <<< Omitted output ... >>>\r\n" + m.Groups[4].Value;
                     else
@@ -349,7 +349,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Console.WriteLine(e.Message);
             }
 
-            var ticks = 0;
+            int ticks = 0;
             do
             {
                 Thread.Sleep(10);
@@ -387,15 +387,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static string FindOnPath(string commandExe)
         {
-            var ret = ProbeForExe(commandExe);
+            string ret = ProbeForExe(commandExe);
             if (ret != null)
                 return ret;
 
             if (!commandExe.Contains("\\"))
             {
-                foreach (var path in Paths)
+                foreach (string path in Paths)
                 {
-                    var baseExe = Path.Combine(path, commandExe);
+                    string baseExe = Path.Combine(path, commandExe);
                     ret = ProbeForExe(baseExe);
                     if (ret != null)
                         return ret;
@@ -410,9 +410,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (File.Exists(path))
                 return path;
 
-            foreach (var ext in PathExts)
+            foreach (string ext in PathExts)
             {
-                var name = path + ext;
+                string name = path + ext;
                 if (File.Exists(name))
                     return name;
             }

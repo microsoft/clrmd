@@ -33,8 +33,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_type == ClrStackFrameType.ManagedMethod)
                 return _frameName;
 
-            var methodLen = 0;
-            var methodTypeLen = 0;
+            int methodLen = 0;
+            int methodTypeLen = 0;
 
             if (_method != null)
             {
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     methodTypeLen = _method.Type.Name.Length;
             }
 
-            var sb = new StringBuilder(_frameName.Length + methodLen + methodTypeLen + 10);
+            StringBuilder sb = new StringBuilder(_frameName.Length + methodLen + methodTypeLen + 10);
 
             sb.Append('[');
             sb.Append(_frameName);
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else if (md != 0)
             {
-                var mdData = _runtime.GetMethodDescData(md);
+                IMethodDescData mdData = _runtime.GetMethodDescData(md);
                 _method = DesktopMethod.Create(_runtime, mdData);
             }
         }

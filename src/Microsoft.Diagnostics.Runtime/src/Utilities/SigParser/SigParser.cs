@@ -66,12 +66,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipInt()
         {
-            return GetData(out var tmp);
+            return GetData(out int tmp);
         }
 
         public bool GetData(out int data)
         {
-            if (UncompressData(out data, out var size))
+            if (UncompressData(out data, out int size))
             {
                 SkipBytes(size);
                 return true;
@@ -107,10 +107,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool GetElemTypeSlow(out int etype)
         {
-            var sigTemp = new SigParser(this);
+            SigParser sigTemp = new SigParser(this);
             if (sigTemp.SkipCustomModifiers())
             {
-                if (sigTemp.GetByte(out var elemType))
+                if (sigTemp.GetByte(out byte elemType))
                 {
                     etype = elemType;
                     CopyFrom(sigTemp);
@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (_len > 0)
             {
-                var type = _sig[_offs];
+                byte type = _sig[_offs];
 
                 if (type < ELEMENT_TYPE_CMOD_REQD) // fast path with no modifiers: single byte
                 {
@@ -170,12 +170,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool PeekData(out int data)
         {
-            return UncompressData(out data, out var size);
+            return UncompressData(out data, out int size);
         }
 
         private bool PeekElemTypeSlow(out int etype)
         {
-            var sigTemp = new SigParser(this);
+            SigParser sigTemp = new SigParser(this);
             return sigTemp.GetElemType(out etype);
         }
 
@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (_len > 0)
             {
-                var type = _sig[_offs];
+                byte type = _sig[_offs];
                 if (type < ELEMENT_TYPE_CMOD_REQD)
                 {
                     etype = type;
@@ -197,12 +197,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool PeekElemTypeSize(out int pSize)
         {
             pSize = 0;
-            var sigTemp = new SigParser(this);
+            SigParser sigTemp = new SigParser(this);
 
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
-            if (!sigTemp.GetByte(out var bElementType))
+            if (!sigTemp.GetByte(out byte bElementType))
                 return false;
 
             switch (bElementType)
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool GetToken(out int token)
         {
-            if (UncompressToken(out token, out var size))
+            if (UncompressToken(out token, out int size))
             {
                 SkipBytes(size);
                 return true;
@@ -286,7 +286,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool SkipCustomModifiers()
         {
-            var sigTemp = new SigParser(this);
+            SigParser sigTemp = new SigParser(this);
 
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
@@ -298,7 +298,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 sigTemp.SkipBytes(1);
 
-                if (!sigTemp.GetToken(out var token))
+                if (!sigTemp.GetToken(out int token))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -324,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipFunkyAndCustomModifiers()
         {
-            var sigTemp = new SigParser(this);
+            SigParser sigTemp = new SigParser(this);
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 sigTemp.SkipBytes(1);
 
-                if (!sigTemp.GetToken(out var token))
+                if (!sigTemp.GetToken(out int token))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -375,7 +375,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool SkipExactlyOne()
         {
-            if (!GetElemType(out var typ))
+            if (!GetElemType(out int typ))
                 return false;
 
             int tmp;
@@ -432,14 +432,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         if (rank > 0)
                         {
-                            if (!GetData(out var sizes))
+                            if (!GetData(out int sizes))
                                 return false;
 
                             while (sizes-- != 0)
                                 if (!GetData(out tmp))
                                     return false;
 
-                            if (!GetData(out var bounds))
+                            if (!GetData(out int bounds))
                                 return false;
 
                             while (bounds-- != 0)
@@ -484,7 +484,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pcArgs = 0;
 
             // Skip calling convention
-            if (!GetCallingConvInfo(out var uCallConv))
+            if (!GetCallingConvInfo(out int uCallConv))
                 return false;
 
             if (uCallConv == IMAGE_CEE_CS_CALLCONV_FIELD || uCallConv == IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
@@ -492,7 +492,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Skip type parameter count
             if ((uCallConv & IMAGE_CEE_CS_CALLCONV_GENERIC) == IMAGE_CEE_CS_CALLCONV_GENERIC)
-                if (!GetData(out var tmp))
+                if (!GetData(out int tmp))
                     return false;
 
             // Get arg count;
@@ -508,7 +508,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipSignature()
         {
-            if (!SkipMethodHeaderSignature(out var args))
+            if (!SkipMethodHeaderSignature(out int args))
                 return false;
 
             // Skip args.
@@ -524,7 +524,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!UncompressData(out token, out size))
                 return false;
 
-            var tkType = s_tkCorEncodeToken[token & 3];
+            int tkType = s_tkCorEncodeToken[token & 3];
             token = (token >> 2) | tkType;
             return true;
         }
@@ -543,7 +543,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_len <= 0)
                 return false;
 
-            var byte0 = GetSig(0);
+            byte byte0 = GetSig(0);
 
             // Smallest.
             if ((byte0 & 0x80) == 0x00) // 0??? ????

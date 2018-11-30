@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (addr == 0)
                 return _regions;
 
-            var module = _runtime.GetModuleData(addr);
+            IModuleData module = _runtime.GetModuleData(addr);
             if (module != null)
             {
                 _type = ClrMemoryRegionType.ModuleThunkHeap;

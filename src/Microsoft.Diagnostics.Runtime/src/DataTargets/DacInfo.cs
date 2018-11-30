@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo clrVersion)
         {
-            var dacName = flavor == ClrFlavor.Core ? "mscordaccore" : "mscordacwks";
+            string dacName = flavor == ClrFlavor.Core ? "mscordaccore" : "mscordacwks";
             return string.Format(
                 "{0}_{1}_{2}_{3}.{4}.{5}.{6:D2}.dll",
                 dacName,

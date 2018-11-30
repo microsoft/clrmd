@@ -15,9 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void CreationSpecificDacNegativeTest()
         {
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var badDac = dt.SymbolLocator.FindBinary(
+                string badDac = dt.SymbolLocator.FindBinary(
                     SymbolLocatorTests.WellKnownDac,
                     SymbolLocatorTests.WellKnownDacTimeStamp,
                     SymbolLocatorTests.WellKnownDacImageSize,
@@ -31,14 +31,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void CreationSpecificDac()
         {
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var info = dt.ClrVersions.Single();
-                var dac = info.LocalMatchingDac;
+                ClrInfo info = dt.ClrVersions.Single();
+                string dac = info.LocalMatchingDac;
 
                 Assert.NotNull(dac);
 
-                var runtime = info.CreateRuntime(dac);
+                ClrRuntime runtime = info.CreateRuntime(dac);
                 Assert.NotNull(runtime);
             }
         }
@@ -46,10 +46,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void RuntimeClrInfo()
         {
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var info = dt.ClrVersions.Single();
-                var runtime = info.CreateRuntime();
+                ClrInfo info = dt.ClrVersions.Single();
+                ClrRuntime runtime = info.CreateRuntime();
 
                 Assert.Equal(info, runtime.ClrInfo);
             }
@@ -60,14 +60,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // This test ensures that we enumerate all modules in the process exactly once.
 
-            using (var dt = TestTargets.AppDomains.LoadFullDump())
+            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                var expected = new HashSet<string>(new[] {"mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe"}, StringComparer.OrdinalIgnoreCase);
-                var modules = new HashSet<ClrModule>();
+                HashSet<string> expected = new HashSet<string>(new[] {"mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe"}, StringComparer.OrdinalIgnoreCase);
+                HashSet<ClrModule> modules = new HashSet<ClrModule>();
 
-                foreach (var module in runtime.Modules)
+                foreach (ClrModule module in runtime.Modules)
                 {
                     Assert.Contains(Path.GetFileName(module.FileName), expected);
                     Assert.DoesNotContain(module, modules);

@@ -24,17 +24,17 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public CLRDebugging()
         {
             object o;
-            var ifaceId = typeof(ICLRDebugging).GetGuid();
-            var clsid = clsidCLRDebugging;
+            Guid ifaceId = typeof(ICLRDebugging).GetGuid();
+            Guid clsid = clsidCLRDebugging;
             NativeMethods.CLRCreateInstance(ref clsid, ref ifaceId, out o);
             _clrDebugging = (ICLRDebugging)o;
         }
 
         public static ICorDebug GetDebuggerForProcess(int processId, string minimumVersion, DebuggerCallBacks callBacks = null)
         {
-            var mh = new CLRMetaHost();
+            CLRMetaHost mh = new CLRMetaHost();
             CLRRuntimeInfo highestLoadedRuntime = null;
-            foreach (var runtime in mh.EnumerateLoadedRuntimes(processId))
+            foreach (CLRRuntimeInfo runtime in mh.EnumerateLoadedRuntimes(processId))
             {
                 if (highestLoadedRuntime == null ||
                     string.Compare(highestLoadedRuntime.GetVersionString(), runtime.GetVersionString(), StringComparison.OrdinalIgnoreCase) < 0)
@@ -44,11 +44,11 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             if (highestLoadedRuntime == null)
                 throw new Exception("Could not enumerate .NET runtimes on the system.");
 
-            var runtimeVersion = highestLoadedRuntime.GetVersionString();
+            string runtimeVersion = highestLoadedRuntime.GetVersionString();
             if (string.Compare(runtimeVersion, minimumVersion, StringComparison.OrdinalIgnoreCase) < 0)
                 throw new Exception("Runtime in process " + runtimeVersion + " below the minimum of " + minimumVersion);
 
-            var rawDebuggingAPI = highestLoadedRuntime.GetLegacyICorDebugInterface();
+            ICorDebug rawDebuggingAPI = highestLoadedRuntime.GetLegacyICorDebugInterface();
             if (rawDebuggingAPI == null)
                 throw new ArgumentException("Cannot be null.", "rawDebugggingAPI");
 
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             Version version;
             ClrDebuggingProcessFlags flags;
             ICorDebugProcess process;
-            var errorCode = new CLRDebugging().TryOpenVirtualProcess(
+            int errorCode = new CLRDebugging().TryOpenVirtualProcess(
                 baseAddress,
                 dataTarget,
                 libraryProvider,
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             out ClrDebuggingProcessFlags flags)
         {
             ICorDebugProcess process;
-            var hr = TryOpenVirtualProcess(moduleBaseAddress, dataTarget, libraryProvider, maxDebuggerSupportedVersion, out version, out flags, out process);
+            int hr = TryOpenVirtualProcess(moduleBaseAddress, dataTarget, libraryProvider, maxDebuggerSupportedVersion, out version, out flags, out process);
             if (hr < 0)
                 throw new Exception("Failed to OpenVirtualProcess for module at " + moduleBaseAddress + ".  hr = " + hr.ToString("x"));
 
@@ -135,8 +135,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             out ClrDebuggingProcessFlags flags,
             out ICorDebugProcess process)
         {
-            var maxSupport = new ClrDebuggingVersion();
-            var clrVersion = new ClrDebuggingVersion();
+            ClrDebuggingVersion maxSupport = new ClrDebuggingVersion();
+            ClrDebuggingVersion clrVersion = new ClrDebuggingVersion();
             maxSupport.StructVersion = 0;
             maxSupport.Major = (short)maxDebuggerSupportedVersion.Major;
             maxSupport.Minor = (short)maxDebuggerSupportedVersion.Minor;
@@ -144,9 +144,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             maxSupport.Revision = (short)maxDebuggerSupportedVersion.Revision;
             object processIface = null;
             clrVersion.StructVersion = 0;
-            var iid = typeof(ICorDebugProcess).GetGuid();
+            Guid iid = typeof(ICorDebugProcess).GetGuid();
 
-            var result = _clrDebugging.OpenVirtualProcess(
+            int result = _clrDebugging.OpenVirtualProcess(
                 moduleBaseAddress,
                 dataTarget,
                 libraryProvider,
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         /// <returns>True if the module can be unloaded, False otherwise</returns>
         public bool CanUnloadNow(IntPtr moduleHandle)
         {
-            var ret = _clrDebugging.CanUnloadNow(moduleHandle);
+            int ret = _clrDebugging.CanUnloadNow(moduleHandle);
             if (ret == 0) // S_OK
                 return true;
             if (ret == 1) // S_FALSE

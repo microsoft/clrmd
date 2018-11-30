@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -20,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (_osThreadID == uint.MaxValue)
                 {
-                    var data = _heap.DesktopRuntime.GetThread(_rcw.CreatorThread);
+                    IThreadData data = _heap.DesktopRuntime.GetThread(_rcw.CreatorThread);
                     if (data == null || data.OSThreadId == uint.MaxValue)
                         _osThreadID = 0;
                     else
@@ -42,8 +43,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 _interfaces = new List<ComInterfaceData>();
 
-                var interfaces = _heap.DesktopRuntime.GetRCWInterfaces(_addr, _rcw.InterfaceCount);
-                for (var i = 0; i < interfaces.Length; ++i)
+                COMInterfacePointerData[] interfaces = _heap.DesktopRuntime.GetRCWInterfaces(_addr, _rcw.InterfaceCount);
+                for (int i = 0; i < interfaces.Length; ++i)
                 {
                     ClrType type = null;
                     if (interfaces[i].MethodTable != 0)

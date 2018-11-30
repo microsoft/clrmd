@@ -21,11 +21,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static List<SymPathElement> GetElements(string symbolPath)
         {
-            var result = new List<SymPathElement>();
-            var entries = (symbolPath ?? "").Split(';');
+            List<SymPathElement> result = new List<SymPathElement>();
+            string[] entries = (symbolPath ?? "").Split(';');
             result = new List<SymPathElement>(entries.Length);
 
-            foreach (var element in entries)
+            foreach (string element in entries)
                 if (!string.IsNullOrEmpty(element))
                     result.Add(new SymPathElement(element));
 
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // We assume drive letters from the back of the alphabet are remote.  
                     if (2 <= Target.Length && Target[1] == ':')
                     {
-                        var driveLetter = char.ToUpperInvariant(Target[0]);
+                        char driveLetter = char.ToUpperInvariant(Target[0]);
                         if ('T' <= driveLetter && driveLetter <= 'Z')
                             return true;
                     }
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (IsSymServer)
             {
-                var ret = "SRV";
+                string ret = "SRV";
                 if (Cache != null)
                     ret += "*" + Cache;
                 if (Target != null)
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public override bool Equals(object obj)
         {
-            var asSymPathElem = obj as SymPathElement;
+            SymPathElement asSymPathElem = obj as SymPathElement;
             if (asSymPathElem == null)
                 return false;
 
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal SymPathElement(string strElem)
         {
-            var m = Regex.Match(strElem, @"^\s*(SRV\*|http:)((\s*.*?\s*)\*)?\s*(.*?)\s*$", RegexOptions.IgnoreCase);
+            Match m = Regex.Match(strElem, @"^\s*(SRV\*|http:)((\s*.*?\s*)\*)?\s*(.*?)\s*$", RegexOptions.IgnoreCase);
             if (m.Success)
             {
                 IsSymServer = true;

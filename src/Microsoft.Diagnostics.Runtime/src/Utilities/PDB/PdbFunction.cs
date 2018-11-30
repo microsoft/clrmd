@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         private static string StripNamespace(string module)
         {
-            var li = module.LastIndexOf('.');
+            int li = module.LastIndexOf('.');
             if (li > 0)
             {
                 return module.Substring(li + 1);
@@ -78,8 +78,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bool readStrings)
         {
             //string mod = StripNamespace(module);
-            var begin = bits.Position;
-            var count = 0;
+            int begin = bits.Position;
+            int count = 0;
 
             while (bits.Position < limit)
             {
@@ -87,8 +87,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 ushort rec;
 
                 bits.ReadUInt16(out siz);
-                var star = bits.Position;
-                var stop = bits.Position + siz;
+                int star = bits.Position;
+                int stop = bits.Position + siz;
                 bits.Position = star;
                 bits.ReadUInt16(out rec);
 
@@ -121,8 +121,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
 
             bits.Position = begin;
-            var funcs = new PdbFunction[count];
-            var func = 0;
+            PdbFunction[] funcs = new PdbFunction[count];
+            int func = 0;
 
             while (bits.Position < limit)
             {
@@ -130,8 +130,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 ushort rec;
 
                 bits.ReadUInt16(out siz);
-                var star = bits.Position;
-                var stop = bits.Position + siz;
+                int star = bits.Position;
+                int stop = bits.Position + siz;
                 bits.ReadUInt16(out rec);
 
                 switch ((SYM)rec)
@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             out int slots,
             out int usedNamespaces)
         {
-            var pos = bits.Position;
+            int pos = bits.Position;
             BlockSym32 block;
             constants = 0;
             slots = 0;
@@ -199,8 +199,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 ushort rec;
 
                 bits.ReadUInt16(out siz);
-                var star = bits.Position;
-                var stop = bits.Position + siz;
+                int star = bits.Position;
+                int stop = bits.Position + siz;
                 bits.Position = star;
                 bits.ReadUInt16(out rec);
 
@@ -276,10 +276,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             int slotCount;
             int usedNamespacesCount;
             CountScopesAndSlots(bits, proc.end, out constantCount, out scopeCount, out slotCount, out usedNamespacesCount);
-            var scope = constantCount > 0 || slotCount > 0 || usedNamespacesCount > 0 ? 1 : 0;
-            var slot = 0;
-            var constant = 0;
-            var usedNs = 0;
+            int scope = constantCount > 0 || slotCount > 0 || usedNamespacesCount > 0 ? 1 : 0;
+            int slot = 0;
+            int constant = 0;
+            int usedNs = 0;
             Scopes = new PdbScope[scopeCount + scope];
             Slots = new PdbSlot[slotCount];
             Constants = new PdbConstant[constantCount];
@@ -294,8 +294,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 ushort rec;
 
                 bits.ReadUInt16(out siz);
-                var star = bits.Position;
-                var stop = bits.Position + siz;
+                int star = bits.Position;
+                int stop = bits.Position + siz;
                 bits.Position = star;
                 bits.ReadUInt16(out rec);
 
@@ -312,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
                         if (oem.idOem == msilMetaData)
                         {
-                            var name = bits.ReadString();
+                            string name = bits.ReadString();
                             if (name == "MD2")
                             {
                                 byte version;
@@ -344,7 +344,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
                     case SYM.S_BLOCK32:
                     {
-                        var block = new BlockSym32();
+                        BlockSym32 block = new BlockSym32();
 
                         bits.ReadUInt32(out block.parent);
                         bits.ReadUInt32(out block.end);
@@ -406,7 +406,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         private void ReadCustomMetadata(BitAccess bits)
         {
-            var savedPosition = bits.Position;
+            int savedPosition = bits.Position;
             byte version;
             bits.ReadUInt8(out version);
             if (version != 4)
@@ -463,8 +463,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         {
             public int Compare(object x, object y)
             {
-                var fx = (PdbFunction)x;
-                var fy = (PdbFunction)y;
+                PdbFunction fx = (PdbFunction)x;
+                PdbFunction fy = (PdbFunction)y;
 
                 if (fx.Segment < fy.Segment)
                 {
@@ -494,8 +494,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         {
             public int Compare(object x, object y)
             {
-                var fx = (PdbFunction)x;
-                var fy = (PdbFunction)y;
+                PdbFunction fx = (PdbFunction)x;
+                PdbFunction fy = (PdbFunction)y;
 
                 if (fx.Segment < fy.Segment)
                 {

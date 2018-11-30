@@ -22,16 +22,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public FileVersionInfo GetFileVersionInfo()
         {
-            var buff = _file.AllocBuff();
-            var bytes = FetchData(0, DataLength, buff);
-            var ret = new FileVersionInfo(bytes, DataLength);
+            PEBuffer buff = _file.AllocBuff();
+            byte* bytes = FetchData(0, DataLength, buff);
+            FileVersionInfo ret = new FileVersionInfo(bytes, DataLength);
             _file.FreeBuff(buff);
             return ret;
         }
 
         public override string ToString()
         {
-            var sw = new StringWriter();
+            StringWriter sw = new StringWriter();
             ToString(sw, "");
             return sw.ToString();
         }
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (node == null)
                 return null;
 
-            foreach (var child in node.Children)
+            foreach (ResourceNode child in node.Children)
                 if (child.Name == name)
                     return child;
 
@@ -55,25 +55,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (_children == null && !IsLeaf)
                 {
-                    var buff = _file.AllocBuff();
-                    var resourceStartFileOffset = _file.Header.FileOffsetOfResources;
+                    PEBuffer buff = _file.AllocBuff();
+                    int resourceStartFileOffset = _file.Header.FileOffsetOfResources;
 
-                    var resourceHeader = (IMAGE_RESOURCE_DIRECTORY*)buff.Fetch(
+                    IMAGE_RESOURCE_DIRECTORY* resourceHeader = (IMAGE_RESOURCE_DIRECTORY*)buff.Fetch(
                         _nodeFileOffset,
                         sizeof(IMAGE_RESOURCE_DIRECTORY));
 
-                    var totalCount = resourceHeader->NumberOfNamedEntries + resourceHeader->NumberOfIdEntries;
-                    var totalSize = totalCount * sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
+                    int totalCount = resourceHeader->NumberOfNamedEntries + resourceHeader->NumberOfIdEntries;
+                    int totalSize = totalCount * sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
 
-                    var entries = (IMAGE_RESOURCE_DIRECTORY_ENTRY*)buff.Fetch(
+                    IMAGE_RESOURCE_DIRECTORY_ENTRY* entries = (IMAGE_RESOURCE_DIRECTORY_ENTRY*)buff.Fetch(
                         _nodeFileOffset + sizeof(IMAGE_RESOURCE_DIRECTORY),
                         totalSize);
 
-                    var nameBuff = _file.AllocBuff();
+                    PEBuffer nameBuff = _file.AllocBuff();
                     _children = new List<ResourceNode>();
-                    for (var i = 0; i < totalCount; i++)
+                    for (int i = 0; i < totalCount; i++)
                     {
-                        var entry = &entries[i];
+                        IMAGE_RESOURCE_DIRECTORY_ENTRY* entry = &entries[i];
                         string entryName = null;
                         if (_isTop)
                             entryName = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry->Id);
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 sw.Write("ChildCount=\"{0}\"", Children.Count);
                 sw.WriteLine(">");
-                foreach (var child in Children)
+                foreach (ResourceNode child in Children)
                     child.ToString(sw, indent + "  ");
                 sw.WriteLine("{0}</ResourceNode>", indent);
             }
@@ -121,12 +121,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (isLeaf)
             {
-                var buff = _file.AllocBuff();
-                var dataDescr = (IMAGE_RESOURCE_DATA_ENTRY*)buff.Fetch(nodeFileOffset, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
+                PEBuffer buff = _file.AllocBuff();
+                IMAGE_RESOURCE_DATA_ENTRY* dataDescr = (IMAGE_RESOURCE_DATA_ENTRY*)buff.Fetch(nodeFileOffset, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
 
                 DataLength = dataDescr->Size;
                 _dataFileOffset = file.Header.RvaToFileOffset(dataDescr->RvaToData);
-                var data = FetchData(0, DataLength, buff);
+                byte* data = FetchData(0, DataLength, buff);
                 _file.FreeBuff(buff);
             }
         }

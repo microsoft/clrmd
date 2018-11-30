@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int Release()
         {
-            var count = Interlocked.Decrement(ref _refCount);
+            int count = Interlocked.Decrement(ref _refCount);
             if (count == 0 && _library != IntPtr.Zero)
                 DataTarget.PlatformFunctions.FreeLibrary(_library);
 

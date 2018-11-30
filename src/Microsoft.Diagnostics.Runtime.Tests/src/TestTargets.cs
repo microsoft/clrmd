@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             Architecture = IntPtr.Size == 4 ? "x86" : "x64";
 
-            var info = new DirectoryInfo(Environment.CurrentDirectory);
+            DirectoryInfo info = new DirectoryInfo(Environment.CurrentDirectory);
             while (info.GetFiles(".gitignore").Length != 1)
                 info = info.Parent;
 
@@ -73,30 +73,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             if (!File.Exists(Executable) || !File.Exists(Pdb))
             {
-                var buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
+                string buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
                 throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: {buildTestAssets}");
             }
         }
 
         private string BuildDumpName(GCMode gcmode, bool full)
         {
-            var filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
+            string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
-            var gc = gcmode == GCMode.Server ? "svr" : "wks";
-            var dumpType = full ? "" : "_mini";
+            string gc = gcmode == GCMode.Server ? "svr" : "wks";
+            string dumpType = full ? "" : "_mini";
             filename = $"{filename}_{gc}{dumpType}.dmp";
             return filename;
         }
 
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
         {
-            var path = BuildDumpName(gc, false);
+            string path = BuildDumpName(gc, false);
             return DataTarget.LoadCrashDump(path);
         }
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
         {
-            var path = BuildDumpName(gc, true);
+            string path = BuildDumpName(gc, true);
             return DataTarget.LoadCrashDump(path);
         }
     }

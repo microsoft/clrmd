@@ -18,15 +18,15 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             if (runtime.GetHeaps(out SubHeap[] heaps))
             {
-                var segments = new List<HeapSegment>();
-                foreach (var heap in heaps)
+                List<HeapSegment> segments = new List<HeapSegment>();
+                foreach (SubHeap heap in heaps)
                 {
                     if (heap != null)
                     {
                         ISegmentData seg = runtime.GetSegmentData(heap.FirstLargeSegment);
                         while (seg != null)
                         {
-                            var segment = new HeapSegment(runtime, seg, heap, true, this);
+                            HeapSegment segment = new HeapSegment(runtime, seg, heap, true, this);
                             segments.Add(segment);
 
                             UpdateSegmentData(segment);
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                         seg = runtime.GetSegmentData(heap.FirstSegment);
                         while (seg != null)
                         {
-                            var segment = new HeapSegment(runtime, seg, heap, false, this);
+                            HeapSegment segment = new HeapSegment(runtime, seg, heap, false, this);
                             segments.Add(segment);
 
                             UpdateSegmentData(segment);
@@ -88,10 +88,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return null;
 
             ulong componentType = mtData.ElementTypeHandle;
-            var isArray = componentType != 0;
+            bool isArray = componentType != 0;
 
             // EEClass is the canonical method table.  I stuffed the pointer there instead of creating a new property.
-            var canonType = isArray ? componentType : mtData.EEClass;
+            ulong canonType = isArray ? componentType : mtData.EEClass;
             if (!isArray && canonType != 0)
             {
                 if (!isArray && _indices.TryGetValue(canonType, out int index))
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                     return _types[index];
                 }
 
-                var tmp = eeType;
+                ulong tmp = eeType;
                 eeType = canonType;
                 canonType = tmp;
             }
@@ -127,15 +127,15 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (name == null)
             {
-                var moduleName = module != null ? Path.GetFileNameWithoutExtension(module.FileName) : "UNKNWON";
+                string moduleName = module != null ? Path.GetFileNameWithoutExtension(module.FileName) : "UNKNWON";
                 name = string.Format("{0}_{1:x}", moduleName, eeType);
             }
 
-            var len = name.Length;
+            int len = name.Length;
             if (name.EndsWith("::`vftable'"))
                 len -= 11;
 
-            var i = name.IndexOf('!') + 1;
+            int i = name.IndexOf('!') + 1;
             name = name.Substring(i, len - i);
 
             if (isArray)
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (module == null)
                 module = _mrtModule;
 
-            var type = new NativeType(this, _types.Count, module, name, eeType, mtData);
+            NativeType type = new NativeType(this, _types.Count, module, name, eeType, mtData);
             _indices[eeType] = _types.Count;
             if (!isArray)
                 _indices[canonType] = _types.Count;
@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             while (min <= max)
             {
-                var mid = (min + max) / 2;
+                int mid = (min + max) / 2;
 
                 int compare = _modules[mid].ComparePointer(eeType);
                 if (compare < 0)
@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         public override IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics)
         {
             // Stack objects.
-            foreach (var thread in NativeRuntime.Threads)
+            foreach (NativeThread thread in NativeRuntime.Threads)
                 foreach (var stackRef in NativeRuntime.EnumerateStackRoots(thread))
                     yield return stackRef;
 
@@ -203,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             ClrAppDomain domain = NativeRuntime.AppDomains[0];
             foreach (ulong obj in NativeRuntime.EnumerateFinalizerQueueObjectAddresses())
             {
-                var type = GetObjectType(obj);
+                ClrType type = GetObjectType(obj);
                 if (type == null)
                     continue;
 

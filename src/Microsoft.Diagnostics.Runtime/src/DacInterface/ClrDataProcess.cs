@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SosDac GetSOSDacInterface()
         {
-            var result = QueryInterface(ref SosDac.IID_ISOSDac);
+            IntPtr result = QueryInterface(ref SosDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
                 return null;
 
@@ -69,19 +69,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTask, VTable->GetTaskByOSThreadId);
 
-            var hr = _getTask(Self, id, out var pUnkTask);
+            int hr = _getTask(Self, id, out IntPtr pUnkTask);
             if (hr != S_OK)
                 return null;
 
-            using (var dataTask = new ClrDataTask(_library, pUnkTask))
+            using (ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask))
             {
                 // There's a bug in certain runtimes where we will fail to release data deep in the runtime
                 // when a C++ exception occurs while constructing a ClrDataStackWalk.  This is a workaround
                 // for the largest of the leaks caused by this issue.
                 //     https://github.com/Microsoft/clrmd/issues/47
-                var count = AddRef();
-                var res = dataTask.CreateStackWalk(_library, flags);
-                var released = Release();
+                int count = AddRef();
+                ClrStackWalk res = dataTask.CreateStackWalk(_library, flags);
+                int released = Release();
                 if (released == count && res == null)
                     Release();
                 return res;
@@ -94,15 +94,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _enum, VTable->EnumMethodInstanceByAddress);
             InitDelegate(ref _endEnum, VTable->EndEnumMethodInstancesByAddress);
 
-            var result = new List<ClrDataMethod>(1);
+            List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
-            var hr = _startEnum(Self, addr, IntPtr.Zero, out var handle);
+            int hr = _startEnum(Self, addr, IntPtr.Zero, out ulong handle);
             if (hr != S_OK)
                 return result;
 
             try
             {
-                while ((hr = _enum(Self, ref handle, out var method)) == S_OK)
+                while ((hr = _enum(Self, ref handle, out IntPtr method)) == S_OK)
                     result.Add(new ClrDataMethod(_library, method));
             }
             finally

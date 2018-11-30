@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
         {
-            var filename = Path.GetFileName(img.Path);
+            string filename = Path.GetFileName(img.Path);
 
             return new ModuleInfo
             {
@@ -92,9 +92,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             InitThreads();
 
-            var ctx = (AMD64Context*)context.ToPointer();
+            AMD64Context* ctx = (AMD64Context*)context.ToPointer();
             ctx->ContextFlags = (int)contextFlags;
-            if (_threads.TryGetValue(threadId, out var status))
+            if (_threads.TryGetValue(threadId, out ElfPRStatus status))
             {
                 CopyContext(ctx, ref status.RegisterSet);
                 return true;
@@ -131,11 +131,11 @@ namespace Microsoft.Diagnostics.Runtime
 
             InitThreads();
 
-            if (_threads.TryGetValue(threadId, out var status))
+            if (_threads.TryGetValue(threadId, out ElfPRStatus status))
             {
                 fixed (byte* ptr = context)
                 {
-                    var ctx = (AMD64Context*)ptr;
+                    AMD64Context* ctx = (AMD64Context*)ptr;
                     ctx->ContextFlags = (int)contextFlags;
                     CopyContext(ctx, ref status.RegisterSet);
                     return true;
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            var read = _core.ReadMemory((long)addr, _buffer, 4);
+            int read = _core.ReadMemory((long)addr, _buffer, 4);
             if (read == 4)
                 return BitConverter.ToUInt32(_buffer, 0);
 
@@ -174,11 +174,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadMemory(ulong address, IntPtr ptr, int bytesRequested, out int bytesRead)
         {
-            var buffer = _buffer;
+            byte[] buffer = _buffer;
             if (bytesRequested > buffer.Length)
                 buffer = new byte[bytesRequested];
 
-            var result = ReadMemory(address, buffer, bytesRequested, out bytesRead);
+            bool result = ReadMemory(address, buffer, bytesRequested, out bytesRead);
             if (result)
                 Marshal.Copy(buffer, 0, ptr, bytesRead);
 
@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            var read = _core.ReadMemory((long)addr, _buffer, _pointerSize);
+            int read = _core.ReadMemory((long)addr, _buffer, _pointerSize);
             if (read == _pointerSize)
             {
                 if (_pointerSize == 8)
@@ -202,11 +202,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool VirtualQuery(ulong address, out VirtualQueryData vq)
         {
-            var addr = (long)address;
-            foreach (var item in _core.ElfFile.ProgramHeaders)
+            long addr = (long)address;
+            foreach (ElfProgramHeader item in _core.ElfFile.ProgramHeaders)
             {
-                var start = item.RefHeader.VirtualAddress;
-                var end = start + item.RefHeader.VirtualSize;
+                long start = item.RefHeader.VirtualAddress;
+                long end = start + item.RefHeader.VirtualSize;
 
                 if (start <= addr && addr < end)
                 {
@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return;
 
             _threads = new Dictionary<uint, ElfPRStatus>();
-            foreach (var status in _core.EnumeratePRStatus())
+            foreach (ElfPRStatus status in _core.EnumeratePRStatus())
                 _threads.Add(status.Pid, status);
         }
     }

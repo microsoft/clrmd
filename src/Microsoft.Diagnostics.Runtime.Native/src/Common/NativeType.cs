@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Native
@@ -40,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         public ulong GetSize(ulong objRef)
         {
-            var pointerSize = (uint)IntPtr.Size;
+            uint pointerSize = (uint)IntPtr.Size;
 
             ulong size;
             if (_data.ComponentSize == 0)
@@ -49,8 +50,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
             }
             else
             {
-                var countOffset = pointerSize;
-                var loc = objRef + countOffset;
+                uint countOffset = pointerSize;
+                ulong loc = objRef + countOffset;
 
                 if (!Heap.ReadDword(loc, out uint count))
                     throw new Exception("Could not read from heap at " + objRef.ToString("x"));
@@ -58,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 size = count * (ulong)_data.ComponentSize + _data.BaseSize;
             }
 
-            var minSize = pointerSize * 3;
+            uint minSize = pointerSize * 3;
             if (size < minSize)
                 size = minSize;
             return size;
@@ -97,8 +98,8 @@ namespace Microsoft.Diagnostics.Runtime.Native
             if (entries < 0)
                 entries = -entries;
 
-            var slots = 1 + entries * 2;
-            var buffer = new byte[slots * IntPtr.Size];
+            int slots = 1 + entries * 2;
+            byte[] buffer = new byte[slots * IntPtr.Size];
             if (!runtime.ReadMemory(EEType - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
                 return null;
 

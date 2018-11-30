@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 }
             }
 
-            bits.ReadCString(out var name);
+            bits.ReadCString(out string name);
             Name = name;
         }
     }

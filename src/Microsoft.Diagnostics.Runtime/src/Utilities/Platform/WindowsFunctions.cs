@@ -18,18 +18,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             major = minor = revision = patch = 0;
 
-            var len = NativeMethods.GetFileVersionInfoSize(dll, out var handle);
+            int len = NativeMethods.GetFileVersionInfoSize(dll, out int handle);
             if (len <= 0)
                 return false;
 
-            var data = new byte[len];
+            byte[] data = new byte[len];
             if (!NativeMethods.GetFileVersionInfo(dll, handle, len, data))
                 return false;
 
-            if (!NativeMethods.VerQueryValue(data, "\\", out var ptr, out len))
+            if (!NativeMethods.VerQueryValue(data, "\\", out IntPtr ptr, out len))
                 return false;
 
-            var vsFixedInfo = new byte[len];
+            byte[] vsFixedInfo = new byte[len];
             Marshal.Copy(ptr, vsFixedInfo, 0, len);
 
             minor = (ushort)Marshal.ReadInt16(vsFixedInfo, 8);

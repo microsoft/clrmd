@@ -9,6 +9,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using IMAGE_DATA_DIRECTORY = Microsoft.Diagnostics.Runtime.Utilities.IMAGE_DATA_DIRECTORY;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -30,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _modules = dataTarget.EnumerateModules().ToArray();
             Array.Sort(_modules, delegate(ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
 
-            var builder = AddInterface(IID_IDacDataTarget);
+            VTableBuilder builder = AddInterface(IID_IDacDataTarget);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
             builder.AddMethod(new GetPointerSizeDelegate(GetPointerSize));
             builder.AddMethod(new GetImageBaseDelegate(GetImageBase));
@@ -50,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesRead)
         {
-            if (ReadVirtual(self, address, buffer, (int)bytesRequested, out var read) >= 0)
+            if (ReadVirtual(self, address, buffer, (int)bytesRequested, out int read) >= 0)
             {
                 bytesRead = (uint)read;
                 return S_OK;
@@ -62,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
-            var arch = _dataReader.GetArchitecture();
+            Architecture arch = _dataReader.GetArchitecture();
 
             switch (arch)
             {
@@ -92,8 +94,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             while (min <= max)
             {
-                var i = (min + max) / 2;
-                var curr = _modules[i];
+                int i = (min + max) / 2;
+                ModuleInfo curr = _modules[i];
 
                 if (curr.ImageBase <= address && address < curr.ImageBase + curr.FileSize)
                     return curr;
@@ -117,9 +119,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             imagePath = Path.GetFileNameWithoutExtension(imagePath);
 
-            foreach (var module in _modules)
+            foreach (ModuleInfo module in _modules)
             {
-                var moduleName = Path.GetFileNameWithoutExtension(module.FileName);
+                string moduleName = Path.GetFileNameWithoutExtension(module.FileName);
                 if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase))
                 {
                     baseAddress = module.ImageBase;
@@ -133,14 +135,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            if (_dataReader.ReadMemory(address, buffer, bytesRequested, out var read))
+            if (_dataReader.ReadMemory(address, buffer, bytesRequested, out int read))
             {
                 bytesRead = read;
                 return S_OK;
             }
 
             bytesRead = 0;
-            var info = GetModule(address);
+            ModuleInfo info = GetModule(address);
             if (info != null)
             {
                 if (Path.GetExtension(info.FileName).ToLower() == ".so")
@@ -150,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return E_NOTIMPL;
                 }
 
-                var filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);
+                string filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);
                 if (filePath == null)
                 {
                     bytesRead = 0;
@@ -158,19 +160,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                var file = _dataTarget.FileLoader.LoadPEFile(filePath);
+                PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
                 if (file?.Header != null)
                 {
-                    var peBuffer = file.AllocBuff();
+                    PEBuffer peBuffer = file.AllocBuff();
 
-                    var rva = checked((int)(address - info.ImageBase));
+                    int rva = checked((int)(address - info.ImageBase));
 
                     if (file.Header.TryGetFileOffsetFromRva(rva, out rva))
                     {
-                        var dst = (byte*)buffer.ToPointer();
-                        var src = peBuffer.Fetch(rva, bytesRequested);
+                        byte* dst = (byte*)buffer.ToPointer();
+                        byte* src = peBuffer.Fetch(rva, bytesRequested);
 
-                        for (var i = 0; i < bytesRequested; i++)
+                        for (int i = 0; i < bytesRequested; i++)
                             dst[i] = src[i];
 
                         bytesRead = bytesRequested;
@@ -186,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadMemory(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
         {
-            if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out var read))
+            if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out int read))
             {
                 bytesRead = (uint)read;
                 return S_OK;
@@ -256,25 +258,25 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             byte[] buffer,
             IntPtr dataSize)
         {
-            var filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
+            string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
             if (filePath == null)
                 return E_FAIL;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            var file = _dataTarget.FileLoader.LoadPEFile(filePath);
+            PEFile file = _dataTarget.FileLoader.LoadPEFile(filePath);
             if (file == null)
                 return E_FAIL;
 
-            var comDescriptor = file.Header.ComDescriptorDirectory;
+            IMAGE_DATA_DIRECTORY comDescriptor = file.Header.ComDescriptorDirectory;
             if (comDescriptor.VirtualAddress == 0)
                 return E_FAIL;
 
-            var peBuffer = file.AllocBuff();
+            PEBuffer peBuffer = file.AllocBuff();
             if (mdRva == 0)
             {
-                var hdr = file.SafeFetchRVA(comDescriptor.VirtualAddress, comDescriptor.Size, peBuffer);
+                IntPtr hdr = file.SafeFetchRVA(comDescriptor.VirtualAddress, comDescriptor.Size, peBuffer);
 
-                var corhdr = (IMAGE_COR20_HEADER)Marshal.PtrToStructure(hdr, typeof(IMAGE_COR20_HEADER));
+                IMAGE_COR20_HEADER corhdr = (IMAGE_COR20_HEADER)Marshal.PtrToStructure(hdr, typeof(IMAGE_COR20_HEADER));
                 if (bufferSize < corhdr.MetaData.Size)
                 {
                     file.FreeBuff(peBuffer);
@@ -285,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 bufferSize = corhdr.MetaData.Size;
             }
 
-            var ptr = file.SafeFetchRVA((int)mdRva, (int)bufferSize, peBuffer);
+            IntPtr ptr = file.SafeFetchRVA((int)mdRva, (int)bufferSize, peBuffer);
             Marshal.Copy(ptr, buffer, 0, (int)bufferSize);
 
             file.FreeBuff(peBuffer);
@@ -294,7 +296,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         CorDebugPlatform ICorDebugDataTarget.GetPlatform()
         {
-            var arch = _dataReader.GetArchitecture();
+            Architecture arch = _dataReader.GetArchitecture();
 
             switch (arch)
             {
@@ -314,7 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         uint ICorDebugDataTarget.ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
         {
-            if (ReadVirtual(IntPtr.Zero, address, buffer, (int)bytesRequested, out var read) >= 0)
+            if (ReadVirtual(IntPtr.Zero, address, buffer, (int)bytesRequested, out int read) >= 0)
                 return (uint)read;
 
             throw new Exception();

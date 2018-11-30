@@ -59,13 +59,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private void BuildName(string hint)
         {
-            var builder = new StringBuilder();
-            var inner = ComponentType;
+            StringBuilder builder = new StringBuilder();
+            ClrType inner = ComponentType;
 
             builder.Append(inner != null ? inner.Name : GetElementTypeName(hint));
             builder.Append("[");
 
-            for (var i = 0; i < _ranks - 1; ++i)
+            for (int i = 0; i < _ranks - 1; ++i)
                 builder.Append(",");
 
             builder.Append("]");
@@ -161,13 +161,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ulong GetSize(ulong objRef)
         {
-            var realType = DesktopHeap.GetObjectType(objRef);
+            ClrType realType = DesktopHeap.GetObjectType(objRef);
             return realType.GetSize(objRef);
         }
 
         public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
         {
-            var realType = DesktopHeap.GetObjectType(objRef);
+            ClrType realType = DesktopHeap.GetObjectType(objRef);
             realType.EnumerateRefsOfObject(objRef, action);
         }
 
@@ -232,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action)
         {
-            var realType = DesktopHeap.GetObjectType(objRef);
+            ClrType realType = DesktopHeap.GetObjectType(objRef);
             realType.EnumerateRefsOfObjectCarefully(objRef, action);
         }
     }

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public virtual bool IsEqualFileVersion(string file, VersionInfo version)
         {
-            if (!GetFileVersion(file, out var major, out var minor, out var revision, out var patch))
+            if (!GetFileVersion(file, out int major, out int minor, out int revision, out int patch))
                 return false;
 
             return major == version.Major && minor == version.Minor && revision == version.Revision && patch == version.Patch;

@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         // to provide equality so that we can use them in hashes and collections.
         public override bool Equals(object obj)
         {
-            var other = obj as DumpThread;
+            DumpThread other = obj as DumpThread;
             if (other == null) return false;
 
             return other._owner == _owner && other._raw == _raw;
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         // Override of ToString
         public override string ToString()
         {
-            var id = ThreadId;
+            int id = ThreadId;
             return string.Format(CultureInfo.CurrentUICulture, "Thread {0} (0x{0:x})", id);
         }
 

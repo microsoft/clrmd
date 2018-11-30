@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private static BaseDesktopHeapType GetType(DesktopGCHeap heap, IFieldData data, IntPtr sig, int sigLen, ClrElementType elementType)
         {
             BaseDesktopHeapType result = null;
-            var mt = data.TypeMethodTable;
+            ulong mt = data.TypeMethodTable;
             if (mt != 0)
                 result = (BaseDesktopHeapType)heap.GetTypeByMethodTable(mt, 0);
 
@@ -39,12 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (sig != IntPtr.Zero && sigLen > 0)
                 {
-                    var sigParser = new SigParser(sig, sigLen);
+                    SigParser sigParser = new SigParser(sig, sigLen);
 
                     bool res;
-                    var etype = 0;
+                    int etype = 0;
 
-                    if (res = sigParser.GetCallingConvInfo(out var sigType))
+                    if (res = sigParser.GetCallingConvInfo(out int sigType))
                         Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                     res = res && sigParser.SkipCustomModifiers();
@@ -56,14 +56,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     if (res)
                     {
-                        var type = (ClrElementType)etype;
+                        ClrElementType type = (ClrElementType)etype;
 
                         if (type == ClrElementType.Array)
                         {
                             res = sigParser.PeekElemType(out etype);
                             res = res && sigParser.SkipExactlyOne();
 
-                            var ranks = 0;
+                            int ranks = 0;
                             res = res && sigParser.GetData(out ranks);
 
                             if (res)
@@ -85,8 +85,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = sigParser.GetElemType(out etype);
                             type = (ClrElementType)etype;
 
-                            sigParser.GetToken(out var token);
-                            var innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, Convert.ToUInt32(token));
+                            sigParser.GetToken(out int token);
+                            BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, Convert.ToUInt32(token));
 
                             if (innerType == null)
                             {
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         else
                         {
                             // struct, then try to get the token
-                            var token = 0;
+                            int token = 0;
                             if (etype == 0x11 || etype == 0x12)
                                 res = res && sigParser.GetToken(out token);
 
@@ -128,12 +128,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (sig != IntPtr.Zero && sigLen > 0)
                 {
-                    var sigParser = new SigParser(sig, sigLen);
+                    SigParser sigParser = new SigParser(sig, sigLen);
 
                     bool res;
-                    var etype = 0;
+                    int etype = 0;
 
-                    if (res = sigParser.GetCallingConvInfo(out var sigType))
+                    if (res = sigParser.GetCallingConvInfo(out int sigType))
                         Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                     res = res && sigParser.SkipCustomModifiers();
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         res = res && sigParser.GetElemType(out etype);
 
                     // If it's a class or struct, then try to get the token
-                    var token = 0;
+                    int token = 0;
                     if (etype == 0x11 || etype == 0x12)
                         res = res && sigParser.GetToken(out token);
 
@@ -215,11 +215,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!HasSimpleValue)
                 return null;
 
-            var addr = GetAddress(objRef, interior);
+            ulong addr = GetAddress(objRef, interior);
 
             if (ElementType == ClrElementType.String)
             {
-                var val = _heap.GetValueAtAddress(ClrElementType.Object, addr);
+                object val = _heap.GetValueAtAddress(ClrElementType.Object, addr);
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))

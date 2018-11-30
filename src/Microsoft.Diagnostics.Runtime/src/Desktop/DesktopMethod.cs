@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mdData == null)
                 return null;
 
-            var attrs = new MethodAttributes();
+            MethodAttributes attrs = new MethodAttributes();
             if (metadata != null)
                 attrs = metadata.GetMethodAttributes((int)mdData.MDToken);
 
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mdData == null)
                 return null;
 
-            var module = runtime.GetModule(mdData.Module);
+            DesktopModule module = runtime.GetModule(mdData.Module);
             return Create(runtime, module?.GetMetadataImport(), mdData);
         }
 
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _attrs = attrs;
             _token = mdData.MDToken;
             GCInfo = mdData.GCInfo;
-            var heap = runtime.Heap;
+            ClrHeap heap = runtime.Heap;
             _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
             HotColdInfo = new HotColdRegions {HotStart = _ip, HotSize = mdData.HotSize, ColdStart = mdData.ColdStart, ColdSize = mdData.ColdSize};
         }
@@ -90,10 +90,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_sig == null)
                     return null;
 
-                var last = _sig.LastIndexOf('(');
+                int last = _sig.LastIndexOf('(');
                 if (last > 0)
                 {
-                    var first = _sig.LastIndexOf('.', last - 1);
+                    int first = _sig.LastIndexOf('.', last - 1);
 
                     if (first != -1 && _sig[first - 1] == '.')
                         first--;
@@ -116,12 +116,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override int GetILOffset(ulong addr)
         {
-            var map = ILOffsetMap;
-            var ilOffset = 0;
+            ILToNativeMap[] map = ILOffsetMap;
+            int ilOffset = 0;
             if (map.Length > 1)
                 ilOffset = map[1].ILOffset;
 
-            for (var i = 0; i < map.Length; ++i)
+            for (int i = 0; i < map.Length; ++i)
                 if (map[i].StartAddress <= addr && addr <= map[i].EndAddress)
                     return map[i].ILOffset;
 
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                var access = _attrs & MethodAttributes.MemberAccessMask;
+                MethodAttributes access = _attrs & MethodAttributes.MemberAccessMask;
                 return access == MethodAttributes.Assembly || access == MethodAttributes.FamANDAssem;
             }
         }
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                var access = _attrs & MethodAttributes.MemberAccessMask;
+                MethodAttributes access = _attrs & MethodAttributes.MemberAccessMask;
                 return access == MethodAttributes.Family || access == MethodAttributes.FamANDAssem || access == MethodAttributes.FamORAssem;
             }
         }
@@ -196,19 +196,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private void InitILInfo()
         {
-            var module = Type?.Module;
+            ClrModule module = Type?.Module;
             if (module?.MetadataImport is IMetadataImport metadataImport)
             {
-                if (metadataImport.GetRVA(_token, out var rva, out var flags) == 0)
+                if (metadataImport.GetRVA(_token, out uint rva, out uint flags) == 0)
                 {
-                    var il = _runtime.GetILForModule(module, rva);
+                    ulong il = _runtime.GetILForModule(module, rva);
                     if (il != 0)
                     {
                         _il = new ILInfo();
 
                         if (_runtime.ReadByte(il, out byte b))
                         {
-                            var isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
+                            bool isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
                             if (isTinyHeader)
                             {
                                 _il.Address = il + 1;

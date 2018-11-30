@@ -71,8 +71,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (Revision == rhs.Revision && Guid == rhs.Guid)
                 {
-                    var lhsFilename = Path.GetFileName(FileName);
-                    var rhsFilename = Path.GetFileName(rhs.FileName);
+                    string lhsFilename = Path.GetFileName(FileName);
+                    string rhsFilename = Path.GetFileName(rhs.FileName);
                     return lhsFilename.Equals(rhsFilename, StringComparison.OrdinalIgnoreCase);
                 }
             }

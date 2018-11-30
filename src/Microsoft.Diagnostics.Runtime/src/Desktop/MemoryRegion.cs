@@ -162,13 +162,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                     else
                     {
-                        var domain = AppDomain;
+                        ClrAppDomain domain = AppDomain;
                         value = $"{value} for AppDomain {domain.Id}: {domain.Name}";
                     }
                 }
                 else if (HasModuleData)
                 {
-                    var fn = _runtime.GetModule(_domainModuleHeap).FileName;
+                    string fn = _runtime.GetModule(_domainModuleHeap).FileName;
                     value = $"{value} for Module: {Path.GetFileName(fn)}";
                 }
                 else if (HasGCHeapData)

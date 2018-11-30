@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public VectorRegisterArea(VectorRegisterArea other) : this()
         {
-            for (var i = 0; i < VectorRegisterSize; ++i)
+            for (int i = 0; i < VectorRegisterSize; ++i)
                 VectorRegister[i] = other.VectorRegister[i];
 
             VectorControl = other.VectorControl;
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Clear()
         {
-            for (var i = 0; i < VectorRegisterSize; ++i)
+            for (int i = 0; i < VectorRegisterSize; ++i)
                 VectorRegister[i].Clear();
 
             VectorControl = 0;

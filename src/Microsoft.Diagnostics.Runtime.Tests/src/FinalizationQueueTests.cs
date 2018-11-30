@@ -12,14 +12,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestAllFinalizableObjects()
         {
-            using (var dt = TestTargets.FinalizationQueue.LoadFullDump())
+            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var targetObjectsCount = 0;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                int targetObjectsCount = 0;
 
-                foreach (var address in runtime.Heap.EnumerateFinalizableObjectAddresses())
+                foreach (ulong address in runtime.Heap.EnumerateFinalizableObjectAddresses())
                 {
-                    var type = runtime.Heap.GetObjectType(address);
+                    ClrType type = runtime.Heap.GetObjectType(address);
                     if (type.Name == "DieFastA")
                         targetObjectsCount++;
                 }
@@ -31,14 +31,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestFinalizerQueueObjects()
         {
-            using (var dt = TestTargets.FinalizationQueue.LoadFullDump())
+            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var targetObjectsCount = 0;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                int targetObjectsCount = 0;
 
-                foreach (var address in runtime.EnumerateFinalizerQueueObjectAddresses())
+                foreach (ulong address in runtime.EnumerateFinalizerQueueObjectAddresses())
                 {
-                    var type = runtime.Heap.GetObjectType(address);
+                    ClrType type = runtime.Heap.GetObjectType(address);
                     if (type.Name == "DieFastB")
                         targetObjectsCount++;
                 }

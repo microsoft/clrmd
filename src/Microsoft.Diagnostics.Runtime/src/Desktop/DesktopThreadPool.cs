@@ -39,11 +39,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ManagedWorkItem> EnumerateManagedWorkItems()
         {
-            foreach (var obj in EnumerateManagedThreadpoolObjects())
+            foreach (ulong obj in EnumerateManagedThreadpoolObjects())
             {
                 if (obj != 0)
                 {
-                    var type = _heap.GetObjectType(obj);
+                    ClrType type = _heap.GetObjectType(obj);
                     if (type != null)
                         yield return new DesktopManagedWorkItem(type, obj);
                 }
@@ -54,20 +54,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _heap = _runtime.Heap;
 
-            var mscorlib = GetMscorlib();
+            ClrModule mscorlib = GetMscorlib();
             if (mscorlib != null)
             {
-                var queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolGlobals");
+                ClrType queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolGlobals");
                 if (queueType != null)
                 {
-                    var workQueueField = queueType.GetStaticFieldByName("workQueue");
+                    ClrStaticField workQueueField = queueType.GetStaticFieldByName("workQueue");
                     if (workQueueField != null)
                     {
-                        foreach (var appDomain in _runtime.AppDomains)
+                        foreach (ClrAppDomain appDomain in _runtime.AppDomains)
                         {
-                            var workQueueValue = workQueueField.GetValue(appDomain);
-                            var workQueue = workQueueValue == null ? 0L : (ulong)workQueueValue;
-                            var workQueueType = _heap.GetObjectType(workQueue);
+                            object workQueueValue = workQueueField.GetValue(appDomain);
+                            ulong workQueue = workQueueValue == null ? 0L : (ulong)workQueueValue;
+                            ClrType workQueueType = _heap.GetObjectType(workQueue);
 
                             if (workQueue == 0 || workQueueType == null)
                                 continue;
@@ -75,15 +75,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             ulong queueHead;
                             do
                             {
-                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out var queueHeadType, out queueHead))
+                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out ClrType queueHeadType, out queueHead))
                                     break;
 
-                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out var nodesType, out var nodes) && nodesType.IsArray)
+                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out ClrType nodesType, out ulong nodes) && nodesType.IsArray)
                                 {
-                                    var len = nodesType.GetArrayLength(nodes);
-                                    for (var i = 0; i < len; ++i)
+                                    int len = nodesType.GetArrayLength(nodes);
+                                    for (int i = 0; i < len; ++i)
                                     {
-                                        var addr = (ulong)nodesType.GetArrayElementValue(nodes, i);
+                                        ulong addr = (ulong)nodesType.GetArrayElementValue(nodes, i);
                                         if (addr != 0)
                                             yield return addr;
                                     }
@@ -99,40 +99,40 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolWorkQueue");
                 if (queueType != null)
                 {
-                    var threadQueuesField = queueType.GetStaticFieldByName("allThreadQueues");
+                    ClrStaticField threadQueuesField = queueType.GetStaticFieldByName("allThreadQueues");
                     if (threadQueuesField != null)
                     {
-                        foreach (var domain in _runtime.AppDomains)
+                        foreach (ClrAppDomain domain in _runtime.AppDomains)
                         {
-                            var threadQueue = (ulong?)threadQueuesField.GetValue(domain);
+                            ulong? threadQueue = (ulong?)threadQueuesField.GetValue(domain);
                             if (!threadQueue.HasValue || threadQueue.Value == 0)
                                 continue;
 
-                            var threadQueueType = _heap.GetObjectType(threadQueue.Value);
+                            ClrType threadQueueType = _heap.GetObjectType(threadQueue.Value);
                             if (threadQueueType == null)
                                 continue;
 
-                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out var outerArrayType, out var outerArray) || !outerArrayType.IsArray)
+                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out ClrType outerArrayType, out ulong outerArray) || !outerArrayType.IsArray)
                                 continue;
 
-                            var outerLen = outerArrayType.GetArrayLength(outerArray);
-                            for (var i = 0; i < outerLen; ++i)
+                            int outerLen = outerArrayType.GetArrayLength(outerArray);
+                            for (int i = 0; i < outerLen; ++i)
                             {
-                                var entry = (ulong)outerArrayType.GetArrayElementValue(outerArray, i);
+                                ulong entry = (ulong)outerArrayType.GetArrayElementValue(outerArray, i);
                                 if (entry == 0)
                                     continue;
 
-                                var entryType = _heap.GetObjectType(entry);
+                                ClrType entryType = _heap.GetObjectType(entry);
                                 if (entryType == null)
                                     continue;
 
-                                if (!GetFieldObject(entryType, entry, "m_array", out var arrayType, out var array) || !arrayType.IsArray)
+                                if (!GetFieldObject(entryType, entry, "m_array", out ClrType arrayType, out ulong array) || !arrayType.IsArray)
                                     continue;
 
-                                var len = arrayType.GetArrayLength(array);
-                                for (var j = 0; j < len; ++j)
+                                int len = arrayType.GetArrayLength(array);
+                                for (int j = 0; j < len; ++j)
                                 {
-                                    var addr = (ulong)arrayType.GetArrayElementValue(array, i);
+                                    ulong addr = (ulong)arrayType.GetArrayElementValue(array, i);
                                     if (addr != 0)
                                         yield return addr;
                                 }
@@ -145,12 +145,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrModule GetMscorlib()
         {
-            foreach (var module in _runtime.Modules)
+            foreach (ClrModule module in _runtime.Modules)
                 if (module.AssemblyName.Contains("mscorlib.dll"))
                     return module;
 
             // Uh oh, this shouldn't have happened.  Let's look more carefully (slowly).
-            foreach (var module in _runtime.Modules)
+            foreach (ClrModule module in _runtime.Modules)
                 if (module.AssemblyName.ToLower().Contains("mscorlib"))
                     return module;
 
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             value = 0;
             valueType = null;
 
-            var field = type.GetFieldByName(fieldName);
+            ClrInstanceField field = type.GetFieldByName(fieldName);
             if (field == null)
                 return false;
 

@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public SymbolLocator()
         {
-            var sympath = _NT_SYMBOL_PATH;
+            string sympath = _NT_SYMBOL_PATH;
             if (string.IsNullOrEmpty(sympath))
                 sympath = MicrosoftSymbolServerPath;
 
@@ -63,10 +63,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                var first = true;
-                var result = new StringBuilder();
+                bool first = true;
+                StringBuilder result = new StringBuilder();
 
-                foreach (var path in MicrosoftSymbolServers)
+                foreach (string path in MicrosoftSymbolServers)
                 {
                     if (!first)
                         result.Append(';');
@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                var ret = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+                string ret = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
                 return ret ?? "";
             }
             set => Environment.SetEnvironmentVariable("_NT_SYMBOL_PATH", value);
@@ -107,11 +107,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                var cache = _symbolCache;
+                string cache = _symbolCache;
                 if (!string.IsNullOrEmpty(cache))
                     return cache;
 
-                var tmp = Path.GetTempPath();
+                string tmp = Path.GetTempPath();
                 if (string.IsNullOrEmpty(tmp))
                     tmp = ".";
 
@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (module == null)
                 throw new ArgumentNullException("module");
 
-            var pdb = module.Pdb;
+            PdbInfo pdb = module.Pdb;
             if (pdb == null)
                 return null;
 
@@ -241,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                PdbReader.GetPdbProperties(pdbName, out var fileGuid, out var fileAge);
+                PdbReader.GetPdbProperties(pdbName, out Guid fileGuid, out int fileAge);
                 return guid == fileGuid && age == fileAge;
             }
             catch (IOException)
@@ -272,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 try
                 {
-                    using (var fs = File.OpenRead(fullPath))
+                    using (FileStream fs = File.OpenRead(fullPath))
                     {
                         if (Path.GetExtension(fullPath) == ".so")
                         {
@@ -281,11 +281,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             return true;
                         }
 
-                        using (var pefile = PEFile.TryLoad(fs, false))
+                        using (PEFile pefile = PEFile.TryLoad(fs, false))
                         {
                             if (pefile != null)
                             {
-                                var header = pefile.Header;
+                                PEHeader header = pefile.Header;
                                 if (!checkProperties || header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize)
                                 {
                                     return true;
@@ -319,18 +319,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             try
             {
-                var fi = new FileInfo(fullDestPath);
+                FileInfo fi = new FileInfo(fullDestPath);
                 if (fi.Exists && fi.Length == size)
                     return;
 
-                var folder = Path.GetDirectoryName(fullDestPath);
+                string folder = Path.GetDirectoryName(fullDestPath);
                 Directory.CreateDirectory(folder);
 
                 FileStream file = null;
                 try
                 {
                     file = new FileStream(fullDestPath, FileMode.OpenOrCreate);
-                    var buffer = new byte[2048];
+                    byte[] buffer = new byte[2048];
                     int read;
                     while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
                         file.Write(buffer, 0, read);

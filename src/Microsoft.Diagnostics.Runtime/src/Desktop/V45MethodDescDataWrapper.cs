@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         public bool Init(SosDac sos, ulong md)
         {
-            if (!sos.GetMethodDescData(md, 0, out var data))
+            if (!sos.GetMethodDescData(md, 0, out MethodDescData data))
                 return false;
 
             MethodDesc = data.MethodDesc;
@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             MDToken = data.MDToken;
             MethodTable = data.MethodTable;
 
-            if (sos.GetCodeHeaderData(data.NativeCodeAddr, out var header))
+            if (sos.GetCodeHeaderData(data.NativeCodeAddr, out CodeHeaderData header))
             {
                 if (header.JITType == 1)
                     JITType = MethodCompilationType.Jit;

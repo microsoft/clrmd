@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrHandle(V45Runtime clr, ClrHeap heap, HandleData handleData)
         {
             Address = handleData.Handle;
-            clr.ReadPointer(Address, out var obj);
+            clr.ReadPointer(Address, out ulong obj);
 
             Object = obj;
             Type = heap.GetObjectType(obj);
@@ -169,13 +169,13 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     if (Type.IsCCW(obj))
                     {
-                        var data = Type.GetCCWData(obj);
+                        CcwData data = Type.GetCCWData(obj);
                         if (data != null && refCount < data.RefCount)
                             refCount = (uint)data.RefCount;
                     }
                     else if (Type.IsRCW(obj))
                     {
-                        var data = Type.GetRCWData(obj);
+                        RcwData data = Type.GetRCWData(obj);
                         if (data != null && refCount < data.RefCount)
                             refCount = (uint)data.RefCount;
                     }
@@ -199,20 +199,20 @@ namespace Microsoft.Diagnostics.Runtime
             if (HandleType != HandleType.AsyncPinned)
                 return null;
 
-            var field = Type?.GetFieldByName("m_userObject");
+            ClrInstanceField field = Type?.GetFieldByName("m_userObject");
             if (field == null)
                 return null;
 
             ulong obj;
-            var tmp = field.GetValue(Object);
+            object tmp = field.GetValue(Object);
             if (!(tmp is ulong) || (obj = (ulong)tmp) == 0)
                 return null;
 
-            var type = Type.Heap.GetObjectType(obj);
+            ClrType type = Type.Heap.GetObjectType(obj);
             if (type == null)
                 return null;
 
-            var result = new ClrHandle
+            ClrHandle result = new ClrHandle
             {
                 Object = obj,
                 Type = type,

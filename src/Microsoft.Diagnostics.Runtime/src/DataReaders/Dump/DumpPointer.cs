@@ -41,17 +41,17 @@ namespace Microsoft.Diagnostics.Runtime
         public DumpPointer Adjust(uint delta)
         {
             EnsureSizeRemaining(delta);
-            var pointer = new IntPtr(_pointer.ToInt64() + delta);
+            IntPtr pointer = new IntPtr(_pointer.ToInt64() + delta);
 
             return new DumpPointer(pointer, _size - delta);
         }
 
         public DumpPointer Adjust(ulong delta64)
         {
-            var delta = (uint)delta64;
+            uint delta = (uint)delta64;
             EnsureSizeRemaining(delta);
-            var ptr = unchecked((ulong)_pointer.ToInt64()) + delta;
-            var pointer = new IntPtr(unchecked((long)ptr));
+            ulong ptr = unchecked((ulong)_pointer.ToInt64()) + delta;
+            IntPtr pointer = new IntPtr(unchecked((long)ptr));
 
             return new DumpPointer(pointer, _size - delta);
         }
@@ -145,10 +145,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public string ReadAsUnicodeString(int lengthChars)
         {
-            var lengthBytes = lengthChars * 2;
+            int lengthBytes = lengthChars * 2;
 
             EnsureSizeRemaining((uint)lengthBytes);
-            var s = Marshal.PtrToStringUni(_pointer, lengthChars);
+            string s = Marshal.PtrToStringUni(_pointer, lengthChars);
             return s;
         }
 
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public T PtrToStructureAdjustOffset<T>(ref uint offset)
         {
-            var ret = Adjust(offset).PtrToStructure<T>();
+            T ret = Adjust(offset).PtrToStructure<T>();
             offset += (uint)Marshal.SizeOf(ret);
             return ret;
         }
@@ -173,10 +173,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // Runtime check to ensure we have enough space in the minidump. This should
             // always be safe for well formed dumps.
-            var size = (uint)Marshal.SizeOf(typeof(T));
+            uint size = (uint)Marshal.SizeOf(typeof(T));
             EnsureSizeRemaining(size);
 
-            var element = (T)Marshal.PtrToStructure(_pointer, typeof(T));
+            T element = (T)Marshal.PtrToStructure(_pointer, typeof(T));
             return element;
         }
 

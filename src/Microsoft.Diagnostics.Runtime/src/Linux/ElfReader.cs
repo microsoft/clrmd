@@ -30,28 +30,28 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public T Read<T>(long position)
             where T : struct
         {
-            var size = Marshal.SizeOf(typeof(T));
+            int size = Marshal.SizeOf(typeof(T));
             EnsureSize(size);
 
-            var read = DataSource.Read(position, _buffer, 0, size);
+            int read = DataSource.Read(position, _buffer, 0, size);
             if (read != size)
                 throw new IOException();
 
-            var result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
+            T result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
             return result;
         }
 
         public T Read<T>(ref long position)
             where T : struct
         {
-            var size = Marshal.SizeOf(typeof(T));
+            int size = Marshal.SizeOf(typeof(T));
             EnsureSize(size);
 
-            var read = DataSource.Read(position, _buffer, 0, size);
+            int read = DataSource.Read(position, _buffer, 0, size);
             if (read != size)
                 throw new IOException();
 
-            var result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
+            T result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
 
             position += size;
             return result;
@@ -59,8 +59,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public byte[] ReadBytes(long offset, int size)
         {
-            var buffer = new byte[size];
-            var read = DataSource.Read(offset, buffer, 0, size);
+            byte[] buffer = new byte[size];
+            int read = DataSource.Read(offset, buffer, 0, size);
 
             if (read != size)
                 throw new IOException();
@@ -98,11 +98,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public string ReadNullTerminatedAscii(long position, int len)
         {
-            var buffer = _buffer;
+            byte[] buffer = _buffer;
             if (len > _buffer.Length)
                 buffer = new byte[len];
 
-            var read = DataSource.Read(position, buffer, 0, len);
+            int read = DataSource.Read(position, buffer, 0, len);
             if (read == 0)
                 return "";
 

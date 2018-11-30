@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            var type = Type;
+            ClrType type = Type;
             if (type != null)
                 return $"{type.Name} {Name}";
 

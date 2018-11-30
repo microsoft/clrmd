@@ -18,17 +18,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void PdbEqualityTest()
         {
             // Ensure all methods in our source file is in the pdb.
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                var allPdbs = runtime.Modules.Where(m => m.Pdb != null).Select(m => m.Pdb).ToArray();
+                PdbInfo[] allPdbs = runtime.Modules.Where(m => m.Pdb != null).Select(m => m.Pdb).ToArray();
                 Assert.True(allPdbs.Length > 1);
 
-                for (var i = 0; i < allPdbs.Length; i++)
+                for (int i = 0; i < allPdbs.Length; i++)
                 {
                     Assert.True(allPdbs[i].Equals(allPdbs[i]));
-                    for (var j = i + 1; j < allPdbs.Length; j++)
+                    for (int j = i + 1; j < allPdbs.Length; j++)
                     {
                         Assert.False(allPdbs[i].Equals(allPdbs[j]));
                         Assert.False(allPdbs[j].Equals(allPdbs[i]));
@@ -40,17 +40,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void PdbGuidAgeTest()
         {
-            PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out var pdbSignature, out var pdbAge);
+            PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out Guid pdbSignature, out int pdbAge);
 
             // Ensure we get the same answer a different way.
-            using (var pdbReader = new PdbReader(TestTargets.NestedException.Pdb))
+            using (PdbReader pdbReader = new PdbReader(TestTargets.NestedException.Pdb))
             {
                 Assert.Equal(pdbAge, pdbReader.Age);
                 Assert.Equal(pdbSignature, pdbReader.Signature);
             }
 
             // Ensure the PEFile has the same signature/age.
-            using (var peFile = new PEFile(TestTargets.NestedException.Executable))
+            using (PEFile peFile = new PEFile(TestTargets.NestedException.Executable))
             {
                 Assert.Equal(peFile.PdbInfo.Guid, pdbSignature);
                 Assert.Equal(peFile.PdbInfo.Revision, pdbAge);
@@ -60,31 +60,31 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void PdbSourceLineTest()
         {
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var thread = runtime.GetMainThread();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrThread thread = runtime.GetMainThread();
 
-                var sourceLines = new HashSet<int>();
-                using (var reader = new PdbReader(TestTargets.NestedException.Pdb))
+                HashSet<int> sourceLines = new HashSet<int>();
+                using (PdbReader reader = new PdbReader(TestTargets.NestedException.Pdb))
                 {
                     Assert.Equal(TestTargets.NestedException.Source, reader.Sources.Single().Name, true);
 
-                    var functions = from frame in thread.StackTrace
+                    IEnumerable<PdbFunction> functions = from frame in thread.StackTrace
                                     where frame.Kind != ClrStackFrameType.Runtime
                                     select reader.GetFunctionFromToken(frame.Method.MetadataToken);
 
-                    foreach (var function in functions)
+                    foreach (PdbFunction function in functions)
                     {
-                        var sourceFile = function.SequencePoints.Single();
+                        PdbSequencePointCollection sourceFile = function.SequencePoints.Single();
 
                         foreach (int line in sourceFile.Lines.Select(l => l.LineBegin))
                             sourceLines.Add(line);
                     }
                 }
 
-                var curr = 0;
-                foreach (var line in File.ReadLines(TestTargets.NestedException.Source))
+                int curr = 0;
+                foreach (string line in File.ReadLines(TestTargets.NestedException.Source))
                 {
                     curr++;
                     if (line.Contains("/* seq */"))
@@ -97,15 +97,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void PdbMethodTest()
         {
             // Ensure all methods in our source file is in the pdb.
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var module = runtime.Modules.Where(m => m.Name.Equals(TestTargets.NestedException.Executable, StringComparison.OrdinalIgnoreCase)).Single();
-                var type = module.GetTypeByName("Program");
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrModule module = runtime.Modules.Where(m => m.Name.Equals(TestTargets.NestedException.Executable, StringComparison.OrdinalIgnoreCase)).Single();
+                ClrType type = module.GetTypeByName("Program");
 
-                using (var pdb = new PdbReader(TestTargets.NestedException.Pdb))
+                using (PdbReader pdb = new PdbReader(TestTargets.NestedException.Pdb))
                 {
-                    foreach (var method in type.Methods)
+                    foreach (ClrMethod method in type.Methods)
                     {
                         // ignore inherited methods and constructors
                         if (method.Type != type || method.IsConstructor || method.IsClassConstructor)

@@ -55,19 +55,19 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
         private void InitThreads()
         {
-            var threads = new List<NativeThread>();
+            List<NativeThread> threads = new List<NativeThread>();
 
-            if (SOSNative.GetThreadStoreData(out var data))
+            if (SOSNative.GetThreadStoreData(out NativeThreadStoreData data))
             {
-                var seen = new HashSet<ulong> {0};
+                HashSet<ulong> seen = new HashSet<ulong> {0};
 
-                var addr = data.FirstThread;
+                ulong addr = data.FirstThread;
                 while (seen.Add(addr))
                 {
-                    if (!SOSNative.GetThreadData(addr, out var threadData))
+                    if (!SOSNative.GetThreadData(addr, out NativeThreadData threadData))
                         break;
 
-                    var thread = new NativeThread(this, ref threadData, addr, addr == data.FinalizerThread);
+                    NativeThread thread = new NativeThread(this, ref threadData, addr, addr == data.FinalizerThread);
                     threads.Add(thread);
                     addr = threadData.NextThread;
                 }
@@ -75,14 +75,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             _threads = threads.ToArray();
         }
-
+        
         /*
-
+         
         internal unsafe IList<ClrRoot> EnumerateStackRoots(ClrThread thread)
         {
             int contextSize;
 
-            var plat = _dataReader.GetArchitecture();
+            Architecture plat = _dataReader.GetArchitecture();
             if (plat == Architecture.Amd64)
                 contextSize = 0x4d0;
             else if (plat == Architecture.X86)
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             else
                 throw new InvalidOperationException("Unexpected architecture.");
 
-            var context = new byte[contextSize];
+            byte[] context = new byte[contextSize];
             _dataReader.GetThreadContext(thread.OSThreadId, 0, (uint)contextSize, context);
 
             var walker = new NativeStackRootWalker(_heap.Value, GetRhAppDomain(), thread);
@@ -139,18 +139,18 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return new ClrException[0];
             }
 
-            var exceptionById = new Dictionary<ulong, NativeException>();
+            Dictionary<ulong, NativeException> exceptionById = new Dictionary<ulong, NativeException>();
             ISerializedExceptionEnumerator serializedExceptionEnumerator = _sosNativeSerializedExceptionSupport.GetSerializedExceptions();
             while (serializedExceptionEnumerator.HasNext())
             {
-                var serializedException = serializedExceptionEnumerator.Next();
+                ISerializedException serializedException = serializedExceptionEnumerator.Next();
 
                 //build the stack frames
                 IList<ClrStackFrame> stackFrames = new List<ClrStackFrame>();
-                var serializedStackFrameEnumerator = serializedException.StackFrames;
+                ISerializedStackFrameEnumerator serializedStackFrameEnumerator = serializedException.StackFrames;
                 while (serializedStackFrameEnumerator.HasNext())
                 {
-                    var serializedStackFrame = serializedStackFrameEnumerator.Next();
+                    ISerializedStackFrame serializedStackFrame = serializedStackFrameEnumerator.Next();
 
                     NativeModule nativeModule = _heap.GetModuleFromAddress(serializedStackFrame.IP);
                     string symbolName = null;
@@ -160,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                         {
                             try
                             {
-                                var resolver = DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
+                                ISymbolResolver resolver = DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
 
                                 if (resolver != null)
                                 {
@@ -207,13 +207,13 @@ namespace Microsoft.Diagnostics.Runtime.Native
                         stackFrames));
             }
 
-            var usedAsInnerException = new HashSet<ulong>();
+            HashSet<ulong> usedAsInnerException = new HashSet<ulong>();
 
-            foreach (var nativeException in exceptionById.Values)
+            foreach (NativeException nativeException in exceptionById.Values)
             {
                 if (nativeException.InnerExceptionId > 0)
                 {
-                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out var innerException))
+                    if (exceptionById.TryGetValue(nativeException.InnerExceptionId, out NativeException innerException))
                     {
                         nativeException.SetInnerException(innerException);
                         usedAsInnerException.Add(innerException.ExceptionId);

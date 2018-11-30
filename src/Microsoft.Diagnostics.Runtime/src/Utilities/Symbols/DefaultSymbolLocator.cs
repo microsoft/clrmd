@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -26,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(pdbName))
                 return null;
 
-            var pdbSimpleName = Path.GetFileName(pdbName);
+            string pdbSimpleName = Path.GetFileName(pdbName);
             if (pdbName != pdbSimpleName)
             {
                 if (ValidatePdb(pdbName, pdbIndexGuid, pdbIndexAge))
@@ -34,21 +35,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Check to see if it's already cached.
-            var entry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            var result = GetPdbEntry(entry);
+            PdbEntry entry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
+            string result = GetPdbEntry(entry);
             if (result != null)
                 return result;
 
-            var missingPdbs = _missingPdbs;
+            HashSet<PdbEntry> missingPdbs = _missingPdbs;
             if (IsMissing(missingPdbs, entry))
                 return null;
 
-            var pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            foreach (var element in SymPathElement.GetElements(SymbolPath))
+            string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
+            foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
-                    var targetPath = TryGetFileFromServer(element.Target, pdbIndexPath, element.Cache ?? SymbolCache);
+                    string targetPath = TryGetFileFromServer(element.Target, pdbIndexPath, element.Cache ?? SymbolCache);
                     if (targetPath != null)
                     {
                         Trace("Found pdb {0} from server '{1}' on path '{2}'.  Copied to '{3}'.", pdbSimpleName, element.Target, pdbIndexPath, targetPath);
@@ -60,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 else
                 {
-                    var fullPath = Path.Combine(element.Target, pdbSimpleName);
+                    string fullPath = Path.Combine(element.Target, pdbSimpleName);
                     if (ValidatePdb(fullPath, pdbIndexGuid, pdbIndexAge))
                     {
                         Trace($"Found pdb '{pdbSimpleName}' at '{fullPath}'.");
@@ -87,16 +88,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
         public override string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
-            var fullPath = fileName;
+            string fullPath = fileName;
             fileName = Path.GetFileName(fullPath).ToLower();
 
             // First see if we already have the result cached.
-            var entry = new FileEntry(fileName, buildTimeStamp, imageSize);
-            var result = GetFileEntry(entry);
+            FileEntry entry = new FileEntry(fileName, buildTimeStamp, imageSize);
+            string result = GetFileEntry(entry);
             if (result != null)
                 return result;
 
-            var missingFiles = _missingFiles;
+            HashSet<FileEntry> missingFiles = _missingFiles;
             if (IsMissing(missingFiles, entry))
                 return null;
 
@@ -109,14 +110,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Finally, check the symbol paths.
             string exeIndexPath = null;
-            foreach (var element in SymPathElement.GetElements(SymbolPath))
+            foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
                     if (exeIndexPath == null)
                         exeIndexPath = GetIndexPath(fileName, buildTimeStamp, imageSize);
 
-                    var target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? SymbolCache);
+                    string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? SymbolCache);
                     if (target == null)
                     {
                         Trace($"Server '{element.Target}' did not have file '{Path.GetFileName(fileName)}' with timestamp={buildTimeStamp:x} and filesize={imageSize:x}.");
@@ -130,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 else
                 {
-                    var filePath = Path.Combine(element.Target, fileName);
+                    string filePath = Path.Combine(element.Target, fileName);
                     if (ValidateBinary(filePath, buildTimeStamp, imageSize, checkProperties))
                     {
                         Trace($"Found '{fileName}' at '{filePath}'.");
@@ -160,11 +161,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(urlForServer))
                 return null;
 
-            var targetPath = Path.Combine(cache, fileIndexPath);
+            string targetPath = Path.Combine(cache, fileIndexPath);
 
             // See if it is a compressed file by replacing the last character of the name with an _
-            var compressedSigPath = fileIndexPath.Substring(0, fileIndexPath.Length - 1) + "_";
-            var compressedFilePath = GetPhysicalFileFromServer(urlForServer, compressedSigPath, cache);
+            string compressedSigPath = fileIndexPath.Substring(0, fileIndexPath.Length - 1) + "_";
+            string compressedFilePath = GetPhysicalFileFromServer(urlForServer, compressedSigPath, cache);
             if (compressedFilePath != null)
             {
                 try
@@ -185,13 +186,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Just try to fetch the file directly
-            var ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
+            string ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
             if (ret != null)
                 return ret;
 
             // See if we have a file that tells us to redirect elsewhere. 
-            var filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
-            var filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
+            string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
+            string filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
             if (filePtrData == null)
             {
                 return null;
@@ -203,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (!filePtrData.StartsWith("MSG:") && File.Exists(filePtrData))
             {
-                using (var fs = File.OpenRead(filePtrData))
+                using (FileStream fs = File.OpenRead(filePtrData))
                 {
                     CopyStreamToFile(fs, filePtrData, targetPath, fs.Length);
                     return targetPath;
@@ -220,20 +221,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(serverPath))
                 return null;
 
-            var fullDestPath = Path.Combine(symbolCacheDir, pdbIndexPath);
+            string fullDestPath = Path.Combine(symbolCacheDir, pdbIndexPath);
             if (File.Exists(fullDestPath))
                 return fullDestPath;
 
             if (serverPath.StartsWith("http:"))
             {
-                var fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
+                string fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
                 try
                 {
-                    var req = (HttpWebRequest)WebRequest.Create(fullUri);
+                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(fullUri);
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
-                    var response = req.GetResponse();
-                    using (var fromStream = response.GetResponseStream())
+                    WebResponse response = req.GetResponse();
+                    using (Stream fromStream = response.GetResponseStream())
                     {
                         if (returnContents)
                         {
@@ -257,7 +258,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            var fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
+            string fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
             if (!File.Exists(fullSrcPath))
                 return null;
 
@@ -273,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            using (var fs = File.OpenRead(fullSrcPath))
+            using (FileStream fs = File.OpenRead(fullSrcPath))
                 CopyStreamToFile(fs, fullSrcPath, fullDestPath, fs.Length);
 
             return fullDestPath;

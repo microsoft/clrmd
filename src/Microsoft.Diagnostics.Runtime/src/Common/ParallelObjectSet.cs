@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool Contains(ulong obj)
         {
-            if (GetSegment(obj, out var seg))
+            if (GetSegment(obj, out HeapHashSegment seg))
             {
-                var offset = GetOffset(obj, seg);
+                int offset = GetOffset(obj, seg);
 
                 lock (seg.Objects.SyncRoot)
                     return seg.Objects[offset];
@@ -27,9 +27,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool Add(ulong obj)
         {
-            if (GetSegment(obj, out var seg))
+            if (GetSegment(obj, out HeapHashSegment seg))
             {
-                var offset = GetOffset(obj, seg);
+                int offset = GetOffset(obj, seg);
 
                 lock (seg.Objects.SyncRoot)
                 {
@@ -49,9 +49,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool Remove(ulong obj)
         {
-            if (GetSegment(obj, out var seg))
+            if (GetSegment(obj, out HeapHashSegment seg))
             {
-                var offset = GetOffset(obj, seg);
+                int offset = GetOffset(obj, seg);
                 lock (seg.Objects.SyncRoot)
                 {
                     if (seg.Objects[offset])

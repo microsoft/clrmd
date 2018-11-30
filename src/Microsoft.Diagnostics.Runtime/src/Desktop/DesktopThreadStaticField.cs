@@ -22,13 +22,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!HasSimpleValue)
                 return null;
 
-            var addr = GetAddress(appDomain, thread);
+            ulong addr = GetAddress(appDomain, thread);
             if (addr == 0)
                 return null;
 
             if (ElementType == ClrElementType.String)
             {
-                var val = _type.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
+                object val = _type.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
@@ -49,8 +49,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_type == null)
                 return 0;
 
-            var runtime = _type.DesktopHeap.DesktopRuntime;
-            var moduleData = runtime.GetModuleData(_field.Module);
+            DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
+            IModuleData moduleData = runtime.GetModuleData(_field.Module);
 
             return runtime.GetThreadStaticPointer(thread.Address, (ClrElementType)_field.CorElementType, (uint)Offset, (uint)moduleData.ModuleId, _type.Shared);
         }

@@ -57,11 +57,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 cmt = 0;
             }
 
-            var hnd = new TypeHandle(mt, cmt);
+            TypeHandle hnd = new TypeHandle(mt, cmt);
             ClrType ret = null;
 
             // See if we already have the type.
-            if (_indices.TryGetValue(hnd, out var index))
+            if (_indices.TryGetValue(hnd, out int index))
             {
                 ret = _types[index];
             }
@@ -70,11 +70,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 // Handle the case where the methodtable is an array, but the component method table
                 // was not specified.  (This happens with fields.)  In this case, return System.Object[],
                 // with an ArrayComponentType set to System.Object.
-                var token = DesktopRuntime.GetMetadataToken(mt);
+                uint token = DesktopRuntime.GetMetadataToken(mt);
                 if (token == 0xffffffff)
                     return null;
 
-                var modEnt = new ModuleEntry(ArrayType.Module, token);
+                ModuleEntry modEnt = new ModuleEntry(ArrayType.Module, token);
 
                 ret = ArrayType;
                 index = _types.Count;
@@ -88,24 +88,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else
             {
                 // No, so we'll have to construct it.
-                var moduleAddr = DesktopRuntime.GetModuleForMT(hnd.MethodTable);
-                var module = DesktopRuntime.GetModule(moduleAddr);
-                var token = DesktopRuntime.GetMetadataToken(mt);
+                ulong moduleAddr = DesktopRuntime.GetModuleForMT(hnd.MethodTable);
+                DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
+                uint token = DesktopRuntime.GetMetadataToken(mt);
 
-                var isFree = mt == DesktopRuntime.FreeMethodTable;
+                bool isFree = mt == DesktopRuntime.FreeMethodTable;
                 if (token == 0xffffffff && !isFree)
                     return null;
 
                 // Dynamic functions/modules
-                var tokenEnt = token;
+                uint tokenEnt = token;
                 if (!isFree && (module == null || module.IsDynamic))
                     tokenEnt = (uint)mt;
 
-                var modEnt = new ModuleEntry(module, tokenEnt);
+                ModuleEntry modEnt = new ModuleEntry(module, tokenEnt);
 
                 if (ret == null)
                 {
-                    var mtData = DesktopRuntime.GetMethodTableData(mt);
+                    IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
                     if (mtData == null)
                         return null;
 
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (IsHeapCached)
                 return base.GetObjectType(objRef);
 
-            var cache = MemoryReader;
+            MemoryReader cache = MemoryReader;
             if (cache.Contains(objRef))
             {
                 if (!cache.ReadPtr(objRef, out mt))
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (mt == DesktopRuntime.ArrayMethodTable)
             {
-                var elemenTypeOffset = (uint)PointerSize * 2;
+                uint elemenTypeOffset = (uint)PointerSize * 2;
                 if (cache == null)
                     cmt = DesktopRuntime.DataReader.ReadPointerUnsafe(objRef + elemenTypeOffset);
                 else if (!cache.ReadPtr(objRef + elemenTypeOffset, out cmt))
@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 cmt = 0;
             }
 
-            var type = GetTypeByMethodTable(mt, cmt, objRef);
+            ClrType type = GetTypeByMethodTable(mt, cmt, objRef);
             _lastObject = ClrObject.Create(objRef, type);
 
             return type;

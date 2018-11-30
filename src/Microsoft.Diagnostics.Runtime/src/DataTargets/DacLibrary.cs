@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                var sos = GetSOSInterfaceNoAddRef();
+                SosDac sos = GetSOSInterfaceNoAddRef();
 
                 return sos != null ? new SosDac(sos) : null;
             }
@@ -42,11 +42,11 @@ namespace Microsoft.Diagnostics.Runtime
         public T GetInterface<T>(ref Guid riid)
             where T : CallableComWrapper
         {
-            var pUnknown = InternalDacPrivateInterface.QueryInterface(ref riid);
+            IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(ref riid);
             if (pUnknown == IntPtr.Zero)
                 return null;
 
-            var t = (T)Activator.CreateInstance(typeof(T), this, pUnknown);
+            T t = (T)Activator.CreateInstance(typeof(T), this, pUnknown);
             return t;
         }
 
@@ -76,30 +76,30 @@ namespace Microsoft.Diagnostics.Runtime
             if (dataTarget.ClrVersions.Count == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
-            var dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
+            IntPtr dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
             if (dacLibrary == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to load dac: " + dacLibrary);
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
             dataTarget.AddDacLibrary(this);
 
-            var initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
+            IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
             if (initAddr == IntPtr.Zero)
                 initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "PAL_InitializeDLL");
 
             if (initAddr != IntPtr.Zero)
             {
-                var dllMain = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DllMain");
-                var main = (DllMain)Marshal.GetDelegateForFunctionPointer(dllMain, typeof(DllMain));
-                var result = main(dacLibrary, 1, IntPtr.Zero);
+                IntPtr dllMain = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DllMain");
+                DllMain main = (DllMain)Marshal.GetDelegateForFunctionPointer(dllMain, typeof(DllMain));
+                int result = main(dacLibrary, 1, IntPtr.Zero);
             }
 
-            var addr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "CLRDataCreateInstance");
+            IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "CLRDataCreateInstance");
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
 
-            var func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
-            var guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-            var res = func(ref guid, DacDataTarget.IDacDataTarget, out var iUnk);
+            CreateDacInstance func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
+            Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
+            int res = func(ref guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
             if (res != 0)
                 throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsException.HR.DacError);

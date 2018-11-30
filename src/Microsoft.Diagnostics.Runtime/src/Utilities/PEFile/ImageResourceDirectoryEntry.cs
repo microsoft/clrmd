@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (IsStringName)
             {
                 int nameLen = *((ushort*)buff.Fetch(NameOffset + resourceStartFileOffset, 2));
-                var namePtr = (char*)buff.Fetch(NameOffset + resourceStartFileOffset + 2, nameLen);
+                char* namePtr = (char*)buff.Fetch(NameOffset + resourceStartFileOffset + 2, nameLen);
                 return new string(namePtr);
             }
 

@@ -29,12 +29,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <param name="age">The age of pdbFile.</param>
         public static void GetPdbProperties(string pdbFile, out Guid signature, out int age)
         {
-            var bits = new BitAccess(512 * 1024);
-            using (var pdbStream = File.OpenRead(pdbFile))
+            BitAccess bits = new BitAccess(512 * 1024);
+            using (FileStream pdbStream = File.OpenRead(pdbFile))
             {
-                var header = new PdbFileHeader(pdbStream, bits);
-                var reader = new PdbStreamHelper(pdbStream, header.PageSize);
-                var dir = new MsfDirectory(reader, header, bits);
+                PdbFileHeader header = new PdbFileHeader(pdbStream, bits);
+                PdbStreamHelper reader = new PdbStreamHelper(pdbStream, header.PageSize);
+                MsfDirectory dir = new MsfDirectory(reader, header, bits);
 
                 dir._streams[1].Read(reader, bits);
 
@@ -61,13 +61,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <param name="fileName">The pdb on disk to load.</param>
         public PdbReader(string fileName)
         {
-            using (var fs = File.OpenRead(fileName))
+            using (FileStream fs = File.OpenRead(fileName))
                 Init(fs);
         }
 
         private void Init(Stream pdbStream)
         {
-            foreach (var pdbFunction in PdbFile.LoadFunctions(pdbStream, true, out _ver, out _sig, out _age, out _guid, out _sources))
+            foreach (PdbFunction pdbFunction in PdbFile.LoadFunctions(pdbStream, true, out _ver, out _sig, out _age, out _guid, out _sources))
                 _pdbFunctionMap[pdbFunction.Token] = pdbFunction;
         }
 
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         private void Close()
         {
-            foreach (var source in _sourceFilesOpenedByReader)
+            foreach (StreamReader source in _sourceFilesOpenedByReader)
                 source.Dispose();
         }
 

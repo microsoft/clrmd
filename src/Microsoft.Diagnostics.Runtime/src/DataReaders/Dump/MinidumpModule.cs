@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // 
                 // See explanation here: http://blogs.msdn.com/oldnewthing/archive/2003/09/05/54806.aspx
                 // and here http://support.microsoft.com/default.aspx?scid=KB;en-us;q167296
-                var win32FileTime = 10000000 * (long)TimeDateStamp + 116444736000000000;
+                long win32FileTime = 10000000 * (long)TimeDateStamp + 116444736000000000;
                 return DateTime.FromFileTimeUtc(win32FileTime);
             }
         }

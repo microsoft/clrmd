@@ -28,14 +28,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public static bool IsMiniDump(IntPtr pbase)
         {
-            var header = (MINIDUMP_HEADER)Marshal.PtrToStructure(pbase, typeof(MINIDUMP_HEADER));
+            MINIDUMP_HEADER header = (MINIDUMP_HEADER)Marshal.PtrToStructure(pbase, typeof(MINIDUMP_HEADER));
 
             return (header.Flags & MiniDumpWithFullMemoryInfo) == 0;
         }
 
         public static bool MiniDumpReadDumpStream(IntPtr pBase, MINIDUMP_STREAM_TYPE type, out IntPtr streamPointer, out uint cbStreamSize)
         {
-            var header = (MINIDUMP_HEADER)Marshal.PtrToStructure(pBase, typeof(MINIDUMP_HEADER));
+            MINIDUMP_HEADER header = (MINIDUMP_HEADER)Marshal.PtrToStructure(pBase, typeof(MINIDUMP_HEADER));
 
             streamPointer = IntPtr.Zero;
             cbStreamSize = 0;
@@ -44,11 +44,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (header.Singature != MINIDUMP_SIGNATURE || (header.Version & 0xffff) != MINIDUMP_VERSION)
                 return false;
 
-            var sizeOfDirectory = Marshal.SizeOf(typeof(MINIDUMP_DIRECTORY));
-            var dirs = pBase.ToInt64() + (int)header.StreamDirectoryRva;
-            for (var i = 0; i < (int)header.NumberOfStreams; ++i)
+            int sizeOfDirectory = Marshal.SizeOf(typeof(MINIDUMP_DIRECTORY));
+            long dirs = pBase.ToInt64() + (int)header.StreamDirectoryRva;
+            for (int i = 0; i < (int)header.NumberOfStreams; ++i)
             {
-                var dir = (MINIDUMP_DIRECTORY)Marshal.PtrToStructure(new IntPtr(dirs + i * sizeOfDirectory), typeof(MINIDUMP_DIRECTORY));
+                MINIDUMP_DIRECTORY dir = (MINIDUMP_DIRECTORY)Marshal.PtrToStructure(new IntPtr(dirs + i * sizeOfDirectory), typeof(MINIDUMP_DIRECTORY));
                 if (dir.StreamType != type)
                     continue;
 

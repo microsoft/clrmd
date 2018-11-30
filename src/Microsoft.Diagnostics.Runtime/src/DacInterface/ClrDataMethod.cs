@@ -23,11 +23,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getILAddressMap, VTable->GetILAddressMap);
 
-            var hr = _getILAddressMap(Self, 0, out var needed, null);
+            int hr = _getILAddressMap(Self, 0, out uint needed, null);
             if (hr != S_OK)
                 return null;
 
-            var map = new ILToNativeMap[needed];
+            ILToNativeMap[] map = new ILToNativeMap[needed];
             hr = _getILAddressMap(Self, needed, out needed, map);
 
             return hr == S_OK ? map : null;

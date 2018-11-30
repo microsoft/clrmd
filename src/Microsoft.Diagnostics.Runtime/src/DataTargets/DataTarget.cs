@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget LoadCrashDump(string fileName)
         {
-            var reader = new DbgEngDataReader(fileName);
+            DbgEngDataReader reader = new DbgEngDataReader(fileName);
             return CreateFromReader(reader, reader.DebuggerInterface);
         }
 
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget LoadCoreDump(string filename)
         {
-            var reader = new CoreDumpReader(filename);
+            CoreDumpReader reader = new CoreDumpReader(filename);
             return CreateFromReader(reader, null);
         }
 
@@ -63,12 +63,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (dumpReader == CrashDumpReader.DbgEng)
             {
-                var reader = new DbgEngDataReader(fileName);
+                DbgEngDataReader reader = new DbgEngDataReader(fileName);
                 return CreateFromReader(reader, reader.DebuggerInterface);
             }
             else
             {
-                var reader = new DumpDataReader(fileName);
+                DumpDataReader reader = new DumpDataReader(fileName);
                 return CreateFromReader(reader, null);
             }
         }
@@ -100,8 +100,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A DataTarget instance.</returns>
         public static DataTarget CreateFromDebuggerInterface(IDebugClient client)
         {
-            var reader = new DbgEngDataReader(client);
-            var dataTarget = new DataTargetImpl(reader, reader.DebuggerInterface);
+            DbgEngDataReader reader = new DbgEngDataReader(client);
+            DataTargetImpl dataTarget = new DataTargetImpl(reader, reader.DebuggerInterface);
 
             return dataTarget;
         }
@@ -134,12 +134,12 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                var dbgeng = new DbgEngDataReader(pid, attachFlag, msecTimeout);
+                DbgEngDataReader dbgeng = new DbgEngDataReader(pid, attachFlag, msecTimeout);
                 reader = dbgeng;
                 client = dbgeng.DebuggerInterface;
             }
 
-            var dataTarget = new DataTargetImpl(reader, client);
+            DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
             return dataTarget;
         }
 
@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static DataTarget CreateSnapshotAndAttach(int pid)
         {
             IDataReader reader = new LiveDataReader(pid, true);
-            var dataTarget = new DataTargetImpl(reader, null);
+            DataTargetImpl dataTarget = new DataTargetImpl(reader, null);
             return dataTarget;
         }
 

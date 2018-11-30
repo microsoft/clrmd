@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal bool IsSet(int index)
         {
-            var word = index / 32;
+            int word = index / 32;
             if (word >= _size) return false;
 
             return (_words[word] & GetBit(index)) != 0;

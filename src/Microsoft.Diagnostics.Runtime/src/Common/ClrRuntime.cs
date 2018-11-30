@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (ClrInfo.Flavor == ClrFlavor.Desktop)
                 {
-                    var version = ClrInfo.Version;
+                    VersionInfo version = ClrInfo.Version;
                     if (version.Major > 4)
                         return false;
 

@@ -20,16 +20,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpCallstackTest()
         {
-            using (var dt = TestTargets.NestedException.LoadMiniDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var thread = runtime.GetMainThread();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrThread thread = runtime.GetMainThread();
 
-                var frames = IntPtr.Size == 8 ? new[] {"Inner", "Inner", "Middle", "Outer", "Main"} : new[] {"Inner", "Middle", "Outer", "Main"};
+                string[] frames = IntPtr.Size == 8 ? new[] {"Inner", "Inner", "Middle", "Outer", "Main"} : new[] {"Inner", "Middle", "Outer", "Main"};
 
-                var i = 0;
+                int i = 0;
 
-                foreach (var frame in thread.StackTrace)
+                foreach (ClrStackFrame frame in thread.StackTrace)
                 {
                     if (frame.Kind == ClrStackFrameType.Runtime)
                     {
@@ -52,9 +52,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpExceptionPropertiesTest()
         {
-            using (var dt = TestTargets.NestedException.LoadMiniDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ExceptionTests.TestProperties(runtime);
             }
         }

@@ -30,9 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (pUnk == IntPtr.Zero)
                 return 0;
 
-            var vtable = *(IUnknownVTable**)pUnk;
+            IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
+            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
             return release(pUnk);
         }
     }

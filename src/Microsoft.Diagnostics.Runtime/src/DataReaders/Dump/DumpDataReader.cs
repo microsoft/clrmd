@@ -42,15 +42,15 @@ namespace Microsoft.Diagnostics.Runtime
 
             Directory.CreateDirectory(_generatedPath);
 
-            var options = new CommandOptions
+            CommandOptions options = new CommandOptions
             {
                 NoThrow = true,
                 NoWindow = true
             };
 
-            var cmd = Command.Run($"expand -F:*dmp {file} {_generatedPath}", options);
+            Command cmd = Command.Run($"expand -F:*dmp {file} {_generatedPath}", options);
 
-            var error = false;
+            bool error = false;
             if (cmd.ExitCode != 0)
             {
                 error = true;
@@ -58,9 +58,9 @@ namespace Microsoft.Diagnostics.Runtime
             else
             {
                 file = null;
-                foreach (var item in Directory.GetFiles(_generatedPath))
+                foreach (string item in Directory.GetFiles(_generatedPath))
                 {
-                    var ext = Path.GetExtension(item).ToLower();
+                    string ext = Path.GetExtension(item).ToLower();
                     if (ext == ".dll" || ext == ".pdb" || ext == ".exe")
                         continue;
 
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 try
                 {
-                    foreach (var file in Directory.GetFiles(_generatedPath))
+                    foreach (string file in Directory.GetFiles(_generatedPath))
                         File.Delete(file);
 
                     Directory.Delete(_generatedPath, false);
@@ -151,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (_modules != null)
                 return _modules;
 
-            var modules = new List<ModuleInfo>();
+            List<ModuleInfo> modules = new List<ModuleInfo>();
 
-            foreach (var mod in _dumpReader.EnumerateModules())
+            foreach (DumpModule mod in _dumpReader.EnumerateModules())
             {
-                var raw = mod.Raw;
+                MINIDUMP_MODULE raw = mod.Raw;
 
-                var module = new ModuleInfo(this)
+                ModuleInfo module = new ModuleInfo(this)
                 {
                     FileName = mod.FullName,
                     ImageBase = raw.BaseOfImage,
@@ -175,20 +175,20 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            var module = _dumpReader.TryLookupModuleByAddress(baseAddress);
+            DumpModule module = _dumpReader.TryLookupModuleByAddress(baseAddress);
             version = module != null ? GetVersionInfo(module) : new VersionInfo();
         }
 
         private static VersionInfo GetVersionInfo(DumpModule module)
         {
-            var raw = module.Raw;
-            var version = raw.VersionInfo;
+            MINIDUMP_MODULE raw = module.Raw;
+            VS_FIXEDFILEINFO version = raw.VersionInfo;
             int minor = (ushort)version.dwFileVersionMS;
             int major = (ushort)(version.dwFileVersionMS >> 16);
             int patch = (ushort)version.dwFileVersionLS;
             int rev = (ushort)(version.dwFileVersionLS >> 16);
 
-            var versionInfo = new VersionInfo(major, minor, rev, patch);
+            VersionInfo versionInfo = new VersionInfo(major, minor, rev, patch);
             return versionInfo;
         }
 
@@ -218,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong GetThreadTeb(uint id)
         {
-            var thread = _dumpReader.GetThread((int)id);
+            DumpThread thread = _dumpReader.GetThread((int)id);
             if (thread == null)
                 return 0;
 
@@ -227,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<uint> EnumerateAllThreads()
         {
-            foreach (var dumpThread in _dumpReader.EnumerateThreads())
+            foreach (DumpThread dumpThread in _dumpReader.EnumerateThreads())
                 yield return (uint)dumpThread.ThreadId;
         }
 
@@ -238,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            var thread = _dumpReader.GetThread((int)threadId);
+            DumpThread thread = _dumpReader.GetThread((int)threadId);
             if (thread == null)
                 return false;
 

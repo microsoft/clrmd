@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -32,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private GCDesc FillGCDesc()
         {
-            var runtime = DesktopHeap.DesktopRuntime;
+            DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
 
             Debug.Assert(_constructedMT != 0, "Attempted to fill GC desc with a constructed (not real) type.");
             if (!runtime.ReadDword(_constructedMT - (ulong)IntPtr.Size, out int entries))
@@ -42,9 +43,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (entries < 0)
                 entries = -entries;
 
-            var slots = 1 + entries * 2;
-            var buffer = new byte[slots * IntPtr.Size];
-            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out var read) || read != buffer.Length)
+            int slots = 1 + entries * 2;
+            byte[] buffer = new byte[slots * IntPtr.Size];
+            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, buffer.Length, out int read) || read != buffer.Length)
                 return null;
 
             // Construct the gc desc
@@ -89,23 +90,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
             }
 
-            var baseType = BaseType as BaseDesktopHeapType;
-            var interfaces = baseType != null ? new List<ClrInterface>(baseType.Interfaces) : null;
-            var import = DesktopModule.GetMetadataImport();
+            BaseDesktopHeapType baseType = BaseType as BaseDesktopHeapType;
+            List<ClrInterface> interfaces = baseType != null ? new List<ClrInterface>(baseType.Interfaces) : null;
+            MetaDataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
                 _interfaces = DesktopHeap.EmptyInterfaceList;
                 return null;
             }
 
-            foreach (var token in import.EnumerateInterfaceImpls((int)_token))
+            foreach (int token in import.EnumerateInterfaceImpls((int)_token))
             {
-                if (import.GetInterfaceImplProps(token, out var mdClass, out var mdIFace))
+                if (import.GetInterfaceImplProps(token, out int mdClass, out int mdIFace))
                 {
                     if (interfaces == null)
                         interfaces = new List<ClrInterface>();
 
-                    var result = GetInterface(import, mdIFace);
+                    ClrInterface result = GetInterface(import, mdIFace);
                     if (result != null && !interfaces.Contains(result))
                         interfaces.Add(result);
                 }
@@ -122,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrInterface GetInterface(MetaDataImport import, int mdIFace)
         {
             ClrInterface result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out var name, out var attrs, out var extends))
+            if (!import.GetTypeDefProperties(mdIFace, out string name, out TypeAttributes attrs, out int extends))
             {
                 name = import.GetTypeRefName(mdIFace);
             }

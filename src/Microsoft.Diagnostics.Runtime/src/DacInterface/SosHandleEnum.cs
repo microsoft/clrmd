@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SosHandleEnum(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, ref IID_ISOSHandleEnum, pUnk)
         {
-            var vtable = (ISOSHandleEnumVTable*)_vtable;
+            ISOSHandleEnumVTable* vtable = (ISOSHandleEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);
         }
 
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (handles == null)
                 throw new ArgumentNullException(nameof(handles));
 
-            var hr = _next(Self, handles.Length, handles, out var read);
+            int hr = _next(Self, handles.Length, handles, out int read);
             return hr >= S_OK ? read : 0;
         }
 

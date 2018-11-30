@@ -12,20 +12,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void ExceptionPropertyTest()
         {
-            using (var dt = TestTargets.NestedException.LoadFullDump())
+            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 TestProperties(runtime);
             }
         }
 
         internal static void TestProperties(ClrRuntime runtime)
         {
-            var thread = runtime.Threads.Single(t => !t.IsFinalizer);
-            var ex = thread.CurrentException;
+            ClrThread thread = runtime.Threads.Single(t => !t.IsFinalizer);
+            ClrException ex = thread.CurrentException;
             Assert.NotNull(ex);
 
-            var testData = TestTargets.NestedExceptionData;
+            ExceptionTestData testData = TestTargets.NestedExceptionData;
             Assert.Equal(testData.OuterExceptionMessage, ex.Message);
             Assert.Equal(testData.OuterExceptionType, ex.Type.Name);
             Assert.NotNull(ex.Inner);

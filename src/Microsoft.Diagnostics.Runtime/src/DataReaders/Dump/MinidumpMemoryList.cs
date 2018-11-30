@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         public MINIDUMP_MEMORY_DESCRIPTOR GetElement(uint idx)
         {
             // Embededded array starts at offset 4.
-            var offset = 4 + idx * MINIDUMP_MEMORY_DESCRIPTOR.SizeOf;
+            uint offset = 4 + idx * MINIDUMP_MEMORY_DESCRIPTOR.SizeOf;
             return _streamPointer.PtrToStructure<MINIDUMP_MEMORY_DESCRIPTOR>(offset);
         }
     }

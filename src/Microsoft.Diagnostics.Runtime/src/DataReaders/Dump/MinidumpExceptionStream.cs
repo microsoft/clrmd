@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ClrDiagnosticsException.HR.CrashDumpError);
             }
 
-            for (var i = 0; i < DumpNative.EXCEPTION_MAXIMUM_PARAMETERS; i++)
+            for (int i = 0; i < DumpNative.EXCEPTION_MAXIMUM_PARAMETERS; i++)
             {
                 ExceptionRecord.ExceptionInformation[i] = dump.PtrToStructureAdjustOffset<ulong>(ref offset);
             }

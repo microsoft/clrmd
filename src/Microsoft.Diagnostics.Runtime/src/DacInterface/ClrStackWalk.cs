@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _request, VTable->Request);
 
-            var hr = _request(Self, 0xf0000000, 0, null, (uint)_ulongBuffer.Length, _ulongBuffer);
+            int hr = _request(Self, 0xf0000000, 0, null, (uint)_ulongBuffer.Length, _ulongBuffer);
             if (hr == S_OK)
                 return BitConverter.ToUInt64(_ulongBuffer, 0);
 
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _next, VTable->Next);
 
-            var hr = _next(Self);
+            int hr = _next(Self);
             return hr == S_OK;
         }
 
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getContext, VTable->GetContext);
 
-            var hr = _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
+            int hr = _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
             return hr == S_OK;
         }
 

@@ -65,8 +65,8 @@ namespace Microsoft.Diagnostics.Runtime
         private unsafe void InternalGetBytes(IntPtr src, IntPtr dest, uint bytesRequested, ref uint bytesWritten)
         {
             // Do the raw copy.
-            var pSrc = (byte*)src.ToPointer();
-            var pDest = (byte*)dest.ToPointer();
+            byte* pSrc = (byte*)src.ToPointer();
+            byte* pDest = (byte*)dest.ToPointer();
             for (bytesWritten = 0; bytesWritten < bytesRequested; bytesWritten++)
             {
                 pDest[bytesWritten] = pSrc[bytesWritten];

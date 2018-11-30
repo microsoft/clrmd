@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (func.Method.GetParameters().First().ParameterType != typeof(IntPtr))
                 throw new InvalidOperationException();
 
-            var attrs = func.GetType().GetCustomAttributes(false);
+            object[] attrs = func.GetType().GetCustomAttributes(false);
             if (attrs.Count(c => c is UnmanagedFunctionPointerAttribute) != 1)
                 throw new InvalidOperationException();
 
@@ -40,18 +40,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         internal IntPtr Complete()
         {
-            var obj = Marshal.AllocHGlobal(IntPtr.Size);
+            IntPtr obj = Marshal.AllocHGlobal(IntPtr.Size);
 
-            var vtablePartSize = _delegates.Count * IntPtr.Size;
-            var vtable = (IntPtr*)Marshal.AllocHGlobal(vtablePartSize + sizeof(IUnknownVTable));
+            int vtablePartSize = _delegates.Count * IntPtr.Size;
+            IntPtr* vtable = (IntPtr*)Marshal.AllocHGlobal(vtablePartSize + sizeof(IUnknownVTable));
             *(void**)obj = vtable;
 
-            var iunk = _wrapper.IUnknown;
+            IUnknownVTable iunk = _wrapper.IUnknown;
             *vtable++ = iunk.QueryInterface;
             *vtable++ = iunk.AddRef;
             *vtable++ = iunk.Release;
 
-            foreach (var d in _delegates)
+            foreach (Delegate d in _delegates)
                 *vtable++ = Marshal.GetFunctionPointerForDelegate(d);
 
             _wrapper.RegisterInterface(_guid, obj, _delegates);

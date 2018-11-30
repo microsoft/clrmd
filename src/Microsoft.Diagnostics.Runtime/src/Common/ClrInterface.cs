@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (obj == null || !(obj is ClrInterface))
                 return false;
 
-            var rhs = (ClrInterface)obj;
+            ClrInterface rhs = (ClrInterface)obj;
             if (Name != rhs.Name)
                 return false;
 
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A hashcode for this object.</returns>
         public override int GetHashCode()
         {
-            var hashCode = 0;
+            int hashCode = 0;
 
             if (Name != null)
                 hashCode ^= Name.GetHashCode();

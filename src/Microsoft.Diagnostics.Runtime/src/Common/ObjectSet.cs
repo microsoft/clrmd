@@ -42,10 +42,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             _segments = new HeapHashSegment[_heap.Segments.Count];
 
-            for (var i = 0; i < _segments.Length; i++)
+            for (int i = 0; i < _segments.Length; i++)
             {
-                var start = _heap.Segments[i].Start;
-                var end = _heap.Segments[i].End;
+                ulong start = _heap.Segments[i].Start;
+                ulong end = _heap.Segments[i].End;
                 _segments[i] = new HeapHashSegment
                 {
                     StartAddress = start,
@@ -63,9 +63,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if this set contains the given object, false otherwise.</returns>
         public virtual bool Contains(ulong obj)
         {
-            if (GetSegment(obj, out var seg))
+            if (GetSegment(obj, out HeapHashSegment seg))
             {
-                var offset = GetOffset(obj, seg);
+                int offset = GetOffset(obj, seg);
                 return seg.Objects[offset];
             }
 
@@ -79,9 +79,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if the object was added to the set, returns false if the object was already in the set.</returns>
         public virtual bool Add(ulong obj)
         {
-            if (GetSegment(obj, out var seg))
+            if (GetSegment(obj, out HeapHashSegment seg))
             {
-                var offset = GetOffset(obj, seg);
+                int offset = GetOffset(obj, seg);
                 if (seg.Objects[offset])
                 {
                     return false;
@@ -102,9 +102,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if the object was removed, returns false if the object was not in the set.</returns>
         public virtual bool Remove(ulong obj)
         {
-            if (GetSegment(obj, out var seg))
+            if (GetSegment(obj, out HeapHashSegment seg))
             {
-                var offset = GetOffset(obj, seg);
+                int offset = GetOffset(obj, seg);
                 if (seg.Objects[offset])
                 {
                     seg.Objects.Set(offset, false);
@@ -121,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual void Clear()
         {
-            for (var i = 0; i < _segments.Length; i++)
+            for (int i = 0; i < _segments.Length; i++)
                 _segments[i].Objects.SetAll(false);
 
             Count = 0;
@@ -148,12 +148,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (obj != 0)
             {
-                var lower = 0;
-                var upper = _segments.Length - 1;
+                int lower = 0;
+                int upper = _segments.Length - 1;
 
                 while (lower <= upper)
                 {
-                    var mid = (lower + upper) >> 1;
+                    int mid = (lower + upper) >> 1;
 
                     if (obj < _segments[mid].StartAddress)
                     {

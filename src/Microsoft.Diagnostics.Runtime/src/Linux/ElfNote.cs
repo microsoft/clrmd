@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (_name != null)
                     return _name;
 
-                var namePosition = _position + HeaderSize;
+                long namePosition = _position + HeaderSize;
                 _name = _elfReader.ReadNullTerminatedAscii(namePosition, (int)Header.NameSize);
                 return _name;
             }
@@ -35,24 +35,24 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public byte[] ReadContents(long position, int length)
         {
-            var contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
+            long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
             return _elfReader.ReadBytes(position + contentsoffset, length);
         }
 
         public T ReadContents<T>(long position, uint nameSize)
             where T : struct
         {
-            var contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
+            long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
             return _elfReader.Read<T>(contentsoffset + position);
         }
 
         public T ReadContents<T>(ref long position)
             where T : struct
         {
-            var contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
-            var locationOrig = contentsOffset + position;
-            var location = locationOrig;
-            var result = _elfReader.Read<T>(ref location);
+            long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
+            long locationOrig = contentsOffset + position;
+            long location = locationOrig;
+            T result = _elfReader.Read<T>(ref location);
 
             position += location - locationOrig;
             return result;
@@ -61,9 +61,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public T ReadContents<T>(long position)
             where T : struct
         {
-            var contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
-            var location = contentsOffset + position;
-            var result = _elfReader.Read<T>(location);
+            long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
+            long location = contentsOffset + position;
+            T result = _elfReader.Read<T>(location);
             return result;
         }
 

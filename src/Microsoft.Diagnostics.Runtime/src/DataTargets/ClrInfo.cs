@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrRuntime CreateRuntime()
         {
-            var dac = LocalMatchingDac;
+            string dac = LocalMatchingDac;
             if (dac != null && !File.Exists(dac))
                 dac = null;
 
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrRuntime CreateRuntime(object clrDataProcess)
         {
-            var lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
+            DacLibrary lib = new DacLibrary(_dataTarget, DacLibrary.TryGetDacPtr(clrDataProcess));
 
             // Figure out what version we are on.
             if (lib.GetSOSInterfaceNoAddRef() != null)
@@ -76,9 +76,9 @@ namespace Microsoft.Diagnostics.Runtime
                 return new V45Runtime(this, _dataTarget, lib);
             }
 
-            var buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
+            byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
 
-            var val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+            int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
             if ((uint)val == 0x80070057)
                 return new LegacyRuntime(this, _dataTarget, lib, DesktopVersion.v4, 10000);
 
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!ignoreMismatch)
             {
-                DataTarget.PlatformFunctions.GetFileVersion(dacFilename, out var major, out var minor, out var revision, out var patch);
+                DataTarget.PlatformFunctions.GetFileVersion(dacFilename, out int major, out int minor, out int revision, out int patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException($"Mismatched dac. Version: {major}.{minor}.{revision}.{patch}");
             }
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_dataTarget.IsMinidump)
                 _dataTarget.SymbolLocator.PrefetchBinary(ModuleInfo.FileName, (int)ModuleInfo.TimeStamp, (int)ModuleInfo.FileSize);
 
-            var lib = new DacLibrary(_dataTarget, dac);
+            DacLibrary lib = new DacLibrary(_dataTarget, dac);
 
             DesktopVersion ver;
             if (Flavor == ClrFlavor.Core)
@@ -183,11 +183,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (!(obj is ClrInfo))
                 throw new InvalidOperationException("Object not ClrInfo.");
 
-            var flv = ((ClrInfo)obj).Flavor;
+            ClrFlavor flv = ((ClrInfo)obj).Flavor;
             if (flv != Flavor)
                 return flv.CompareTo(Flavor); // Intentionally reversed.
 
-            var rhs = ((ClrInfo)obj).Version;
+            VersionInfo rhs = ((ClrInfo)obj).Version;
             if (Version.Major != rhs.Major)
                 return Version.Major.CompareTo(rhs.Major);
 

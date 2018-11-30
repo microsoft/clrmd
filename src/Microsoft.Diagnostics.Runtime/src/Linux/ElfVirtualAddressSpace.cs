@@ -26,17 +26,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int Read(long position, byte[] buffer, int bufferOffset, int count)
         {
-            for (var i = 0; i < _segments.Count; i++)
+            for (int i = 0; i < _segments.Count; i++)
             {
-                ref var header = ref _segments[i].RefHeader;
+                ref ElfProgramHeader64 header = ref _segments[i].RefHeader;
                 // FileSize == 0 means the segment isn't backed by any data
                 if (header.FileSize > 0 && header.VirtualAddress <= position && position + count <= header.VirtualAddress + header.VirtualSize)
                 {
-                    var segmentOffset = position - header.VirtualAddress;
-                    var fileBytes = (int)Math.Min(count, header.FileSize);
+                    long segmentOffset = position - header.VirtualAddress;
+                    int fileBytes = (int)Math.Min(count, header.FileSize);
 
-                    var fileOffset = header.FileOffset + segmentOffset;
-                    var bytesRead = _addressSpace.Read(fileOffset, buffer, bufferOffset, fileBytes);
+                    long fileOffset = header.FileOffset + segmentOffset;
+                    int bytesRead = _addressSpace.Read(fileOffset, buffer, bufferOffset, fileBytes);
 
                     //zero the rest of the buffer if it is in the virtual address space but not the physical address space
                     if (bytesRead == fileBytes && fileBytes != count)

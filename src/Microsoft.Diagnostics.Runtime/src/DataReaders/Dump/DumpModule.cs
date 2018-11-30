@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         // to provide equality so that we can use them in hashes and collections.
         public override bool Equals(object obj)
         {
-            var other = obj as DumpModule;
+            DumpModule other = obj as DumpModule;
             if (other == null) return false;
 
             return other._owner == _owner && other.Raw == Raw;
@@ -53,10 +53,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                var rva = Raw.ModuleNameRva;
-                var ptr = _owner.TranslateRVA(rva);
+                RVA rva = Raw.ModuleNameRva;
+                DumpPointer ptr = _owner.TranslateRVA(rva);
 
-                var name = _owner.GetString(ptr);
+                string name = _owner.GetString(ptr);
                 return name;
             }
         }

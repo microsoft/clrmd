@@ -22,17 +22,17 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         public CLRMetaHost()
         {
             object o;
-            var ifaceId = typeof(ICLRMetaHost).GetGuid();
-            var clsid = clsidCLRMetaHost;
+            Guid ifaceId = typeof(ICLRMetaHost).GetGuid();
+            Guid clsid = clsidCLRMetaHost;
             NativeMethods.CLRCreateInstance(ref clsid, ref ifaceId, out o);
             m_metaHost = (ICLRMetaHost)o;
         }
 
         public CLRRuntimeInfo GetInstalledRuntimeByVersion(string version)
         {
-            var runtimes = EnumerateInstalledRuntimes();
+            IEnumerable<CLRRuntimeInfo> runtimes = EnumerateInstalledRuntimes();
 
-            foreach (var rti in runtimes)
+            foreach (CLRRuntimeInfo rti in runtimes)
             {
                 if (rti.GetVersionString().ToLower() == version.ToLower())
                 {
@@ -45,9 +45,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public CLRRuntimeInfo GetLoadedRuntimeByVersion(int processId, string version)
         {
-            var runtimes = EnumerateLoadedRuntimes(processId);
+            IEnumerable<CLRRuntimeInfo> runtimes = EnumerateLoadedRuntimes(processId);
 
-            foreach (var rti in runtimes)
+            foreach (CLRRuntimeInfo rti in runtimes)
             {
                 if (rti.GetVersionString().Equals(version, StringComparison.OrdinalIgnoreCase))
                 {
@@ -61,8 +61,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         // Retrieve information about runtimes installed on the machine (i.e. in %WINDIR%\Microsoft.NET\)
         public IEnumerable<CLRRuntimeInfo> EnumerateInstalledRuntimes()
         {
-            var runtimes = new List<CLRRuntimeInfo>();
-            var enumRuntimes = m_metaHost.EnumerateInstalledRuntimes();
+            List<CLRRuntimeInfo> runtimes = new List<CLRRuntimeInfo>();
+            IEnumUnknown enumRuntimes = m_metaHost.EnumerateInstalledRuntimes();
 
             // Since we're only getting one at a time, we can pass NULL for count.
             // S_OK also means we got the single element we asked for.
@@ -77,10 +77,10 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         // Retrieve information about runtimes that are currently loaded into the target process.
         public IEnumerable<CLRRuntimeInfo> EnumerateLoadedRuntimes(int processId)
         {
-            var runtimes = new List<CLRRuntimeInfo>();
+            List<CLRRuntimeInfo> runtimes = new List<CLRRuntimeInfo>();
             IEnumUnknown enumRuntimes;
 
-            using (var hProcess = NativeMethods.OpenProcess(
+            using (ProcessSafeHandle hProcess = NativeMethods.OpenProcess(
                 /*
                 (int)(NativeMethods.ProcessAccessOptions.ProcessVMRead |
                                                                         NativeMethods.ProcessAccessOptions.ProcessQueryInformation |
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
         public CLRRuntimeInfo GetRuntime(string version)
         {
-            var ifaceId = typeof(ICLRRuntimeInfo).GetGuid();
+            Guid ifaceId = typeof(ICLRRuntimeInfo).GetGuid();
             return new CLRRuntimeInfo(m_metaHost.GetRuntime(version, ref ifaceId));
         }
     }

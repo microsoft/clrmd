@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -38,12 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (sig != IntPtr.Zero && sigLen > 0)
                 {
-                    var sigParser = new SigParser(sig, sigLen);
+                    SigParser sigParser = new SigParser(sig, sigLen);
 
                     bool res;
-                    var etype = 0;
+                    int etype = 0;
 
-                    if (res = sigParser.GetCallingConvInfo(out var sigType))
+                    if (res = sigParser.GetCallingConvInfo(out int sigType))
                         Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                     res = res && sigParser.SkipCustomModifiers();
@@ -51,14 +52,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     if (res)
                     {
-                        var type = (ClrElementType)etype;
+                        ClrElementType type = (ClrElementType)etype;
 
                         if (type == ClrElementType.Array)
                         {
                             res = sigParser.PeekElemType(out etype);
                             res = res && sigParser.SkipExactlyOne();
 
-                            var ranks = 0;
+                            int ranks = 0;
                             res = res && sigParser.GetData(out ranks);
 
                             if (res)
@@ -80,8 +81,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = sigParser.GetElemType(out etype);
                             type = (ClrElementType)etype;
 
-                            sigParser.GetToken(out var token);
-                            var innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(field.Module, Convert.ToUInt32(token));
+                            sigParser.GetToken(out int token);
+                            BaseDesktopHeapType innerType = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(field.Module, Convert.ToUInt32(token));
 
                             if (innerType == null)
                             {
@@ -137,33 +138,33 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrType TryBuildType(ClrHeap heap)
         {
-            var runtime = heap.Runtime;
-            var domains = runtime.AppDomains;
-            var types = new ClrType[domains.Count];
+            ClrRuntime runtime = heap.Runtime;
+            IList<ClrAppDomain> domains = runtime.AppDomains;
+            ClrType[] types = new ClrType[domains.Count];
 
-            var elType = ElementType;
+            ClrElementType elType = ElementType;
             if (ClrRuntime.IsPrimitive(elType) || elType == ClrElementType.String)
                 return ((DesktopGCHeap)heap).GetBasicType(elType);
 
-            var count = 0;
-            foreach (var domain in domains)
+            int count = 0;
+            foreach (ClrAppDomain domain in domains)
             {
-                var value = GetValue(domain);
+                object value = GetValue(domain);
                 if (value != null && value is ulong && (ulong)value != 0)
                 {
                     types[count++] = heap.GetObjectType((ulong)value);
                 }
             }
 
-            var depth = int.MaxValue;
+            int depth = int.MaxValue;
             ClrType result = null;
-            for (var i = 0; i < count; ++i)
+            for (int i = 0; i < count; ++i)
             {
-                var curr = types[i];
+                ClrType curr = types[i];
                 if (curr == result || curr == null)
                     continue;
 
-                var nextDepth = GetDepth(curr);
+                int nextDepth = GetDepth(curr);
                 if (nextDepth < depth)
                 {
                     result = curr;
@@ -176,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private int GetDepth(ClrType curr)
         {
-            var depth = 0;
+            int depth = 0;
             while (curr != null)
             {
                 curr = curr.BaseType;
@@ -212,11 +213,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!HasSimpleValue)
                 return null;
 
-            var addr = GetAddress(appDomain);
+            ulong addr = GetAddress(appDomain);
 
             if (ElementType == ClrElementType.String)
             {
-                var val = _containingType.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
+                object val = _containingType.DesktopHeap.GetValueAtAddress(ClrElementType.Object, addr);
 
                 Debug.Assert(val == null || val is ulong);
                 if (val == null || !(val is ulong))
@@ -228,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Structs are stored as objects.
-            var elementType = ElementType;
+            ClrElementType elementType = ElementType;
             if (elementType == ClrElementType.Struct)
                 elementType = ClrElementType.Object;
 
@@ -243,19 +244,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_containingType == null)
                 return 0;
 
-            var shared = _containingType.Shared;
+            bool shared = _containingType.Shared;
 
             IDomainLocalModuleData data = null;
             if (shared)
             {
-                var id = _containingType.DesktopModule.ModuleId;
+                ulong id = _containingType.DesktopModule.ModuleId;
                 data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(appDomain.Address, id);
                 if (!IsInitialized(data))
                     return 0;
             }
             else
             {
-                var modAddr = _containingType.GetModuleAddress(appDomain);
+                ulong modAddr = _containingType.GetModuleAddress(appDomain);
                 if (modAddr != 0)
                     data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(modAddr);
             }
@@ -280,8 +281,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!_containingType.Shared)
                 return true;
 
-            var id = _containingType.DesktopModule.ModuleId;
-            var data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(appDomain.Address, id);
+            ulong id = _containingType.DesktopModule.ModuleId;
+            IDomainLocalModuleData data = _containingType.DesktopHeap.DesktopRuntime.GetDomainLocalModule(appDomain.Address, id);
             if (data == null)
                 return false;
 
@@ -293,7 +294,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (data == null || _containingType == null)
                 return false;
 
-            var flagsAddr = data.ClassData + (_containingType.MetadataToken & ~0x02000000u) - 1;
+            ulong flagsAddr = data.ClassData + (_containingType.MetadataToken & ~0x02000000u) - 1;
             if (!_heap.DesktopRuntime.ReadByte(flagsAddr, out byte flags))
                 return false;
 

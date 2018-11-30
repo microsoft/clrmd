@@ -24,11 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             _fileTable.Add(pointers);
 
-            var start = pointers.Start.ToInt64();
+            long start = pointers.Start.ToInt64();
             if (BaseAddress == 0 || start < BaseAddress)
                 BaseAddress = start;
 
-            var end = pointers.Stop.ToInt64();
+            long end = pointers.Stop.ToInt64();
             if (_end < end)
                 _end = end;
         }

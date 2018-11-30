@@ -30,43 +30,43 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void SymbolLocatorTimeoutTest()
         {
-            var locator = GetLocator();
+            SymbolLocator locator = GetLocator();
             locator.Timeout = 10000;
             locator.SymbolCache += "\\TestTimeout";
 
-            var pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
+            string pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
             Assert.NotNull(pdb);
         }
 
         [Fact]
         public void FindBinaryNegativeTest()
         {
-            var _locator = GetLocator();
-            var dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
+            SymbolLocator _locator = GetLocator();
+            string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
             Assert.Null(dac);
         }
 
         [Fact]
         public void FindPdbNegativeTest()
         {
-            var _locator = GetLocator();
-            var pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1);
+            SymbolLocator _locator = GetLocator();
+            string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1);
             Assert.Null(pdb);
         }
 
         [Fact]
         public async Task FindBinaryAsyncNegativeTest()
         {
-            var _locator = GetLocator();
+            SymbolLocator _locator = GetLocator();
 
-            var tasks = new List<Task<string>>();
-            for (var i = 0; i < 10; i++)
+            List<Task<string>> tasks = new List<Task<string>>();
+            for (int i = 0; i < 10; i++)
                 tasks.Add(_locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false));
 
             // Ensure we got the same answer for everything.
-            foreach (var task in tasks)
+            foreach (Task<string> task in tasks)
             {
-                var dac = await task;
+                string dac = await task;
                 Assert.Null(dac);
             }
         }
@@ -74,16 +74,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public async Task FindPdbAsyncNegativeTest()
         {
-            var _locator = GetLocator();
+            SymbolLocator _locator = GetLocator();
 
-            var tasks = new List<Task<string>>();
-            for (var i = 0; i < 10; i++)
+            List<Task<string>> tasks = new List<Task<string>>();
+            for (int i = 0; i < 10; i++)
                 tasks.Add(_locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1));
 
             // Ensure we got the same answer for everything.
-            foreach (var task in tasks)
+            foreach (Task<string> task in tasks)
             {
-                var pdb = await task;
+                string pdb = await task;
                 Assert.Null(pdb);
             }
         }
@@ -91,8 +91,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void FindBinaryTest()
         {
-            var _locator = GetLocator();
-            var dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
+            SymbolLocator _locator = GetLocator();
+            string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
             Assert.NotNull(dac);
             Assert.True(File.Exists(dac));
         }
@@ -100,8 +100,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void FindPdbTest()
         {
-            var _locator = GetLocator();
-            var pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
+            SymbolLocator _locator = GetLocator();
+            string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
             Assert.NotNull(pdb);
             Assert.True(File.Exists(pdb));
 
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static bool PdbMatches(string pdb, Guid guid, int age)
         {
-            PdbReader.GetPdbProperties(pdb, out var fileGuid, out var fileAge);
+            PdbReader.GetPdbProperties(pdb, out Guid fileGuid, out int fileAge);
 
             return guid == fileGuid;
         }
@@ -118,23 +118,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public async Task FindBinaryAsyncTest()
         {
-            var _locator = GetLocator();
-            var first = _locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
+            SymbolLocator _locator = GetLocator();
+            Task<string> first = _locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
 
-            var tasks = new List<Task<string>>();
-            for (var i = 0; i < 10; i++)
+            List<Task<string>> tasks = new List<Task<string>>();
+            for (int i = 0; i < 10; i++)
                 tasks.Add(_locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false));
 
-            var dac = await first;
+            string dac = await first;
 
             Assert.NotNull(dac);
             Assert.True(File.Exists(dac));
             new PEFile(dac).Dispose(); // This will throw if the image is invalid.
 
             // Ensure we got the same answer for everything.
-            foreach (var task in tasks)
+            foreach (Task<string> task in tasks)
             {
-                var taskDac = await task;
+                string taskDac = await task;
                 Assert.Equal(dac, taskDac);
             }
         }
@@ -142,23 +142,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public async Task FindPdbAsyncTest()
         {
-            var _locator = GetLocator();
-            var first = _locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
+            SymbolLocator _locator = GetLocator();
+            Task<string> first = _locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
 
-            var tasks = new List<Task<string>>();
-            for (var i = 0; i < 10; i++)
+            List<Task<string>> tasks = new List<Task<string>>();
+            for (int i = 0; i < 10; i++)
                 tasks.Add(_locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
 
-            var pdb = await first;
+            string pdb = await first;
 
             Assert.NotNull(pdb);
             Assert.True(File.Exists(pdb));
             Assert.True(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
 
             // Ensure we got the same answer for everything.
-            foreach (var task in tasks)
+            foreach (Task<string> task in tasks)
             {
-                var taskPdb = await task;
+                string taskPdb = await task;
                 Assert.Equal(taskPdb, pdb);
             }
         }

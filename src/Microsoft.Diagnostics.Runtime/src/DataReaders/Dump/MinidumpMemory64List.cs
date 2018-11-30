@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                var count = _streamPointer.ReadInt64();
+                long count = _streamPointer.ReadInt64();
                 return (ulong)count;
             }
         }
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                var rva = _streamPointer.PtrToStructure<RVA64>(8);
+                RVA64 rva = _streamPointer.PtrToStructure<RVA64>(8);
                 return rva;
             }
         }
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
         public MINIDUMP_MEMORY_DESCRIPTOR64 GetElement(uint idx)
         {
             // Embededded array starts at offset 16.
-            var offset = 16 + idx * MINIDUMP_MEMORY_DESCRIPTOR64.SizeOf;
+            uint offset = 16 + idx * MINIDUMP_MEMORY_DESCRIPTOR64.SizeOf;
             return _streamPointer.PtrToStructure<MINIDUMP_MEMORY_DESCRIPTOR64>(offset);
         }
     }

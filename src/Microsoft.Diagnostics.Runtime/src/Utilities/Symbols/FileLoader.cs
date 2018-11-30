@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out var result))
+            if (_pefileCache.TryGetValue(fileName, out PEFile result))
             {
                 if (!result.Disposed)
                     return result;
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int ProvideLibrary([In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int timestamp, int sizeOfImage, out IntPtr hModule)
         {
-            var result = _dataTarget.SymbolLocator.FindBinary(fileName, timestamp, sizeOfImage, false);
+            string result = _dataTarget.SymbolLocator.FindBinary(fileName, timestamp, sizeOfImage, false);
             if (result == null)
             {
                 hModule = IntPtr.Zero;

@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int GetGeneration(ulong obj)
         {
-            var seg = GetSegmentByAddress(obj);
+            ClrSegment seg = GetSegmentByAddress(obj);
             if (seg == null)
                 return -1;
 
@@ -292,7 +292,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The next object on the segment, or 0 if the object was the last one on the segment.</returns>
         public virtual ulong NextObject(ulong obj)
         {
-            var seg = GetSegmentByAddress(obj);
+            ClrSegment seg = GetSegmentByAddress(obj);
             if (seg == null)
                 return 0;
 
@@ -323,8 +323,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The string representation of this heap.</returns>
         public override string ToString()
         {
-            var sizeMb = TotalHeapSize / 1000000.0;
-            var segCount = Segments != null ? Segments.Count : 0;
+            double sizeMb = TotalHeapSize / 1000000.0;
+            int segCount = Segments != null ? Segments.Count : 0;
             return $"ClrHeap {sizeMb}mb {segCount} segments";
         }
 

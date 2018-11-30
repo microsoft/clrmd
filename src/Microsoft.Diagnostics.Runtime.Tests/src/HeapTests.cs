@@ -15,16 +15,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void HeapEnumeration()
         {
             // Simply test that we can enumerate the heap.
-            using (var dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var heap = runtime.Heap;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
 
-                var encounteredFoo = false;
-                var count = 0;
-                foreach (var obj in heap.EnumerateObjectAddresses())
+                bool encounteredFoo = false;
+                int count = 0;
+                foreach (ulong obj in heap.EnumerateObjectAddresses())
                 {
-                    var type = heap.GetObjectType(obj);
+                    ClrType type = heap.GetObjectType(obj);
                     Assert.NotNull(type);
                     if (type.Name == "Foo")
                         encounteredFoo = true;
@@ -41,21 +41,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void HeapEnumerationMatches()
         {
             // Simply test that we can enumerate the heap.
-            using (var dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var heap = runtime.Heap;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
 
-                var objects = new List<ClrObject>(heap.EnumerateObjects());
+                List<ClrObject> objects = new List<ClrObject>(heap.EnumerateObjects());
 
-                var count = 0;
-                foreach (var obj in heap.EnumerateObjectAddresses())
+                int count = 0;
+                foreach (ulong obj in heap.EnumerateObjectAddresses())
                 {
-                    var actual = objects[count++];
+                    ClrObject actual = objects[count++];
 
                     Assert.Equal(obj, actual.Address);
 
-                    var type = heap.GetObjectType(obj);
+                    ClrType type = heap.GetObjectType(obj);
                     Assert.Equal(type, actual.Type);
                 }
 
@@ -67,24 +67,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void HeapCachedEnumerationMatches()
         {
             // Simply test that we can enumerate the heap.
-            using (var dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var heap = runtime.Heap;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
 
-                var expectedList = new List<ClrObject>(heap.EnumerateObjects());
+                List<ClrObject> expectedList = new List<ClrObject>(heap.EnumerateObjects());
 
                 heap.CacheHeap(CancellationToken.None);
                 Assert.True(heap.IsHeapCached);
-                var actualList = new List<ClrObject>(heap.EnumerateObjects());
+                List<ClrObject> actualList = new List<ClrObject>(heap.EnumerateObjects());
 
                 Assert.True(actualList.Count > 0);
                 Assert.Equal(expectedList.Count, actualList.Count);
 
-                for (var i = 0; i < actualList.Count; i++)
+                for (int i = 0; i < actualList.Count; i++)
                 {
-                    var expected = expectedList[i];
-                    var actual = actualList[i];
+                    ClrObject expected = expectedList[i];
+                    ClrObject actual = actualList[i];
 
                     Assert.True(expected == actual);
                     Assert.Equal(expected, actual);
@@ -95,10 +95,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void ServerSegmentTests()
         {
-            using (var dt = TestTargets.Types.LoadFullDump(GCMode.Server))
+            using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server))
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var heap = runtime.Heap;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
 
                 Assert.True(runtime.ServerGC);
 
@@ -109,10 +109,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void WorkstationSegmentTests()
         {
-            using (var dt = TestTargets.Types.LoadFullDump(GCMode.Workstation))
+            using (DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation))
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var heap = runtime.Heap;
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
 
                 Assert.False(runtime.ServerGC);
 
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static void CheckSegments(ClrHeap heap)
         {
-            foreach (var seg in heap.Segments)
+            foreach (ClrSegment seg in heap.Segments)
             {
                 Assert.NotEqual(0ul, seg.Start);
                 Assert.NotEqual(0ul, seg.End);
@@ -137,9 +137,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.Equal(0ul, seg.Gen1Length);
                 }
 
-                foreach (var obj in seg.EnumerateObjectAddresses())
+                foreach (ulong obj in seg.EnumerateObjectAddresses())
                 {
-                    var curr = heap.GetSegmentByAddress(obj);
+                    ClrSegment curr = heap.GetSegmentByAddress(obj);
                     Assert.Same(seg, curr);
                 }
             }

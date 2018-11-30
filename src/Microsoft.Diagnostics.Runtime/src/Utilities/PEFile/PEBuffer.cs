@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Length = 0;
                 while (Length < _buff.Length)
                 {
-                    var count = _stream.Read(_buff, Length, size - Length);
+                    int count = _stream.Read(_buff, Length, size - Length);
                     if (count == 0)
                         break;
 

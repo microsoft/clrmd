@@ -47,14 +47,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 return;
             }
 
-            var left = data;
-            var page = position / reader.PageSize;
-            var rema = position % reader.PageSize;
+            int left = data;
+            int page = position / reader.PageSize;
+            int rema = position % reader.PageSize;
 
             // First get remained of first page.
             if (rema != 0)
             {
-                var todo = reader.PageSize - rema;
+                int todo = reader.PageSize - rema;
                 if (todo > left)
                 {
                     todo = left;
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             // Now get the remaining pages.
             while (left > 0)
             {
-                var todo = reader.PageSize;
+                int todo = reader.PageSize;
                 if (todo > left)
                 {
                     todo = left;

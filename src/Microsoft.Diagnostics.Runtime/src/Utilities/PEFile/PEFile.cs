@@ -19,13 +19,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static PEFile TryLoad(Stream stream, bool virt)
         {
-            var headerBuff = new PEBuffer(stream);
-            var hdr = PEHeader.FromBuffer(headerBuff, virt);
+            PEBuffer headerBuff = new PEBuffer(stream);
+            PEHeader hdr = PEHeader.FromBuffer(headerBuff, virt);
 
             if (hdr == null)
                 return null;
 
-            var pefile = new PEFile();
+            PEFile pefile = new PEFile();
             pefile.Init(stream, "stream", virt, headerBuff, hdr);
             return pefile;
         }
@@ -88,26 +88,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pdbName = null;
             pdbGuid = Guid.Empty;
             pdbAge = 0;
-            var ret = false;
+            bool ret = false;
 
             if (Header == null)
                 return false;
 
             if (Header.DebugDirectory.VirtualAddress != 0)
             {
-                var buff = AllocBuff();
-                var debugEntries = (IMAGE_DEBUG_DIRECTORY*)FetchRVA(Header.DebugDirectory.VirtualAddress, Header.DebugDirectory.Size, buff);
+                PEBuffer buff = AllocBuff();
+                IMAGE_DEBUG_DIRECTORY* debugEntries = (IMAGE_DEBUG_DIRECTORY*)FetchRVA(Header.DebugDirectory.VirtualAddress, Header.DebugDirectory.Size, buff);
                 if (Header.DebugDirectory.Size % sizeof(IMAGE_DEBUG_DIRECTORY) != 0)
                     return false;
 
-                var debugCount = Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
-                for (var i = 0; i < debugCount; i++)
+                int debugCount = Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+                for (int i = 0; i < debugCount; i++)
                 {
                     if (debugEntries[i].Type == IMAGE_DEBUG_TYPE.CODEVIEW)
                     {
-                        var stringBuff = AllocBuff();
-                        var ptr = _virt ? debugEntries[i].AddressOfRawData : debugEntries[i].PointerToRawData;
-                        var info = (CV_INFO_PDB70*)stringBuff.Fetch(ptr, debugEntries[i].SizeOfData);
+                        PEBuffer stringBuff = AllocBuff();
+                        int ptr = _virt ? debugEntries[i].AddressOfRawData : debugEntries[i].PointerToRawData;
+                        CV_INFO_PDB70* info = (CV_INFO_PDB70*)stringBuff.Fetch(ptr, debugEntries[i].SizeOfData);
                         if (info->CvSignature == CV_INFO_PDB70.PDB70CvSignature)
                         {
                             // If there are several this picks the last one.  
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (_pdb == null && GetPdbSignature(out var pdbName, out var pdbGuid, out var pdbAge))
+                if (_pdb == null && GetPdbSignature(out string pdbName, out Guid pdbGuid, out int pdbAge))
                     _pdb = new PdbInfo(pdbName, pdbGuid, pdbAge);
 
                 return _pdb;
@@ -148,9 +148,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                using (var pefile = new PEFile(filename))
+                using (PEFile pefile = new PEFile(filename))
                 {
-                    var header = pefile.Header;
+                    PEHeader header = pefile.Header;
                     timestamp = header.TimeDateStampSec;
                     filesize = (int)header.SizeOfImage;
                     return true;
@@ -168,9 +168,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                using (var pefile = new PEFile(stream, virt))
+                using (PEFile pefile = new PEFile(stream, virt))
                 {
-                    var header = pefile.Header;
+                    PEHeader header = pefile.Header;
                     timestamp = header.TimeDateStampSec;
                     filesize = (int)header.SizeOfImage;
                     return true;
@@ -195,17 +195,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public FileVersionInfo GetFileVersionInfo()
         {
-            var resources = GetResources();
-            var versionNode = ResourceNode.GetChild(ResourceNode.GetChild(resources, "Version"), "1");
+            ResourceNode resources = GetResources();
+            ResourceNode versionNode = ResourceNode.GetChild(ResourceNode.GetChild(resources, "Version"), "1");
             if (versionNode == null)
                 return null;
 
             if (!versionNode.IsLeaf && versionNode.Children.Count == 1)
                 versionNode = versionNode.Children[0];
 
-            var buff = AllocBuff();
-            var bytes = versionNode.FetchData(0, versionNode.DataLength, buff);
-            var ret = new FileVersionInfo(bytes, versionNode.DataLength);
+            PEBuffer buff = AllocBuff();
+            byte* bytes = versionNode.FetchData(0, versionNode.DataLength, buff);
+            FileVersionInfo ret = new FileVersionInfo(bytes, versionNode.DataLength);
 
             FreeBuff(buff);
             return ret;
@@ -218,19 +218,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns></returns>
         public string GetSxSManfest()
         {
-            var resources = GetResources();
-            var manifest = ResourceNode.GetChild(ResourceNode.GetChild(resources, "RT_MANIFEST"), "1");
+            ResourceNode resources = GetResources();
+            ResourceNode manifest = ResourceNode.GetChild(ResourceNode.GetChild(resources, "RT_MANIFEST"), "1");
             if (manifest == null)
                 return null;
 
             if (!manifest.IsLeaf && manifest.Children.Count == 1)
                 manifest = manifest.Children[0];
 
-            var buff = AllocBuff();
-            var bytes = manifest.FetchData(0, manifest.DataLength, buff);
+            PEBuffer buff = AllocBuff();
+            byte* bytes = manifest.FetchData(0, manifest.DataLength, buff);
             string ret = null;
-            using (var stream = new UnmanagedMemoryStream(bytes, manifest.DataLength))
-            using (var textReader = new StreamReader(stream))
+            using (UnmanagedMemoryStream stream = new UnmanagedMemoryStream(bytes, manifest.DataLength))
+            using (StreamReader textReader = new StreamReader(stream))
                 ret = textReader.ReadToEnd();
             FreeBuff(buff);
             return ret;
@@ -256,7 +256,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (Header.ResourceDirectory.VirtualAddress == 0 || Header.ResourceDirectory.Size < sizeof(IMAGE_RESOURCE_DIRECTORY))
                 return null;
 
-            var ret = new ResourceNode("", Header.FileOffsetOfResources, this, false, true);
+            ResourceNode ret = new ResourceNode("", Header.FileOffsetOfResources, this, false, true);
             return ret;
         }
 
@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal byte* FetchRVA(int rva, int size, PEBuffer buffer)
         {
-            var offset = Header.RvaToFileOffset(rva);
+            int offset = Header.RvaToFileOffset(rva);
             return buffer.Fetch(offset, size);
         }
 
@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal PEBuffer AllocBuff()
         {
-            var ret = _freeBuff;
+            PEBuffer ret = _freeBuff;
             if (ret == null)
                 return new PEBuffer(_stream);
 

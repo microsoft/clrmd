@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_addRef == null)
                 _addRef = (AddRefDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->AddRef, typeof(AddRefDelegate));
 
-            var count = _addRef(Self);
+            int count = _addRef(Self);
             return count;
         }
 
@@ -48,18 +48,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
             _library.AddRef();
 
-            var tbl = *(IUnknownVTable**)pUnknown;
+            IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
-            var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
-            var hr = queryInterface(pUnknown, ref desiredInterface, out var pCorrectUnknown);
+            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
+            int hr = queryInterface(pUnknown, ref desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
             {
                 GC.SuppressFinalize(this);
                 throw new InvalidOperationException();
             }
 
-            var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
-            var count = release(pUnknown);
+            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
+            int count = release(pUnknown);
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
         }
@@ -69,15 +69,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_release == null)
                 _release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
 
-            var count = _release(Self);
+            int count = _release(Self);
             return count;
         }
 
         public IntPtr QueryInterface(ref Guid riid)
         {
-            var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
+            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
 
-            var hr = queryInterface(Self, ref riid, out var unk);
+            int hr = queryInterface(Self, ref riid, out IntPtr unk);
             return hr == S_OK ? unk : IntPtr.Zero;
         }
 

@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int Read(long position, byte[] buffer, int bufferOffset, int count)
         {
-            var basePosition = position - _baseToRelativeShift;
+            long basePosition = position - _baseToRelativeShift;
             if (basePosition < _baseStart)
                 return 0;
 

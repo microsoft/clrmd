@@ -27,10 +27,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return;
 
             // See http://msdn.microsoft.com/en-us/library/ms647001(v=VS.85).aspx
-            var stringInfoPtr = data + 0x5c; // Gets to first StringInfo
+            byte* stringInfoPtr = data + 0x5c; // Gets to first StringInfo
 
             // TODO search for FileVersion string ... 
-            var dataAsString = new string((char*)stringInfoPtr, 0, (dataLen - 0x5c) / 2);
+            string dataAsString = new string((char*)stringInfoPtr, 0, (dataLen - 0x5c) / 2);
 
             FileVersion = GetDataString(dataAsString, "FileVersion");
             Comments = GetDataString(dataAsString, "Comments");
@@ -38,10 +38,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private static string GetDataString(string dataAsString, string fileVersionKey)
         {
-            var fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
+            int fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIdx >= 0)
             {
-                var valIdx = fileVersionIdx + fileVersionKey.Length;
+                int valIdx = fileVersionIdx + fileVersionKey.Length;
                 for (;;)
                 {
                     valIdx++;
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         break;
                 }
 
-                var varEndIdx = dataAsString.IndexOf((char)0, valIdx);
+                int varEndIdx = dataAsString.IndexOf((char)0, valIdx);
                 if (varEndIdx < 0)
                     return null;
 

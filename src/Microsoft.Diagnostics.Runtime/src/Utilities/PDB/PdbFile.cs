@@ -28,8 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadGuid(out doctype);
             bits.ReadGuid(out algorithmId);
 
-            bits.ReadInt32(out var checksumSize);
-            bits.ReadInt32(out var sourceSize);
+            bits.ReadInt32(out int checksumSize);
+            bits.ReadInt32(out int sourceSize);
             checksum = new byte[checksumSize];
             bits.ReadBytes(checksum);
             embeddedSource = new byte[sourceSize];
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         private static Dictionary<string, int> LoadNameIndex(BitAccess bits, out int ver, out int sig, out int age, out Guid guid)
         {
-            var result = new Dictionary<string, int>();
+            Dictionary<string, int> result = new Dictionary<string, int>();
             bits.ReadInt32(out ver); //  0..3  Version
             bits.ReadInt32(out sig); //  4..7  Signature
             bits.ReadInt32(out age); //  8..11 Age
@@ -52,8 +52,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             int buf;
             bits.ReadInt32(out buf); // 28..31 Bytes of Strings
 
-            var beg = bits.Position;
-            var nxt = bits.Position + buf;
+            int beg = bits.Position;
+            int nxt = bits.Position + buf;
 
             bits.Position = nxt;
 
@@ -64,15 +64,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(out cnt);
             bits.ReadInt32(out max);
 
-            var present = new BitSet(bits);
-            var deleted = new BitSet(bits);
+            BitSet present = new BitSet(bits);
+            BitSet deleted = new BitSet(bits);
             if (!deleted.IsEmpty)
             {
                 throw new PdbDebugException("Unsupported PDB deleted bitset is not empty.");
             }
 
-            var j = 0;
-            for (var i = 0; i < max; i++)
+            int j = 0;
+            for (int i = 0; i < max; i++)
             {
                 if (present.IsSet(i))
                 {
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                     bits.ReadInt32(out ni);
 
                     string name;
-                    var saved = bits.Position;
+                    int saved = bits.Position;
                     bits.Position = beg + ns;
                     bits.ReadCString(out name);
                     bits.Position = saved;
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         private static Dictionary<int, string> LoadNameStream(BitAccess bits)
         {
-            var ht = new Dictionary<int, string>();
+            Dictionary<int, string> ht = new Dictionary<int, string>();
 
             uint sig;
             int ver;
@@ -122,8 +122,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                     ver);
             }
 
-            var beg = bits.Position;
-            var nxt = bits.Position + buf;
+            int beg = bits.Position;
+            int nxt = bits.Position + buf;
             bits.Position = nxt;
 
             // Read hash table.
@@ -131,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(out siz); // n+0..3 Number of hash buckets.
             nxt = bits.Position;
 
-            for (var i = 0; i < siz; i++)
+            for (int i = 0; i < siz; i++)
             {
                 int ni;
                 string name;
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
                 if (ni != 0)
                 {
-                    var saved = bits.Position;
+                    int saved = bits.Position;
                     bits.Position = beg + ni;
                     bits.ReadCString(out name);
                     bits.Position = saved;
@@ -176,18 +176,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         {
             Array.Sort(funcs, PdbFunction.byAddressAndToken);
 
-            var checks = new Dictionary<int, PdbSource>();
+            Dictionary<int, PdbSource> checks = new Dictionary<int, PdbSource>();
 
             // Read the files first
-            var begin = bits.Position;
+            int begin = bits.Position;
             while (bits.Position < limit)
             {
                 int sig;
                 int siz;
                 bits.ReadInt32(out sig);
                 bits.ReadInt32(out siz);
-                var place = bits.Position;
-                var endSym = bits.Position + siz;
+                int place = bits.Position;
+                int endSym = bits.Position + siz;
 
                 switch ((DEBUG_S_SUBSECTION)sig)
                 {
@@ -196,26 +196,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         {
                             CV_FileCheckSum chk;
 
-                            var ni = bits.Position - place;
+                            int ni = bits.Position - place;
                             bits.ReadUInt32(out chk.name);
                             bits.ReadUInt8(out chk.len);
                             bits.ReadUInt8(out chk.type);
 
-                            var name = names[(int)chk.name];
+                            string name = names[(int)chk.name];
                             PdbSource src;
                             if (!sources.TryGetValue(name.ToUpperInvariant(), out src))
                             {
                                 int guidStream;
-                                var doctypeGuid = Guid.Empty;
-                                var languageGuid = Guid.Empty;
-                                var vendorGuid = Guid.Empty;
-                                var algorithmId = Guid.Empty;
+                                Guid doctypeGuid = Guid.Empty;
+                                Guid languageGuid = Guid.Empty;
+                                Guid vendorGuid = Guid.Empty;
+                                Guid algorithmId = Guid.Empty;
                                 byte[] checksum = null;
                                 byte[] source = null;
 
                                 if (nameIndex.TryGetValue("/SRC/FILES/" + name.ToUpperInvariant(), out guidStream))
                                 {
-                                    var guidBits = new BitAccess(0x100);
+                                    BitAccess guidBits = new BitAccess(0x100);
                                     dir._streams[guidStream].Read(reader, guidBits);
                                     LoadGuidStream(guidBits, out doctypeGuid, out languageGuid, out vendorGuid, out algorithmId, out checksum, out source);
                                 }
@@ -246,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 int siz;
                 bits.ReadInt32(out sig);
                 bits.ReadInt32(out siz);
-                var endSym = bits.Position + siz;
+                int endSym = bits.Position + siz;
 
                 switch ((DEBUG_S_SUBSECTION)sig)
                 {
@@ -258,15 +258,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         bits.ReadUInt16(out sec.sec);
                         bits.ReadUInt16(out sec.flags);
                         bits.ReadUInt32(out sec.cod);
-                        var funcIndex = FindFunction(funcs, sec.sec, sec.off);
+                        int funcIndex = FindFunction(funcs, sec.sec, sec.off);
                         if (funcIndex < 0) break;
 
-                        var func = funcs[funcIndex];
+                        PdbFunction func = funcs[funcIndex];
                         if (func.SequencePoints == null)
                         {
                             while (funcIndex > 0)
                             {
-                                var f = funcs[funcIndex - 1];
+                                PdbFunction f = funcs[funcIndex - 1];
                                 if (f.SequencePoints != null || f.Segment != sec.sec || f.Address != sec.off) break;
 
                                 func = f;
@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         {
                             while (funcIndex < funcs.Length - 1 && func.SequencePoints != null)
                             {
-                                var f = funcs[funcIndex + 1];
+                                PdbFunction f = funcs[funcIndex + 1];
                                 if (f.Segment != sec.sec || f.Address != sec.off) break;
 
                                 func = f;
@@ -288,21 +288,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         if (func.SequencePoints != null) break;
 
                         // Count the line blocks.
-                        var begSym = bits.Position;
-                        var blocks = 0;
+                        int begSym = bits.Position;
+                        int blocks = 0;
                         while (bits.Position < endSym)
                         {
                             CV_SourceFile file;
                             bits.ReadUInt32(out file.index);
                             bits.ReadUInt32(out file.count);
                             bits.ReadUInt32(out file.linsiz); // Size of payload.
-                            var linsiz = (int)file.count * (8 + ((sec.flags & 1) != 0 ? 4 : 0));
+                            int linsiz = (int)file.count * (8 + ((sec.flags & 1) != 0 ? 4 : 0));
                             bits.Position += linsiz;
                             blocks++;
                         }
 
                         func.SequencePoints = new PdbSequencePointCollection[blocks];
-                        var block = 0;
+                        int block = 0;
 
                         bits.Position = begSym;
                         while (bits.Position < endSym)
@@ -312,25 +312,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                             bits.ReadUInt32(out file.count);
                             bits.ReadUInt32(out file.linsiz); // Size of payload.
 
-                            var src = checks[(int)file.index];
-                            var tmp = new PdbSequencePointCollection(src, file.count);
+                            PdbSource src = checks[(int)file.index];
+                            PdbSequencePointCollection tmp = new PdbSequencePointCollection(src, file.count);
                             func.SequencePoints[block++] = tmp;
-                            var lines = tmp.Lines;
+                            PdbSequencePoint[] lines = tmp.Lines;
 
-                            var plin = bits.Position;
-                            var pcol = bits.Position + 8 * (int)file.count;
+                            int plin = bits.Position;
+                            int pcol = bits.Position + 8 * (int)file.count;
 
-                            for (var i = 0; i < file.count; i++)
+                            for (int i = 0; i < file.count; i++)
                             {
                                 CV_Line line;
-                                var column = new CV_Column();
+                                CV_Column column = new CV_Column();
 
                                 bits.Position = plin + 8 * i;
                                 bits.ReadUInt32(out line.offset);
                                 bits.ReadUInt32(out line.flags);
 
-                                var lineBegin = line.flags & (uint)CV_Line_Flags.linenumStart;
-                                var delta = (line.flags & (uint)CV_Line_Flags.deltaLineEnd) >> 24;
+                                uint lineBegin = line.flags & (uint)CV_Line_Flags.linenumStart;
+                                uint delta = (line.flags & (uint)CV_Line_Flags.deltaLineEnd) >> 24;
                                 //bool statement = ((line.flags & (uint)CV_Line_Flags.fStatement) == 0);
                                 if ((sec.flags & 1) != 0)
                                 {
@@ -395,7 +395,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                     (uint)(info.cbSyms + info.cbOldLines + info.cbLines),
                     sources);
 
-                for (var i = 0; i < funcs.Length; i++)
+                for (int i = 0; i < funcs.Length; i++)
                 {
                     funcList.Add(funcs[i]);
                 }
@@ -408,7 +408,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             out DbiDbgHdr header,
             bool readStrings)
         {
-            var dh = new DbiHeader(bits);
+            DbiHeader dh = new DbiHeader(bits);
             header = new DbiDbgHdr();
 
             //if (dh.sig != -1 || dh.ver != 19990903) {
@@ -417,11 +417,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             //}
 
             // Read gpmod section.
-            var modList = new List<DbiModuleInfo>();
-            var end = bits.Position + dh.gpmodiSize;
+            List<DbiModuleInfo> modList = new List<DbiModuleInfo>();
+            int end = bits.Position + dh.gpmodiSize;
             while (bits.Position < end)
             {
-                var mod = new DbiModuleInfo(bits, readStrings);
+                DbiModuleInfo mod = new DbiModuleInfo(bits, readStrings);
                 modList.Add(mod);
             }
 
@@ -476,7 +476,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             out Guid guid,
             out IEnumerable<PdbSource> sources)
         {
-            var bits = new BitAccess(512 * 1024);
+            BitAccess bits = new BitAccess(512 * 1024);
             return LoadFunctions(read, bits, readAllStrings, out ver, out sig, out age, out guid, out sources);
         }
 
@@ -491,14 +491,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             out IEnumerable<PdbSource> sources)
         {
             sources = null;
-            var head = new PdbFileHeader(read, bits);
-            var reader = new PdbStreamHelper(read, head.PageSize);
-            var dir = new MsfDirectory(reader, head, bits);
+            PdbFileHeader head = new PdbFileHeader(read, bits);
+            PdbStreamHelper reader = new PdbStreamHelper(read, head.PageSize);
+            MsfDirectory dir = new MsfDirectory(reader, head, bits);
             DbiModuleInfo[] modules = null;
             DbiDbgHdr header;
 
             dir._streams[1].Read(reader, bits);
-            var nameIndex = LoadNameIndex(bits, out ver, out sig, out age, out guid);
+            Dictionary<string, int> nameIndex = LoadNameIndex(bits, out ver, out sig, out age, out guid);
             int nameStream;
             if (!nameIndex.TryGetValue("/NAMES", out nameStream))
             {
@@ -506,16 +506,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
 
             dir._streams[nameStream].Read(reader, bits);
-            var names = LoadNameStream(bits);
+            Dictionary<int, string> names = LoadNameStream(bits);
 
             dir._streams[3].Read(reader, bits);
             LoadDbiStream(bits, out modules, out header, readAllStrings);
 
-            var funcList = new List<PdbFunction>();
-            var sourceDictionary = new Dictionary<string, PdbSource>();
+            List<PdbFunction> funcList = new List<PdbFunction>();
+            Dictionary<string, PdbSource> sourceDictionary = new Dictionary<string, PdbSource>();
             if (modules != null)
             {
-                for (var m = 0; m < modules.Length; m++)
+                for (int m = 0; m < modules.Length; m++)
                 {
                     if (modules[m].stream > 0)
                     {
@@ -534,17 +534,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 }
             }
 
-            var funcs = funcList.ToArray();
+            PdbFunction[] funcs = funcList.ToArray();
             sources = sourceDictionary.Values;
 
             // After reading the functions, apply the token remapping table if it exists.
             if (header.snTokenRidMap != 0 && header.snTokenRidMap != 0xffff)
             {
                 dir._streams[header.snTokenRidMap].Read(reader, bits);
-                var ridMap = new uint[dir._streams[header.snTokenRidMap].Length / 4];
+                uint[] ridMap = new uint[dir._streams[header.snTokenRidMap].Length / 4];
                 bits.ReadUInt32(ridMap);
 
-                foreach (var func in funcs)
+                foreach (PdbFunction func in funcs)
                 {
                     func.Token = 0x06000000 | ridMap[func.Token & 0xffffff];
                 }

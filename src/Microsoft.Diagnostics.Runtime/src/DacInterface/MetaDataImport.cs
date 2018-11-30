@@ -39,12 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _enumInterfaceImpls, EnumInterfaceImpls);
 
-            var handle = IntPtr.Zero;
+            IntPtr handle = IntPtr.Zero;
             int hr;
-            var tokens = AcquireIntArray();
+            int[] tokens = AcquireIntArray();
 
-            while ((hr = _enumInterfaceImpls(Self, ref handle, token, tokens, tokens.Length, out var count)) >= S_OK && count > 0)
-                for (var i = 0; i < count; i++)
+            while ((hr = _enumInterfaceImpls(Self, ref handle, token, tokens, tokens.Length, out int count)) >= S_OK && count > 0)
+                for (int i = 0; i < count; i++)
                     yield return tokens[i];
 
             ReleaseIntArray(tokens);
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getMethodProps, VTable->GetMethodProps);
 
-            var hr = _getMethodProps(Self, token, out var cls, null, 0, out var needed, out var result, out var sigBlob, out var sigBlobLen, out var codeRVA, out var implFlags);
+            int hr = _getMethodProps(Self, token, out int cls, null, 0, out int needed, out MethodAttributes result, out IntPtr sigBlob, out uint sigBlobLen, out uint codeRVA, out uint implFlags);
             return hr == S_OK ? result : default;
         }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getRVA, VTable->GetRVA);
 
-            var hr = _getRVA(Self, token, out var rva, out var flags);
+            int hr = _getRVA(Self, token, out uint rva, out uint flags);
             return hr == S_OK ? rva : 0;
         }
 
@@ -72,11 +72,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getTypeDefProps, VTable->GetTypeDefProps);
 
             name = null;
-            var hr = _getTypeDefProps(Self, token, null, 0, out var needed, out attributes, out mdParent);
+            int hr = _getTypeDefProps(Self, token, null, 0, out int needed, out attributes, out mdParent);
             if (hr < 0)
                 return false;
 
-            var sb = new StringBuilder(needed + 1);
+            StringBuilder sb = new StringBuilder(needed + 1);
             hr = _getTypeDefProps(Self, token, sb, sb.Capacity, out needed, out attributes, out mdParent);
 
             if (hr != S_OK)
@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getCustomAttributeByName, VTable->GetCustomAttributeByName);
 
-            var hr = _getCustomAttributeByName(Self, token, name, out data, out cbData);
+            int hr = _getCustomAttributeByName(Self, token, name, out data, out cbData);
             return hr == S_OK;
         }
 
@@ -99,23 +99,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getFieldProps, VTable->GetFieldProps);
 
             name = null;
-            var hr = _getFieldProps(
+            int hr = _getFieldProps(
                 Self,
                 token,
-                out var typeDef,
+                out int typeDef,
                 null,
                 0,
-                out var needed,
+                out int needed,
                 out attrs,
                 out ppvSigBlob,
                 out pcbSigBlob,
                 out pdwCPlusTypeFlag,
                 out ppValue,
-                out var pcchValue);
+                out int pcchValue);
             if (hr < 0)
                 return false;
 
-            var sb = new StringBuilder(needed + 1);
+            StringBuilder sb = new StringBuilder(needed + 1);
             hr = _getFieldProps(Self, token, out typeDef, sb, sb.Capacity, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
             if (hr >= 0)
             {
@@ -130,12 +130,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _enumFields, EnumFieldPtr);
 
-            var tokens = AcquireIntArray();
-            var handle = IntPtr.Zero;
+            int[] tokens = AcquireIntArray();
+            IntPtr handle = IntPtr.Zero;
             int hr;
 
-            while ((hr = _enumFields(Self, ref handle, token, tokens, tokens.Length, out var count)) >= 0 && count > 0)
-                for (var i = 0; i < count; i++)
+            while ((hr = _enumFields(Self, ref handle, token, tokens, tokens.Length, out int count)) >= 0 && count > 0)
+                for (int i = 0; i < count; i++)
                     yield return tokens[i];
 
             CloseEnum(handle);
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTypeDefProps, VTable->GetTypeDefProps);
 
-            var hr = _getTypeDefProps(Self, token, null, 0, out var needed, out attrs, out var extends);
+            int hr = _getTypeDefProps(Self, token, null, 0, out int needed, out attrs, out int extends);
             return hr == S_OK;
         }
 
@@ -154,11 +154,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTypeRefProps, VTable->GetTypeRefProps);
 
-            var hr = _getTypeRefProps(Self, token, out var scope, null, 0, out var needed);
+            int hr = _getTypeRefProps(Self, token, out int scope, null, 0, out int needed);
             if (hr < 0)
                 return null;
 
-            var sb = new StringBuilder(needed + 1);
+            StringBuilder sb = new StringBuilder(needed + 1);
             hr = _getTypeRefProps(Self, token, out scope, sb, sb.Capacity, out needed);
 
             return hr == S_OK ? sb.ToString() : null;
@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public bool GetNestedClassProperties(int token, out int enclosing)
         {
             InitDelegate(ref _getNestedClassProps, VTable->GetNestedClassProps);
-            var hr = _getNestedClassProps(Self, token, out enclosing);
+            int hr = _getNestedClassProps(Self, token, out enclosing);
             return hr == S_OK;
         }
 
@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getInterfaceImplProps, VTable->GetInterfaceImplProps);
 
-            var hr = _getInterfaceImplProps(Self, token, out mdClass, out mdInterface);
+            int hr = _getInterfaceImplProps(Self, token, out mdClass, out mdInterface);
             return hr == S_OK;
         }
 
@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int[] AcquireIntArray()
         {
-            var tokens = _tokens;
+            int[] tokens = _tokens;
             _tokens = null;
             if (tokens == null)
                 tokens = new int[32];

@@ -36,24 +36,24 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture GetArchitecture()
         {
-            var arch = _reader.GetArchitecture();
+            Architecture arch = _reader.GetArchitecture();
             _file.WriteLine("GetArchitecture - {0}", arch);
             return arch;
         }
 
         public uint GetPointerSize()
         {
-            var ptrsize = _reader.GetPointerSize();
+            uint ptrsize = _reader.GetPointerSize();
             _file.WriteLine("GetPointerSize - {0}", ptrsize);
             return ptrsize;
         }
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            var modules = _reader.EnumerateModules();
+            IList<ModuleInfo> modules = _reader.EnumerateModules();
 
-            var hash = 0;
-            foreach (var module in modules)
+            int hash = 0;
+            foreach (ModuleInfo module in modules)
                 hash ^= module.FileName.ToLower().GetHashCode();
 
             _file.WriteLine("EnumerateModules - {0} {1:x}", modules.Count, hash);
@@ -68,11 +68,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
-            var result = _reader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
+            bool result = _reader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
 
-            var sb = new StringBuilder();
-            var count = bytesRead > 8 ? 8 : bytesRead;
-            for (var i = 0; i < count; ++i)
+            StringBuilder sb = new StringBuilder();
+            int count = bytesRead > 8 ? 8 : bytesRead;
+            for (int i = 0; i < count; ++i)
                 sb.Append(buffer[i].ToString("x"));
 
             _file.WriteLine("ReadMemory {0}- {1:x} {2} {3}", result ? "" : "failed ", address, bytesRead, sb);
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            var result = _reader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
+            bool result = _reader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
             _file.WriteLine("ReadMemory {0}- {1:x} {2}", result ? "" : "failed ", address, bytesRead);
             return result;
         }
@@ -91,18 +91,18 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong GetThreadTeb(uint thread)
         {
-            var teb = _reader.GetThreadTeb(thread);
+            ulong teb = _reader.GetThreadTeb(thread);
             _file.WriteLine("GetThreadTeb - {0:x} {1:x}", thread, teb);
             return teb;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()
         {
-            var threads = new List<uint>(_reader.EnumerateAllThreads());
+            List<uint> threads = new List<uint>(_reader.EnumerateAllThreads());
 
-            var first = true;
-            var sb = new StringBuilder();
-            foreach (var id in threads)
+            bool first = true;
+            StringBuilder sb = new StringBuilder();
+            foreach (uint id in threads)
             {
                 if (!first)
                     sb.Append(", ");
@@ -116,35 +116,35 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
         {
-            var result = _reader.VirtualQuery(addr, out vq);
+            bool result = _reader.VirtualQuery(addr, out vq);
             _file.WriteLine("VirtualQuery {0}: {1:x} {2:x} {3}", result ? "" : "failed ", addr, vq.BaseAddress, vq.Size);
             return result;
         }
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
         {
-            var result = _reader.GetThreadContext(threadId, contextFlags, contextSize, context);
+            bool result = _reader.GetThreadContext(threadId, contextFlags, contextSize, context);
             _file.WriteLine("GetThreadContext - {0}", result);
             return result;
         }
 
         public bool GetThreadContext(uint threadId, uint contextFlags, uint contextSize, byte[] context)
         {
-            var result = _reader.GetThreadContext(threadId, contextFlags, contextSize, context);
+            bool result = _reader.GetThreadContext(threadId, contextFlags, contextSize, context);
             _file.WriteLine("GetThreadContext - {0}", result);
             return result;
         }
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            var result = _reader.ReadPointerUnsafe(addr);
+            ulong result = _reader.ReadPointerUnsafe(addr);
             _file.WriteLine("ReadPointerUnsafe - {0}: {1}", addr, result);
             return result;
         }
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            var result = _reader.ReadDwordUnsafe(addr);
+            uint result = _reader.ReadDwordUnsafe(addr);
             _file.WriteLine("ReadDwordUnsafe - {0}: {1}", addr, result);
             return result;
         }

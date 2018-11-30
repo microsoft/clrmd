@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     try
                     {
-                        using (var pefile = new PEFile(new ReadVirtualStream(_runtime.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000)), true))
+                        using (PEFile pefile = new PEFile(new ReadVirtualStream(_runtime.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000)), true))
                         {
                             _pdb = pefile.PdbInfo ?? s_failurePdb;
                         }
@@ -76,13 +76,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal ulong GetMTForDomain(ClrAppDomain domain, DesktopHeapType type)
         {
             DesktopGCHeap heap = null;
-            var mtList = _runtime.GetMethodTableList(_mapping[domain]);
+            IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_mapping[domain]);
 
-            var hasToken = type.MetadataToken != 0 && type.MetadataToken != uint.MaxValue;
+            bool hasToken = type.MetadataToken != 0 && type.MetadataToken != uint.MaxValue;
 
-            var token = ~0xff000000 & type.MetadataToken;
+            uint token = ~0xff000000 & type.MetadataToken;
 
-            foreach (var pair in mtList)
+            foreach (MethodTableTokenPair pair in mtList)
             {
                 if (hasToken)
                 {
@@ -104,11 +104,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            var heap = (DesktopGCHeap)_runtime.Heap;
-            var mtList = _runtime.GetMethodTableList(_address);
+            DesktopGCHeap heap = (DesktopGCHeap)_runtime.Heap;
+            IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_address);
             if (_typesLoaded)
             {
-                foreach (var type in heap.EnumerateTypes())
+                foreach (ClrType type in heap.EnumerateTypes())
                     if (type.Module == this)
                         yield return type;
             }
@@ -116,13 +116,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (mtList != null)
                 {
-                    foreach (var pair in mtList)
+                    foreach (MethodTableTokenPair pair in mtList)
                     {
-                        var mt = pair.MethodTable;
+                        ulong mt = pair.MethodTable;
                         if (mt != _runtime.ArrayMethodTable)
                         {
                             // prefetch element type, as this also can load types
-                            var type = heap.GetTypeByMethodTable(mt, 0, 0);
+                            ClrType type = heap.GetTypeByMethodTable(mt, 0, 0);
                             if (type != null)
                                 yield return type;
                         }
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal void AddMapping(ClrAppDomain domain, ulong domainModule)
         {
-            var appDomain = (DesktopAppDomain)domain;
+            DesktopAppDomain appDomain = (DesktopAppDomain)domain;
             _mapping[domain] = domainModule;
         }
 
@@ -163,16 +163,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetDomainModule(ClrAppDomain domain)
         {
-            var domains = _runtime.AppDomains;
+            IList<ClrAppDomain> domains = _runtime.AppDomains;
             if (domain == null)
             {
-                foreach (var addr in _mapping.Values)
+                foreach (ulong addr in _mapping.Values)
                     return addr;
 
                 return 0;
             }
 
-            if (_mapping.TryGetValue(domain, out var value))
+            if (_mapping.TryGetValue(domain, out ulong value))
                 return value;
 
             return 0;
@@ -210,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private unsafe void InitDebugAttributes()
         {
-            var metadata = GetMetadataImport();
+            MetaDataImport metadata = GetMetadataImport();
             if (metadata == null)
             {
                 _debugMode = DebuggableAttribute.DebuggingModes.None;
@@ -219,9 +219,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             try
             {
-                if (metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out var data, out var cbData) && cbData >= 4)
+                if (metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out IntPtr data, out uint cbData) && cbData >= 4)
                 {
-                    var b = (byte*)data.ToPointer();
+                    byte* b = (byte*)data.ToPointer();
                     ushort opt = b[2];
                     ushort dbg = b[3];
 
@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType GetTypeByName(string name)
         {
-            foreach (var type in EnumerateTypes())
+            foreach (ClrType type in EnumerateTypes())
                 if (type.Name == name)
                     return type;
 

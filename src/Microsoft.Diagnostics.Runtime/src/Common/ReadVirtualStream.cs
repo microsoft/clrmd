@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (offset == 0)
             {
-                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out var read))
+                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out int read))
                     return read;
 
                 return 0;
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_tmp == null || _tmp.Length < count)
                     _tmp = new byte[count];
 
-                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out var read))
+                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out int read))
                     return 0;
 
                 Buffer.BlockCopy(_tmp, 0, buffer, offset, read);

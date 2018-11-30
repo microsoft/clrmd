@@ -33,12 +33,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
-            var tmp = new byte[sizeof(int)];
+            byte[] tmp = new byte[sizeof(int)];
 
             if (!Request(DacRequests.VERSION, null, tmp))
                 throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsException.HR.DacError);
 
-            var v = BitConverter.ToInt32(tmp, 0);
+            int v = BitConverter.ToInt32(tmp, 0);
             if (v != 8)
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsException.HR.DacError);
         }
@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
-            var handleTable = new HandleTableWalker(this);
+            HandleTableWalker handleTable = new HandleTableWalker(this);
 
             byte[] input = null;
             if (CLRVersion == DesktopVersion.v2)
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // TODO:  Better to return partial data or null?  Maybe bool function return?
             //        I don't even think the dac api will fail unless there's a data read error.
-            var ret = Request(DacRequests.HANDLETABLE_TRAVERSE, input, null);
+            bool ret = Request(DacRequests.HANDLETABLE_TRAVERSE, input, null);
             if (!ret)
                 Trace.WriteLine("Warning, GetHandles() method failed, returning partial results.");
 
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override bool TraverseHeap(ulong heap, SosDac.LoaderHeapTraverse callback)
         {
-            var input = new byte[sizeof(ulong) * 2];
+            byte[] input = new byte[sizeof(ulong) * 2];
             WriteValueToBuffer(heap, input, 0);
             WriteValueToBuffer(Marshal.GetFunctionPointerForDelegate(callback), input, sizeof(ulong));
 
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetFirstThread()
         {
-            var threadStore = GetThreadStoreData();
+            IThreadStoreData threadStore = GetThreadStoreData();
             return threadStore != null ? threadStore.FirstThread : 0;
         }
 
@@ -131,13 +131,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (addr == 0)
                 return null;
 
-            var input = new byte[2 * sizeof(ulong)];
+            byte[] input = new byte[2 * sizeof(ulong)];
             Buffer.BlockCopy(BitConverter.GetBytes(addr), 0, input, 0, sizeof(ulong));
 
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IThreadData, V2ThreadData>(DacRequests.THREAD_DATA, input);
 
-            var result = (ThreadData)Request<IThreadData, ThreadData>(DacRequests.THREAD_DATA, input);
+            ThreadData result = (ThreadData)Request<IThreadData, ThreadData>(DacRequests.THREAD_DATA, input);
             if (IntPtr.Size == 4)
                 result = new ThreadData(ref result);
             return result;
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IHeapDetails, V2HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
 
-            var result = (HeapDetails)Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
+            HeapDetails result = (HeapDetails)Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_DATA, addr);
             result = new HeapDetails(ref result);
             return result;
         }
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<IHeapDetails, V2HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
 
-            var result = (HeapDetails)Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
+            HeapDetails result = (HeapDetails)Request<IHeapDetails, HeapDetails>(DacRequests.GCHEAPDETAILS_STATIC_DATA);
             result = new HeapDetails(ref result);
             return result;
         }
@@ -205,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<ISegmentData, V2SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
 
-            var result = (SegmentData)Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
+            SegmentData result = (SegmentData)Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
             if (IntPtr.Size == 4)
                 result = new SegmentData(ref result);
 
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mt == 0)
                 return 0;
 
-            var mtData = GetMethodTableData(mt);
+            IMethodTableData mtData = GetMethodTableData(mt);
             if (mtData == null)
                 return 0;
 
@@ -318,44 +318,44 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IEnumerable<ICodeHeap> EnumerateJitHeaps()
         {
-            var output = new byte[sizeof(int)];
+            byte[] output = new byte[sizeof(int)];
             if (Request(DacRequests.JITLIST, null, output))
             {
-                var JitManagerSize = Marshal.SizeOf(typeof(JitManagerInfo));
-                var count = BitConverter.ToInt32(output, 0);
-                var size = JitManagerSize * count;
+                int JitManagerSize = Marshal.SizeOf(typeof(JitManagerInfo));
+                int count = BitConverter.ToInt32(output, 0);
+                int size = JitManagerSize * count;
 
                 if (size > 0)
                 {
                     output = new byte[size];
                     if (Request(DacRequests.MANAGER_LIST, null, output))
                     {
-                        var heapInfo = new MutableJitCodeHeapInfo();
-                        var CodeHeapTypeOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "codeHeapType").ToInt32();
-                        var AddressOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "address").ToInt32();
-                        var CurrAddrOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "currentAddr").ToInt32();
-                        var JitCodeHeapInfoSize = Marshal.SizeOf(typeof(JitCodeHeapInfo));
+                        MutableJitCodeHeapInfo heapInfo = new MutableJitCodeHeapInfo();
+                        int CodeHeapTypeOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "codeHeapType").ToInt32();
+                        int AddressOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "address").ToInt32();
+                        int CurrAddrOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "currentAddr").ToInt32();
+                        int JitCodeHeapInfoSize = Marshal.SizeOf(typeof(JitCodeHeapInfo));
 
-                        for (var i = 0; i < count; ++i)
+                        for (int i = 0; i < count; ++i)
                         {
-                            var type = BitConverter.ToInt32(output, i * JitManagerSize + sizeof(ulong));
+                            int type = BitConverter.ToInt32(output, i * JitManagerSize + sizeof(ulong));
 
                             // Is this code heap IL?
                             if ((type & 3) != 0)
                                 continue;
 
-                            var address = BitConverter.ToUInt64(output, i * JitManagerSize);
-                            var jitManagerBuffer = new byte[sizeof(ulong) * 2];
+                            ulong address = BitConverter.ToUInt64(output, i * JitManagerSize);
+                            byte[] jitManagerBuffer = new byte[sizeof(ulong) * 2];
                             WriteValueToBuffer(address, jitManagerBuffer, 0);
 
                             if (Request(DacRequests.JITHEAPLIST, jitManagerBuffer, jitManagerBuffer))
                             {
-                                var heapCount = BitConverter.ToInt32(jitManagerBuffer, sizeof(ulong));
+                                int heapCount = BitConverter.ToInt32(jitManagerBuffer, sizeof(ulong));
 
-                                var codeHeapBuffer = new byte[heapCount * JitCodeHeapInfoSize];
+                                byte[] codeHeapBuffer = new byte[heapCount * JitCodeHeapInfoSize];
                                 if (Request(DacRequests.CODEHEAP_LIST, jitManagerBuffer, codeHeapBuffer))
                                 {
-                                    for (var j = 0; j < heapCount; ++j)
+                                    for (int j = 0; j < heapCount; ++j)
                                     {
                                         heapInfo.Address = BitConverter.ToUInt64(codeHeapBuffer, j * JitCodeHeapInfoSize + AddressOffset);
                                         heapInfo.Type = (CodeHeapType)BitConverter.ToUInt32(codeHeapBuffer, j * JitCodeHeapInfoSize + CodeHeapTypeOffset);
@@ -383,7 +383,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IFieldInfo GetFieldInfo(ulong mt)
         {
-            var mtData = GetMethodTableData(mt);
+            IMethodTableData mtData = GetMethodTableData(mt);
 
             IFieldInfo fieldData;
 
@@ -407,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override MetaDataImport GetMetadataImport(ulong module)
         {
-            var data = GetModuleData(module);
+            IModuleData data = GetModuleData(module);
             RegisterForRelease(data);
 
             if (data != null && data.LegacyMetaDataImport != IntPtr.Zero)
@@ -440,9 +440,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
         {
-            var inout = GetByteArrayForStruct<LegacyDomainLocalModuleData>();
+            byte[] inout = GetByteArrayForStruct<LegacyDomainLocalModuleData>();
 
-            var i = WriteValueToBuffer(appDomain, inout, 0);
+            int i = WriteValueToBuffer(appDomain, inout, 0);
             i = WriteValueToBuffer(new IntPtr((long)id), inout, i);
 
             if (Request(DacRequests.DOMAINLOCALMODULEFROMAPPDOMAIN_DATA, null, inout))
@@ -453,23 +453,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IList<MethodTableTokenPair> GetMethodTableList(ulong module)
         {
-            var mts = new List<MethodTableTokenPair>();
+            List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
 
             SosDac.ModuleMapTraverse traverse = delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
-            var args = new LegacyModuleMapTraverseArgs
+            LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs
             {
                 pCallback = Marshal.GetFunctionPointerForDelegate(traverse),
                 module = module
             };
 
             // TODO:  Blah, theres got to be a better way to do this.
-            var input = GetByteArrayForStruct<LegacyModuleMapTraverseArgs>();
-            var mem = Marshal.AllocHGlobal(input.Length);
+            byte[] input = GetByteArrayForStruct<LegacyModuleMapTraverseArgs>();
+            IntPtr mem = Marshal.AllocHGlobal(input.Length);
             Marshal.StructureToPtr(args, mem, true);
             Marshal.Copy(mem, input, 0, input.Length);
             Marshal.FreeHGlobal(mem);
 
-            var r = Request(DacRequests.MODULEMAP_TRAVERSE, input, null);
+            bool r = Request(DacRequests.MODULEMAP_TRAVERSE, input, null);
 
             GC.KeepAlive(traverse);
 
@@ -486,13 +486,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (ip == 0)
                 return 0;
 
-            var data = Request<IMethodDescData, V35MethodDescData>(DacRequests.METHODDESC_IP_DATA, ip);
+            IMethodDescData data = Request<IMethodDescData, V35MethodDescData>(DacRequests.METHODDESC_IP_DATA, ip);
             if (data == null)
                 data = Request<IMethodDescData, V2MethodDescData>(DacRequests.METHODDESC_IP_DATA, ip);
 
             if (data == null)
             {
-                var codeHeaderData = new CodeHeaderData();
+                CodeHeaderData codeHeaderData = new CodeHeaderData();
                 if (RequestStruct(DacRequests.CODEHEADER_DATA, ip, ref codeHeaderData))
                     return codeHeaderData.MethodDesc;
             }
@@ -511,9 +511,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetMetadataToken(ulong mt)
         {
-            var token = uint.MaxValue;
+            uint token = uint.MaxValue;
 
-            var mtData = GetMethodTableData(mt);
+            IMethodTableData mtData = GetMethodTableData(mt);
             if (mtData != null)
             {
                 byte[] buffer = null;
@@ -526,16 +526,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     if (CLRVersion == DesktopVersion.v2)
                     {
-                        var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-                        var result = (V2EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V2EEClassData));
+                        GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                        V2EEClassData result = (V2EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V2EEClassData));
                         handle.Free();
 
                         token = result.token;
                     }
                     else
                     {
-                        var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-                        var result = (V4EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V4EEClassData));
+                        GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                        V4EEClassData result = (V4EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V4EEClassData));
                         handle.Free();
 
                         token = result.token;
@@ -554,11 +554,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (frameVtbl != 0)
             {
                 ClrMethod method = null;
-                var frameName = "Unknown Frame";
+                string frameName = "Unknown Frame";
                 if (Request(DacRequests.FRAME_NAME, frameVtbl, _buffer))
                     frameName = BytesToString(_buffer);
 
-                var mdData = GetMethodDescData(DacRequests.METHODDESC_FRAME_DATA, sp);
+                IMethodDescData mdData = GetMethodDescData(DacRequests.METHODDESC_FRAME_DATA, sp);
                 if (mdData != null)
                     method = DesktopMethod.Create(this, mdData);
 
@@ -566,7 +566,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
-                var md = GetMethodDescFromIp(ip);
+                ulong md = GetMethodDescFromIp(ip);
                 frame = new DesktopStackFrame(this, thread, ip, sp, md);
             }
 
@@ -576,11 +576,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool GetStackTraceFromField(ClrType type, ulong obj, out ulong stackTrace)
         {
             stackTrace = 0;
-            var field = type.GetFieldByName("_stackTrace");
+            ClrInstanceField field = type.GetFieldByName("_stackTrace");
             if (field == null)
                 return false;
 
-            var tmp = field.GetValue(obj);
+            object tmp = field.GetValue(obj);
             if (tmp == null || !(tmp is ulong))
                 return false;
 
@@ -590,9 +590,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IList<ClrStackFrame> GetExceptionStackTrace(ulong obj, ClrType type)
         {
-            var result = new List<ClrStackFrame>();
+            List<ClrStackFrame> result = new List<ClrStackFrame>();
 
-            if (!GetStackTraceFromField(type, obj, out var _stackTrace))
+            if (!GetStackTraceFromField(type, obj, out ulong _stackTrace))
             {
                 if (!ReadPointer(obj + GetStackTraceOffset(), out _stackTrace))
                     return result;
@@ -601,8 +601,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_stackTrace == 0)
                 return result;
 
-            var heap = (DesktopGCHeap)Heap;
-            var stackTraceType = heap.GetObjectType(_stackTrace);
+            DesktopGCHeap heap = (DesktopGCHeap)Heap;
+            ClrType stackTraceType = heap.GetObjectType(_stackTrace);
 
             if (stackTraceType == null)
                 stackTraceType = heap.ArrayType;
@@ -610,26 +610,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!stackTraceType.IsArray)
                 return result;
 
-            var len = stackTraceType.GetArrayLength(_stackTrace);
+            int len = stackTraceType.GetArrayLength(_stackTrace);
             if (len == 0)
                 return result;
 
-            var elementSize = CLRVersion == DesktopVersion.v2 ? IntPtr.Size * 4 : IntPtr.Size * 3;
-            var dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
-            if (!ReadPointer(dataPtr, out var count))
+            int elementSize = CLRVersion == DesktopVersion.v2 ? IntPtr.Size * 4 : IntPtr.Size * 3;
+            ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
+            if (!ReadPointer(dataPtr, out ulong count))
                 return result;
 
             // Skip size and header
             dataPtr += (ulong)(IntPtr.Size * 2);
 
             DesktopThread thread = null;
-            for (var i = 0; i < (int)count; ++i)
+            for (int i = 0; i < (int)count; ++i)
             {
-                if (!ReadPointer(dataPtr, out var ip))
+                if (!ReadPointer(dataPtr, out ulong ip))
                     break;
-                if (!ReadPointer(dataPtr + (ulong)IntPtr.Size, out var sp))
+                if (!ReadPointer(dataPtr + (ulong)IntPtr.Size, out ulong sp))
                     break;
-                if (!ReadPointer(dataPtr + (ulong)(2 * IntPtr.Size), out var md))
+                if (!ReadPointer(dataPtr + (ulong)(2 * IntPtr.Size), out ulong md))
                     break;
 
                 if (i == 0)
@@ -650,24 +650,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IList<ulong> GetMethodDescList(ulong methodTable)
         {
-            var mtData = Request<IMethodTableData, LegacyMethodTableData>(DacRequests.METHODTABLE_DATA, methodTable);
-            var values = new ulong[mtData.NumMethods];
+            IMethodTableData mtData = Request<IMethodTableData, LegacyMethodTableData>(DacRequests.METHODTABLE_DATA, methodTable);
+            ulong[] values = new ulong[mtData.NumMethods];
 
             if (mtData.NumMethods == 0)
                 return values;
 
-            var codeHeader = new CodeHeaderData();
-            var slotArgs = new byte[0x10];
-            var result = new byte[sizeof(ulong)];
+            CodeHeaderData codeHeader = new CodeHeaderData();
+            byte[] slotArgs = new byte[0x10];
+            byte[] result = new byte[sizeof(ulong)];
 
             WriteValueToBuffer(methodTable, slotArgs, 0);
-            for (var i = 0; i < mtData.NumMethods; ++i)
+            for (int i = 0; i < mtData.NumMethods; ++i)
             {
                 WriteValueToBuffer(i, slotArgs, sizeof(ulong));
                 if (!Request(DacRequests.METHODTABLE_SLOT, slotArgs, result))
                     continue;
 
-                var ip = BitConverter.ToUInt64(result, 0);
+                ulong ip = BitConverter.ToUInt64(result, 0);
 
                 if (!RequestStruct(DacRequests.CODEHEADER_DATA, ip, ref codeHeader))
                     continue;
@@ -686,7 +686,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IThreadStoreData GetThreadStoreData()
         {
-            var threadStore = new ThreadStoreData();
+            ThreadStoreData threadStore = new ThreadStoreData();
             if (!RequestStruct(DacRequests.THREAD_STORE_DATA, ref threadStore))
                 return null;
 
@@ -713,11 +713,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IMethodDescData GetMDForIP(ulong ip)
         {
-            var result = GetMethodDescData(DacRequests.METHODDESC_IP_DATA, ip);
+            IMethodDescData result = GetMethodDescData(DacRequests.METHODDESC_IP_DATA, ip);
             if (result != null)
                 return result;
 
-            var methodDesc = GetMethodDescFromIp(ip);
+            ulong methodDesc = GetMethodDescFromIp(ip);
             if (methodDesc != 0)
                 return GetMethodDescData(DacRequests.METHODDESC_DATA, ip);
 
@@ -726,17 +726,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IEnumerable<NativeWorkItem> EnumerateWorkItems()
         {
-            var data = GetThreadPoolData();
+            IThreadPoolData data = GetThreadPoolData();
 
             if (_version == DesktopVersion.v2)
             {
-                var curr = data.FirstWorkRequest;
-                var bytes = GetByteArrayForStruct<DacpWorkRequestData>();
+                ulong curr = data.FirstWorkRequest;
+                byte[] bytes = GetByteArrayForStruct<DacpWorkRequestData>();
 
                 while (Request(DacRequests.WORKREQUEST_DATA, curr, bytes))
                 {
-                    var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-                    var result = (DacpWorkRequestData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(DacpWorkRequestData));
+                    GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+                    DacpWorkRequestData result = (DacpWorkRequestData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(DacpWorkRequestData));
                     handle.Free();
 
                     yield return new DesktopNativeWorkItem(result);
@@ -773,7 +773,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (result == null && request_id == DacRequests.METHODDESC_IP_DATA)
             {
-                var codeHeaderData = new CodeHeaderData();
+                CodeHeaderData codeHeaderData = new CodeHeaderData();
 
                 if (RequestStruct(DacRequests.CODEHEADER_DATA, addr, ref codeHeaderData))
                     result = GetMethodDescData(DacRequests.METHODDESC_DATA, codeHeaderData.MethodDesc);
@@ -784,10 +784,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         protected override ulong GetThreadFromThinlock(uint threadId)
         {
-            var input = new byte[sizeof(uint)];
+            byte[] input = new byte[sizeof(uint)];
             WriteValueToBuffer(threadId, input, 0);
 
-            var output = new byte[sizeof(ulong)];
+            byte[] output = new byte[sizeof(ulong)];
             if (!Request(DacRequests.THREAD_THINLOCK_DATA, input, output))
                 return 0;
 
@@ -796,7 +796,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override int GetSyncblkCount()
         {
-            var data = Request<ISyncBlkData, SyncBlockData>(DacRequests.SYNCBLOCK_DATA, 1);
+            ISyncBlkData data = Request<ISyncBlkData, SyncBlockData>(DacRequests.SYNCBLOCK_DATA, 1);
             if (data == null)
                 return 0;
 
@@ -821,7 +821,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetTlsSlot()
         {
-            var value = new byte[sizeof(uint)];
+            byte[] value = new byte[sizeof(uint)];
             if (!Request(DacRequests.CLRTLSDATA_INDEX, null, value))
                 return uint.MaxValue;
 

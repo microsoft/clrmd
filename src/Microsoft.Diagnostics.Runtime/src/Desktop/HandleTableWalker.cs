@@ -26,8 +26,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_mV4Delegate == null)
                     _mV4Delegate = VisitHandleV4;
 
-                var functionPtr = Marshal.GetFunctionPointerForDelegate(_mV4Delegate);
-                var request = new byte[IntPtr.Size * 2];
+                IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(_mV4Delegate);
+                byte[] request = new byte[IntPtr.Size * 2];
                 FunctionPointerToByteArray(functionPtr, request, 0);
 
                 return request;
@@ -42,8 +42,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_mV2Delegate == null)
                     _mV2Delegate = VisitHandleV2;
 
-                var functionPtr = Marshal.GetFunctionPointerForDelegate(_mV2Delegate);
-                var request = new byte[IntPtr.Size * 2];
+                IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(_mV2Delegate);
+                byte[] request = new byte[IntPtr.Size * 2];
 
                 FunctionPointerToByteArray(functionPtr, request, 0);
 
@@ -88,10 +88,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public int AddHandle(ulong addr, ulong obj, int hndType, uint refCnt, uint dependentTarget, ulong appDomain)
         {
             // If we fail to get the MT of this object, just skip it and keep going
-            if (!GetMethodTables(obj, out var mt, out var cmt))
+            if (!GetMethodTables(obj, out ulong mt, out ulong cmt))
                 return _max-- > 0 ? 1 : 0;
 
-            var handle = new ClrHandle
+            ClrHandle handle = new ClrHandle
             {
                 Address = addr,
                 Object = obj,
@@ -120,8 +120,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             mt = 0;
             cmt = 0;
 
-            var data = new byte[IntPtr.Size * 3]; // TODO assumes bitness same as dump
-            if (!_runtime.ReadMemory(obj, data, data.Length, out var read) || read != data.Length)
+            byte[] data = new byte[IntPtr.Size * 3]; // TODO assumes bitness same as dump
+            if (!_runtime.ReadMemory(obj, data, data.Length, out int read) || read != data.Length)
                 return false;
 
             if (IntPtr.Size == 4)
@@ -142,9 +142,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private static void FunctionPointerToByteArray(IntPtr functionPtr, byte[] request, int start)
         {
-            var ptr = functionPtr.ToInt64();
+            long ptr = functionPtr.ToInt64();
 
-            for (var i = start; i < start + sizeof(ulong); ++i)
+            for (int i = start; i < start + sizeof(ulong); ++i)
             {
                 request[i] = (byte)ptr;
                 ptr >>= 8;

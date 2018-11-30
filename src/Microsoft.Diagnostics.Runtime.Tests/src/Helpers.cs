@@ -22,8 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
-            var field = mainType.GetStaticFieldByName(fieldName);
-            var obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
+            ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
+            ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
             return new ClrObject(obj, mainType.Heap.GetObjectType(obj));
         }
 
@@ -44,8 +44,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static HashSet<T> Unique<T>(this IEnumerable<T> self)
         {
-            var set = new HashSet<T>();
-            foreach (var t in self)
+            HashSet<T> set = new HashSet<T>();
+            foreach (T t in self)
                 set.Add(t);
 
             return set;
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
-            var thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
+            ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
             return thread;
         }
 
@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static string CreateWorkingPath()
         {
-            var r = new Random();
+            Random r = new Random();
             string path;
             do
             {
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            foreach (var directory in Directory.GetDirectories(Environment.CurrentDirectory))
+            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
                 if (directory.Contains(Helpers.TempRoot))
                     Directory.Delete(directory, true);
         }

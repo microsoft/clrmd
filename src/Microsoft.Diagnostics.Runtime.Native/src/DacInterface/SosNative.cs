@@ -21,21 +21,21 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         public bool GetThreadStoreData(out NativeThreadStoreData data)
         {
             InitDelegate(ref _getThreadStoreData, VTable->GetThreadStoreData);
-            var hr = _getThreadStoreData(Self, out data);
+            int hr = _getThreadStoreData(Self, out data);
             return hr == S_OK;
         }
 
         public bool GetThreadData(ulong addr, out NativeThreadData data)
         {
             InitDelegate(ref _getThreadData, VTable->GetThreadData);
-            var hr = _getThreadData(Self, addr, out data);
+            int hr = _getThreadData(Self, addr, out data);
             return hr == S_OK;
         }
 
         public ulong GetCurrentExceptionObject(ulong thread)
         {
             InitDelegate(ref _getCurrentExceptionObject, VTable->GetCurrentExceptionObject);
-            var hr = _getCurrentExceptionObject(Self, thread, out var result);
+            int hr = _getCurrentExceptionObject(Self, thread, out ulong result);
 
             return hr == S_OK ? result : 0;
         }
@@ -43,26 +43,26 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         public bool GetEETypeData(ulong addr, out EETypeData data)
         {
             InitDelegate(ref _getEETypeData, VTable->GetEETypeData);
-            var hr = _getEETypeData(Self, addr, out data);
+            int hr = _getEETypeData(Self, addr, out data);
             return hr == S_OK;
         }
 
         public bool GetGCHeapData(out GCInfo data)
         {
             InitDelegate(ref _getGCHeapData, VTable->GetGCHeapData);
-            var hr = _getGCHeapData(Self, out data);
+            int hr = _getGCHeapData(Self, out data);
             return hr == S_OK;
         }
 
         public ulong[] GetGCHeapList()
         {
             InitDelegate(ref _getGCHeapList, VTable->GetGCHeapList);
-            var hr = _getGCHeapList(Self, 0, null, out var needed);
+            int hr = _getGCHeapList(Self, 0, null, out int needed);
 
             if (hr != S_OK || needed <= 0)
                 return new ulong[0];
 
-            var heaps = new ulong[needed];
+            ulong[] heaps = new ulong[needed];
             hr = _getGCHeapList(Self, heaps.Length, heaps, out needed);
 
             // even if hr != S_OK, maybe we partially read the data
@@ -72,35 +72,35 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         public bool GetServerGCHeapDetails(ulong heap, out NativeHeapDetails details)
         {
             InitDelegate(ref _getGCHeapDetails, VTable->GetGCHeapDetails);
-            var hr = _getGCHeapDetails(Self, heap, out details);
+            int hr = _getGCHeapDetails(Self, heap, out details);
             return hr == S_OK;
         }
 
         public bool GetWorkstationGCHeapDetails(out NativeHeapDetails details)
         {
             InitDelegate(ref _getGCHeapStaticData, VTable->GetGCHeapStaticData);
-            var hr = _getGCHeapStaticData(Self, out details);
+            int hr = _getGCHeapStaticData(Self, out details);
             return hr == S_OK;
         }
 
         public bool GetGCHeapSegmentData(ulong segment, out NativeSegementData data)
         {
             InitDelegate(ref _getGCHeapSegmentData, VTable->GetGCHeapSegmentData);
-            var hr = _getGCHeapSegmentData(Self, segment, out data);
+            int hr = _getGCHeapSegmentData(Self, segment, out data);
             return hr == S_OK;
         }
 
         public ulong GetFreeEEType()
         {
             InitDelegate(ref _getFreeEEType, VTable->GetFreeEEType);
-            var hr = _getFreeEEType(Self, out var free);
+            int hr = _getFreeEEType(Self, out ulong free);
             return hr == S_OK ? free : 0;
         }
 
         public bool GetObjectData(ulong addr, out NativeObjectData data)
         {
             InitDelegate(ref _getObjectData, VTable->GetObjectData);
-            var hr = _getObjectData(Self, addr, out data);
+            int hr = _getObjectData(Self, addr, out data);
             return hr == S_OK;
         }
 
@@ -111,8 +111,8 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         {
             InitDelegate(ref _traverseStackRoots, VTable->TraverseStackRoots);
 
-            var ptr = Marshal.GetFunctionPointerForDelegate(callback);
-            var hr = _traverseStackRoots(Self, threadAddr, initialContext, contextSize, ptr, token);
+            IntPtr ptr = Marshal.GetFunctionPointerForDelegate(callback);
+            int hr = _traverseStackRoots(Self, threadAddr, initialContext, contextSize, ptr, token);
 
             GC.KeepAlive(callback);
             return hr == S_OK;
@@ -125,8 +125,8 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         {
             InitDelegate(ref _traverseHandleTable, VTable->TraverseHandleTable);
 
-            var ptr = Marshal.GetFunctionPointerForDelegate(callback);
-            var hr = _traverseHandleTable(Self, ptr, token);
+            IntPtr ptr = Marshal.GetFunctionPointerForDelegate(callback);
+            int hr = _traverseHandleTable(Self, ptr, token);
 
             GC.KeepAlive(callback);
             return hr == S_OK;
@@ -139,8 +139,8 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         {
             InitDelegate(ref _traverseStaticRoots, VTable->TraverseStaticRoots);
 
-            var ptr = Marshal.GetFunctionPointerForDelegate(callback);
-            var hr = _traverseStaticRoots(Self, ptr, token);
+            IntPtr ptr = Marshal.GetFunctionPointerForDelegate(callback);
+            int hr = _traverseStaticRoots(Self, ptr, token);
 
             GC.KeepAlive(callback);
             return hr == S_OK;
@@ -149,19 +149,19 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         public bool GetCodeHeaderData(ulong ip, out NativeCodeHeader data)
         {
             InitDelegate(ref _getCodeHeaderData, VTable->GetCodeHeaderData);
-            var hr = _getCodeHeaderData(Self, ip, out data);
+            int hr = _getCodeHeaderData(Self, ip, out data);
             return hr == S_OK;
         }
 
         public ulong[] GetModuleList()
         {
             InitDelegate(ref _getModuleList, VTable->GetModuleList);
-            var hr = _getModuleList(Self, 0, null, out var needed);
+            int hr = _getModuleList(Self, 0, null, out int needed);
 
             if (hr == 0 || needed == 0)
                 return new ulong[0];
 
-            var result = new ulong[needed];
+            ulong[] result = new ulong[needed];
             hr = _getModuleList(Self, result.Length, result, out needed);
 
             // Ignore hr, as we may have a partial list even on failure.
