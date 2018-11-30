@@ -4,9 +4,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Utilities;
+
+#if !NET45
+using System.Runtime.InteropServices;
+#endif
 
 namespace Microsoft.Diagnostics.Runtime
 {
