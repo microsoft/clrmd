@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ElfCoreFile _core;
         private readonly int _pointerSize;
         private readonly Architecture _architecture;
-        private Dictionary<uint, ELFPRStatus> _threads;
+        private Dictionary<uint, ElfPRStatus> _threads;
         private readonly byte[] _buffer = new byte[512];
 
         public CoreDumpReader(string filename)
@@ -223,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_threads != null)
                 return;
 
-            _threads = new Dictionary<uint, ELFPRStatus>();
+            _threads = new Dictionary<uint, ElfPRStatus>();
             foreach (var status in _core.EnumeratePRStatus())
                 _threads.Add(status.Pid, status);
         }

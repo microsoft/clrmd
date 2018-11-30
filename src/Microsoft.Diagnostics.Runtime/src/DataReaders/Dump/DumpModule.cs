@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="owner">owning DumpReader</param>
         /// <param name="raw">unmanaged dump structure describing the module</param>
-        internal DumpModule(DumpReader owner, DumpReader.DumpNative.MINIDUMP_MODULE raw)
+        internal DumpModule(DumpReader owner, MINIDUMP_MODULE raw)
         {
             Raw = raw;
             _owner = owner;
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private readonly DumpReader _owner;
 
-        internal DumpReader.DumpNative.MINIDUMP_MODULE Raw { get; }
+        internal MINIDUMP_MODULE Raw { get; }
 
         // Since new DumpModule objects are created on each request, override hash code and equals
         // to provide equality so that we can use them in hashes and collections.

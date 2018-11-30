@@ -8,9 +8,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly long _position;
         private string _name;
 
-        public ELFNoteHeader Header { get; }
+        public ElfNoteHeader Header { get; }
 
-        public ELFNoteType Type => Header.Type;
+        public ElfNoteType Type => Header.Type;
 
         public string Name
         {
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public long TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
 
-        private int HeaderSize => Marshal.SizeOf(typeof(ELFNoteHeader));
+        private int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
 
         public byte[] ReadContents(long position, int length)
         {
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _position = position;
             _reader = reader;
 
-            Header = _reader.Read<ELFNoteHeader>(_position);
+            Header = _reader.Read<ElfNoteHeader>(_position);
         }
 
         private uint Align4(uint x)

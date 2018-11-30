@@ -9,22 +9,6 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents a path of objects from a root to an object.
-    /// </summary>
-    public struct RootPath
-    {
-        /// <summary>
-        /// The location that roots the object.
-        /// </summary>
-        public ClrRoot Root { get; set; }
-
-        /// <summary>
-        /// The path from Root to a given target object.
-        /// </summary>
-        public ClrObject[] Path { get; set; }
-    }
-
-    /// <summary>
     /// A delegate for reporting GCRoot progress.
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
@@ -97,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="target">The target object to search for GC rooting.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<RootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken)
         {
             return EnumerateGCRoots(target, true, cancelToken);
         }
@@ -109,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="unique">Whether to only return fully unique paths.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<RootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
             var totalObjects = Heap.TotalObjects;
@@ -154,14 +138,14 @@ namespace Microsoft.Diagnostics.Runtime
                         tasks[i] = task;
 
                         if (completed.Result.Item1 != null)
-                            yield return new RootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
+                            yield return new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
                     }
                 }
                 else
                 {
                     var path = PathTo(processedObjects, knownEndPoints, new ClrObject(handle.Object, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
                     if (path != null)
-                        yield return new RootPath {Root = GetHandleRoot(handle), Path = path.ToArray()};
+                        yield return new GCRootPath {Root = GetHandleRoot(handle), Path = path.ToArray()};
                 }
 
                 ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
@@ -187,14 +171,14 @@ namespace Microsoft.Diagnostics.Runtime
                             tasks[i] = task;
 
                             if (completed.Result.Item1 != null)
-                                yield return new RootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
+                                yield return new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
                         }
                     }
                     else
                     {
                         var path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
                         if (path != null)
-                            yield return new RootPath {Root = root, Path = path.ToArray()};
+                            yield return new GCRootPath {Root = root, Path = path.ToArray()};
                     }
 
                     ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
@@ -204,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (var result in WhenEach(tasks))
             {
                 ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
-                yield return new RootPath {Root = result.Item2, Path = result.Item1.ToArray()};
+                yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
             }
 
             ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);

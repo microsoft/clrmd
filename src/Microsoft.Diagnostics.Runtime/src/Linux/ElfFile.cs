@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             LoadProgramHeaders();
-            var noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ELFProgramHeaderType.Note);
+            var noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ElfProgramHeaderType.Note);
 
             if (noteHeader == null)
             {
@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ref var hdr = ref _sections[section];
             var idx = hdr.NameIndex;
 
-            if (hdr.Type == ELFSectionHeaderType.Null || idx == 0)
+            if (hdr.Type == ElfSectionHeaderType.Null || idx == 0)
                 return _sectionNames[section] = string.Empty;
 
             var len = 0;

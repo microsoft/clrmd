@@ -3654,17 +3654,17 @@
             Returns the actual end of the ephemeral segment.
             </summary>
         </member>
-        <member name="T:Microsoft.Diagnostics.Runtime.RootPath">
+        <member name="T:Microsoft.Diagnostics.Runtime.GCRootPath">
             <summary>
             Represents a path of objects from a root to an object.
             </summary>
         </member>
-        <member name="P:Microsoft.Diagnostics.Runtime.RootPath.Root">
+        <member name="P:Microsoft.Diagnostics.Runtime.GCRootPath.Root">
             <summary>
             The location that roots the object.
             </summary>
         </member>
-        <member name="P:Microsoft.Diagnostics.Runtime.RootPath.Path">
+        <member name="P:Microsoft.Diagnostics.Runtime.GCRootPath.Path">
             <summary>
             The path from Root to a given target object.
             </summary>

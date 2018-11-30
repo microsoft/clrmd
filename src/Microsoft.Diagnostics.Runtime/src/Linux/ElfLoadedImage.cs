@@ -4,7 +4,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfLoadedImage
     {
-        private readonly List<ELFFileTableEntryPointers> _fileTable = new List<ELFFileTableEntryPointers>(4);
+        private readonly List<ElfFileTableEntryPointers> _fileTable = new List<ElfFileTableEntryPointers>(4);
         private long _end;
 
         public string Path { get; }
@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             Path = path;
         }
 
-        public void AddTableEntryPointers(ELFFileTableEntryPointers pointers)
+        public void AddTableEntryPointers(ElfFileTableEntryPointers pointers)
         {
             _fileTable.Add(pointers);
 

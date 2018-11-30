@@ -13,14 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="owner">owning DumpReader object</param>
         /// <param name="raw">unmanaged structure in dump describing the thread</param>
-        internal DumpThread(DumpReader owner, DumpReader.DumpNative.MINIDUMP_THREAD raw)
+        internal DumpThread(DumpReader owner, MINIDUMP_THREAD raw)
         {
             _raw = raw;
             _owner = owner;
         }
 
         private readonly DumpReader _owner;
-        private readonly DumpReader.DumpNative.MINIDUMP_THREAD _raw;
+        private readonly MINIDUMP_THREAD _raw;
 
         // Since new DumpThread objects are created on each request, override hash code and equals
         // to provide equality so that we can use them in hashes and collections.
