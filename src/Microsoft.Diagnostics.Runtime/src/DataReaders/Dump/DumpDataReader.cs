@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class DumpDataReader : IDataReader, IDisposable
+    public class DumpDataReader : IDataReader, IDisposable
     {
         private readonly string _fileName;
         private readonly DumpReader _dumpReader;

@@ -11,7 +11,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class LiveDataReader : IDataReader
+    public unsafe class LiveDataReader : IDataReader
     {
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;

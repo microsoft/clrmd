@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Linux;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoreDumpReader : IDataReader
+    public class CoreDumpReader : IDataReader
     {
         private readonly string _source;
         private readonly Stream _stream;
