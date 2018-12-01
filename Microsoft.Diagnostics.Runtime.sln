@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.Tests", "src\Microsoft.Diagnostics.Runtime.Tests\Microsoft.Diagnostics.Runtime.Tests.csproj", "{C443A5AF-066E-4B08-B286-2BF1BD1443DC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.Native", "src\Microsoft.Diagnostics.Runtime.Native\Microsoft.Diagnostics.Runtime.Native.csproj", "{C255AA0C-B088-4D1C-9A79-9DE7D76DC4E4}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
