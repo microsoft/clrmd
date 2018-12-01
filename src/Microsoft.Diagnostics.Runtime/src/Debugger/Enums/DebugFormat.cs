@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -26,6 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         USER_SMALL_CODE_SEGMENTS = 0x00001000,
         USER_SMALL_NO_AUXILIARY_STATE = 0x00002000,
         USER_SMALL_FULL_AUXILIARY_STATE = 0x00004000,
-        USER_SMALL_IGNORE_INACCESSIBLE_MEM = 0x08000000,
+        USER_SMALL_IGNORE_INACCESSIBLE_MEM = 0x08000000
     }
 }

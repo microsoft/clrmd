@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -7,58 +8,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThreadPool : ClrThreadPool
     {
-        private DesktopRuntimeBase _runtime;
+        private readonly DesktopRuntimeBase _runtime;
         private ClrHeap _heap;
-        private int _totalThreads;
-        private int _runningThreads;
-        private int _idleThreads;
-        private int _minThreads;
-        private int _maxThreads;
-        private int _minCP;
-        private int _maxCP;
-        private int _cpu;
-        private int _freeCP;
-        private int _maxFreeCP;
 
         public DesktopThreadPool(DesktopRuntimeBase runtime, IThreadPoolData data)
         {
             _runtime = runtime;
-            _totalThreads = data.TotalThreads;
-            _runningThreads = data.RunningThreads;
-            _idleThreads = data.IdleThreads;
-            _minThreads = data.MinThreads;
-            _maxThreads = data.MaxThreads;
-            _minCP = data.MinCP;
-            _maxCP = data.MaxCP;
-            _cpu = data.CPU;
-            _freeCP = data.NumFreeCP;
-            _maxFreeCP = data.MaxFreeCP;
+            TotalThreads = data.TotalThreads;
+            RunningThreads = data.RunningThreads;
+            IdleThreads = data.IdleThreads;
+            MinThreads = data.MinThreads;
+            MaxThreads = data.MaxThreads;
+            MinCompletionPorts = data.MinCP;
+            MaxCompletionPorts = data.MaxCP;
+            CpuUtilization = data.CPU;
+            FreeCompletionPortCount = data.NumFreeCP;
+            MaxFreeCompletionPorts = data.MaxFreeCP;
         }
 
-        public override int TotalThreads
-        {
-            get { return _totalThreads; }
-        }
-
-        public override int RunningThreads
-        {
-            get { return _runningThreads; }
-        }
-
-        public override int IdleThreads
-        {
-            get { return _idleThreads; }
-        }
-
-        public override int MinThreads
-        {
-            get { return _minThreads; }
-        }
-
-        public override int MaxThreads
-        {
-            get { return _maxThreads; }
-        }
+        public override int TotalThreads { get; }
+        public override int RunningThreads { get; }
+        public override int IdleThreads { get; }
+        public override int MinThreads { get; }
+        public override int MaxThreads { get; }
 
         public override IEnumerable<NativeWorkItem> EnumerateNativeWorkItems()
         {
@@ -91,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     ClrStaticField workQueueField = queueType.GetStaticFieldByName("workQueue");
                     if (workQueueField != null)
                     {
-                        foreach (var appDomain in _runtime.AppDomains)
+                        foreach (ClrAppDomain appDomain in _runtime.AppDomains)
                         {
                             object workQueueValue = workQueueField.GetValue(appDomain);
                             ulong workQueue = workQueueValue == null ? 0L : (ulong)workQueueValue;
@@ -123,7 +95,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         }
                     }
                 }
-
 
                 queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolWorkQueue");
                 if (queueType != null)
@@ -204,29 +175,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return valueType != null;
         }
 
-        public override int MinCompletionPorts
-        {
-            get { return _minCP; }
-        }
-
-        public override int MaxCompletionPorts
-        {
-            get { return _maxCP; }
-        }
-
-        public override int CpuUtilization
-        {
-            get { return _cpu; }
-        }
-
-        public override int FreeCompletionPortCount
-        {
-            get { return _freeCP; }
-        }
-
-        public override int MaxFreeCompletionPorts
-        {
-            get { return _maxFreeCP; }
-        }
+        public override int MinCompletionPorts { get; }
+        public override int MaxCompletionPorts { get; }
+        public override int CpuUtilization { get; }
+        public override int FreeCompletionPortCount { get; }
+        public override int MaxFreeCompletionPorts { get; }
     }
 }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -10,6 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         PATCHED = 0x00000004,
         PRIVATEBUILD = 0x00000008,
         INFOINFERRED = 0x00000010,
-        SPECIALBUILD = 0x00000020,
+        SPECIALBUILD = 0x00000020
     }
 }

@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -8,36 +9,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopAppDomain : ClrAppDomain
     {
-        public override ClrRuntime Runtime
-        {
-            get
-            {
-                return _runtime;
-            }
-        }
+        public override ClrRuntime Runtime => _runtime;
 
         /// <summary>
         /// ulong of the AppDomain.
         /// </summary>
-        public override ulong Address { get { return _address; } }
+        public override ulong Address => _address;
 
         /// <summary>
         /// The AppDomain's ID.
         /// </summary>
-        public override int Id { get { return _id; } }
+        public override int Id { get; }
 
         /// <summary>
         /// The name of the AppDomain, as specified when the domain was created.
         /// </summary>
-        public override string Name { get { return _name; } }
-        public override IList<ClrModule> Modules { get { return _modules; } }
+        public override string Name { get; }
+        public override IList<ClrModule> Modules => _modules;
 
-        internal int InternalId { get { return _internalId; } }
+        internal int InternalId { get; }
 
-        public override string ConfigurationFile
-        {
-            get { return _runtime.GetConfigFile(_address); }
-        }
+        public override string ConfigurationFile => _runtime.GetConfigFile(_address);
 
         public override string ApplicationBase
         {
@@ -62,9 +54,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal DesktopAppDomain(DesktopRuntimeBase runtime, IAppDomainData data, string name)
         {
             _address = data.Address;
-            _id = data.Id;
-            _name = name;
-            _internalId = s_internalId++;
+            Id = data.Id;
+            Name = name;
+            InternalId = s_internalId++;
             _runtime = runtime;
         }
 
@@ -73,14 +65,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _modules.Add(module);
         }
 
-        #region Private
-        private ulong _address;
-        private string _name;
-        private int _id, _internalId;
-        private List<ClrModule> _modules = new List<ClrModule>();
-        private DesktopRuntimeBase _runtime;
+        private readonly ulong _address;
+        private readonly List<ClrModule> _modules = new List<ClrModule>();
+        private readonly DesktopRuntimeBase _runtime;
 
         private static int s_internalId;
-        #endregion
     }
 }

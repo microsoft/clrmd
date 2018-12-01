@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -11,6 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NO_MTS_PACKAGES = 4,
         NO_COMMAND_LINE = 8,
         NO_SESSION_ID = 0x10,
-        NO_USER_NAME = 0x20,
+        NO_USER_NAME = 0x20
     }
 }

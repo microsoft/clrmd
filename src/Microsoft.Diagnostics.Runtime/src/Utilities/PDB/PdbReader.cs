@@ -1,21 +1,21 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
     /// <summary>
     /// An object that can map offsets in an IL stream to source locations and block scopes.
     /// </summary>
-    public sealed class PdbReader :
-      IDisposable
+    public sealed class PdbReader : IDisposable
     {
         private IEnumerable<PdbSource> _sources;
-        private Dictionary<uint, PdbFunction> _pdbFunctionMap = new Dictionary<uint, PdbFunction>();
-        private List<StreamReader> _sourceFilesOpenedByReader = new List<StreamReader>();
+        private readonly Dictionary<uint, PdbFunction> _pdbFunctionMap = new Dictionary<uint, PdbFunction>();
+        private readonly List<StreamReader> _sourceFilesOpenedByReader = new List<StreamReader>();
         private int _ver;
         private int _sig;
         private int _age;
@@ -39,15 +39,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 dir._streams[1].Read(reader, bits);
 
                 int ver, sig;
-                bits.ReadInt32(out ver);    //  0..3  Version
-                bits.ReadInt32(out sig);    //  4..7  Signature
-                bits.ReadInt32(out age);    //  8..11 Age
-                bits.ReadGuid(out signature);       // 12..27 GUID
+                bits.ReadInt32(out ver); //  0..3  Version
+                bits.ReadInt32(out sig); //  4..7  Signature
+                bits.ReadInt32(out age); //  8..11 Age
+                bits.ReadGuid(out signature); // 12..27 GUID
             }
         }
 
         /// <summary>
-        /// Allocates an object that can map some kinds of ILocation objects to IPrimarySourceLocation objects. 
+        /// Allocates an object that can map some kinds of ILocation objects to IPrimarySourceLocation objects.
         /// For example, a PDB reader that maps offsets in an IL stream to source locations.
         /// </summary>
         public PdbReader(Stream pdbStream)
@@ -74,34 +74,34 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <summary>
         /// A collection of all sources in this pdb.
         /// </summary>
-        public IEnumerable<PdbSource> Sources { get { return _sources; } }
+        public IEnumerable<PdbSource> Sources => _sources;
 
         /// <summary>
         /// A collection of all functions in this pdb.
         /// </summary>
-        internal IEnumerable<PdbFunction> Functions { get { return _pdbFunctionMap.Values; } }
+        internal IEnumerable<PdbFunction> Functions => _pdbFunctionMap.Values;
 
         /// <summary>
         /// The version of this PDB.
         /// </summary>
-        public int Version { get { return _ver; } }
+        public int Version => _ver;
 
         /// <summary>
         /// The Guid signature of this pdb.  Should be compared to the corresponding pdb signature in the matching PEFile.
         /// </summary>
-        public Guid Signature { get { return _guid; } }
+        public Guid Signature => _guid;
 
         /// <summary>
         /// The age of this pdb.  Should be compared to the corresponding pdb age in the matching PEFile.
         /// </summary>
-        public int Age { get { return _age; } }
+        public int Age => _age;
 
         /// <summary>
         /// Closes all of the source files that have been opened to provide the contents source locations corresponding to IL offsets.
         /// </summary>
         public void Dispose()
         {
-            this.Close();
+            Close();
             GC.SuppressFinalize(this);
         }
 
@@ -110,12 +110,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// </summary>
         ~PdbReader()
         {
-            this.Close();
+            Close();
         }
 
         private void Close()
         {
-            foreach (var source in _sourceFilesOpenedByReader)
+            foreach (StreamReader source in _sourceFilesOpenedByReader)
                 source.Dispose();
         }
 

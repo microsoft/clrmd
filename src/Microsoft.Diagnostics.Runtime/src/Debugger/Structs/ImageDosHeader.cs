@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -7,42 +10,42 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public unsafe struct IMAGE_DOS_HEADER
     {
         [FieldOffset(0)]
-        public UInt16 e_magic; // Magic number
+        public ushort e_magic; // Magic number
         [FieldOffset(2)]
-        public UInt16 e_cblp; // Bytes on last page of file
+        public ushort e_cblp; // Bytes on last page of file
         [FieldOffset(4)]
-        public UInt16 e_cp; // Pages in file
+        public ushort e_cp; // Pages in file
         [FieldOffset(6)]
-        public UInt16 e_crlc; // Relocations
+        public ushort e_crlc; // Relocations
         [FieldOffset(8)]
-        public UInt16 e_cparhdr; // Size of header in paragraphs
+        public ushort e_cparhdr; // Size of header in paragraphs
         [FieldOffset(10)]
-        public UInt16 e_minalloc; // Minimum extra paragraphs needed
+        public ushort e_minalloc; // Minimum extra paragraphs needed
         [FieldOffset(12)]
-        public UInt16 e_maxalloc; // Maximum extra paragraphs needed
+        public ushort e_maxalloc; // Maximum extra paragraphs needed
         [FieldOffset(14)]
-        public UInt16 e_ss; // Initial (relative) SS value
+        public ushort e_ss; // Initial (relative) SS value
         [FieldOffset(16)]
-        public UInt16 e_sp; // Initial SP value
+        public ushort e_sp; // Initial SP value
         [FieldOffset(18)]
-        public UInt16 e_csum; // Checksum
+        public ushort e_csum; // Checksum
         [FieldOffset(20)]
-        public UInt16 e_ip; // Initial IP value
+        public ushort e_ip; // Initial IP value
         [FieldOffset(22)]
-        public UInt16 e_cs; // Initial (relative) CS value
+        public ushort e_cs; // Initial (relative) CS value
         [FieldOffset(24)]
-        public UInt16 e_lfarlc; // File address of relocation table
+        public ushort e_lfarlc; // File address of relocation table
         [FieldOffset(26)]
-        public UInt16 e_ovno; // Overlay number
+        public ushort e_ovno; // Overlay number
         [FieldOffset(28)]
-        public fixed UInt16 e_res[4]; // Reserved words
+        public fixed ushort e_res[4]; // Reserved words
         [FieldOffset(36)]
-        public UInt16 e_oemid; // OEM identifier (for e_oeminfo)
+        public ushort e_oemid; // OEM identifier (for e_oeminfo)
         [FieldOffset(38)]
-        public UInt16 e_oeminfo; // OEM information; e_oemid specific
+        public ushort e_oeminfo; // OEM information; e_oemid specific
         [FieldOffset(40)]
-        public fixed UInt16 e_res2[10]; // Reserved words
+        public fixed ushort e_res2[10]; // Reserved words
         [FieldOffset(60)]
-        public UInt32 e_lfanew; // File address of new exe header
+        public uint e_lfanew; // File address of new exe header
     }
 }

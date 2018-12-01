@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -15,6 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NONINVASIVE_NO_SUSPEND = 4,
         INVASIVE_NO_INITIAL_BREAK = 8,
         INVASIVE_RESUME_PROCESS = 0x10,
-        NONINVASIVE_ALLOW_PARTIAL = 0x20,
+        NONINVASIVE_ALLOW_PARTIAL = 0x20
     }
 }

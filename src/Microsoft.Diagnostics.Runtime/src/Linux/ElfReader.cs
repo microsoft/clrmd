@@ -1,11 +1,15 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    class Reader : IDisposable
+    internal class Reader : IDisposable
     {
         public const int MaxHeldBuffer = 4096;
         public const int InitialBufferSize = 64;
@@ -13,7 +17,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private byte[] _buffer;
         private GCHandle _handle;
         private bool _disposed;
-
 
         public IAddressSpace DataSource { get; }
 
@@ -23,8 +26,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _buffer = new byte[512];
             _handle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
         }
-        
-        public T Read<T>(long position) where T : struct
+
+        public T Read<T>(long position)
+            where T : struct
         {
             int size = Marshal.SizeOf(typeof(T));
             EnsureSize(size);
@@ -37,7 +41,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        public T Read<T>(ref long position) where T : struct
+        public T Read<T>(ref long position)
+            where T : struct
         {
             int size = Marshal.SizeOf(typeof(T));
             EnsureSize(size);
@@ -77,7 +82,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        ~Reader() => Dispose(false);
+        ~Reader()
+        {
+            Dispose(false);
+        }
 
         protected virtual void Dispose(bool disposing)
         {
@@ -97,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             int read = DataSource.Read(position, buffer, 0, len);
             if (read == 0)
                 return "";
-            
+
             if (buffer[read - 1] == 0)
                 read--;
 

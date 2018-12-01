@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,6 +18,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public sealed class CommandOptions
     {
+        internal bool noThrow;
+        internal bool useShellExecute;
+        internal bool noWindow;
+        internal bool noWait;
+        internal bool elevate;
+        internal int timeoutMSec;
+        internal string input;
+        internal string outputFile;
+        internal TextWriter outputStream;
+        internal string currentDirectory;
+        internal Dictionary<string, string> environmentVariables;
+
         /// <summary>
         /// Can be assigned to the Timeout Property to indicate infinite timeout.
         /// </summary>
@@ -302,17 +318,5 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         // TODO implement
         // internal bool showCommand;          // Show the command before running it. 
-
-        internal bool noThrow;
-        internal bool useShellExecute;
-        internal bool noWindow;
-        internal bool noWait;
-        internal bool elevate;
-        internal int timeoutMSec;
-        internal string input;
-        internal string outputFile;
-        internal TextWriter outputStream;
-        internal string currentDirectory;
-        internal Dictionary<string, string> environmentVariables;
     }
 }

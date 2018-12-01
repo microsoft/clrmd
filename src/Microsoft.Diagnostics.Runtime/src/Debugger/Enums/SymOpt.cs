@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -31,6 +35,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         FAVOR_COMPRESSED = 0x00800000,
         ALLOW_ZERO_ADDRESS = 0x01000000,
         DISABLE_SYMSRV_AUTODETECT = 0x02000000,
-        DEBUG = 0x80000000,
+        DEBUG = 0x80000000
     }
 }

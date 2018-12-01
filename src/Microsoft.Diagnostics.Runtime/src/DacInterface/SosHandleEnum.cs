@@ -1,10 +1,9 @@
-﻿using Microsoft.Diagnostics.Runtime.Desktop;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -31,12 +30,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int Next(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray)] HandleData[] stackRefs, out int pNeeded);
+        private delegate int Next(
+            IntPtr self,
+            int count,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            HandleData[] stackRefs,
+            out int pNeeded);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
+
     internal struct ISOSHandleEnumVTable
     {
         private readonly IntPtr Skip;

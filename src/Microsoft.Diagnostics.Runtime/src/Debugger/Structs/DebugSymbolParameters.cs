@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -6,11 +9,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [StructLayout(LayoutKind.Sequential)]
     public struct DEBUG_SYMBOL_PARAMETERS
     {
-        public UInt64 Module;
-        public UInt32 TypeId;
-        public UInt32 ParentSymbol;
-        public UInt32 SubElements;
+        public ulong Module;
+        public uint TypeId;
+        public uint ParentSymbol;
+        public uint SubElements;
         public DEBUG_SYMBOL Flags;
-        public UInt64 Reserved;
+        public ulong Reserved;
     }
 }

@@ -1,10 +1,14 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
-using Xunit;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -30,7 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         Assert.False(allPdbs[j].Equals(allPdbs[i]));
                     }
                 }
-
             }
         }
 
@@ -61,15 +64,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrThread thread = runtime.GetMainThread();
-                
+
                 HashSet<int> sourceLines = new HashSet<int>();
                 using (PdbReader reader = new PdbReader(TestTargets.NestedException.Pdb))
                 {
-                    Assert.Equal(TestTargets.NestedException.Source, reader.Sources.Single().Name, ignoreCase: true);
+                    Assert.Equal(TestTargets.NestedException.Source, reader.Sources.Single().Name, true);
 
-                    var functions = from frame in thread.StackTrace
-                                            where frame.Kind != ClrStackFrameType.Runtime
-                                            select reader.GetFunctionFromToken(frame.Method.MetadataToken);
+                    IEnumerable<PdbFunction> functions = from frame in thread.StackTrace
+                                    where frame.Kind != ClrStackFrameType.Runtime
+                                    select reader.GetFunctionFromToken(frame.Method.MetadataToken);
 
                     foreach (PdbFunction function in functions)
                     {
@@ -80,9 +83,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     }
                 }
 
-
                 int curr = 0;
-                foreach (var line in File.ReadLines(TestTargets.NestedException.Source))
+                foreach (string line in File.ReadLines(TestTargets.NestedException.Source))
                 {
                     curr++;
                     if (line.Contains("/* seq */"))

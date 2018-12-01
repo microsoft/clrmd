@@ -1,25 +1,38 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class LockInspection
     {
-        private DesktopGCHeap _heap;
-        private DesktopRuntimeBase _runtime;
+        private const int HASHCODE_BITS = 25;
+        private const int SYNCBLOCKINDEX_BITS = 26;
+        private const uint BIT_SBLK_IS_HASH_OR_SYNCBLKINDEX = 0x08000000;
+        private const uint BIT_SBLK_FINALIZER_RUN = 0x40000000;
+        private const uint BIT_SBLK_SPIN_LOCK = 0x10000000;
+        private const uint SBLK_MASK_LOCK_THREADID = 0x000003FF; // special value of 0 + 1023 thread ids
+        private const int SBLK_MASK_LOCK_RECLEVEL = 0x0000FC00; // 64 recursion levels
+        private const uint SBLK_APPDOMAIN_SHIFT = 16; // shift right this much to get appdomain index
+        private const uint SBLK_MASK_APPDOMAININDEX = 0x000007FF; // 2048 appdomain indices
+        private const int SBLK_RECLEVEL_SHIFT = 10; // shift right this much to get recursion level
+        private const uint BIT_SBLK_IS_HASHCODE = 0x04000000;
+        private const uint MASK_HASHCODE = (1 << HASHCODE_BITS) - 1;
+        private const uint MASK_SYNCBLOCKINDEX = (1 << SYNCBLOCKINDEX_BITS) - 1;
+
+        private readonly DesktopGCHeap _heap;
+        private readonly DesktopRuntimeBase _runtime;
         private ClrType _rwType, _rwsType;
         private Dictionary<ulong, DesktopBlockingObject> _monitors = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ulong, DesktopBlockingObject> _locks = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ClrThread, DesktopBlockingObject> _joinLocks = new Dictionary<ClrThread, DesktopBlockingObject>();
         private Dictionary<ulong, DesktopBlockingObject> _waitLocks = new Dictionary<ulong, DesktopBlockingObject>();
         private Dictionary<ulong, ulong> _syncblks = new Dictionary<ulong, ulong>();
-        private DesktopBlockingObject[] _result = null;
+        private DesktopBlockingObject[] _result;
 
         internal LockInspection(DesktopGCHeap heap, DesktopRuntimeBase runtime)
         {
@@ -33,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _result;
 
             // First, enumerate all thinlocks on the heap.
-            foreach (var seg in _heap.Segments)
+            foreach (ClrSegment seg in _heap.Segments)
             {
                 for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
                 {
@@ -77,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (data.MonitorHeld)
                 {
                     ulong threadAddr = data.OwningThread;
-                    foreach (var clrThread in _runtime.Threads)
+                    foreach (ClrThread clrThread in _runtime.Threads)
                     {
                         if (clrThread.Address == threadAddr)
                         {
@@ -136,6 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return _rwType == type;
         }
+
         private bool IsReaderWriterSlim(ulong obj, ClrType type)
         {
             if (type == null)
@@ -198,6 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                         blockingObj.Reason = BlockingReason.ReaderAcquired;
                                 }
                             }
+
                             break;
 
                         case "TryEnterReadLockCore":
@@ -211,7 +226,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 blockingObj = FindLocks(thread.StackLimit, thread.StackTrace[i].StackPointer, IsReaderWriterSlim);
                                 if (blockingObj == null)
                                     blockingObj = FindLocks(thread.StackTrace[i].StackPointer, thread.StackBase, IsReaderWriterSlim);
-
 
                                 if (blockingObj != null && (blockingObj.Reason == BlockingReason.Unknown || blockingObj.Reason == BlockingReason.None))
                                 {
@@ -236,6 +250,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                         _joinLocks[target] = blockingObj = new DesktopBlockingObject(threadAddr, true, 0, target, BlockingReason.ThreadJoin);
                                 }
                             }
+
                             break;
 
                         case "Wait":
@@ -248,6 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                                 blockingObj.Reason = BlockingReason.MonitorWait;
                             }
+
                             break;
 
                         case "WaitAny":
@@ -265,6 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                         _waitLocks[obj] = blockingObj = new DesktopBlockingObject(obj, true, 0, null, reason);
                                 }
                             }
+
                             break;
 
                         case "WaitOne":
@@ -298,8 +315,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                         _waitLocks[obj] = blockingObj = new DesktopBlockingObject(obj, true, 0, null, BlockingReason.WaitOne);
                                 }
                             }
-                            break;
 
+                            break;
 
                         case "TryEnter":
                         case "ReliableEnterTimeout":
@@ -312,14 +329,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 if (blockingObj != null)
                                     blockingObj.Reason = BlockingReason.Monitor;
                             }
+
                             break;
                     }
-
 
                     if (blockingObj != null)
                     {
                         bool alreadyEncountered = false;
-                        foreach (var blobj in blobjs)
+                        foreach (BlockingObject blobj in blobjs)
                         {
                             if (blobj.Object == blockingObj.Object)
                             {
@@ -338,7 +355,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 thread.SetBlockingObjects(blobjs.ToArray());
             }
         }
-
 
         private DesktopBlockingObject CreateRWLObject(ulong obj, ClrType type)
         {
@@ -364,7 +380,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 int uId = (int)uLock.GetValue(obj);
                 int lId = (int)lLock.GetValue(obj);
-
 
                 List<ClrThread> threads = null;
                 foreach (ClrThread thread in _runtime.Threads)
@@ -495,6 +510,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             if (types.Contains(type.Name))
                             {
                                 yield return obj;
+
                                 break;
                             }
 
@@ -508,7 +524,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-
         private IEnumerable<ulong> EnumerateObjectsOfType(ulong start, ulong stop, string typeName)
         {
             ClrHeap heap = _runtime.Heap;
@@ -520,13 +535,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         ClrType type = heap.GetObjectType(obj);
 
-
                         int sanity = 0;
                         while (type != null)
                         {
                             if (type.Name == typeName)
                             {
                                 yield return obj;
+
                                 break;
                             }
 
@@ -577,8 +592,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     yield return ptr;
         }
 
-
-
         private DesktopBlockingObject FindLocks(ulong start, ulong stop, Func<ulong, ClrType, bool> isCorrectType)
         {
             foreach (ulong ptr in EnumeratePointersInRange(start, stop))
@@ -625,19 +638,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return null;
         }
-
-        private const int HASHCODE_BITS = 25;
-        private const int SYNCBLOCKINDEX_BITS = 26;
-        private const uint BIT_SBLK_IS_HASH_OR_SYNCBLKINDEX = 0x08000000;
-        private const uint BIT_SBLK_FINALIZER_RUN = 0x40000000;
-        private const uint BIT_SBLK_SPIN_LOCK = 0x10000000;
-        private const uint SBLK_MASK_LOCK_THREADID = 0x000003FF;   // special value of 0 + 1023 thread ids
-        private const int SBLK_MASK_LOCK_RECLEVEL = 0x0000FC00;   // 64 recursion levels
-        private const uint SBLK_APPDOMAIN_SHIFT = 16;           // shift right this much to get appdomain index
-        private const uint SBLK_MASK_APPDOMAININDEX = 0x000007FF;   // 2048 appdomain indices
-        private const int SBLK_RECLEVEL_SHIFT = 10;           // shift right this much to get recursion level
-        private const uint BIT_SBLK_IS_HASHCODE = 0x04000000;
-        private const uint MASK_HASHCODE = ((1 << HASHCODE_BITS) - 1);
-        private const uint MASK_SYNCBLOCKINDEX = ((1 << SYNCBLOCKINDEX_BITS) - 1);
     }
 }

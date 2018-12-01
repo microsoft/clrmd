@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -12,6 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EXPLICIT = 8,
         SECONDARY = 0x10,
         SYNTHETIC = 0x20,
-        SYM_BAD_CHECKSUM = 0x10000,
+        SYM_BAD_CHECKSUM = 0x10000
     }
 }

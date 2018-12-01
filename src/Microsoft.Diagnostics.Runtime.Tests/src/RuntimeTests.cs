@@ -1,8 +1,12 @@
-﻿using Xunit;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -13,10 +17,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
             {
-                string badDac = dt.SymbolLocator.FindBinary(SymbolLocatorTests.WellKnownDac, SymbolLocatorTests.WellKnownDacTimeStamp, SymbolLocatorTests.WellKnownDacImageSize, false);
+                string badDac = dt.SymbolLocator.FindBinary(
+                    SymbolLocatorTests.WellKnownDac,
+                    SymbolLocatorTests.WellKnownDacTimeStamp,
+                    SymbolLocatorTests.WellKnownDacImageSize,
+                    false);
 
                 Assert.NotNull(badDac);
-                
                 Assert.Throws<InvalidOperationException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
             }
         }
@@ -35,7 +42,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotNull(runtime);
             }
         }
-
 
         [Fact]
         public void RuntimeClrInfo()
@@ -58,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                HashSet<string> expected = new HashSet<string>(new string[] { "mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
+                HashSet<string> expected = new HashSet<string>(new[] {"mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe"}, StringComparer.OrdinalIgnoreCase);
                 HashSet<ClrModule> modules = new HashSet<ClrModule>();
 
                 foreach (ClrModule module in runtime.Modules)

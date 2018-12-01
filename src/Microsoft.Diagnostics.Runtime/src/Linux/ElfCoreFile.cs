@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,33 +9,41 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    class ElfCoreFile
+    internal class ElfCoreFile
     {
         private readonly Reader _reader;
         private ElfLoadedImage[] _loadedImages;
         private ELFVirtualAddressSpace _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
-
         public ElfMachine Architecture => (ElfMachine)ElfFile.Header.Machine;
 
-        public IEnumerable<ELFPRStatus> EnumeratePRStatus() => GetNotes(ELFNoteType.PrpsStatus).Select(r => r.ReadContents<ELFPRStatus>(0));
+        public IEnumerable<ElfPRStatus> EnumeratePRStatus()
+        {
+            return GetNotes(ElfNoteType.PrpsStatus).Select(r => r.ReadContents<ElfPRStatus>(0));
+        }
 
-        public IReadOnlyCollection<ElfLoadedImage> LoadedImages { get { LoadFileTable(); return _loadedImages; } }
+        public IReadOnlyCollection<ElfLoadedImage> LoadedImages
+        {
+            get
+            {
+                LoadFileTable();
+                return _loadedImages;
+            }
+        }
 
         public ElfCoreFile(Stream stream)
         {
             _reader = new Reader(new StreamAddressSpace(stream));
             ElfFile = new ElfFile(_reader);
 
-            if (ElfFile.Header.Type != ELFHeaderType.Core)
+            if (ElfFile.Header.Type != ElfHeaderType.Core)
                 throw new InvalidDataException($"{stream.GetFilename() ?? "The given stream"} is not a coredump");
 
 #if DEBUG
             LoadFileTable();
 #endif
         }
-
 
         public int ReadMemory(long address, byte[] buffer, int bytesRequested)
         {
@@ -42,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _virtualAddressSpace.Read(address, buffer, 0, bytesRequested);
         }
 
-        private IEnumerable<ElfNote> GetNotes(ELFNoteType type)
+        private IEnumerable<ElfNote> GetNotes(ElfNoteType type)
         {
             return ElfFile.Notes.Where(n => n.Type == type);
         }
@@ -51,19 +62,18 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             if (_loadedImages != null)
                 return;
-            
-            ElfNote fileNote = GetNotes(ELFNoteType.File).Single();
+
+            ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
             long position = 0;
-            ELFFileTableHeader header = fileNote.ReadContents<ELFFileTableHeader>(ref position);
+            ElfFileTableHeader header = fileNote.ReadContents<ElfFileTableHeader>(ref position);
 
-            ELFFileTableEntryPointers[] fileTable = new ELFFileTableEntryPointers[header.EntryCount.ToInt32()];
+            ElfFileTableEntryPointers[] fileTable = new ElfFileTableEntryPointers[header.EntryCount.ToInt32()];
             List<ElfLoadedImage> images = new List<ElfLoadedImage>(fileTable.Length);
             Dictionary<string, ElfLoadedImage> lookup = new Dictionary<string, ElfLoadedImage>(fileTable.Length);
 
-
             for (int i = 0; i < fileTable.Length; i++)
-                fileTable[i] = fileNote.ReadContents<ELFFileTableEntryPointers>(ref position);
+                fileTable[i] = fileNote.ReadContents<ElfFileTableEntryPointers>(ref position);
 
             long size = fileNote.Header.ContentSize - position;
             byte[] bytes = fileNote.ReadContents(position, (int)size);
@@ -82,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                 image.AddTableEntryPointers(fileTable[i]);
             }
-            
+
             _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
         }
     }

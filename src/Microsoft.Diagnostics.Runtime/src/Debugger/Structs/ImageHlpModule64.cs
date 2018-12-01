@@ -1,4 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -13,70 +17,70 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         private const int MAX_PATH = 260;
 
-        public UInt32 SizeOfStruct;
-        public UInt64 BaseOfImage;
-        public UInt32 ImageSize;
-        public UInt32 TimeDateStamp;
-        public UInt32 CheckSum;
-        public UInt32 NumSyms;
+        public uint SizeOfStruct;
+        public ulong BaseOfImage;
+        public uint ImageSize;
+        public uint TimeDateStamp;
+        public uint CheckSum;
+        public uint NumSyms;
         public DEBUG_SYMTYPE SymType;
         private fixed char _ModuleName[32];
         private fixed char _ImageName[256];
         private fixed char _LoadedImageName[256];
         private fixed char _LoadedPdbName[256];
-        public UInt32 CVSig;
+        public uint CVSig;
         public fixed char CVData[MAX_PATH * 3];
-        public UInt32 PdbSig;
+        public uint PdbSig;
         public Guid PdbSig70;
-        public UInt32 PdbAge;
-        private UInt32 _bPdbUnmatched; /* BOOL */
-        private UInt32 _bDbgUnmatched; /* BOOL */
-        private UInt32 _bLineNumbers; /* BOOL */
-        private UInt32 _bGlobalSymbols; /* BOOL */
-        private UInt32 _bTypeInfo; /* BOOL */
-        private UInt32 _bSourceIndexed; /* BOOL */
-        private UInt32 _bPublics; /* BOOL */
+        public uint PdbAge;
+        private uint _bPdbUnmatched; /* BOOL */
+        private uint _bDbgUnmatched; /* BOOL */
+        private uint _bLineNumbers; /* BOOL */
+        private uint _bGlobalSymbols; /* BOOL */
+        private uint _bTypeInfo; /* BOOL */
+        private uint _bSourceIndexed; /* BOOL */
+        private uint _bPublics; /* BOOL */
 
         public bool PdbUnmatched
         {
-            get { return _bPdbUnmatched != 0; }
-            set { _bPdbUnmatched = value ? 1U : 0U; }
+            get => _bPdbUnmatched != 0;
+            set => _bPdbUnmatched = value ? 1U : 0U;
         }
 
         public bool DbgUnmatched
         {
-            get { return _bDbgUnmatched != 0; }
-            set { _bDbgUnmatched = value ? 1U : 0U; }
+            get => _bDbgUnmatched != 0;
+            set => _bDbgUnmatched = value ? 1U : 0U;
         }
 
         public bool LineNumbers
         {
-            get { return _bLineNumbers != 0; }
-            set { _bLineNumbers = value ? 1U : 0U; }
+            get => _bLineNumbers != 0;
+            set => _bLineNumbers = value ? 1U : 0U;
         }
 
         public bool GlobalSymbols
         {
-            get { return _bGlobalSymbols != 0; }
-            set { _bGlobalSymbols = value ? 1U : 0U; }
+            get => _bGlobalSymbols != 0;
+            set => _bGlobalSymbols = value ? 1U : 0U;
         }
 
         public bool TypeInfo
         {
-            get { return _bTypeInfo != 0; }
-            set { _bTypeInfo = value ? 1U : 0U; }
+            get => _bTypeInfo != 0;
+            set => _bTypeInfo = value ? 1U : 0U;
         }
 
         public bool SourceIndexed
         {
-            get { return _bSourceIndexed != 0; }
-            set { _bSourceIndexed = value ? 1U : 0U; }
+            get => _bSourceIndexed != 0;
+            set => _bSourceIndexed = value ? 1U : 0U;
         }
 
         public bool Publics
         {
-            get { return _bPublics != 0; }
-            set { _bPublics = value ? 1U : 0U; }
+            get => _bPublics != 0;
+            set => _bPublics = value ? 1U : 0U;
         }
 
         public string ModuleName

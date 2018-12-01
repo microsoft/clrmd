@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -10,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         IGNORE_EXTENSION_VERSIONS = 0x00000002,
         ALLOW_NETWORK_PATHS = 0x00000004,
         DISALLOW_NETWORK_PATHS = 0x00000008,
-        NETWORK_PATHS = (0x00000004 | 0x00000008),
+        NETWORK_PATHS = 0x00000004 | 0x00000008,
         IGNORE_LOADER_EXCEPTIONS = 0x00000010,
         INITIAL_BREAK = 0x00000020,
         INITIAL_MODULE_BREAK = 0x00000040,
@@ -26,6 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         DISABLE_EXECUTION_COMMANDS = 0x00010000,
         DISALLOW_IMAGE_FILE_MAPPING = 0x00020000,
         PREFER_DML = 0x00040000,
-        ALL = 0x0007FFFF,
+        ALL = 0x0007FFFF
     }
 }

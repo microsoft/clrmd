@@ -1,16 +1,19 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public unsafe class CallableCOMWrapper : COMHelper, IDisposable
     {
-        private bool _disposed = false;
+        private bool _disposed;
 
         protected IntPtr Self { get; }
-        private IUnknownVTable* _unknownVTable;
+        private readonly IUnknownVTable* _unknownVTable;
         private readonly RefCountedFreeLibrary _library;
 
         protected void* _vtable => _unknownVTable + 1;
@@ -47,15 +50,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
-            var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
+            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
             int hr = queryInterface(pUnknown, ref desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
             {
                 GC.SuppressFinalize(this);
                 throw new InvalidOperationException();
             }
-            
-            var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
+
+            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
             int count = release(pUnknown);
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
@@ -72,15 +75,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IntPtr QueryInterface(ref Guid riid)
         {
-            var queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
+            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
 
             int hr = queryInterface(Self, ref riid, out IntPtr unk);
             return hr == S_OK ? unk : IntPtr.Zero;
         }
 
-        protected static bool SUCCEEDED(int hresult) => hresult >= 0;
+        protected static bool SUCCEEDED(int hresult)
+        {
+            return hresult >= 0;
+        }
 
-        protected static void InitDelegate<T>(ref T t, IntPtr entry) where T : Delegate
+        protected static void InitDelegate<T>(ref T t, IntPtr entry)
+            where T : Delegate
         {
             if (t != null)
                 return;
@@ -93,8 +100,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #endif
         }
 
-        #region IDisposable Support
-
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -105,7 +110,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        ~CallableCOMWrapper() => Dispose(false);
+        ~CallableCOMWrapper()
+        {
+            Dispose(false);
+        }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
@@ -113,6 +121,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-        #endregion
     }
 }

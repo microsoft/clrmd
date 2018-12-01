@@ -1,11 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-
     /// <summary>
     /// Exception thrown by Microsoft.Diagnostics.Runtime unless there is a more appropriate
     /// exception subclass.
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
             /// <summary>
             /// Unknown error occured.
             /// </summary>
-            UnknownError = unchecked((int)(((ulong)(0x3) << 31) | ((ulong)(0x125) << 16) | ((ulong)(0x0)))),
+            UnknownError = unchecked((int)(((ulong)0x3 << 31) | ((ulong)0x125 << 16) | 0x0)),
 
             /// <summary>
             /// The dll of the specified runtime (mscorwks.dll or clr.dll) is loaded into the process, but
@@ -58,15 +58,14 @@ namespace Microsoft.Diagnostics.Runtime
             /// <summary>
             /// There is an issue with the configuration of this application.
             /// </summary>
-            ApplicationError,
+            ApplicationError
         }
 
         /// <summary>
         /// The HRESULT of this exception.
         /// </summary>
-        public new int HResult { get { return base.HResult; } }
+        public new int HResult => base.HResult;
 
-        #region Functions
         internal ClrDiagnosticsException(string message)
             : base(message)
         {
@@ -78,11 +77,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             base.HResult = (int)hr;
         }
-        #endregion
 
         internal static void ThrowRevisionError(int revision, int runtimeRevision)
         {
-            throw new ClrDiagnosticsException(string.Format("You must not reuse any object other than ClrRuntime after calling flush!\nClrModule revision ({0}) != ClrRuntime revision ({1}).", revision, runtimeRevision), ClrDiagnosticsException.HR.RevisionError);
+            throw new ClrDiagnosticsException(
+                $"You must not reuse any object other than ClrRuntime after calling flush!\nClrModule revision ({revision}) != ClrRuntime revision ({runtimeRevision}).",
+                HR.RevisionError);
         }
     }
 }

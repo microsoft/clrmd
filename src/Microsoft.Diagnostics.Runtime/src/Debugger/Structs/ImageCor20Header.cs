@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -7,13 +10,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct IMAGE_COR20_HEADER
     {
         // Header versioning
-        public UInt32 cb;
-        public UInt16 MajorRuntimeVersion;
-        public UInt16 MinorRuntimeVersion;
+        public uint cb;
+        public ushort MajorRuntimeVersion;
+        public ushort MinorRuntimeVersion;
 
         // Symbol table and startup information
         public IMAGE_DATA_DIRECTORY MetaData;
-        public UInt32 Flags;
+        public uint Flags;
 
         // The main program if it is an EXE (not used if a DLL?)
         // If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is not set, EntryPointToken represents a managed entrypoint.

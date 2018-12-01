@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -6,17 +9,17 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct DEBUG_MODULE_PARAMETERS
     {
-        public UInt64 Base;
-        public UInt32 Size;
-        public UInt32 TimeDateStamp;
-        public UInt32 Checksum;
+        public ulong Base;
+        public uint Size;
+        public uint TimeDateStamp;
+        public uint Checksum;
         public DEBUG_MODULE Flags;
         public DEBUG_SYMTYPE SymbolType;
-        public UInt32 ImageNameSize;
-        public UInt32 ModuleNameSize;
-        public UInt32 LoadedImageNameSize;
-        public UInt32 SymbolFileNameSize;
-        public UInt32 MappedImageNameSize;
-        public fixed UInt64 Reserved[2];
+        public uint ImageNameSize;
+        public uint ModuleNameSize;
+        public uint LoadedImageNameSize;
+        public uint SymbolFileNameSize;
+        public uint MappedImageNameSize;
+        public fixed ulong Reserved[2];
     }
 }

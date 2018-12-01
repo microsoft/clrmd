@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -17,18 +21,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             this = other;
 
-            unchecked
+            if (IntPtr.Size == 4)
             {
-                if (IntPtr.Size == 4)
-                {
-                    FixupPointer(ref StartSegment);
-                    FixupPointer(ref AllocationStart);
-                    FixupPointer(ref AllocationContextPointer);
-                    FixupPointer(ref AllocationContextLimit);
-                }
+                FixupPointer(ref StartSegment);
+                FixupPointer(ref AllocationStart);
+                FixupPointer(ref AllocationContextPointer);
+                FixupPointer(ref AllocationContextLimit);
             }
         }
 
-        private static void FixupPointer(ref ulong ptr) => ptr = (uint)ptr;
+        private static void FixupPointer(ref ulong ptr)
+        {
+            ptr = (uint)ptr;
+        }
     }
 }

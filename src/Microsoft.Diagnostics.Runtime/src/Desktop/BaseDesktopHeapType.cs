@@ -1,11 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -14,10 +15,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected ClrElementType _elementType;
         protected uint _token;
         private IList<ClrInterface> _interfaces;
-        private Lazy<GCDesc> _gcDesc;
+        private readonly Lazy<GCDesc> _gcDesc;
         protected ulong _constructedMT;
 
-        internal override GCDesc GCDesc { get { return _gcDesc.Value; } }
+        internal override GCDesc GCDesc => _gcDesc.Value;
 
         public bool Shared { get; internal set; }
 
@@ -51,7 +52,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return new GCDesc(buffer);
         }
 
-
         internal abstract ulong GetModuleAddress(ClrAppDomain domain);
 
         internal override ClrMethod GetMethod(uint token)
@@ -62,12 +62,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal DesktopGCHeap DesktopHeap { get; set; }
         internal DesktopBaseModule DesktopModule { get; set; }
 
-        public override ClrElementType ElementType { get { return _elementType; } internal set { _elementType = value; } }
-
-        public override uint MetadataToken
+        public override ClrElementType ElementType
         {
-            get { return _token; }
+            get => _elementType;
+            internal set => _elementType = value;
         }
+
+        public override uint MetadataToken => _token;
 
         public override IList<ClrInterface> Interfaces
         {
@@ -105,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (interfaces == null)
                         interfaces = new List<ClrInterface>();
 
-                    var result = GetInterface(import, mdIFace);
+                    ClrInterface result = GetInterface(import, mdIFace);
                     if (result != null && !interfaces.Contains(result))
                         interfaces.Add(result);
                 }
@@ -118,8 +119,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return interfaces;
         }
-
-
 
         private ClrInterface GetInterface(MetaDataImport import, int mdIFace)
         {

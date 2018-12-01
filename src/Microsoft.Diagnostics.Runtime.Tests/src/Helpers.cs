@@ -1,10 +1,12 @@
-﻿
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
-using Xunit;
-using System.IO;
-using System.Diagnostics;
-using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -62,7 +64,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     select module).Single();
         }
 
-
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
             ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
@@ -74,30 +75,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return thread.StackTrace.Where(sf => sf.Method != null ? sf.Method.Name == functionName : false).Single();
         }
 
-        public static string TestWorkingDirectory { get { return _userSetWorkingPath ?? _workingPath.Value; } set { Debug.Assert(!_workingPath.IsValueCreated); _userSetWorkingPath = value; } }
+        public static string TestWorkingDirectory
+        {
+            get => _userSetWorkingPath ?? _workingPath.Value;
+            set
+            {
+                Debug.Assert(!_workingPath.IsValueCreated);
+                _userSetWorkingPath = value;
+            }
+        }
 
-        #region Working Path Helpers
-        static string _userSetWorkingPath = null;
-        static Lazy<string> _workingPath = new Lazy<string>(() => CreateWorkingPath(), true);
+        private static string _userSetWorkingPath;
+        private static readonly Lazy<string> _workingPath = new Lazy<string>(CreateWorkingPath, true);
+
         private static string CreateWorkingPath()
         {
             Random r = new Random();
             string path;
             do
             {
-                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next().ToString());
+                path = Path.Combine(Environment.CurrentDirectory, TempRoot + r.Next());
             } while (Directory.Exists(path));
 
             Directory.CreateDirectory(path);
             return path;
         }
 
-
         internal static readonly string TempRoot = "clrmd_removeme_";
-        #endregion
     }
 
-    
     public class GlobalCleanup
     {
         public static void AssemblyCleanup()

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -13,23 +16,23 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [FieldOffset(3)]
         public byte MinorLinkerVersion;
         [FieldOffset(4)]
-        public UInt32 SizeOfCode;
+        public uint SizeOfCode;
         [FieldOffset(8)]
-        public UInt32 SizeOfInitializedData;
+        public uint SizeOfInitializedData;
         [FieldOffset(12)]
-        public UInt32 SizeOfUninitializedData;
+        public uint SizeOfUninitializedData;
         [FieldOffset(16)]
-        public UInt32 AddressOfEntryPoint;
+        public uint AddressOfEntryPoint;
         [FieldOffset(20)]
-        public UInt32 BaseOfCode;
+        public uint BaseOfCode;
         [FieldOffset(24)]
-        public UInt32 BaseOfData;
+        public uint BaseOfData;
         [FieldOffset(28)]
-        public UInt32 ImageBase;
+        public uint ImageBase;
         [FieldOffset(32)]
-        public UInt32 SectionAlignment;
+        public uint SectionAlignment;
         [FieldOffset(36)]
-        public UInt32 FileAlignment;
+        public uint FileAlignment;
         [FieldOffset(40)]
         public ushort MajorOperatingSystemVersion;
         [FieldOffset(42)]
@@ -43,29 +46,29 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [FieldOffset(50)]
         public ushort MinorSubsystemVersion;
         [FieldOffset(52)]
-        public UInt32 Win32VersionValue;
+        public uint Win32VersionValue;
         [FieldOffset(56)]
-        public UInt32 SizeOfImage;
+        public uint SizeOfImage;
         [FieldOffset(60)]
-        public UInt32 SizeOfHeaders;
+        public uint SizeOfHeaders;
         [FieldOffset(64)]
-        public UInt32 CheckSum;
+        public uint CheckSum;
         [FieldOffset(68)]
         public ushort Subsystem;
         [FieldOffset(70)]
         public ushort DllCharacteristics;
         [FieldOffset(72)]
-        public UInt32 SizeOfStackReserve;
+        public uint SizeOfStackReserve;
         [FieldOffset(76)]
-        public UInt32 SizeOfStackCommit;
+        public uint SizeOfStackCommit;
         [FieldOffset(80)]
-        public UInt32 SizeOfHeapReserve;
+        public uint SizeOfHeapReserve;
         [FieldOffset(84)]
-        public UInt32 SizeOfHeapCommit;
+        public uint SizeOfHeapCommit;
         [FieldOffset(88)]
-        public UInt32 LoaderFlags;
+        public uint LoaderFlags;
         [FieldOffset(92)]
-        public UInt32 NumberOfRvaAndSizes;
+        public uint NumberOfRvaAndSizes;
         [FieldOffset(96)]
         public IMAGE_DATA_DIRECTORY DataDirectory0;
         [FieldOffset(104)]
@@ -101,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         public static unsafe IMAGE_DATA_DIRECTORY* GetDataDirectory(IMAGE_OPTIONAL_HEADER32* header, int zeroBasedIndex)
         {
-            return (&header->DataDirectory0) + zeroBasedIndex;
+            return &header->DataDirectory0 + zeroBasedIndex;
         }
     }
 }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -17,6 +21,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         FRAME_MEMORY_USAGE = 0x200,
         PARAMETERS_NEWLINE = 0x400,
         DML = 0x800,
-        FRAME_OFFSETS = 0x1000,
+        FRAME_OFFSETS = 0x1000
     }
 }

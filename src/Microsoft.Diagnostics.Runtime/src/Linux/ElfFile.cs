@@ -1,20 +1,20 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    class ElfFile
+    internal class ElfFile
     {
         private readonly Reader _reader;
         private readonly long _position;
         private readonly bool _virtual;
-        
+
         private Reader _virtualAddressReader;
         private ElfNote[] _notes;
         private ElfProgramHeader[] _programHeaders;
@@ -23,12 +23,33 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfHeader Header { get; }
 
-        public IReadOnlyCollection<ElfNote> Notes { get { LoadNotes(); return _notes; } }
-        public IReadOnlyList<ElfProgramHeader> ProgramHeaders { get { LoadProgramHeaders(); return _programHeaders; } }
-        
-        public Reader VirtualAddressReader { get { CreateVirtualAddressReader(); return _virtualAddressReader; } }
+        public IReadOnlyCollection<ElfNote> Notes
+        {
+            get
+            {
+                LoadNotes();
+                return _notes;
+            }
+        }
+        public IReadOnlyList<ElfProgramHeader> ProgramHeaders
+        {
+            get
+            {
+                LoadProgramHeaders();
+                return _programHeaders;
+            }
+        }
 
-        public ElfFile(Reader reader, long position = 0, bool virt=false)
+        public Reader VirtualAddressReader
+        {
+            get
+            {
+                CreateVirtualAddressReader();
+                return _virtualAddressReader;
+            }
+        }
+
+        public ElfFile(Reader reader, long position = 0, bool virt = false)
         {
             _reader = reader;
             _position = position;
@@ -62,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             LoadProgramHeaders();
-            ElfProgramHeader noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ELFProgramHeaderType.Note);
+            ElfProgramHeader noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ElfProgramHeaderType.Note);
 
             if (noteHeader == null)
             {
@@ -95,7 +116,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _programHeaders[i] = new ElfProgramHeader(_reader, _position + (long)Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
 
-
         private string GetSectionName(int section)
         {
             LoadSections();
@@ -112,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ref ElfSectionHeader hdr = ref _sections[section];
             int idx = hdr.NameIndex;
 
-            if (hdr.Type == ELFSectionHeaderType.Null || idx == 0)
+            if (hdr.Type == ElfSectionHeaderType.Null || idx == 0)
                 return _sectionNames[section] = string.Empty;
 
             int len = 0;
@@ -147,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             if (_sections != null)
                 return;
-            
+
             _sections = new ElfSectionHeader[Header.SectionHeaderCount];
             for (int i = 0; i < _sections.Length; i++)
                 _sections[i] = _reader.Read<ElfSectionHeader>(_position + (long)Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);

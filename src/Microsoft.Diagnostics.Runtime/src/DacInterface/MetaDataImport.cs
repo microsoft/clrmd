@@ -1,14 +1,16 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public unsafe sealed class MetaDataImport : CallableCOMWrapper
+    public sealed unsafe class MetaDataImport : CallableCOMWrapper
     {
         private static Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
         private IMetaDataImportVTable* VTable => (IMetaDataImportVTable*)_vtable;
@@ -97,7 +99,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getFieldProps, VTable->GetFieldProps);
 
             name = null;
-            int hr = _getFieldProps(Self, token, out int typeDef, null, 0, out int needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out int pcchValue);
+            int hr = _getFieldProps(
+                Self,
+                token,
+                out int typeDef,
+                null,
+                0,
+                out int needed,
+                out attrs,
+                out ppvSigBlob,
+                out pcbSigBlob,
+                out pdwCPlusTypeFlag,
+                out ppValue,
+                out int pcchValue);
             if (hr < 0)
                 return false;
 
@@ -123,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             while ((hr = _enumFields(Self, ref handle, token, tokens, tokens.Length, out int count)) >= 0 && count > 0)
                 for (int i = 0; i < count; i++)
                     yield return tokens[i];
-            
+
             CloseEnum(handle);
             ReleaseIntArray(tokens);
         }
@@ -149,7 +163,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return hr == S_OK ? sb.ToString() : null;
         }
-
 
         public bool GetNestedClassProperties(int token, out int enclosing)
         {
@@ -189,7 +202,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return tokens;
         }
 
-
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CloseEnumDelegate(IntPtr self, IntPtr e);
 
@@ -200,12 +212,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetInterfaceImplPropsDelegate(IntPtr self, int mdImpl, out int mdClass, out int mdIFace);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetTypeRefPropsDelegate(IntPtr self, int token, out int resolutionScopeToken, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
-                                             int bufferSize, out int needed);
-        
+        private delegate int GetTypeRefPropsDelegate(
+            IntPtr self,
+            int token,
+            out int resolutionScopeToken,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
+            int bufferSize,
+            out int needed);
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetTypeDefPropsDelegate(IntPtr self, int token, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef, int cchTypeDef, out int pchTypeDef,
-                                                     out System.Reflection.TypeAttributes pdwTypeDefFlags, out int ptkExtends);
+        private delegate int GetTypeDefPropsDelegate(
+            IntPtr self,
+            int token,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef,
+            int cchTypeDef,
+            out int pchTypeDef,
+            out TypeAttributes pdwTypeDefFlags,
+            out int ptkExtends);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int EnumFieldsDelegate(IntPtr self, ref IntPtr phEnum, int cl, int[] mdFieldDef, int cMax, out int pcTokens);
@@ -214,25 +237,45 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetRVADelegate(IntPtr self, int token, out uint pRva, out uint flags);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMethodPropsDelegate(IntPtr self, int md, out int pClass, StringBuilder szMethod, int cchMethod, out int pchMethod, out System.Reflection.MethodAttributes pdwAttr,
-                            out IntPtr ppvSigBlob, out uint pcbSigBlob, out uint pulCodeRVA, out uint pdwImplFlags);
+        private delegate int GetMethodPropsDelegate(
+            IntPtr self,
+            int md,
+            out int pClass,
+            StringBuilder szMethod,
+            int cchMethod,
+            out int pchMethod,
+            out MethodAttributes pdwAttr,
+            out IntPtr ppvSigBlob,
+            out uint pcbSigBlob,
+            out uint pulCodeRVA,
+            out uint pdwImplFlags);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetNestedClassPropsDelegate(IntPtr self, int tdNestedClass, out int tdEnclosingClass);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetFieldPropsDelegate(IntPtr self, int mb, out int mdTypeDef,
-                           [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField, int cchField,
-                           out int pchField, out System.Reflection.FieldAttributes pdwAttr,
-                           out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlab, out IntPtr ppValue, out int pcchValue);
+        private delegate int GetFieldPropsDelegate(
+            IntPtr self,
+            int mb,
+            out int mdTypeDef,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField,
+            int cchField,
+            out int pchField,
+            out FieldAttributes pdwAttr,
+            out IntPtr ppvSigBlob,
+            out int pcbSigBlob,
+            out int pdwCPlusTypeFlab,
+            out IntPtr ppValue,
+            out int pcchValue);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetCustomAttributeByNameDelegate(IntPtr self, int tkObj, [MarshalAs(UnmanagedType.LPWStr)]string szName, out IntPtr ppData, out uint pcbData);
+        private delegate int GetCustomAttributeByNameDelegate(IntPtr self, int tkObj, [MarshalAs(UnmanagedType.LPWStr)] string szName, out IntPtr ppData, out uint pcbData);
     }
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
-    struct IMetaDataImportVTable
+
+    internal struct IMetaDataImportVTable
     {
         public readonly IntPtr CloseEnum;
         private readonly IntPtr CountEnum;
@@ -251,10 +294,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr EnumMembersWithName;
         private readonly IntPtr EnumMethods;
         private readonly IntPtr EnumMethodsWithName;
-        public readonly IntPtr EnumFields; 
+        public readonly IntPtr EnumFields;
         private readonly IntPtr EnumFieldsWithName;
         private readonly IntPtr EnumParams;
-        private readonly IntPtr EnumMemberRefs;    
+        private readonly IntPtr EnumMemberRefs;
         private readonly IntPtr EnumMethodImpls;
         private readonly IntPtr EnumPermissionSets;
         private readonly IntPtr FindMember;
@@ -264,7 +307,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetMethodProps;
         private readonly IntPtr GetMemberRefProps;
         private readonly IntPtr EnumProperties;
-        private readonly IntPtr EnumEvents; 
+        private readonly IntPtr EnumEvents;
         private readonly IntPtr GetEventProps;
         private readonly IntPtr EnumMethodSemantics;
         private readonly IntPtr GetMethodSemantics;
@@ -272,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetFieldMarshal;
         public readonly IntPtr GetRVA;
         private readonly IntPtr GetPermissionSetProps;
-        private readonly IntPtr GetSigFromToken; 
+        private readonly IntPtr GetSigFromToken;
         private readonly IntPtr GetModuleRefProps;
         private readonly IntPtr EnumModuleRefs;
         private readonly IntPtr GetTypeSpecFromToken;

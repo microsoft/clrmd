@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -12,35 +12,32 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public struct ClrValueClass
     {
-        private ulong _address;
-        private bool _interior;
-        private ClrType _type;
+        private readonly bool _interior;
 
         /// <summary>
         /// The address of the object.
         /// </summary>
-        public ulong Address { get { return _address; } }
+        public ulong Address { get; }
 
         /// <summary>
         /// The address of the object in Hex format.
         /// </summary>
-        public string HexAddress { get { return _address.ToString("x"); } }
+        public string HexAddress => Address.ToString("x");
 
         /// <summary>
         /// The type of the object.
         /// </summary>
-        public ClrType Type { get { return _type; } }
+        public ClrType Type { get; }
 
         internal ClrValueClass(ulong address, ClrType type, bool interior)
         {
-            _address = address;
-            _type = type;
+            Address = address;
+            Type = type;
             _interior = interior;
 
             Debug.Assert(type.IsValueClass);
         }
 
-        #region GetField
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
         /// not exist in the object.  Throws NullReferenceException if IsNull is true.
@@ -49,16 +46,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A ClrObject of the given field.</returns>
         public ClrObject GetObjectField(string fieldName)
         {
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsObjectReference)
-                throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not an object reference.");
+                throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not an object reference.");
 
-            ClrHeap heap = _type.Heap;
+            ClrHeap heap = Type.Heap;
 
-            ulong addr = field.GetAddress(_address, _interior);
+            ulong addr = field.GetAddress(Address, _interior);
             if (!heap.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
@@ -73,13 +70,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <typeparam name="T">The type of the field itself.</typeparam>
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of this field.</returns>
-        public T GetField<T>(string fieldName) where T : struct
+        public T GetField<T>(string fieldName)
+            where T : struct
         {
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
-            object value = field.GetValue(_address, _interior);
+            object value = field.GetValue(Address, _interior);
             return (T)value;
         }
 
@@ -89,19 +87,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrValueClass GetValueClassField(string fieldName)
         {
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueClass)
-                throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not a ValueClass.");
+                throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
             if (field.Type == null)
                 throw new Exception("Field does not have an associated class.");
 
-            ClrHeap heap = _type.Heap;
+            ClrHeap heap = Type.Heap;
 
-            ulong addr = field.GetAddress(_address, _interior);
+            ulong addr = field.GetAddress(Address, _interior);
             return new ClrValueClass(addr, field.Type, true);
         }
 
@@ -118,11 +116,11 @@ namespace Microsoft.Diagnostics.Runtime
         public string GetStringField(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            RuntimeBase runtime = (RuntimeBase)_type.Heap.Runtime;
+            RuntimeBase runtime = (RuntimeBase)Type.Heap.Runtime;
 
             if (!runtime.ReadPointer(address, out ulong str))
                 throw new MemoryReadException(address);
-            
+
             if (str == 0)
                 return null;
 
@@ -134,17 +132,15 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (field.ElementType != element)
-                throw new InvalidOperationException($"Field '{_type.Name}.{fieldName}' is not of type '{typeName}'.");
+                throw new InvalidOperationException($"Field '{Type.Name}.{fieldName}' is not of type '{typeName}'.");
 
-            ulong address = field.GetAddress(_address, _interior);
+            ulong address = field.GetAddress(Address, _interior);
             return address;
         }
-        #endregion
-
     }
 }

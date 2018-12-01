@@ -1,7 +1,6 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -31,25 +30,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             bits.ReadInt32(out reserved);
         }
 
-        internal int sig;                        // 0..3
-        internal int ver;                        // 4..7
-        internal int age;                        // 8..11
-        internal short gssymStream;                // 12..13
-        internal ushort vers;                       // 14..15
-        internal short pssymStream;                // 16..17
-        internal ushort pdbver;                     // 18..19
-        internal short symrecStream;               // 20..21
-        internal ushort pdbver2;                    // 22..23
-        internal int gpmodiSize;                 // 24..27
-        internal int secconSize;                 // 28..31
-        internal int secmapSize;                 // 32..35
-        internal int filinfSize;                 // 36..39
-        internal int tsmapSize;                  // 40..43
-        internal int mfcIndex;                   // 44..47
-        internal int dbghdrSize;                 // 48..51
-        internal int ecinfoSize;                 // 52..55
-        internal ushort flags;                      // 56..57
-        internal ushort machine;                    // 58..59
-        internal int reserved;                   // 60..63
+        internal int sig; // 0..3
+        internal int ver; // 4..7
+        internal int age; // 8..11
+        internal short gssymStream; // 12..13
+        internal ushort vers; // 14..15
+        internal short pssymStream; // 16..17
+        internal ushort pdbver; // 18..19
+        internal short symrecStream; // 20..21
+        internal ushort pdbver2; // 22..23
+        internal int gpmodiSize; // 24..27
+        internal int secconSize; // 28..31
+        internal int secmapSize; // 32..35
+        internal int filinfSize; // 36..39
+        internal int tsmapSize; // 40..43
+        internal int mfcIndex; // 44..47
+        internal int dbghdrSize; // 48..51
+        internal int ecinfoSize; // 52..55
+        internal ushort flags; // 56..57
+        internal ushort machine; // 58..59
+        internal int reserved; // 60..63
     }
 }

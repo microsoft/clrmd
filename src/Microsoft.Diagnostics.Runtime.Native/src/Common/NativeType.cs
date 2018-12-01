@@ -1,8 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 using System;
+using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -26,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _data = data;
         }
 
-        /*        
+        /*
         public ModuleInfo Module
         {
             get
@@ -51,10 +52,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
             {
                 uint countOffset = pointerSize;
                 ulong loc = objRef + countOffset;
-                
+
                 if (!Heap.ReadDword(loc, out uint count))
                     throw new Exception("Could not read from heap at " + objRef.ToString("x"));
-                
+
                 size = count * (ulong)_data.ComponentSize + _data.BaseSize;
             }
 
@@ -74,8 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 _gcdesc.WalkObject(objRef, GetSize(objRef), ReadPointer, callback);
             }
         }
-        
-        
+
         public void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> callback)
         {
             if (ContainsPointers)
@@ -86,6 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 _gcdesc.WalkObject(objRef, GetSize(objRef), ReadPointer, callback);
             }
         }
+
         private GCDesc GetGCDesc()
         {
             NativeRuntime runtime = Heap.NativeRuntime;

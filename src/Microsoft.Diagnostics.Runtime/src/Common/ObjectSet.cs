@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Collections;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -43,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong start = _heap.Segments[i].Start;
                 ulong end = _heap.Segments[i].End;
-                _segments[i] = new HeapHashSegment()
+                _segments[i] = new HeapHashSegment
                 {
                     StartAddress = start,
                     EndAddress = end,
@@ -69,7 +72,6 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-
         /// <summary>
         /// Adds the given object to the set.  Returns true if the object was added to the set, returns false if the object was already in the set.
         /// </summary>
@@ -84,12 +86,10 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     return false;
                 }
-                else
-                {
-                    seg.Objects.Set(offset, true);
-                    Count++;
-                    return true;
-                }
+
+                seg.Objects.Set(offset, true);
+                Count++;
+                return true;
             }
 
             return false;
@@ -148,12 +148,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (obj != 0)
             {
-                int i = _segments.Length >> 1;
-                int mid, lower = 0, upper = _segments.Length - 1;
+                int lower = 0;
+                int upper = _segments.Length - 1;
 
                 while (lower <= upper)
                 {
-                    mid = (lower + upper) >> 1;
+                    int mid = (lower + upper) >> 1;
 
                     if (obj < _segments[mid].StartAddress)
                     {
@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime
             seg = new HeapHashSegment();
             return false;
         }
-        
+
         /// <summary>
         /// A segment of memory in the heap.
         /// </summary>

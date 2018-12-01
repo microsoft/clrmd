@@ -1,14 +1,16 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 
 #pragma warning disable 1591
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("0690e046-9c23-45ac-a04f-987ac29ad0d3")]
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("0690e046-9c23-45ac-a04f-987ac29ad0d3")]
     public interface IDebugEventCallbacksWide
     {
         [PreserveSig]
@@ -17,60 +19,61 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int Breakpoint(
-            [In, MarshalAs(UnmanagedType.Interface)] IDebugBreakpoint2 Bp);
+            [In][MarshalAs(UnmanagedType.Interface)]
+            IDebugBreakpoint2 Bp);
 
         [PreserveSig]
         int Exception(
             [In] ref EXCEPTION_RECORD64 Exception,
-            [In] UInt32 FirstChance);
+            [In] uint FirstChance);
 
         [PreserveSig]
         int CreateThread(
-            [In] UInt64 Handle,
-            [In] UInt64 DataOffset,
-            [In] UInt64 StartOffset);
+            [In] ulong Handle,
+            [In] ulong DataOffset,
+            [In] ulong StartOffset);
 
         [PreserveSig]
         int ExitThread(
-            [In] UInt32 ExitCode);
+            [In] uint ExitCode);
 
         [PreserveSig]
         int CreateProcess(
-            [In] UInt64 ImageFileHandle,
-            [In] UInt64 Handle,
-            [In] UInt64 BaseOffset,
-            [In] UInt32 ModuleSize,
-            [In, MarshalAs(UnmanagedType.LPWStr)] string ModuleName,
-            [In, MarshalAs(UnmanagedType.LPWStr)] string ImageName,
-            [In] UInt32 CheckSum,
-            [In] UInt32 TimeDateStamp,
-            [In] UInt64 InitialThreadHandle,
-            [In] UInt64 ThreadDataOffset,
-            [In] UInt64 StartOffset);
+            [In] ulong ImageFileHandle,
+            [In] ulong Handle,
+            [In] ulong BaseOffset,
+            [In] uint ModuleSize,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string ModuleName,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string ImageName,
+            [In] uint CheckSum,
+            [In] uint TimeDateStamp,
+            [In] ulong InitialThreadHandle,
+            [In] ulong ThreadDataOffset,
+            [In] ulong StartOffset);
 
         [PreserveSig]
         int ExitProcess(
-            [In] UInt32 ExitCode);
+            [In] uint ExitCode);
 
         [PreserveSig]
         int LoadModule(
-            [In] UInt64 ImageFileHandle,
-            [In] UInt64 BaseOffset,
-            [In] UInt32 ModuleSize,
-            [In, MarshalAs(UnmanagedType.LPWStr)] string ModuleName,
-            [In, MarshalAs(UnmanagedType.LPWStr)] string ImageName,
-            [In] UInt32 CheckSum,
-            [In] UInt32 TimeDateStamp);
+            [In] ulong ImageFileHandle,
+            [In] ulong BaseOffset,
+            [In] uint ModuleSize,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string ModuleName,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string ImageName,
+            [In] uint CheckSum,
+            [In] uint TimeDateStamp);
 
         [PreserveSig]
         int UnloadModule(
-            [In, MarshalAs(UnmanagedType.LPWStr)] string ImageBaseName,
-            [In] UInt64 BaseOffset);
+            [In][MarshalAs(UnmanagedType.LPWStr)] string ImageBaseName,
+            [In] ulong BaseOffset);
 
         [PreserveSig]
         int SystemError(
-            [In] UInt32 Error,
-            [In] UInt32 Level);
+            [In] uint Error,
+            [In] uint Level);
 
         [PreserveSig]
         int SessionStatus(
@@ -79,16 +82,16 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ChangeDebuggeeState(
             [In] DEBUG_CDS Flags,
-            [In] UInt64 Argument);
+            [In] ulong Argument);
 
         [PreserveSig]
         int ChangeEngineState(
             [In] DEBUG_CES Flags,
-            [In] UInt64 Argument);
+            [In] ulong Argument);
 
         [PreserveSig]
         int ChangeSymbolState(
             [In] DEBUG_CSS Flags,
-            [In] UInt64 Argument);
+            [In] ulong Argument);
     }
 }

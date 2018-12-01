@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal enum IMAGE_DEBUG_TYPE
@@ -7,6 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         CODEVIEW = 2,
         FPO = 3,
         MISC = 4,
-        BBT = 10,
-    };
+        BBT = 10
+    }
 }

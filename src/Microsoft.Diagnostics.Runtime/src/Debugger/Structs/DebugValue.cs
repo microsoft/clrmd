@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -45,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [FieldOffset(0)]
         public fixed byte RawBytes[24];
         [FieldOffset(24)]
-        public UInt32 TailOfRawBytes;
+        public uint TailOfRawBytes;
         [FieldOffset(28)]
         public DEBUG_VALUE_TYPE Type;
     }

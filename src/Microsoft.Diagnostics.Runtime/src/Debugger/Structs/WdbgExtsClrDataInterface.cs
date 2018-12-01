@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -7,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public unsafe struct WDBGEXTS_CLR_DATA_INTERFACE
     {
         public Guid* Iid;
-        private void* _iface;
+        private readonly void* _iface;
 
         public WDBGEXTS_CLR_DATA_INTERFACE(Guid* iid)
         {
@@ -15,9 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             _iface = null;
         }
 
-        public object Interface
-        {
-            get { return (_iface != null) ? Marshal.GetObjectForIUnknown((IntPtr)_iface) : null; }
-        }
+        public object Interface => _iface != null ? Marshal.GetObjectForIUnknown((IntPtr)_iface) : null;
     }
 }

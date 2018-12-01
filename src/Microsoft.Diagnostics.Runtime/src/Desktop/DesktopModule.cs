@@ -1,52 +1,47 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopModule : DesktopBaseModule
     {
-        static PdbInfo s_failurePdb = new PdbInfo();
-        private readonly bool _reflection;
+        private static readonly PdbInfo s_failurePdb = new PdbInfo();
         private readonly bool _isPE;
-        private string _name;
-        private readonly string _assemblyName;
+        private readonly string _name;
         private MetaDataImport _metadata;
-        private Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
-        private ulong _address;
-        private ulong _imageBase;
-        private Lazy<ulong> _size;
-        private ulong _metadataStart;
-        private ulong _metadataLength;
+        private readonly Dictionary<ClrAppDomain, ulong> _mapping = new Dictionary<ClrAppDomain, ulong>();
+        private readonly ulong _address;
+        private readonly Lazy<ulong> _size;
         private DebuggableAttribute.DebuggingModes? _debugMode;
-        private ulong _assemblyAddress;
         private bool _typesLoaded;
-        ClrAppDomain[] _appDomainList;
-        PdbInfo _pdb;
+        private ClrAppDomain[] _appDomainList;
+        private PdbInfo _pdb;
 
         public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName)
             : base(runtime)
         {
             _address = address;
             Revision = runtime.Revision;
-            _imageBase = data.ImageBase;
-            _assemblyName = assemblyName;
+            ImageBase = data.ImageBase;
+            AssemblyName = assemblyName;
             _isPE = data.IsPEFile;
-            _reflection = data.IsReflection || string.IsNullOrEmpty(name);
+            IsDynamic = data.IsReflection || string.IsNullOrEmpty(name);
             _name = name;
             ModuleId = data.ModuleId;
             ModuleIndex = data.ModuleIndex;
-            _metadataStart = data.MetdataStart;
-            _metadataLength = data.MetadataLength;
-            _assemblyAddress = data.Assembly;
-            _size = new Lazy<ulong>(()=>runtime.GetModuleSize(address));
+            MetadataAddress = data.MetdataStart;
+            MetadataLength = data.MetadataLength;
+            AssemblyId = data.Assembly;
+            _size = new Lazy<ulong>(() => runtime.GetModuleSize(address));
 
             // This is very expensive in the minidump case, as we may be heading out to the symbol server or
             // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
@@ -54,13 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _metadata = new MetaDataImport(runtime.DacLibrary, data.LegacyMetaDataImport);
         }
 
-        public override ulong Address
-        {
-            get
-            {
-                return _address;
-            }
-        }
+        public override ulong Address => _address;
 
         public override PdbInfo Pdb
         {
@@ -84,11 +73,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-
         internal ulong GetMTForDomain(ClrAppDomain domain, DesktopHeapType type)
         {
             DesktopGCHeap heap = null;
-            var mtList = _runtime.GetMethodTableList(_mapping[domain]);
+            IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_mapping[domain]);
 
             bool hasToken = type.MetadataToken != 0 && type.MetadataToken != uint.MaxValue;
 
@@ -116,11 +104,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            var heap = (DesktopGCHeap)_runtime.Heap;
-            var mtList = _runtime.GetMethodTableList(_address);
+            DesktopGCHeap heap = (DesktopGCHeap)_runtime.Heap;
+            IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_address);
             if (_typesLoaded)
             {
-                foreach (var type in heap.EnumerateTypes())
+                foreach (ClrType type in heap.EnumerateTypes())
                     if (type.Module == this)
                         yield return type;
             }
@@ -128,13 +116,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (mtList != null)
                 {
-                    foreach (var pair in mtList)
+                    foreach (MethodTableTokenPair pair in mtList)
                     {
                         ulong mt = pair.MethodTable;
                         if (mt != _runtime.ArrayMethodTable)
                         {
                             // prefetch element type, as this also can load types
-                            var type = heap.GetTypeByMethodTable(mt, 0, 0);
+                            ClrType type = heap.GetTypeByMethodTable(mt, 0, 0);
                             if (type != null)
                                 yield return type;
                         }
@@ -145,32 +133,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override string AssemblyName
-        {
-            get { return _assemblyName; }
-        }
-
-        public override string Name
-        {
-            get { return _name; }
-        }
-
-        public override bool IsDynamic
-        {
-            get { return _reflection; }
-        }
-
-        public override bool IsFile
-        {
-            get { return _isPE; }
-        }
-
-        public override string FileName
-        {
-            get { return _isPE ? _name : null; }
-        }
-
-        internal ulong ModuleIndex { get; private set; }
+        public override string AssemblyName { get; }
+        public override string Name => _name;
+        public override bool IsDynamic { get; }
+        public override bool IsFile => _isPE;
+        public override string FileName => _isPE ? _name : null;
+        internal ulong ModuleIndex { get; }
 
         internal void AddMapping(ClrAppDomain domain, ulong domainModule)
         {
@@ -195,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetDomainModule(ClrAppDomain domain)
         {
-            var domains = _runtime.AppDomains;
+            IList<ClrAppDomain> domains = _runtime.AppDomains;
             if (domain == null)
             {
                 foreach (ulong addr in _mapping.Values)
@@ -217,40 +185,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_metadata != null)
                 return _metadata;
-            
+
             _metadata = _runtime.GetMetadataImport(_address);
             return _metadata;
         }
 
-        public override ulong ImageBase
-        {
-            get { return _imageBase; }
-        }
-
-
-        public override ulong Size
-        {
-            get
-            {
-                return _size.Value;
-            }
-        }
-
-
-        public override ulong MetadataAddress
-        {
-            get { return _metadataStart; }
-        }
-
-        public override ulong MetadataLength
-        {
-            get { return _metadataLength; }
-        }
-
-        public override object MetadataImport
-        {
-            get { return GetMetadataImport(); }
-        }
+        public override ulong ImageBase { get; }
+        public override ulong Size => _size.Value;
+        public override ulong MetadataAddress { get; }
+        public override ulong MetadataLength { get; }
+        public override object MetadataImport => GetMetadataImport();
 
         public override DebuggableAttribute.DebuggingModes DebuggingMode
         {
@@ -303,9 +247,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override ulong AssemblyId
-        {
-            get { return _assemblyAddress; }
-        }
+        public override ulong AssemblyId { get; }
     }
 }

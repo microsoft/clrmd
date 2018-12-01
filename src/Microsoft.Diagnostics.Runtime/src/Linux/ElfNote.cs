@@ -1,17 +1,20 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    class ElfNote
+    internal class ElfNote
     {
         private readonly Reader _reader;
         private readonly long _position;
         private string _name;
 
-        public ELFNoteHeader Header { get; }
+        public ElfNoteHeader Header { get; }
 
-        public ELFNoteType Type => Header.Type;
+        public ElfNoteType Type => Header.Type;
 
         public string Name
         {
@@ -28,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public long TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
 
-        private int HeaderSize => Marshal.SizeOf(typeof(ELFNoteHeader));
+        private int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
 
         public byte[] ReadContents(long position, int length)
         {
@@ -36,13 +39,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _reader.ReadBytes(position + contentsoffset, length);
         }
 
-        public T ReadContents<T>(long position, uint nameSize) where T: struct
+        public T ReadContents<T>(long position, uint nameSize)
+            where T : struct
         {
             long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
             return _reader.Read<T>(contentsoffset + position);
         }
-        
-        public T ReadContents<T>(ref long position) where T : struct
+
+        public T ReadContents<T>(ref long position)
+            where T : struct
         {
             long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
             long locationOrig = contentsOffset + position;
@@ -53,20 +58,21 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        public T ReadContents<T>(long position) where T : struct
+        public T ReadContents<T>(long position)
+            where T : struct
         {
             long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
             long location = contentsOffset + position;
             T result = _reader.Read<T>(location);
             return result;
         }
-        
+
         public ElfNote(Reader reader, long position)
         {
             _position = position;
             _reader = reader;
 
-            Header = _reader.Read<ELFNoteHeader>(_position);
+            Header = _reader.Read<ElfNoteHeader>(_position);
         }
 
         private uint Align4(uint x)

@@ -1,14 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime.Desktop;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public unsafe sealed class SOSStackRefEnum : CallableCOMWrapper
+    public sealed unsafe class SOSStackRefEnum : CallableCOMWrapper
     {
         private static Guid IID_ISOSStackRefEnum = new Guid("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
 
@@ -20,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             ISOSStackRefEnumVTable* vtable = (ISOSStackRefEnumVTable*)_vtable;
             InitDelegate(ref _next, vtable->Next);
         }
-        
+
         public int ReadStackReferences(StackRefData[] stackRefs)
         {
             if (stackRefs == null)
@@ -31,12 +30,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int Next(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray)] StackRefData[] stackRefs, out int pNeeded);
+        private delegate int Next(
+            IntPtr self,
+            int count,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            StackRefData[] stackRefs,
+            out int pNeeded);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
+
     internal struct ISOSStackRefEnumVTable
     {
         private readonly IntPtr Skip;

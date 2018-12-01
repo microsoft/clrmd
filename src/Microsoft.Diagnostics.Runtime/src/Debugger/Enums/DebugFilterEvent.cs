@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Interop
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum DEBUG_FILTER_EVENT : uint
     {
@@ -11,6 +15,6 @@
         SYSTEM_ERROR = 0x00000006,
         INITIAL_BREAKPOINT = 0x00000007,
         INITIAL_MODULE_LOAD = 0x00000008,
-        DEBUGGEE_OUTPUT = 0x00000009,
+        DEBUGGEE_OUTPUT = 0x00000009
     }
 }

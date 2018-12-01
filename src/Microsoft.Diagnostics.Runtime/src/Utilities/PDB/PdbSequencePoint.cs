@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -11,27 +12,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <summary>
         /// The IL offset of this line.
         /// </summary>
-        public uint Offset { get; private set; }
+        public uint Offset { get; }
 
         /// <summary>
         /// The first line of this sequence point.
         /// </summary>
-        public uint LineBegin { get; private set; }
+        public uint LineBegin { get; }
 
         /// <summary>
         /// The last line of this sequence point.
         /// </summary>
-        public uint LineEnd { get; private set; }
+        public uint LineEnd { get; }
 
         /// <summary>
         /// The first column of the first line of this sequence point.
         /// </summary>
-        public ushort ColBegin { get; private set; }
+        public ushort ColBegin { get; }
 
         /// <summary>
         /// The last column of the last line of this sequence point.
         /// </summary>
-        public ushort ColEnd { get; private set; }
+        public ushort ColEnd { get; }
 
         internal PdbSequencePoint(uint offset, uint lineBegin, ushort colBegin, uint lineEnd, ushort colEnd)
         {
@@ -48,9 +49,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         public override string ToString()
         {
             if (LineBegin == LineEnd)
-                return string.Format("iloffs: {0} line: {1}", Offset, LineBegin);
+                return $"iloffs: {Offset} line: {LineBegin}";
 
-            return string.Format("iloffs: {0} lines: {1}-{2}", Offset, LineBegin, LineEnd);
+            return $"iloffs: {Offset} lines: {LineBegin}-{LineEnd}";
         }
     }
 }

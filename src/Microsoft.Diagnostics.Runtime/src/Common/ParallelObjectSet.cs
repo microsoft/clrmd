@@ -1,12 +1,17 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class ParallelObjectSet : ObjectSet
     {
-        public ParallelObjectSet(ClrHeap heap) : base(heap) { }
+        public ParallelObjectSet(ClrHeap heap) : base(heap)
+        {
+        }
 
-        
         public override bool Contains(ulong obj)
         {
             if (GetSegment(obj, out HeapHashSegment seg))
@@ -32,18 +37,16 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         return false;
                     }
-                    else
-                    {
-                        seg.Objects.Set(offset, true);
-                        Count++;
-                        return true;
-                    }
+
+                    seg.Objects.Set(offset, true);
+                    Count++;
+                    return true;
                 }
             }
 
             return false;
         }
-        
+
         public override bool Remove(ulong obj)
         {
             if (GetSegment(obj, out HeapHashSegment seg))

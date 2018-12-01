@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -6,9 +9,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT
     {
-        public Int32 left;
-        public Int32 top;
-        public Int32 right;
-        public Int32 bottom;
+        public int left;
+        public int top;
+        public int right;
+        public int bottom;
     }
 }

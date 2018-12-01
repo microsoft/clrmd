@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -28,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            var release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
+            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
             return release(pUnk);
         }
     }

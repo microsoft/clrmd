@@ -1,6 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A visual display of the map entry.</returns>
         public override string ToString()
         {
-            return string.Format("{0,2:X} - [{1:X}-{2:X}]", ILOffset, StartAddress, EndAddress);
+            return $"{ILOffset,2:X} - [{StartAddress:X}-{EndAddress:X}]";
         }
 
 #pragma warning disable 0169
@@ -40,5 +40,4 @@ namespace Microsoft.Diagnostics.Runtime
         private int _reserved;
 #pragma warning restore 0169
     }
-
 }

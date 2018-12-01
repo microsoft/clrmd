@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,21 +9,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class LegacyGCHeap : DesktopGCHeap
     {
-        private ClrObject _lastObject = new ClrObject();
-        private Dictionary<TypeHandle, int> _indices = new Dictionary<TypeHandle, int>(TypeHandle.EqualityComparer);
+        private ClrObject _lastObject;
+        private readonly Dictionary<TypeHandle, int> _indices = new Dictionary<TypeHandle, int>(TypeHandle.EqualityComparer);
 
         public LegacyGCHeap(DesktopRuntimeBase runtime)
             : base(runtime)
         {
         }
 
-        public override bool HasComponentMethodTables
-        {
-            get
-            {
-                return true;
-            }
-        }
+        public override bool HasComponentMethodTables => true;
 
         public override ClrType GetTypeByMethodTable(ulong mt, ulong cmt)
         {
@@ -93,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else
             {
                 // No, so we'll have to construct it.
-                var moduleAddr = DesktopRuntime.GetModuleForMT(hnd.MethodTable);
+                ulong moduleAddr = DesktopRuntime.GetModuleForMT(hnd.MethodTable);
                 DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
                 uint token = DesktopRuntime.GetMetadataToken(mt);
 
@@ -114,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (mtData == null)
                         return null;
 
-                    ret = new DesktopHeapType(() => GetTypeName(hnd, module, token), module, token, mt, mtData, this) { ComponentType = componentType };
+                    ret = new DesktopHeapType(() => GetTypeName(hnd, module, token), module, token, mt, mtData, this) {ComponentType = componentType};
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);
                     _indices[hnd] = index;
@@ -141,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (IsHeapCached)
                 return base.GetObjectType(objRef);
 
-            var cache = MemoryReader;
+            MemoryReader cache = MemoryReader;
             if (cache.Contains(objRef))
             {
                 if (!cache.ReadPtr(objRef, out mt))
@@ -159,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 mt = DesktopRuntime.DataReader.ReadPointerUnsafe(objRef);
             }
 
-            if ((((int)mt) & 3) != 0)
+            if (((int)mt & 3) != 0)
                 mt &= ~3UL;
 
             if (mt == DesktopRuntime.ArrayMethodTable)

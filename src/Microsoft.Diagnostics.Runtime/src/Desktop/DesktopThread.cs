@@ -1,39 +1,20 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThread : ThreadBase
     {
-        internal DesktopRuntimeBase DesktopRuntime
-        {
-            get
-            {
-                return _runtime;
-            }
-        }
+        internal DesktopRuntimeBase DesktopRuntime { get; }
+        internal ICorDebugThread CorDebugThread => DesktopRuntime.GetCorDebugThread(OSThreadId);
+        public override ClrRuntime Runtime => DesktopRuntime;
 
-        internal ICorDebugThread CorDebugThread
-        {
-            get
-            {
-                return DesktopRuntime.GetCorDebugThread(OSThreadId);
-            }
-        }
-
-        public override ClrRuntime Runtime
-        {
-            get
-            {
-                return _runtime;
-            }
-        }
-        
         public override ClrException CurrentException
         {
             get
@@ -42,14 +23,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (ex == 0)
                     return null;
 
-                if (!_runtime.ReadPointer(ex, out ex) || ex == 0)
+                if (!DesktopRuntime.ReadPointer(ex, out ex) || ex == 0)
                     return null;
 
-                return _runtime.Heap.GetExceptionObject(ex);
+                return DesktopRuntime.Heap.GetExceptionObject(ex);
             }
         }
-        
-        
+
         public override ulong StackBase
         {
             get
@@ -58,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return 0;
 
                 ulong ptr = _teb + (ulong)IntPtr.Size;
-                if (!_runtime.ReadPointer(ptr, out ptr))
+                if (!DesktopRuntime.ReadPointer(ptr, out ptr))
                     return 0;
 
                 return ptr;
@@ -73,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return 0;
 
                 ulong ptr = _teb + (ulong)IntPtr.Size * 2;
-                if (!_runtime.ReadPointer(ptr, out ptr))
+                if (!DesktopRuntime.ReadPointer(ptr, out ptr))
                     return 0;
 
                 return ptr;
@@ -82,13 +62,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrRoot> EnumerateStackObjects()
         {
-            return _runtime.EnumerateStackReferences(this, true);
+            return DesktopRuntime.EnumerateStackReferences(this, true);
         }
-
 
         public override IEnumerable<ClrRoot> EnumerateStackObjects(bool includePossiblyDead)
         {
-            return _runtime.EnumerateStackReferences(this, includePossiblyDead);
+            return DesktopRuntime.EnumerateStackReferences(this, includePossiblyDead);
         }
 
         public override IList<ClrStackFrame> StackTrace
@@ -103,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     int spCount = 0;
 
                     int max = 4096;
-                    foreach (ClrStackFrame frame in _runtime.EnumerateStackFrames(this))
+                    foreach (ClrStackFrame frame in DesktopRuntime.EnumerateStackFrames(this))
                     {
                         // We only allow a maximum of 4096 frames to be enumerated out of this stack trace to
                         // ensure we don't hit degenerate cases of stack unwind where we never make progress
@@ -129,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     _stackTrace = frames.ToArray();
                 }
-                
+
                 return _stackTrace;
             }
         }
@@ -168,17 +147,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace()
         {
-            return _runtime.EnumerateStackFrames(this);
+            return DesktopRuntime.EnumerateStackFrames(this);
         }
 
         public override IList<BlockingObject> BlockingObjects
         {
             get
             {
-                ((DesktopGCHeap)_runtime.Heap).InitLockInspection();
+                ((DesktopGCHeap)DesktopRuntime.Heap).InitLockInspection();
 
                 if (_blockingObjs == null)
                     return new BlockingObject[0];
+
                 return _blockingObjs;
             }
         }
@@ -186,11 +166,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal DesktopThread(DesktopRuntimeBase clr, IThreadData thread, ulong address, bool finalizer)
             : base(thread, address, finalizer)
         {
-            _runtime = clr;
+            DesktopRuntime = clr;
         }
 
-        
-        private DesktopRuntimeBase _runtime;
         private bool _corDebugInit;
     }
 }

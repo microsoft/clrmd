@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 
@@ -12,17 +13,45 @@ namespace Microsoft.Diagnostics.Runtime
         private static int _ipOffset;
         private static int _spOffset;
 
-        public static uint ContextFlags { get { return 0x1003f; } }
-        public static byte[] Context { get { Init(); return _context; } }
-        public static int InstructionPointerOffset { get { Init(); return _ipOffset; } }
-        public static int StackPointerOffset { get { Init(); return _spOffset; } }
-        public static uint Length { get { Init(); return (uint)_context.Length; } }
+        public static uint ContextFlags => 0x1003f;
+        public static byte[] Context
+        {
+            get
+            {
+                Init();
+                return _context;
+            }
+        }
+        public static int InstructionPointerOffset
+        {
+            get
+            {
+                Init();
+                return _ipOffset;
+            }
+        }
+        public static int StackPointerOffset
+        {
+            get
+            {
+                Init();
+                return _spOffset;
+            }
+        }
+        public static uint Length
+        {
+            get
+            {
+                Init();
+                return (uint)_context.Length;
+            }
+        }
 
-        static void Init()
+        private static void Init()
         {
             if (_context != null)
                 return;
-            
+
             if (IntPtr.Size == 4)
             {
                 _ipOffset = 184;

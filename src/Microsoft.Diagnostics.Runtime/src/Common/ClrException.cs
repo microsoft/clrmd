@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -15,27 +16,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the ClrType for this exception object.
         /// </summary>
-        abstract public ClrType Type { get; }
+        public abstract ClrType Type { get; }
 
         /// <summary>
         /// Returns the exception message.
         /// </summary>
-        abstract public string Message { get; }
+        public abstract string Message { get; }
 
         /// <summary>
         /// Returns the address of the exception object.
         /// </summary>
-        abstract public ulong Address { get; }
+        public abstract ulong Address { get; }
 
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.
         /// </summary>
-        abstract public ClrException Inner { get; }
+        public abstract ClrException Inner { get; }
 
         /// <summary>
         /// Returns the HRESULT associated with this exception (or S_OK if there isn't one).
         /// </summary>
-        abstract public int HResult { get; }
+        public abstract int HResult { get; }
 
         /// <summary>
         /// Returns the StackTrace for this exception.  Note that this may be empty or partial depending
@@ -43,7 +44,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// the middle of constructing the stackwalk.)  This returns an empty list if no stack trace is
         /// associated with this exception object.
         /// </summary>
-        abstract public IList<ClrStackFrame> StackTrace { get; }
+        public abstract IList<ClrStackFrame> StackTrace { get; }
     }
-
 }

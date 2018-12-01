@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -9,6 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         INT32 = 1,
         INT64 = 2,
         FLOAT = 4,
-        ALL = 7,
+        ALL = 7
     }
 }

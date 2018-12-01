@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Interop
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum DEBUG_DUMP : uint
     {
@@ -10,6 +14,6 @@
         WINDOWS_CD = 1029,
         KERNEL_DUMP = 1025,
         KERNEL_SMALL_DUMP = 1024,
-        KERNEL_FULL_DUMP = 1026,
+        KERNEL_FULL_DUMP = 1026
     }
 }

@@ -1,31 +1,30 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Interop;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class DataTargetImpl : DataTarget
     {
-        private IDataReader _dataReader;
-        private IDebugClient _client;
-        private Architecture _architecture;
+        private readonly IDataReader _dataReader;
         private ClrInfo[] _versions;
         private ModuleInfo _native;
 
-        private Lazy<ModuleInfo[]> _modules;
-        private List<DacLibrary> _dacLibraries = new List<DacLibrary>(2);
-        
+        private readonly Lazy<ModuleInfo[]> _modules;
+        private readonly List<DacLibrary> _dacLibraries = new List<DacLibrary>(2);
+
         public DataTargetImpl(IDataReader dataReader, IDebugClient client)
         {
-            _dataReader = dataReader ?? throw new ArgumentNullException("dataReader");
-            _client = client;
-            _architecture = _dataReader.GetArchitecture();
+            _dataReader = dataReader ?? throw new ArgumentNullException(nameof(dataReader));
+            DebuggerInterface = client;
+            Architecture = _dataReader.GetArchitecture();
             _modules = new Lazy<ModuleInfo[]>(InitModules);
         }
 
@@ -40,28 +39,13 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public override IDataReader DataReader
-        {
-            get
-            {
-                return _dataReader;
-            }
-        }
+        public override IDataReader DataReader => _dataReader;
 
-        public override bool IsMinidump
-        {
-            get { return _dataReader.IsMinidump; }
-        }
+        public override bool IsMinidump => _dataReader.IsMinidump;
 
-        public override Architecture Architecture
-        {
-            get { return _architecture; }
-        }
+        public override Architecture Architecture { get; }
 
-        public override uint PointerSize
-        {
-            get { return _dataReader.GetPointerSize(); }
-        }
+        public override uint PointerSize => _dataReader.GetPointerSize();
 
         public override IList<ClrInfo> ClrVersions
         {
@@ -79,10 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
-        public override IDebugClient DebuggerInterface
-        {
-            get { return _client; }
-        }
+        public override IDebugClient DebuggerInterface { get; }
 
         public override IEnumerable<ModuleInfo> EnumerateModules()
         {
@@ -92,18 +73,18 @@ namespace Microsoft.Diagnostics.Runtime
         private ModuleInfo FindModule(ulong addr)
         {
             // TODO: Make binary search.
-            foreach (var module in _modules.Value)
+            foreach (ModuleInfo module in _modules.Value)
                 if (module.ImageBase <= addr && addr < module.ImageBase + module.FileSize)
                     return module;
 
             return null;
         }
 
-        private static Regex s_invalidChars = new Regex($"[{Regex.Escape(new string(System.IO.Path.GetInvalidPathChars()))}]");
+        private static readonly Regex s_invalidChars = new Regex($"[{Regex.Escape(new string(Path.GetInvalidPathChars()))}]");
 
         private ModuleInfo[] InitModules()
         {
-            var sortedModules = new List<ModuleInfo>(_dataReader.EnumerateModules().Where(m => !s_invalidChars.IsMatch(m.FileName)));
+            List<ModuleInfo> sortedModules = new List<ModuleInfo>(_dataReader.EnumerateModules().Where(m => !s_invalidChars.IsMatch(m.FileName)));
             sortedModules.Sort((a, b) => a.ImageBase.CompareTo(b.ImageBase));
             return sortedModules.ToArray();
         }
@@ -111,7 +92,6 @@ namespace Microsoft.Diagnostics.Runtime
 #pragma warning disable 0618
         private ClrInfo[] InitVersions()
         {
-
             List<ClrInfo> versions = new List<ClrInfo>();
             foreach (ModuleInfo module in EnumerateModules())
             {
@@ -169,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime
                 versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
             }
 
-            var result = versions.ToArray();
+            ClrInfo[] result = versions.ToArray();
             Array.Sort(result);
             return result;
         }
@@ -183,6 +163,9 @@ namespace Microsoft.Diagnostics.Runtime
                 library.Dispose();
         }
 
-        internal override void AddDacLibrary(DacLibrary dacLibrary) => _dacLibraries.Add(dacLibrary);
+        internal override void AddDacLibrary(DacLibrary dacLibrary)
+        {
+            _dacLibraries.Add(dacLibrary);
+        }
     }
 }

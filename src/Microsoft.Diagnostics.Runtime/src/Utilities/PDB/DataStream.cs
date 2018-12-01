@@ -1,8 +1,6 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using System;
-using System.IO;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -14,11 +12,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 
         internal DataStream(int contentSize, BitAccess bits, int count)
         {
-            this._contentSize = contentSize;
+            _contentSize = contentSize;
             if (count > 0)
             {
-                this._pages = new int[count];
-                bits.ReadInt32(this._pages);
+                _pages = new int[count];
+                bits.ReadInt32(_pages);
             }
         }
 
@@ -28,15 +26,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             Read(reader, 0, bits.Buffer, 0, _contentSize);
         }
 
-        internal void Read(PdbStreamHelper reader, int position,
-                         byte[] bytes, int offset, int data)
+        internal void Read(
+            PdbStreamHelper reader,
+            int position,
+            byte[] bytes,
+            int offset,
+            int data)
         {
             if (position + data > _contentSize)
             {
-                throw new PdbException("DataStream can't read off end of stream. " +
-                                               "(pos={0},siz={1})",
-                                       position, data);
+                throw new PdbException(
+                    "DataStream can't read off end of stream. " +
+                    "(pos={0},siz={1})",
+                    position,
+                    data);
             }
+
             if (position == _contentSize)
             {
                 return;
@@ -81,11 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
         }
 
-        internal int Length
-        {
-            get { return _contentSize; }
-        }
-
+        internal int Length => _contentSize;
 
         internal int _contentSize;
         internal int[] _pages;

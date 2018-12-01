@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -7,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct LANGANDCODEPAGE
     {
         [FieldOffset(0)]
-        public UInt16 wLanguage;
+        public ushort wLanguage;
         [FieldOffset(2)]
-        public UInt16 wCodePage;
+        public ushort wCodePage;
     }
 }

@@ -1,4 +1,8 @@
-﻿using System.Linq;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System.Linq;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -8,37 +12,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestAllFinalizableObjects()
         {
-            using (var dt = TestTargets.FinalizationQueue.LoadFullDump())
+            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var targetObjectsCount = 0;
-                
-                foreach (var address in runtime.Heap.EnumerateFinalizableObjectAddresses())
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                int targetObjectsCount = 0;
+
+                foreach (ulong address in runtime.Heap.EnumerateFinalizableObjectAddresses())
                 {
-                    var type = runtime.Heap.GetObjectType(address);
+                    ClrType type = runtime.Heap.GetObjectType(address);
                     if (type.Name == "DieFastA")
                         targetObjectsCount++;
                 }
-        
+
                 Assert.Equal(42, targetObjectsCount);
             }
         }
-        
+
         [Fact]
         public void TestFinalizerQueueObjects()
         {
-            using (var dt = TestTargets.FinalizationQueue.LoadFullDump())
+            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
             {
-                var runtime = dt.ClrVersions.Single().CreateRuntime();
-                var targetObjectsCount = 0;
-                
-                foreach (var address in runtime.EnumerateFinalizerQueueObjectAddresses())
+                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                int targetObjectsCount = 0;
+
+                foreach (ulong address in runtime.EnumerateFinalizerQueueObjectAddresses())
                 {
-                    var type = runtime.Heap.GetObjectType(address);
+                    ClrType type = runtime.Heap.GetObjectType(address);
                     if (type.Name == "DieFastB")
                         targetObjectsCount++;
                 }
-        
+
                 Assert.Equal(13, targetObjectsCount);
             }
         }

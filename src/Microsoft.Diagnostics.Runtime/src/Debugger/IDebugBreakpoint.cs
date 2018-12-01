@@ -1,32 +1,35 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using System;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 
 #pragma warning disable 1591
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("5bd9d474-5975-423a-b88b-65a8e7110e65")]
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("5bd9d474-5975-423a-b88b-65a8e7110e65")]
     public interface IDebugBreakpoint
     {
         /* IDebugBreakpoint */
 
         [PreserveSig]
         int GetId(
-            [Out] out UInt32 Id);
+            [Out] out uint Id);
 
         [PreserveSig]
         int GetType(
             [Out] out DEBUG_BREAKPOINT_TYPE BreakType,
-            [Out] out UInt32 ProcType);
+            [Out] out uint ProcType);
 
         //FIX ME!!! Should try and get an enum for this
         [PreserveSig]
         int GetAdder(
-            [Out, MarshalAs(UnmanagedType.Interface)] out IDebugClient Adder);
+            [Out][MarshalAs(UnmanagedType.Interface)]
+            out IDebugClient Adder);
 
         [PreserveSig]
         int GetFlags(
@@ -46,61 +49,61 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
 
         [PreserveSig]
         int SetOffset(
-            [In] UInt64 Offset);
+            [In] ulong Offset);
 
         [PreserveSig]
         int GetDataParameters(
-            [Out] out UInt32 Size,
+            [Out] out uint Size,
             [Out] out DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
 
         [PreserveSig]
         int SetDataParameters(
-            [In] UInt32 Size,
+            [In] uint Size,
             [In] DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
 
         [PreserveSig]
         int GetPassCount(
-            [Out] out UInt32 Count);
+            [Out] out uint Count);
 
         [PreserveSig]
         int SetPassCount(
-            [In] UInt32 Count);
+            [In] uint Count);
 
         [PreserveSig]
         int GetCurrentPassCount(
-            [Out] out UInt32 Count);
+            [Out] out uint Count);
 
         [PreserveSig]
         int GetMatchThreadId(
-            [Out] out UInt32 Id);
+            [Out] out uint Id);
 
         [PreserveSig]
         int SetMatchThreadId(
-            [In] UInt32 Thread);
+            [In] uint Thread);
 
         [PreserveSig]
         int GetCommand(
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] Int32 BufferSize,
-            [Out] out UInt32 CommandSize);
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
+            [In] int BufferSize,
+            [Out] out uint CommandSize);
 
         [PreserveSig]
         int SetCommand(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Command);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Command);
 
         [PreserveSig]
         int GetOffsetExpression(
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] Int32 BufferSize,
-            [Out] out UInt32 ExpressionSize);
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
+            [In] int BufferSize,
+            [Out] out uint ExpressionSize);
 
         [PreserveSig]
         int SetOffsetExpression(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Expression);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Expression);
 
         [PreserveSig]
         int GetParameters(

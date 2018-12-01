@@ -1,9 +1,13 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Interop
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum DEBUG_SERVERS : uint
     {
         DEBUGGER = 1,
         PROCESS = 2,
-        ALL = 3,
+        ALL = 3
     }
 }

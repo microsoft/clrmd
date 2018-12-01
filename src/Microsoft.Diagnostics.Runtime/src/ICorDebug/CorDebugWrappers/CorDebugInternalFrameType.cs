@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
     public enum CorDebugInternalFrameType
@@ -12,6 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         STUBFRAME_CLASS_INIT,
         STUBFRAME_EXCEPTION,
         STUBFRAME_SECURITY,
-        STUBFRAME_JIT_COMPILATION,
+        STUBFRAME_JIT_COMPILATION
     }
 }

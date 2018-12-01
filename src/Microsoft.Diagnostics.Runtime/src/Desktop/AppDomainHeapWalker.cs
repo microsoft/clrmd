@@ -1,16 +1,16 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class AppDomainHeapWalker
     {
-        #region Variables
         private enum InternalHeapTypes
         {
             IndcellHeap,
@@ -20,17 +20,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             CacheEntryHeap
         }
 
-        private List<MemoryRegion> _regions = new List<MemoryRegion>();
-        private SOSDac.LoaderHeapTraverse _delegate;
+        private readonly List<MemoryRegion> _regions = new List<MemoryRegion>();
+        private readonly SOSDac.LoaderHeapTraverse _delegate;
         private ClrMemoryRegionType _type;
         private ulong _appDomain;
-        private DesktopRuntimeBase _runtime;
-        #endregion
+        private readonly DesktopRuntimeBase _runtime;
 
         public AppDomainHeapWalker(DesktopRuntimeBase runtime)
         {
             _runtime = runtime;
-            _delegate = new SOSDac.LoaderHeapTraverse(VisitOneHeap);
+            _delegate = VisitOneHeap;
         }
 
         public IEnumerable<MemoryRegion> EnumerateHeaps(IAppDomainData appDomain)
@@ -101,7 +100,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _regions;
         }
 
-        #region Helper Functions
         private void VisitOneHeap(ulong address, IntPtr size, int isCurrent)
         {
             if (_appDomain == 0)
@@ -109,7 +107,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else
                 _regions.Add(new MemoryRegion(_runtime, address, (ulong)size.ToInt64(), _type, _appDomain));
         }
-        #endregion
-
     }
 }

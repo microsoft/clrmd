@@ -1,19 +1,20 @@
-﻿using Microsoft.Diagnostics.Runtime.ICorDebug;
-using Microsoft.Diagnostics.Runtime.Interop;
-using Microsoft.Diagnostics.Runtime.Utilities;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
+using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using IMAGE_DATA_DIRECTORY = Microsoft.Diagnostics.Runtime.Utilities.IMAGE_DATA_DIRECTORY;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe class DacDataTargetWrapper : COMCallableIUnknown, ICorDebugDataTarget
+    internal unsafe class DacDataTargetWrapper : COMCallableIUnknown, ICorDebugDataTarget
     {
         private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
@@ -29,9 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
             _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
+            Array.Sort(_modules, delegate(ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
 
-            VtableBuilder builder = AddInterface(IID_IDacDataTarget);
+            VTableBuilder builder = AddInterface(IID_IDacDataTarget);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
             builder.AddMethod(new GetPointerSizeDelegate(GetPointerSize));
             builder.AddMethod(new GetImageBaseDelegate(GetImageBase));
@@ -48,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
         }
-        
+
         public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesRead)
         {
             if (ReadVirtual(self, address, buffer, (int)bytesRequested, out int read) >= 0)
@@ -63,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
-            var arch = _dataReader.GetArchitecture();
+            Architecture arch = _dataReader.GetArchitecture();
 
             switch (arch)
             {
@@ -98,7 +99,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
                 if (curr.ImageBase <= address && address < curr.ImageBase + curr.FileSize)
                     return curr;
-                else if (curr.ImageBase < address)
+
+                if (curr.ImageBase < address)
                     min = i + 1;
                 else
                     max = i - 1;
@@ -131,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public unsafe int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             if (_dataReader.ReadMemory(address, buffer, bytesRequested, out int read))
             {
@@ -146,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (Path.GetExtension(info.FileName).ToLower() == ".so")
                 {
                     // TODO
-                    System.Diagnostics.Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
+                    Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
                     return E_NOTIMPL;
                 }
 
@@ -180,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     file.FreeBuff(peBuffer);
                 }
             }
-            
+
             return E_FAIL;
         }
 
@@ -244,8 +246,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_NOTIMPL;
         }
 
-        
-        public int GetMetadata(IntPtr self, string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize)
+        public int GetMetadata(
+            IntPtr self,
+            string filename,
+            uint imageTimestamp,
+            uint imageSize,
+            IntPtr mvid,
+            uint mdRva,
+            uint flags,
+            uint bufferSize,
+            byte[] buffer,
+            IntPtr dataSize)
         {
             string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
             if (filePath == null)
@@ -256,14 +267,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (file == null)
                 return E_FAIL;
 
-            var comDescriptor = file.Header.ComDescriptorDirectory;
+            IMAGE_DATA_DIRECTORY comDescriptor = file.Header.ComDescriptorDirectory;
             if (comDescriptor.VirtualAddress == 0)
                 return E_FAIL;
 
             PEBuffer peBuffer = file.AllocBuff();
             if (mdRva == 0)
             {
-                IntPtr hdr = file.SafeFetchRVA((int)comDescriptor.VirtualAddress, (int)comDescriptor.Size, peBuffer);
+                IntPtr hdr = file.SafeFetchRVA(comDescriptor.VirtualAddress, comDescriptor.Size, peBuffer);
 
                 IMAGE_COR20_HEADER corhdr = (IMAGE_COR20_HEADER)Marshal.PtrToStructure(hdr, typeof(IMAGE_COR20_HEADER));
                 if (bufferSize < corhdr.MetaData.Size)
@@ -283,10 +294,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return S_OK;
         }
 
-
         CorDebugPlatform ICorDebugDataTarget.GetPlatform()
         {
-            var arch = _dataReader.GetArchitecture();
+            Architecture arch = _dataReader.GetArchitecture();
 
             switch (arch)
             {
@@ -318,64 +328,83 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 throw new Exception();
         }
 
-        #region Delegates
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetMetadataDelegate(IntPtr self, [In, MarshalAs(UnmanagedType.LPWStr)] string filename, uint imageTimestamp, uint imageSize, IntPtr mvid, uint mdRva, uint flags, uint bufferSize, byte[] buffer, IntPtr dataSize);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetPointerSizeDelegate(IntPtr self, out uint pointerSize);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetImageBaseDelegate(IntPtr self, [In, MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int ReadVirtualDelegate(IntPtr self, ulong address,
-                        IntPtr buffer,
-                        int bytesRequested,
-                        out int bytesRead);
-
+        private delegate int GetMetadataDelegate(
+            IntPtr self,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string filename,
+            uint imageTimestamp,
+            uint imageSize,
+            IntPtr mvid,
+            uint mdRva,
+            uint flags,
+            uint bufferSize,
+            byte[] buffer,
+            IntPtr dataSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int WriteVirtualDelegate(IntPtr self, ulong address,
-                         IntPtr buffer,
-                         uint bytesRequested,
-                         out uint bytesWritten);
+        private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetTLSValueDelegate(IntPtr self, uint threadID,
-                            uint index,
-                            out ulong value);
+        private delegate int GetPointerSizeDelegate(IntPtr self, out uint pointerSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int SetTLSValueDelegate(IntPtr self, uint threadID,
-                        uint index,
-                        ulong value);
+        private delegate int GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
+        private delegate int ReadVirtualDelegate(
+            IntPtr self,
+            ulong address,
+            IntPtr buffer,
+            int bytesRequested,
+            out int bytesRead);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetThreadContextDelegate(IntPtr self, uint threadID,
-                             uint contextFlags,
-                             uint contextSize,
-                             IntPtr context);
-
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int SetThreadContextDelegate(IntPtr self, uint threadID,
-                              uint contextSize,
-                              IntPtr context);
+        private delegate int WriteVirtualDelegate(
+            IntPtr self,
+            ulong address,
+            IntPtr buffer,
+            uint bytesRequested,
+            out uint bytesWritten);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int RequestDelegate(IntPtr self, uint reqCode,
-                    uint inBufferSize,
-                    IntPtr inBuffer,
-                    IntPtr outBufferSize,
-                    out IntPtr outBuffer);
+        private delegate int GetTLSValueDelegate(
+            IntPtr self,
+            uint threadID,
+            uint index,
+            out ulong value);
 
-        #endregion
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int SetTLSValueDelegate(
+            IntPtr self,
+            uint threadID,
+            uint index,
+            ulong value);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetThreadContextDelegate(
+            IntPtr self,
+            uint threadID,
+            uint contextFlags,
+            uint contextSize,
+            IntPtr context);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int SetThreadContextDelegate(
+            IntPtr self,
+            uint threadID,
+            uint contextSize,
+            IntPtr context);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int RequestDelegate(
+            IntPtr self,
+            uint reqCode,
+            uint inBufferSize,
+            IntPtr inBuffer,
+            IntPtr outBufferSize,
+            out IntPtr outBuffer);
     }
 }

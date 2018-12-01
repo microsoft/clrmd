@@ -1,13 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
 
@@ -20,22 +21,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         v45
     }
 
-    abstract internal class DesktopRuntimeBase : RuntimeBase
+    internal abstract class DesktopRuntimeBase : RuntimeBase
     {
-        #region Variables
         protected CommonMethodTables _commonMTs;
-        private Dictionary<uint, ICorDebug.ICorDebugThread> _corDebugThreads;
-        private ClrModule[] _moduleList = null;
+        private Dictionary<uint, ICorDebugThread> _corDebugThreads;
+        private ClrModule[] _moduleList;
         private Lazy<List<ClrThread>> _threads;
         private Lazy<DesktopGCHeap> _heap;
         private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
-        private Lazy<Dictionary<ulong, uint>> _moduleSizes;
+        private readonly Lazy<Dictionary<ulong, uint>> _moduleSizes;
         private Dictionary<ulong, DesktopModule> _modules = new Dictionary<ulong, DesktopModule>();
         private Dictionary<string, DesktopModule> _moduleFiles = new Dictionary<string, DesktopModule>();
         private Lazy<ClrModule> _mscorlib;
-        #endregion
 
         internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -48,7 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _mscorlib = new Lazy<ClrModule>(GetMscorlib);
         }
 
-
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
         /// but expect different results.  For example, after walking the heap, you need to call Flush before
@@ -60,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Revision++;
             _dacInterface.Flush();
-            
+
             MemoryReader = null;
             _moduleList = null;
             _modules = new Dictionary<ulong, DesktopModule>();
@@ -112,12 +110,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             foreach (uint thread in _dataReader.EnumerateAllThreads())
             {
                 ulong teb = _dataReader.GetThreadTeb(thread);
-                int threadType = DesktopThread.GetTlsSlotForThread(this, teb);
-                if ((threadType & (int)DesktopThread.TlsThreadType.ThreadType_GC) == (int)DesktopThread.TlsThreadType.ThreadType_GC)
+                int threadType = ThreadBase.GetTlsSlotForThread(this, teb);
+                if ((threadType & (int)ThreadBase.TlsThreadType.ThreadType_GC) == (int)ThreadBase.TlsThreadType.ThreadType_GC)
                     yield return (int)thread;
             }
         }
-
 
         /// <summary>
         /// Returns the version of the target process (v2, v4, v45)
@@ -129,33 +126,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// <summary>
         /// Returns the pointer size of the target process.
         /// </summary>
-        public override int PointerSize
-        {
-            get
-            {
-                return IntPtr.Size;
-            }
-        }
+        public override int PointerSize => IntPtr.Size;
 
         /// <summary>
         /// Returns the MethodTable for an array of objects.
         /// </summary>
-        public ulong ArrayMethodTable
-        {
-            get
-            {
-                return _commonMTs.ArrayMethodTable;
-            }
-        }
-
+        public ulong ArrayMethodTable => _commonMTs.ArrayMethodTable;
 
         public override CcwData GetCcwDataByAddress(ulong addr)
         {
-            var ccw = GetCCWData(addr);
+            ICCWData ccw = GetCCWData(addr);
             if (ccw == null)
                 return null;
 
-            return new DesktopCCWData((DesktopGCHeap)_heap.Value, addr, ccw);
+            return new DesktopCCWData(_heap.Value, addr, ccw);
         }
 
         internal ICorDebugThread GetCorDebugThread(uint osid)
@@ -204,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IThreadData thread = GetThread(addr);
 
             // Ensure we don't hit an infinite loop
-            HashSet<ulong> seen = new HashSet<ulong> { addr };
+            HashSet<ulong> seen = new HashSet<ulong> {addr};
             while (thread != null)
             {
                 threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
@@ -219,45 +203,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return threads;
         }
 
-        public ulong ExceptionMethodTable { get { return _commonMTs.ExceptionMethodTable; } }
-        public ulong ObjectMethodTable
-        {
-            get
-            {
-                return _commonMTs.ObjectMethodTable;
-            }
-        }
+        public ulong ExceptionMethodTable => _commonMTs.ExceptionMethodTable;
+        public ulong ObjectMethodTable => _commonMTs.ObjectMethodTable;
 
         /// <summary>
         /// Returns the MethodTable for string objects.
         /// </summary>
-        public ulong StringMethodTable
-        {
-            get
-            {
-                return _commonMTs.StringMethodTable;
-            }
-        }
+        public ulong StringMethodTable => _commonMTs.StringMethodTable;
 
         /// <summary>
         /// Returns the MethodTable for free space markers.
         /// </summary>
-        public ulong FreeMethodTable
-        {
-            get
-            {
-                return _commonMTs.FreeMethodTable;
-            }
-        }
+        public ulong FreeMethodTable => _commonMTs.FreeMethodTable;
 
         public override ClrHeap Heap => _heap.Value;
-        
+
         private DesktopGCHeap CreateHeap()
         {
             if (HasArrayComponentMethodTables)
                 return new LegacyGCHeap(this);
-            else
-                return  new V46GCHeap(this);
+
+            return new V46GCHeap(this);
         }
 
         public override ClrThreadPool ThreadPool => _threadpool.Value;
@@ -328,7 +294,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     Debug.Assert(segment.Start < segment.Committed);
 
-                    GCSegmentType type = (segment.Address == heaps[i].EphemeralSegment) ? GCSegmentType.Ephemeral : GCSegmentType.Regular;
+                    GCSegmentType type = segment.Address == heaps[i].EphemeralSegment ? GCSegmentType.Ephemeral : GCSegmentType.Regular;
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, type);
 
                     if (segment.Committed <= segment.Reserved)
@@ -338,13 +304,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         break;
                     }
-                    else
-                    {
-                        if (!addresses.Add(segment.Next))
-                            break;
 
-                        segment = GetSegmentData(segment.Next);
-                    }
+                    if (!addresses.Add(segment.Next))
+                        break;
+
+                    segment = GetSegmentData(segment.Next);
                 }
 
                 segment = GetSegmentData(heaps[i].FirstLargeHeapSegment);
@@ -355,19 +319,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     yield return new MemoryRegion(this, segment.Start, segment.Committed - segment.Start, ClrMemoryRegionType.GCSegment, (uint)i, GCSegmentType.LargeObject);
 
                     if (segment.Committed <= segment.Reserved)
-                        yield return new MemoryRegion(this, segment.Committed, segment.Reserved - segment.Committed, ClrMemoryRegionType.ReservedGCSegment, (uint)i, GCSegmentType.LargeObject);
+                        yield return new MemoryRegion(
+                            this,
+                            segment.Committed,
+                            segment.Reserved - segment.Committed,
+                            ClrMemoryRegionType.ReservedGCSegment,
+                            (uint)i,
+                            GCSegmentType.LargeObject);
 
                     if (segment.Address == segment.Next || segment.Address == 0)
                     {
                         break;
                     }
-                    else
-                    {
-                        if (!addresses.Add(segment.Next))
-                            break;
 
-                        segment = GetSegmentData(segment.Next);
-                    }
+                    if (!addresses.Add(segment.Next))
+                        break;
+
+                    segment = GetSegmentData(segment.Next);
                 }
             }
 
@@ -422,7 +390,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-
             // Enumerate each JIT code heap.
             regions.Clear();
             foreach (ICodeHeap jitHeap in EnumerateJitHeaps())
@@ -447,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// </summary>
         internal override ClrAppDomain GetAppDomainByAddress(ulong address)
         {
-            foreach (var ad in AppDomains)
+            foreach (ClrAppDomain ad in AppDomains)
                 if (ad.Address == address)
                     return ad;
 
@@ -488,7 +455,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        #region Internal Functions
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0 || _dataReader.IsMinidump);
@@ -533,8 +499,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ulong thread = GetThreadFromThinlock(threadId);
             if (thread == 0)
                 return null;
-            
-            foreach (var clrThread in _threads.Value)
+
+            foreach (ClrThread clrThread in _threads.Value)
                 if (clrThread.Address == thread)
                     return clrThread;
 
@@ -549,7 +515,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     if (!_appDomains.IsValueCreated)
                     {
-                        var value = _appDomains.Value;
+                        DomainContainer value = _appDomains.Value;
                     }
 
                     _moduleList = UniqueModules(_modules.Values).ToArray();
@@ -565,9 +531,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             ClrModule mscorlib = null;
             string moduleName = ClrInfo.Flavor == ClrFlavor.Core
-                                    ? "system.private.corelib"
-                                    : "mscorlib";
-
+                ? "system.private.corelib"
+                : "mscorlib";
 
             foreach (ClrModule module in _modules.Values)
                 if (module.Name.ToLowerInvariant().Contains(moduleName))
@@ -595,7 +560,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mscorlib;
         }
 
-        static IEnumerable<ClrModule> UniqueModules(Dictionary<ulong, DesktopModule>.ValueCollection self)
+        private static IEnumerable<ClrModule> UniqueModules(Dictionary<ulong, DesktopModule>.ValueCollection self)
         {
             HashSet<DesktopModule> set = new HashSet<DesktopModule>();
 
@@ -622,7 +587,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (data == null)
                             continue;
 
-                        ulong[] moduleList = GetModuleList(assembly, (int)data.ModuleCount);
+                        ulong[] moduleList = GetModuleList(assembly, data.ModuleCount);
                         if (moduleList != null)
                             foreach (ulong module in moduleList)
                                 yield return module;
@@ -630,7 +595,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
         }
-
 
         private DesktopThreadPool CreateThreadPoolData()
         {
@@ -651,9 +615,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (domains == null)
                 return new DomainContainer();
 
-            return new DomainContainer()
+            return new DomainContainer
             {
-                Domains = domains.Select(ad=>(ClrAppDomain)InitDomain(ad)).Where(ad => ad != null).ToList(),
+                Domains = domains.Select(ad => (ClrAppDomain)InitDomain(ad)).Where(ad => ad != null).ToList(),
                 Shared = InitDomain(ads.SharedDomain, "Shared Domain"),
                 System = InitDomain(ads.SystemDomain, "System Domain")
             };
@@ -705,7 +669,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IModuleData moduleData = GetModuleData(module);
             if (moduleData == null)
                 return null;
-            
+
             string peFile = GetPEFileName(moduleData.PEFile);
             string assemblyName = GetAssemblyName(moduleData.Assembly);
 
@@ -726,11 +690,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         /// <summary>
-        /// 
         /// Returns the name of the type as specified by the TypeHandle.  Note this returns the name as specified by the
         /// metadata, NOT as you would expect to see it in a C# program.  For example, generics are denoted with a ` and
         /// the number of params.  Thus a Dictionary (with two type params) would look like:
-        ///     System.Collections.Generics.Dictionary`2
+        /// System.Collections.Generics.Dictionary`2
         /// </summary>
         /// <param name="id">The TypeHandle to get the name of.</param>
         /// <returns>The name of the type, or null on error.</returns>
@@ -749,7 +712,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return GetNameForMT(id.MethodTable);
         }
 
-
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
             using (ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf))
@@ -763,7 +725,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, context))
                         break;
-                    
+
                     ulong ip, sp;
 
                     if (PointerSize == 4)
@@ -776,7 +738,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
                         sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
                     }
-                    
+
                     ulong frameVtbl = stackwalk.GetFrameVtable();
                     if (frameVtbl != 0)
                     {
@@ -821,10 +783,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return list.ToArray();
         }
-
-        #endregion
-
-        #region Abstract Functions
 
         internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
         internal abstract uint GetExceptionHROffset();
@@ -875,9 +833,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract uint GetStringFirstCharOffset();
         internal abstract uint GetStringLengthOffset();
         internal abstract ulong GetILForModule(ClrModule module, uint rva);
-        #endregion
-        
-        struct DomainContainer
+
+        private struct DomainContainer
         {
             public List<ClrAppDomain> Domains;
             public DesktopAppDomain System;

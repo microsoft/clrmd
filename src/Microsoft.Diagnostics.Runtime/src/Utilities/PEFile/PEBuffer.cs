@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -5,9 +9,9 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// A PEBuffer represents 
+    /// A PEBuffer represents
     /// </summary>
-    internal unsafe sealed class PEBuffer : IDisposable
+    internal sealed unsafe class PEBuffer : IDisposable
     {
         public PEBuffer(Stream stream, int buffSize = 512)
         {
@@ -25,33 +29,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (size > _buff.Length)
                 GetBuffer(size);
-            if (!(_buffPos <= filePos && filePos + size <= _buffPos + _buffLen))
+            if (!(_buffPos <= filePos && filePos + size <= _buffPos + Length))
             {
                 // Read in the block of 'size' bytes at filePos
                 _buffPos = filePos;
                 _stream.Seek(_buffPos, SeekOrigin.Begin);
-                _buffLen = 0;
-                while (_buffLen < _buff.Length)
+                Length = 0;
+                while (Length < _buff.Length)
                 {
-                    var count = _stream.Read(_buff, _buffLen, size - _buffLen);
+                    int count = _stream.Read(_buff, Length, size - Length);
                     if (count == 0)
                         break;
 
-                    _buffLen += count;
+                    Length += count;
                 }
             }
 
-            return &_buffPtr[filePos - _buffPos];
+            return &Buffer[filePos - _buffPos];
         }
 
-        public byte* Buffer
-        {
-            get { return _buffPtr; }
-        }
-        public int Length
-        {
-            get { return _buffLen; }
-        }
+        public byte* Buffer { get; private set; }
+        public int Length { get; private set; }
 
         public void Dispose()
         {
@@ -61,7 +59,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             GC.SuppressFinalize(this);
         }
 
-        #region private
         private void GetBuffer(int buffSize)
         {
             if (_pinningHandle.IsAllocated)
@@ -70,16 +67,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _buff = new byte[buffSize];
             _pinningHandle = GCHandle.Alloc(_buff, GCHandleType.Pinned);
             fixed (byte* ptr = _buff)
-                _buffPtr = ptr;
-            _buffLen = 0;
+                Buffer = ptr;
+            Length = 0;
         }
 
         private int _buffPos;
-        private int _buffLen; // Number of valid bytes in _buff
         private byte[] _buff;
-        private byte* _buffPtr;
         private GCHandle _pinningHandle;
-        private Stream _stream;
-        #endregion
+        private readonly Stream _stream;
     }
 }

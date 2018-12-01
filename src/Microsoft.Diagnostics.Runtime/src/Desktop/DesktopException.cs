@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,20 +15,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _type = type;
         }
 
-        public override ClrType Type
-        {
-            get { return _type; }
-        }
+        public override ClrType Type => _type;
 
         public override string Message
         {
             get
             {
-                var field = _type.GetFieldByName("_message");
+                ClrInstanceField field = _type.GetFieldByName("_message");
                 if (field != null)
                     return (string)field.GetValue(_object);
 
-                var runtime = _type.DesktopHeap.DesktopRuntime;
+                DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
                 uint offset = runtime.GetExceptionMessageOffset();
                 Debug.Assert(offset > 0);
 
@@ -39,21 +37,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public override ulong Address
-        {
-            get { return _object; }
-        }
+        public override ulong Address => _object;
 
         public override ClrException Inner
         {
             get
             {
                 // TODO:  This needs to get the field offset by runtime instead.
-                var field = _type.GetFieldByName("_innerException");
+                ClrInstanceField field = _type.GetFieldByName("_innerException");
                 if (field == null)
                     return null;
+
                 object inner = field.GetValue(_object);
-                if (inner == null || !(inner is ulong) || ((ulong)inner == 0))
+                if (inner == null || !(inner is ulong) || (ulong)inner == 0)
                     return null;
 
                 ulong ex = (ulong)inner;
@@ -78,11 +74,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                var field = _type.GetFieldByName("_HResult");
+                ClrInstanceField field = _type.GetFieldByName("_HResult");
                 if (field != null)
                     return (int)field.GetValue(_object);
 
-                var runtime = _type.DesktopHeap.DesktopRuntime;
+                DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
                 uint offset = runtime.GetExceptionHROffset();
                 runtime.ReadDword(_object + offset, out int hr);
 
@@ -90,10 +86,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        #region Private
-        private ulong _object;
-        private BaseDesktopHeapType _type;
+        private readonly ulong _object;
+        private readonly BaseDesktopHeapType _type;
         private IList<ClrStackFrame> _stackTrace;
-        #endregion
     }
 }

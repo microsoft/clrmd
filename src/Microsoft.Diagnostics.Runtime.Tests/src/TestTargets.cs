@@ -1,6 +1,10 @@
-﻿using Xunit;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
+using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -18,14 +22,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public readonly string OuterExceptionType = "System.InvalidOperationException";
     }
 
-    public class TestTargets
+    public static class TestTargets
     {
-        static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
-        static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
-        static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
-        static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
-        static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
-        static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
+        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
+        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
+        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
+        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
+        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
+        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget NestedException => _nestedException.Value;
@@ -63,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Source = Path.Combine(TestRoot, source);
             if (!File.Exists(Source))
                 throw new FileNotFoundException($"Could not find source file: {source}");
-            
+
             Executable = Path.Combine(Path.GetDirectoryName(Source), "bin", Architecture, Path.ChangeExtension(source, ".exe"));
             Pdb = Path.ChangeExtension(Executable, ".pdb");
 
@@ -86,13 +90,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
         {
-            string path = BuildDumpName(gc, full: false);
+            string path = BuildDumpName(gc, false);
             return DataTarget.LoadCrashDump(path);
         }
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
         {
-            string path = BuildDumpName(gc, full: true);
+            string path = BuildDumpName(gc, true);
             return DataTarget.LoadCrashDump(path);
         }
     }

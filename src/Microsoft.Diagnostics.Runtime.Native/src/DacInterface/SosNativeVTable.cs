@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 #pragma warning disable 0649
 #pragma warning disable 0169
@@ -8,10 +12,10 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
     internal readonly struct ISOSNativeVTable
     {
         public readonly IntPtr Flush;
-        
+
         public readonly IntPtr GetThreadStoreData;
         private readonly IntPtr GetThreadAddress;
-        public readonly IntPtr  GetThreadData;
+        public readonly IntPtr GetThreadData;
         public readonly IntPtr GetCurrentExceptionObject;
 
         public readonly IntPtr GetObjectData;
@@ -24,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         public readonly IntPtr GetGCHeapStaticData;
         public readonly IntPtr GetGCHeapSegmentData;
         public readonly IntPtr GetFreeEEType;
-        
+
         private readonly IntPtr DumpGCInfo;
         private readonly IntPtr DumpEHInfo;
 
@@ -36,12 +40,12 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 
         public readonly IntPtr GetCodeHeaderData;
         public readonly IntPtr GetModuleList;
-        
+
         private readonly IntPtr GetStressLogAddress;
         private readonly IntPtr GetStressLogData;
         private readonly IntPtr EnumStressLogMessages;
         private readonly IntPtr EnumStressLogMemRanges;
-        
+
         private readonly IntPtr UpdateDebugEventFilter;
 
         private readonly IntPtr UpdateCurrentExceptionNotificationFrame;

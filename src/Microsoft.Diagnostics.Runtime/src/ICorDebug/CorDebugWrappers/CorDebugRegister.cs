@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
 {
     public enum CorDebugRegister
@@ -75,6 +79,6 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         REGISTER_ARM_R10 = 12,
         REGISTER_ARM_R11 = 13,
         REGISTER_ARM_R12 = 14,
-        REGISTER_ARM_SP = 1,
+        REGISTER_ARM_SP = 1
     }
 }

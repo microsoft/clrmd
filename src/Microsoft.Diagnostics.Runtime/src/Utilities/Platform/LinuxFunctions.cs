@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -19,20 +23,30 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public override IntPtr LoadLibrary(string filename) => dlopen(filename, RTLD_NOW);
+        public override IntPtr LoadLibrary(string filename)
+        {
+            return dlopen(filename, RTLD_NOW);
+        }
 
-        public override bool FreeLibrary(IntPtr module) => dlclose(module) == 0;
+        public override bool FreeLibrary(IntPtr module)
+        {
+            return dlclose(module) == 0;
+        }
 
-        public override IntPtr GetProcAddress(IntPtr module, string method) => dlsym(module, method);
+        public override IntPtr GetProcAddress(IntPtr module, string method)
+        {
+            return dlsym(module, method);
+        }
 
         [DllImport("libdl.so")]
-        static extern IntPtr dlopen(string filename, int flags);
-        [DllImport("libdl.so")]
-        static extern int dlclose(IntPtr module);
+        private static extern IntPtr dlopen(string filename, int flags);
 
         [DllImport("libdl.so")]
-        static extern IntPtr dlsym(IntPtr handle, string symbol);
+        private static extern int dlclose(IntPtr module);
 
-        const int RTLD_NOW = 2;
+        [DllImport("libdl.so")]
+        private static extern IntPtr dlsym(IntPtr handle, string symbol);
+
+        private const int RTLD_NOW = 2;
     }
 }

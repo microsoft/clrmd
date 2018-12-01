@@ -1,7 +1,6 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -13,19 +12,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         /// <summary>
         /// The slot number.
         /// </summary>
-        public uint Slot { get; private set; }
+        public uint Slot { get; }
 
         /// <summary>
         /// The name of this variable slot.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
 
         /// <summary>
         /// the flags associated with this slot.
         /// </summary>
-        public ushort Flags { get; private set; }
-        //internal uint segment;
-        //internal uint address;
+        public ushort Flags { get; }
 
         internal PdbSlot(BitAccess bits, out uint typind)
         {
@@ -41,8 +38,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             Slot = slot.index;
             Name = slot.name;
             Flags = slot.flags;
-            //Console.WriteLinesegment = slot.segCod;
-            //Console.WriteLineaddress = slot.offCod;
 
             typind = slot.typind;
         }

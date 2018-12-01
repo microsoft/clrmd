@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
@@ -102,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void ThreadRootCallback(IntPtr token, ulong symbol, ulong address, ulong obj, int pinned, int interior);
-        
+
         public bool TraverseStackRoots(ulong threadAddr, IntPtr initialContext, int contextSize, ThreadRootCallback callback, IntPtr token)
         {
             InitDelegate(ref _traverseStackRoots, VTable->TraverseStackRoots);
@@ -113,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
             GC.KeepAlive(callback);
             return hr == S_OK;
         }
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void HandleCallback(IntPtr token, ulong handleAddress, ulong dependentTarget, int handleType, uint refCount, int strong);
 
@@ -164,7 +168,6 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
             return result;
         }
 
-
         private GetThreadStoreDataDelegate _getThreadStoreData;
         private GetThreadDataDelegate _getThreadData;
         private GetCurrentExceptionObjectDelegate _getCurrentExceptionObject;
@@ -186,44 +189,62 @@ namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
         private GetCodeHeaderDataDelegate _getCodeHeaderData;
         private GetModuleListDelegate _getModuleList;
 
-        #region Delegates
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetThreadStoreDataDelegate(IntPtr self, out NativeThreadStoreData pData);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetThreadDataDelegate(IntPtr self, ulong addr, out NativeThreadData pThread);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetCurrentExceptionObjectDelegate(IntPtr self, ulong thread, out ulong pExceptionRefAddress);
+        private delegate int GetThreadStoreDataDelegate(IntPtr self, out NativeThreadStoreData pData);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetObjectDataDelegate(IntPtr self, ulong addr, out NativeObjectData pData);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetEETypeDataDelegate(IntPtr self, ulong addr, out EETypeData pData);
+        private delegate int GetThreadDataDelegate(IntPtr self, ulong addr, out NativeThreadData pThread);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetGCHeapDataDelegate(IntPtr self, out GCInfo pData);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetGCHeapListDelegate(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] ulong[] heaps, out int pNeeded);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetGCHeapDetailsDelegate(IntPtr self, ulong heap, out NativeHeapDetails details);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetGCHeapStaticDataDelegate(IntPtr self, out NativeHeapDetails data);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetGCHeapSegmentDataDelegate(IntPtr self, ulong segment, out NativeSegementData pSegmentData);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetFreeEETypeDelegate(IntPtr self, out ulong freeType);
+        private delegate int GetCurrentExceptionObjectDelegate(IntPtr self, ulong thread, out ulong pExceptionRefAddress);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int TraverseStackRootsDelegate(IntPtr self, ulong threadAddr, IntPtr pInitialContext, int initialContextSize, IntPtr pCallback, IntPtr token);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int TraverseStaticRootsDelegate(IntPtr self, IntPtr pCallback, IntPtr token);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int TraverseHandleTableDelegate(IntPtr self, IntPtr pCallback, IntPtr token);
-        
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetCodeHeaderDataDelegate(IntPtr self, ulong ip, out NativeCodeHeader pData);
+        private delegate int GetObjectDataDelegate(IntPtr self, ulong addr, out NativeObjectData pData);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int GetModuleListDelegate(IntPtr self, int count, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] ulong[] modules, out int pNeeded);
-        #endregion
+        private delegate int GetEETypeDataDelegate(IntPtr self, ulong addr, out EETypeData pData);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetGCHeapDataDelegate(IntPtr self, out GCInfo pData);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetGCHeapListDelegate(
+            IntPtr self,
+            int count,
+            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
+            ulong[] heaps,
+            out int pNeeded);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetGCHeapDetailsDelegate(IntPtr self, ulong heap, out NativeHeapDetails details);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetGCHeapStaticDataDelegate(IntPtr self, out NativeHeapDetails data);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetGCHeapSegmentDataDelegate(IntPtr self, ulong segment, out NativeSegementData pSegmentData);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetFreeEETypeDelegate(IntPtr self, out ulong freeType);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int TraverseStackRootsDelegate(IntPtr self, ulong threadAddr, IntPtr pInitialContext, int initialContextSize, IntPtr pCallback, IntPtr token);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int TraverseStaticRootsDelegate(IntPtr self, IntPtr pCallback, IntPtr token);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int TraverseHandleTableDelegate(IntPtr self, IntPtr pCallback, IntPtr token);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetCodeHeaderDataDelegate(IntPtr self, ulong ip, out NativeCodeHeader pData);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetModuleListDelegate(
+            IntPtr self,
+            int count,
+            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
+            ulong[] modules,
+            out int pNeeded);
     }
 }

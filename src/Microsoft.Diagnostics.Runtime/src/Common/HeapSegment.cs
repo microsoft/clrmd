@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -9,18 +10,15 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal class HeapSegment : ClrSegment
     {
-        public override int ProcessorAffinity
-        {
-            get { return _subHeap.HeapNum; }
-        }
-        public override ulong Start { get { return _segment.Start; } }
-        public override ulong End { get { return _subHeap.EphemeralSegment == _segment.Address ? _subHeap.EphemeralEnd : _segment.End; } }
-        public override ClrHeap Heap { get { return _heap; } }
+        public override int ProcessorAffinity => _subHeap.HeapNum;
+        public override ulong Start => _segment.Start;
+        public override ulong End => _subHeap.EphemeralSegment == _segment.Address ? _subHeap.EphemeralEnd : _segment.End;
+        public override ClrHeap Heap => _heap;
 
-        public override bool IsLarge { get { return _large; } }
+        public override bool IsLarge => _large;
 
-        public override ulong ReservedEnd { get { return _segment.Reserved; } }
-        public override ulong CommittedEnd { get { return _segment.Committed; } }
+        public override ulong ReservedEnd => _segment.Reserved;
+        public override ulong CommittedEnd => _segment.Committed;
 
         public override ulong Gen0Start
         {
@@ -28,25 +26,24 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (IsEphemeral)
                     return _subHeap.Gen0Start;
-                else
-                    return End;
+
+                return End;
             }
         }
-        public override ulong Gen0Length { get { return End - Gen0Start; } }
+        public override ulong Gen0Length => End - Gen0Start;
         public override ulong Gen1Start
         {
             get
             {
                 if (IsEphemeral)
                     return _subHeap.Gen1Start;
-                else
-                    return End;
+
+                return End;
             }
         }
-        public override ulong Gen1Length { get { return Gen0Start - Gen1Start; } }
-        public override ulong Gen2Start { get { return Start; } }
-        public override ulong Gen2Length { get { return Gen1Start - Start; } }
-
+        public override ulong Gen1Length => Gen0Start - Gen1Start;
+        public override ulong Gen2Start => Start;
+        public override ulong Gen2Length => Gen1Start - Start;
 
         public override IEnumerable<ulong> EnumerateObjectAddresses()
         {
@@ -120,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (objRef >= End)
                     return 0;
             }
-            
+
             return objRef;
         }
 
@@ -183,7 +180,6 @@ namespace Microsoft.Diagnostics.Runtime
             return objRef;
         }
 
-        #region private
         internal static ulong Align(ulong size, bool large)
         {
             ulong AlignConst;
@@ -195,12 +191,13 @@ namespace Microsoft.Diagnostics.Runtime
                 AlignConst = 7;
 
             if (large)
-                return (size + AlignLargeConst) & ~(AlignLargeConst);
+                return (size + AlignLargeConst) & ~AlignLargeConst;
 
-            return (size + AlignConst) & ~(AlignConst);
+            return (size + AlignConst) & ~AlignConst;
         }
 
-        public override bool IsEphemeral { get { return _segment.Address == _subHeap.EphemeralSegment; ; } }
+        public override bool IsEphemeral => _segment.Address == _subHeap.EphemeralSegment;
+
         internal HeapSegment(RuntimeBase clr, ISegmentData segment, SubHeap subHeap, bool large, HeapBase heap)
         {
             _clr = clr;
@@ -210,12 +207,10 @@ namespace Microsoft.Diagnostics.Runtime
             _subHeap = subHeap;
         }
 
-        private bool _large;
-        private RuntimeBase _clr;
-        private ISegmentData _segment;
-        private SubHeap _subHeap;
-        private HeapBase _heap;
-        #endregion
+        private readonly bool _large;
+        private readonly RuntimeBase _clr;
+        private readonly ISegmentData _segment;
+        private readonly SubHeap _subHeap;
+        private readonly HeapBase _heap;
     }
-
 }

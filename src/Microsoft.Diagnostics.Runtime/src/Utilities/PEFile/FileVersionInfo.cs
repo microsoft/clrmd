@@ -1,22 +1,25 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// FileVersionInfo reprents the extended version formation that is optionally placed in the PE file resource area. 
+    /// FileVersionInfo reprents the extended version formation that is optionally placed in the PE file resource area.
     /// </summary>
-    public unsafe sealed class FileVersionInfo
+    public sealed unsafe class FileVersionInfo
     {
         // TODO incomplete, but this is all I need.  
         /// <summary>
-        /// The verison string 
+        /// The verison string
         /// </summary>
-        public string FileVersion { get; private set; }
+        public string FileVersion { get; }
 
         /// <summary>
         /// Comments to supplement the file version
         /// </summary>
-        public string Comments { get; private set; }
+        public string Comments { get; }
 
-        #region private
         internal FileVersionInfo(byte* data, int dataLen)
         {
             FileVersion = "";
@@ -58,6 +61,5 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return null;
         }
-        #endregion
     }
 }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -13,6 +17,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         NOCACHE = 0x10000000,
         WRITECOMBINE = 0x40000000,
         LARGE_PAGES = 0x80000000,
-        MEM_IMAGE = IMAGE,
+        MEM_IMAGE = IMAGE
     }
 }

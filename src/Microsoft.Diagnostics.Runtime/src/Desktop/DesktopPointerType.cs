@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopPointerType : BaseDesktopHeapType
     {
-        private ClrElementType _pointerElement;
+        private readonly ClrElementType _pointerElement;
         private ClrType _pointerElementType;
         private string _name;
 
@@ -22,27 +23,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 BuildName(nameHint);
         }
 
-        public override ClrModule Module { get { return DesktopModule; } }
+        public override ClrModule Module => DesktopModule;
 
-        public override ulong MethodTable
-        {
-            get
-            {
-                // We have no good way of finding this value, unfortunately
-                return 0;
-            }
-        }
+        // We have no good way of finding this value, unfortunately
+        public override ulong MethodTable => 0;
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            return new ulong[] { MethodTable };
+            return new[] {MethodTable};
         }
 
         internal override ulong GetModuleAddress(ClrAppDomain domain)
         {
             return 0;
         }
-        
+
         public override string Name
         {
             get
@@ -141,15 +136,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        override public bool IsPointer { get { return true; } }
-
-        override public IList<ClrInstanceField> Fields { get { return new ClrInstanceField[0]; } }
-
-        override public IList<ClrStaticField> StaticFields { get { return new ClrStaticField[0]; } }
-
-        override public IList<ClrThreadStaticField> ThreadStaticFields { get { return new ClrThreadStaticField[0]; } }
-
-        override public IList<ClrMethod> Methods { get { return new ClrMethod[0]; } }
+        public override bool IsPointer => true;
+        public override IList<ClrInstanceField> Fields => new ClrInstanceField[0];
+        public override IList<ClrStaticField> StaticFields => new ClrStaticField[0];
+        public override IList<ClrThreadStaticField> ThreadStaticFields => new ClrThreadStaticField[0];
+        public override IList<ClrMethod> Methods => new ClrMethod[0];
 
         public override ulong GetSize(ulong objRef)
         {
@@ -163,55 +154,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             realType.EnumerateRefsOfObject(objRef, action);
         }
 
-        public override ClrHeap Heap
-        {
-            get { return DesktopHeap; }
-        }
-
-        public override IList<ClrInterface> Interfaces
-        {
-            get { return new ClrInterface[0]; }
-        }
-
-        public override bool IsFinalizable
-        {
-            get { return false; }
-        }
-
-        public override bool IsPublic
-        {
-            get { return true; }
-        }
-
-        public override bool IsPrivate
-        {
-            get { return false; }
-        }
-
-        public override bool IsInternal
-        {
-            get { return false; }
-        }
-
-        public override bool IsProtected
-        {
-            get { return false; }
-        }
-
-        public override bool IsAbstract
-        {
-            get { return false; }
-        }
-
-        public override bool IsSealed
-        {
-            get { return false; }
-        }
-
-        public override bool IsInterface
-        {
-            get { return false; }
-        }
+        public override ClrHeap Heap => DesktopHeap;
+        public override IList<ClrInterface> Interfaces => new ClrInterface[0];
+        public override bool IsFinalizable => false;
+        public override bool IsPublic => true;
+        public override bool IsPrivate => false;
+        public override bool IsInternal => false;
+        public override bool IsProtected => false;
+        public override bool IsAbstract => false;
+        public override bool IsSealed => false;
+        public override bool IsInterface => false;
 
         public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
         {
@@ -230,10 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override ClrType BaseType
-        {
-            get { return null; } // TODO: Determine if null should be the correct return value
-        }
+        public override ClrType BaseType => null;
 
         public override int GetArrayLength(ulong objRef)
         {
@@ -250,15 +199,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        public override int ElementSize
-        {
-            get { return DesktopInstanceField.GetSize(null, _pointerElement); } //TODO GET HELP
-        }
+        public override int ElementSize => DesktopInstanceField.GetSize(null, _pointerElement);
 
-        public override int BaseSize
-        {
-            get { return IntPtr.Size * 8; } //TODO GET HELP
-        }
+        public override int BaseSize => IntPtr.Size * 8;
 
         public override void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action) // TODO GET HELP
         {

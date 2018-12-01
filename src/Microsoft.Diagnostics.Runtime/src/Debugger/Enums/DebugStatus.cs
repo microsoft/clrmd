@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Interop
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum DEBUG_STATUS : uint
     {
@@ -20,6 +24,6 @@
         OUT_OF_SYNC = 15,
         WAIT_INPUT = 16,
         TIMEOUT = 17,
-        MASK = 0x1f,
+        MASK = 0x1f
     }
 }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -12,6 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         COMPACT_OUTPUT = 8,
         ADDRESS_OF_FIELD = 0x10000,
         ADDRESS_ANT_END = 0x20000,
-        BLOCK_RECURSE = 0x200000,
+        BLOCK_RECURSE = 0x200000
     }
 }

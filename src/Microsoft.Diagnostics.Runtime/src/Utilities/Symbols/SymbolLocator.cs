@@ -1,12 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -15,8 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public abstract partial class SymbolLocator
     {
-        private static string[] s_microsoftSymbolServers = {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
-
         /// <summary>
         /// The raw symbol path.  You should probably use the SymbolPath property instead.
         /// </summary>
@@ -24,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The raw symbol cache.  You should probably use the SymbolCache property instead.
         /// </summary>
-        /// 
         protected volatile string _symbolCache;
 
         /// <summary>
@@ -50,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public SymbolLocator()
         {
-            var sympath = _NT_SYMBOL_PATH;
+            string sympath = _NT_SYMBOL_PATH;
             if (string.IsNullOrEmpty(sympath))
                 sympath = MicrosoftSymbolServerPath;
 
@@ -58,8 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Return the string representing a symbol path for the 'standard' microsoft symbol servers.   
-        /// This returns the public msdl.microsoft.com server if outside Microsoft.  
+        /// Return the string representing a symbol path for the 'standard' microsoft symbol servers.
+        /// This returns the public msdl.microsoft.com server if outside Microsoft.
         /// </summary>
         public static string MicrosoftSymbolServerPath
         {
@@ -68,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 bool first = true;
                 StringBuilder result = new StringBuilder();
 
-                foreach (var path in s_microsoftSymbolServers)
+                foreach (string path in MicrosoftSymbolServers)
                 {
                     if (!first)
                         result.Append(';');
@@ -85,10 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Retrieves a list of the default Microsoft symbol servers.
         /// </summary>
-        public static string[] MicrosoftSymbolServers
-        {
-            get { return s_microsoftSymbolServers; }
-        }
+        public static string[] MicrosoftSymbolServers { get; } = {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
 
         /// <summary>
         /// This property gets and sets the global _NT_SYMBOL_PATH environment variable.
@@ -98,10 +93,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                var ret = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+                string ret = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
                 return ret ?? "";
             }
-            set { Environment.SetEnvironmentVariable("_NT_SYMBOL_PATH", value); }
+            set => Environment.SetEnvironmentVariable("_NT_SYMBOL_PATH", value);
         }
 
         /// <summary>
@@ -112,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                var cache = _symbolCache;
+                string cache = _symbolCache;
                 if (!string.IsNullOrEmpty(cache))
                     return cache;
 
@@ -137,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public string SymbolPath
         {
-            get { return _symbolPath ?? ""; }
+            get => _symbolPath ?? "";
 
             set
             {
@@ -281,26 +276,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         if (Path.GetExtension(fullPath) == ".so")
                         {
-                            Debug.WriteLine($"Validate binary not yet implemented for .so!");
+                            Debug.WriteLine("Validate binary not yet implemented for .so!");
                             Debugger.Break();
                             return true;
                         }
-                        else
+
+                        using (PEFile pefile = PEFile.TryLoad(fs, false))
                         {
-                            using (PEFile pefile = PEFile.TryLoad(fs, false))
+                            if (pefile != null)
                             {
-                                if (pefile != null)
+                                PEHeader header = pefile.Header;
+                                if (!checkProperties || header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize)
                                 {
-                                    var header = pefile.Header;
-                                    if (!checkProperties || (header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize))
-                                    {
-                                        return true;
-                                    }
-                                    else
-                                    {
-                                        Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
-                                    }
+                                    return true;
                                 }
+
+                                Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
                             }
                         }
                     }

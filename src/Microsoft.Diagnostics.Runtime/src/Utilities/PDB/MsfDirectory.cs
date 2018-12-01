@@ -1,7 +1,6 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
 {
@@ -23,6 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 bits.Append(reader.Reader, pagesInThisPage * 4);
                 pagesToGo -= pagesInThisPage;
             }
+
             bits.Position = 0;
 
             DataStream stream = new DataStream(head.DirectorySize, bits, pages);
@@ -47,8 +47,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                 }
                 else
                 {
-                    _streams[i] = new DataStream(sizes[i], bits,
-                                                reader.PagesFromSize(sizes[i]));
+                    _streams[i] = new DataStream(
+                        sizes[i],
+                        bits,
+                        reader.PagesFromSize(sizes[i]));
                 }
             }
         }

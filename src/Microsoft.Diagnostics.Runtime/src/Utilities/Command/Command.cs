@@ -1,12 +1,12 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.IO;
-using System.Reflection;
-using System.Diagnostics;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -20,46 +20,45 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     internal sealed class Command
     {
         /// <summary>
-        /// The time the process started.  
+        /// The time the process started.
         /// </summary>
-        public DateTime StartTime { get { return _process.StartTime; } }
+        public DateTime StartTime => Process.StartTime;
 
         /// <summary>
-        /// returns true if the process has exited. 
+        /// returns true if the process has exited.
         /// </summary>
-        public bool HasExited { get { return _process.HasExited; } }
+        public bool HasExited => Process.HasExited;
 
         /// <summary>
         /// The time the processed Exited.  (HasExited should be true before calling)
         /// </summary>
-        public DateTime ExitTime { get { return _process.ExitTime; } }
+        public DateTime ExitTime => Process.ExitTime;
 
         /// <summary>
         /// The duration of the command (HasExited should be true before calling)
         /// </summary>
-        public TimeSpan Duration { get { return ExitTime - StartTime; } }
+        public TimeSpan Duration => ExitTime - StartTime;
 
         /// <summary>
-        /// The operating system ID for the subprocess.  
+        /// The operating system ID for the subprocess.
         /// </summary>
-        public int Id { get { return _process.Id; } }
+        public int Id => Process.Id;
 
         /// <summary>
         /// The process exit code for the subprocess.  (HasExited should be true before calling)
-        /// Often this does not need to be checked because Command.Run will throw an exception 
-        /// if it is not zero.   However it is useful if the CommandOptions.NoThrow property 
-        /// was set.  
+        /// Often this does not need to be checked because Command.Run will throw an exception
+        /// if it is not zero.   However it is useful if the CommandOptions.NoThrow property
+        /// was set.
         /// </summary>
-        public int ExitCode { get { return _process.ExitCode; } }
+        public int ExitCode => Process.ExitCode;
 
         /// <summary>
         /// The standard output and standard error output from the command.  This
         /// is accumulated in real time so it can vary if the process is still running.
-        /// 
         /// This property is NOT available if the CommandOptions.OutputFile or CommandOptions.OutputStream
-        /// is specified since the output is being redirected there.   If a large amount of output is 
+        /// is specified since the output is being redirected there.   If a large amount of output is
         /// expected (> 1Meg), the Run.AddOutputStream(Stream) is recommended for retrieving it since
-        /// the large string is never materialized at one time. 
+        /// the large string is never materialized at one time.
         /// </summary>
         public string Output
         {
@@ -67,6 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (_outputStream != null)
                     throw new Exception("Output not available if redirected to file or stream");
+
                 return _output.ToString();
             }
         }
@@ -75,12 +75,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Returns that CommandOptions structure that holds all the options that affect
         /// the running of the command (like Timeout, Input ...)
         /// </summary>
-        public CommandOptions Options { get { return _options; } }
+        public CommandOptions Options { get; }
 
         /// <summary>
         /// Run 'commandLine', sending the output to the console, and wait for the command to complete.
         /// This simulates what batch filedo when executing their commands.  It is a bit more verbose
-        /// by default, however 
+        /// by default, however
         /// </summary>
         /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
         /// <param variable="options">Additional qualifiers that control how the process is run</param>
@@ -97,8 +97,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Run 'commandLine' as a subprocess and waits for the command to complete.
-        /// Output is captured and placed in the 'Output' property of the returned Command 
-        /// structure. 
+        /// Output is captured and placed in the 'Output' property of the returned Command
+        /// structure.
         /// </summary>
         /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
         /// <param variable="options">Additional qualifiers that control how the process is run</param>
@@ -109,6 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             run.Wait();
             return run;
         }
+
         public static Command Run(string commandLine)
         {
             return Run(commandLine, new CommandOptions());
@@ -116,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Launch a new command and returns the Command object that can be used to monitor
-        /// the restult.  It does not wait for the command to complete, however you 
+        /// the restult.  It does not wait for the command to complete, however you
         /// can call 'Wait' to do that, or use the 'Run' or 'RunToConsole' methods. */
         /// </summary>
         /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
@@ -124,13 +125,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A Command structure that can be queried to determine ExitCode, Output, etc.</returns>
         public Command(string commandLine, CommandOptions options)
         {
-            _options = options;
+            Options = options;
             _commandLine = commandLine;
 
             // See if the command is quoted and match it in that case
             Match m = Regex.Match(commandLine, "^\\s*\"(.*?)\"\\s*(.*)");
             if (!m.Success)
-                m = Regex.Match(commandLine, @"\s*(\S*)\s*(.*)");    // thing before first space is command
+                m = Regex.Match(commandLine, @"\s*(\S*)\s*(.*)"); // thing before first space is command
 
             ProcessStartInfo startInfo = new ProcessStartInfo(m.Groups[1].Value, m.Groups[2].Value)
             {
@@ -141,9 +142,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 CreateNoWindow = true,
                 RedirectStandardInput = options.Input != null
             };
-            
-            _process = new Process() { StartInfo = startInfo };
-            _process.StartInfo = startInfo;
+
+            Process = new Process {StartInfo = startInfo};
+            Process.StartInfo = startInfo;
             _output = new StringBuilder();
             if (options.elevate)
             {
@@ -152,8 +153,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (options.currentDirectory == null)
                     options.currentDirectory = Environment.CurrentDirectory;
             }
-            _process.OutputDataReceived += new DataReceivedEventHandler(OnProcessOutput);
-            _process.ErrorDataReceived += new DataReceivedEventHandler(OnProcessOutput);
+
+            Process.OutputDataReceived += OnProcessOutput;
+            Process.ErrorDataReceived += OnProcessOutput;
 
             if (options.environmentVariables != null)
             {
@@ -165,10 +167,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (value != null)
                     {
                         int startAt = 0;
-                        for (; ;)
+                        for (;;)
                         {
                             m = new Regex(@"%(\w+)%").Match(value, startAt);
                             if (!m.Success) break;
+
                             string varName = m.Groups[1].Value;
                             string varValue;
                             if (startInfo.EnvironmentVariables.ContainsKey(varName))
@@ -179,16 +182,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                                 if (varValue == null)
                                     varValue = "";
                             }
+
                             // replace this instance of the variable with its definition.  
-                            int varStart = m.Groups[1].Index - 1;     // -1 becasue % chars are not in the group
+                            int varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
                             int varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
                             value = value.Substring(0, varStart) + varValue + value.Substring(varEnd, value.Length - varEnd);
                             startAt = varStart + varValue.Length;
                         }
                     }
+
                     startInfo.EnvironmentVariables[key] = value;
                 }
             }
+
             startInfo.WorkingDirectory = options.currentDirectory;
 
             _outputStream = options.outputStream;
@@ -197,21 +203,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 _outputStream = File.CreateText(options.outputFile);
             }
 
-#if false
-            if (options.showCommand && outputStream != null)
-            {
-                // TODO why only for output streams?
-                outputStream.WriteLine("RUN CMD: " + commandLine);
-            }
-#endif
-#if false
-            // Make sure we kill this task when Ctrl C or appdomain unloads
-            if (!options.noWait)
-                AddCommandToCleanupList(this);
-#endif
             try
             {
-                _process.Start();
+                Process.Start();
             }
             catch (Exception e)
             {
@@ -227,19 +221,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!startInfo.UseShellExecute)
             {
                 // startInfo asyncronously collecting output
-                _process.BeginOutputReadLine();
-                _process.BeginErrorReadLine();
+                Process.BeginOutputReadLine();
+                Process.BeginErrorReadLine();
             }
 
             // Send any input to the command 
             if (options.input != null)
             {
-                _process.StandardInput.Write(options.input);
-                _process.StandardInput.Dispose();
+                Process.StandardInput.Write(options.input);
+                Process.StandardInput.Dispose();
             }
         }
+
         /// <summary>
-        /// Create a subprocess to run 'commandLine' with no special options. 
+        /// Create a subprocess to run 'commandLine' with no special options.
         /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
         /// </summary>
         public Command(string commandLine)
@@ -254,24 +249,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public Command Wait()
         {
             // we where told not to wait
-            if (_options.noWait)
+            if (Options.noWait)
                 return this;
 
             bool waitReturned = false;
             bool killed = false;
             try
             {
-                _process.WaitForExit(_options.timeoutMSec);
+                Process.WaitForExit(Options.timeoutMSec);
                 waitReturned = true;
                 //  TODO : HACK we see to have a race in the async process stuff
                 //  If you do Run("cmd /c set") you get truncated output at the
                 //  Looks like the problem in the framework.  
                 for (int i = 0; i < 10; i++)
-                    System.Threading.Thread.Sleep(1);
+                    Thread.Sleep(1);
             }
             finally
             {
-                if (!_process.HasExited)
+                if (!Process.HasExited)
                 {
                     killed = true;
                     Kill();
@@ -279,14 +274,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // If we created the output stream, we should close it.  
-            if (_outputStream != null && _options.outputFile != null)
+            if (_outputStream != null && Options.outputFile != null)
                 _outputStream.Dispose();
             _outputStream = null;
 
             if (waitReturned && killed)
-                throw new Exception("Timeout of " + (_options.timeoutMSec / 1000) + " sec exceeded\r\n    Cmd: " + _commandLine);
+                throw new Exception("Timeout of " + Options.timeoutMSec / 1000 + " sec exceeded\r\n    Cmd: " + _commandLine);
 
-            if (_process.ExitCode != 0 && !_options.noThrow)
+            if (Process.ExitCode != 0 && !Options.noThrow)
                 ThrowCommandFailure(null);
             return this;
         }
@@ -295,13 +290,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Throw a error if the command exited with a non-zero exit code
         /// printing useful diagnostic information along with the thrown message.
         /// This is useful when NoThrow is specified, and after post-processing
-        /// you determine that the command really did fail, and an normal 
-        /// Command.Run failure was the appropriate action.  
+        /// you determine that the command really did fail, and an normal
+        /// Command.Run failure was the appropriate action.
         /// </summary>
         /// <param name="message">An additional message to print in the throw (can be null)</param>
         public void ThrowCommandFailure(string message)
         {
-            if (_process.ExitCode != 0)
+            if (Process.ExitCode != 0)
             {
                 string outSpec = "";
                 if (_outputStream == null)
@@ -317,25 +312,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     outStr = outStr.Replace("\n", "\n    ");
                     outSpec = "\r\n  Output: {\r\n    " + outStr + "\r\n  }";
                 }
+
                 if (message == null)
                     message = "";
                 else if (message.Length > 0)
                     message += "\r\n";
-                throw new Exception(message + "Process returned exit code 0x" + _process.ExitCode.ToString("x") + "\r\n" +
-                                    "  Cmd: " + _commandLine + outSpec);
+                throw new Exception(
+                    message + "Process returned exit code 0x" + Process.ExitCode.ToString("x") + "\r\n" +
+                    "  Cmd: " + _commandLine + outSpec);
             }
         }
 
         /// <summary>
-        /// Get the underlying process object.  Generally not used. 
+        /// Get the underlying process object.  Generally not used.
         /// </summary>
-        public System.Diagnostics.Process Process { get { return _process; } }
+        public Process Process { get; }
 
         /// <summary>
-        /// Kill the process (and any child processses (recursively) associated with the 
+        /// Kill the process (and any child processses (recursively) associated with the
         /// running command).   Note that it may not be able to kill everything it should
         /// if the child-parent' chain is broken by a child that creates a subprocess and
-        /// then dies itself.   This is reasonably uncommon, however. 
+        /// then dies itself.   This is reasonably uncommon, however.
         /// </summary>
         public void Kill()
         {
@@ -345,46 +342,48 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Console.WriteLine("Killing process tree " + Id + " Cmd: " + _commandLine);
             try
             {
-                Command.Run("taskkill /f /t /pid " + _process.Id);
+                Run("taskkill /f /t /pid " + Process.Id);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
+
             int ticks = 0;
             do
             {
-                System.Threading.Thread.Sleep(10);
+                Thread.Sleep(10);
                 ticks++;
                 if (ticks > 100)
                 {
-                    Console.WriteLine("ERROR: process is not dead 1 sec after killing " + _process.Id);
+                    Console.WriteLine("ERROR: process is not dead 1 sec after killing " + Process.Id);
                     Console.WriteLine("Cmd: " + _commandLine);
                 }
-            } while (!_process.HasExited);
+            } while (!Process.HasExited);
 
             // If we created the output stream, we should close it.  
-            if (_outputStream != null && _options.outputFile != null)
+            if (_outputStream != null && Options.outputFile != null)
                 _outputStream.Dispose();
             _outputStream = null;
         }
 
         /// <summary>
-        /// Put double quotes around 'str' if necessary (handles quotes quotes.  
+        /// Put double quotes around 'str' if necessary (handles quotes quotes.
         /// </summary>
-        static public string Quote(string str)
+        public static string Quote(string str)
         {
             if (str.IndexOf('"') < 0)
             {
                 // Replace any " with \"  (and any \" with \\" and and \\" with \\\"  ...)
                 str = Regex.Replace(str, "\\*\"", @"\$1");
             }
+
             return "\"" + str + "\"";
         }
 
         /// <summary>
-        /// Given a string 'commandExe' look for it on the path the way cmd.exe would.   
-        /// Returns null if it was not found.   
+        /// Given a string 'commandExe' look for it on the path the way cmd.exe would.
+        /// Returns null if it was not found.
         /// </summary>
         public static string FindOnPath(string commandExe)
         {
@@ -402,10 +401,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return ret;
                 }
             }
+
             return null;
         }
 
-        #region private
         private static string ProbeForExe(string path)
         {
             if (File.Exists(path))
@@ -417,6 +416,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (File.Exists(name))
                     return name;
             }
+
             return null;
         }
 
@@ -440,9 +440,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
         private static string[] s_paths;
-        #endregion
 
-        #region private
         /* called data comes to either StdErr or Stdout */
         private void OnProcessOutput(object sender, DataReceivedEventArgs e)
         {
@@ -453,63 +451,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /* private state */
-        private string _commandLine;
-        private Process _process;
-        private StringBuilder _output;
-        private CommandOptions _options;
+        private readonly string _commandLine;
+        private readonly StringBuilder _output;
         private TextWriter _outputStream;
-
-#if false 
-        // Control C support.  Kill any commands if control C is hit or process exits.  
-        private static List<WeakReference> s_commandsToCleanup = SetupControlC();
-        private static bool s_controlCProcessed;
-
-        private static List<WeakReference> SetupControlC()
-        {
-            Console.CancelKeyPress += OnControlC;
-            AppDomain.CurrentDomain.DomainUnload += OnControlC;
-            return new List<WeakReference>(); 
-        }
-        private static void OnControlC(object sender, EventArgs e)
-        {
-            lock (s_commandsToCleanup)
-            {
-                if (!s_controlCProcessed)
-                {
-                    Console.WriteLine("Command Cleanup");
-                    foreach (WeakReference commandToCleanupRef in s_commandsToCleanup)
-                    {
-                        var commandToCleanup = commandToCleanupRef.Target as Command;
-                        if (commandToCleanup != null && !commandToCleanup.HasExited)
-                        {
-                            Console.WriteLine("Killing {0}", commandToCleanup.commandLine);
-                            commandToCleanup.Kill();
-                        }
-                    }
-                    s_controlCProcessed = true;
-                    s_commandsToCleanup.Clear();
-                }
-            }
-        }
-
-        private void AddCommandToCleanupList(Command cmd)
-        {
-            lock (s_commandsToCleanup)
-            {
-                foreach (WeakReference cmdElemRef in s_commandsToCleanup)
-                {
-                    var cmdElem = cmdElemRef.Target as Command;
-                    if (cmdElem == null || cmdElem.HasExited)
-                    {
-                        cmdElemRef.Target = cmd;
-                        return;
-                    }
-                }
-                s_commandsToCleanup.Add(new WeakReference(cmd));
-            }
-        }
-#endif
-        #endregion
     }
 }
-

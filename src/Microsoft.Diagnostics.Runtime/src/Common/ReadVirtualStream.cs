@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.IO;
@@ -10,9 +11,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private byte[] _tmp;
         private long _pos;
-        private long _disp;
+        private readonly long _disp;
         private long _len;
-        private IDataReader _dataReader;
+        private readonly IDataReader _dataReader;
 
         public ReadVirtualStream(IDataReader dataReader, long displacement, long len)
         {
@@ -21,36 +22,19 @@ namespace Microsoft.Diagnostics.Runtime
             _len = len;
         }
 
-        public override bool CanRead
-        {
-            get { return true; }
-        }
-
-        public override bool CanSeek
-        {
-            get { return true; }
-        }
-
-        public override bool CanWrite
-        {
-            get { return true; }
-        }
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => true;
 
         public override void Flush()
         {
         }
 
-        public override long Length
-        {
-            get { throw new NotImplementedException(); }
-        }
+        public override long Length => throw new NotImplementedException();
 
         public override long Position
         {
-            get
-            {
-                return _pos;
-            }
+            get => _pos;
             set
             {
                 _pos = value;

@@ -1,7 +1,12 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -11,9 +16,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public partial class DefaultSymbolLocator : SymbolLocator
     {
-        private static Dictionary<PdbEntry, Task<string>> s_pdbs = new Dictionary<PdbEntry, Task<string>>();
-        private static Dictionary<FileEntry, Task<string>> s_files = new Dictionary<FileEntry, Task<string>>();
-        private static Dictionary<string, Task> s_copy = new Dictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<PdbEntry, Task<string>> s_pdbs = new Dictionary<PdbEntry, Task<string>>();
+        private static readonly Dictionary<FileEntry, Task<string>> s_files = new Dictionary<FileEntry, Task<string>>();
+        private static readonly Dictionary<string, Task> s_copy = new Dictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Attempts to locate a binary via the symbol server.  This function will then copy the file
@@ -32,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string simpleFilename = Path.GetFileName(fileName);
             FileEntry fileEntry = new FileEntry(simpleFilename, buildTimeStamp, imageSize);
 
-            var missingFiles = _missingFiles;
+            HashSet<FileEntry> missingFiles = _missingFiles;
 
             Task<string> task = null;
             lock (s_files)
@@ -60,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="pdbIndexGuid">The guid the pdb is indexed under.</param>
         /// <param name="pdbIndexAge">The age of the pdb.</param>
         /// <returns>A full path on disk (local) of where the pdb was copied to.</returns>
-        public async override Task<string> FindPdbAsync(string pdbName, Guid pdbIndexGuid, int pdbIndexAge)
+        public override async Task<string> FindPdbAsync(string pdbName, Guid pdbIndexGuid, int pdbIndexAge)
         {
             if (string.IsNullOrWhiteSpace(pdbName))
                 throw new ArgumentNullException(nameof(pdbName));
@@ -69,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string pdbSimpleName = Path.GetFileName(pdbName);
             PdbEntry pdbEntry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
 
-            var missingPdbs = _missingPdbs;
+            HashSet<PdbEntry> missingPdbs = _missingPdbs;
 
             Task<string> task = null;
             lock (s_pdbs)
@@ -107,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
             string cachePath = Path.Combine(SymbolCache, pdbIndexPath);
 
-            Func<string, bool> match = (file) => ValidatePdb(file, pdbIndexGuid, pdbIndexAge);
+            Func<string, bool> match = file => ValidatePdb(file, pdbIndexGuid, pdbIndexAge);
             string result = CheckLocalPaths(pdbFullPath, pdbSimpleName, cachePath, match);
             if (result != null)
                 return result;
@@ -121,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string fileIndexPath = GetIndexPath(fileSimpleName, buildTimeStamp, imageSize);
             string cachePath = Path.Combine(SymbolCache, fileIndexPath);
 
-            Func<string, bool> match = (file) => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
+            Func<string, bool> match = file => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
             string result = CheckLocalPaths(fileFullPath, fileSimpleName, cachePath, match);
             if (result != null)
             {
@@ -157,8 +162,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private async Task<string> SearchSymbolServerForFile(string fileSimpleName, string fileIndexPath, Func<string, bool> match)
         {
-            var tasks = new List<Task<string>>();
-            foreach (var element in SymPathElement.GetElements(SymbolPath))
+            List<Task<string>> tasks = new List<Task<string>>();
+            foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
@@ -200,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             string fullDestPath = Path.Combine(cache, fileIndexPath);
             Debug.Assert(!string.IsNullOrWhiteSpace(cache));
-            if (String.IsNullOrWhiteSpace(urlForServer))
+            if (string.IsNullOrWhiteSpace(urlForServer))
                 return null;
 
             // There are three ways symbol files can be indexed.  Start looking for each one.
@@ -217,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Last, check for a redirection link.
             string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
-            Task<string> filePtrDownload = GetPhysicalFileFromServerAsync(urlForServer, filePtrSigPath, fullDestPath, returnContents: true);
+            Task<string> filePtrDownload = GetPhysicalFileFromServerAsync(urlForServer, filePtrSigPath, fullDestPath, true);
 
             // Handle compressed download.
             string result = await compressedFilePathDownload;
@@ -250,7 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Handle redirection case.
-            var filePtrData = (await filePtrDownload ?? "").Trim();
+            string filePtrData = (await filePtrDownload ?? "").Trim();
             if (filePtrData.StartsWith("PATH:"))
                 filePtrData = filePtrData.Substring(5);
 
@@ -311,11 +316,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 string fullUri = serverPath + "/" + fileIndexPath.Replace('\\', '/');
                 try
                 {
-                    var req = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(fullUri);
+                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(fullUri);
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
-                    var response = await req.GetResponseAsync();
-                    using (var fromStream = response.GetResponseStream())
+                    WebResponse response = await req.GetResponseAsync();
+                    using (Stream fromStream = response.GetResponseStream())
                     {
                         if (returnContents)
                             return await new StreamReader(fromStream).ReadToEndAsync();
@@ -326,7 +331,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return fullDestPath;
                     }
                 }
-                catch (System.Net.WebException)
+                catch (WebException)
                 {
                     // Is probably just a 404, which happens normally.
                     return null;
@@ -337,29 +342,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return null;
                 }
             }
-            else
+
+            string fullSrcPath = Path.Combine(serverPath, fileIndexPath);
+            if (!File.Exists(fullSrcPath))
+                return null;
+
+            if (returnContents)
             {
-                var fullSrcPath = Path.Combine(serverPath, fileIndexPath);
-                if (!File.Exists(fullSrcPath))
-                    return null;
-
-                if (returnContents)
+                try
                 {
-                    try
-                    {
-                        return File.ReadAllText(fullSrcPath);
-                    }
-                    catch
-                    {
-                        return "";
-                    }
+                    return File.ReadAllText(fullSrcPath);
                 }
-
-                using (FileStream fs = File.OpenRead(fullSrcPath))
-                    await CopyStreamToFileAsync(fs, fullSrcPath, fullDestPath, fs.Length);
-
-                return fullDestPath;
+                catch
+                {
+                    return "";
+                }
             }
+
+            using (FileStream fs = File.OpenRead(fullSrcPath))
+                await CopyStreamToFileAsync(fs, fullSrcPath, fullDestPath, fs.Length);
+
+            return fullDestPath;
         }
 
         private static bool IsHttp(string server)
@@ -392,7 +395,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A task indicating when the copy is completed.</returns>
         protected override void CopyStreamToFile(Stream stream, string fullSrcPath, string fullDestPath, long size)
         {
-            var task = Task.Run(async () => { await CopyStreamToFileAsync(stream, fullSrcPath, fullDestPath, size); });
+            Task task = Task.Run(async () => { await CopyStreamToFileAsync(stream, fullSrcPath, fullDestPath, size); });
             task.Wait();
         }
 

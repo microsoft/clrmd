@@ -1,22 +1,22 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Interop;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal unsafe class DbgEngDataReader : IDisposable, IDataReader
     {
-        private static int s_totalInstanceCount = 0;
+        private static int s_totalInstanceCount;
         private static bool s_needRelease = true;
 
-        private IDebugClient _client;
         private IDebugDataSpaces _spaces;
         private IDebugDataSpaces2 _spaces2;
         private IDebugDataSpacesPtr _spacesPtr;
@@ -27,12 +27,12 @@ namespace Microsoft.Diagnostics.Runtime
         private IDebugSystemObjects _systemObjects;
         private IDebugSystemObjects3 _systemObjects3;
 
-        private uint _instance = 0;
+        private uint _instance;
         private bool _disposed;
 
-        private byte[] _ptrBuffer = new byte[IntPtr.Size];
+        private readonly byte[] _ptrBuffer = new byte[IntPtr.Size];
         private List<ModuleInfo> _modules;
-        private bool? _minidump = null;
+        private bool? _minidump;
 
         ~DbgEngDataReader()
         {
@@ -45,7 +45,6 @@ namespace Microsoft.Diagnostics.Runtime
                 _systemObjects3.SetCurrentSystemId(_instance);
         }
 
-
         public DbgEngDataReader(string dumpFile)
         {
             if (!File.Exists(dumpFile))
@@ -55,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
             int hr = client.OpenDumpFile(dumpFile);
 
             if (hr != 0)
-                throw new ClrDiagnosticsException(String.Format("Could not load crash dump '{0}', HRESULT: 0x{1:x8}", dumpFile, hr), ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Could not load crash dump '{dumpFile}', HRESULT: 0x{hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
 
             CreateClient(client);
 
@@ -83,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
             IDebugClient client = CreateIDebugClient();
             CreateClient(client);
 
-            DEBUG_ATTACH attach = (flags == AttachFlag.Invasive) ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
+            DEBUG_ATTACH attach = flags == AttachFlag.Invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
             int hr = _control.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
 
             if (hr == 0)
@@ -96,16 +95,15 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 throw new TimeoutException("Break in did not occur within the allotted timeout.");
             }
-            else if (hr != 0)
+
+            if (hr != 0)
             {
                 if ((uint)hr == 0xd00000bb)
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
-                throw new ClrDiagnosticsException(String.Format("Could not attach to pid {0:X}, HRESULT: 0x{1:x8}", pid, hr), ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Could not attach to pid {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
             }
         }
-
-
 
         public bool IsMinidump
         {
@@ -136,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int hr = _control.GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType);
             if (0 != hr)
-                throw new ClrDiagnosticsException(String.Format("Failed to get proessor type, HRESULT: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
+                throw new ClrDiagnosticsException($"Failed to get processor type, HRESULT: {hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
 
             switch (machineType)
             {
@@ -165,7 +163,6 @@ namespace Microsoft.Diagnostics.Runtime
             return client;
         }
 
-
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport("dbgeng.dll")]
         public static extern uint DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
@@ -175,11 +172,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose();
         }
 
-
-        internal IDebugClient DebuggerInterface
-        {
-            get { return _client; }
-        }
+        internal IDebugClient DebuggerInterface { get; private set; }
 
         public uint GetPointerSize()
         {
@@ -187,10 +180,10 @@ namespace Microsoft.Diagnostics.Runtime
             int hr = _control.IsPointer64Bit();
             if (hr == 0)
                 return 8;
-            else if (hr == 1)
+            if (hr == 1)
                 return 4;
 
-            throw new ClrDiagnosticsException(String.Format("IsPointer64Bit failed: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
+            throw new ClrDiagnosticsException(string.Format("IsPointer64Bit failed: {0:x8}", hr), ClrDiagnosticsException.HR.DebuggerError);
         }
 
         public void Flush()
@@ -227,7 +220,6 @@ namespace Microsoft.Diagnostics.Runtime
             bytesRead = (int)read;
             return res;
         }
-
 
         private ulong[] GetImageBases()
         {
@@ -290,8 +282,7 @@ namespace Microsoft.Diagnostics.Runtime
             return modules;
         }
 
-
-        public bool CanEnumerateModules { get { return _symbols3 != null; } }
+        public bool CanEnumerateModules => _symbols3 != null;
 
         internal int GetModuleParameters(int count, ulong[] bases, int start, DEBUG_MODULE_PARAMETERS[] mods)
         {
@@ -301,19 +292,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void CreateClient(IDebugClient client)
         {
-            _client = client;
+            DebuggerInterface = client;
 
-            _spaces = (IDebugDataSpaces)_client;
-            _spacesPtr = (IDebugDataSpacesPtr)_client;
-            _symbols = (IDebugSymbols)_client;
-            _control = (IDebugControl2)_client;
+            _spaces = (IDebugDataSpaces)DebuggerInterface;
+            _spacesPtr = (IDebugDataSpacesPtr)DebuggerInterface;
+            _symbols = (IDebugSymbols)DebuggerInterface;
+            _control = (IDebugControl2)DebuggerInterface;
 
             // These interfaces may not be present in older DbgEng dlls.
-            _spaces2 = _client as IDebugDataSpaces2;
-            _symbols3 = _client as IDebugSymbols3;
-            _advanced = _client as IDebugAdvanced;
-            _systemObjects = _client as IDebugSystemObjects;
-            _systemObjects3 = _client as IDebugSystemObjects3;
+            _spaces2 = DebuggerInterface as IDebugDataSpaces2;
+            _symbols3 = DebuggerInterface as IDebugSymbols3;
+            _advanced = DebuggerInterface as IDebugAdvanced;
+            _systemObjects = DebuggerInterface as IDebugSystemObjects;
+            _systemObjects3 = DebuggerInterface as IDebugSystemObjects3;
 
             Interlocked.Increment(ref s_totalInstanceCount);
 
@@ -324,9 +315,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _systemObjects3.GetCurrentSystemId(out _instance);
         }
 
-
-
-        internal int GetModuleNameString(DEBUG_MODNAME Which, int Index, UInt64 Base, StringBuilder Buffer, UInt32 BufferSize, out UInt32 NameSize)
+        internal int GetModuleNameString(DEBUG_MODNAME Which, int Index, ulong Base, StringBuilder Buffer, uint BufferSize, out uint NameSize)
         {
             if (_symbols3 == null)
             {
@@ -383,12 +372,10 @@ namespace Microsoft.Diagnostics.Runtime
             return hr == 0;
         }
 
-
         public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             return ReadVirtual(address, buffer, bytesRequested, out bytesRead) >= 0;
         }
-
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
@@ -398,9 +385,9 @@ namespace Microsoft.Diagnostics.Runtime
             fixed (byte* r = _ptrBuffer)
             {
                 if (IntPtr.Size == 4)
-                    return *(((uint*)r));
+                    return *((uint*)r);
 
-                return *(((ulong*)r));
+                return *((ulong*)r);
             }
         }
 
@@ -410,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return 0;
 
             fixed (byte* r = _ptrBuffer)
-                return *(((uint*)r));
+                return *((uint*)r);
         }
 
         internal void SetSymbolPath(string path)
@@ -459,8 +446,6 @@ namespace Microsoft.Diagnostics.Runtime
             version.Major = (ushort)Marshal.ReadInt16(buffer, 10);
             version.Patch = (ushort)Marshal.ReadInt16(buffer, 12);
             version.Revision = (ushort)Marshal.ReadInt16(buffer, 14);
-
-            return;
         }
 
         internal int GetModuleVersionInformation(uint index, ulong baseAddress, string p, byte[] buffer, uint needed1, out uint needed2)
@@ -487,7 +472,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _symbols3.GetModuleNameString(requestType, index, baseAddress, sbpath, needed1, out needed2);
         }
 
-        internal int GetModuleParameters(UInt32 Count, UInt64[] Bases, UInt32 Start, DEBUG_MODULE_PARAMETERS[] Params)
+        internal int GetModuleParameters(uint Count, ulong[] Bases, uint Start, DEBUG_MODULE_PARAMETERS[] Params)
         {
             SetClientInstance();
             return _symbols.GetModuleParameters(Count, Bases, Start, Params);
@@ -560,13 +545,11 @@ namespace Microsoft.Diagnostics.Runtime
             return teb;
         }
 
-
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
 
         protected virtual void Dispose(bool disposing)
         {
@@ -581,8 +564,8 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_systemObjects3 != null)
                     _systemObjects3.SetCurrentSystemId(_instance);
 
-                _client.EndSession(DEBUG_END.ACTIVE_DETACH);
-                _client.DetachProcesses();
+                DebuggerInterface.EndSession(DEBUG_END.ACTIVE_DETACH);
+                DebuggerInterface.DetachProcesses();
             }
 
             // If there are no more debug instances, we can safely reset this variable
@@ -591,7 +574,7 @@ namespace Microsoft.Diagnostics.Runtime
                 s_needRelease = true;
         }
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
             GetThreadIdBySystemId(threadID, out uint id);
 

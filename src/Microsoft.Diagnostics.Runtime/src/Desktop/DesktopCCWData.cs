@@ -1,17 +1,18 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopCCWData : CcwData
     {
-        public override ulong IUnknown { get { return _ccw.IUnknown; } }
-        public override ulong Object { get { return _ccw.Object; } }
-        public override ulong Handle { get { return _ccw.Handle; } }
-        public override int RefCount { get { return _ccw.RefCount + _ccw.JupiterRefCount; } }
+        public override ulong IUnknown => _ccw.IUnknown;
+        public override ulong Object => _ccw.Object;
+        public override ulong Handle => _ccw.Handle;
+        public override int RefCount => _ccw.RefCount + _ccw.JupiterRefCount;
 
         public override IList<ComInterfaceData> Interfaces
         {
@@ -45,9 +46,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _heap = heap;
         }
 
-        private ulong _addr;
-        private ICCWData _ccw;
-        private DesktopGCHeap _heap;
+        private readonly ulong _addr;
+        private readonly ICCWData _ccw;
+        private readonly DesktopGCHeap _heap;
         private List<ComInterfaceData> _interfaces;
     }
 }

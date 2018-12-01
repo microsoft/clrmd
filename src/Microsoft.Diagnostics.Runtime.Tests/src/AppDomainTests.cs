@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule mscorlib = runtime.GetModule("mscorlib.dll");
                 AssertModuleContainsDomains(mscorlib, runtime.SharedDomain, appDomainExe, nestedDomain);
                 AssertModuleDoesntContainDomains(mscorlib, runtime.SystemDomain);
-                
+
                 // SharedLibrary.dll is loaded into both domains but not as shared library like mscorlib.
                 // This means it will not be in the shared domain.
                 ClrModule sharedLibrary = runtime.GetModule("sharedlibrary.dll");
@@ -31,7 +35,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule appDomainsExeModule = runtime.GetModule("AppDomains.exe");
                 AssertModuleContainsDomains(appDomainsExeModule, appDomainExe);
                 AssertModuleDoesntContainDomains(appDomainsExeModule, runtime.SystemDomain, runtime.SharedDomain, nestedDomain);
-
 
                 ClrModule nestedExeModule = runtime.GetModule("NestedException.exe");
                 AssertModuleContainsDomains(nestedExeModule, nestedDomain);
@@ -50,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private void AssertModuleContainsDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
             IList<ClrAppDomain> moduleDomains = module.AppDomains;
-            
+
             foreach (ClrAppDomain domain in domainList)
                 Assert.True(moduleDomains.Contains(domain));
 
@@ -99,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(1, sharedDomain.Modules.Count);
 
                 ClrModule mscorlib = sharedDomain.Modules.Single();
-                Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.FileName), ignoreCase: true);
+                Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.FileName), true);
             }
         }
 

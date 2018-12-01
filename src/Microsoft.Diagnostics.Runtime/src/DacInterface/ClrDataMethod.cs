@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             : base(library.OwningLibrary, ref IID_IXCLRDataMethodInstance, pUnk)
         {
         }
-        
+
         public ILToNativeMap[] GetILToNativeMap()
         {
             InitDelegate(ref _getILAddressMap, VTable->GetILAddressMap);
@@ -34,9 +34,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetILAddressMapDelegate(IntPtr self, uint mapLen, out uint mapNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] ILToNativeMap[] map);
+        private delegate int GetILAddressMapDelegate(
+            IntPtr self,
+            uint mapLen,
+            out uint mapNeeded,
+            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
+            ILToNativeMap[] map);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649

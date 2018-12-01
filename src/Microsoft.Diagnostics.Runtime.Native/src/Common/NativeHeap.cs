@@ -1,12 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using Microsoft.Diagnostics.Runtime.Desktop;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -24,15 +18,15 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             if (runtime.GetHeaps(out SubHeap[] heaps))
             {
-                var segments = new List<HeapSegment>();
-                foreach (var heap in heaps)
+                List<HeapSegment> segments = new List<HeapSegment>();
+                foreach (SubHeap heap in heaps)
                 {
                     if (heap != null)
                     {
                         ISegmentData seg = runtime.GetSegmentData(heap.FirstLargeSegment);
                         while (seg != null)
                         {
-                            var segment = new HeapSegment(runtime, seg, heap, true, this);
+                            HeapSegment segment = new HeapSegment(runtime, seg, heap, true, this);
                             segments.Add(segment);
 
                             UpdateSegmentData(segment);
@@ -42,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                         seg = runtime.GetSegmentData(heap.FirstSegment);
                         while (seg != null)
                         {
-                            var segment = new HeapSegment(runtime, seg, heap, false, this);
+                            HeapSegment segment = new HeapSegment(runtime, seg, heap, false, this);
                             segments.Add(segment);
 
                             UpdateSegmentData(segment);
@@ -102,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             {
                 if (!isArray && _indices.TryGetValue(canonType, out int index))
                 {
-                    _indices[eeType] = index;  // Link the original eeType to its canonical ClrType.
+                    _indices[eeType] = index; // Link the original eeType to its canonical ClrType.
                     return _types[index];
                 }
 
@@ -110,7 +104,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 eeType = canonType;
                 canonType = tmp;
             }
-
 
             NativeModule module = FindContainingModule(eeType);
             if (module == null && canonType != 0)
@@ -137,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 string moduleName = module != null ? Path.GetFileNameWithoutExtension(module.FileName) : "UNKNWON";
                 name = string.Format("{0}_{1:x}", moduleName, eeType);
             }
-            
+
             int len = name.Length;
             if (name.EndsWith("::`vftable'"))
                 len -= 11;
@@ -147,7 +140,6 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (isArray)
                 name += "[]";
-            
 
             if (module == null)
                 module = _mrtModule;
@@ -192,11 +184,10 @@ namespace Microsoft.Diagnostics.Runtime.Native
             return EnumerateRoots(true);
         }
 
-
         public override IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics)
         {
             // Stack objects.
-            foreach (var thread in NativeRuntime.Threads)
+            foreach (NativeThread thread in NativeRuntime.Threads)
                 foreach (var stackRef in NativeRuntime.EnumerateStackRoots(thread))
                     yield return stackRef;
 
@@ -227,8 +218,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (!NativeRuntime.ReadMemory(address, buffer, count, out int bytesRead))
                 return 0;
+
             return bytesRead;
         }
-    */
+        */
     }
 }

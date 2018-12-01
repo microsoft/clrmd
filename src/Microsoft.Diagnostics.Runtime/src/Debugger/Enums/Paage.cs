@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -15,6 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         EXECUTE_WRITECOPY = 0x80,
         GUARD = 0x100,
         NOCACHE = 0x200,
-        WRITECOMBINE = 0x400,
+        WRITECOMBINE = 0x400
     }
 }

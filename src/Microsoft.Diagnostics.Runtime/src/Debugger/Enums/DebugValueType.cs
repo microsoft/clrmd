@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Interop
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum DEBUG_VALUE_TYPE : uint
     {
@@ -14,6 +18,6 @@
         FLOAT128 = 9,
         VECTOR64 = 10,
         VECTOR128 = 11,
-        TYPES = 12,
+        TYPES = 12
     }
 }

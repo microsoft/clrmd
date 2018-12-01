@@ -1,7 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -10,21 +12,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopStaticField : ClrStaticField
     {
-        public DesktopStaticField(DesktopGCHeap heap, IFieldData field, BaseDesktopHeapType containingType, string name, FieldAttributes attributes, object defaultValue, IntPtr sig, int sigLen)
+        public DesktopStaticField(
+            DesktopGCHeap heap,
+            IFieldData field,
+            BaseDesktopHeapType containingType,
+            string name,
+            FieldAttributes attributes,
+            object defaultValue,
+            IntPtr sig,
+            int sigLen)
         {
             _field = field;
-            _name = name;
+            Name = name;
             _attributes = attributes;
             _type = (BaseDesktopHeapType)heap.GetTypeByMethodTable(field.TypeMethodTable, 0);
             _defaultValue = defaultValue;
             _heap = heap;
-            _token = field.FieldToken;
+            Token = field.FieldToken;
 
             if (_type != null && ElementType != ClrElementType.Class)
                 _type.ElementType = ElementType;
 
             _containingType = containingType;
-
 
             if (_type == null)
             {
@@ -61,10 +70,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = sigParser.PeekElemType(out etype);
                             type = (ClrElementType)etype;
 
-                            if (DesktopRuntimeBase.IsObjectReference(type))
+                            if (ClrRuntime.IsObjectReference(type))
                                 _type = (BaseDesktopHeapType)heap.GetBasicType(ClrElementType.SZArray);
                             else
-                                _type = (BaseDesktopHeapType)heap.GetArrayType(type, -1, null);
+                                _type = heap.GetArrayType(type, -1, null);
                         }
                         else if (type == ClrElementType.Pointer)
                         {
@@ -88,61 +97,33 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_type == null)
             {
-                _typeResolver = new Lazy<ClrType>(() =>
-                {
-                    ClrType type = (BaseDesktopHeapType)TryBuildType(_heap);
+                _typeResolver = new Lazy<ClrType>(
+                    () =>
+                        {
+                            ClrType type = (BaseDesktopHeapType)TryBuildType(_heap);
 
-                    if (type == null)
-                        type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
+                            if (type == null)
+                                type = (BaseDesktopHeapType)heap.GetBasicType(ElementType);
 
-                    return type;
-                });
-            }
-
-        }
-
-        public override uint Token { get { return _token; } }
-        override public bool HasDefaultValue { get { return _defaultValue != null; } }
-        override public object GetDefaultValue() { return _defaultValue; }
-
-        override public bool IsPublic
-        {
-            get
-            {
-                return (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Public;
+                            return type;
+                        });
             }
         }
 
-        override public bool IsPrivate
+        public override uint Token { get; }
+        public override bool HasDefaultValue => _defaultValue != null;
+
+        public override object GetDefaultValue()
         {
-            get
-            {
-                return (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Private;
-            }
+            return _defaultValue;
         }
 
-        override public bool IsInternal
-        {
-            get
-            {
-                return (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Assembly;
-            }
-        }
-
-        override public bool IsProtected
-        {
-            get
-            {
-                return (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Family;
-            }
-        }
-
-        public override ClrElementType ElementType
-        {
-            get { return (ClrElementType)_field.CorElementType; }
-        }
-
-        public override string Name { get { return _name; } }
+        public override bool IsPublic => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Public;
+        public override bool IsPrivate => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Private;
+        public override bool IsInternal => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Assembly;
+        public override bool IsProtected => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Family;
+        public override ClrElementType ElementType => (ClrElementType)_field.CorElementType;
+        public override string Name { get; }
 
         public override ClrType Type
         {
@@ -157,8 +138,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ClrType TryBuildType(ClrHeap heap)
         {
-            var runtime = heap.Runtime;
-            var domains = runtime.AppDomains;
+            ClrRuntime runtime = heap.Runtime;
+            IList<ClrAppDomain> domains = runtime.AppDomains;
             ClrType[] types = new ClrType[domains.Count];
 
             ClrElementType elType = ElementType;
@@ -166,10 +147,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return ((DesktopGCHeap)heap).GetBasicType(elType);
 
             int count = 0;
-            foreach (var domain in domains)
+            foreach (ClrAppDomain domain in domains)
             {
                 object value = GetValue(domain);
-                if (value != null && value is ulong && ((ulong)value != 0))
+                if (value != null && value is ulong && (ulong)value != 0)
                 {
                     types[count++] = heap.GetObjectType((ulong)value);
                 }
@@ -208,18 +189,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         // these are optional.  
         /// <summary>
-        /// If the field has a well defined offset from the base of the object, return it (otherwise -1). 
+        /// If the field has a well defined offset from the base of the object, return it (otherwise -1).
         /// </summary>
-        public override int Offset { get { return (int)_field.Offset; } }
+        public override int Offset => (int)_field.Offset;
 
         /// <summary>
-        /// Given an object reference, fetch the address of the field. 
+        /// Given an object reference, fetch the address of the field.
         /// </summary>
 
-        public override bool HasSimpleValue
-        {
-            get { return _containingType != null; }
-        }
+        public override bool HasSimpleValue => _containingType != null;
         public override int Size
         {
             get
@@ -251,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Structs are stored as objects.
-            var elementType = ElementType;
+            ClrElementType elementType = ElementType;
             if (elementType == ClrElementType.Struct)
                 elementType = ClrElementType.Object;
 
@@ -287,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return 0;
 
             ulong addr;
-            if (DesktopRuntimeBase.IsPrimitive(ElementType))
+            if (ClrRuntime.IsPrimitive(ElementType))
                 addr = data.NonGCStaticDataStart + _field.Offset;
             else
                 addr = data.GCStaticDataStart + _field.Offset;
@@ -323,13 +301,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return (flags & 1) != 0;
         }
 
-        private IFieldData _field;
-        private string _name;
-        private BaseDesktopHeapType _type, _containingType;
-        private FieldAttributes _attributes;
-        private object _defaultValue;
-        private DesktopGCHeap _heap;
-        private uint _token;
-        private Lazy<ClrType> _typeResolver;
+        private readonly IFieldData _field;
+        private BaseDesktopHeapType _type;
+        private readonly BaseDesktopHeapType _containingType;
+        private readonly FieldAttributes _attributes;
+        private readonly object _defaultValue;
+        private readonly DesktopGCHeap _heap;
+        private readonly Lazy<ClrType> _typeResolver;
     }
 }

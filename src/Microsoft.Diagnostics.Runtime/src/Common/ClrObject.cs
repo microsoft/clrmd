@@ -1,28 +1,25 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
     [DebuggerDisplay("Address={HexAddress}, Type={Type.Name}")]
     public struct ClrObject : IEquatable<ClrObject>
     {
-        private ulong _address;
-        private ClrType _type;
-
         internal static ClrObject Create(ulong address, ClrType type)
         {
-            ClrObject obj = new ClrObject()
+            ClrObject obj = new ClrObject
             {
-                _address = address,
-                _type = type
+                Address = address,
+                Type = type
             };
 
             return obj;
@@ -35,56 +32,56 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="type">The concrete type of the object.</param>
         public ClrObject(ulong address, ClrType type)
         {
-            _address = address;
-            _type = type;
+            Address = address;
+            Type = type;
 
             Debug.Assert(address == 0 || type != null);
             Debug.Assert(address == 0 || type.Heap.GetObjectType(address) == type);
         }
-        
+
         /// <summary>
         /// Enumerates all objects that this object references.
         /// </summary>
         /// <returns>An enumeration of object references.</returns>
-        public IEnumerable<ClrObject> EnumerateObjectReferences(bool carefully=false)
+        public IEnumerable<ClrObject> EnumerateObjectReferences(bool carefully = false)
         {
-            return _type.Heap.EnumerateObjectReferences(_address, _type, carefully);
+            return Type.Heap.EnumerateObjectReferences(Address, Type, carefully);
         }
 
         /// <summary>
         /// The address of the object.
         /// </summary>
-        public ulong Address { get { return _address; } }
+        public ulong Address { get; private set; }
 
         /// <summary>
         /// The address of the object in Hex format.
         /// </summary>
-        public string HexAddress { get { return _address.ToString("x"); } }
+        public string HexAddress => Address.ToString("x");
 
         /// <summary>
         /// The type of the object.
         /// </summary>
-        public ClrType Type { get { return _type; } }
+        public ClrType Type { get; private set; }
 
         /// <summary>
         /// Returns if the object value is null.
         /// </summary>
-        public bool IsNull { get { return _address == 0; } }
+        public bool IsNull => Address == 0;
 
         /// <summary>
         /// Gets the size of the object.
         /// </summary>
-        public ulong Size { get { return _type.GetSize(Address); } }
+        public ulong Size => Type.GetSize(Address);
 
         /// <summary>
         /// Returns whether this object is actually a boxed primitive or struct.
         /// </summary>
-        public bool IsBoxed { get { return !_type.IsObjectReference; } }
+        public bool IsBoxed => !Type.IsObjectReference;
 
         /// <summary>
         /// Returns whether this object is an array or not.
         /// </summary>
-        public bool IsArray { get { return _type.IsArray; } }
+        public bool IsArray => Type.IsArray;
 
         /// <summary>
         /// Returns the count of elements in this array, or throws InvalidOperatonException if this object is not an array.
@@ -96,14 +93,14 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!IsArray)
                     throw new InvalidOperationException();
 
-                return _type.GetArrayLength(Address);
+                return Type.GetArrayLength(Address);
             }
         }
 
         /// <summary>
         /// Returns true if this object possibly contians GC pointers.
         /// </summary>
-        public bool ContainsPointers { get => _type != null && _type.ContainsPointers; }
+        public bool ContainsPointers => Type != null && Type.ContainsPointers;
 
         /// <summary>
         /// ToString override.
@@ -111,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return $"{_type?.Name} {_address:x}";
+            return $"{Type?.Name} {Address:x}";
         }
 
         /// <summary>
@@ -125,8 +122,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             return (string)obj.Type.GetValue(obj.Address);
         }
-        
-        #region GetField
+
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
         /// not exist in the object.  Throws NullReferenceException if IsNull is true.
@@ -138,16 +134,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new NullReferenceException();
 
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsObjectReference)
-                throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not an object reference.");
+                throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not an object reference.");
 
-            ClrHeap heap = _type.Heap;
+            ClrHeap heap = Type.Heap;
 
-            ulong addr = field.GetAddress(_address);
+            ulong addr = field.GetAddress(Address);
             if (!heap.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
@@ -164,19 +160,19 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new NullReferenceException();
 
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueClass)
-                throw new ArgumentException($"Field '{_type.Name}.{fieldName}' is not a ValueClass.");
+                throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
             if (field.Type == null)
                 throw new Exception("Field does not have an associated class.");
 
-            ClrHeap heap = _type.Heap;
+            ClrHeap heap = Type.Heap;
 
-            ulong addr = field.GetAddress(_address);
+            ulong addr = field.GetAddress(Address);
             return new ClrValueClass(addr, field.Type, true);
         }
 
@@ -187,13 +183,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <typeparam name="T">The type of the field itself.</typeparam>
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of this field.</returns>
-        public T GetField<T>(string fieldName) where T : struct
+        public T GetField<T>(string fieldName)
+            where T : struct
         {
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
-            object value = field.GetValue(_address);
+            object value = field.GetValue(Address);
             return (T)value;
         }
 
@@ -210,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime
         public string GetStringField(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            RuntimeBase runtime = (RuntimeBase)_type.Heap.Runtime;
+            RuntimeBase runtime = (RuntimeBase)Type.Heap.Runtime;
 
             if (!runtime.ReadPointer(address, out ulong str))
                 throw new MemoryReadException(address);
@@ -229,80 +226,73 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new NullReferenceException();
 
-            ClrInstanceField field = _type.GetFieldByName(fieldName);
+            ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
-                throw new ArgumentException($"Type '{_type.Name}' does not contain a field named '{fieldName}'");
+                throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (field.ElementType != element)
-                throw new InvalidOperationException($"Field '{_type.Name}.{fieldName}' is not of type '{typeName}'.");
+                throw new InvalidOperationException($"Field '{Type.Name}.{fieldName}' is not of type '{typeName}'.");
 
             ulong address = field.GetAddress(Address);
             return address;
         }
-        #endregion
-
-        #region IEquatable<ClrObject> 
 
         /// <summary>
-        /// Determines if this instance and another specific <see cref="ClrObject"/> have the same value.
-        /// <para>Instances are considered equal when they have same <see cref="Address"/>.</para>
+        /// Determines if this instance and another specific <see cref="ClrObject" /> have the same value.
+        /// <para>Instances are considered equal when they have same <see cref="Address" />.</para>
         /// </summary>
-        /// <param name="other">The <see cref="ClrObject"/> to compare to this instance.</param>
-        /// <returns><c>true</c> if the <see cref="Address"/> of the parameter is same as <see cref="Address"/> in this instance; <c>false</c> otherwise.</returns>
+        /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
+        /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
         public bool Equals(ClrObject other)
         {
-             return this.Address == other.Address;
+            return Address == other.Address;
         }
-        #endregion
-
-        #region Object overrides
 
         /// <summary>
-        /// Determines whether this instance and a specified object, which must also be a <see cref="ClrObject"/>, have the same value.
+        /// Determines whether this instance and a specified object, which must also be a <see cref="ClrObject" />, have the same value.
         /// </summary>
-        /// <param name="other">The <see cref="ClrObject"/> to compare to this instance.</param>
-        /// <returns><c>true</c> if <paramref name="other"/> is <see cref="ClrObject"/>, and its <see cref="Address"/> is same as <see cref="Address"/> in this instance; <c>false</c> otherwise.</returns>
+        /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="other" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
+        /// otherwise.
+        /// </returns>
         public override bool Equals(object other)
         {
             if (other == null)
                 return false;
-            return (other is ClrObject) && this.Equals((ClrObject)other);
+
+            return other is ClrObject && Equals((ClrObject)other);
         }
 
         /// <summary>
-        /// Returns the hash code for this <see cref="ClrObject"/> based on its <see cref="Address"/>.
+        /// Returns the hash code for this <see cref="ClrObject" /> based on its <see cref="Address" />.
         /// </summary>
-        /// <returns>An <see cref="int"/> hash code for this instance.</returns>
+        /// <returns>An <see cref="int" /> hash code for this instance.</returns>
         public override int GetHashCode()
         {
-            return this.Address.GetHashCode();
+            return Address.GetHashCode();
         }
-        #endregion
-
-        #region Operators overloads
 
         /// <summary>
-        /// Determines whether two specified <see cref="ClrObject"/> have the same value.
+        /// Determines whether two specified <see cref="ClrObject" /> have the same value.
         /// </summary>
-        /// <param name="left">First <see cref="ClrObject"/> to compare.</param>
-        /// <param name="right">Second <see cref="ClrObject"/> to compare.</param>
-        /// <returns><c>true</c> if <paramref name="left"/> <see cref="Equals(ClrObject)"/> <paramref name="right"/>; <c>false</c> otherwise.</returns>
+        /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
+        /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
+        /// <returns><c>true</c> if <paramref name="left" /> <see cref="Equals(ClrObject)" /> <paramref name="right" />; <c>false</c> otherwise.</returns>
         public static bool operator ==(ClrObject left, ClrObject right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Determines whether two specified <see cref="ClrObject"/> have different values.
+        /// Determines whether two specified <see cref="ClrObject" /> have different values.
         /// </summary>
-        /// <param name="left">First <see cref="ClrObject"/> to compare.</param>
-        /// <param name="right">Second <see cref="ClrObject"/> to compare.</param>
-        /// <returns><c>true</c> if the value of <paramref name="left"/> is different from the value of <paramref name="right"/>; <c>false</c> otherwise.</returns>
+        /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
+        /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
+        /// <returns><c>true</c> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <c>false</c> otherwise.</returns>
         public static bool operator !=(ClrObject left, ClrObject right)
         {
             return !left.Equals(right);
         }
-
-        #endregion
     }
 }

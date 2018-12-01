@@ -1,57 +1,60 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using System;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 
 #pragma warning disable 1591
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
-    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("1656afa9-19c6-4e3a-97e7-5dc9160cf9c4")]
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("1656afa9-19c6-4e3a-97e7-5dc9160cf9c4")]
     public interface IDebugRegisters2 : IDebugRegisters
     {
         [PreserveSig]
         new int GetNumberRegisters(
-            [Out] out UInt32 Number);
+            [Out] out uint Number);
 
         [PreserveSig]
         new int GetDescription(
-            [In] UInt32 Register,
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] Int32 NameBufferSize,
-            [Out] out UInt32 NameSize,
+            [In] uint Register,
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
+            [In] int NameBufferSize,
+            [Out] out uint NameSize,
             [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         new int GetIndexByName(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out UInt32 Index);
+            [In][MarshalAs(UnmanagedType.LPStr)] string Name,
+            [Out] out uint Index);
 
         [PreserveSig]
         new int GetValue(
-            [In] UInt32 Register,
+            [In] uint Register,
             [Out] out DEBUG_VALUE Value);
 
         [PreserveSig]
         new int SetValue(
-            [In] UInt32 Register,
+            [In] uint Register,
             [In] ref DEBUG_VALUE Value);
 
         [PreserveSig]
         new int GetValues( //FIX ME!!! This needs to be tested
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [Out, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            DEBUG_VALUE[] Values);
 
         [PreserveSig]
         new int SetValues(
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [In, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
 
         [PreserveSig]
         new int OutputRegisters(
@@ -60,127 +63,129 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetInstructionOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
 
         [PreserveSig]
         new int GetStackOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
 
         [PreserveSig]
         new int GetFrameOffset(
-            [Out] out UInt64 Offset);
+            [Out] out ulong Offset);
 
         /* IDebugRegisters2 */
 
         [PreserveSig]
         int GetDescriptionWide(
-            [In] UInt32 Register,
-            [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
-            [In] Int32 NameBufferSize,
-            [Out] out UInt32 NameSize,
+            [In] uint Register,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
+            [In] int NameBufferSize,
+            [Out] out uint NameSize,
             [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         int GetIndexByNameWide(
-            [In, MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [Out] out UInt32 Index);
+            [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
+            [Out] out uint Index);
 
         [PreserveSig]
         int GetNumberPseudoRegisters(
-            [Out] out UInt32 Number
-            );
+            [Out] out uint Number
+        );
 
         [PreserveSig]
         int GetPseudoDescription(
-            [In] UInt32 Register,
-            [Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] Int32 NameBufferSize,
-            [Out] out UInt32 NameSize,
-            [Out] out UInt64 TypeModule,
-            [Out] out UInt32 TypeId
-            );
+            [In] uint Register,
+            [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
+            [In] int NameBufferSize,
+            [Out] out uint NameSize,
+            [Out] out ulong TypeModule,
+            [Out] out uint TypeId
+        );
 
         [PreserveSig]
         int GetPseudoDescriptionWide(
-            [In] UInt32 Register,
-            [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
-            [In] Int32 NameBufferSize,
-            [Out] out UInt32 NameSize,
-            [Out] out UInt64 TypeModule,
-            [Out] out UInt32 TypeId
-            );
+            [In] uint Register,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
+            [In] int NameBufferSize,
+            [Out] out uint NameSize,
+            [Out] out ulong TypeModule,
+            [Out] out uint TypeId
+        );
 
         [PreserveSig]
         int GetPseudoIndexByName(
-            [In, MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out UInt32 Index
-            );
+            [In][MarshalAs(UnmanagedType.LPStr)] string Name,
+            [Out] out uint Index
+        );
 
         [PreserveSig]
         int GetPseudoIndexByNameWide(
-            [In, MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [Out] out UInt32 Index
-            );
+            [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
+            [Out] out uint Index
+        );
 
         [PreserveSig]
         int GetPseudoValues(
-            [In] UInt32 Source,
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [Out, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
-            );
+            [In] uint Source,
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            DEBUG_VALUE[] Values
+        );
 
         [PreserveSig]
         int SetPseudoValues(
-            [In] UInt32 Source,
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [In, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
-            );
+            [In] uint Source,
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
+        );
 
         [PreserveSig]
         int GetValues2(
             [In] DEBUG_REGSRC Source,
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [Out, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
-            );
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [Out][MarshalAs(UnmanagedType.LPArray)]
+            DEBUG_VALUE[] Values
+        );
 
         [PreserveSig]
         int SetValues2(
-            [In] UInt32 Source,
-            [In] UInt32 Count,
-            [In, MarshalAs(UnmanagedType.LPArray)] UInt32[] Indices,
-            [In] UInt32 Start,
-            [In, MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
-            );
+            [In] uint Source,
+            [In] uint Count,
+            [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
+            [In] uint Start,
+            [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
+        );
 
         [PreserveSig]
         int OutputRegisters2(
-            [In] UInt32 OutputControl,
-            [In] UInt32 Source,
-            [In] UInt32 Flags
-            );
+            [In] uint OutputControl,
+            [In] uint Source,
+            [In] uint Flags
+        );
 
         [PreserveSig]
         int GetInstructionOffset2(
-            [In] UInt32 Source,
-            [Out] out UInt64 Offset
-            );
+            [In] uint Source,
+            [Out] out ulong Offset
+        );
 
         [PreserveSig]
         int GetStackOffset2(
-            [In] UInt32 Source,
-            [Out] out UInt64 Offset
-            );
+            [In] uint Source,
+            [Out] out ulong Offset
+        );
 
         [PreserveSig]
         int GetFrameOffset2(
-            [In] UInt32 Source,
-            [Out] out UInt64 Offset
-            );
+            [In] uint Source,
+            [Out] out ulong Offset
+        );
     }
 }

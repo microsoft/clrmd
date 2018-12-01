@@ -1,31 +1,33 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal abstract class RuntimeBase : ClrRuntime
     {
-        private static ulong[] s_emptyPointerArray = new ulong[0];
+        private static readonly ulong[] s_emptyPointerArray = new ulong[0];
         protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
         protected IDataReader _dataReader;
         protected DataTargetImpl _dataTarget;
 
-        protected ICorDebug.ICorDebugProcess _corDebugProcess;
-        internal ICorDebug.ICorDebugProcess CorDebugProcess
+        protected ICorDebugProcess _corDebugProcess;
+        internal ICorDebugProcess CorDebugProcess
         {
             get
             {
                 if (_corDebugProcess == null)
-                    _corDebugProcess = ICorDebug.CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, DacLibrary.DacDataTarget, _dataTarget.FileLoader);
+                    _corDebugProcess = CLRDebugging.CreateICorDebugProcess(ClrInfo.ModuleInfo.ImageBase, DacLibrary.DacDataTarget, _dataTarget.FileLoader);
 
                 return _corDebugProcess;
             }
@@ -51,13 +53,11 @@ namespace Microsoft.Diagnostics.Runtime
                 HeapCount = data.HeapCount;
                 CanWalkHeap = data.GCStructuresValid;
             }
+
             _dataReader = dataTarget.DataReader;
         }
 
-        public override DataTarget DataTarget
-        {
-            get { return _dataTarget; }
-        }
+        public override DataTarget DataTarget => _dataTarget;
 
         public void RegisterForRelease(IModuleData module)
         {
@@ -65,19 +65,13 @@ namespace Microsoft.Diagnostics.Runtime
                 COMHelper.Release(module.LegacyMetaDataImport);
         }
 
-        public IDataReader DataReader
-        {
-            get { return _dataReader; }
-        }
+        public IDataReader DataReader => _dataReader;
 
         protected abstract void InitApi();
 
-        public override int PointerSize
-        {
-            get { return IntPtr.Size; }
-        }
+        public override int PointerSize => IntPtr.Size;
 
-        internal protected bool CanWalkHeap { get; protected set; }
+        protected internal bool CanWalkHeap { get; protected set; }
 
         internal MemoryReader MemoryReader
         {
@@ -87,10 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _cache = new MemoryReader(DataReader, 0x200);
                 return _cache;
             }
-            set
-            {
-                _cache = value;
-            }
+            set => _cache = value;
         }
 
         internal bool GetHeaps(out SubHeap[] heaps)
@@ -119,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return succeeded;
             }
-            else
+
             {
                 IHeapDetails heap = GetWksHeapDetails();
                 if (heap == null)
@@ -149,6 +140,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (thread.Next == 0)
                     break;
+
                 thread = GetThread(thread.Next);
             }
 
@@ -195,8 +187,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
             ClrHeap heap = Heap;
-            var mask = ((ulong)(PointerSize - 1));
-            var cache = MemoryReader;
+            ulong mask = (ulong)(PointerSize - 1);
+            MemoryReader cache = MemoryReader;
             cache.EnsureRangeInCache(stackBase);
             for (ulong stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
             {
@@ -220,7 +212,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        #region Abstract
         internal abstract ulong GetFirstThread();
         internal abstract IThreadData GetThread(ulong addr);
         internal abstract IHeapDetails GetSvrHeapDetails(ulong addr);
@@ -234,10 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal abstract uint GetThreadTypeIndex();
 
         internal abstract ClrAppDomain GetAppDomainByAddress(ulong addr);
-        #endregion
 
-        #region Helpers
-        #region Request Helpers
         protected bool Request(uint id, ulong param, byte[] output)
         {
             byte[] input = BitConverter.GetBytes(param);
@@ -359,7 +347,6 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-
         protected ulong[] RequestAddrList(uint id, ulong param, int length)
         {
             byte[] bytes = new byte[length * sizeof(ulong)];
@@ -372,9 +359,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             return result;
         }
-        #endregion
 
-        #region Marshalling Helpers
         protected static string BytesToString(byte[] output)
         {
             int len = 0;
@@ -387,7 +372,8 @@ namespace Microsoft.Diagnostics.Runtime
             return Encoding.Unicode.GetString(output, 0, len);
         }
 
-        protected byte[] GetByteArrayForStruct<T>() where T : struct
+        protected byte[] GetByteArrayForStruct<T>()
+            where T : struct
         {
             return new byte[Marshal.SizeOf(typeof(T))];
         }
@@ -446,17 +432,14 @@ namespace Microsoft.Diagnostics.Runtime
 
             return offset + sizeof(ulong);
         }
-        #endregion
-
-        #region Data Read
-
 
         public override bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
-        private byte[] _dataBuffer = new byte[8];
+        private readonly byte[] _dataBuffer = new byte[8];
+
         public bool ReadByte(ulong addr, out byte value)
         {
             // todo: There's probably a more efficient way to implement this if ReadVirtual accepted an "out byte"
@@ -640,7 +623,5 @@ namespace Microsoft.Diagnostics.Runtime
                 yield return obj;
             }
         }
-        #endregion
-        #endregion
     }
 }

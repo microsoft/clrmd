@@ -1,29 +1,31 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    unsafe class COMCallableIUnknown : COMHelper
+    internal unsafe class COMCallableIUnknown : COMHelper
     {
         private readonly GCHandle _handle;
-        private int _refCount = 0;
+        private int _refCount;
 
         private readonly Dictionary<Guid, IntPtr> _interfaces = new Dictionary<Guid, IntPtr>();
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
         public IntPtr IUnknownObject { get; }
-
         public IUnknownVTable IUnknown => **(IUnknownVTable**)IUnknownObject;
-
 
         public COMCallableIUnknown()
         {
             _handle = GCHandle.Alloc(this);
 
             IUnknownVTable* vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
-            QueryInterfaceDelegate qi = new QueryInterfaceDelegate(QueryInterfaceImpl);
+            QueryInterfaceDelegate qi = QueryInterfaceImpl;
             vtable->QueryInterface = Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
@@ -31,18 +33,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             vtable->AddRef = Marshal.GetFunctionPointerForDelegate(addRef);
             _delegates.Add(addRef);
 
-
             ReleaseDelegate release = new ReleaseDelegate(ReleaseImpl);
             vtable->Release = Marshal.GetFunctionPointerForDelegate(release);
             _delegates.Add(release);
-
 
             IUnknownObject = Marshal.AllocHGlobal(IntPtr.Size);
             *(void**)IUnknownObject = vtable;
 
             _interfaces.Add(IUnknownGuid, IUnknownObject);
         }
-        public VtableBuilder AddInterface(Guid guid) => new VtableBuilder(this, guid);
+
+        public VTableBuilder AddInterface(Guid guid)
+        {
+            return new VTableBuilder(this, guid);
+        }
 
         internal void RegisterInterface(Guid guid, IntPtr clsPtr, List<Delegate> keepAlive)
         {
@@ -81,6 +85,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return count;
         }
 
-        private int AddRefImpl(IntPtr self) => Interlocked.Increment(ref _refCount);
+        private int AddRefImpl(IntPtr self)
+        {
+            return Interlocked.Increment(ref _refCount);
+        }
     }
 }

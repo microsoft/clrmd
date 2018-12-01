@@ -1,9 +1,13 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public unsafe sealed class ClrStackWalk : CallableCOMWrapper
+    public sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
         private static Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
@@ -22,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ulong GetFrameVtable()
         {
             InitDelegate(ref _request, VTable->Request);
-            
+
             int hr = _request(Self, 0xf0000000, 0, null, (uint)_ulongBuffer.Length, _ulongBuffer);
             if (hr == S_OK)
                 return BitConverter.ToUInt64(_ulongBuffer, 0);
@@ -52,15 +56,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int NextDelegate(IntPtr self);
 
-
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] inBuffer,
-                    uint outBufferSize, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] byte[] outBuffer);
+        private delegate int RequestDelegate(
+            IntPtr self,
+            uint reqCode,
+            uint inBufferSize,
+            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
+            byte[] inBuffer,
+            uint outBufferSize,
+            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
+            byte[] outBuffer);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
+
     internal struct IXCLRDataStackWalkVTable
     {
         public readonly IntPtr GetContext;

@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -35,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (result != null)
                 return result;
 
-            var missingPdbs = _missingPdbs;
+            HashSet<PdbEntry> missingPdbs = _missingPdbs;
             if (IsMissing(missingPdbs, entry))
                 return null;
 
@@ -51,10 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         SetPdbEntry(missingPdbs, entry, targetPath);
                         return targetPath;
                     }
-                    else
-                    {
-                        Trace("No matching pdb found on server '{0}' on path '{1}'.", element.Target, pdbIndexPath);
-                    }
+
+                    Trace("No matching pdb found on server '{0}' on path '{1}'.", element.Target, pdbIndexPath);
                 }
                 else
                 {
@@ -65,10 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         SetPdbEntry(missingPdbs, entry, fullPath);
                         return fullPath;
                     }
-                    else
-                    {
-                        Trace($"Mismatched pdb found at '{fullPath}'.");
-                    }
+
+                    Trace($"Mismatched pdb found at '{fullPath}'.");
                 }
             }
 
@@ -96,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (result != null)
                 return result;
 
-            var missingFiles = _missingFiles;
+            HashSet<FileEntry> missingFiles = _missingFiles;
             if (IsMissing(missingFiles, entry))
                 return null;
 
@@ -157,14 +158,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private string TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
         {
             Debug.Assert(!string.IsNullOrEmpty(cache));
-            if (String.IsNullOrEmpty(urlForServer))
+            if (string.IsNullOrEmpty(urlForServer))
                 return null;
 
-            var targetPath = Path.Combine(cache, fileIndexPath);
+            string targetPath = Path.Combine(cache, fileIndexPath);
 
             // See if it is a compressed file by replacing the last character of the name with an _
-            var compressedSigPath = fileIndexPath.Substring(0, fileIndexPath.Length - 1) + "_";
-            var compressedFilePath = GetPhysicalFileFromServer(urlForServer, compressedSigPath, cache);
+            string compressedSigPath = fileIndexPath.Substring(0, fileIndexPath.Length - 1) + "_";
+            string compressedFilePath = GetPhysicalFileFromServer(urlForServer, compressedSigPath, cache);
             if (compressedFilePath != null)
             {
                 try
@@ -185,13 +186,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Just try to fetch the file directly
-            var ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
+            string ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
             if (ret != null)
                 return ret;
 
             // See if we have a file that tells us to redirect elsewhere. 
-            var filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
-            var filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
+            string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
+            string filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
             if (filePtrData == null)
             {
                 return null;
@@ -209,10 +210,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return targetPath;
                 }
             }
-            else
-            {
-                Trace("Error resolving file.ptr: content '{0}' from '{1}.", filePtrData, filePtrSigPath);
-            }
+
+            Trace("Error resolving file.ptr: content '{0}' from '{1}.", filePtrData, filePtrSigPath);
 
             return null;
         }
@@ -222,20 +221,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(serverPath))
                 return null;
 
-            var fullDestPath = Path.Combine(symbolCacheDir, pdbIndexPath);
+            string fullDestPath = Path.Combine(symbolCacheDir, pdbIndexPath);
             if (File.Exists(fullDestPath))
                 return fullDestPath;
 
             if (serverPath.StartsWith("http:"))
             {
-                var fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
+                string fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
                 try
                 {
-                    var req = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(fullUri);
+                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(fullUri);
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
-                    var response = req.GetResponse();
-                    using (var fromStream = response.GetResponseStream())
+                    WebResponse response = req.GetResponse();
+                    using (Stream fromStream = response.GetResponseStream())
                     {
                         if (returnContents)
                         {
@@ -258,29 +257,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return null;
                 }
             }
-            else
+
+            string fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
+            if (!File.Exists(fullSrcPath))
+                return null;
+
+            if (returnContents)
             {
-                var fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
-                if (!File.Exists(fullSrcPath))
-                    return null;
-
-                if (returnContents)
+                try
                 {
-                    try
-                    {
-                        return File.ReadAllText(fullSrcPath);
-                    }
-                    catch
-                    {
-                        return "";
-                    }
+                    return File.ReadAllText(fullSrcPath);
                 }
-
-                using (FileStream fs = File.OpenRead(fullSrcPath))
-                    CopyStreamToFile(fs, fullSrcPath, fullDestPath, fs.Length);
-
-                return fullDestPath;
+                catch
+                {
+                    return "";
+                }
             }
+
+            using (FileStream fs = File.OpenRead(fullSrcPath))
+                CopyStreamToFile(fs, fullSrcPath, fullDestPath, fs.Length);
+
+            return fullDestPath;
         }
     }
 }

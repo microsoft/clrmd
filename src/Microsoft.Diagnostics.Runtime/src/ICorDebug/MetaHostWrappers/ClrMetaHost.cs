@@ -1,5 +1,10 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.ICorDebug
@@ -7,9 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
     /// <summary>
     /// Wrapper for ICLRMetaHost. Used to find information about runtimes.
     /// </summary>
-    sealed class CLRMetaHost
+    internal sealed class CLRMetaHost
     {
-        private ICLRMetaHost m_metaHost;
+        private readonly ICLRMetaHost m_metaHost;
 
         public const int MaxVersionStringLength = 26; // 24 + NULL and an extra
         private static readonly Guid clsidCLRMetaHost = new Guid("9280188D-0E8E-4867-B30C-7FA83884E8DE");
@@ -29,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
             foreach (CLRRuntimeInfo rti in runtimes)
             {
-                if (rti.GetVersionString().ToString().ToLower() == version.ToLower())
+                if (rti.GetVersionString().ToLower() == version.ToLower())
                 {
                     return rti;
                 }
@@ -38,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             return null;
         }
 
-        public CLRRuntimeInfo GetLoadedRuntimeByVersion(Int32 processId, string version)
+        public CLRRuntimeInfo GetLoadedRuntimeByVersion(int processId, string version)
         {
             IEnumerable<CLRRuntimeInfo> runtimes = EnumerateLoadedRuntimes(processId);
 
@@ -70,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         }
 
         // Retrieve information about runtimes that are currently loaded into the target process.
-        public IEnumerable<CLRRuntimeInfo> EnumerateLoadedRuntimes(Int32 processId)
+        public IEnumerable<CLRRuntimeInfo> EnumerateLoadedRuntimes(int processId)
         {
             List<CLRRuntimeInfo> runtimes = new List<CLRRuntimeInfo>();
             IEnumUnknown enumRuntimes;
@@ -89,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
             {
                 if (hProcess.IsInvalid)
                 {
-                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
                 }
 
                 enumRuntimes = m_metaHost.EnumerateLoadedRuntimes(hProcess);

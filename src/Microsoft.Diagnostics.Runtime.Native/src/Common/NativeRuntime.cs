@@ -1,9 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Native.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
@@ -28,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return _heap;
             }
         }
-        
+
         public NativeRuntime(ModuleInfo module, DataTarget dt, DacLibrary lib)
         {
             Module = module;
@@ -58,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             if (SOSNative.GetThreadStoreData(out NativeThreadStoreData data))
             {
-                HashSet<ulong> seen = new HashSet<ulong>() { 0 };
+                HashSet<ulong> seen = new HashSet<ulong> {0};
 
                 ulong addr = data.FirstThread;
                 while (seen.Add(addr))
@@ -74,13 +75,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             _threads = threads.ToArray();
         }
+        
         /*
-
+         
         internal unsafe IList<ClrRoot> EnumerateStackRoots(ClrThread thread)
         {
             int contextSize;
 
-            var plat = _dataReader.GetArchitecture();
+            Architecture plat = _dataReader.GetArchitecture();
             if (plat == Architecture.Amd64)
                 contextSize = 0x4d0;
             else if (plat == Architecture.X86)
@@ -102,6 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 IntPtr ctx = new IntPtr(b);
                 SOSNative.TraverseStackRoots(thread.Address, ctx, contextSize, callback, IntPtr.Zero);
             }
+
             GC.KeepAlive(del);
 
             return walker.Roots;
@@ -136,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                 return new ClrException[0];
             }
 
-            var exceptionById = new Dictionary<ulong, NativeException>();
+            Dictionary<ulong, NativeException> exceptionById = new Dictionary<ulong, NativeException>();
             ISerializedExceptionEnumerator serializedExceptionEnumerator = _sosNativeSerializedExceptionSupport.GetSerializedExceptions();
             while (serializedExceptionEnumerator.HasNext())
             {
@@ -157,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
                         {
                             try
                             {
-                                ISymbolResolver resolver = this.DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
+                                ISymbolResolver resolver = DataTarget.SymbolProvider.GetSymbolResolver(nativeModule.Pdb.FileName, nativeModule.Pdb.Guid, nativeModule.Pdb.Revision);
 
                                 if (resolver != null)
                                 {
@@ -165,12 +168,14 @@ namespace Microsoft.Diagnostics.Runtime.Native
                                 }
                                 else
                                 {
-                                    Trace.WriteLine($"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
+                                    Trace.WriteLine(
+                                        $"Unable to find symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]");
                                 }
                             }
                             catch (Exception e)
                             {
-                                Trace.WriteLine($"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
+                                Trace.WriteLine(
+                                    $"Error in finding the symbol resolver for PDB [Filename:{nativeModule.Pdb.FileName}, GUID:{nativeModule.Pdb.Guid}, Revision:{nativeModule.Pdb.Revision}]: {e.Message}");
                                 Trace.WriteLine("Check previous traces for additional information");
                             }
                         }
@@ -189,20 +194,22 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
                 //create a new exception and populate the fields
 
-                exceptionById.Add(serializedException.ExceptionId, new NativeException(
-                    _heap.GetTypeByMethodTable(serializedException.ExceptionEEType),
-                    serializedException.ExceptionCCWPtr,
-                    serializedException.HResult,
-                    serializedException.ThreadId,
+                exceptionById.Add(
                     serializedException.ExceptionId,
-                    serializedException.InnerExceptionId,
-                    serializedException.NestingLevel,
-                    stackFrames));
+                    new NativeException(
+                        _heap.GetTypeByMethodTable(serializedException.ExceptionEEType),
+                        serializedException.ExceptionCCWPtr,
+                        serializedException.HResult,
+                        serializedException.ThreadId,
+                        serializedException.ExceptionId,
+                        serializedException.InnerExceptionId,
+                        serializedException.NestingLevel,
+                        stackFrames));
             }
 
-            var usedAsInnerException = new HashSet<ulong>();
+            HashSet<ulong> usedAsInnerException = new HashSet<ulong>();
 
-            foreach (var nativeException in exceptionById.Values)
+            foreach (NativeException nativeException in exceptionById.Values)
             {
                 if (nativeException.InnerExceptionId > 0)
                 {

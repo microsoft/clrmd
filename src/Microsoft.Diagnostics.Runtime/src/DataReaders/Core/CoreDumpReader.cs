@@ -1,12 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Linux;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Linux;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -17,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ElfCoreFile _core;
         private readonly int _pointerSize;
         private readonly Architecture _architecture;
-        private Dictionary<uint, ELFPRStatus> _threads;
+        private Dictionary<uint, ElfPRStatus> _threads;
         private readonly byte[] _buffer = new byte[512];
 
         public CoreDumpReader(string filename)
@@ -25,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
             _source = filename;
             _stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
             _core = new ElfCoreFile(_stream);
-
 
             switch (_core.Architecture)
             {
@@ -60,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             string filename = Path.GetFileName(img.Path);
 
-            return new ModuleInfo()
+            return new ModuleInfo
             {
                 FileName = img.Path,
                 FileSize = (uint)img.Size,
@@ -74,10 +75,15 @@ namespace Microsoft.Diagnostics.Runtime
             _threads = null;
         }
 
-        public Architecture GetArchitecture() => _architecture;
+        public Architecture GetArchitecture()
+        {
+            return _architecture;
+        }
 
-        public uint GetPointerSize() => (uint)_pointerSize;
-
+        public uint GetPointerSize()
+        {
+            return (uint)_pointerSize;
+        }
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
@@ -88,12 +94,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             AMD64Context* ctx = (AMD64Context*)context.ToPointer();
             ctx->ContextFlags = (int)contextFlags;
-            if (_threads.TryGetValue(threadID, out ELFPRStatus status))
+            if (_threads.TryGetValue(threadID, out ElfPRStatus status))
             {
                 CopyContext(ctx, ref status.RegisterSet);
                 return true;
             }
-            
+
             return false;
         }
 
@@ -125,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             InitThreads();
 
-            if (_threads.TryGetValue(threadID, out ELFPRStatus status))
+            if (_threads.TryGetValue(threadID, out ElfPRStatus status))
             {
                 fixed (byte* ptr = context)
                 {
@@ -135,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return true;
                 }
             }
-            
+
             return false;
         }
 
@@ -147,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             // TODO
-            System.Diagnostics.Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
+            Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
             version = new VersionInfo();
         }
 
@@ -172,7 +178,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (bytesRequested > buffer.Length)
                 buffer = new byte[bytesRequested];
 
-            
             bool result = ReadMemory(address, buffer, bytesRequested, out bytesRead);
             if (result)
                 Marshal.Copy(buffer, 0, ptr, bytesRead);
@@ -208,21 +213,19 @@ namespace Microsoft.Diagnostics.Runtime
                     vq = new VirtualQueryData((ulong)start, (ulong)item.RefHeader.VirtualSize);
                     return true;
                 }
-
             }
 
             vq = new VirtualQueryData();
             return false;
         }
 
-
         private void InitThreads()
         {
             if (_threads != null)
                 return;
-            
-            _threads = new Dictionary<uint, ELFPRStatus>();
-            foreach (ELFPRStatus status in _core.EnumeratePRStatus())
+
+            _threads = new Dictionary<uint, ElfPRStatus>();
+            foreach (ElfPRStatus status in _core.EnumeratePRStatus())
                 _threads.Add(status.Pid, status);
         }
     }

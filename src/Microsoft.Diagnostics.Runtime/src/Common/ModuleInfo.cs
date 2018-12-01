@@ -1,8 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -44,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public PEFile GetPEFile()
         {
-            return PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, (long)FileSize), true);
+            return PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), true);
         }
 
         /// <summary>
@@ -82,10 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return _pdb;
             }
 
-            set
-            {
-                _pdb = value;
-            }
+            set => _pdb = value;
         }
 
         private void InitData()
@@ -95,11 +93,11 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_pdb != null && _managed != null)
                 return;
-            
+
             PEFile file = null;
             try
             {
-                file = PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, (long)FileSize), true);
+                file = PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), true);
                 if (file == null)
                     return;
 
@@ -107,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (file.GetPdbSignature(out string pdbName, out Guid guid, out int age))
                 {
-                    _pdb = new PdbInfo()
+                    _pdb = new PdbInfo
                     {
                         FileName = pdbName,
                         Guid = guid,
@@ -120,8 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             finally
             {
-                if (file != null)
-                    file.Dispose();
+                file?.Dispose();
             }
         }
 
@@ -147,8 +144,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-
-
         /// <summary>
         /// Empty constructor for serialization.
         /// </summary>
@@ -158,16 +153,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Creates a ModuleInfo object with an IDataReader instance.  This is used when
-        /// lazily evaluating VersionInfo. 
+        /// lazily evaluating VersionInfo.
         /// </summary>
         /// <param name="reader"></param>
         public ModuleInfo(IDataReader reader)
         {
             _dataReader = reader;
         }
-        [NonSerialized]
 
-        private IDataReader _dataReader;
+        [NonSerialized]
+        private readonly IDataReader _dataReader;
         private PdbInfo _pdb;
         private bool? _managed;
         private VersionInfo _version;

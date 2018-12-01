@@ -1,17 +1,20 @@
-﻿using Xunit;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Linq;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    class StackTraceEntry
+    internal class StackTraceEntry
     {
         public ClrStackFrameType Kind { get; set; }
         public string ModuleString { get; set; }
         public string MethodName { get; set; }
     }
 
-    
     public class MinidumpTests
     {
         [Fact]
@@ -22,9 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrThread thread = runtime.GetMainThread();
 
-                string[] frames = IntPtr.Size == 8 ?
-                    new string[] { "Inner", "Inner", "Middle", "Outer", "Main" } : 
-                    new string[] { "Inner", "Middle", "Outer", "Main" };
+                string[] frames = IntPtr.Size == 8 ? new[] {"Inner", "Inner", "Middle", "Outer", "Main"} : new[] {"Inner", "Middle", "Outer", "Main"};
 
                 int i = 0;
 
@@ -47,7 +48,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
-
 
         [Fact]
         public void MinidumpExceptionPropertiesTest()

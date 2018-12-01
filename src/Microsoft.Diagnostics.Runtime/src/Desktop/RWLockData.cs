@@ -1,14 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Linq;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
-using System.Threading;
 
 #pragma warning disable 649
 
@@ -20,27 +14,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public IntPtr pPrev;
         public int _uLockID;
         public int _lLockID;
-        public Int16 wReaderLevel;
+        public short wReaderLevel;
 
-        public ulong Next
-        {
-            get { return (ulong)pNext.ToInt64(); }
-        }
-
-        public int ULockID
-        {
-            get { return _uLockID; }
-        }
-
-        public int LLockID
-        {
-            get { return _lLockID; }
-        }
-
-
-        public int Level
-        {
-            get { return wReaderLevel; }
-        }
+        public ulong Next => (ulong)pNext.ToInt64();
+        public int ULockID => _uLockID;
+        public int LLockID => _lLockID;
+        public int Level => wReaderLevel;
     }
 }

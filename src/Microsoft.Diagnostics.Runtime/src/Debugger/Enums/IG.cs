@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Interop
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime.Interop
 {
     public enum IG : ushort
     {
@@ -51,6 +55,6 @@
         PHYSICAL_TO_VIRTUAL = 47,
         GET_CONTEXT_EX = 48,
         GET_TEB_ADDRESS = 128,
-        GET_PEB_ADDRESS = 129,
+        GET_PEB_ADDRESS = 129
     }
 }

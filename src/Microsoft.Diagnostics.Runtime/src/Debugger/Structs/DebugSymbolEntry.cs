@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -6,17 +9,17 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     [StructLayout(LayoutKind.Sequential)]
     public struct DEBUG_SYMBOL_ENTRY
     {
-        public UInt64 ModuleBase;
-        public UInt64 Offset;
-        public UInt64 Id;
-        public UInt64 Arg64;
-        public UInt32 Size;
-        public UInt32 Flags;
-        public UInt32 TypeId;
-        public UInt32 NameSize;
-        public UInt32 Token;
+        public ulong ModuleBase;
+        public ulong Offset;
+        public ulong Id;
+        public ulong Arg64;
+        public uint Size;
+        public uint Flags;
+        public uint TypeId;
+        public uint NameSize;
+        public uint Token;
         public SymTag Tag;
-        public UInt32 Arg32;
-        public UInt32 Reserved;
+        public uint Arg32;
+        public uint Reserved;
     }
 }

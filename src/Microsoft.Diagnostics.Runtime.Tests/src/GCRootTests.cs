@@ -1,8 +1,12 @@
-﻿using System;
-using Xunit;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -103,7 +107,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.False(hash.Add(obj));
                     Assert.True(hash.Contains(obj));
                 }
-
             }
         }
 
@@ -132,7 +135,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
-
 
         [Fact]
         public void EnumerateGCRootsCancel()
@@ -184,7 +186,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
-
 
         [Fact]
         public void EnumerateAllPathshCancel()
@@ -240,9 +241,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private void GCStaticRootsImpl(GCRoot gcroot)
         {
             ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-            RootPath[] paths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
+            GCRootPath[] paths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
             Assert.Single(paths);
-            RootPath rootPath = paths[0];
+            GCRootPath rootPath = paths[0];
 
             AssertPathIsCorrect(gcroot.Heap, rootPath.Path.ToArray(), rootPath.Path.First().Address, target);
         }
@@ -258,7 +259,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 gcroot.ClearCache();
                 Assert.False(gcroot.IsFullyCached);
                 GCRootsImpl(gcroot);
-                
+
                 gcroot.BuildCache(CancellationToken.None);
 
                 gcroot.AllowParallelSearch = false;
@@ -275,15 +276,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
-            RootPath[] rootPaths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
 
             Assert.True(rootPaths.Length >= 2);
 
-            foreach (RootPath rootPath in rootPaths)
+            foreach (GCRootPath rootPath in rootPaths)
                 AssertPathIsCorrect(heap, rootPath.Path.ToArray(), rootPath.Path.First().Address, target);
 
             bool hasThread = false, hasStatic = false;
-            foreach (RootPath rootPath in rootPaths)
+            foreach (GCRootPath rootPath in rootPaths)
             {
                 if (rootPath.Root.Kind == GCRootKind.Pinning)
                     hasStatic = true;
@@ -345,7 +346,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ClrHeap heap = gcroot.Heap;
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
-            
+
             LinkedList<ClrObject>[] paths = gcroot.EnumerateAllPaths(source, target, false, CancellationToken.None).ToArray();
 
             // There are exactly three paths to the object in the test target

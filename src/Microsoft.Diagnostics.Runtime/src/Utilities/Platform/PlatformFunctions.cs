@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -10,7 +14,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool FreeLibrary(IntPtr module);
 
         public abstract IntPtr GetProcAddress(IntPtr module, string method);
-
 
         public virtual bool IsEqualFileVersion(string file, VersionInfo version)
         {

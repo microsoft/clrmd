@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.IO;
@@ -54,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the 
+        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
@@ -68,7 +69,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (obj is PdbInfo rhs)
             {
-
                 if (Revision == rhs.Revision && Guid == rhs.Guid)
                 {
                     string lhsFilename = Path.GetFileName(FileName);

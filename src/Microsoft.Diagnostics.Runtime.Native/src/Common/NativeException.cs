@@ -1,111 +1,52 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Desktop;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Native
 {
     internal class NativeException : ClrException
     {
-        private ulong _ccwPtr;
-        private ClrType _type;
-        private ulong _hResult;
-        private ulong _threadId;
-        private ulong _exceptionId;
-        private ulong _innerExceptionId;
-        private ulong _nestingLevel;
-        private IList<ClrStackFrame> _stackFrames;
+        private readonly ulong _hResult;
 
         private ClrException _innerException;
 
         public NativeException(
-                        ClrType clrType,
-                        ulong ccwPtr,
-                        ulong hResult,
-                        ulong threadId,
-                        ulong exceptionId,
-                        ulong innerExceptionId,
-                        ulong nestingLevel,
-                        IList<ClrStackFrame> stackFrames)
+            ClrType clrType,
+            ulong ccwPtr,
+            ulong hResult,
+            ulong threadId,
+            ulong exceptionId,
+            ulong innerExceptionId,
+            ulong nestingLevel,
+            IList<ClrStackFrame> stackFrames)
         {
-            _type = clrType;
-            _ccwPtr = ccwPtr;
+            Type = clrType;
+            Address = ccwPtr;
             _hResult = hResult;
-            _threadId = threadId;
-            _exceptionId = exceptionId;
-            _innerExceptionId = innerExceptionId;
-            _nestingLevel = nestingLevel;
-            _stackFrames = stackFrames;
+            ThreadId = threadId;
+            ExceptionId = exceptionId;
+            InnerExceptionId = innerExceptionId;
+            NestingLevel = nestingLevel;
+            StackTrace = stackFrames;
         }
 
-        public override ulong Address
-        {
-            get { return _ccwPtr; }
-        }
-        public override int HResult
-        {
-            get
-            {
-                return (int)_hResult;
-            }
-        }
-
-        public override ClrType Type
-        {
-            get { return _type; }
-        }
-
-        public override string Message
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        public override ClrException Inner
-        {
-            get
-            {
-                return _innerException;
-            }
-        }
+        public override ulong Address { get; }
+        public override int HResult => (int)_hResult;
+        public override ClrType Type { get; }
+        public override string Message => null;
+        public override ClrException Inner => _innerException;
 
         internal void SetInnerException(ClrException inner)
         {
             _innerException = inner;
         }
 
-        public override IList<ClrStackFrame> StackTrace
-        {
-            get
-            {
-                return _stackFrames;
-            }
-        }
-
-        public ulong InnerExceptionId
-        {
-            get { return _innerExceptionId; }
-        }
-
-        public ulong ThreadId
-        {
-            get { return _threadId; }
-        }
-
-        public ulong NestingLevel
-        {
-            get { return _nestingLevel; }
-        }
-
-        public ulong ExceptionId
-        {
-            get { return _exceptionId; }
-        }
+        public override IList<ClrStackFrame> StackTrace { get; }
+        public ulong InnerExceptionId { get; }
+        public ulong ThreadId { get; }
+        public ulong NestingLevel { get; }
+        public ulong ExceptionId { get; }
     }
 }

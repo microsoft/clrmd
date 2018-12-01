@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
@@ -20,6 +24,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         LARGE_PAGES = 0x20000000,
         FOURMB_PAGES = 0x80000000,
 
-        IMAGE = SEC.IMAGE,
+        IMAGE = SEC.IMAGE
     }
 }

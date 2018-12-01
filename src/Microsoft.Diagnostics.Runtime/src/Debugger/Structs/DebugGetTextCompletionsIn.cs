@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Interop
@@ -7,9 +10,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct DEBUG_GET_TEXT_COMPLETIONS_IN
     {
         public DEBUG_GET_TEXT_COMPLETIONS Flags;
-        public UInt32 MatchCountLimit;
-        public UInt64 Reserved0;
-        public UInt64 Reserved1;
-        public UInt64 Reserved2;
+        public uint MatchCountLimit;
+        public ulong Reserved0;
+        public ulong Reserved1;
+        public ulong Reserved2;
     }
 }
