@@ -31,10 +31,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             FrameOffset = dsf.FrameOffset;
             StackOffset = dsf.StackOffset;
             FuncTableEntry = dsf.FuncTableEntry;
-            for (int i = 0; i < 4; ++i)
-                Params[i] = dsf.Params[i];
-            for (int i = 0; i < 6; ++i)
-                Reserved[i] = dsf.Reserved[i];
+
+            fixed (ulong* pParams = Params)
+                for (int i = 0; i < 4; ++i)
+                    pParams[i] = dsf.Params[i];
+
+            fixed (ulong* pReserved = Params)
+                for (int i = 0; i < 6; ++i)
+                    pReserved[i] = dsf.Reserved[i];
+
             Virtual = dsf.Virtual;
             FrameNumber = dsf.FrameNumber;
             InlineFrameContext = 0xFFFFFFFF;
