@@ -746,7 +746,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         ReadPointer(sp, out frameVtbl);
                     }
 
-                    DesktopStackFrame frame = GetStackFrame(thread, ip, sp, frameVtbl);
+                    byte[] contextCopy = new byte[context.Length];
+                    Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
+
+                    DesktopStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
                     yield return frame;
                 } while (stackwalk.Next());
             }
@@ -818,7 +821,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract string GetNameForMD(ulong md);
         internal abstract IMethodDescData GetMethodDescData(ulong md);
         internal abstract uint GetMetadataToken(ulong mt);
-        protected abstract DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong sp, ulong frameVtbl);
+        protected abstract DesktopStackFrame GetStackFrame(DesktopThread thread, byte[] context, ulong ip, ulong sp, ulong frameVtbl);
         internal abstract IList<ClrStackFrame> GetExceptionStackTrace(ulong obj, ClrType type);
         internal abstract string GetAssemblyName(ulong assembly);
         internal abstract string GetAppBase(ulong appDomain);
