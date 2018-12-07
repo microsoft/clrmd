@@ -22,5 +22,15 @@
     <None Include="..\TestTargets\**\*.*">
       <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
+    <None Remove="obj\**" />
+    <None Remove="bin\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <Compile Remove="bin\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="obj\**" />
+    <EmbeddedResource Remove="bin\**" />
   </ItemGroup>
 </Project>

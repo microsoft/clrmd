@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly DesktopVersion _version;
         private readonly int _patch;
 
-        public LegacyRuntime(ClrInfo info, DataTargetImpl dt, DacLibrary lib, DesktopVersion version, int patch)
+        public LegacyRuntime(ClrInfo info, DataTarget dt, DacLibrary lib, DesktopVersion version, int patch)
             : base(info, dt, lib)
         {
             _version = version;

@@ -19,21 +19,34 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo clrVersion)
         {
+            var isWin = Environment.OSVersion.Platform == PlatformID.Win32NT;
+            var prefix = isWin ? "" : "lib";
+            var ext = isWin ? "dll" : "so";
             string dacName = flavor == ClrFlavor.Core ? "mscordaccore" : "mscordacwks";
+            // ReSharper disable once UseStringInterpolation
             return string.Format(
-                "{0}_{1}_{2}_{3}.{4}.{5}.{6:D2}.dll",
+                "{0}{1}_{2}_{3}_{4}.{5}.{6}.{7:D2}.{8}",
+                prefix,
                 dacName,
                 currentArchitecture,
                 targetArchitecture,
                 clrVersion.Major,
                 clrVersion.Minor,
                 clrVersion.Revision,
-                clrVersion.Patch);
+                clrVersion.Patch,
+                ext);
         }
 
         internal static string GetDacFileName(ClrFlavor flavor, Architecture targetArchitecture)
         {
-            return flavor == ClrFlavor.Core ? "mscordaccore.dll" : "mscordacwks.dll";
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                return flavor == ClrFlavor.Core ? "mscordaccore.dll" : "mscordacwks.dll";
+            }
+            else
+            {
+                return flavor == ClrFlavor.Core ? "libmscordaccore.so" : "libmscordacwks.so";
+            }
         }
 
         /// <summary>

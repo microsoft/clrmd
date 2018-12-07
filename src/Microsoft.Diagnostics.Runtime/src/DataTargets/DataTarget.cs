@@ -128,18 +128,36 @@ namespace Microsoft.Diagnostics.Runtime
         {
             IDebugClient client = null;
             IDataReader reader;
-            if (attachFlag == AttachFlag.Passive)
+            DataTarget dataTarget;
+            if (IsWindows)
             {
-                reader = new LiveDataReader(pid, false);
+                if (attachFlag == AttachFlag.Passive)
+                {
+                    reader = new LiveDataReader(pid, false);
+                }
+                else
+                {
+                    DbgEngDataReader dbgeng = new DbgEngDataReader(pid, attachFlag, msecTimeout);
+                    reader = dbgeng;
+                    client = dbgeng.DebuggerInterface;
+                }
+
+                dataTarget = new DataTargetImpl(reader, client);
             }
             else
             {
-                DbgEngDataReader dbgeng = new DbgEngDataReader(pid, attachFlag, msecTimeout);
-                reader = dbgeng;
-                client = dbgeng.DebuggerInterface;
+                if (attachFlag == AttachFlag.Passive)
+                {
+                    var xPlat = new XPlatLiveDataTarget(pid, msecTimeout, AttachFlag.Passive);
+                    dataTarget = xPlat;
+                    //reader = xPlat;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
 
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
             return dataTarget;
         }
 
@@ -236,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the IDebugClient interface associated with this datatarget.  (Will return null if the
         /// user attached passively.)
         /// </summary>
-        public abstract IDebugClient DebuggerInterface { get; }
+        public abstract object DebuggerInterface { get; }
 
         /// <summary>
         /// Enumerates information about the loaded modules in the process (both managed and unmanaged).
@@ -249,5 +267,24 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract void Dispose();
 
         internal abstract void AddDacLibrary(DacLibrary dacLibrary);
+        
+
+        internal static bool IsWindows
+        {
+            get
+            {
+                switch (Environment.OSVersion.Platform)
+                {
+                    case PlatformID.Win32NT:
+                        return true;
+                    case PlatformID.Win32Windows:
+                    case PlatformID.Win32S:
+                    case PlatformID.WinCE:
+                        throw new NotSupportedException();
+                }
+
+                return false;
+            }
+        }
     }
 }

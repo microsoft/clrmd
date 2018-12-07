@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
         }
 
-        public override IDebugClient DebuggerInterface { get; }
+        public override object DebuggerInterface { get; }
 
         public override IEnumerable<ModuleInfo> EnumerateModules()
         {

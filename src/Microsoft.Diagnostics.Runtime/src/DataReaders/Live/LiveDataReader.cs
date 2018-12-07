@@ -327,10 +327,10 @@ namespace Microsoft.Diagnostics.Runtime
         internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, ref MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
 
         [DllImport("kernel32.dll")]
-        private static extern bool GetThreadContext(IntPtr hThread, IntPtr lpContext);
+        internal static extern bool GetThreadContext(IntPtr hThread, IntPtr lpContext);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
+        internal static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
 
         [DllImport("kernel32")]
         private static extern int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, out IntPtr SnapshotHandle);

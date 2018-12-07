@@ -1,0 +1,38 @@
+﻿namespace Microsoft.Diagnostics.Runtime {
+    public enum PTraceRequest
+    {
+        TraceMe = 0,
+        PeekText,
+        PeekData,
+        PeekUser,
+        PokeText,
+        PokeData,
+        PokeUser,
+        Cont,
+        Kill,
+        SingleStep,
+        GetRegs = 12,
+        SetRegs,
+        GetFpReg,
+        SetFpRegs,
+        Attach = 16,
+        Detach,
+        GetFpXRegs,
+        SetFpXRegs,
+        Syscall = 24,
+        SetOptions = 0x4200,
+        GetEventMsg,
+        GetSigInfo,
+        SetSigInfo,
+        GetRegSet,
+        SetRegSet,
+        Seize,
+        Interrupt,
+        Listen,
+        PeekSigInfo,
+        GetSigMask,
+        SetSigMask,
+        SecCompGetFilter,
+        
+    }
+}
