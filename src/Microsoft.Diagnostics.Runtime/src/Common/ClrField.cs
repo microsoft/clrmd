@@ -35,19 +35,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if this field is a primitive (int, float, etc), false otherwise.
         /// </summary>
         /// <returns>True if this field is a primitive (int, float, etc), false otherwise.</returns>
-        public virtual bool IsPrimitive => ClrRuntime.IsPrimitive(ElementType);
+        public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
         /// Returns true if this field is a ValueClass (struct), false otherwise.
         /// </summary>
         /// <returns>True if this field is a ValueClass (struct), false otherwise.</returns>
-        public virtual bool IsValueClass => ClrRuntime.IsValueClass(ElementType);
+        public virtual bool IsValueClass => ElementType.IsValueClass();
 
         /// <summary>
         /// Returns true if this field is an object reference, false otherwise.
         /// </summary>
         /// <returns>True if this field is an object reference, false otherwise.</returns>
-        public virtual bool IsObjectReference => ClrRuntime.IsObjectReference(ElementType);
+        public virtual bool IsObjectReference => ElementType.IsObjectReference();
 
         /// <summary>
         /// Gets the size of this field.

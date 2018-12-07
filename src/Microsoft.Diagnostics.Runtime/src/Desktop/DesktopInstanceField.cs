@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             res = sigParser.PeekElemType(out etype);
                             type = (ClrElementType)etype;
 
-                            if (ClrRuntime.IsObjectReference(type))
+                            if (type.IsObjectReference())
                                 result = (BaseDesktopHeapType)heap.GetBasicType(ClrElementType.SZArray);
                             else
                                 result = heap.GetArrayType(type, -1, null);
@@ -162,9 +162,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        public override bool IsObjectReference => ClrRuntime.IsObjectReference((ClrElementType)_field.CorElementType);
-        public override bool IsValueClass => ClrRuntime.IsValueClass((ClrElementType)_field.CorElementType);
-        public override bool IsPrimitive => ClrRuntime.IsPrimitive((ClrElementType)_field.CorElementType);
+        public override bool IsObjectReference => ((ClrElementType)_field.CorElementType).IsObjectReference();
+        public override bool IsValueClass => ((ClrElementType)_field.CorElementType).IsValueClass();
+        public override bool IsPrimitive => ((ClrElementType)_field.CorElementType).IsPrimitive();
 
         public override ClrElementType ElementType
         {
@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// Given an object reference, fetch the address of the field.
         /// </summary>
 
-        public override bool HasSimpleValue => _type != null && !ClrRuntime.IsValueClass(ElementType);
+        public override bool HasSimpleValue => _type != null && !ElementType.IsValueClass();
         public override int Size => GetSize(_type.Value, ElementType);
 
         private readonly DesktopGCHeap _heap;
