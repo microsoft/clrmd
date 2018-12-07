@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// Given an object reference, fetch the address of the field.
         /// </summary>
 
-        public override bool HasSimpleValue => _type != null && !ClrRuntime.IsValueClass(ElementType);
+        public override bool HasSimpleValue => _type != null && !ElementType.IsValueClass();
         public override int Size => DesktopInstanceField.GetSize(_type, ElementType);
 
         public override bool IsPublic => throw new NotImplementedException();
