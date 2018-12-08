@@ -70,16 +70,6 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules.Value;
         }
 
-        private ModuleInfo FindModule(ulong addr)
-        {
-            // TODO: Make binary search.
-            foreach (ModuleInfo module in _modules.Value)
-                if (module.ImageBase <= addr && addr < module.ImageBase + module.FileSize)
-                    return module;
-
-            return null;
-        }
-
         private static readonly Regex s_invalidChars = new Regex($"[{Regex.Escape(new string(Path.GetInvalidPathChars()))}]");
 
         private ModuleInfo[] InitModules()
@@ -89,40 +79,18 @@ namespace Microsoft.Diagnostics.Runtime
             return sortedModules.ToArray();
         }
 
-#pragma warning disable 0618
         private ClrInfo[] InitVersions()
         {
             List<ClrInfo> versions = new List<ClrInfo>();
             foreach (ModuleInfo module in EnumerateModules())
             {
-                string clrName = Path.GetFileNameWithoutExtension(module.FileName).ToLower();
-
-                if (clrName != "clr" && clrName != "mscorwks" && clrName != "coreclr" && clrName != "mrt100_app" && clrName != "libcoreclr")
+                if (ClrInfoProvider.IsNativeRuntime(module))
+                    _native = module;
+                
+                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var isLinux))
                     continue;
-
-                ClrFlavor flavor;
-                switch (clrName)
-                {
-                    case "mrt100_app":
-                        _native = module;
-                        continue;
-
-                    case "libcoreclr":
-                    case "coreclr":
-                        flavor = ClrFlavor.Core;
-                        break;
-
-                    default:
-                        flavor = ClrFlavor.Desktop;
-                        break;
-                }
-
-                bool isLinux = clrName == "libcoreclr";
-
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), DacInfo.GetDacFileName(flavor, Architecture));
-
-                if (isLinux)
-                    dacLocation = Path.ChangeExtension(dacLocation, ".so");
+                
+                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), ClrInfoProvider.GetDacFileName(flavor, isLinux));
 
                 if (isLinux)
                 {
@@ -135,8 +103,8 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 VersionInfo version = module.Version;
-                string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
-                string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
+                string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, Architecture, Architecture, version, isLinux);
+                string dacFileName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version, isLinux);
 
                 DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
                 {
@@ -153,8 +121,6 @@ namespace Microsoft.Diagnostics.Runtime
             Array.Sort(result);
             return result;
         }
-
-#pragma warning restore 0618
 
         public override void Dispose()
         {
