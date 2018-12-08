@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime
             return pUnk;
         }
 
-        internal DacLibrary(DataTargetImpl dataTarget, IntPtr pUnk)
+        internal DacLibrary(DataTarget dataTarget, IntPtr pUnk)
         {
             InternalDacPrivateInterface = new ClrDataProcess(this, pUnk);
         }

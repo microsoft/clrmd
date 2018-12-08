@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Dictionary<string, DesktopModule> _moduleFiles = new Dictionary<string, DesktopModule>();
         private Lazy<ClrModule> _mscorlib;
 
-        internal DesktopRuntimeBase(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+        internal DesktopRuntimeBase(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
             _heap = new Lazy<DesktopGCHeap>(CreateHeap);
