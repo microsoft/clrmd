@@ -458,8 +458,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             SOSDac.ModuleMapTraverse traverse = delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
             LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs
             {
-                pCallback = Marshal.GetFunctionPointerForDelegate(traverse),
-                module = module
+                Callback = Marshal.GetFunctionPointerForDelegate(traverse),
+                Module = module
             };
 
             // TODO:  Blah, theres got to be a better way to do this.
@@ -530,7 +530,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         V2EEClassData result = (V2EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V2EEClassData));
                         handle.Free();
 
-                        token = result.token;
+                        token = result.Token;
                     }
                     else
                     {
@@ -538,7 +538,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         V4EEClassData result = (V4EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V4EEClassData));
                         handle.Free();
 
-                        token = result.token;
+                        token = result.Token;
                     }
                 }
             }

@@ -8,43 +8,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V4ModuleData : IModuleData
     {
-        public ulong peFile;
-        public ulong ilBase;
-        public ulong metadataStart;
-        public IntPtr metadataSize;
-        public ulong assembly;
-        public uint bIsReflection;
-        public uint bIsPEFile;
-        public IntPtr dwBaseClassIndex;
-        public IntPtr ModuleDefinition;
-        public IntPtr dwModuleID;
+        public readonly ulong PEFile;
+        public readonly ulong ILBase;
+        public readonly ulong MetadataStart;
+        public readonly IntPtr MetadataSize;
+        public readonly ulong Assembly;
+        public readonly uint IsReflection;
+        public readonly uint IsPEFile;
+        public readonly IntPtr BaseClassIndex;
+        public readonly IntPtr ModuleDefinition;
+        public readonly IntPtr ModuleID;
 
-        public uint dwTransientFlags;
+        public readonly uint TransientFlags;
 
-        public ulong TypeDefToMethodTableMap;
-        public ulong TypeRefToMethodTableMap;
-        public ulong MethodDefToDescMap;
-        public ulong FieldDefToDescMap;
-        public ulong MemberRefToDescMap;
-        public ulong FileReferencesMap;
-        public ulong ManifestModuleReferencesMap;
+        public readonly ulong TypeDefToMethodTableMap;
+        public readonly ulong TypeRefToMethodTableMap;
+        public readonly ulong MethodDefToDescMap;
+        public readonly ulong FieldDefToDescMap;
+        public readonly ulong MemberRefToDescMap;
+        public readonly ulong FileReferencesMap;
+        public readonly ulong ManifestModuleReferencesMap;
 
-        public ulong pLookupTableHeap;
-        public ulong pThunkHeap;
+        public readonly ulong LookupTableHeap;
+        public readonly ulong ThunkHeap;
+        public readonly IntPtr ModuleIndex;
 
-        public IntPtr dwModuleIndex;
-
-        public ulong PEFile => peFile;
-        public ulong Assembly => assembly;
-        public ulong ImageBase => ilBase;
-        public ulong LookupTableHeap => pLookupTableHeap;
-        public ulong ThunkHeap => pThunkHeap;
-        public IntPtr LegacyMetaDataImport => ModuleDefinition;
-        public ulong ModuleId => (ulong)dwModuleID.ToInt64();
-        public ulong ModuleIndex => (ulong)dwModuleIndex.ToInt64();
-        public bool IsReflection => bIsReflection != 0;
-        public bool IsPEFile => bIsPEFile != 0;
-        public ulong MetdataStart => metadataStart;
-        public ulong MetadataLength => (ulong)metadataSize.ToInt64();
+        ulong IModuleData.PEFile => PEFile;
+        ulong IModuleData.Assembly => Assembly;
+        ulong IModuleData.ImageBase => ILBase;
+        ulong IModuleData.LookupTableHeap => LookupTableHeap;
+        ulong IModuleData.ThunkHeap => ThunkHeap;
+        IntPtr IModuleData.LegacyMetaDataImport => ModuleDefinition;
+        ulong IModuleData.ModuleId => (ulong)ModuleID.ToInt64();
+        ulong IModuleData.ModuleIndex => (ulong)ModuleIndex.ToInt64();
+        bool IModuleData.IsReflection => IsReflection != 0;
+        bool IModuleData.IsPEFile => IsPEFile != 0;
+        ulong IModuleData.MetdataStart => MetadataStart;
+        ulong IModuleData.MetadataLength => (ulong)MetadataSize.ToInt64();
     }
 }

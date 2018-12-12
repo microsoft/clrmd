@@ -6,21 +6,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V2SegmentData : ISegmentData
     {
-        public ulong segmentAddr;
-        public ulong allocated;
-        public ulong committed;
-        public ulong reserved;
-        public ulong used;
-        public ulong mem;
-        public ulong next;
-        public ulong gc_heap;
-        public ulong highAllocMark;
+        public readonly ulong SegmentAddr;
+        public readonly ulong Allocated;
+        public readonly ulong Committed;
+        public readonly ulong Reserved;
+        public readonly ulong Used;
+        public readonly ulong Mem;
+        public readonly ulong Next;
+        public readonly ulong GCHeap;
+        public readonly ulong HighAllocMark;
 
-        public ulong Address => segmentAddr;
-        public ulong Next => next;
-        public ulong Start => mem;
-        public ulong End => allocated;
-        public ulong Reserved => reserved;
-        public ulong Committed => committed;
+        ulong ISegmentData.Address => SegmentAddr;
+        ulong ISegmentData.Next => Next;
+        ulong ISegmentData.Start => Mem;
+        ulong ISegmentData.End => Allocated;
+        ulong ISegmentData.Reserved => Reserved;
+        ulong ISegmentData.Committed => Committed;
     }
 }

@@ -10,15 +10,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct RWLockData : IRWLockData
     {
-        public IntPtr pNext;
-        public IntPtr pPrev;
-        public int _uLockID;
-        public int _lLockID;
-        public short wReaderLevel;
+        public readonly IntPtr Next;
+        public readonly IntPtr Prev;
+        public readonly int ULockID;
+        public readonly int LLockID;
+        public readonly short ReaderLevel;
 
-        public ulong Next => (ulong)pNext.ToInt64();
-        public int ULockID => _uLockID;
-        public int LLockID => _lLockID;
-        public int Level => wReaderLevel;
+        ulong IRWLockData.Next => (ulong)Next.ToInt64();
+        int IRWLockData.ULockID => ULockID;
+        int IRWLockData.LLockID => LLockID;
+        int IRWLockData.Level => ReaderLevel;
     }
 }
