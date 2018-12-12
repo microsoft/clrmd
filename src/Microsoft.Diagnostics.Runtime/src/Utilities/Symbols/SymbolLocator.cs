@@ -53,6 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 sympath = MicrosoftSymbolServerPath;
 
             SymbolPath = sympath;
+            Logger = DefaultLogger.Instance;
         }
 
         /// <summary>
@@ -345,18 +346,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
+        private ILogger _logger;
+
+        public ILogger Logger
+        {
+            get => _logger;
+            set => _logger = value ?? throw new ArgumentNullException(nameof(Logger));
+        }
+
         /// <summary>
         /// Writes diagnostic messages about symbol loading to System.Diagnostics.Trace.  Figuring out symbol issues can be tricky,
         /// so if you override methods in SymbolLocator, be sure to trace the information here.
         /// </summary>
         /// <param name="fmt"></param>
         /// <param name="args"></param>
-        protected static void Trace(string fmt, params object[] args)
+        protected void Trace(string fmt, params object[] args)
         {
-            if (args != null && args.Length > 0)
-                fmt = string.Format(fmt, args);
-
-            System.Diagnostics.Trace.WriteLine(fmt, "Microsoft.Diagnostics.Runtime.SymbolLocator");
+            Logger.Log("Microsoft.Diagnostics.Runtime.SymbolLocator", fmt, args);
         }
 
         /// <summary>
