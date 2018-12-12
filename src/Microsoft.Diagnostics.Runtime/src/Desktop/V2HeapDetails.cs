@@ -8,39 +8,39 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V2HeapDetails : IHeapDetails
     {
-        public ulong heapAddr;
-        public ulong alloc_allocated;
+        public readonly ulong HeapAddr;
+        public readonly ulong AllocAllocated;
 
-        public GenerationData generation_table0;
-        public GenerationData generation_table1;
-        public GenerationData generation_table2;
-        public GenerationData generation_table3;
-        public ulong ephemeral_heap_segment;
-        public ulong finalization_fill_pointers0;
-        public ulong finalization_fill_pointers1;
-        public ulong finalization_fill_pointers2;
-        public ulong finalization_fill_pointers3;
-        public ulong finalization_fill_pointers4;
-        public ulong finalization_fill_pointers5;
-        public ulong lowest_address;
-        public ulong highest_address;
-        public ulong card_table;
+        public readonly GenerationData GenerationTable0;
+        public readonly GenerationData GenerationTable1;
+        public readonly GenerationData GenerationTable2;
+        public readonly GenerationData GenerationTable3;
+        public readonly ulong EphemeralHeapSegment;
+        public readonly ulong FinalizationFillPointers0;
+        public readonly ulong FinalizationFillPointers1;
+        public readonly ulong FinalizationFillPointers2;
+        public readonly ulong FinalizationFillPointers3;
+        public readonly ulong FinalizationFillPointers4;
+        public readonly ulong FinalizationFillPointers5;
+        public readonly ulong LowestAddress;
+        public readonly ulong HighestAddress;
+        public readonly ulong CardTable;
 
-        public ulong FirstHeapSegment => generation_table2.StartSegment;
-        public ulong FirstLargeHeapSegment => generation_table3.StartSegment;
-        public ulong EphemeralSegment => ephemeral_heap_segment;
-        public ulong EphemeralEnd => alloc_allocated;
-        public ulong EphemeralAllocContextPtr => generation_table0.AllocationContextPointer;
-        public ulong EphemeralAllocContextLimit => generation_table0.AllocationContextLimit;
-        public ulong FQAllObjectsStart => finalization_fill_pointers0;
-        public ulong FQAllObjectsStop => finalization_fill_pointers3;
-        public ulong FQRootsStart => finalization_fill_pointers3;
-        public ulong FQRootsStop => finalization_fill_pointers5;
-        public ulong Gen0Start => generation_table0.AllocationStart;
-        public ulong Gen0Stop => alloc_allocated;
-        public ulong Gen1Start => generation_table1.AllocationStart;
-        public ulong Gen1Stop => generation_table0.AllocationStart;
-        public ulong Gen2Start => generation_table2.AllocationStart;
-        public ulong Gen2Stop => generation_table1.AllocationStart;
+        ulong IHeapDetails.FirstHeapSegment => GenerationTable2.StartSegment;
+        ulong IHeapDetails.FirstLargeHeapSegment => GenerationTable3.StartSegment;
+        ulong IHeapDetails.EphemeralSegment => EphemeralHeapSegment;
+        ulong IHeapDetails.EphemeralEnd => AllocAllocated;
+        ulong IHeapDetails.EphemeralAllocContextPtr => GenerationTable0.AllocationContextPointer;
+        ulong IHeapDetails.EphemeralAllocContextLimit => GenerationTable0.AllocationContextLimit;
+        ulong IHeapDetails.FQAllObjectsStart => FinalizationFillPointers0;
+        ulong IHeapDetails.FQAllObjectsStop => FinalizationFillPointers3;
+        ulong IHeapDetails.FQRootsStart => FinalizationFillPointers3;
+        ulong IHeapDetails.FQRootsStop => FinalizationFillPointers5;
+        ulong IHeapDetails.Gen0Start => GenerationTable0.AllocationStart;
+        ulong IHeapDetails.Gen0Stop => AllocAllocated;
+        ulong IHeapDetails.Gen1Start => GenerationTable1.AllocationStart;
+        ulong IHeapDetails.Gen1Stop => GenerationTable0.AllocationStart;
+        ulong IHeapDetails.Gen2Start => GenerationTable2.AllocationStart;
+        ulong IHeapDetails.Gen2Stop => GenerationTable1.AllocationStart;
     }
 }

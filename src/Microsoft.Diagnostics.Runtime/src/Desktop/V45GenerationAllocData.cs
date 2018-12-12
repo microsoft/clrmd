@@ -6,13 +6,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V45GenerationAllocData
     {
-        public ulong allocBytesGen0;
-        public ulong allocBytesLohGen0;
-        public ulong allocBytesGen1;
-        public ulong allocBytesLohGen1;
-        public ulong allocBytesGen2;
-        public ulong allocBytesLohGen2;
-        public ulong allocBytesGen3;
-        public ulong allocBytesLohGen3;
+        public readonly ulong AllocBytesGen0;
+        public readonly ulong AllocBytesLohGen0;
+        public readonly ulong AllocBytesGen1;
+        public readonly ulong AllocBytesLohGen1;
+        public readonly ulong AllocBytesGen2;
+        public readonly ulong AllocBytesLohGen2;
+        public readonly ulong AllocBytesGen3;
+        public readonly ulong AllocBytesLohGen3;
     }
 }

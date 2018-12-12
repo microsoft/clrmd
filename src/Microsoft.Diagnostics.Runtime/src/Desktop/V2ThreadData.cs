@@ -8,34 +8,34 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V2ThreadData : IThreadData
     {
-        public uint corThreadId;
-        public uint osThreadId;
-        public int state;
-        public uint preemptiveGCDisabled;
-        public ulong allocContextPtr;
-        public ulong allocContextLimit;
-        public ulong context;
-        public ulong domain;
-        public ulong sharedStaticData;
-        public ulong unsharedStaticData;
-        public ulong pFrame;
-        public uint lockCount;
-        public ulong firstNestedException;
-        public ulong teb;
-        public ulong fiberData;
-        public ulong lastThrownObjectHandle;
-        public ulong nextThread;
+        public readonly uint CorThreadId;
+        public readonly uint OSThreadId;
+        public readonly int State;
+        public readonly uint PreemptiveGCDisabled;
+        public readonly ulong AllocContextPtr;
+        public readonly ulong AllocContextLimit;
+        public readonly ulong Context;
+        public readonly ulong Domain;
+        public readonly ulong SharedStaticData;
+        public readonly ulong UnsharedStaticData;
+        public readonly ulong Frame;
+        public readonly uint LockCount;
+        public readonly ulong FirstNestedException;
+        public readonly ulong Teb;
+        public readonly ulong FiberData;
+        public readonly ulong LastThrownObjectHandle;
+        public readonly ulong NextThread;
 
-        public ulong Next => IntPtr.Size == 8 ? nextThread : (uint)nextThread;
-        public ulong AllocPtr => IntPtr.Size == 8 ? allocContextPtr : (uint)allocContextPtr;
-        public ulong AllocLimit => IntPtr.Size == 8 ? allocContextLimit : (uint)allocContextLimit;
-        public uint OSThreadID => osThreadId;
-        public ulong Teb => IntPtr.Size == 8 ? teb : (uint)teb;
-        public ulong AppDomain => domain;
-        public uint LockCount => lockCount;
-        public int State => state;
-        public ulong ExceptionPtr => lastThrownObjectHandle;
-        public uint ManagedThreadID => corThreadId;
-        public bool Preemptive => preemptiveGCDisabled == 0;
+        ulong IThreadData.Next => IntPtr.Size == 8 ? NextThread : (uint)NextThread;
+        ulong IThreadData.AllocPtr => IntPtr.Size == 8 ? AllocContextPtr : (uint)AllocContextPtr;
+        ulong IThreadData.AllocLimit => IntPtr.Size == 8 ? AllocContextLimit : (uint)AllocContextLimit;
+        uint IThreadData.OSThreadID => OSThreadId;
+        ulong IThreadData.Teb => IntPtr.Size == 8 ? Teb : (uint)Teb;
+        ulong IThreadData.AppDomain => Domain;
+        uint IThreadData.LockCount => LockCount;
+        int IThreadData.State => State;
+        ulong IThreadData.ExceptionPtr => LastThrownObjectHandle;
+        uint IThreadData.ManagedThreadID => CorThreadId;
+        bool IThreadData.Preemptive => PreemptiveGCDisabled == 0;
     }
 }
