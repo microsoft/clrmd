@@ -111,6 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{Type?.Name} {Address:x}";
         }
 
+        #region Type casts
         /// <summary>
         /// Converts a ClrObject into its string value.
         /// </summary>
@@ -122,6 +123,14 @@ namespace Microsoft.Diagnostics.Runtime
 
             return (string)obj.Type.GetValue(obj.Address);
         }
+
+        /// <summary>
+        /// Returns <see cref="Address"/> sweetening obj to pointer move.
+        /// <Para>Example: ulong address = clrObject</Para>
+        /// </summary>
+        /// <param name="clrObject">An object to get address of.</param>
+        public static implicit operator ulong(ClrObject clrObject)=> clrObject.Address;
+        #endregion 
 
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
