@@ -9,21 +9,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct LegacyObjectData : IObjectData
     {
-        private ulong _eeClass;
-        private ulong _methodTable;
-        private uint _objectType;
-        private uint _size;
-        private uint _elementType;
-        private uint _dwRank;
-        private uint _dwNumComponents;
-        private uint _dwComponentSize;
-        private ulong _arrayBoundsPtr;
-        private ulong _arrayLowerBoundsPtr;
+        public readonly ulong EEClass;
+        public readonly ulong MethodTable;
+        public readonly uint ObjectType;
+        public readonly uint Size;
+        public readonly ulong ElementTypeHandle;
+        public readonly uint ElementType;
+        public readonly uint Rank;
+        public readonly uint NumComponents;
+        public readonly uint ComponentSize;
+        public readonly ulong ArrayDataPtr;
+        public readonly ulong ArrayBoundsPtr;
+        public readonly ulong ArrayLowerBoundsPtr;
 
-        public ClrElementType ElementType => (ClrElementType)_elementType;
-        public ulong ElementTypeHandle { get; }
-        public ulong RCW => 0;
-        public ulong CCW => 0;
-        public ulong DataPointer { get; }
+        ClrElementType IObjectData.ElementType => (ClrElementType)ElementType;
+        ulong IObjectData.ElementTypeHandle => ElementTypeHandle;
+        ulong IObjectData.RCW => 0;
+        ulong IObjectData.CCW => 0;
+        ulong IObjectData.DataPointer => ArrayDataPtr;
     }
 }
