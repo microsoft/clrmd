@@ -124,6 +124,13 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns <see cref="Address"/> sweetening obj to pointer move.
+        /// <Para>Example: ulong address = clrObject</Para>
+        /// </summary>
+        /// <param name="clrObject">An object to get address of.</param>
+        public static implicit operator ulong(ClrObject clrObject) => clrObject.Address;
+
+        /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
         /// not exist in the object.  Throws NullReferenceException if IsNull is true.
         /// </summary>
