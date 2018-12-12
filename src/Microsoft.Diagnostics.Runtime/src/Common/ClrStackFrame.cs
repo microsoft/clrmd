@@ -35,6 +35,11 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrStackFrame
     {
         /// <summary>
+        /// Gets this stack frame context.
+        /// </summary>
+        public abstract byte[] Context { get; }
+
+        /// <summary>
         /// Returns the thread this stack frame came from.
         /// </summary>
         public abstract ClrThread Thread { get; }
