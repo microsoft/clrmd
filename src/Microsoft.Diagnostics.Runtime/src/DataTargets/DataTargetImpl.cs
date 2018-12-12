@@ -86,35 +86,13 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (ClrInfoProvider.IsNativeRuntime(module))
                     _native = module;
-                
+
                 if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var isLinux))
                     continue;
-                
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), ClrInfoProvider.GetDacFileName(flavor, isLinux));
 
-                if (isLinux)
-                {
-                    if (!File.Exists(dacLocation))
-                        dacLocation = Path.GetFileName(dacLocation);
-                }
-                else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
-                {
-                    dacLocation = null;
-                }
+                module.IsRuntime = true; //strange logic here
 
-                VersionInfo version = module.Version;
-                string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, Architecture, Architecture, version, isLinux);
-                string dacFileName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version, isLinux);
-
-                DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
-                {
-                    FileSize = module.FileSize,
-                    TimeStamp = module.TimeStamp,
-                    FileName = dacFileName,
-                    Version = module.Version
-                };
-
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
+                versions.Add(new ClrInfo(this, module, flavor, Architecture, isLinux));
             }
 
             ClrInfo[] result = versions.ToArray();

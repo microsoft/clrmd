@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -13,16 +12,13 @@ namespace Microsoft.Diagnostics.Runtime
     [Serializable]
     public class ClrInfo
     {
-        internal ClrInfo(DataTarget dataTarget, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
+        internal ClrInfo(DataTarget dataTarget, ModuleInfo module, ClrFlavor flavor, Architecture architecture, bool isLinux)
         {
-            Debug.Assert(dacInfo != null);
-
+            ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
+            DataTarget = dataTarget ?? throw new ArgumentNullException(nameof(dataTarget));
             Flavor = flavor;
-            DacInfo = dacInfo;
-            ModuleInfo = module;
-            module.IsRuntime = true;
-            LocalMatchingDac = dacLocation;
-            DataTarget = dataTarget;
+            Architecture = architecture;
+            IsLinux = isLinux;
         }
 
         /// <summary>
@@ -35,21 +31,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrFlavor Flavor { get; }
 
-        /// <summary>
-        /// Returns module information about the Dac needed create a ClrRuntime instance for this runtime.
-        /// </summary>
-        public DacInfo DacInfo { get; }
+        public Architecture Architecture { get; }
+
+        public bool IsLinux { get; }
 
         /// <summary>
         /// Returns module information about the ClrInstance.
         /// </summary>
         public ModuleInfo ModuleInfo { get; }
 
-        /// <summary>
-        /// Returns the location of the local dac on your machine which matches this version of Clr, or null
-        /// if one could not be found.
-        /// </summary>
-        public string LocalMatchingDac { get; }
+        public string DacFileName => ClrInfoProvider.GetDacFileName(Flavor, IsLinux);
+        public string DacRequestFileName => ClrInfoProvider.GetDacRequestFileName(Flavor, Architecture, Architecture, Version, IsLinux);
 
         /// <summary>
         /// To string.

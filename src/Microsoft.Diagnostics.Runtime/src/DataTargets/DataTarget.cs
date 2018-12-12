@@ -175,6 +175,20 @@ namespace Microsoft.Diagnostics.Runtime
             set => _symbolLocator = value;
         }
 
+        private IDacLocator _dacLocator;
+
+        public IDacLocator DacLocator
+        {
+            get
+            {
+                if (_dacLocator == null)
+                    _dacLocator = new DefaultDacLocator(this);
+
+                return _dacLocator;
+            }
+            set => _dacLocator = value;
+        }
+
         /// <summary>
         /// A symbol provider which loads PDBs on behalf of ClrMD.  This should be set so that when ClrMD needs to
         /// resolve names which can only come from PDBs.  If this is not set, you may have a degraded experience.
@@ -256,15 +270,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
 
-            string dac = clrInfo.LocalMatchingDac;
-            if (dac != null && !File.Exists(dac))
-                dac = null;
+            string dac = DacLocator.FindDac(clrInfo);
 
-            if (dac == null)
-                dac = SymbolLocator.FindBinary(clrInfo.DacInfo);
-
-            if (!File.Exists(dac))
-                throw new FileNotFoundException("Could not find matching DAC for this runtime.", clrInfo.DacInfo.FileName);
+            if (dac == null || !File.Exists(dac))
+                throw new FileNotFoundException("Could not find matching DAC for this runtime.", clrInfo.DacRequestFileName);
 
             if (IntPtr.Size != (int)DataReader.GetPointerSize())
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
