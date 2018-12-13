@@ -128,9 +128,11 @@ namespace Microsoft.Diagnostics.Runtime
 
                 Debug.Assert(Heap.GetObjectType(handle.Object) == handle.Type);
 
+                var rootObject = ClrObject.Create(handle.Object, handle.Type);
+
                 if (parallel)
                 {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(handle.Object, handle.Type), path => path != null ? GetHandleRoot(handle) : null);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, rootObject, path => path != null ? GetHandleRoot(handle) : null);
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -147,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(handle.Object, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, rootObject, target, unique, false, cancelToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath {Root = GetHandleRoot(handle), Path = path.ToArray()};
                 }
@@ -162,9 +164,11 @@ namespace Microsoft.Diagnostics.Runtime
 
                 Debug.Assert(Heap.GetObjectType(root.Object) == root.Type);
 
+                var rootObject = ClrObject.Create(root.Object, root.Type);
+
                 if (parallel)
                 {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(root.Object, root.Type), _ => root);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, rootObject, _ => root);
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -181,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, rootObject, target, unique, false, cancelToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath {Root = root, Path = path.ToArray()};
                 }
