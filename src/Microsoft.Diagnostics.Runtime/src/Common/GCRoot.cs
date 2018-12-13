@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (parallel)
                 {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(handle.Object, handle.Type), path => path != null ? GetHandleRoot(handle) : null);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(handle.Object, handle.Type), path => path != null ? GetHandleRoot(handle) : null);
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (parallel)
                     {
-                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(root.Object, root.Type), _ => root);
+                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(root.Object, root.Type), _ => root);
                         if (initial < tasks.Length)
                         {
                             tasks[initial++] = task;
@@ -279,7 +279,7 @@ namespace Microsoft.Diagnostics.Runtime
             Heap.ClearRootCache();
         }
 
-        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(
+        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallelAsync(
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
             ulong target,
