@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (parallel)
                 {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, handle, target, unique, cancelToken);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(handle.Object, handle.Type), path => path != null ? GetHandleRoot(handle) : null);
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (parallel)
                     {
-                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, root, target, unique, cancelToken);
+                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(root.Object, root.Type), _ => root);
                         if (initial < tasks.Length)
                         {
                             tasks[initial++] = task;
@@ -282,38 +282,20 @@ namespace Microsoft.Diagnostics.Runtime
         private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            ClrHandle handle,
             ulong target,
             bool unique,
-            CancellationToken cancelToken)
+            CancellationToken cancelToken,
+            ClrObject clrObject,
+            Func<LinkedList<ClrObject>, ClrRoot> rootFunc)
         {
             Debug.Assert(IsFullyCached);
 
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
                 () =>
                     {
-                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, ClrObject.Create(handle.Object, handle.Type), target, unique, true, cancelToken).FirstOrDefault();
-                        return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path != null ? GetHandleRoot(handle) : null);
+                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, clrObject, target, unique, true, cancelToken).FirstOrDefault();
+                        return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, rootFunc(path));
                     });
-
-            t.Start();
-            return t;
-        }
-
-        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(
-            ObjectSet seen,
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            ClrRoot root,
-            ulong target,
-            bool unique,
-            CancellationToken cancelToken)
-        {
-            Debug.Assert(IsFullyCached);
-
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
-                () => new Tuple<LinkedList<ClrObject>, ClrRoot>(
-                    PathTo(seen, knownEndPoints, ClrObject.Create(root.Object, root.Type), target, unique, true, cancelToken).FirstOrDefault(),
-                    root));
             t.Start();
             return t;
         }
