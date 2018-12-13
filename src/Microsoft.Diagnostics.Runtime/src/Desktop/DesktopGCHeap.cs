@@ -1334,7 +1334,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Debug.Assert(_dependentHandles != null);
             if (_dependentHandles.TryGetValue(obj, out List<ulong> values))
-                result = result.Union(values.Select(v => ClrObject.Create(v, GetObjectType(v))));
+                result = result.Union(values.Select(v => GetObject(v)));
 
             return result;
         }
@@ -1344,7 +1344,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             for (uint i = offset; i < offset + count; i++)
             {
                 ulong obj = _gcRefs[i];
-                yield return ClrObject.Create(obj, GetObjectType(obj));
+                yield return GetObject(obj);
             }
         }
 

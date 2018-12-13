@@ -333,7 +333,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Did the 'start' object point directly to 'end'?  If so, early out.
             if (foundTarget)
             {
-                path.AddLast(new PathEntry {Object = ClrObject.Create(target, Heap.GetObjectType(target))});
+                path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
                 yield return GetResult(knownEndPoints, path, null, target);
             }
             else if (foundEnding != null)
@@ -383,7 +383,7 @@ namespace Microsoft.Diagnostics.Runtime
                         // If we found the target object while enumerating refs of the current object, we are done.
                         if (foundTarget)
                         {
-                            path.AddLast(new PathEntry {Object = ClrObject.Create(target, Heap.GetObjectType(target))});
+                            path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
                             TraceFullPath("FoundTarget", path);
 
                             yield return GetResult(knownEndPoints, path, null, target);
