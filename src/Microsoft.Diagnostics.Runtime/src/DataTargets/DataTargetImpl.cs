@@ -146,6 +146,8 @@ namespace Microsoft.Diagnostics.Runtime
                     Version = module.Version
                 };
 
+                module.IsRuntime = true; //strange logic here (originally from the ClrInfo constructor)
+
                 versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
             }
 
