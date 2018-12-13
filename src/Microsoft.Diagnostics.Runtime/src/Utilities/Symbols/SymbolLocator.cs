@@ -180,18 +180,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Attempts to locate a dac via the symbol server.  This function will then copy the file
-        /// locally to the symbol cache and return the location of the local file on disk.  Note that
-        /// the dac should not validate if the properties of the file match the one it was indexed under.
-        /// </summary>
-        /// <param name="dac">The dac to locate.</param>
-        /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public string FindBinary(DacInfo dac)
-        {
-            return FindBinary(dac, false);
-        }
-
-        /// <summary>
         /// Attempts to locate the pdb for a given module.
         /// </summary>
         /// <param name="module">The module to locate the pdb for.</param>

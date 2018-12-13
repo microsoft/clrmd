@@ -256,15 +256,28 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
 
-            string dac = clrInfo.LocalMatchingDac;
-            if (dac != null && !File.Exists(dac))
-                dac = null;
+            string localDacFileName = ClrInfoProvider.GetDacFileName(clrInfo.Flavor, clrInfo.Platform);
+            string localDacFilePath = Path.Combine(Path.GetDirectoryName(clrInfo.ModuleInfo.FileName), localDacFileName);
 
-            if (dac == null)
-                dac = SymbolLocator.FindBinary(clrInfo.DacInfo);
+            if (clrInfo.Platform == Platform.Linux) //strange logic here (originally from DataTargetImpl.InitVersions)
+            {
+                if (!File.Exists(localDacFilePath))
+                    localDacFilePath = localDacFileName;
+            }
 
-            if (!File.Exists(dac))
-                throw new FileNotFoundException("Could not find matching DAC for this runtime.", clrInfo.DacInfo.FileName);
+            string dac;
+            if (File.Exists(localDacFilePath) && PlatformFunctions.IsEqualFileVersion(localDacFilePath, clrInfo.Version))
+            {
+                dac = localDacFilePath;
+            }
+            else
+            {
+                string requestFileName = ClrInfoProvider.GetDacRequestFileName(clrInfo.Flavor, Architecture, Architecture, clrInfo.Version, clrInfo.Platform);
+                dac = SymbolLocator.FindBinary(requestFileName, 0, 0, false);
+
+                if (dac == null || !File.Exists(dac))
+                    throw new FileNotFoundException("Could not find matching DAC for this runtime.", requestFileName);
+            }
 
             if (IntPtr.Size != (int)DataReader.GetPointerSize())
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");

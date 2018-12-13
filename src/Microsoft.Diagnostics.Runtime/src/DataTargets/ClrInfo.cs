@@ -13,16 +13,15 @@ namespace Microsoft.Diagnostics.Runtime
     public class ClrInfo : IComparable
     {
         private readonly DataTarget _dataTarget;
-        
-        internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
+
+        internal ClrInfo(DataTarget dataTarget, ModuleInfo module, ClrFlavor flavor, Platform platform)
         {
-            _dataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
-            Flavor = flavor;
-            DacInfo = dacInfo ?? throw new ArgumentNullException(nameof(dacInfo));
+            _dataTarget = dataTarget ?? throw new ArgumentNullException(nameof(dataTarget));
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
-            LocalMatchingDac = dacLocation;
+            Flavor = flavor;
+            Platform = platform;
         }
-        
+
         /// <summary>
         /// The version number of this runtime.
         /// </summary>
@@ -34,20 +33,14 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrFlavor Flavor { get; }
 
         /// <summary>
-        /// Returns module information about the Dac needed create a ClrRuntime instance for this runtime.
-        /// </summary>
-        public DacInfo DacInfo { get; }
-
-        /// <summary>
         /// Returns module information about the ClrInstance.
         /// </summary>
         public ModuleInfo ModuleInfo { get; }
 
         /// <summary>
-        /// Returns the location of the local dac on your machine which matches this version of Clr, or null
-        /// if one could not be found.
+        /// Target platform.
         /// </summary>
-        public string LocalMatchingDac { get; }
+        internal Platform Platform { get; }
 
         /// <summary>
         /// To string.
@@ -59,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// IComparable.  Sorts the object by version.
+        /// IComparable. Sorts the object by version.
         /// </summary>
         /// <param name="obj">The object to compare to.</param>
         /// <returns>-1 if less, 0 if equal, 1 if greater.</returns>

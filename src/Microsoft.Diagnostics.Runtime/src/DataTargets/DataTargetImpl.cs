@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IDataReader _dataReader;
         private ClrInfo[] _versions;
-        private ModuleInfo _native;
 
         private readonly Lazy<ModuleInfo[]> _modules;
         private readonly List<DacLibrary> _dacLibraries = new List<DacLibrary>(2);
@@ -26,17 +25,6 @@ namespace Microsoft.Diagnostics.Runtime
             DebuggerInterface = client;
             Architecture = _dataReader.GetArchitecture();
             _modules = new Lazy<ModuleInfo[]>(InitModules);
-        }
-
-        internal ModuleInfo NativeRuntime
-        {
-            get
-            {
-                if (_versions == null)
-                    _versions = InitVersions();
-
-                return _native;
-            }
         }
 
         public override IDataReader DataReader => _dataReader;
@@ -70,16 +58,6 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules.Value;
         }
 
-        private ModuleInfo FindModule(ulong addr)
-        {
-            // TODO: Make binary search.
-            foreach (ModuleInfo module in _modules.Value)
-                if (module.ImageBase <= addr && addr < module.ImageBase + module.FileSize)
-                    return module;
-
-            return null;
-        }
-
         private static readonly Regex s_invalidChars = new Regex($"[{Regex.Escape(new string(Path.GetInvalidPathChars()))}]");
 
         private ModuleInfo[] InitModules()
@@ -89,74 +67,22 @@ namespace Microsoft.Diagnostics.Runtime
             return sortedModules.ToArray();
         }
 
-#pragma warning disable 0618
         private ClrInfo[] InitVersions()
         {
             List<ClrInfo> versions = new List<ClrInfo>();
             foreach (ModuleInfo module in EnumerateModules())
             {
-                string clrName = Path.GetFileNameWithoutExtension(module.FileName).ToLower();
-
-                if (clrName != "clr" && clrName != "mscorwks" && clrName != "coreclr" && clrName != "mrt100_app" && clrName != "libcoreclr")
+                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var platform))
                     continue;
 
-                ClrFlavor flavor;
-                switch (clrName)
-                {
-                    case "mrt100_app":
-                        _native = module;
-                        continue;
-
-                    case "libcoreclr":
-                    case "coreclr":
-                        flavor = ClrFlavor.Core;
-                        break;
-
-                    default:
-                        flavor = ClrFlavor.Desktop;
-                        break;
-                }
-
-                bool isLinux = clrName == "libcoreclr";
-
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), DacInfo.GetDacFileName(flavor, Architecture));
-
-                if (isLinux)
-                    dacLocation = Path.ChangeExtension(dacLocation, ".so");
-
-                if (isLinux)
-                {
-                    if (!File.Exists(dacLocation))
-                        dacLocation = Path.GetFileName(dacLocation);
-                }
-                else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
-                {
-                    dacLocation = null;
-                }
-
-                VersionInfo version = module.Version;
-                string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
-                string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
-
-                DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
-                {
-                    FileSize = module.FileSize,
-                    TimeStamp = module.TimeStamp,
-                    FileName = dacFileName,
-                    Version = module.Version
-                };
-
                 module.IsRuntime = true; //strange logic here (originally from the ClrInfo constructor)
-
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
+                versions.Add(new ClrInfo(this, module, flavor, platform));
             }
 
             ClrInfo[] result = versions.ToArray();
             Array.Sort(result);
             return result;
         }
-
-#pragma warning restore 0618
 
         public override void Dispose()
         {
