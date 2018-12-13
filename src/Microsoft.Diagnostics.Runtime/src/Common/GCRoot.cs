@@ -112,7 +112,9 @@ namespace Microsoft.Diagnostics.Runtime
                 ? new ParallelObjectSet(Heap) 
                 : new ObjectSet(Heap);
 
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
+            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = parallel
+                ? new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks]
+                : null;
 
             int initial = 0;
 
@@ -135,10 +137,13 @@ namespace Microsoft.Diagnostics.Runtime
                     yield return gcRootPath.Value;
             }
 
-            foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
+            if (parallel)
             {
-                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
-                yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
+                foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
+                {
+                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                    yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
+                }
             }
 
             ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
