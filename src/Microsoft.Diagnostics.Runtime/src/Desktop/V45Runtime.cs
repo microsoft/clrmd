@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private List<ClrHandle> _handles;
         private SOSDac _sos;
 
-        public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+        public V45Runtime(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
             if (!GetCommonMethodTables(ref _commonMTs))
