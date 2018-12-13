@@ -420,7 +420,7 @@ namespace Microsoft.Diagnostics.Runtime
             //Debug.Assert(obj.Type != null);
             //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
-            Stack<ClrObject> result = s_emptyStack;
+            Stack<ClrObject> result = null;
 
             bool found = false;
             LinkedListNode<ClrObject> ending = null;
@@ -447,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (!seen.Contains(reference.Address))
                     {
-                        if (result == s_emptyStack)
+                        if (result is null)
                             result = new Stack<ClrObject>();
 
                         result.Push(reference);
@@ -460,7 +460,7 @@ namespace Microsoft.Diagnostics.Runtime
             foundTarget = found;
             foundEnding = ending;
 
-            return result;
+            return result ?? s_emptyStack;
         }
 
         private static LinkedList<ClrObject> GetResult(
