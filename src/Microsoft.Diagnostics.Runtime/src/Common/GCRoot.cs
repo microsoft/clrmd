@@ -157,36 +157,36 @@ namespace Microsoft.Diagnostics.Runtime
 
             foreach (ClrRoot root in Heap.EnumerateStackRoots())
             {
-                if (!processedObjects.Contains(root.Object))
+                if (processedObjects.Contains(root.Object))
+                    continue;
+
+                Debug.Assert(Heap.GetObjectType(root.Object) == root.Type);
+
+                if (parallel)
                 {
-                    Debug.Assert(Heap.GetObjectType(root.Object) == root.Type);
-
-                    if (parallel)
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(root.Object, root.Type), _ => root);
+                    if (initial < tasks.Length)
                     {
-                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(processedObjects, knownEndPoints, target, unique, cancelToken, ClrObject.Create(root.Object, root.Type), _ => root);
-                        if (initial < tasks.Length)
-                        {
-                            tasks[initial++] = task;
-                        }
-                        else
-                        {
-                            int i = Task.WaitAny(tasks);
-                            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> completed = tasks[i];
-                            tasks[i] = task;
-
-                            if (completed.Result.Item1 != null)
-                                yield return new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
-                        }
+                        tasks[initial++] = task;
                     }
                     else
                     {
-                        LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
-                        if (path != null)
-                            yield return new GCRootPath {Root = root, Path = path.ToArray()};
-                    }
+                        int i = Task.WaitAny(tasks);
+                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> completed = tasks[i];
+                        tasks[i] = task;
 
-                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                        if (completed.Result.Item1 != null)
+                            yield return new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
+                    }
                 }
+                else
+                {
+                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
+                    if (path != null)
+                        yield return new GCRootPath {Root = root, Path = path.ToArray()};
+                }
+
+                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
             }
 
             foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
