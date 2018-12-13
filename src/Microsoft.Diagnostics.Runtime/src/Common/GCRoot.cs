@@ -290,14 +290,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Debug.Assert(IsFullyCached);
 
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
+            return Task.Run(
                 () =>
                     {
                         LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, clrObject, target, unique, true, cancelToken).FirstOrDefault();
                         return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, rootFunc(path));
-                    });
-            t.Start();
-            return t;
+                    },
+                cancelToken);
         }
 
         private IEnumerable<LinkedList<ClrObject>> PathTo(
