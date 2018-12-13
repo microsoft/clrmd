@@ -327,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
                 new PathEntry
                 {
                     Object = source,
-                    Todo = GetRefs(seen, knownEndPoints, source, target, unique, parallel, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+                    Todo = GetRefs(seen, knownEndPoints, source, target, unique, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
                 });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
@@ -375,7 +375,7 @@ namespace Microsoft.Diagnostics.Runtime
                         PathEntry nextPathEntry = new PathEntry
                         {
                             Object = next,
-                            Todo = GetRefs(seen, knownEndPoints, next, target, unique, parallel, cancelToken, out foundTarget, out foundEnding)
+                            Todo = GetRefs(seen, knownEndPoints, next, target, unique, cancelToken, out foundTarget, out foundEnding)
                         };
 
                         path.AddLast(nextPathEntry);
@@ -412,7 +412,6 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject obj,
             ulong target,
             bool unique,
-            bool parallel,
             CancellationToken cancelToken,
             out bool foundTarget,
             out LinkedListNode<ClrObject> foundEnding)
