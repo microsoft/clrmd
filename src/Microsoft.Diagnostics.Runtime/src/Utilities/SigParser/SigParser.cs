@@ -378,8 +378,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!GetElemType(out int typ))
                 return false;
 
-            int tmp;
-            if (!ClrRuntime.IsPrimitive((ClrElementType)typ))
+            if (!((ClrElementType)typ).IsPrimitive())
             {
                 switch (typ)
                 {
@@ -388,7 +387,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     case ELEMENT_TYPE_VAR:
                     case ELEMENT_TYPE_MVAR:
-                        if (!GetData(out tmp))
+                        if (!GetData(out _))
                             return false;
 
                         break;
@@ -409,7 +408,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     case ELEMENT_TYPE_VALUETYPE:
                     case ELEMENT_TYPE_CLASS:
-                        if (!GetToken(out tmp))
+                        if (!GetToken(out _))
                             return false;
 
                         break;
@@ -436,14 +435,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                                 return false;
 
                             while (sizes-- != 0)
-                                if (!GetData(out tmp))
+                                if (!GetData(out _))
                                     return false;
 
                             if (!GetData(out int bounds))
                                 return false;
 
                             while (bounds-- != 0)
-                                if (!GetData(out tmp))
+                                if (!GetData(out _))
                                     return false;
                         }
 
@@ -454,7 +453,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         break;
 
                     case ELEMENT_TYPE_INTERNAL:
-                        if (!GetData(out tmp))
+                        if (!GetData(out _))
                             return false;
 
                         break;
@@ -492,7 +491,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Skip type parameter count
             if ((uCallConv & IMAGE_CEE_CS_CALLCONV_GENERIC) == IMAGE_CEE_CS_CALLCONV_GENERIC)
-                if (!GetData(out int tmp))
+                if (!GetData(out _))
                     return false;
 
             // Get arg count;
