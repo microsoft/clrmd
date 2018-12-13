@@ -53,20 +53,22 @@ object. The `ClrHeap` object, among other things, allows you to walk each segmen
 in the process. Here's a simple example of walking each segment and printing out
 data for each segment:
 
-    ClrRuntime runtime = ...;
-    Console.WriteLine("{0,12} {1,12} {2,12} {3,12} {4,4} {5}", "Start", "End", "CommittedEnd", "ReservedEnd", "Heap", "Type");
-    foreach (ClrSegment segment in runtime.Heap.Segments)
-    {
-        string type;
-        if (segment.IsEphemeral)
-            type = "Ephemeral";
-        else if (segment.IsLarge)
-            type = "Large";
-        else
-            type = "Gen2";
+```c#
+ClrRuntime runtime = ...;
+Console.WriteLine("{0,12} {1,12} {2,12} {3,12} {4,4} {5}", "Start", "End", "CommittedEnd", "ReservedEnd", "Heap", "Type");
+foreach (ClrSegment segment in runtime.Heap.Segments)
+{
+    string type;
+    if (segment.IsEphemeral)
+        type = "Ephemeral";
+    else if (segment.IsLarge)
+        type = "Large";
+    else
+        type = "Gen2";
 
-        Console.WriteLine("{0,12:X} {1,12:X} {2,12:X} {3,12:X} {4,4} {5}", segment.Start, segment.End, segment.CommittedEnd, segment.ReservedEnd, segment.ProcessorAffinity, type);
-    }
+    Console.WriteLine("{0,12:X} {1,12:X} {2,12:X} {3,12:X} {4,4} {5}", segment.Start, segment.End, segment.CommittedEnd, segment.ReservedEnd, segment.ProcessorAffinity, type);
+}
+```
 
 As you can see, each `ClrSegment` object gives you a `Start` address for the
 beginning of the GC segment and the `End` address (which is the address after the
@@ -79,17 +81,19 @@ Note that the `ClrSegment.ProcessorAffinity` is actually the logical GC Heap to
 which the segment belongs. Here is a simple linq query which will print out a
 table showing logical heap balance:
 
-    foreach (var item in (from seg in heap.Segments
-                          group seg by seg.ProcessorAffinity into g
-                          orderby g.Key
-                          select new
-                          {
-                              Heap = g.Key,
-                              Size = g.Sum(p=>(uint)p.Length)
-                          }))
-    {
-        Console.WriteLine("Heap {0,2}: {1:n0} bytes", item.Heap, item.Size);
-    }
+```c#
+foreach (var item in (from seg in heap.Segments
+                      group seg by seg.ProcessorAffinity into g
+                      orderby g.Key
+                      select new
+                      {
+                          Heap = g.Key,
+                          Size = g.Sum(p=>(uint)p.Length)
+                      }))
+{
+    Console.WriteLine("Heap {0,2}: {1:n0} bytes", item.Heap, item.Size);
+}
+```
 
 As mentioned before, logical heap imbalance in server GC can cause perf issues.
 
@@ -104,29 +108,31 @@ which we will cover in more detail in a later tutorial.
 Here is an example of walking each object on each segment in the process and
 printing the address, size, generation, and type of the object:
 
-    ClrRuntime runtime = ...;
-    
-    if (!runtime.Heap.CanWalkHeap)
+```c#
+ClrRuntime runtime = ...;
+
+if (!runtime.Heap.CanWalkHeap)
+{
+    Console.WriteLine("Cannot walk the heap!");
+}
+else
+{
+    foreach (ClrSegment seg in runtime.Heap.Segments)
     {
-        Console.WriteLine("Cannot walk the heap!");
+        for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
+        {
+            ClrType type = runtime.Heap.GetObjectType(obj);
+
+            // If heap corruption, continue past this object.
+            if (type == null)
+                continue;
+
+            ulong size = type.GetSize(obj);
+            Console.WriteLine("{0,12:X} {1,8:n0} {2,1:n0} {3}", obj, size, seg.GetGeneration(obj), type.Name);
+        }
     }
-    else
-    {
-      foreach (ClrSegment seg in runtime.Heap.Segments)
-      {
-          for (ulong obj = seg.FirstObject; obj != 0; obj = seg.NextObject(obj))
-          {
-              ClrType type = runtime.Heap.GetObjectType(obj);
-
-              // If heap corruption, continue past this object.
-              if (type == null)
-                  continue;
-
-              ulong size = type.GetSize(obj);
-              Console.WriteLine("{0,12:X} {1,8:n0} {2,1:n0} {3}", obj, size, seg.GetGeneration(obj), type.Name);
-          }
-      }
-  }
+}
+```
 
 There are two parts in this example you should pay attention to. First is
 checking the `ClrHeap.CanWalkHeap` property. This property specifies whether the
@@ -145,26 +151,28 @@ so it is possible `GetObjectType` will return null if the address that
 There is another way to walk the heap, one which takes far less code than
 walking each segment: `ClrHeap.EnumerateObjectAddresses`. Here is an example:
 
-    CLRRuntime runtime = ...;
+```c#
+CLRRuntime runtime = ...;
 
-    if (!runtime.Heap.CanWalkHeap)
+if (!runtime.Heap.CanWalkHeap)
+{
+    Console.WriteLine("Cannot walk the heap!");
+}
+else
+{
+    foreach (ulong obj in runtime.Heap.EnumerateObjectAddresses())
     {
-        Console.WriteLine("Cannot walk the heap!");
+        ClrType type = runtime.Heap.GetObjectType(obj);
+
+        // If heap corruption, continue past this object.
+        if (type == null)
+            continue;
+
+        ulong size = type.GetSize(obj);
+        Console.WriteLine("{0,12:X} {1,8:n0} {2,1:n0} {3}", obj, size, runtime.Heap.GetObjectGeneration(obj), type.Name);
     }
-    else
-    {
-      foreach (ulong obj in runtime.Heap.EnumerateObjectAddresses())
-      {
-          ClrType type = runtime.Heap.GetObjectType(obj);
-
-          // If heap corruption, continue past this object.
-          if (type == null)
-              continue;
-
-          ulong size = type.GetSize(obj);
-          Console.WriteLine("{0,12:X} {1,8:n0} {2,1:n0} {3}", obj, size, runtime.Heap.GetObjectGeneration(obj), type.Name);
-      }
-  }
+}
+```
 
 The above code's results are equivalent to the one above it. In general, you
 should choose the heap walking approach that best fits your scenario. In
@@ -188,47 +196,49 @@ Given an object, you can enumerate all objects it points to using
 `ClrType.Enumerate` object references. We will use that function to implement
 `objsize`:
 
-    private static void ObjSize(ClrHeap heap, ulong obj, out uint count, out ulong size)
+```c#
+private static void ObjSize(ClrHeap heap, ulong obj, out uint count, out ulong size)
+{
+    // Evaluation stack
+    Stack<ulong> eval = new Stack<ulong>();
+
+    // To make sure we don't count the same object twice, we'll keep a set of all objects
+    // we've seen before.  Note the ObjectSet here is basically just "HashSet<ulong>".
+    // However, HashSet<ulong> is *extremely* memory inefficient.  So we use our own to
+    // avoid OOMs.
+    ObjectSet considered = new ObjectSet(heap);
+
+    count = 0;
+    size = 0;
+    eval.Push(obj);
+
+    while (eval.Count > 0)
     {
-        // Evaluation stack
-        Stack<ulong> eval = new Stack<ulong>();
+        // Pop an object, ignore it if we've seen it before.
+        obj = eval.Pop();
+        if (considered.Contains(obj))
+            continue;
 
-        // To make sure we don't count the same object twice, we'll keep a set of all objects
-        // we've seen before.  Note the ObjectSet here is basically just "HashSet<ulong>".
-        // However, HashSet<ulong> is *extremely* memory inefficient.  So we use our own to
-        // avoid OOMs.
-        ObjectSet considered = new ObjectSet(heap);
+        considered.Add(obj);
 
-        count = 0;
-        size = 0;
-        eval.Push(obj);
+        // Grab the type. We will only get null here in the case of heap corruption.
+        ClrType type = heap.GetObjectType(obj);
+        if (type == null)
+            continue;
 
-        while (eval.Count > 0)
+        count++;
+        size += type.GetSize(obj);
+
+        // Now enumerate all objects that this object points to, add them to the
+        // evaluation stack if we haven't seen them before.
+        type.EnumerateRefsOfObject(obj, delegate(ulong child, int offset)
         {
-            // Pop an object, ignore it if we've seen it before.
-            obj = eval.Pop();
-            if (considered.Contains(obj))
-                continue;
-
-            considered.Add(obj);
-
-            // Grab the type. We will only get null here in the case of heap corruption.
-            ClrType type = heap.GetObjectType(obj);
-            if (type == null)
-                continue;
-
-            count++;
-            size += type.GetSize(obj);
-
-            // Now enumerate all objects that this object points to, add them to the
-            // evaluation stack if we haven't seen them before.
-            type.EnumerateRefsOfObject(obj, delegate(ulong child, int offset)
-            {
-                if (child != 0 && !considered.Contains(child))
-                    eval.Push(child);
-            });
-        }
+            if (child != 0 && !considered.Contains(child))
+                eval.Push(child);
+        });
     }
+}
+```
 
 ### Why do we need EnumerateRefsOfObject?
 
