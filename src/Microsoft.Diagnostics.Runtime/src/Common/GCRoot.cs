@@ -141,12 +141,12 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
                 {
-                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                    ReportObjectCount(processedObjects.Count);
                     yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
                 }
             }
 
-            ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
+            ReportObjectCount(totalObjects);
 
             yield break;
 
@@ -185,18 +185,18 @@ namespace Microsoft.Diagnostics.Runtime
                         result = new GCRootPath {Root = rootFunc(), Path = path.ToArray()};
                 }
 
-                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                ReportObjectCount(processedObjects.Count);
 
                 return result;
             }
-        }
 
-        private void ReportObjectCount(long curr, ref long lastObjectReported, long totalObjects)
-        {
-            if (curr != lastObjectReported)
+            void ReportObjectCount(long curr)
             {
-                lastObjectReported = curr;
-                ProgressUpdate?.Invoke(this, lastObjectReported, totalObjects);
+                if (curr != lastObjectReported)
+                {
+                    lastObjectReported = curr;
+                    ProgressUpdate?.Invoke(this, lastObjectReported, totalObjects);
+                }
             }
         }
 
