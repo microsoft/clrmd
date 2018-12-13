@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
                         result = new GCRootPath {Root = rootFunc(), Path = path.ToArray()};
                 }
@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
         public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
-            return PathTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
+            return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
         }
 
         /// <summary>
@@ -239,7 +239,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
-            return PathTo(
+            return PathsTo(
                 new ObjectSet(Heap),
                 new Dictionary<ulong, LinkedListNode<ClrObject>>(),
                 new ClrObject(source, Heap.GetObjectType(source)),
@@ -285,13 +285,13 @@ namespace Microsoft.Diagnostics.Runtime
             return Task.Run(
                 () =>
                     {
-                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, clrObject, target, unique, cancelToken).FirstOrDefault();
+                        LinkedList<ClrObject> path = PathsTo(seen, knownEndPoints, clrObject, target, unique, cancelToken).FirstOrDefault();
                         return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path == null ? null : rootFunc());
                     },
                 cancelToken);
         }
 
-        private IEnumerable<LinkedList<ClrObject>> PathTo(
+        private IEnumerable<LinkedList<ClrObject>> PathsTo(
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
             ClrObject source,
