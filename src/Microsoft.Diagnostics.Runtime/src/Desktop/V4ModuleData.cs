@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public readonly uint IsReflection;
         public readonly uint IsPEFile;
         public readonly IntPtr BaseClassIndex;
-        public readonly IntPtr ModuleDefinition;
+        public readonly IntPtr MetaDataImport;
         public readonly IntPtr ModuleID;
 
         public readonly uint TransientFlags;
@@ -38,7 +38,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong IModuleData.ImageBase => ILBase;
         ulong IModuleData.LookupTableHeap => LookupTableHeap;
         ulong IModuleData.ThunkHeap => ThunkHeap;
-        IntPtr IModuleData.LegacyMetaDataImport => ModuleDefinition;
         ulong IModuleData.ModuleId => (ulong)ModuleID.ToInt64();
         ulong IModuleData.ModuleIndex => (ulong)ModuleIndex.ToInt64();
         bool IModuleData.IsReflection => IsReflection != 0;

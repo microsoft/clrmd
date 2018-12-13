@@ -12,7 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong PEFile { get; }
         ulong LookupTableHeap { get; }
         ulong ThunkHeap { get; }
-        IntPtr LegacyMetaDataImport { get; }
         ulong ModuleId { get; }
         ulong ModuleIndex { get; }
         ulong Assembly { get; }

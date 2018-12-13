@@ -58,13 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public override DataTarget DataTarget => _dataTarget;
-
-        public void RegisterForRelease(IModuleData module)
-        {
-            if (module != null)
-                COMHelper.Release(module.LegacyMetaDataImport);
-        }
-
+        
         public IDataReader DataReader => _dataReader;
 
         protected abstract void InitApi();
