@@ -425,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private Stack<ClrObject> GetRefs(
+        private static Stack<ClrObject> GetRefs(
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
             ClrObject obj,
@@ -483,7 +483,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        private LinkedList<ClrObject> GetResult(
+        private static LinkedList<ClrObject> GetResult(
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
             LinkedList<PathEntry> path,
             LinkedListNode<ClrObject> ending,
@@ -503,7 +503,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        private ClrRoot GetHandleRoot(ClrHandle handle)
+        private static ClrRoot GetHandleRoot(ClrHandle handle)
         {
             GCRootKind kind = GCRootKind.Strong;
 
@@ -531,12 +531,12 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [Conditional("GCROOTTRACE")]
-        private void TraceFullPath(LinkedList<PathEntry> path, LinkedListNode<ClrObject> foundEnding)
+        private static void TraceFullPath(LinkedList<PathEntry> path, LinkedListNode<ClrObject> foundEnding)
         {
             Debug.WriteLine($"FoundEnding: {string.Join(" ", path.Select(p => p.Object.ToString()))} {string.Join(" ", NodeToList(foundEnding))}");
         }
 
-        private List<string> NodeToList(LinkedListNode<ClrObject> tmp)
+        private static List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
             List<string> list = new List<string>();
             for (; tmp != null; tmp = tmp.Next)
@@ -552,7 +552,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [Conditional("GCROOTTRACE")]
-        private void TraceFullPath(string prefix, LinkedList<PathEntry> path)
+        private static void TraceFullPath(string prefix, LinkedList<PathEntry> path)
         {
             if (!string.IsNullOrWhiteSpace(prefix))
                 prefix += ": ";
