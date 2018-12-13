@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, rootObject, target, unique, false, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
                         result = new GCRootPath {Root = rootFunc(), Path = path.ToArray()};
                 }
@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
         public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
-            return PathTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, false, cancelToken).FirstOrDefault();
+            return PathTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
         }
 
         /// <summary>
@@ -245,7 +245,6 @@ namespace Microsoft.Diagnostics.Runtime
                 new ClrObject(source, Heap.GetObjectType(source)),
                 target,
                 unique,
-                false,
                 cancelToken);
         }
 
@@ -286,7 +285,7 @@ namespace Microsoft.Diagnostics.Runtime
             return Task.Run(
                 () =>
                     {
-                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, clrObject, target, unique, true, cancelToken).FirstOrDefault();
+                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, clrObject, target, unique, cancelToken).FirstOrDefault();
                         return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path == null ? null : rootFunc());
                     },
                 cancelToken);
@@ -298,7 +297,6 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject source,
             ulong target,
             bool unique,
-            bool parallel,
             CancellationToken cancelToken)
         {
             seen.Add(source.Address);
