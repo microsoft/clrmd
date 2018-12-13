@@ -309,7 +309,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (source.Address == target)
             {
                 path.AddLast(new PathEntry {Object = source});
-                yield return GetResult(knownEndPoints, path, null, target);
+                yield return GetResult();
 
                 yield break;
             }
@@ -325,11 +325,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (foundTarget)
             {
                 path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
-                yield return GetResult(knownEndPoints, path, null, target);
+                yield return GetResult();
             }
             else if (foundEnding != null)
             {
-                yield return GetResult(knownEndPoints, path, foundEnding, target);
+                yield return GetResult(foundEnding);
             }
 
             while (path.Count > 0)
@@ -377,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime
                             path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
                             TraceFullPath("FoundTarget", path);
 
-                            yield return GetResult(knownEndPoints, path, null, target);
+                            yield return GetResult();
 
                             path.RemoveLast();
                             path.RemoveLast();
@@ -385,7 +385,7 @@ namespace Microsoft.Diagnostics.Runtime
                         else if (foundEnding != null)
                         {
                             TraceFullPath(path, foundEnding);
-                            yield return GetResult(knownEndPoints, path, foundEnding, target);
+                            yield return GetResult(foundEnding);
 
                             path.RemoveLast();
                         }
@@ -394,6 +394,22 @@ namespace Microsoft.Diagnostics.Runtime
                         break;
                     } while (last.Todo.Count > 0);
                 }
+            }
+
+            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> ending = null)
+            {
+                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
+
+                for (; ending != null; ending = ending.Next)
+                    result.AddLast(ending.Value);
+
+                if (knownEndPoints != null)
+                    lock (knownEndPoints)
+                        for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
+                            if (node.Value.Address != target)
+                                knownEndPoints[node.Value.Address] = node;
+
+                return result;
             }
         }
 
@@ -452,26 +468,6 @@ namespace Microsoft.Diagnostics.Runtime
             foundEnding = ending;
 
             return result ?? s_emptyStack;
-        }
-
-        private static LinkedList<ClrObject> GetResult(
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            LinkedList<PathEntry> path,
-            LinkedListNode<ClrObject> ending,
-            ulong target)
-        {
-            LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
-
-            for (; ending != null; ending = ending.Next)
-                result.AddLast(ending.Value);
-
-            if (knownEndPoints != null)
-                lock (knownEndPoints)
-                    for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
-                        if (node.Value.Address != target)
-                            knownEndPoints[node.Value.Address] = node;
-
-            return result;
         }
 
         private static ClrRoot GetHandleRoot(ClrHandle handle)
