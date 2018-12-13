@@ -100,23 +100,21 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
+
             long totalObjects = Heap.TotalObjects;
             long lastObjectReported = 0;
 
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
 
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks;
-            ObjectSet processedObjects;
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
 
-            if (parallel)
-                processedObjects = new ParallelObjectSet(Heap);
+            ObjectSet processedObjects = parallel 
+                ? new ParallelObjectSet(Heap) 
+                : new ObjectSet(Heap);
 
-            else
-                processedObjects = new ObjectSet(Heap);
+            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
 
             int initial = 0;
-            tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
 
             foreach (ClrHandle handle in Heap.EnumerateStrongHandles())
             {
