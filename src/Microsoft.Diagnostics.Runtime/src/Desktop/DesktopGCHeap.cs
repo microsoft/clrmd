@@ -285,7 +285,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _dependentHandles = null;
         }
 
-        public override bool AreRootsCached => (_stackwalkPolicy == ClrRootStackwalkPolicy.SkipStack || _stackCache != null && _currentStackCache == StackwalkPolicy)
+        public override bool AreRootsCached => (_stackwalkPolicy == ClrRootStackwalkPolicy.SkipStack || (_stackCache != null && _currentStackCache == StackwalkPolicy))
             && _strongHandles != null;
 
         private static int GetHandleOrder(HandleType handleType)
