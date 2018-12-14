@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime
                 library.Dispose();
         }
 
-        internal override void AddDacLibrary(DacLibrary dacLibrary)
+        protected internal override void AddDacLibrary(DacLibrary dacLibrary)
         {
             _dacLibraries.Add(dacLibrary);
         }
