@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public async Task<string> FindPdbAsync(ModuleInfo module)
         {
             if (module == null)
-                throw new ArgumentNullException("module");
+                throw new ArgumentNullException(nameof(module));
 
             PdbInfo pdb = module.Pdb;
             if (pdb == null)
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public async Task<string> FindPdbAsync(PdbInfo pdb)
         {
             if (pdb == null)
-                throw new ArgumentNullException("pdb");
+                throw new ArgumentNullException(nameof(pdb));
 
             return await FindPdbAsync(pdb.FileName, pdb.Guid, pdb.Revision);
         }
