@@ -192,8 +192,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallelAsync(ClrObject clrObject, Func<ClrRoot> rootFunc)
             {
-                Debug.Assert(IsFullyCached);
-
                 return Task.Run(
                     () =>
                         {
