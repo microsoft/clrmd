@@ -248,6 +248,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract void Dispose();
 
-        internal abstract void AddDacLibrary(DacLibrary dacLibrary);
+        protected internal abstract void AddDacLibrary(DacLibrary dacLibrary);
     }
 }
