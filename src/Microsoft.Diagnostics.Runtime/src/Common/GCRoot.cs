@@ -163,7 +163,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (parallel)
                 {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallelAsync(rootObject, rootFunc);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = Task.Run(
+                        () =>
+                            {
+                                LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
+                                return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path == null ? null : rootFunc());
+                            },
+                        cancelToken);
+
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -188,17 +195,6 @@ namespace Microsoft.Diagnostics.Runtime
                 ReportObjectCount(processedObjects.Count);
 
                 return result;
-            }
-
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallelAsync(ClrObject clrObject, Func<ClrRoot> rootFunc)
-            {
-                return Task.Run(
-                    () =>
-                        {
-                            LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, clrObject, target, unique, cancelToken).FirstOrDefault();
-                            return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path == null ? null : rootFunc());
-                        },
-                    cancelToken);
             }
 
             void ReportObjectCount(long curr)
