@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object obj)
         {
             if (obj == null)
-                throw new ArgumentNullException("obj");
+                throw new ArgumentNullException(nameof(obj));
 
             if (obj.GetType() != typeof(M128A))
                 return false;

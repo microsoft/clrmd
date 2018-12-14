@@ -541,7 +541,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (_file == null)
             {
-                throw new ObjectDisposedException("DumpReader");
+                throw new ObjectDisposedException(nameof(DumpReader));
             }
         }
 

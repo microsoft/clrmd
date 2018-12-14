@@ -211,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
             if (buffer == null)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
 
             if (buffer.Length < bytesRequested)
                 bytesRequested = buffer.Length;
