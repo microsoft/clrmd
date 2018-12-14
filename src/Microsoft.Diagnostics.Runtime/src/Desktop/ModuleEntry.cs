@@ -6,8 +6,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct ModuleEntry
     {
-        public ClrModule Module;
-        public uint Token;
+        public readonly ClrModule Module;
+        public readonly uint Token;
 
         public ModuleEntry(ClrModule module, uint token)
         {

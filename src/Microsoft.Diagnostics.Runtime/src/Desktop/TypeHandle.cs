@@ -9,8 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct TypeHandle : IEquatable<TypeHandle>
     {
-        public ulong MethodTable;
-        public ulong ComponentMethodTable;
+        public readonly ulong MethodTable;
+        public readonly ulong ComponentMethodTable;
 
         public TypeHandle(ulong mt)
         {

@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V45AllocData
     {
-        public ulong allocBytes;
-        public ulong allocBytesLoh;
+        public readonly ulong AllocBytes;
+        public readonly ulong AllocBytesLoh;
     }
 }

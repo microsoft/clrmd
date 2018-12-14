@@ -9,25 +9,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V2ThreadPoolData : IThreadPoolData
     {
-        private int _numQueuedWorkRequests;
-        private uint _numTimers;
-        private int _numCPThreads;
-        private int _numRetiredCPThreads;
-        private int _currentLimitTotalCPThreads;
+        public readonly int CpuUtilization;
+        public readonly int NumWorkerThreads;
+        public readonly int MinLimitTotalWorkerThreads;
+        public readonly int MaxLimitTotalWorkerThreads;
+        public readonly int NumRunningWorkerThreads;
+        public readonly int NumIdleWorkerThreads;
+        public readonly int NumQueuedWorkRequests;
 
-        public int MinCP { get; }
-        public int MaxCP { get; }
-        public int CPU { get; }
-        public int NumFreeCP { get; }
-        public int MaxFreeCP { get; }
-        public int TotalThreads { get; }
-        public int RunningThreads { get; }
-        public int IdleThreads { get; }
-        public int MinThreads { get; }
-        public int MaxThreads { get; }
-        ulong IThreadPoolData.FirstWorkRequest { get; }
-        public ulong QueueUserWorkItemCallbackFPtr { get; }
-        public ulong AsyncCallbackCompletionFPtr { get; }
-        public ulong AsyncTimerCallbackCompletionFPtr { get; }
+        public readonly ulong FirstWorkRequest;
+        public readonly uint NumTimers;
+
+        public readonly int NumCPThreads;
+        public readonly int NumFreeCPThreads;
+        public readonly int MaxFreeCPThreads;
+        public readonly int NumRetiredCPThreads;
+        public readonly int MaxLimitTotalCPThreads;
+        public readonly int CurrentLimitTotalCPThreads;
+        public readonly int MinLimitTotalCPThreads;
+
+        public readonly ulong QueueUserWorkItemCallbackFPtr;
+        public readonly ulong AsyncCallbackCompletionFPtr;
+        public readonly ulong AsyncTimerCallbackCompletionFPtr;
+
+        int IThreadPoolData.MinCP => MinLimitTotalCPThreads;
+        int IThreadPoolData.MaxCP => MaxLimitTotalCPThreads;
+        int IThreadPoolData.CPU => CpuUtilization;
+        int IThreadPoolData.NumFreeCP => NumFreeCPThreads;
+        int IThreadPoolData.MaxFreeCP => MaxFreeCPThreads;
+        int IThreadPoolData.TotalThreads => NumWorkerThreads;
+        int IThreadPoolData.RunningThreads => NumRunningWorkerThreads;
+        int IThreadPoolData.IdleThreads => NumIdleWorkerThreads;
+        int IThreadPoolData.MinThreads => MinLimitTotalWorkerThreads;
+        int IThreadPoolData.MaxThreads => MaxLimitTotalWorkerThreads;
+        ulong IThreadPoolData.FirstWorkRequest => FirstWorkRequest;
+        ulong IThreadPoolData.QueueUserWorkItemCallbackFPtr => QueueUserWorkItemCallbackFPtr;
+        ulong IThreadPoolData.AsyncCallbackCompletionFPtr => AsyncCallbackCompletionFPtr;
+        ulong IThreadPoolData.AsyncTimerCallbackCompletionFPtr => AsyncTimerCallbackCompletionFPtr;
     }
 }

@@ -432,7 +432,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     // Statics
                     foreach (ClrStaticField staticField in type.StaticFields)
                     {
-                        if (!ClrRuntime.IsPrimitive(staticField.ElementType))
+                        if (!staticField.ElementType.IsPrimitive())
                         {
                             foreach (ClrAppDomain ad in DesktopRuntime.AppDomains)
                             {
@@ -463,7 +463,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     // Thread statics
                     foreach (ClrThreadStaticField tsf in type.ThreadStaticFields)
                     {
-                        if (ClrRuntime.IsObjectReference(tsf.ElementType))
+                        if (tsf.ElementType.IsObjectReference())
                         {
                             foreach (ClrAppDomain ad in DesktopRuntime.AppDomains)
                             {

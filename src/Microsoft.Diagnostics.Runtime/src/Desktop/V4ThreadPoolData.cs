@@ -9,35 +9,46 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V4ThreadPoolData : IThreadPoolData
     {
-        private uint _useNewWorkerPool;
+        public readonly uint UseNewWorkerPool;
 
-        private int _numRetiredWorkerThreads;
+        public readonly int CpuUtilization;
+        public readonly int NumIdleWorkerThreads;
+        public readonly int NumWorkingWorkerThreads;
+        public readonly int NumRetiredWorkerThreads;
+        public readonly int MinLimitTotalWorkerThreads;
+        public readonly int MaxLimitTotalWorkerThreads;
 
-        private ulong _hillClimbingLog;
-        private int _hillClimbingLogFirstIndex;
-        private int _hillClimbingLogSize;
+        public readonly ulong FirstUnmanagedWorkRequest;
 
-        private uint _numTimers;
+        public readonly ulong HillClimbingLog;
+        public readonly int HillClimbingLogFirstIndex;
+        public readonly int HillClimbingLogSize;
 
-        private int _numCPThreads;
-        private int _numRetiredCPThreads;
-        private int _currentLimitTotalCPThreads;
+        public readonly uint NumTimers;
 
-        private ulong _queueUserWorkItemCallbackFPtr;
-        private ulong _asyncCallbackCompletionFPtr;
-        private ulong _asyncTimerCallbackCompletionFPtr;
+        public readonly int NumCPThreads;
+        public readonly int NumFreeCPThreads;
+        public readonly int MaxFreeCPThreads;
+        public readonly int NumRetiredCPThreads;
+        public readonly int MaxLimitTotalCPThreads;
+        public readonly int CurrentLimitTotalCPThreads;
+        public readonly int MinLimitTotalCPThreads;
 
-        public int MinCP { get; }
-        public int MaxCP { get; }
-        public int CPU { get; }
-        public int NumFreeCP { get; }
-        public int MaxFreeCP { get; }
-        public int TotalThreads { get; }
-        public int RunningThreads => TotalThreads + IdleThreads + _numRetiredWorkerThreads;
-        public int IdleThreads { get; }
-        public int MinThreads { get; }
-        public int MaxThreads { get; }
-        public ulong FirstWorkRequest { get; }
+        public readonly ulong QueueUserWorkItemCallbackFPtr;
+        public readonly ulong AsyncCallbackCompletionFPtr;
+        public readonly ulong AsyncTimerCallbackCompletionFPtr;
+
+        int IThreadPoolData.MinCP => MinLimitTotalCPThreads;
+        int IThreadPoolData.MaxCP => MaxLimitTotalCPThreads;
+        int IThreadPoolData.CPU => CpuUtilization;
+        int IThreadPoolData.NumFreeCP => NumFreeCPThreads;
+        int IThreadPoolData.MaxFreeCP => MaxFreeCPThreads;
+        int IThreadPoolData.TotalThreads => NumWorkingWorkerThreads;
+        int IThreadPoolData.RunningThreads => NumWorkingWorkerThreads + NumIdleWorkerThreads + NumRetiredWorkerThreads;
+        int IThreadPoolData.IdleThreads => NumIdleWorkerThreads;
+        int IThreadPoolData.MinThreads => MinLimitTotalWorkerThreads;
+        int IThreadPoolData.MaxThreads => MaxLimitTotalWorkerThreads;
+        ulong IThreadPoolData.FirstWorkRequest => FirstUnmanagedWorkRequest;
         ulong IThreadPoolData.QueueUserWorkItemCallbackFPtr => ulong.MaxValue;
         ulong IThreadPoolData.AsyncCallbackCompletionFPtr => ulong.MaxValue;
         ulong IThreadPoolData.AsyncTimerCallbackCompletionFPtr => ulong.MaxValue;

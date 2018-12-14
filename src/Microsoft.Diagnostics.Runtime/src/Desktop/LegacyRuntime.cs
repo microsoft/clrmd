@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly DesktopVersion _version;
         private readonly int _patch;
 
-        public LegacyRuntime(ClrInfo info, DataTargetImpl dt, DacLibrary lib, DesktopVersion version, int patch)
+        public LegacyRuntime(ClrInfo info, DataTarget dt, DacLibrary lib, DesktopVersion version, int patch)
             : base(info, dt, lib)
         {
             _version = version;
@@ -458,8 +458,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             SOSDac.ModuleMapTraverse traverse = delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
             LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs
             {
-                pCallback = Marshal.GetFunctionPointerForDelegate(traverse),
-                module = module
+                Callback = Marshal.GetFunctionPointerForDelegate(traverse),
+                Module = module
             };
 
             // TODO:  Blah, theres got to be a better way to do this.
@@ -530,7 +530,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         V2EEClassData result = (V2EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V2EEClassData));
                         handle.Free();
 
-                        token = result.token;
+                        token = result.Token;
                     }
                     else
                     {
@@ -538,7 +538,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         V4EEClassData result = (V4EEClassData)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(V4EEClassData));
                         handle.Free();
 
-                        token = result.token;
+                        token = result.Token;
                     }
                 }
             }
@@ -546,7 +546,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return token;
         }
 
-        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong sp, ulong frameVtbl)
+        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, byte[] context, ulong ip, ulong sp, ulong frameVtbl)
         {
             DesktopStackFrame frame;
             ClearBuffer();
@@ -562,12 +562,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (mdData != null)
                     method = DesktopMethod.Create(this, mdData);
 
-                frame = new DesktopStackFrame(this, thread, sp, frameName, method);
+                frame = new DesktopStackFrame(this, thread, context, sp, frameName, method);
             }
             else
             {
                 ulong md = GetMethodDescFromIp(ip);
-                frame = new DesktopStackFrame(this, thread, ip, sp, md);
+                frame = new DesktopStackFrame(this, thread, context, ip, sp, md);
             }
 
             return frame;
@@ -635,7 +635,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (i == 0)
                     thread = (DesktopThread)GetThreadByStackAddress(sp);
 
-                result.Add(new DesktopStackFrame(this, thread, ip, sp, md));
+                result.Add(new DesktopStackFrame(this, thread, null, ip, sp, md));
 
                 dataPtr += (ulong)elementSize;
             }

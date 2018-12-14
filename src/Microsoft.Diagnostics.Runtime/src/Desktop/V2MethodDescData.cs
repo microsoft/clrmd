@@ -9,43 +9,48 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal struct V2MethodDescData : IMethodDescData
     {
-        private int _bHasNativeCode;
-        private int _bIsDynamic;
-        private short _wSlotNumber;
+        public readonly int HasNativeCode;
+        public readonly int IsDynamic;
+        public readonly short SlotNumber;
+        public readonly ulong NativeCodeAddr;
         // Useful for breaking when a method is jitted.
-        private ulong _addressOfNativeCodeSlot;
+        public readonly ulong AddressOfNativeCodeSlot;
 
-        private ulong _EEClassPtr;
+        public readonly ulong MethodDescPtr;
+        public readonly ulong MethodTablePtr;
+        public readonly ulong EEClassPtr;
+        public readonly ulong ModulePtr;
 
-        private ulong _preStubAddr;
-        private short _JITType;
-        private ulong _GCStressCodeCopy;
+        public readonly ulong PreStubAddr;
+        public readonly uint MDToken;
+        public readonly ulong GCInfo;
+        public readonly short JITType;
+        public readonly ulong GCStressCodeCopy;
 
         // This is only valid if bIsDynamic is true
-        private ulong _managedDynamicMethodObject;
+        public readonly ulong ManagedDynamicMethodObject;
 
-        public ulong MethodDesc { get; }
-        public ulong Module { get; }
-        public uint MDToken { get; }
-        ulong IMethodDescData.NativeCodeAddr { get; }
+        ulong IMethodDescData.MethodDesc => MethodDescPtr;
+        ulong IMethodDescData.Module => ModulePtr;
+        uint IMethodDescData.MDToken => MDToken;
+        ulong IMethodDescData.NativeCodeAddr => NativeCodeAddr;
+        ulong IMethodDescData.MethodTable => MethodTablePtr;
+        ulong IMethodDescData.GCInfo => GCInfo;
+        ulong IMethodDescData.ColdStart => 0;
+        uint IMethodDescData.ColdSize => 0;
+        uint IMethodDescData.HotSize => 0;
 
         MethodCompilationType IMethodDescData.JITType
         {
             get
             {
-                if (_JITType == 1)
+                if (JITType == 1)
                     return MethodCompilationType.Jit;
-                if (_JITType == 2)
+                if (JITType == 2)
                     return MethodCompilationType.Ngen;
 
                 return MethodCompilationType.None;
             }
         }
-
-        public ulong MethodTable { get; }
-        public ulong GCInfo { get; }
-        public ulong ColdStart => 0;
-        public uint ColdSize => 0;
-        public uint HotSize => 0;
     }
 }

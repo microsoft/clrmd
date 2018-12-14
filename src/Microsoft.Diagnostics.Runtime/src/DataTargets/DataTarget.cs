@@ -4,12 +4,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Desktop;
 using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Utilities;
-
-#if !NET45
-using System.Runtime.InteropServices;
-#endif
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -249,5 +248,103 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract void Dispose();
 
         protected internal abstract void AddDacLibrary(DacLibrary dacLibrary);
+
+        /// <summary>
+        /// Creates a runtime from the given Dac file on disk.
+        /// </summary>
+        internal ClrRuntime CreateRuntime(ClrInfo clrInfo)
+        {
+            if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
+
+            string dac = clrInfo.LocalMatchingDac;
+            if (dac != null && !File.Exists(dac))
+                dac = null;
+
+            if (dac == null)
+                dac = SymbolLocator.FindBinary(clrInfo.DacInfo);
+
+            if (!File.Exists(dac))
+                throw new FileNotFoundException("Could not find matching DAC for this runtime.", clrInfo.DacInfo.FileName);
+
+            if (IntPtr.Size != (int)DataReader.GetPointerSize())
+                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
+
+            return ConstructRuntime(clrInfo, dac);
+        }
+
+        /// <summary>
+        /// Creates a runtime from a given IXClrDataProcess interface. Used for debugger plugins.
+        /// </summary>
+        internal ClrRuntime CreateRuntime(ClrInfo clrInfo, object clrDataProcess)
+        {
+            if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
+            if (clrDataProcess == null) throw new ArgumentNullException(nameof(clrDataProcess));
+
+            DacLibrary lib = new DacLibrary(this, DacLibrary.TryGetDacPtr(clrDataProcess));
+
+            // Figure out what version we are on.
+            if (lib.GetSOSInterfaceNoAddRef() != null)
+                return new V45Runtime(clrInfo, this, lib);
+
+            byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
+
+            int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
+            if ((uint)val == 0x80070057)
+                return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v4, 10000);
+
+            return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v2, 3054);
+        }
+
+        /// <summary>
+        /// Creates a runtime from the given Dac file on disk.
+        /// </summary>
+        /// <param name="clrInfo">CLR info</param>
+        /// <param name="dacFilename">A full path to the matching mscordacwks for this process.</param>
+        /// <param name="ignoreMismatch">Whether or not to ignore mismatches between </param>
+        /// <returns></returns>
+        internal ClrRuntime CreateRuntime(ClrInfo clrInfo, string dacFilename, bool ignoreMismatch = false)
+        {
+            if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
+            if (string.IsNullOrEmpty(dacFilename)) throw new ArgumentNullException(nameof(dacFilename));
+
+            if (!File.Exists(dacFilename))
+                throw new FileNotFoundException(dacFilename);
+
+            if (!ignoreMismatch)
+            {
+                PlatformFunctions.GetFileVersion(dacFilename, out int major, out int minor, out int revision, out int patch);
+                if (major != clrInfo.Version.Major || minor != clrInfo.Version.Minor || revision != clrInfo.Version.Revision || patch != clrInfo.Version.Patch)
+                    throw new InvalidOperationException($"Mismatched dac. Version: {major}.{minor}.{revision}.{patch}");
+            }
+
+            return ConstructRuntime(clrInfo, dacFilename);
+        }
+
+        private ClrRuntime ConstructRuntime(ClrInfo clrInfo, string dac)
+        {
+            if (IntPtr.Size != (int)DataReader.GetPointerSize())
+                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
+
+            if (IsMinidump)
+                SymbolLocator.PrefetchBinary(clrInfo.ModuleInfo.FileName, (int)clrInfo.ModuleInfo.TimeStamp, (int)clrInfo.ModuleInfo.FileSize);
+
+            DacLibrary lib = new DacLibrary(this, dac);
+
+            if (clrInfo.Flavor == ClrFlavor.Core)
+                return new V45Runtime(clrInfo, this, lib);
+
+            DesktopVersion ver;
+            if (clrInfo.Version.Major == 2)
+                ver = DesktopVersion.v2;
+            else if (clrInfo.Version.Major == 4 && clrInfo.Version.Minor == 0 && clrInfo.Version.Patch < 10000)
+                ver = DesktopVersion.v4;
+            else
+            {
+                // Assume future versions will all work on the newest runtime version.
+                return new V45Runtime(clrInfo, this, lib);
+            }
+
+            return new LegacyRuntime(clrInfo, this, lib, ver, clrInfo.Version.Patch);
+        }
     }
 }

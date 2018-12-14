@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private List<ClrHandle> _handles;
         private SOSDac _sos;
 
-        public V45Runtime(ClrInfo info, DataTargetImpl dt, DacLibrary lib)
+        public V45Runtime(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
             if (!GetCommonMethodTables(ref _commonMTs))
@@ -424,7 +424,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!_sos.GetThreadLocalModuleData(thread, moduleId, out ThreadLocalModuleData data))
                 return 0;
 
-            if (IsObjectReference(type) || IsValueClass(type))
+            if (type.IsObjectReference() || type.IsValueClass())
                 addr += data.GCStaticDataStart;
             else
                 addr += data.NonGCStaticDataStart;
@@ -477,7 +477,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return data.Token;
         }
 
-        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, ulong ip, ulong framePtr, ulong frameVtbl)
+        protected override DesktopStackFrame GetStackFrame(DesktopThread thread, byte[] context, ulong ip, ulong framePtr, ulong frameVtbl)
         {
             DesktopStackFrame frame;
             if (frameVtbl != 0)
@@ -493,11 +493,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         innerMethod = DesktopMethod.Create(this, mdData);
                 }
 
-                frame = new DesktopStackFrame(this, thread, framePtr, frameName, innerMethod);
+                frame = new DesktopStackFrame(this, thread, context, framePtr, frameName, innerMethod);
             }
             else
             {
-                frame = new DesktopStackFrame(this, thread, ip, framePtr, _sos.GetMethodDescPtrFromIP(ip));
+                frame = new DesktopStackFrame(this, thread, context, ip, framePtr, _sos.GetMethodDescPtrFromIP(ip));
             }
 
             return frame;
@@ -568,7 +568,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (i == 1 && thread == null && sp != 0)
                     thread = (DesktopThread)GetThreadByStackAddress(sp);
 
-                result.Add(new DesktopStackFrame(this, thread, ip, sp, md));
+                result.Add(new DesktopStackFrame(this, thread, null, ip, sp, md));
 
                 dataPtr += (ulong)elementSize;
             }

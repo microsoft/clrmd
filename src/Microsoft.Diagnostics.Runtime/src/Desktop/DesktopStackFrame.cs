@@ -9,6 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopStackFrame : ClrStackFrame
     {
+        public override byte[] Context => _context;
         public override ClrThread Thread => _thread;
         public override ulong StackPointer { get; }
         public override ulong InstructionPointer => _ip;
@@ -66,10 +67,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return sb.ToString();
         }
 
-        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, ulong ip, ulong sp, ulong md)
+        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, byte[] context, ulong ip, ulong sp, ulong md)
         {
             _runtime = runtime;
             _thread = thread;
+            _context = context;
             _ip = ip;
             StackPointer = sp;
             _frameName = _runtime.GetNameForMD(md) ?? "Unknown";
@@ -78,10 +80,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             InitMethod(md);
         }
 
-        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, ulong sp, ulong md)
+        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, byte[] context, ulong sp, ulong md)
         {
             _runtime = runtime;
             _thread = thread;
+            _context = context;
             StackPointer = sp;
             _frameName = _runtime.GetNameForMD(md) ?? "Unknown";
             _type = ClrStackFrameType.Runtime;
@@ -89,10 +92,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             InitMethod(md);
         }
 
-        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, ulong sp, string method, ClrMethod innerMethod)
+        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, byte[] context, ulong sp, string method, ClrMethod innerMethod)
         {
             _runtime = runtime;
             _thread = thread;
+            _context = context;
             StackPointer = sp;
             _frameName = method ?? "Unknown";
             _type = ClrStackFrameType.Runtime;
@@ -121,5 +125,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrMethod _method;
         private readonly DesktopRuntimeBase _runtime;
         private readonly DesktopThread _thread;
+        private readonly byte[] _context;
     }
 }
