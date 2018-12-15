@@ -437,7 +437,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 import = data.MetaDataImport;
             }
 
-            return import != IntPtr.Zero ? new MetaDataImport(DacLibrary, import) : null;
+            try
+            {
+                return import != IntPtr.Zero ? new MetaDataImport(DacLibrary, import) : null;
+            }
+            catch (InvalidCastException)
+            {
+                return null;
+            }
         }
 
         internal override ICCWData GetCCWData(ulong ccw)
