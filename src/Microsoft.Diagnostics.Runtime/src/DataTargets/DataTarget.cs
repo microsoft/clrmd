@@ -247,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract void Dispose();
 
-        protected internal abstract void AddDacLibrary(DacLibrary dacLibrary);
+        internal abstract void AddDacLibrary(DacLibrary dacLibrary);
 
         /// <summary>
         /// Creates a runtime from the given Dac file on disk.

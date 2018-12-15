@@ -145,16 +145,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract void CacheRoots(CancellationToken cancelToken);
 
-        protected internal virtual void BuildDependentHandleMap(CancellationToken cancelToken)
+        internal virtual void BuildDependentHandleMap(CancellationToken cancelToken)
         {
         }
 
-        protected internal virtual IEnumerable<ClrRoot> EnumerateStackRoots()
+        internal virtual IEnumerable<ClrRoot> EnumerateStackRoots()
         {
             throw new NotImplementedException();
         }
 
-        protected internal virtual IEnumerable<ClrHandle> EnumerateStrongHandles()
+        internal virtual IEnumerable<ClrHandle> EnumerateStrongHandles()
         {
             throw new NotImplementedException();
         }
@@ -345,8 +345,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if we successfully read the value, false if addr is not mapped into the process space.</returns>
         public abstract bool ReadPointer(ulong addr, out ulong value);
 
-        protected internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
-        protected internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
+        internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
+        internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
 
         /// <summary>
         /// This might be useful to be public, but we actually don't know the total number objects without walking the entire
@@ -354,7 +354,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// this simply property would throw InvalidOperationException unless the heap is cached).  I'm leaving this internal
         /// until I am convinced there's a good way to surface this.
         /// </summary>
-        protected internal virtual long TotalObjects => -1;
+        internal virtual long TotalObjects => -1;
     }
 
     /// <summary>

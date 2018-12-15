@@ -229,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
             return null;
         }
 
-        protected internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
+        internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
         {
             if (type == null)
                 type = GetObjectType(obj);
@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        protected internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
+        internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
         {
             if (type == null)
                 type = GetObjectType(obj);

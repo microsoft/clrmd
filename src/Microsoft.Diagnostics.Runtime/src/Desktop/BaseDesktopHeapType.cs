@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly Lazy<GCDesc> _gcDesc;
         protected ulong _constructedMT;
 
-        protected internal override GCDesc GCDesc => _gcDesc.Value;
+        internal override GCDesc GCDesc => _gcDesc.Value;
 
         public bool Shared { get; internal set; }
 

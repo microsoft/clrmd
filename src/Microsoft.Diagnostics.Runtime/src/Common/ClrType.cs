@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrType
     {
-        protected internal abstract GCDesc GCDesc { get; }
+        internal abstract GCDesc GCDesc { get; }
 
         /// <summary>
         /// Retrieves the first type handle in EnumerateMethodTables().  MethodTables
