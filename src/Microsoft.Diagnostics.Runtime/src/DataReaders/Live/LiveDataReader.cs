@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
             StringBuilder filename = new StringBuilder(1024);
-            GetModuleFileNameExA(_process, new IntPtr((long)addr), filename, filename.Capacity);
+            GetModuleFileNameExA(_process, addr.AsIntPtr(), filename, filename.Capacity);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                int res = ReadProcessMemory(_process, new IntPtr((long)address), buffer, bytesRequested, out bytesRead);
+                int res = ReadProcessMemory(_process, address.AsIntPtr(), buffer, bytesRequested, out bytesRead);
                 return res != 0;
             }
             catch
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                int res = ReadProcessMemory(_process, new IntPtr((long)address), buffer, bytesRequested, out bytesRead);
+                int res = ReadProcessMemory(_process, address.AsIntPtr(), buffer, bytesRequested, out bytesRead);
                 return res != 0;
             }
             catch
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime
             vq = new VirtualQueryData();
 
             MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
-            IntPtr ptr = new IntPtr((long)addr);
+            IntPtr ptr = addr.AsIntPtr();
 
             int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
             if (res == 0)

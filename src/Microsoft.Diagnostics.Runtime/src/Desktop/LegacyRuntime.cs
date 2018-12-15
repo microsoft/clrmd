@@ -474,7 +474,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             byte[] inout = GetByteArrayForStruct<LegacyDomainLocalModuleData>();
 
             int i = WriteValueToBuffer(appDomain, inout, 0);
-            i = WriteValueToBuffer(new IntPtr((long)id), inout, i);
+            WriteValueToBuffer(id.AsIntPtr(), inout, i);
 
             if (Request(DacRequests.DOMAINLOCALMODULEFROMAPPDOMAIN_DATA, null, inout))
                 return ConvertStruct<IDomainLocalModuleData, LegacyDomainLocalModuleData>(inout);
