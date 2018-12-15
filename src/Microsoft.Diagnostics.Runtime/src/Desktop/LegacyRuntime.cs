@@ -462,7 +462,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
+        internal override IDomainLocalModuleData GetDomainLocalModuleById(ulong appDomain, ulong id)
         {
             byte[] inout = GetByteArrayForStruct<LegacyDomainLocalModuleData>();
 
@@ -500,9 +500,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mts;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module)
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong module)
         {
-            return Request<IDomainLocalModuleData, LegacyDomainLocalModuleData>(DacRequests.DOMAINLOCALMODULE_DATA_FROM_MODULE, module);
+            DacLibrary.DacDataTarget.SetNextCurrentThreadId(0x12345678);
+            DacLibrary.DacDataTarget.SetNextTLSValue(appDomain);
+
+            IDomainLocalModuleData result =  Request<IDomainLocalModuleData, LegacyDomainLocalModuleData>(DacRequests.DOMAINLOCALMODULE_DATA_FROM_MODULE, module);
+
+            DacLibrary.DacDataTarget.SetNextCurrentThreadId(null);
+            DacLibrary.DacDataTarget.SetNextTLSValue(null);
+
+            return result;
         }
 
         private ulong GetMethodDescFromIp(ulong ip)

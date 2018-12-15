@@ -810,13 +810,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IObjectData GetObjectData(ulong objRef);
         internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
         internal abstract IList<MethodTableTokenPair> GetMethodTableList(ulong module);
-        internal abstract IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id);
+        internal abstract IDomainLocalModuleData GetDomainLocalModuleById(ulong appDomain, ulong id);
         internal abstract ICCWData GetCCWData(ulong ccw);
         internal abstract IRCWData GetRCWData(ulong rcw);
         internal abstract COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count);
         internal abstract COMInterfacePointerData[] GetRCWInterfaces(ulong rcw, int count);
         internal abstract ulong GetThreadStaticPointer(ulong thread, ClrElementType type, uint offset, uint moduleId, bool shared);
-        internal abstract IDomainLocalModuleData GetDomainLocalModule(ulong module);
+        internal abstract IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong module);
         internal abstract IList<ulong> GetMethodDescList(ulong methodTable);
         internal abstract string GetNameForMD(ulong md);
         internal abstract IMethodDescData GetMethodDescData(ulong md);

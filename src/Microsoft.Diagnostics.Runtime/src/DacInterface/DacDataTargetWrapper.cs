@@ -23,6 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IDataReader _dataReader;
         private readonly ModuleInfo[] _modules;
 
+        private uint? _nextThreadId;
+        private ulong? _nextTLSValue;
+
         public IntPtr IDacDataTarget { get; }
 
         public DacDataTargetWrapper(DataTarget dataTarget)
@@ -210,8 +213,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return S_OK;
         }
 
+        public void SetNextCurrentThreadId(uint? threadId)
+        {
+            _nextThreadId = threadId;
+        }
+
+        internal void SetNextTLSValue(ulong? value)
+        {
+            _nextTLSValue = value;
+        }
+
         public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
+            if (_nextTLSValue.HasValue)
+            {
+                value = _nextTLSValue.Value;
+                return S_OK;
+            }
+
             value = 0;
             return E_FAIL;
         }
@@ -223,6 +242,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetCurrentThreadID(IntPtr self, out uint threadID)
         {
+            if (_nextThreadId.HasValue)
+            {
+                threadID = _nextThreadId.Value;
+                return S_OK;
+            }
+
             threadID = 0;
             return E_FAIL;
         }

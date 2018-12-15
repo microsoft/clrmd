@@ -378,7 +378,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mts;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
+        internal override IDomainLocalModuleData GetDomainLocalModuleById(ulong appDomain, ulong id)
         {
             if (_sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)id, out DomainLocalModuleData data))
                 return data;
@@ -432,7 +432,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return addr;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module)
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong module)
         {
             if (_sos.GetDomainLocalModuleDataFromModule(module, out DomainLocalModuleData data))
                 return data;
