@@ -16,5 +16,10 @@ public class Foo
     public void Bar() { }
     public void Baz() { }
     public int Baz(int i) { return i; }
-    public T5 GenericBar<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5> a) { return a(default(T1), default(T2), default(T3), default(T4)); }
+    public T5 GenericBar<T1, T2, T3, T4, T5>(GenericClass<T1, T2, T3, T4, T5> a) { return a.Invoke(default(T1), default(T2), default(T3), default(T4)); }
+}
+
+public class GenericClass<T1, T2, T3, T4, T5>
+{
+    public T5 Invoke(T1 a, T2 b, T3 te, T4 t4) { return default(T5); }
 }

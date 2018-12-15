@@ -250,7 +250,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         ulong mt = heap.GetMethodTable(obj);
 
                         Assert.NotEqual(0ul, mt);
-                        Assert.Contains(mt, type.EnumerateMethodTables());
+                        ulong[] collection = type.EnumerateMethodTables().ToArray();
+                        Assert.Contains(mt, collection);
 
                         Assert.Same(type, heap.GetTypeByMethodTable(mt));
                         Assert.Same(type, heap.GetTypeByMethodTable(mt, 0));

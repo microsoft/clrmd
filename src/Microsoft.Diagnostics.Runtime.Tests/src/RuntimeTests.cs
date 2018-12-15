@@ -69,6 +69,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 foreach (ClrModule module in runtime.Modules)
                 {
+                    if (Path.GetExtension(module.FileName) == ".nlp")
+                        continue;
+
                     Assert.Contains(Path.GetFileName(module.FileName), expected);
                     Assert.DoesNotContain(module, modules);
                     modules.Add(module);

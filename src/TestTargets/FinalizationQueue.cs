@@ -29,10 +29,10 @@ public class FinalizationQueueTarget
     
     private static void Test2()
     {
-        for (var i = 0; i < ObjectsCountA; i++)
+        for (int i = 0; i < ObjectsCountA; i++)
           _objects.Add(new DieFastA());
 
-        for (var i = 0; i < ObjectsCountB; i++)
+        for (int i = 0; i < ObjectsCountB; i++)
           Console.WriteLine(new DieFastB());
     }
 }
