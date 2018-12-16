@@ -309,7 +309,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal override IEnumerable<ClrHandle> EnumerateStrongHandles()
+        protected internal override IEnumerable<ClrHandle> EnumerateStrongHandles()
         {
             if (_strongHandles != null)
             {
@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return EnumerateStrongHandlesWorker(CancellationToken.None);
         }
 
-        internal override void BuildDependentHandleMap(CancellationToken cancelToken)
+        protected internal override void BuildDependentHandleMap(CancellationToken cancelToken)
         {
             if (_dependentHandles != null)
                 return;
@@ -374,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _dependentHandles = dependentHandles;
         }
 
-        internal override IEnumerable<ClrRoot> EnumerateStackRoots()
+        protected internal override IEnumerable<ClrRoot> EnumerateStackRoots()
         {
             if (StackwalkPolicy != ClrRootStackwalkPolicy.SkipStack)
             {
@@ -1182,7 +1182,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        internal override long TotalObjects => _objects?.Count ?? -1;
+        protected internal override long TotalObjects => _objects?.Count ?? -1;
 
         public override bool IsHeapCached => _objectMap != null;
 
@@ -1280,7 +1280,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _objects[index].Type;
         }
 
-        internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
+        protected internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
         {
             if (IsHeapCached)
             {
@@ -1307,7 +1307,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     callback(item, -1);
         }
 
-        internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
+        protected internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
         {
             IEnumerable<ClrObject> result = null;
             if (IsHeapCached)
