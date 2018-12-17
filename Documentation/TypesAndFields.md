@@ -119,7 +119,7 @@ return (if you do not know it ahead of time) by looking at the value of
 exact type will be returned in the "object" return value of `GetFieldValue`.
 
 Here is an example of formatting the return value of `GetFieldValue` as
-hexidecimal string for any pointer-types, and otherwise as a string
+hexadecimal string for any pointer-types, and otherwise as a string
 representation for the value for that type.
 
 ```c#
