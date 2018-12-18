@@ -7,7 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.Tests", "src\Microsoft.Diagnostics.Runtime.Tests\Microsoft.Diagnostics.Runtime.Tests.csproj", "{C443A5AF-066E-4B08-B286-2BF1BD1443DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Diagnostics.Runtime.UnitTests", "Microsoft.Diagnostics.Runtime.UnitTests\Microsoft.Diagnostics.Runtime.UnitTests.csproj", "{ADCACF4B-771A-47B6-91B8-35161CE8F46C}"
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.UnitTests", "src\Microsoft.Diagnostics.Runtime.UnitTests\Microsoft.Diagnostics.Runtime.UnitTests.csproj", "{3065E39E-DC1A-498A-9C65-88ED62313EDF}"
 EndProject
 Global
