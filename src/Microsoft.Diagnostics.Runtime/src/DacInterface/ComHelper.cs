@@ -10,6 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public abstract class COMHelper
     {
         protected const int S_OK = 0;
+        protected const int E_INVALIDARG = unchecked((int)0x80070057);
         protected const int E_FAIL = unchecked((int)0x80004005);
         protected const int E_NOTIMPL = unchecked((int)0x80004001);
         protected const int E_NOINTERFACE = unchecked((int)0x80004002);

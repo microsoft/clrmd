@@ -271,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_NOTIMPL;
         }
 
-        public int GetMetadata(
+        public unsafe int GetMetadata(
             IntPtr self,
             string filename,
             uint imageTimestamp,
@@ -280,9 +280,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             uint mdRva,
             uint flags,
             uint bufferSize,
-            byte[] buffer,
-            IntPtr dataSize)
+            byte* buffer,
+            int* pDataSize)
         {
+            if (buffer == null)
+                return E_INVALIDARG;
+
             string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
             if (filePath == null)
                 return E_FAIL;
@@ -312,8 +315,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 bufferSize = corhdr.MetaData.Size;
             }
 
-            IntPtr ptr = file.SafeFetchRVA((int)mdRva, (int)bufferSize, peBuffer);
-            Marshal.Copy(ptr, buffer, 0, (int)bufferSize);
+            byte* input = (byte*)file.SafeFetchRVA((int)mdRva, (int)bufferSize, peBuffer);
+
+            int i = 0;
+            for (; i < bufferSize; i++)
+                buffer[i] = input[i];
+
+            if (pDataSize != null)
+                *pDataSize = i;
 
             file.FreeBuff(peBuffer);
             return S_OK;
@@ -363,8 +372,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             uint mdRva,
             uint flags,
             uint bufferSize,
-            byte[] buffer,
-            IntPtr dataSize);
+            byte* buffer,
+            int* dataSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
