@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
 
             ICorDebug rawDebuggingAPI = highestLoadedRuntime.GetLegacyICorDebugInterface();
             if (rawDebuggingAPI == null)
-                throw new ArgumentException("Cannot be null.", "rawDebugggingAPI");
+                throw new ArgumentNullException(nameof(rawDebuggingAPI));
 
             rawDebuggingAPI.Initialize();
             if (callBacks == null)

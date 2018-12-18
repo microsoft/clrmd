@@ -18,7 +18,7 @@ class GCHandles
 
         unsafe
         {
-            nativeOverlapped = *new System.Threading.Overlapped().UnsafePack((u, bytes, overlap) => { }, "state");
+            nativeOverlapped = *new System.Threading.Overlapped().UnsafePack(IOCallback, "state");
         }
 
         string weakLong = "weakLong";
@@ -29,5 +29,9 @@ class GCHandles
         GC.KeepAlive(nativeOverlapped);
         GC.KeepAlive(weak);
         GC.KeepAlive(weakLong);
+    }
+    
+    private static unsafe void IOCallback(uint errorCode, uint numBytes, NativeOverlapped* pOVERLAP)
+    {
     }
 }

@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr != 0)
             {
                 GC.SuppressFinalize(this);
-                throw new InvalidOperationException();
+                throw new InvalidCastException($"{GetType().FullName}.QueryInterface({desiredInterface}) failed, hr=0x{hr:x}");
             }
 
             ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));

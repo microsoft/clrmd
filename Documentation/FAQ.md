@@ -93,4 +93,4 @@ reasons:
 
 Walk the handle table and filter it by
 `GCHeapHandle.Type == HandleTypes.Pinned`. Objects returned here are pinned by
-the runtime (meaning they will not be reloacted by the GC until unpinned).
+the runtime (meaning they will not be relocated by the GC until unpinned).

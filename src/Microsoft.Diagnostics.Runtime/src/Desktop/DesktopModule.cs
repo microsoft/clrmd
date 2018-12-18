@@ -42,11 +42,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             MetadataLength = data.MetadataLength;
             AssemblyId = data.Assembly;
             _size = new Lazy<ulong>(() => runtime.GetModuleSize(address));
-
-            // This is very expensive in the minidump case, as we may be heading out to the symbol server or
-            // reading multiple files from disk. Only optimistically fetch this data if we have full memory.
-            if (!runtime.DataReader.IsMinidump && data.LegacyMetaDataImport != IntPtr.Zero)
-                _metadata = new MetaDataImport(runtime.DacLibrary, data.LegacyMetaDataImport);
         }
 
         public override ulong Address => _address;

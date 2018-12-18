@@ -21,7 +21,7 @@ When you make an allocation with the server GC running, the newly allocated
 object goes into the logical heap associated with the core that thread happened
 to be running on. In general, the distinction between the two types of GCs does
 not matter for diagnostics. The only real case where you need to care about the
-logical heaps in the process is when they become unbalanced...when one heap has
+logical heaps in the process is when they become unbalanced... when one heap has
 had much more allocated on it than other heaps. This can lead to a performance
 issue where GCs pause the process for longer than it should. (An example of
 displaying heap balance is shown later.)
@@ -33,7 +33,7 @@ three kinds of GC segments:
 Ephemeral segments, gen2 segments, and large object segments. There is exactly 1
 ephemeral segment per logical heap, and the ephemeral segment contains gen0,
 gen1, and gen2 objects. When we run out of space on the ephemeral segment, we
-allocate a gen2 segment and move some (or all) gen2 objects from the ephermal
+allocate a gen2 segment and move some (or all) gen2 objects from the ephemeral
 segment to the new segment. If there's already a gen2 segment for that logical
 heap, we will continue to move gen2 objects out of the ephemeral segment onto
 the gen2 segment until we run out of room. There can be any number of gen2

@@ -284,14 +284,26 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (addr == 0)
                 return null;
 
-            IModuleData result = null;
+            IModuleData result;
             if (CLRVersion == DesktopVersion.v2)
-                result = Request<IModuleData, V2ModuleData>(DacRequests.MODULE_DATA, addr);
+            {
+                V2ModuleData data = new V2ModuleData();
+                if (!RequestStruct(DacRequests.MODULE_DATA, addr, ref data))
+                    return null;
+                
+                COMHelper.Release(data.MetaDataImport);
+                result = data;
+            }
             else
-                result = Request<IModuleData, V4ModuleData>(DacRequests.MODULE_DATA, addr);
+            {
+                V4ModuleData data = new V4ModuleData();
+                if (!RequestStruct(DacRequests.MODULE_DATA, addr, ref data))
+                    return null;
 
-            // Only needed in legacy runtime since v4.5 and on do not return this interface.
-            RegisterForRelease(result);
+                COMHelper.Release(data.MetaDataImport);
+                result = data;
+            }
+
             return result;
         }
 
@@ -407,13 +419,32 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override MetaDataImport GetMetadataImport(ulong module)
         {
-            IModuleData data = GetModuleData(module);
-            RegisterForRelease(data);
+            IntPtr import;
+            if (CLRVersion == DesktopVersion.v2)
+            {
+                V2ModuleData data = new V2ModuleData();
+                if (!RequestStruct(DacRequests.MODULE_DATA, module, ref data))
+                    return null;
 
-            if (data != null && data.LegacyMetaDataImport != IntPtr.Zero)
-                return new MetaDataImport(DacLibrary, data.LegacyMetaDataImport);
+                import = data.MetaDataImport;
+            }
+            else
+            {
+                V4ModuleData data = new V4ModuleData();
+                if (!RequestStruct(DacRequests.MODULE_DATA, module, ref data))
+                    return null;
 
-            return null;
+                import = data.MetaDataImport;
+            }
+
+            try
+            {
+                return import != IntPtr.Zero ? new MetaDataImport(DacLibrary, import) : null;
+            }
+            catch (InvalidCastException)
+            {
+                return null;
+            }
         }
 
         internal override ICCWData GetCCWData(ulong ccw)
@@ -438,12 +469,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong id)
+        internal override IDomainLocalModuleData GetDomainLocalModuleById(ulong appDomain, ulong id)
         {
             byte[] inout = GetByteArrayForStruct<LegacyDomainLocalModuleData>();
 
             int i = WriteValueToBuffer(appDomain, inout, 0);
-            i = WriteValueToBuffer(new IntPtr((long)id), inout, i);
+            WriteValueToBuffer(id.AsIntPtr(), inout, i);
 
             if (Request(DacRequests.DOMAINLOCALMODULEFROMAPPDOMAIN_DATA, null, inout))
                 return ConvertStruct<IDomainLocalModuleData, LegacyDomainLocalModuleData>(inout);
@@ -476,9 +507,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return mts;
         }
 
-        internal override IDomainLocalModuleData GetDomainLocalModule(ulong module)
+        internal override IDomainLocalModuleData GetDomainLocalModule(ulong appDomain, ulong module)
         {
-            return Request<IDomainLocalModuleData, LegacyDomainLocalModuleData>(DacRequests.DOMAINLOCALMODULE_DATA_FROM_MODULE, module);
+            DacLibrary.DacDataTarget.SetNextCurrentThreadId(0x12345678);
+            DacLibrary.DacDataTarget.SetNextTLSValue(appDomain);
+
+            IDomainLocalModuleData result =  Request<IDomainLocalModuleData, LegacyDomainLocalModuleData>(DacRequests.DOMAINLOCALMODULE_DATA_FROM_MODULE, module);
+
+            DacLibrary.DacDataTarget.SetNextCurrentThreadId(null);
+            DacLibrary.DacDataTarget.SetNextTLSValue(null);
+
+            return result;
         }
 
         private ulong GetMethodDescFromIp(ulong ip)

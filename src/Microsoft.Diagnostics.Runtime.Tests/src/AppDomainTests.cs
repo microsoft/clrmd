@@ -99,10 +99,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(0, systemDomain.Modules.Count);
 
                 ClrAppDomain sharedDomain = runtime.SharedDomain;
-                Assert.Equal(1, sharedDomain.Modules.Count);
 
-                ClrModule mscorlib = sharedDomain.Modules.Single();
-                Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.FileName), true);
+                if (runtime.ClrInfo.Version.Major == 2)
+                {
+                    Assert.Equal(3, sharedDomain.Modules.Count);
+                    Assert.Contains("mscorlib.dll", sharedDomain.Modules.Select(m => Path.GetFileName("mscorlib.dll")));
+                }
+                else
+                {
+                    Assert.Equal(1, sharedDomain.Modules.Count);
+
+                    ClrModule mscorlib = sharedDomain.Modules.Single();
+                    Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.FileName), true);
+                }
             }
         }
 

@@ -37,7 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         ulong IModuleData.PEFile => IsPEFile == 0 ? ILBase : PEFile;
         ulong IModuleData.LookupTableHeap => LookupTableHeap;
         ulong IModuleData.ThunkHeap => ThunkHeap;
-        IntPtr IModuleData.LegacyMetaDataImport => IntPtr.Zero;
         ulong IModuleData.ModuleId => ModuleID;
         ulong IModuleData.ModuleIndex => ModuleIndex;
         bool IModuleData.IsReflection => IsReflection != 0;

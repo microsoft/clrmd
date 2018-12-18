@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public string FindPdb(ModuleInfo module)
         {
             if (module == null)
-                throw new ArgumentNullException("module");
+                throw new ArgumentNullException(nameof(module));
 
             PdbInfo pdb = module.Pdb;
             if (pdb == null)
@@ -216,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public string FindPdb(PdbInfo pdb)
         {
             if (pdb == null)
-                throw new ArgumentNullException("pdb");
+                throw new ArgumentNullException(nameof(pdb));
 
             return FindPdb(pdb.FileName, pdb.Guid, pdb.Revision);
         }

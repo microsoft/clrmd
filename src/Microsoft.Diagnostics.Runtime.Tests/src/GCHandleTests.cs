@@ -23,7 +23,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 int i = 0;
                 foreach (ClrHandle hnd in runtime.EnumerateHandles())
-                    Assert.Equal(handles[i++], hnd);
+                {
+                    Assert.Equal(handles[i].Address, hnd.Address);
+                    Assert.Equal(handles[i].Object, hnd.Object);
+                    Assert.Equal(handles[i].HandleType, hnd.HandleType);
+
+                    i++;
+                }
 
                 // We create at least this many handles in the test, plus the runtime uses some.
                 Assert.True(handles.Count > 4);
