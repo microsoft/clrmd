@@ -11,6 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// PEFile is a reader for the information in a Portable Exectable (PE) FILE.   This is what EXEs and DLLs are.
     /// It can read both 32 and 64 bit PE files.
     /// </summary>
+    [Obsolete("Use PEImage instead.")]
     public sealed unsafe class PEFile : IDisposable
     {
         /// <summary>
@@ -96,11 +97,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (Header.DebugDirectory.VirtualAddress != 0)
             {
                 PEBuffer buff = AllocBuff();
-                IMAGE_DEBUG_DIRECTORY* debugEntries = (IMAGE_DEBUG_DIRECTORY*)FetchRVA(Header.DebugDirectory.VirtualAddress, Header.DebugDirectory.Size, buff);
+                IMAGE_DEBUG_DIRECTORY* debugEntries = (IMAGE_DEBUG_DIRECTORY*)FetchRVA((int)Header.DebugDirectory.VirtualAddress, (int)Header.DebugDirectory.Size, buff);
                 if (Header.DebugDirectory.Size % sizeof(IMAGE_DEBUG_DIRECTORY) != 0)
                     return false;
 
-                int debugCount = Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+                int debugCount = (int)Header.DebugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
                 for (int i = 0; i < debugCount; i++)
                 {
                     if (debugEntries[i].Type == IMAGE_DEBUG_TYPE.CODEVIEW)

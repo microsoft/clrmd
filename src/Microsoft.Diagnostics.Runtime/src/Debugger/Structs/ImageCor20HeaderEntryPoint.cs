@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public struct IMAGE_COR20_HEADER_ENTRYPOINT
     {
         [FieldOffset(0)]
-        private readonly uint _token;
+        public readonly uint Token;
         [FieldOffset(0)]
-        private readonly uint _RVA;
+        public readonly uint RVA;
     }
 }

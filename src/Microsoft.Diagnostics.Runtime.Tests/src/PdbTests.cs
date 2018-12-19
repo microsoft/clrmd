@@ -50,10 +50,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             // Ensure the PEFile has the same signature/age.
-            using (PEFile peFile = new PEFile(TestTargets.NestedException.Executable))
+            using (Stream stream = File.OpenRead(TestTargets.NestedException.Executable))
             {
-                Assert.Equal(peFile.PdbInfo.Guid, pdbSignature);
-                Assert.Equal(peFile.PdbInfo.Revision, pdbAge);
+                PEImage peimage = new PEImage(stream);
+                Assert.True(peimage.IsValid);
+                Assert.Equal(peimage.DefaultPdb.Guid, pdbSignature);
+                Assert.Equal(peimage.DefaultPdb.Revision, pdbAge);
             }
         }
 

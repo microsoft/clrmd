@@ -129,7 +129,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.NotNull(dac);
             Assert.True(File.Exists(dac));
-            new PEFile(dac).Dispose(); // This will throw if the image is invalid.
+            using (Stream stream = File.OpenRead(dac))
+            {
+                PEImage peimage = new PEImage(stream);
+                Assert.True(peimage.IsValid);
+            }
 
             // Ensure we got the same answer for everything.
             foreach (Task<string> task in tasks)
