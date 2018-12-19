@@ -323,10 +323,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private T? Read<T>(int offset) where T : struct
         {
             int size = Marshal.SizeOf(typeof(T));
-
-            SeekTo(offset);
             EnsureSize(ref _buffer, size);
 
+            SeekTo(offset);
             if (Stream.Read(_buffer, 0, size) != size)
                 return null;
 
