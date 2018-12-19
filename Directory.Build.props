@@ -6,6 +6,7 @@
 
   <PropertyGroup>
     <LangVersion>Latest</LangVersion>
+    <Features>strict</Features>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
