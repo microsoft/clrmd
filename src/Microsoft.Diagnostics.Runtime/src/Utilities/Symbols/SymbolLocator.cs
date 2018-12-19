@@ -281,18 +281,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             return true;
                         }
 
-                        using (PEFile pefile = PEFile.TryLoad(fs, false))
+                        PEImage peimage = new PEImage(fs, false);
+                        if (peimage.IsValid)
                         {
-                            if (pefile != null)
-                            {
-                                PEHeader header = pefile.Header;
-                                if (!checkProperties || header.TimeDateStampSec == buildTimeStamp && header.SizeOfImage == imageSize)
-                                {
-                                    return true;
-                                }
+                            if (!checkProperties || peimage.IndexTimeStamp == buildTimeStamp && peimage.IndexFileSize == imageSize)
+                                return true;
 
-                                Trace("Rejected file '{0}' because file size and time stamp did not match.", fullPath);
-                            }
+                            Trace($"Rejected file '{fullPath}' because file size and time stamp did not match.");
+                        }
+                        else
+                        {
+                            Trace($"Rejected file '{fullPath}' because it is not a valid PE image.");
                         }
                     }
                 }

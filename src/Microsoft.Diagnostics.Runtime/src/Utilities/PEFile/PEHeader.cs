@@ -471,10 +471,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// returns the data directory (virtual address an blob, of a data directory with index 'idx'.   14 are currently defined.
         /// </summary>
-        public IMAGE_DATA_DIRECTORY Directory(int idx)
+        public Interop.IMAGE_DATA_DIRECTORY Directory(int idx)
         {
             if (idx >= NumberOfRvaAndSizes)
-                return new IMAGE_DATA_DIRECTORY();
+                return new Interop.IMAGE_DATA_DIRECTORY();
 
             return NTDirectories[idx];
         }
@@ -482,63 +482,63 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Return the data directory for DLL Exports see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ExportDirectory => Directory(0);
+        public Interop.IMAGE_DATA_DIRECTORY ExportDirectory => Directory(0);
         /// <summary>
         /// Return the data directory for DLL Imports see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ImportDirectory => Directory(1);
+        public Interop.IMAGE_DATA_DIRECTORY ImportDirectory => Directory(1);
         /// <summary>
         /// Return the data directory for DLL Resources see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ResourceDirectory => Directory(2);
+        public Interop.IMAGE_DATA_DIRECTORY ResourceDirectory => Directory(2);
         /// <summary>
         /// Return the data directory for DLL Exceptions see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ExceptionDirectory => Directory(3);
+        public Interop.IMAGE_DATA_DIRECTORY ExceptionDirectory => Directory(3);
         /// <summary>
         /// Return the data directory for DLL securiy certificates (Authenticode) see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY CertificatesDirectory => Directory(4);
+        public Interop.IMAGE_DATA_DIRECTORY CertificatesDirectory => Directory(4);
         /// <summary>
         /// Return the data directory Image Base Relocations (RELOCS) see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY BaseRelocationDirectory => Directory(5);
+        public Interop.IMAGE_DATA_DIRECTORY BaseRelocationDirectory => Directory(5);
         /// <summary>
         /// Return the data directory for Debug information see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY DebugDirectory => Directory(6);
+        public Interop.IMAGE_DATA_DIRECTORY DebugDirectory => Directory(6);
         /// <summary>
         /// Return the data directory for DLL Exports see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ArchitectureDirectory => Directory(7);
+        public Interop.IMAGE_DATA_DIRECTORY ArchitectureDirectory => Directory(7);
         /// <summary>
         /// Return the data directory for GlobalPointer (IA64) see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY GlobalPointerDirectory => Directory(8);
+        public Interop.IMAGE_DATA_DIRECTORY GlobalPointerDirectory => Directory(8);
         /// <summary>
         /// Return the data directory for THread local storage see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ThreadStorageDirectory => Directory(9);
+        public Interop.IMAGE_DATA_DIRECTORY ThreadStorageDirectory => Directory(9);
         /// <summary>
         /// Return the data directory for Load Configuration see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY LoadConfigurationDirectory => Directory(10);
+        public Interop.IMAGE_DATA_DIRECTORY LoadConfigurationDirectory => Directory(10);
         /// <summary>
         /// Return the data directory for Bound Imports see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY BoundImportDirectory => Directory(11);
+        public Interop.IMAGE_DATA_DIRECTORY BoundImportDirectory => Directory(11);
         /// <summary>
         /// Return the data directory for the DLL Import Address Table (IAT) see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ImportAddressTableDirectory => Directory(12);
+        public Interop.IMAGE_DATA_DIRECTORY ImportAddressTableDirectory => Directory(12);
         /// <summary>
         /// Return the data directory for Delayed Imports see PE file spec for more
         /// </summary>
-        public IMAGE_DATA_DIRECTORY DelayImportDirectory => Directory(13);
+        public Interop.IMAGE_DATA_DIRECTORY DelayImportDirectory => Directory(13);
         /// <summary>
         /// see PE file spec for more .NET Runtime infomration.
         /// </summary>
-        public IMAGE_DATA_DIRECTORY ComDescriptorDirectory => Directory(14);
+        public Interop.IMAGE_DATA_DIRECTORY ComDescriptorDirectory => Directory(14);
 
         internal static DateTime TimeDateStampToDate(int timeDateStampSec)
         {
@@ -560,20 +560,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (ResourceDirectory.VirtualAddress == 0)
                     return 0;
 
-                return RvaToFileOffset(ResourceDirectory.VirtualAddress);
+                return RvaToFileOffset((int)ResourceDirectory.VirtualAddress);
             }
         }
 
         private IMAGE_OPTIONAL_HEADER32* OptionalHeader32 => (IMAGE_OPTIONAL_HEADER32*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS));
         private IMAGE_OPTIONAL_HEADER64* OptionalHeader64 => (IMAGE_OPTIONAL_HEADER64*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS));
-        private IMAGE_DATA_DIRECTORY* NTDirectories
+        private Interop.IMAGE_DATA_DIRECTORY* NTDirectories
         {
             get
             {
                 if (IsPE64)
-                    return (IMAGE_DATA_DIRECTORY*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS) + sizeof(IMAGE_OPTIONAL_HEADER64));
+                    return (Interop.IMAGE_DATA_DIRECTORY*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS) + sizeof(IMAGE_OPTIONAL_HEADER64));
 
-                return (IMAGE_DATA_DIRECTORY*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS) + sizeof(IMAGE_OPTIONAL_HEADER32));
+                return (Interop.IMAGE_DATA_DIRECTORY*)((byte*)_ntHeader + sizeof(IMAGE_NT_HEADERS) + sizeof(IMAGE_OPTIONAL_HEADER32));
             }
         }
 

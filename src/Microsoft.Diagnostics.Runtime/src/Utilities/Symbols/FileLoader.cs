@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.ICorDebug;
 
@@ -11,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class FileLoader : ICLRDebuggingLibraryProvider
     {
-        private readonly Dictionary<string, PEFile> _pefileCache = new Dictionary<string, PEFile>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, PEImage> _pefileCache = new Dictionary<string, PEImage>(StringComparer.OrdinalIgnoreCase);
         private readonly DataTarget _dataTarget;
 
         public FileLoader(DataTarget dt)
@@ -19,29 +20,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _dataTarget = dt;
         }
 
-        public PEFile LoadPEFile(string fileName)
+        public PEImage LoadPEImage(string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out PEFile result))
-            {
-                if (!result.Disposed)
-                    return result;
+        if (_pefileCache.TryGetValue(fileName, out PEImage result))
+            return result;
+            
+            Stream stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            result = new PEImage(stream);
 
-                _pefileCache.Remove(fileName);
-            }
-
-            try
-            {
-                result = new PEFile(fileName);
-                _pefileCache[fileName] = result;
-            }
-            catch
-            {
+            if (!result.IsValid)
                 result = null;
-            }
 
+            _pefileCache[fileName] = result;
             return result;
         }
 

@@ -43,6 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// If the PEFile cannot be constructed correctly, null is returned
         /// </summary>
         /// <returns></returns>
+        [Obsolete]
         public PEFile GetPEFile()
         {
             return PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), true);
@@ -56,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 InitData();
-                return _managed ?? false;
+                return _managed;
             }
         }
 
@@ -76,9 +77,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_pdb != null || _dataReader == null)
-                    return _pdb;
-
                 InitData();
                 return _pdb;
             }
@@ -88,37 +86,25 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void InitData()
         {
+            if (_initialized)
+                return;
+
+            _initialized = true;
+
             if (_dataReader == null)
                 return;
-
-            if (_pdb != null && _managed != null)
-                return;
-
-            PEFile file = null;
+            
             try
             {
-                file = PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), true);
-                if (file == null)
-                    return;
-
-                _managed = file.Header.ComDescriptorDirectory.VirtualAddress != 0;
-
-                if (file.GetPdbSignature(out string pdbName, out Guid guid, out int age))
+                using (ReadVirtualStream stream = new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize))
                 {
-                    _pdb = new PdbInfo
-                    {
-                        FileName = pdbName,
-                        Guid = guid,
-                        Revision = age
-                    };
+                    PEImage image = new PEImage(stream, isVirtual: true);
+                    _managed = image.OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
+                    _pdb = image.DefaultPdb;
                 }
             }
             catch
             {
-            }
-            finally
-            {
-                file?.Dispose();
             }
         }
 
@@ -164,7 +150,8 @@ namespace Microsoft.Diagnostics.Runtime
         [NonSerialized]
         private readonly IDataReader _dataReader;
         private PdbInfo _pdb;
-        private bool? _managed;
+        private bool _initialized;
+        private bool _managed;
         private VersionInfo _version;
         private bool _versionInit;
     }
