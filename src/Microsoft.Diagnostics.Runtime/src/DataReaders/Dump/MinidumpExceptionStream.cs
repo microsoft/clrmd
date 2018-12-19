@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     "Crash dump error: Expected to find " + DumpNative.EXCEPTION_MAXIMUM_PARAMETERS +
                     " exception params, but found " +
                     ExceptionRecord.ExceptionInformation.Length + " instead.",
-                    ClrDiagnosticsException.HR.CrashDumpError);
+                    ClrDiagnosticsExceptionKind.CrashDumpError);
             }
 
             for (int i = 0; i < DumpNative.EXCEPTION_MAXIMUM_PARAMETERS; i++)

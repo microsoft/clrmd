@@ -56,8 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (Revision != GetRuntimeRevision())
-                    ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+                RevisionValidator.Validate(Revision, GetRuntimeRevision());
                 return _segments;
             }
         }
@@ -165,8 +164,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<ClrObject> EnumerateObjects()
         {
-            if (Revision != GetRuntimeRevision())
-                ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+            RevisionValidator.Validate(Revision, GetRuntimeRevision());
 
             for (int i = 0; i < _segments.Length; ++i)
             {
@@ -182,8 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override IEnumerable<ulong> EnumerateObjectAddresses()
         {
-            if (Revision != GetRuntimeRevision())
-                ClrDiagnosticsException.ThrowRevisionError(Revision, GetRuntimeRevision());
+            RevisionValidator.Validate(Revision, GetRuntimeRevision());
 
             for (int i = 0; i < _segments.Length; ++i)
             {

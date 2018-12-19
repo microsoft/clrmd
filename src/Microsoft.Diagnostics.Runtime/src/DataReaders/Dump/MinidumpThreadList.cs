@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (streamType != MINIDUMP_STREAM_TYPE.ThreadListStream &&
                 streamType != MINIDUMP_STREAM_TYPE.ThreadExListStream)
-                throw new ClrDiagnosticsException("Only ThreadListStream and ThreadExListStream are supported.", ClrDiagnosticsException.HR.CrashDumpError);
+                throw new ClrDiagnosticsException("Only ThreadListStream and ThreadExListStream are supported.", ClrDiagnosticsExceptionKind.CrashDumpError);
         }
 
         // IMinidumpThreadList

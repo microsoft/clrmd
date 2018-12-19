@@ -178,8 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override MetaDataImport GetMetadataImport()
         {
-            if (Revision != _runtime.Revision)
-                ClrDiagnosticsException.ThrowRevisionError(Revision, _runtime.Revision);
+            RevisionValidator.Validate(Revision, _runtime.Revision);
 
             if (_metadata != null)
                 return _metadata;

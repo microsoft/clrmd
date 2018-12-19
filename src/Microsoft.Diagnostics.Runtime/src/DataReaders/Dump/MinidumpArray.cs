@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 streamType != MINIDUMP_STREAM_TYPE.ThreadListStream &&
                 streamType != MINIDUMP_STREAM_TYPE.ThreadExListStream)
             {
-                throw new ClrDiagnosticsException("MinidumpArray does not support this stream type.", ClrDiagnosticsException.HR.CrashDumpError);
+                throw new ClrDiagnosticsException("MinidumpArray does not support this stream type.", ClrDiagnosticsExceptionKind.CrashDumpError);
             }
 
             _streamPointer = streamPointer;
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 // Since the callers here are internal, a request out of range means a
                 // corrupted dump file.
-                throw new ClrDiagnosticsException("Dump error: index " + idx + "is out of range.", ClrDiagnosticsException.HR.CrashDumpError);
+                throw new ClrDiagnosticsException("Dump error: index " + idx + "is out of range.", ClrDiagnosticsExceptionKind.CrashDumpError);
             }
 
             // Although the Marshal.SizeOf(...) is not necessarily correct, it is nonetheless

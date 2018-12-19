@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _modules = dt.EnumerateModules().ToArray();
 
             if (SOSNative == null)
-                throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsException.HR.DacError);
+                throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsExceptionKind.DacError);
         }
 
         public IReadOnlyList<NativeThread> Threads
