@@ -270,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr buffer,
             int* pDataSize)
         {
-            if (buffer == null)
+            if (buffer == IntPtr.Zero)
                 return E_INVALIDARG;
 
             string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
