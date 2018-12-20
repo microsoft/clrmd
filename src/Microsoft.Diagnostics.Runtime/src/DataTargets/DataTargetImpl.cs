@@ -136,13 +136,12 @@ namespace Microsoft.Diagnostics.Runtime
 
                 VersionInfo version = module.Version;
                 string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
-                string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
 
                 DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
                 {
                     FileSize = module.FileSize,
                     TimeStamp = module.TimeStamp,
-                    FileName = dacFileName,
+                    FileName = dacAgnosticName,
                     Version = module.Version
                 };
 
