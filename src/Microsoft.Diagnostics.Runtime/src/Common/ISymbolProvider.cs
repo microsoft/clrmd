@@ -12,6 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// from PDBs, you will need to provide this implementation.  (This is currently only required for debugging
     /// .Net Native applications).
     /// </summary>
+    [Obsolete]
     public interface ISymbolProvider
     {
         /// <summary>

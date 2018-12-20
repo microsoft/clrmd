@@ -179,6 +179,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// A symbol provider which loads PDBs on behalf of ClrMD.  This should be set so that when ClrMD needs to
         /// resolve names which can only come from PDBs.  If this is not set, you may have a degraded experience.
         /// </summary>
+        [Obsolete]
         public ISymbolProvider SymbolProvider { get; set; }
 
         private FileLoader _fileLoader;
