@@ -6,34 +6,46 @@ public class FinalizationQueueTarget
 {
     public const int ObjectsCountA = 42;
     public const int ObjectsCountB = 13;
+    public const int ObjectsCountC = 25;
 
     private static readonly ICollection<object> _objects = new List<object>();
 
     public static void Main(params string[] args)
     {
-        Test1();
+        BlockQueue();
         GC.Collect();
-        
-        Test2();
+
+        CreateA();
         GC.Collect();
-        GC.Collect();
+
+        CreateB();
+        CreateC();
 
         throw new Exception();
     }
     
-    private static void Test1()
+    private static void BlockQueue()
     {
         // Pause the finalizer queue
         Console.WriteLine(new DieHard());
     }
     
-    private static void Test2()
+    private static void CreateA()
     {
-        for (int i = 0; i < ObjectsCountA; i++)
-          _objects.Add(new DieFastA());
+        for (var i = 0; i < ObjectsCountA; i++)
+            Console.WriteLine(new SampleA());
+    }
 
-        for (int i = 0; i < ObjectsCountB; i++)
-          Console.WriteLine(new DieFastB());
+    private static void CreateB()
+    {
+        for (var i = 0; i < ObjectsCountB; i++)
+            _objects.Add(new SampleB());
+    }
+
+    private static void CreateC()
+    {
+        for (var i = 0; i < ObjectsCountC; i++)
+            Console.WriteLine(new SampleC());
     }
 }
 
@@ -41,16 +53,32 @@ public class DieHard
 {
     private static readonly WaitHandle _handle = new ManualResetEvent(false);
 
-    ~DieHard() { _handle.WaitOne(); }
+    ~DieHard()
+    {
+        _handle.WaitOne();
+    }
 }
 
-public class DieFastA
+public class SampleA
 {
-  ~DieFastA() { Console.WriteLine("DieFastA: {0}", GetHashCode()); }
+    ~SampleA()
+    {
+        Console.WriteLine("SampleA: {0}", GetHashCode());
+    }
 }
 
-public class DieFastB
+public class SampleB
 {
-  ~DieFastB() { Console.WriteLine("DieFastB: {0}", GetHashCode()); }
-  
+    ~SampleB()
+    {
+        Console.WriteLine("SampleB: {0}", GetHashCode());
+    }
+}
+
+public class SampleC
+{
+    ~SampleC()
+    {
+        Console.WriteLine("SampleC: {0}", GetHashCode());
+    }
 }

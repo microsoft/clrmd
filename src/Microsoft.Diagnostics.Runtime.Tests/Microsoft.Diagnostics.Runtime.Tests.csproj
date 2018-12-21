@@ -19,7 +19,7 @@
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\TestTargets\**\*.*">
+    <None Include="..\TestTargets\**\*.*" Exclude="..\TestTargets\Bin\**\*.*">
       <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
