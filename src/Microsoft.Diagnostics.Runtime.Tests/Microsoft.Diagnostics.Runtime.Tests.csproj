@@ -23,4 +23,8 @@
       <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AutoFixture" Version="4.6.0" />
+    <PackageReference Include="AutoFixture.Xunit2" Version="4.6.0" />
+  </ItemGroup>
 </Project>
