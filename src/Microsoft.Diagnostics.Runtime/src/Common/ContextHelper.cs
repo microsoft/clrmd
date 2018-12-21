@@ -12,8 +12,9 @@ namespace Microsoft.Diagnostics.Runtime
         private static volatile byte[] _context;
         private static int _ipOffset;
         private static int _spOffset;
+        private static uint _contextFlags;
 
-        public static uint ContextFlags => 0x1003f;
+        public static uint ContextFlags => _contextFlags;
         public static byte[] Context
         {
             get
@@ -57,12 +58,14 @@ namespace Microsoft.Diagnostics.Runtime
                 _ipOffset = 184;
                 _spOffset = 196;
                 _context = new byte[716];
+                _contextFlags = 0x1003f;
             }
             else
             {
                 _ipOffset = 248;
                 _spOffset = 152;
                 _context = new byte[1232];
+                _contextFlags = 0x10003f;
             }
         }
     }

@@ -136,8 +136,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 fixed (byte* ptr = context)
                     stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, new IntPtr(ptr));
 
-                ulong ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                ulong sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                ulong ip, sp;
+                if (IntPtr.Size == 4)
+                {
+                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                }
+                else
+                {
+                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
+                }
 
                 DesktopStackFrame result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
                 if (result != null)
