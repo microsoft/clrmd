@@ -45,11 +45,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// Attempts to retrieve the MethodTable from the given object.
         /// Note that this some ClrTypes cannot be uniquely determined by MethodTable alone.  In
         /// Desktop CLR, arrays of reference types all use the same MethodTable.  To uniquely
-        /// determine an array of referneces you must also have its component type.
+        /// determine an array of references you must also have its component type.
         /// Note this function has undefined behavior if you do not pass a valid object reference
         /// to it.
         /// </summary>
-        /// <param name="obj">The object to get the MethodTablee of.</param>
+        /// <param name="obj">The object to get the MethodTable of.</param>
         /// <returns>The MethodTable of the object, or 0 if the address could not be read from.</returns>
         public abstract ulong GetMethodTable(ulong obj);
 
@@ -106,9 +106,8 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<ClrRoot> EnumerateRoots();
 
         /// <summary>
-        /// Sets the stackwalk policy for enumerating roots.  See ClrRootStackwalkPolicy for more information.
+        /// Sets the stackwalk policy for enumerating roots.  See <see cref="ClrRootStackwalkPolicy" /> for more information.
         /// Setting this field can invalidate the root cache.
-        /// <see cref="ClrRootStackwalkPolicy" />
         /// </summary>
         public abstract ClrRootStackwalkPolicy StackwalkPolicy { get; set; }
 
@@ -231,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Enumerates all managed locks in the process.  That is anything using System.Monitor either explictly
+        /// Enumerates all managed locks in the process.  That is anything using System.Monitor either explicitly
         /// or implicitly through "lock (obj)".  This is roughly equivalent to combining SOS's !syncblk command
         /// with !dumpheap -thinlock.
         /// </summary>
@@ -338,7 +337,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Attempts to efficiently read a pointer from memory.  This acts exactly like ClrRuntime.ReadPointer, but
-        /// there is a greater chance you will hit a chache for a more efficient memory read.
+        /// there is a greater chance you will hit a cache for a more efficient memory read.
         /// </summary>
         /// <param name="addr">The address to read.</param>
         /// <param name="value">The pointer value.</param>
@@ -350,7 +349,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// This might be useful to be public, but we actually don't know the total number objects without walking the entire
-        /// heap.  This property is only valid if we have cached the heap...which leads to a weird programatic interface (that
+        /// heap.  This property is only valid if we have cached the heap...which leads to a weird programmatic interface (that
         /// this simply property would throw InvalidOperationException unless the heap is cached).  I'm leaving this internal
         /// until I am convinced there's a good way to surface this.
         /// </summary>
