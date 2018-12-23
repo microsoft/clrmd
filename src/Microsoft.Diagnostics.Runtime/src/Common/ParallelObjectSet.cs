@@ -6,7 +6,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class ParallelObjectSet : ObjectSet
+    public class ParallelObjectSet : ObjectSet
     {
         public ParallelObjectSet(ClrHeap heap) : base(heap)
         {

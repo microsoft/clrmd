@@ -6,7 +6,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class HandleRoot : ClrRoot
+    public class HandleRoot : ClrRoot
     {
         public HandleRoot(ulong addr, ulong obj, ClrType type, HandleType hndType, GCRootKind kind, ClrAppDomain domain)
         {

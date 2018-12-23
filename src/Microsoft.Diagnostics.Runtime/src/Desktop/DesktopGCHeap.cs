@@ -309,7 +309,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        protected internal override IEnumerable<ClrHandle> EnumerateStrongHandles()
+        public override IEnumerable<ClrHandle> EnumerateStrongHandles(CancellationToken cancelToken)
         {
             if (_strongHandles != null)
             {
@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _strongHandles;
             }
 
-            return EnumerateStrongHandlesWorker(CancellationToken.None);
+            return EnumerateStrongHandlesWorker(cancelToken);
         }
 
         protected internal override void BuildDependentHandleMap(CancellationToken cancelToken)
@@ -374,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _dependentHandles = dependentHandles;
         }
 
-        protected internal override IEnumerable<ClrRoot> EnumerateStackRoots()
+        public override IEnumerable<ClrRoot> EnumerateStackRoots(CancellationToken cancelToken)
         {
             if (StackwalkPolicy != ClrRootStackwalkPolicy.SkipStack)
             {
@@ -383,17 +383,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return _stackCache.SelectMany(t => t.Value);
                 }
 
-                return EnumerateStackRootsWorker();
+                return EnumerateStackRootsWorker(cancelToken);
             }
 
             return new ClrRoot[0];
         }
 
-        private IEnumerable<ClrRoot> EnumerateStackRootsWorker()
+        private IEnumerable<ClrRoot> EnumerateStackRootsWorker(CancellationToken cancelToken)
         {
             bool exactStackwalk = ClrThread.GetExactPolicy(Runtime, StackwalkPolicy);
             foreach (ClrThread thread in DesktopRuntime.Threads)
             {
+                cancelToken.ThrowIfCancellationRequested();
+            
                 if (thread.IsAlive)
                 {
                     if (exactStackwalk)
@@ -486,7 +488,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             // Handles
-            foreach (ClrHandle handle in EnumerateStrongHandles())
+            foreach (ClrHandle handle in EnumerateStrongHandles(CancellationToken.None))
             {
                 ulong objAddr = handle.Object;
                 GCRootKind kind = GCRootKind.Strong;
@@ -595,7 +597,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
 
             // Threads
-            foreach (ClrRoot root in EnumerateStackRoots())
+            foreach (ClrRoot root in EnumerateStackRoots(CancellationToken.None))
                 yield return root;
         }
 

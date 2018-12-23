@@ -160,12 +160,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        protected internal virtual IEnumerable<ClrRoot> EnumerateStackRoots()
+        public virtual IEnumerable<ClrRoot> EnumerateStackRoots(CancellationToken cancelToken)
         {
             throw new NotImplementedException();
         }
 
-        protected internal virtual IEnumerable<ClrHandle> EnumerateStrongHandles()
+        public virtual IEnumerable<ClrHandle> EnumerateStrongHandles(CancellationToken cancelToken)
         {
             throw new NotImplementedException();
         }

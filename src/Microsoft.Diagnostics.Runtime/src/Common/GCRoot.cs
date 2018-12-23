@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int initial = 0;
 
-            foreach (ClrHandle handle in Heap.EnumerateStrongHandles())
+            foreach (ClrHandle handle in Heap.EnumerateStrongHandles(CancellationToken.None))
             {
                 Debug.Assert(handle.HandleType != HandleType.Dependent);
                 Debug.Assert(handle.Object != 0);
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime
                     yield return gcRootPath.Value;
             }
 
-            foreach (ClrRoot root in Heap.EnumerateStackRoots())
+            foreach (ClrRoot root in Heap.EnumerateStackRoots(cancelToken))
             {
                 GCRootPath? gcRootPath = ProcessRoot(root.Object, root.Type, () => root);
 
