@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
         private readonly ClrObjectConnection _connection;
 
-        private ClrObject _primitiveCarrier => _connection.PrimitiveTypeCarrier;
+        private ClrObject _primitiveCarrier => _connection.TestDataClrObject;
 
         public ClrObjectTests(ClrObjectConnection connection)
             => _connection = connection;
