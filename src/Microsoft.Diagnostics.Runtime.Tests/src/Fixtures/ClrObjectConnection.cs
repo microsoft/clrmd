@@ -10,34 +10,34 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
     /// <summary>
     /// Provides test data from <see cref="TestTargets.ClrObjects"/> testTarget source.
     /// </summary>
-    public class ClrObjectConnection : IDisposable
+    public class ClrObjectConnection : ObjectConnection<ClrObjectConnection.PrimitiveTypeCarrier>
     {
-        public ClrObjectConnection()
+        public ClrObjectConnection() : base(TestTargets.ClrObjects, typeof(PrimitiveTypeCarrier))
         {
-            DataTarget = TestTargets.ClrObjects.LoadFullDump();
-            Runtime = DataTarget.ClrVersions.Single().CreateRuntime();
-
-            PrimitiveTypeCarrier = FindFirstInstanceOfType(Runtime.Heap, "PrimitiveTypeCarrier");
         }
 
-        /// <summary>
-        /// Test object with various field types.
-        /// </summary>
-        public ClrObject PrimitiveTypeCarrier { get; }
-
-        public ClrRuntime Runtime { get; }
-
-        public DataTarget DataTarget { get; }
-
-        private static ClrObject FindFirstInstanceOfType(ClrHeap heap, string typeName)
+        public class PrimitiveTypeCarrier
         {
-            var type = heap.GetTypeByName(typeName);
+            public bool TrueBool = true;
 
-            if (type is null) throw new InvalidOperationException($"Could not find {typeName} in {nameof(TestTargets.ClrObjects)} source.");
+            public long OneLargerMaxInt = ((long)int.MaxValue + 1);
 
-            return new ClrObject(heap.GetObjectsOfType(typeName).First(), type);
+            public DateTime Birthday = new DateTime(1992, 1, 24);
+
+            public SamplePointerType SamplePointer = new SamplePointerType();
+
+            public EnumType SomeEnum = EnumType.PickedValue;
+
+            public string HelloWorldString = "Hello World";
+
+            public Guid SampleGuid = new Guid("{EB06CEC0-5E2D-4DC4-875B-01ADCC577D13}");
         }
 
-        void IDisposable.Dispose() => DataTarget?.Dispose();
+
+        public class SamplePointerType
+        { }
+
+
+        public enum EnumType { Zero, One, Two, PickedValue }
     }
 }

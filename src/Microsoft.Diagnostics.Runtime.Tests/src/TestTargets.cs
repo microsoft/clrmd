@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public static class TestTargets
     {
+        private static readonly Lazy<TestTarget> _arrays = new Lazy<TestTarget>(() => new TestTarget("Arrays.cs"));
         private static readonly Lazy<TestTarget> _clrObjects = new Lazy<TestTarget>(() => new TestTarget("ClrObjects.cs"));
         private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
         private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
@@ -40,6 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget AppDomains => _appDomains.Value;
         public static TestTarget FinalizationQueue => _finalizationQueue.Value;
         public static TestTarget ClrObjects => _clrObjects.Value;
+        public static TestTarget Arrays => _arrays.Value;
     }
 
     public class TestTarget
