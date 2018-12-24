@@ -14,19 +14,19 @@ public class Program
 
 public class PrimitiveTypeCarrier
 {
-  bool TrueBool = true;
+  public bool TrueBool = true;
 
-  long OneLargerMaxInt = ((long)int.MaxValue + 1);
+  public long OneLargerMaxInt = ((long)int.MaxValue + 1);
 
-  DateTime Birthday = new DateTime(1992, 1, 24);
+  public DateTime Birthday = new DateTime(1992, 1, 24);
 
-  SamplePointerType SamplePointer = new SamplePointerType();
+  public SamplePointerType SamplePointer = new SamplePointerType();
 
-  EnumType SomeEnum = EnumType.PickedValue;
+  public EnumType SomeEnum = EnumType.PickedValue;
 
-  string HelloWorldString = "Hello World";
+  public string HelloWorldString = "Hello World";
 
-  Guid SampleGuid = new Guid("{EB06CEC0-5E2D-4DC4-875B-01ADCC577D13}");
+  public Guid SampleGuid = new Guid("{EB06CEC0-5E2D-4DC4-875B-01ADCC577D13}");
 }
 
 
