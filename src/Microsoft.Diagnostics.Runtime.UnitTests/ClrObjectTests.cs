@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException(ClrHeap heap, [Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField clrField, ulong corruptedFieldPointer)
+        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException([Frozen] ClrHeap heap, [Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField clrField, ulong corruptedFieldPointer)
         {
             // Arrange
             clrField.IsObjectReference.Returns(true);
@@ -137,5 +137,23 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             // Assert
             locateObjectFromValueTypeField.Should().Throw<MemoryReadException>();
         }
+
+        [Theory, AutoNSubstituteData]
+        public void GetValueClassField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueClass target, [Frozen]ClrType clrObjectType, ClrObject clrObject, ClrInstanceField clrObjValueField)
+        {
+            // Arrange
+            clrObjValueField.IsValueClass.Returns(true);
+            clrObjValueField.Type.Returns(target.Type);
+
+            clrObjValueField
+                .GetAddress(clrObject.Address)
+                .Returns(target.Address);
+
+            // Act
+            var structRefFieldTarget = clrObject.GetValueClassField(clrObjValueField.Name);
+
+            // Assert
+            structRefFieldTarget.Equals(target).Should().BeTrue();
+        }        
     }
 }
