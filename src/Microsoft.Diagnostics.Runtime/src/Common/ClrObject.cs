@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents an object in the target process.
     /// </summary>
     [DebuggerDisplay("Address={HexAddress}, Type={Type.Name}")]
-    public struct ClrObject : IEquatable<ClrObject>
+    public struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
         internal static ClrObject Create(ulong address, ClrType type)
         {
@@ -279,6 +279,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return Address.GetHashCode();
         }
+
+        public bool Equals(IAddressableTypedEntity other)
+            => other is ClrObject && Equals((ClrObject)other);
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrObject" /> have the same value.
