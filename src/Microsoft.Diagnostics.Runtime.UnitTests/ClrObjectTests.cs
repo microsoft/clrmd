@@ -13,33 +13,18 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
     public class ClrObjectTests
     {
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenSameAddress_ReturnsTrue(ClrHeap heap, ClrType type, ulong address)
+        public void Equals_WhenSameAddress_ReturnsTrue([Frozen] ClrHeap heap, [Frozen] ClrType type, [Frozen] ulong address, ClrObject first, ClrObject second)
         {
-            // Arrange
-            heap.GetObjectType(address).Returns(type);
-            type.Heap.Returns(heap);
-
-            var uno = new ClrObject(address, type);
-            var dos = new ClrObject(address, type);
-
             // Act
-            var areSame = uno == dos;
+            var areSame = first == second;
 
             // Assert
             areSame.Should().BeTrue();
         }
 
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenDifferentAddress_ReturnsFalse(ClrHeap heap, ClrType type, ulong firstAddress, ulong secondAddress)
-        {
-            // Arrange
-            heap.GetObjectType(firstAddress).Returns(type);
-            heap.GetObjectType(secondAddress).Returns(type);
-            type.Heap.Returns(heap);
-
-            var first = new ClrObject(firstAddress, type);
-            var second = new ClrObject(secondAddress, type);
-
+        public void Equals_WhenDifferentAddress_ReturnsFalse([Frozen] ClrHeap heap, [Frozen] ClrType type, ClrObject first, ClrObject second)
+        {           
             // Act
             var areSame = first == second;
 
@@ -61,14 +46,8 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void IsNull_WhenHasAddress_ReturnsFalse(ClrHeap heap, ClrType type, ulong address)
+        public void IsNull_WhenHasAddress_ReturnsFalse([Frozen] ulong objectAddress, ClrObject clrObject)
         {
-            // Arrange
-            heap.GetObjectType(address).Returns(type);
-            type.Heap.Returns(heap);
-
-            var clrObject = new ClrObject(address, type);
-
             // Act
             var isNull = clrObject.IsNull;
 
@@ -77,14 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void ulongImplicitCast_WhenCalled_ReturnsAddress(ClrHeap heap, ClrType type, ulong objectAddress)
+        public void ulongImplicitCast_WhenCalled_ReturnsAddress([Frozen] ulong objectAddress, ClrObject clrObject)
         {
-            // Arrange
-            heap.GetObjectType(objectAddress).Returns(type);
-            type.Heap.Returns(heap);
-
-            var clrObject = new ClrObject(objectAddress, type);
-
             // Act
             ulong ulongImplicitClrObject = clrObject;
 
@@ -92,32 +65,25 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             ulongImplicitClrObject.Should().Be(objectAddress);
         }
 
-
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenTypeHasFieldWithName_FindsField(ClrHeap heap, ClrType objectType, ClrInstanceField clrField, ulong clrObj, ulong fieldAddress, ulong fieldValue, string fieldName)
+        public void GetObjectField_WhenTypeHasFieldWithName_FindsField([Frozen]ClrHeap heap, [Frozen]ClrType objectType, ClrObject source, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
         {
             // Arrange
-            heap.GetObjectType(Arg.Is<ulong>(address => address == clrObj || address == fieldValue)).Returns(objectType);
-
-            objectType.GetFieldByName(fieldName).Returns(clrField);
             clrField.IsObjectReference.Returns(true);
-            objectType.Heap.Returns(heap);
-
-            clrField.GetAddress(clrObj).Returns(fieldAddress);
-
+            clrField.GetAddress(source.Address).Returns(fieldAddress);
+          
             heap.ReadPointer(fieldAddress, out var whatever)
-                .Returns
-            (call =>
+                .Returns(call =>
             {
-                call[1] = fieldValue;
+                call[1] = target.Address;
                 return true;
             });
 
             // Act
-            var fieldFoundByName = new ClrObject(clrObj, objectType).GetObjectField(fieldName);
+            var fieldFoundByName = source.GetObjectField(clrField.Name);
 
             // Assert
-            fieldFoundByName.Address.Should().Be(fieldValue);
+            fieldFoundByName.Address.Should().Be(target);
         }
 
         [Theory, AutoNSubstituteData]
@@ -134,14 +100,8 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenFieldDoesNotExistInType_ThrowsArgumentException(ClrHeap heap, ClrType type, ulong address, string unexistingField)
-        {
-            // Arrange
-            heap.GetObjectType(address).Returns(type);
-            type.Heap.Returns(heap);
-
-            var clrObject = new ClrObject(address, type);
-
+        public void GetObjectField_WhenFieldDoesNotExistInType_ThrowsArgumentException(ClrObject clrObject, string unexistingField)
+        { 
             // Act
             Action locateUnexistingField = () => clrObject.GetObjectField(unexistingField);
 
@@ -150,41 +110,29 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenTypeHasValueTypeField_ThrowsArgumentException(ClrHeap heap, ClrType objectType, ClrInstanceField valueField, ulong clrObj, string valueFieldName)
+        public void GetObjectField_WhenTypeHasValueTypeField_ThrowsArgumentException([Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField valueField)
         {
-            // Arrange
-            heap.GetObjectType(clrObj).Returns(objectType);
-
-            objectType.GetFieldByName(valueFieldName).Returns(valueField);
+            // Arrange   
             valueField.IsObjectReference.Returns(false);
-            objectType.Heap.Returns(heap);
-
-            var clrObject = new ClrObject(clrObj, objectType);
 
             // Act
-            Action locateObjectFromValueTypeField = () => clrObject.GetObjectField(valueFieldName);
+            Action locateObjectFromValueTypeField = () => clrObject.GetObjectField(valueField.Name);
 
             // Assert
             locateObjectFromValueTypeField.Should().Throw<ArgumentException>();
         }
 
-
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException(ClrHeap heap, ClrType objectType, ClrInstanceField clrField, ulong clrObj, ulong corruptedFieldPointer, string fieldName)
+        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException(ClrHeap heap, [Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField clrField, ulong corruptedFieldPointer)
         {
             // Arrange
-            heap.GetObjectType(clrObj).Returns(objectType);
-
-            objectType.GetFieldByName(fieldName).Returns(clrField);
             clrField.IsObjectReference.Returns(true);
-            objectType.Heap.Returns(heap);
-
-            clrField.GetAddress(clrObj).Returns(corruptedFieldPointer);
+            clrField.GetAddress(clrObject.Address).Returns(corruptedFieldPointer);
 
             heap.ReadPointer(corruptedFieldPointer, out var whatever).Returns(false);
   
             // Act
-            Action locateObjectFromValueTypeField = () => new ClrObject(clrObj, objectType).GetObjectField(fieldName);
+            Action locateObjectFromValueTypeField = () => clrObject.GetObjectField(clrField.Name);
            
             // Assert
             locateObjectFromValueTypeField.Should().Throw<MemoryReadException>();
