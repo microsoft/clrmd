@@ -8,12 +8,20 @@ namespace Microsoft.Diagnostics.Runtime.Extensions
 {
     public static class IAddressableTypedEntityExtensions
     {
+        /// <summary>
+        /// Gets the field value from <see cref="IAddressableTypedEntity"/> with respect to field nature (either reference, or value type).
+        /// </summary>
+        /// <param name="entity">The entity to read field value from.</param>
+        /// <param name="fieldName">The name of the field to get value.</param>
+        /// <exception cref="ArgumentNullException">if entity has no type.</exception>
+        /// <exception cref="ArgumentException">if field with matching name was not found.</exception>
+        /// <returns></returns>
         public static IAddressableTypedEntity GetFieldFrom(this IAddressableTypedEntity entity, string fieldName)
         {
             var entityType = entity?.Type;
             if (entityType == null)
             {
-                throw new ArgumentNullException("No assosiated type", nameof(entity));
+                throw new ArgumentNullException("No associated type", nameof(entity));
             }
 
             var field = entityType.GetFieldByName(fieldName);
@@ -24,7 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.Extensions
             }
 
             return field.IsObjectReference ? (IAddressableTypedEntity)entity.GetObjectField(fieldName) : entity.GetValueClassField(fieldName);
-        }
-
+        }    
     }
 }

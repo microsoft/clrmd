@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an addressable entity (class or struct) with assosiated type.
+    /// Represents an addressable entity (class or struct) with associated type.
     /// </summary>
     public interface IAddressableTypedEntity: IEquatable<IAddressableTypedEntity>
     {
