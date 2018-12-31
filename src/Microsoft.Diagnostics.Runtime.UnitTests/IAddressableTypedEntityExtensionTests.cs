@@ -7,11 +7,25 @@ using FluentAssertions;
 using NSubstitute;
 using Xunit;
 using Microsoft.Diagnostics.Runtime.Extensions;
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
     public class IAddressableTypedEntityExtensionTests
     {
+        [Theory, AutoNSubstituteData]
+        public void GetFieldFrom_WhenNullTypePassed_ThrowsArgumentNullException(IAddressableTypedEntity entity, string fieldName)
+        {
+            // Arrange 
+            entity.Type.Returns((ClrType)null);
+
+            Action getFieldFromTypelessEntity = () => entity.GetFieldFrom(fieldName);
+
+            getFieldFromTypelessEntity
+                .Should().Throw<ArgumentNullException>()
+                .And.ParamName.Should().Be(nameof(entity));
+        }
+
         [Theory, AutoNSubstituteData]
         public void GetFieldFrom_WhenClrObjectHasReferenceField_ReturnsField([Frozen]ClrHeap heap, [Frozen]ClrType objectType, ClrObject rawClrObject, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
         {

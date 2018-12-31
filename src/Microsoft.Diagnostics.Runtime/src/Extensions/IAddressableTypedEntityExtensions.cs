@@ -18,18 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Extensions
         /// <returns></returns>
         public static IAddressableTypedEntity GetFieldFrom(this IAddressableTypedEntity entity, string fieldName)
         {
-            var entityType = entity?.Type;
-            if (entityType == null)
-            {
-                throw new ArgumentNullException("No associated type", nameof(entity));
-            }
+            var entityType = entity?.Type ?? throw new ArgumentNullException(nameof(entity), "No associated type");
 
-            var field = entityType.GetFieldByName(fieldName);
-
-            if (field == null)
-            {
-                throw new ArgumentException($"Type '{entityType}' does not contain a field named '{fieldName}'");
-            }
+            ClrInstanceField field = entityType.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{entityType}' does not contain a field named '{fieldName}'");
 
             return field.IsObjectReference ? (IAddressableTypedEntity)entity.GetObjectField(fieldName) : entity.GetValueClassField(fieldName);
         }    
