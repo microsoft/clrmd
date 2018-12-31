@@ -13,8 +13,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         ulong Address { get; }
 
-        string HexAddress { get; }
-
         ClrType Type { get; }
 
         T GetField<T>(string fieldName) where T : struct;
