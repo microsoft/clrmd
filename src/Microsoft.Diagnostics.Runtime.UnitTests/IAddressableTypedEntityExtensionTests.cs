@@ -6,7 +6,6 @@ using AutoFixture.Xunit2;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
-using Microsoft.Diagnostics.Runtime.Extensions;
 using System;
 
 namespace Microsoft.Diagnostics.Runtime.UnitTests

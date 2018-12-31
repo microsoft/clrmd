@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime.Extensions
+namespace Microsoft.Diagnostics.Runtime
 {
     public static class IAddressableTypedEntityExtensions
     {
