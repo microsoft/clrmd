@@ -14,11 +14,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="entity">The entity to read field value from.</param>
         /// <param name="fieldName">The name of the field to get value.</param>
         /// <exception cref="ArgumentNullException">if entity has no type.</exception>
-        /// <exception cref="ArgumentException">if field with matching name was not found.</exception>
+        /// <exception cref="ArgumentException">Thrown when field with matching name was not found.</exception>
         /// <returns></returns>
         public static IAddressableTypedEntity GetFieldFrom(this IAddressableTypedEntity entity, string fieldName)
         {
-            var entityType = entity?.Type ?? throw new ArgumentNullException(nameof(entity), "No associated type");
+            ClrType entityType = entity?.Type ?? throw new ArgumentNullException(nameof(entity), "No associated type");
 
             ClrInstanceField field = entityType.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{entityType}' does not contain a field named '{fieldName}'");
 
