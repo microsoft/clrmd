@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenClrObjectHasReferenceField_ReturnsField([Frozen]ClrHeap heap, [Frozen]ClrType objectType, ClrObject rawClrObject, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
+        public void GetFieldFrom_WhenClrObjectHasReferenceField_ReturnsField([Frozen]ClrHeap heap, ClrObject rawClrObject, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
         {
             // Arrange
             IAddressableTypedEntity entity = rawClrObject;
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenStructureHasReferenceField_ReturnsField([Frozen] ClrHeap heap, ClrObject target, [Frozen]ClrType structType, ClrValueClass rawStruct, ClrInstanceField structReferenceField, ulong fieldAddress)
+        public void GetFieldFrom_WhenStructureHasReferenceField_ReturnsField([Frozen] ClrHeap heap, ClrObject target, ClrValueClass rawStruct, ClrInstanceField structReferenceField, ulong fieldAddress)
         {
             // Arrange
             IAddressableTypedEntity entity = rawStruct;
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenStructureHasStructureField_ReturnsField(ClrValueClass target, [Frozen]ClrType structType, ClrValueClass rawStruct, ClrInstanceField structValueField)
+        public void GetFieldFrom_WhenStructureHasStructureField_ReturnsField(ClrValueClass target, ClrValueClass rawStruct, ClrInstanceField structValueField)
         {
             // Arrange
             IAddressableTypedEntity entity = rawStruct;
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueClass target, [Frozen]ClrType clrObjectType, ClrObject rawClrObject, ClrInstanceField clrObjValueField)
+        public void GetFieldFrom_WhenFieldFound_ReturnsField(ClrValueClass target, ClrObject rawClrObject, ClrInstanceField clrObjValueField)
         {
             // Arrange
             IAddressableTypedEntity entity = rawClrObject;
