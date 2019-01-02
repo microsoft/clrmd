@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
     public class ClrValueClassTests
     {
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenSameAddressAndTypes_ReturnsTrue(ClrValueClass uno, ClrValueClass dos)
+        public void Equals_WhenSameAddressAndTypes_ReturnsTrue([Frozen]ulong address, [Frozen]ClrType type, ClrValueClass uno, ClrValueClass dos)
         {
             // Act
             var areSame = uno.Equals(dos);
@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenDifferentAddress_ReturnsFalse(ClrValueClass uno, ClrValueClass dos)
+        public void Equals_WhenDifferentAddress_ReturnsFalse([Frozen]ClrType type, ClrValueClass uno, ClrValueClass dos)
         {
             // Act
             var areSame = uno.Equals(dos);
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenDifferentTypesButSameAddress_ReturnsFalse(ClrValueClass uno, ClrValueClass dos)
+        public void Equals_WhenDifferentTypesButSameAddress_ReturnsFalse([Frozen]ulong address, ClrValueClass uno, ClrValueClass dos)
         {
             // Act
             var areSame = uno.Equals(dos);
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrObject target, ClrValueClass someStruct, ClrInstanceField structReferenceField, ulong fieldAddress)
+        public void GetObjectField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrObject target, [Frozen]ClrType structType, ClrValueClass someStruct, ClrInstanceField structReferenceField, ulong fieldAddress)
         {
             // Arrange
             structReferenceField.IsObjectReference.Returns(true);
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetValueClassField_WhenFieldFound_ReturnsField(ClrValueClass target, ClrValueClass someStruct, ClrInstanceField structValueField)
+        public void GetValueClassField_WhenFieldFound_ReturnsField(ClrValueClass target, [Frozen]ClrType structType, ClrValueClass someStruct, ClrInstanceField structValueField)
         {
             // Arrange
             structValueField.IsValueClass.Returns(true);

@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
     public class ClrObjectTests
     {
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenSameAddress_ReturnsTrue(ClrObject first, ClrObject second)
+        public void Equals_WhenSameAddress_ReturnsTrue([Frozen] ClrHeap heap, [Frozen] ClrType type, [Frozen] ulong address, ClrObject first, ClrObject second)
         {
             // Act
             var areSame = first == second;
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenDifferentAddress_ReturnsFalse(ClrObject first, ClrObject second)
+        public void Equals_WhenDifferentAddress_ReturnsFalse([Frozen] ClrHeap heap, [Frozen] ClrType type, ClrObject first, ClrObject second)
         {           
             // Act
             var areSame = first == second;
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void IsNull_WhenHasAddress_ReturnsFalse(ClrObject clrObject)
+        public void IsNull_WhenHasAddress_ReturnsFalse([Frozen] ulong objectAddress, ClrObject clrObject)
         {
             // Act
             var isNull = clrObject.IsNull;
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenTypeHasFieldWithName_FindsField([Frozen]ClrHeap heap, ClrObject source, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
+        public void GetObjectField_WhenTypeHasFieldWithName_FindsField([Frozen]ClrHeap heap, [Frozen]ClrType objectType, ClrObject source, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
         {
             // Arrange
             clrField.IsObjectReference.Returns(true);
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenTypeHasValueTypeField_ThrowsArgumentException(ClrObject clrObject, ClrInstanceField valueField)
+        public void GetObjectField_WhenTypeHasValueTypeField_ThrowsArgumentException([Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField valueField)
         {
             // Arrange   
             valueField.IsObjectReference.Returns(false);
@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException([Frozen] ClrHeap heap, ClrObject clrObject, ClrInstanceField clrField, ulong corruptedFieldPointer)
+        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException([Frozen] ClrHeap heap, [Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField clrField, ulong corruptedFieldPointer)
         {
             // Arrange
             clrField.IsObjectReference.Returns(true);
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetValueClassField_WhenFieldFound_ReturnsField(ClrValueClass target, ClrObject clrObject, ClrInstanceField clrObjValueField)
+        public void GetValueClassField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueClass target, [Frozen]ClrType clrObjectType, ClrObject clrObject, ClrInstanceField clrObjValueField)
         {
             // Arrange
             clrObjValueField.IsValueClass.Returns(true);
