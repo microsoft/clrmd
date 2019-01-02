@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int ImageDataDirectoryCount = 15;
         private const int ComDataDirectory = 14;
         private const int DebugDataDirectory = 6;
-
+        
         private readonly bool _virt;
-        private byte[] _buffer = new byte[260];
+        private readonly byte[] _buffer = new byte[260];
         private int _offset = 0;
         private readonly int _peHeaderOffset;
 
@@ -178,8 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>The number of bytes actually read from the image and written to dest.</returns>
         public int Read(IntPtr dest, int virtualAddress, int bytesRequested)
         {
-            byte[] buffer = _buffer;
-            EnsureSize(ref buffer, bytesRequested);
+            byte[] buffer = GetBuffer(bytesRequested);
 
             int offset = RvaToOffset(virtualAddress);
             if (offset == -1)
@@ -283,8 +282,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
                         string filename = ReadString(nameLen);
-
-
+                        
                         PdbInfo pdb = new PdbInfo(filename, guid, age);
                         result.Add(pdb);
                     }
@@ -294,10 +292,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        private string ReadString(int len)
-        {
-            return ReadString(_offset, len);
-        }
+        private string ReadString(int len) => ReadString(_offset, len);
+        
 
         private string ReadString(int offset, int len)
         {
@@ -306,13 +302,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             SeekTo(offset);
 
-            byte[] buffer = _buffer;
-            EnsureSize(ref buffer, len);
-
-            if (Stream.Read(_buffer, 0, len) != len)
+            byte[] buffer = GetBuffer(len);
+            if (Stream.Read(buffer, 0, len) != len)
                 return null;
 
-            return Encoding.ASCII.GetString(_buffer, 0, len);
+            for (int i = 0; i < len; i++)
+            {
+                if (buffer[i] == 0)
+                {
+                    len = i;
+                    break;
+                }
+            }
+            
+            return Encoding.ASCII.GetString(buffer, 0, len);
         }
 
         private T? Read<T>() where T : struct
@@ -323,21 +326,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private T? Read<T>(int offset) where T : struct
         {
             int size = Marshal.SizeOf(typeof(T));
-            EnsureSize(ref _buffer, size);
+            byte[] buffer = GetBuffer(size);
 
             SeekTo(offset);
-            if (Stream.Read(_buffer, 0, size) != size)
+            if (Stream.Read(buffer, 0, size) != size)
                 return null;
 
             _offset = offset + size;
-            fixed (byte* buffer = _buffer)
-                return (T)Marshal.PtrToStructure(new IntPtr(buffer), typeof(T));
+            fixed (byte* tmp = buffer)
+                return (T)Marshal.PtrToStructure(new IntPtr(tmp), typeof(T));
         }
-
-        private static void EnsureSize(ref byte[] readBuffer, int size)
+        
+        private byte[] GetBuffer(int size)
         {
-            if (readBuffer == null || readBuffer.Length < size)
-                readBuffer = new byte[size];
+            if (size <= _buffer.Length)
+                return _buffer;
+
+            return new byte[size];
         }
 
         private void SeekTo(int offset)
