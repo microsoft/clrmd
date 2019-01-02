@@ -8,6 +8,8 @@ using NSubstitute;
 using Xunit;
 using System;
 
+#pragma warning disable xUnit1026
+
 namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
     public class IAddressableTypedEntityExtensionTests

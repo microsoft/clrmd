@@ -8,6 +8,8 @@ using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
+#pragma warning disable xUnit1026
+
 namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
     public class ClrObjectTests
