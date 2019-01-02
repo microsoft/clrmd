@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 PdbReader.GetPdbProperties(pdbName, out Guid fileGuid, out int fileAge);
                 return guid == fileGuid && age == fileAge;
             }
-            catch (IOException)
+            catch
             {
                 return false;
             }
