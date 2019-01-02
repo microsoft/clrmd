@@ -8,12 +8,15 @@ using AutoFixture.Xunit2;
 
 namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
-  public class AutoNSubstituteDataAttribute : AutoDataAttribute
-  {
-    public AutoNSubstituteDataAttribute() :
-      base(() => new Fixture().Customize(new AutoNSubstituteCustomization()))
+    public class AutoNSubstituteDataAttribute : AutoDataAttribute
     {
-    }
+        public AutoNSubstituteDataAttribute() :
+          base(() => new Fixture().Customize(
+              new CompositeCustomization(
+                  new ClrMDEntitiesCustomization(),
+                  new AutoNSubstituteCustomization())))
+        {
+        }
 
-  }
+    }
 }

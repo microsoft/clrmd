@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an instance of a type which inherits from System.ValueClass
     /// </summary>
-    public struct ClrValueClass
+    public struct ClrValueClass : IAddressableTypedEntity
     {
         private readonly bool _interior;
 
@@ -142,5 +142,8 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = field.GetAddress(Address, _interior);
             return address;
         }
+
+        public bool Equals(IAddressableTypedEntity other)
+            => other != null && Address == other.Address && Type == other.Type;
     }
 }
