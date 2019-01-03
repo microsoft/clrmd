@@ -24,7 +24,7 @@ using Microsoft.Win32.SafeHandles;
 // - marshal minidump data-structures into the proper managed types (System.String,
 // System.DateTime, System.Version, System.OperatingSystem, etc)
 // 
-// This does not validate aganst corrupted dumps. 
+// This does not validate against corrupted dumps. 
 // 
 // ** This is not a complete set of wrappers. 
 // Other potentially interesting things to expose from the dump file:
