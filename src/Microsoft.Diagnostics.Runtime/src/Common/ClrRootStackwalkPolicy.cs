@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         Exact,
 
         /// <summary>
-        /// Walks each pointer alighed address on all stacks and if it points to an object it treats that location
+        /// Walks each pointer aligned address on all stacks and if it points to an object it treats that location
         /// as a real root.  This can over-report roots when a value is left on the stack, but the GC does not
         /// consider it a real root.
         /// </summary>

@@ -744,7 +744,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         isvolatile = 0x00000200, // TRUE if volatile pointer
         isconst = 0x00000400, // TRUE if const pointer
         isunaligned = 0x00000800, // TRUE if unaligned pointer
-        isrestrict = 0x00001000 // TRUE if restricted pointer (allow agressive opts)
+        isrestrict = 0x00001000 // TRUE if restricted pointer (allow aggressive opts)
     }
 
     internal struct LeafPointer
@@ -1580,7 +1580,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         CV_CFL_DHUGE = 0x02
     }
 
-    //  enum describing compile flag ambiant code model
+    //  enum describing compile flag ambient code model
 
     internal enum CV_CFL_CODE
     {

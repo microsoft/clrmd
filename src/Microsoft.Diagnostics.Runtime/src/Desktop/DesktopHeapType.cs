@@ -857,13 +857,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             start++;
 
-            bool hasSubtypeAirity = false;
+            bool hasSubtypeArity = false;
             int paramCount = 0;
             do
             {
                 int currParamCount = 0;
-                hasSubtypeAirity = false;
-                // Skip airity.
+                hasSubtypeArity = false;
+                // Skip arity.
                 while (start < end)
                 {
                     char c = name[start];
@@ -885,7 +885,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         if (name[start] == '`')
                         {
                             start++;
-                            hasSubtypeAirity = true;
+                            hasSubtypeArity = true;
                             break;
                         }
 
@@ -896,7 +896,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (start >= end)
                         return start;
                 }
-            } while (hasSubtypeAirity);
+            } while (hasSubtypeArity);
 
             if (name[start] == '[')
             {

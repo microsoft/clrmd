@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// The platform-agnostice filename of the dac dll
+        /// The platform-agnostic filename of the dac dll
         /// </summary>
         public string PlatformAgnosticFileName { get; set; }
 

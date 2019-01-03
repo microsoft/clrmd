@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (_outputStream == null)
                 {
                     string outStr = _output.ToString();
-                    // Only show the first lineNumber the last two lines if there are alot of output. 
+                    // Only show the first lineNumber the last two lines if there are a lot of output. 
                     Match m = Regex.Match(outStr, @"^(\s*\n)?(.+\n)(.|\n)*?(.+\n.*\S)\s*$");
                     if (m.Success)
                         outStr = m.Groups[2].Value + "    <<< Omitted output ... >>>\r\n" + m.Groups[4].Value;
