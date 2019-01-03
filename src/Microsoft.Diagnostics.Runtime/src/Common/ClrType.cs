@@ -187,12 +187,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsPrivate { get; }
 
         /// <summary>
-        /// Returns true if this type is accessable only by items in its own assembly.
+        /// Returns true if this type is accessible only by items in its own assembly.
         /// </summary>
         public abstract bool IsInternal { get; }
 
         /// <summary>
-        /// Returns true if this nested type is accessable only by subtypes of its outer type.
+        /// Returns true if this nested type is accessible only by subtypes of its outer type.
         /// </summary>
         public abstract bool IsProtected { get; }
 
