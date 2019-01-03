@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     internal unsafe struct DumpPointer
     {
-        // This is dangerous because its lets you create a new arbitary dump pointer.
+        // This is dangerous because its lets you create a new arbitrary dump pointer.
         public static DumpPointer DangerousMakeDumpPointer(IntPtr rawPointer, uint size)
         {
             return new DumpPointer(rawPointer, size);
