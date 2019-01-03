@@ -1580,7 +1580,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
         CV_CFL_DHUGE = 0x02
     }
 
-    //  enum describing compile flag ambiant code model
+    //  enum describing compile flag ambient code model
 
     internal enum CV_CFL_CODE
     {
