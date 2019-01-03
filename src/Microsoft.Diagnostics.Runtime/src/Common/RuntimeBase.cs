@@ -15,6 +15,8 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal abstract class RuntimeBase : ClrRuntime
     {
+        private const int c_maxStackDepth = 1024 * 1024 * 1024; // 1gb
+
         private static readonly ulong[] s_emptyPointerArray = new ulong[0];
         protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
@@ -179,6 +181,11 @@ namespace Microsoft.Diagnostics.Runtime
                 stackBase = tmp;
             }
 
+            // Ensure sensible limits on stack walking.  If there's more than 1gb of stack space then either the target
+            // process is a really strange program, or we've somehow read the wrong base/limit.
+            if (stackBase == 0 || stackLimit - stackBase > c_maxStackDepth)
+                yield break;
+            
             ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
             ClrHeap heap = Heap;
             ulong mask = (ulong)(PointerSize - 1);
