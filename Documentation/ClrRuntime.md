@@ -66,7 +66,7 @@ foreach (ClrAppDomain domain in runtime.AppDomains)
 }
 ```
 
-You can see the modules loaded for rach `ClrAppDomain` instance via the `Modules`
+You can see the modules loaded for each `ClrAppDomain` instance via the `Modules`
 property:
 
 ```c#
