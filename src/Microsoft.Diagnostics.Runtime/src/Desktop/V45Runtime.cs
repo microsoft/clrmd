@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sos.GetCommonMethodTables(out mts);
         }
 
-        internal override string GetNameForMT(ulong mt)
+        public override string GetMethodTableName(ulong mt)
         {
             return _sos.GetMethodTableName(mt);
         }
@@ -694,6 +694,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override uint GetExceptionHROffset()
         {
             return PointerSize == 8 ? 0x8cu : 0x40u;
+        }
+
+        public override string GetJitHelperFunctionName(ulong addr)
+        {
+            return _sos.GetJitHelperFunctionName(addr);
         }
     }
 }

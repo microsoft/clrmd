@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
@@ -258,7 +259,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return RequestStruct(DacRequests.USEFULGLOBALS, ref mCommonMTs);
         }
 
-        internal override string GetNameForMT(ulong mt)
+        public override string GetMethodTableName(ulong mt)
         {
             ClearBuffer();
             if (!Request(DacRequests.METHODTABLE_NAME, mt, _buffer))
@@ -902,6 +903,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override uint GetExceptionHROffset()
         {
             return PointerSize == 8 ? 0x74u : 0x38u;
+        }
+
+        public override string GetJitHelperFunctionName(ulong addr)
+        {
+            ClearBuffer();
+            if (!Request(DacRequests.JIT_HELPER_FUNCTION_NAME, addr, _buffer))
+                return null;
+
+            int len = Array.IndexOf(_buffer, (byte)0);
+            Debug.Assert(len >= 0);
+            if (len < 0)
+                return null;
+            return Encoding.ASCII.GetString(_buffer, 0, len);
         }
     }
 }
