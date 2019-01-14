@@ -704,12 +704,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (id.MethodTable == ArrayMethodTable && id.ComponentMethodTable != 0)
             {
-                string name = GetNameForMT(id.ComponentMethodTable);
+                string name = GetMethodTableName(id.ComponentMethodTable);
                 if (name != null)
                     return name + "[]";
             }
 
-            return GetNameForMT(id.MethodTable);
+            return GetMethodTableName(id.MethodTable);
         }
 
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
@@ -795,7 +795,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IAssemblyData GetAssemblyData(ulong domain, ulong assembly);
         internal abstract IAppDomainStoreData GetAppDomainStoreData();
         internal abstract bool GetCommonMethodTables(ref CommonMethodTables mCommonMTs);
-        internal abstract string GetNameForMT(ulong mt);
         internal abstract string GetPEFileName(ulong addr);
         internal abstract IModuleData GetModuleData(ulong addr);
         internal abstract IAppDomainData GetAppDomainData(ulong addr);

@@ -47,6 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private DacGetGCInfoData _getGCHeapData;
         private DacGetCommonMethodTables _getCommonMethodTables;
         private DacGetCharArrayWithArg _getMethodTableName;
+        private DacGetByteArrayWithArg _getJitHelperFunctionName;
         private DacGetCharArrayWithArg _getPEFileName;
         private DacGetCharArrayWithArg _getAppDomainName;
         private DacGetCharArrayWithArg _getAssemblyName;
@@ -430,6 +431,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return GetString(_getMethodTableName, mt);
         }
 
+        public string GetJitHelperFunctionName(ulong addr)
+        {
+            InitDelegate(ref _getJitHelperFunctionName, VTable->GetJitHelperFunctionName);
+            return GetAsciiString(_getJitHelperFunctionName, addr);
+        }
+
         public string GetPEFileName(ulong pefile)
         {
             InitDelegate(ref _getPEFileName, VTable->GetPEFileName);
@@ -457,6 +464,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 needed--;
 
             string result = Encoding.Unicode.GetString(buffer, 0, needed * 2);
+
+            ReleaseBuffer(buffer);
+            return result;
+        }
+
+        private string GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
+        {
+            int hr = func(Self, addr, 0, null, out int needed);
+            if (hr != S_OK)
+                return null;
+
+            if (needed == 0)
+                return "";
+
+            byte[] buffer = AcquireBuffer(needed);
+            hr = func(Self, addr, needed, buffer, out needed);
+            if (hr != S_OK)
+            {
+                ReleaseBuffer(buffer);
+                return null;
+            }
+
+            int len = Array.IndexOf(buffer, (byte)0);
+            if (len >= 0)
+                needed = len;
+
+            string result = Encoding.ASCII.GetString(buffer, 0, needed);
 
             ReleaseBuffer(buffer);
             return result;
@@ -735,6 +769,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out AssemblyData data);

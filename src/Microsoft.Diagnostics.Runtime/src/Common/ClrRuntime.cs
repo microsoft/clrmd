@@ -166,6 +166,20 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract void Flush();
 
         /// <summary>
+        /// Gets the name of a JIT helper function
+        /// </summary>
+        /// <param name="address">Address of a possible JIT helper function</param>
+        /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function</returns>
+        public abstract string GetJitHelperFunctionName(ulong address);
+
+        /// <summary>
+        /// Gets the name of a method table
+        /// </summary>
+        /// <param name="address">Address of a possible method table</param>
+        /// <returns>The name of the method table or null if <paramref name="address"/> isn't a method table</returns>
+        public abstract string GetMethodTableName(ulong address);
+
+        /// <summary>
         /// Delegate called when the RuntimeFlushed event is triggered.
         /// </summary>
         /// <param name="runtime">Which runtime was flushed.</param>

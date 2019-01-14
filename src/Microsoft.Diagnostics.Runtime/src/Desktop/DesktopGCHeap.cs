@@ -1370,7 +1370,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         protected string GetTypeName(ulong mt, DesktopModule module, uint token)
         {
-            string typeName = DesktopRuntime.GetNameForMT(mt);
+            string typeName = DesktopRuntime.GetMethodTableName(mt);
             return GetBetterTypeName(typeName, module, token);
         }
 
