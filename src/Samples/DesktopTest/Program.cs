@@ -24,8 +24,6 @@ namespace DesktopTest
                     }
                 }
             }
-
-                DataTarget.LoadCrashDump(@"D:\work\10_16_coreclr\dotnet.exe_181014_141858.dmp").ClrVersions.Single().CreateRuntime();
         }
     }
 }
