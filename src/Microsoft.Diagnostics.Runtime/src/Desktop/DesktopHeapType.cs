@@ -487,6 +487,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 foreach (ClrInstanceField field in Fields)
                 {
+                    if (field.ElementType == ClrElementType.Unknown)
+                        break;
+
                     if (offset >= field.Offset && 
                         offset < field.Offset + field.Size)
                     {
