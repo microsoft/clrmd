@@ -487,16 +487,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 foreach (ClrInstanceField field in Fields)
                 {
-                    if (field.Offset <= offset)
+                    if (offset >= field.Offset && 
+                        offset < field.Offset + field.Size)
                     {
-                        int size = field.Size;
-
-                        if (offset < field.Offset + size)
-                        {
-                            childField = field;
-                            childFieldOffset = offset - field.Offset;
-                            return true;
-                        }
+                        childField = field;
+                        childFieldOffset = offset - field.Offset;
+                        return true;
                     }
                 }
             }
