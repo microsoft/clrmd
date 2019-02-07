@@ -119,10 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 bool isLinux = clrName == "libcoreclr";
 
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), DacInfo.GetDacFileName(flavor, Architecture));
-
-                if (isLinux)
-                    dacLocation = Path.ChangeExtension(dacLocation, ".so");
+                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), isLinux ? "libmscordacore.so" : DacInfo.GetDacFileName(flavor, Architecture));
 
                 if (isLinux)
                 {
