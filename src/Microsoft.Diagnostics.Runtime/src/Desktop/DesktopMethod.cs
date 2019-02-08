@@ -197,34 +197,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private void InitILInfo()
         {
             ClrModule module = Type?.Module;
-            if (module?.MetadataImport is IMetadataImport metadataImport)
+            object mdImport = module?.MetadataImport;
+            uint rva = 0;
+            if (mdImport is IMetadataImport metadataImport)
             {
-                if (metadataImport.GetRVA(_token, out uint rva, out uint flags) == 0)
+                if (metadataImport.GetRVA(_token, out rva, out uint flags) != 0)
                 {
-                    ulong il = _runtime.GetILForModule(module, rva);
-                    if (il != 0)
-                    {
-                        _il = new ILInfo();
+                    // GetRVA fail
+                    return;
+                }
+            }
+            else if (mdImport is MetaDataImport dacMetaDataImport)
+            {
+                rva = dacMetaDataImport.GetRva((int) _token);
+            }
+            ulong il = _runtime.GetILForModule(module, rva);
+            if (il != 0)
+            {
+                _il = new ILInfo();
 
-                        if (_runtime.ReadByte(il, out byte b))
-                        {
-                            bool isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
-                            if (isTinyHeader)
-                            {
-                                _il.Address = il + 1;
-                                _il.Length = b >> (int)(IMAGE_COR_ILMETHOD.FormatShift - 1);
-                                _il.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
-                            }
-                            else if (_runtime.ReadDword(il, out uint tmp))
-                            {
-                                _il.Flags = tmp;
-                                _runtime.ReadDword(il + 4, out tmp);
-                                _il.Length = (int)tmp;
-                                _runtime.ReadDword(il + 8, out tmp);
-                                _il.LocalVarSignatureToken = tmp;
-                                _il.Address = il + 12;
-                            }
-                        }
+                if (_runtime.ReadByte(il, out byte b))
+                {
+                    bool isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
+                    if (isTinyHeader)
+                    {
+                        _il.Address = il + 1;
+                        _il.Length = b >> (int) (IMAGE_COR_ILMETHOD.FormatShift - 1);
+                        _il.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
+                    }
+                    else if (_runtime.ReadDword(il, out uint tmp))
+                    {
+                        _il.Flags = tmp;
+                        _runtime.ReadDword(il + 4, out tmp);
+                        _il.Length = (int) tmp;
+                        _runtime.ReadDword(il + 8, out tmp);
+                        _il.LocalVarSignatureToken = tmp;
+                        _il.Address = il + 12;
                     }
                 }
             }
