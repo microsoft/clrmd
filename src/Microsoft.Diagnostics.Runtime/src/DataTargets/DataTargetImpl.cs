@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -119,12 +120,29 @@ namespace Microsoft.Diagnostics.Runtime
 
                 bool isLinux = clrName == "libcoreclr";
 
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), isLinux ? "libmscordaccore.so" : DacInfo.GetDacFileName(flavor, Architecture));
+                const string LinuxDacFileName = "libmscordaccore.so";
+
+                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), isLinux ? LinuxDacFileName : DacInfo.GetDacFileName(flavor, Architecture));
 
                 if (isLinux)
                 {
-                    if (!File.Exists(dacLocation))
-                        dacLocation = Path.GetFileName(dacLocation);
+                    if (File.Exists(dacLocation))
+                    {
+                        // Works around issue https://github.com/dotnet/coreclr/issues/20205
+                        int processId = Process.GetCurrentProcess().Id;
+                        string tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId.ToString());
+                        Directory.CreateDirectory(tempDirectory);
+
+                        string symlink = Path.Combine(tempDirectory, LinuxDacFileName);
+                        if (LinuxFunctions.symlink(dacLocation, symlink) == 0)
+                        {
+                            dacLocation = symlink;
+                        }
+                    }
+                    else
+                    {
+                        dacLocation = LinuxDacFileName;
+                    }
                 }
                 else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
                 {
@@ -132,8 +150,19 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 VersionInfo version = module.Version;
-                string dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
-                string dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
+                string dacAgnosticName;
+                string dacFileName;
+                if (isLinux)
+                {
+                    // Linux never has a "long" named DAC
+                    dacAgnosticName = LinuxDacFileName;
+                    dacFileName = LinuxDacFileName;
+                }
+                else
+                {
+                    dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
+                    dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
+                }
 
                 DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
                 {

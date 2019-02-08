@@ -47,6 +47,9 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport("libdl.so")]
         private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
+        [DllImport("libdl.so")]
+        public static extern int symlink(string file, string symlink);
+
         private const int RTLD_NOW = 2;
     }
 }
