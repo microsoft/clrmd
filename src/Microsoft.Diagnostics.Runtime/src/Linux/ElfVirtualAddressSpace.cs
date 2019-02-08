@@ -10,15 +10,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ELFVirtualAddressSpace : IAddressSpace
     {
-        private readonly IReadOnlyList<ElfProgramHeader> _segments;
+        private readonly ElfProgramHeader[] _segments;
         private readonly IAddressSpace _addressSpace;
 
         public string Name => _addressSpace.Name;
 
         public ELFVirtualAddressSpace(IReadOnlyList<ElfProgramHeader> segments, IAddressSpace addressSpace)
         {
-            _segments = segments;
-            Length = _segments.Max(s => s.Header.VirtualAddress + s.Header.VirtualSize);
+            Length = segments.Max(s => s.Header.VirtualAddress + s.Header.VirtualSize);
+            // FileSize == 0 means the segment isn't backed by any data
+            _segments = segments.Where((programHeader) => programHeader.Header.FileSize > 0).ToArray();
             _addressSpace = addressSpace;
         }
 
@@ -26,30 +27,37 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int Read(long position, byte[] buffer, int bufferOffset, int count)
         {
-            for (int i = 0; i < _segments.Count; i++)
+            int bytesRead = 0;
+            while (bytesRead != count)
             {
-                ref ElfProgramHeader64 header = ref _segments[i].RefHeader;
-                // FileSize == 0 means the segment isn't backed by any data
-                if (header.FileSize > 0 && header.VirtualAddress <= position && position + count <= header.VirtualAddress + header.VirtualSize)
+                int i = 0;
+                for (; i < _segments.Length; i++)
                 {
-                    long segmentOffset = position - header.VirtualAddress;
-                    int fileBytes = (int)Math.Min(count, header.FileSize);
+                    ref ElfProgramHeader64 header = ref _segments[i].RefHeader;
 
-                    long fileOffset = header.FileOffset + segmentOffset;
-                    int bytesRead = _addressSpace.Read(fileOffset, buffer, bufferOffset, fileBytes);
-
-                    //zero the rest of the buffer if it is in the virtual address space but not the physical address space
-                    if (bytesRead == fileBytes && fileBytes != count)
+                    long upperAddress = header.VirtualAddress + header.VirtualSize;
+                    if (header.VirtualAddress <= position && position < upperAddress)
                     {
-                        Array.Clear(buffer, bufferOffset + fileBytes, count - fileBytes);
-                        bytesRead = count;
+                        int bytesToReadRange = (int)Math.Min(count - bytesRead, upperAddress - position);
+                        long segmentOffset = position - header.VirtualAddress;
+                        int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, buffer, bufferOffset, bytesToReadRange);
+                        if (bytesReadRange == 0) {
+                            goto done;
+                        }
+                        position += bytesReadRange;
+                        bufferOffset += bytesReadRange;
+                        bytesRead += bytesReadRange;
+                        break;
                     }
-
-                    return bytesRead;
+                }
+                if (i == _segments.Length) {
+                    break;
                 }
             }
-
-            return 0;
+        done:
+            // Zero the rest of the buffer if read less than requested
+            Array.Clear(buffer, bufferOffset, count - bytesRead);
+            return bytesRead;
         }
     }
 }
