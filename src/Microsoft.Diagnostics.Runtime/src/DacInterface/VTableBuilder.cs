@@ -32,6 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// Adds a method to be the next function in the VTable.  Note the delegate passed here must
         /// be marked with [UnmanagedFunctionPointerAttribute] and take an IntPtr as its first parameter.
         /// </summary>
+        /// <param name="validate">Whether to validate the delegate matches requirements.</param>
         /// <param name="func">The function to add to the next slot of the VTable.</param>
         public void AddMethod(Delegate func, bool validate = false)
         {
