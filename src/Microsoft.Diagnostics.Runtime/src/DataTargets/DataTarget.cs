@@ -17,7 +17,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class DataTarget : IDisposable
     {
-        internal static PlatformFunctions PlatformFunctions { get; }
+        /// <summary>
+        /// A set of helper functions that are consistently implemented across all platforms.
+        /// </summary>
+        public static PlatformFunctions PlatformFunctions { get; }
 
         static DataTarget()
         {

@@ -9,7 +9,12 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class COMCallableIUnknown : COMHelper
+    /// <summary>
+    /// A class that allows you to build a custom IUnknown based interface to pass as a COM object.
+    /// This class is public to allow others to use this code and not duplicate it, but it is not
+    /// intended for general use.
+    /// </summary>
+    public unsafe class COMCallableIUnknown : COMHelper
     {
         private readonly GCHandle _handle;
         private int _refCount;
@@ -17,9 +22,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly Dictionary<Guid, IntPtr> _interfaces = new Dictionary<Guid, IntPtr>();
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
+        /// <summary>
+        /// The IUnknown pointer to this object.
+        /// </summary>
         public IntPtr IUnknownObject { get; }
+
+        /// <summary>
+        /// The IUnknown VTable for this object.
+        /// </summary>
         public IUnknownVTable IUnknown => **(IUnknownVTable**)IUnknownObject;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public COMCallableIUnknown()
         {
             _handle = GCHandle.Alloc(this);
@@ -43,9 +58,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _interfaces.Add(IUnknownGuid, IUnknownObject);
         }
 
-        public VTableBuilder AddInterface(Guid guid)
+        /// <summary>
+        /// Adds an IUnknown based interface to this COM object.
+        /// </summary>
+        /// <param name="guid">The GUID of this interface.</param>
+        /// <param name="validate">Whether or not to validate the delegates that
+        /// used to build this COM interface's methods.</param>
+        /// <returns>A VTableBuilder to construct this interface.  Note that until VTableBuilder.Complete
+        /// is called, the interface will not be registered.</returns>
+        public VTableBuilder AddInterface(Guid guid, bool validate)
         {
-            return new VTableBuilder(this, guid);
+#if DEBUG
+            validate = true;
+#endif
+
+            return new VTableBuilder(this, guid, validate);
         }
 
         internal void RegisterInterface(Guid guid, IntPtr clsPtr, List<Delegate> keepAlive)
@@ -85,9 +112,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return count;
         }
 
-        private int AddRefImpl(IntPtr self)
-        {
-            return Interlocked.Increment(ref _refCount);
-        }
+        private int AddRefImpl(IntPtr self) => Interlocked.Increment(ref _refCount);
     }
 }

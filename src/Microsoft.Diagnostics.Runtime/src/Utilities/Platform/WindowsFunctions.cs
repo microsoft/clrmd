@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return NativeMethods.FreeLibrary(module);
         }
 
-        public override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
+        internal override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             major = minor = revision = patch = 0;
 

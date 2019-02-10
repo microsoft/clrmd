@@ -7,6 +7,9 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
+    /// <summary>
+    /// Base class for COM related objects in ClrMD.
+    /// </summary>
     public abstract class COMHelper
     {
         protected const int S_OK = 0;
@@ -26,6 +29,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         protected delegate int QueryInterfaceDelegate(IntPtr self, ref Guid guid, out IntPtr ptr);
 
+        /// <summary>
+        /// Release an IUnknown pointer.
+        /// </summary>
+        /// <param name="pUnk">A pointer to the IUnknown interface to release.</param>
+        /// <returns>The result of pUnk->Release().</returns>
         public static unsafe int Release(IntPtr pUnk)
         {
             if (pUnk == IntPtr.Zero)

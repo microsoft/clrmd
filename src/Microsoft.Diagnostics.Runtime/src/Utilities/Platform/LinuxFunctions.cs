@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class LinuxFunctions : PlatformFunctions
     {
-        public override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
+        internal override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             //TODO
 

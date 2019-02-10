@@ -6,9 +6,12 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal abstract class PlatformFunctions
+    /// <summary>
+    /// A set of helper functions that are consistently implemented across platforms.
+    /// </summary>
+    public abstract class PlatformFunctions
     {
-        public abstract bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch);
+        internal abstract bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch);
         public abstract bool TryGetWow64(IntPtr proc, out bool result);
         public abstract IntPtr LoadLibrary(string lpFileName);
         public abstract bool FreeLibrary(IntPtr module);

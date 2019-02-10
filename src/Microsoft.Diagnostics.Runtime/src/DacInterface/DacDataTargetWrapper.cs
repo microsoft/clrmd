@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _modules = dataTarget.EnumerateModules().ToArray();
             Array.Sort(_modules, delegate(ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
 
-            VTableBuilder builder = AddInterface(IID_IDacDataTarget);
+            VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
             builder.AddMethod(new GetPointerSizeDelegate(GetPointerSize));
             builder.AddMethod(new GetImageBaseDelegate(GetImageBase));
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new RequestDelegate(Request));
             IDacDataTarget = builder.Complete();
 
-            builder = AddInterface(IID_IMetadataLocator);
+            builder = AddInterface(IID_IMetadataLocator, false);
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
         }
