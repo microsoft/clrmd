@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Microsoft.Diagnostics.Runtime.DacInterface
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A class that allows you to build a custom IUnknown based interface to pass as a COM object.

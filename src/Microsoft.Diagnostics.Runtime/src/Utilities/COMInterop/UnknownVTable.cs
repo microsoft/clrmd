@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime.DacInterface
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
 #pragma warning disable CS0169
 #pragma warning disable CS0649
