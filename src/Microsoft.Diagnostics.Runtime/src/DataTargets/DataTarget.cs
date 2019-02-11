@@ -158,6 +158,12 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns the ProcessId of the DataTarget.  May return uint.MaxValue if the underlying IDataReader does
+        /// not implement this functionality.
+        /// </summary>
+        public abstract uint ProcessId { get; }
+
+        /// <summary>
         /// The data reader for this instance.
         /// </summary>
         public abstract IDataReader DataReader { get; }

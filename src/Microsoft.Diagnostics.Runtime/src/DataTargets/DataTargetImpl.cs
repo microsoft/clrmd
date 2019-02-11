@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal class DataTargetImpl : DataTarget
     {
         private readonly IDataReader _dataReader;
+        private uint? _pid;
         private ClrInfo[] _versions;
         private ModuleInfo _native;
 
@@ -39,6 +40,23 @@ namespace Microsoft.Diagnostics.Runtime
                 return _native;
             }
         }
+
+        public override uint ProcessId
+        {
+            get
+            {
+                if (!_pid.HasValue)
+                {
+                    if (_dataReader is IDataReader2 reader2)
+                        _pid = reader2.ProcessId;
+                    else
+                        _pid = uint.MaxValue;
+                }
+
+                return _pid.Value;
+            }
+        }
+
 
         public override IDataReader DataReader => _dataReader;
 
