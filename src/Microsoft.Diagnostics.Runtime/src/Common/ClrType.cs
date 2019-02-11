@@ -16,17 +16,18 @@ namespace Microsoft.Diagnostics.Runtime
         protected internal abstract GCDesc GCDesc { get; }
 
         /// <summary>
-        /// Retrieves the first type handle in EnumerateMethodTables().  MethodTables
-        /// are unique to an AppDomain/Type pair, so when there are multiple domains
-        /// there will be multiple MethodTable for a class.
+        /// Retrieves the first type handle in <see cref="EnumerateMethodTables"/>.
+        /// <see cref="MethodTable"/> instances are unique to an AppDomain/Type pair,
+        /// so when there are multiple domains there will be multiple <see cref="MethodTable"/>
+        /// for a class.
         /// </summary>
         public abstract ulong MethodTable { get; }
 
         /// <summary>
-        /// Enumerates all MethodTable for this type in the process.  MethodTable
+        /// Enumerates all <see cref="MethodTable"/> for this type in the process. <see cref="MethodTable"/>
         /// are unique to an AppDomain/Type pair, so when there are multiple domains
-        /// there may be multiple MethodTable.  Note that even if a type could be
-        /// used in an AppDomain, that does not mean we actually have a MethodTable
+        /// there may be multiple <see cref="MethodTable"/>.  Note that even if a type could be
+        /// used in an AppDomain, that does not mean we actually have a <see cref="MethodTable"/>
         /// if the type hasn't been created yet.
         /// </summary>
         /// <returns>
@@ -46,21 +47,21 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string Name { get; }
 
         /// <summary>
-        /// GetSize returns the size in bytes for the total overhead of the object 'objRef'.
+        /// GetSize returns the size in bytes for the total overhead of the object <paramref name="objRef"/>.
         /// </summary>
         public abstract ulong GetSize(ulong objRef);
 
         /// <summary>
-        /// EnumeationRefsOfObject will call 'action' once for each object reference inside 'objRef'.
-        /// 'action' is passed the address of the outgoing refernece as well as an integer that
+        /// Calls <paramref name="action"/> once for each object reference inside <paramref name="objRef"/>.
+        /// <paramref name="action"/> is passed the address of the outgoing reference as well as an integer that
         /// represents the field offset.  While often this is the physical offset of the outgoing
-        /// refernece, abstractly is simply something that can be given to GetFieldForOffset to
+        /// reference, abstractly is simply something that can be given to <see cref="GetFieldForOffset"/> to
         /// return the field information for that object reference
         /// </summary>
         public abstract void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action);
 
         /// <summary>
-        /// Does the same as EnumerateRefsOfObject, but does additional bounds checking to ensure
+        /// Does the same as <see cref="EnumerateRefsOfObject"/>, but does additional bounds checking to ensure
         /// we don't loop forever with inconsistent data.
         /// </summary>
         public abstract void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action);
@@ -129,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the ElementType of this Type.  Can return ELEMENT_TYPE_VOID on error.
+        /// Returns the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
         /// </summary>
         public virtual ClrElementType ElementType
         {
@@ -161,8 +162,8 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IList<ClrInterface> Interfaces { get; }
 
         /// <summary>
-        /// Returns true if the finalization is suppressed for an object.  (The user program called
-        /// System.GC.SupressFinalize.  The behavior of this function is undefined if the object itself
+        /// Returns true if the finalization is suppressed for an object (the user program called
+        /// <see cref="GC.SuppressFinalize"/>). The behavior of this function is undefined if the object itself
         /// is not finalizable.
         /// </summary>
         public virtual bool IsFinalizeSuppressed(ulong obj)
@@ -197,6 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsProtected { get; }
 
         // Other attributes:
+
         /// <summary>
         /// Returns true if this class is abstract.
         /// </summary>
@@ -243,12 +245,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset);
 
         /// <summary>
-        /// Returns the field given by 'name', case sensitive.  Returns NULL if no such field name exists (or on error).
+        /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
         public abstract ClrInstanceField GetFieldByName(string name);
 
         /// <summary>
-        /// Returns the field given by 'name', case sensitive.  Returns NULL if no such field name exists (or on error).
+        /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
         public abstract ClrStaticField GetStaticFieldByName(string name);
 
@@ -406,7 +408,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="name">The name of the value to get (taken from GetEnumNames).</param>
         /// <param name="value">The value to write out.</param>
-        /// <returns>True if we successfully filled value, false if 'name' is not a part of the enumeration.</returns>
+        /// <returns>True if we successfully filled value, false if <paramref name="name"/> is not a part of the enumeration.</returns>
         public virtual bool TryGetEnumValue(string name, out int value)
         {
             throw new NotImplementedException();
@@ -418,7 +420,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="name">The name of the value to get (taken from GetEnumNames).</param>
         /// <param name="value">The value to write out.</param>
-        /// <returns>True if we successfully filled value, false if 'name' is not a part of the enumeration.</returns>
+        /// <returns>True if we successfully filled value, false if <paramref name="name"/> is not a part of the enumeration.</returns>
         public virtual bool TryGetEnumValue(string name, out object value)
         {
             throw new NotImplementedException();
