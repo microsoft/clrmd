@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.DacInterface
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// Builds an individual VTable for a COM object.
@@ -46,9 +46,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
                 object[] attrs = func.GetType().GetCustomAttributes(false);
                 if (attrs.Count(c => c is UnmanagedFunctionPointerAttribute) != 1)
-                    throw new InvalidOperationException();
-
-                if (func.Method.ReturnType != typeof(int))
                     throw new InvalidOperationException();
             }
 

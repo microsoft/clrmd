@@ -6,7 +6,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.DacInterface
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     public unsafe class CallableCOMWrapper : COMHelper, IDisposable
     {
