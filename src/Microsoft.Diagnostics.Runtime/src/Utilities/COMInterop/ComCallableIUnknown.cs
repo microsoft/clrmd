@@ -59,6 +59,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
+        /// AddRef.
+        /// </summary>
+        /// <returns>The new ref count.</returns>
+        public int AddRef() => AddRefImpl(IUnknownObject);
+
+        /// <summary>
+        /// Release.
+        /// </summary>
+        /// <returns>The new RefCount.</returns>
+        public int Release() => ReleaseImpl(IUnknownObject);
+
+        /// <summary>
         /// Adds an IUnknown based interface to this COM object.
         /// </summary>
         /// <param name="guid">The GUID of this interface.</param>
@@ -99,14 +111,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int count = Interlocked.Decrement(ref _refCount);
             if (count <= 0)
             {
-                foreach (IntPtr ptr in _interfaces.Values)
+                // Only free memory the first time we reach here.
+                if (_handle.IsAllocated)
                 {
-                    IntPtr* val = (IntPtr*)ptr;
-                    Marshal.FreeHGlobal(*val);
-                    Marshal.FreeHGlobal(ptr);
-                }
+                    foreach (IntPtr ptr in _interfaces.Values)
+                    {
+                        IntPtr* val = (IntPtr*)ptr;
+                        Marshal.FreeHGlobal(*val);
+                        Marshal.FreeHGlobal(ptr);
+                    }
 
-                _handle.Free();
+                    _handle.Free();
+                    _interfaces.Clear();
+                    _delegates.Clear();
+                }
             }
 
             return count;
