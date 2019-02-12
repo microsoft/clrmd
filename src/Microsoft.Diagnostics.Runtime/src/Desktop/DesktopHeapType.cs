@@ -489,8 +489,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (field.ElementType == ClrElementType.Unknown)
                         break;
 
-                    if (offset >= field.Offset && 
-                        offset < field.Offset + field.Size)
+                    if (field.Offset <= offset && offset < field.Offset + field.Size)
                     {
                         childField = field;
                         childFieldOffset = offset - field.Offset;
