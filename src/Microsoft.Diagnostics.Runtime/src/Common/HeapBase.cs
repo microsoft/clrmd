@@ -249,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (carefully)
             {
                 ClrSegment seg = GetSegmentByAddress(obj);
-                if (seg == null || obj + size > seg.End || !seg.IsLarge && size > 85000)
+                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
                     return s_emptyObjectSet;
             }
 
@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (carefully)
             {
                 ClrSegment seg = GetSegmentByAddress(obj);
-                if (seg == null || obj + size > seg.End || !seg.IsLarge && size > 85000)
+                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
                     return s_emptyObjectReferenceSet;
             }
 
