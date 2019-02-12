@@ -10,17 +10,28 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly List<ElfFileTableEntryPointers> _fileTable = new List<ElfFileTableEntryPointers>(4);
         private long _end;
+        private readonly Reader _vaReader;
 
         public string Path { get; }
         public long BaseAddress { get; private set; }
         public long Size => _end - BaseAddress;
 
-        public ElfLoadedImage(string path)
+        public ElfLoadedImage(Reader virtualAddressReader, string path)
         {
+            _vaReader = virtualAddressReader;
             Path = path;
         }
 
-        public void AddTableEntryPointers(ElfFileTableEntryPointers pointers)
+        public ElfFile Open()
+        {
+            ElfHeader? header = _vaReader.TryRead<ElfHeader>(BaseAddress);
+            if (!header.HasValue)
+                return null;
+
+            return header.Value.IsValid ? new ElfFile(header.Value, _vaReader, BaseAddress, true) : null;
+        }
+
+        internal void AddTableEntryPointers(ElfFileTableEntryPointers pointers)
         {
             _fileTable.Add(pointers);
 
@@ -33,9 +44,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _end = end;
         }
 
-        public override string ToString()
-        {
-            return Path;
-        }
+        public override string ToString() => Path;
     }
 }

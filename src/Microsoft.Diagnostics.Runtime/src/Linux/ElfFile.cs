@@ -49,6 +49,18 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
+        public byte[] BuildId
+        {
+            get
+            {
+                foreach (ElfNote note in Notes)
+                    if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
+                        return note.ReadContents(0, (int)note.Header.ContentSize);
+
+                return null;
+            }
+        }
+
         public ElfFile(Reader reader, long position = 0, bool virt = false)
         {
             _reader = reader;
@@ -60,13 +72,18 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             Header = reader.Read<ElfHeader>(position);
             Header.Validate(reader.DataSource.Name);
+        }
 
-#if DEBUG
-            LoadSections();
-            LoadAllSectionNames();
-            LoadProgramHeaders();
-            LoadNotes();
-#endif
+        internal ElfFile(ElfHeader header, Reader reader, long position = 0, bool virt = false)
+        {
+            _reader = reader;
+            _position = position;
+            _virtual = virt;
+
+            if (virt)
+                _virtualAddressReader = reader;
+
+            Header = header;
         }
 
         private void CreateVirtualAddressReader()

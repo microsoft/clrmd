@@ -40,21 +40,33 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfData Data => (ElfData)Ident[5];
 
+        public bool IsValid
+        {
+            get
+            {
+                if (Ident[0] != Magic0 ||
+                    Ident[1] != Magic1 ||
+                    Ident[2] != Magic2 ||
+                    Ident[3] != Magic3)
+                    return false;
+
+                return Data == ElfData.LittleEndian;
+            }
+        }
+
+
         public void Validate(string filename)
         {
-            if (string.IsNullOrWhiteSpace(filename))
-                filename = "This coredump";
-            else
-                filename = $"'{filename}'";
-
             if (Ident[0] != Magic0 ||
                 Ident[1] != Magic1 ||
                 Ident[2] != Magic2 ||
                 Ident[3] != Magic3)
-                throw new InvalidDataException($"{filename} does not contain a valid ELF header.");
+                throw new InvalidDataException($"{MakeFileName(filename)} does not contain a valid ELF header.");
 
             if (Data != ElfData.LittleEndian)
-                throw new InvalidDataException($"{filename} is BigEndian, which is unsupported");
+                throw new InvalidDataException($"{MakeFileName(filename)} is BigEndian, which is unsupported");
         }
+
+        private static string MakeFileName(string filename) => string.IsNullOrWhiteSpace(filename) ? "This coredump" : $"'{filename}'";
     }
 }

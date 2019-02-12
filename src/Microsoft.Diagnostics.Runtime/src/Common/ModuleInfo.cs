@@ -50,6 +50,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
+        /// </summary>
+        public byte[] BuildId { get; internal set; }
+
+        /// <summary>
         /// Whether the module is managed or not.
         /// </summary>
         public virtual bool IsManaged

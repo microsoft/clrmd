@@ -77,7 +77,8 @@ namespace Microsoft.Diagnostics.Runtime
                 FileName = img.Path,
                 FileSize = (uint)img.Size,
                 ImageBase = (ulong)img.BaseAddress,
-                IsRuntime = filename.Equals("libcoreclr.so", StringComparison.OrdinalIgnoreCase)
+                IsRuntime = filename.Equals("libcoreclr.so", StringComparison.OrdinalIgnoreCase),
+                BuildId = img.Open()?.BuildId
             };
         }
 

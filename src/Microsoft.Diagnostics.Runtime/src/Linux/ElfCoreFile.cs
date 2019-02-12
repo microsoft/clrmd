@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 start = end + 1;
 
                 if (!lookup.TryGetValue(path, out ElfLoadedImage image))
-                    image = lookup[path] = new ElfLoadedImage(path);
+                    image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, path);
 
                 image.AddTableEntryPointers(fileTable[i]);
             }
