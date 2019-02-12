@@ -238,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 Debug.Assert(type == GetObjectType(obj));
 
-            if (!type.ContainsPointers)
+            if (type == null || !type.ContainsPointers)
                 return s_emptyObjectSet;
 
             GCDesc gcdesc = type.GCDesc;
@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 Debug.Assert(type == GetObjectType(obj));
 
-            if (!type.ContainsPointers)
+            if (type == null || !type.ContainsPointers)
                 return s_emptyObjectReferenceSet;
 
             GCDesc gcdesc = type.GCDesc;
