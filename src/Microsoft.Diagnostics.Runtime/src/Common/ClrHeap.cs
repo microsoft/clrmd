@@ -160,11 +160,23 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
+        /// <summary>
+        /// Returns an enumerable sequence of stack roots from this heap.
+        /// </summary>
+        /// <param name="cancelToken">A token that allows cancellation of the operation.</param>
+        /// <returns>An enumerable sequence of stack roots from this heap.</returns>
+        /// <exception cref="NotImplementedException">Raised if the operation is not supported for this heap type.</exception>
         public virtual IEnumerable<ClrRoot> EnumerateStackRoots(CancellationToken cancelToken)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Returns an enumerable sequence of strong handles from this heap.
+        /// </summary>
+        /// <param name="cancelToken">A token that allows cancellation of the operation.</param>
+        /// <returns>An enumerable sequence of strong handles from this heap.</returns>
+        /// <exception cref="NotImplementedException">Raised if the operation is not supported for this heap type.</exception>
         public virtual IEnumerable<ClrHandle> EnumerateStrongHandles(CancellationToken cancelToken)
         {
             throw new NotImplementedException();
