@@ -27,6 +27,20 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _handle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
         }
 
+        public T? TryRead<T>(long position)
+            where T : struct
+        {
+            int size = Marshal.SizeOf(typeof(T));
+            EnsureSize(size);
+
+            int read = DataSource.Read(position, _buffer, 0, size);
+            if (read != size)
+                return null;
+
+            T result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
+            return result;
+        }
+
         public T Read<T>(long position)
             where T : struct
         {

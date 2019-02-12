@@ -11,7 +11,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class LiveDataReader : IDataReader
+    internal unsafe class LiveDataReader : IDataReader2
     {
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;
@@ -60,6 +60,8 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException("Dac architecture mismatch!");
                 }
         }
+
+        public uint ProcessId => (uint)_pid;
 
         public bool IsMinidump => false;
 

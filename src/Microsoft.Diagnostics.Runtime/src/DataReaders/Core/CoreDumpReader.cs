@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Linux;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoreDumpReader : IDataReader
+    internal class CoreDumpReader : IDataReader2
     {
         private readonly string _source;
         private readonly Stream _stream;
@@ -46,6 +46,17 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
+        public uint ProcessId
+        {
+            get
+            {
+                foreach (ElfPRStatus status in _core.EnumeratePRStatus())
+                    return status.PGrp;
+
+                return uint.MaxValue;
+            }
+        }
+
         public IEnumerable<uint> EnumerateAllThreads()
         {
             InitThreads();
@@ -66,7 +77,8 @@ namespace Microsoft.Diagnostics.Runtime
                 FileName = img.Path,
                 FileSize = (uint)img.Size,
                 ImageBase = (ulong)img.BaseAddress,
-                IsRuntime = filename.Equals("libcoreclr.so", StringComparison.OrdinalIgnoreCase)
+                IsRuntime = filename.Equals("libcoreclr.so", StringComparison.OrdinalIgnoreCase),
+                BuildId = img.Open()?.BuildId
             };
         }
 

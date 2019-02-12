@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class DbgEngDataReader : IDisposable, IDataReader
+    internal unsafe class DbgEngDataReader : IDisposable, IDataReader2
     {
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true;
@@ -102,6 +102,15 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
                 throw new ClrDiagnosticsException($"Could not attach to pid {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsException.HR.DebuggerError);
+            }
+        }
+
+        public uint ProcessId
+        {
+            get
+            {
+                int hr = _systemObjects.GetCurrentProcessSystemId(out uint id);
+                return hr == 0 ? id : uint.MaxValue;
             }
         }
 
