@@ -26,6 +26,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 msbuild.log
+src/Microsoft.Diagnostics.Runtime/Microsoft.Diagnostics.Runtime.xml
 
 # Visual Studio 2015
 .vs/
