@@ -356,6 +356,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool ReadPointer(ulong addr, out ulong value);
 
         protected internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
+        
+        protected internal abstract IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, ClrType type, bool carefully);
+        
         protected internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
 
         /// <summary>
@@ -365,6 +368,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// until I am convinced there's a good way to surface this.
         /// </summary>
         protected internal virtual long TotalObjects => -1;
+    }
+
+    public readonly struct ClrObjectReference
+    {
+        public int FieldOffset { get; }
+        public ulong Address { get; }
+        public ClrType TargetType { get; }
+
+        public ClrObjectReference(int fieldOffset, ulong address, ClrType targetType)
+        {
+            FieldOffset = fieldOffset;
+            Address = address;
+            TargetType = targetType;
+        }
+
+        public ClrObject Object => new ClrObject(Address, TargetType);
     }
 
     /// <summary>

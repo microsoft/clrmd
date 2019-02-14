@@ -80,6 +80,12 @@ namespace Microsoft.Diagnostics.Runtime
             return Heap.EnumerateObjectReferences(obj, this, carefully);
         }
 
+        public virtual IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, bool carefully = false)
+        {
+            Debug.Assert(Heap.GetObjectType(obj) == this);
+            return Heap.EnumerateObjectReferencesWithFields(obj, this, carefully);
+        }
+
         /// <summary>
         /// Returns true if the type CAN contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.

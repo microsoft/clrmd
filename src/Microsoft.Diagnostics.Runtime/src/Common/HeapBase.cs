@@ -12,6 +12,8 @@ namespace Microsoft.Diagnostics.Runtime
     internal abstract class HeapBase : ClrHeap
     {
         protected static readonly ClrObject[] s_emptyObjectSet = new ClrObject[0];
+        protected static readonly ClrObjectReference[] s_emptyObjectReferenceSet = new ClrObjectReference[0];
+
         private ulong _minAddr; // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.  
         private ulong _maxAddr;
         private ClrSegment[] _segments;
@@ -236,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 Debug.Assert(type == GetObjectType(obj));
 
-            if (!type.ContainsPointers)
+            if (type == null || !type.ContainsPointers)
                 return s_emptyObjectSet;
 
             GCDesc gcdesc = type.GCDesc;
@@ -247,13 +249,41 @@ namespace Microsoft.Diagnostics.Runtime
             if (carefully)
             {
                 ClrSegment seg = GetSegmentByAddress(obj);
-                if (seg == null || obj + size > seg.End || !seg.IsLarge && size > 85000)
+                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
                     return s_emptyObjectSet;
             }
 
             List<ClrObject> result = new List<ClrObject>();
             MemoryReader reader = GetMemoryReaderForAddress(obj);
             gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
+            return result;
+        }
+
+        protected internal override IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, ClrType type, bool carefully)
+        {
+            if (type == null)
+                type = GetObjectType(obj);
+            else
+                Debug.Assert(type == GetObjectType(obj));
+
+            if (type == null || !type.ContainsPointers)
+                return s_emptyObjectReferenceSet;
+
+            GCDesc gcdesc = type.GCDesc;
+            if (gcdesc == null)
+                return s_emptyObjectReferenceSet;
+
+            ulong size = type.GetSize(obj);
+            if (carefully)
+            {
+                ClrSegment seg = GetSegmentByAddress(obj);
+                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                    return s_emptyObjectReferenceSet;
+            }
+
+            List<ClrObjectReference> result = new List<ClrObjectReference>();
+            MemoryReader reader = GetMemoryReaderForAddress(obj);
+            gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObjectReference(offset, reference, GetObjectType(reference))));
             return result;
         }
 
