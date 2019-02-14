@@ -21,6 +21,17 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType GetObjectType(ulong objRef);
 
         /// <summary>
+        /// Gets a <see cref="ClrObject"/> for the given address on this heap.
+        /// </summary>
+        /// <remarks>
+        /// The returned object will have a <c>null</c> <see cref="ClrObject.Type"/> if objRef does not point to
+        /// a valid managed object.
+        /// </remarks>
+        /// <param name="objRef"></param>
+        /// <returns></returns>
+        public ClrObject GetObject(ulong objRef) => ClrObject.Create(objRef, GetObjectType(objRef));
+
+        /// <summary>
         /// Returns whether this version of CLR has component MethodTables.  Component MethodTables were removed from
         /// desktop CLR in v4.6, and do not exist at all on .Net Native.  If this method returns false, all component
         /// MethodTables will be 0, and expected to be 0 when an argument to a function.

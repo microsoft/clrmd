@@ -100,37 +100,77 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
+
             long totalObjects = Heap.TotalObjects;
             long lastObjectReported = 0;
 
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
 
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks;
-            ObjectSet processedObjects;
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
 
-            if (parallel)
-                processedObjects = new ParallelObjectSet(Heap);
+            ObjectSet processedObjects = parallel 
+                ? new ParallelObjectSet(Heap) 
+                : new ObjectSet(Heap);
 
-            else
-                processedObjects = new ObjectSet(Heap);
+            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = parallel
+                ? new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks]
+                : null;
 
             int initial = 0;
-            tasks = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks];
 
             foreach (ClrHandle handle in Heap.EnumerateStrongHandles())
             {
                 Debug.Assert(handle.HandleType != HandleType.Dependent);
                 Debug.Assert(handle.Object != 0);
 
-                if (processedObjects.Contains(handle.Object))
-                    continue;
+                GCRootPath? gcRootPath = ProcessRoot(handle.Object, handle.Type, () => GetHandleRoot(handle));
 
-                Debug.Assert(Heap.GetObjectType(handle.Object) == handle.Type);
+                if (gcRootPath != null)
+                    yield return gcRootPath.Value;
+            }
+
+            foreach (ClrRoot root in Heap.EnumerateStackRoots())
+            {
+                GCRootPath? gcRootPath = ProcessRoot(root.Object, root.Type, () => root);
+
+                if (gcRootPath != null)
+                    yield return gcRootPath.Value;
+            }
+
+            if (parallel)
+            {
+                foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
+                {
+                    ReportObjectCount(processedObjects.Count);
+                    yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
+                }
+            }
+
+            ReportObjectCount(totalObjects);
+
+            yield break;
+
+            GCRootPath? ProcessRoot(ulong rootRef, ClrType rootType, Func<ClrRoot> rootFunc)
+            {
+                if (processedObjects.Contains(rootRef))
+                    return null;
+
+                Debug.Assert(Heap.GetObjectType(rootRef) == rootType);
+
+                var rootObject = ClrObject.Create(rootRef, rootType);
+
+                GCRootPath? result = null;
 
                 if (parallel)
                 {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, handle, target, unique, cancelToken);
+                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = Task.Run(
+                        () =>
+                            {
+                                LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
+                                return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path == null ? null : rootFunc());
+                            },
+                        cancelToken);
+
                     if (initial < tasks.Length)
                     {
                         tasks[initial++] = task;
@@ -142,68 +182,28 @@ namespace Microsoft.Diagnostics.Runtime
                         tasks[i] = task;
 
                         if (completed.Result.Item1 != null)
-                            yield return new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
+                            result = new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
                     }
                 }
                 else
                 {
-                    LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(handle.Object, handle.Type), target, unique, false, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
-                        yield return new GCRootPath {Root = GetHandleRoot(handle), Path = path.ToArray()};
+                        result = new GCRootPath {Root = rootFunc(), Path = path.ToArray()};
                 }
 
-                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                ReportObjectCount(processedObjects.Count);
+
+                return result;
             }
 
-            foreach (ClrRoot root in Heap.EnumerateStackRoots())
+            void ReportObjectCount(long curr)
             {
-                if (!processedObjects.Contains(root.Object))
+                if (curr != lastObjectReported)
                 {
-                    Debug.Assert(Heap.GetObjectType(root.Object) == root.Type);
-
-                    if (parallel)
-                    {
-                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = PathToParallel(processedObjects, knownEndPoints, root, target, unique, cancelToken);
-                        if (initial < tasks.Length)
-                        {
-                            tasks[initial++] = task;
-                        }
-                        else
-                        {
-                            int i = Task.WaitAny(tasks);
-                            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> completed = tasks[i];
-                            tasks[i] = task;
-
-                            if (completed.Result.Item1 != null)
-                                yield return new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
-                        }
-                    }
-                    else
-                    {
-                        LinkedList<ClrObject> path = PathTo(processedObjects, knownEndPoints, new ClrObject(root.Object, root.Type), target, unique, false, cancelToken).FirstOrDefault();
-                        if (path != null)
-                            yield return new GCRootPath {Root = root, Path = path.ToArray()};
-                    }
-
-                    ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
+                    lastObjectReported = curr;
+                    ProgressUpdate?.Invoke(this, lastObjectReported, totalObjects);
                 }
-            }
-
-            foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
-            {
-                ReportObjectCount(processedObjects.Count, ref lastObjectReported, totalObjects);
-                yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
-            }
-
-            ReportObjectCount(totalObjects, ref lastObjectReported, totalObjects);
-        }
-
-        private void ReportObjectCount(long curr, ref long lastObjectReported, long totalObjects)
-        {
-            if (curr != lastObjectReported)
-            {
-                lastObjectReported = curr;
-                ProgressUpdate?.Invoke(this, lastObjectReported, totalObjects);
             }
         }
 
@@ -232,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime
         public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
-            return PathTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, false, cancelToken).FirstOrDefault();
+            return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
         }
 
         /// <summary>
@@ -246,13 +246,12 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
         {
             Heap.BuildDependentHandleMap(cancelToken);
-            return PathTo(
+            return PathsTo(
                 new ObjectSet(Heap),
                 new Dictionary<ulong, LinkedListNode<ClrObject>>(),
                 new ClrObject(source, Heap.GetObjectType(source)),
                 target,
                 unique,
-                false,
                 cancelToken);
         }
 
@@ -279,52 +278,12 @@ namespace Microsoft.Diagnostics.Runtime
             Heap.ClearRootCache();
         }
 
-        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(
-            ObjectSet seen,
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            ClrHandle handle,
-            ulong target,
-            bool unique,
-            CancellationToken cancelToken)
-        {
-            Debug.Assert(IsFullyCached);
-
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
-                () =>
-                    {
-                        LinkedList<ClrObject> path = PathTo(seen, knownEndPoints, ClrObject.Create(handle.Object, handle.Type), target, unique, true, cancelToken).FirstOrDefault();
-                        return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path != null ? GetHandleRoot(handle) : null);
-                    });
-
-            t.Start();
-            return t;
-        }
-
-        private Task<Tuple<LinkedList<ClrObject>, ClrRoot>> PathToParallel(
-            ObjectSet seen,
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            ClrRoot root,
-            ulong target,
-            bool unique,
-            CancellationToken cancelToken)
-        {
-            Debug.Assert(IsFullyCached);
-
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>> t = new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>(
-                () => new Tuple<LinkedList<ClrObject>, ClrRoot>(
-                    PathTo(seen, knownEndPoints, ClrObject.Create(root.Object, root.Type), target, unique, true, cancelToken).FirstOrDefault(),
-                    root));
-            t.Start();
-            return t;
-        }
-
-        private IEnumerable<LinkedList<ClrObject>> PathTo(
+        private IEnumerable<LinkedList<ClrObject>> PathsTo(
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
             ClrObject source,
             ulong target,
             bool unique,
-            bool parallel,
             CancellationToken cancelToken)
         {
             seen.Add(source.Address);
@@ -337,7 +296,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (source.Address == target)
             {
                 path.AddLast(new PathEntry {Object = source});
-                yield return GetResult(knownEndPoints, path, null, target);
+                yield return GetResult();
 
                 yield break;
             }
@@ -346,18 +305,18 @@ namespace Microsoft.Diagnostics.Runtime
                 new PathEntry
                 {
                     Object = source,
-                    Todo = GetRefs(seen, knownEndPoints, source, target, unique, parallel, cancelToken, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+                    Todo = GetRefs(source, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
                 });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
             if (foundTarget)
             {
-                path.AddLast(new PathEntry {Object = ClrObject.Create(target, Heap.GetObjectType(target))});
-                yield return GetResult(knownEndPoints, path, null, target);
+                path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
+                yield return GetResult();
             }
             else if (foundEnding != null)
             {
-                yield return GetResult(knownEndPoints, path, foundEnding, target);
+                yield return GetResult(foundEnding);
             }
 
             while (path.Count > 0)
@@ -394,7 +353,7 @@ namespace Microsoft.Diagnostics.Runtime
                         PathEntry nextPathEntry = new PathEntry
                         {
                             Object = next,
-                            Todo = GetRefs(seen, knownEndPoints, next, target, unique, parallel, cancelToken, out foundTarget, out foundEnding)
+                            Todo = GetRefs(next, out foundTarget, out foundEnding)
                         };
 
                         path.AddLast(nextPathEntry);
@@ -402,10 +361,10 @@ namespace Microsoft.Diagnostics.Runtime
                         // If we found the target object while enumerating refs of the current object, we are done.
                         if (foundTarget)
                         {
-                            path.AddLast(new PathEntry {Object = ClrObject.Create(target, Heap.GetObjectType(target))});
+                            path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
                             TraceFullPath("FoundTarget", path);
 
-                            yield return GetResult(knownEndPoints, path, null, target);
+                            yield return GetResult();
 
                             path.RemoveLast();
                             path.RemoveLast();
@@ -413,7 +372,7 @@ namespace Microsoft.Diagnostics.Runtime
                         else if (foundEnding != null)
                         {
                             TraceFullPath(path, foundEnding);
-                            yield return GetResult(knownEndPoints, path, foundEnding, target);
+                            yield return GetResult(foundEnding);
 
                             path.RemoveLast();
                         }
@@ -423,87 +382,74 @@ namespace Microsoft.Diagnostics.Runtime
                     } while (last.Todo.Count > 0);
                 }
             }
-        }
 
-        private Stack<ClrObject> GetRefs(
-            ObjectSet seen,
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            ClrObject obj,
-            ulong target,
-            bool unique,
-            bool parallel,
-            CancellationToken cancelToken,
-            out bool foundTarget,
-            out LinkedListNode<ClrObject> foundEnding)
-        {
-            // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
-            //Debug.Assert(obj.Type != null);
-            //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
-
-            Stack<ClrObject> result = s_emptyStack;
-
-            bool found = false;
-            LinkedListNode<ClrObject> ending = null;
-            if (obj.ContainsPointers)
+            Stack<ClrObject> GetRefs(
+                ClrObject obj,
+                out bool found,
+                out LinkedListNode<ClrObject> ending)
             {
-                foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
+                // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
+                //Debug.Assert(obj.Type != null);
+                //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
+
+                Stack<ClrObject> result = null;
+
+                found = false;
+                ending = null;
+                if (obj.ContainsPointers)
                 {
-                    cancelToken.ThrowIfCancellationRequested();
-                    if (ending == null && knownEndPoints != null)
+                    foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
                     {
-                        lock (knownEndPoints)
+                        cancelToken.ThrowIfCancellationRequested();
+                        if (ending == null && knownEndPoints != null)
                         {
-                            if (unique)
+                            lock (knownEndPoints)
                             {
-                                if (knownEndPoints.ContainsKey(reference.Address))
-                                    continue;
-                            }
-                            else
-                            {
-                                knownEndPoints.TryGetValue(reference.Address, out ending);
+                                if (unique)
+                                {
+                                    if (knownEndPoints.ContainsKey(reference.Address))
+                                        continue;
+                                }
+                                else
+                                {
+                                    knownEndPoints.TryGetValue(reference.Address, out ending);
+                                }
                             }
                         }
-                    }
 
-                    if (!seen.Contains(reference.Address))
-                    {
-                        if (result == s_emptyStack)
-                            result = new Stack<ClrObject>();
+                        if (!seen.Contains(reference.Address))
+                        {
+                            if (result is null)
+                                result = new Stack<ClrObject>();
 
-                        result.Push(reference);
-                        if (reference.Address == target)
-                            found = true;
+                            result.Push(reference);
+                            if (reference.Address == target)
+                                found = true;
+                        }
                     }
                 }
+
+                return result ?? s_emptyStack;
             }
 
-            foundTarget = found;
-            foundEnding = ending;
+            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> ending = null)
+            {
+                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
 
-            return result;
+                for (; ending != null; ending = ending.Next)
+                    result.AddLast(ending.Value);
+
+                if (knownEndPoints != null)
+                    lock (knownEndPoints)
+                        for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
+                            if (node.Value.Address != target)
+                                knownEndPoints[node.Value.Address] = node;
+
+                return result;
+            }
         }
 
-        private LinkedList<ClrObject> GetResult(
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
-            LinkedList<PathEntry> path,
-            LinkedListNode<ClrObject> ending,
-            ulong target)
-        {
-            LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
-
-            for (; ending != null; ending = ending.Next)
-                result.AddLast(ending.Value);
-
-            if (knownEndPoints != null)
-                lock (knownEndPoints)
-                    for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
-                        if (node.Value.Address != target)
-                            knownEndPoints[node.Value.Address] = node;
-
-            return result;
-        }
-
-        private ClrRoot GetHandleRoot(ClrHandle handle)
+        private static ClrRoot GetHandleRoot(ClrHandle handle)
         {
             GCRootKind kind = GCRootKind.Strong;
 
@@ -531,12 +477,12 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [Conditional("GCROOTTRACE")]
-        private void TraceFullPath(LinkedList<PathEntry> path, LinkedListNode<ClrObject> foundEnding)
+        private static void TraceFullPath(LinkedList<PathEntry> path, LinkedListNode<ClrObject> foundEnding)
         {
             Debug.WriteLine($"FoundEnding: {string.Join(" ", path.Select(p => p.Object.ToString()))} {string.Join(" ", NodeToList(foundEnding))}");
         }
 
-        private List<string> NodeToList(LinkedListNode<ClrObject> tmp)
+        private static List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
             List<string> list = new List<string>();
             for (; tmp != null; tmp = tmp.Next)
@@ -552,7 +498,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [Conditional("GCROOTTRACE")]
-        private void TraceFullPath(string prefix, LinkedList<PathEntry> path)
+        private static void TraceFullPath(string prefix, LinkedList<PathEntry> path)
         {
             if (!string.IsNullOrWhiteSpace(prefix))
                 prefix += ": ";

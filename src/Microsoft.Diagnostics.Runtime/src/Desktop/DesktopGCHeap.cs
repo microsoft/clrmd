@@ -285,7 +285,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _dependentHandles = null;
         }
 
-        public override bool AreRootsCached => (_stackwalkPolicy == ClrRootStackwalkPolicy.SkipStack || _stackCache != null && _currentStackCache == StackwalkPolicy)
+        public override bool AreRootsCached => (_stackwalkPolicy == ClrRootStackwalkPolicy.SkipStack || (_stackCache != null && _currentStackCache == StackwalkPolicy))
             && _strongHandles != null;
 
         private static int GetHandleOrder(HandleType handleType)
@@ -1334,7 +1334,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Debug.Assert(_dependentHandles != null);
             if (_dependentHandles.TryGetValue(obj, out List<ulong> values))
-                result = result.Union(values.Select(v => ClrObject.Create(v, GetObjectType(v))));
+                result = result.Union(values.Select(v => GetObject(v)));
 
             return result;
         }
@@ -1344,7 +1344,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             for (uint i = offset; i < offset + count; i++)
             {
                 ulong obj = _gcRefs[i];
-                yield return ClrObject.Create(obj, GetObjectType(obj));
+                yield return GetObject(obj);
             }
         }
 
