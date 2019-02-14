@@ -3,25 +3,32 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class HandleRoot : ClrRoot
     {
-        public HandleRoot(ulong addr, ulong obj, ClrType type, HandleType hndType, GCRootKind kind, ClrAppDomain domain)
+        private static readonly Dictionary<HandleType, string> s_nameByHandleType = Enum.GetValues(typeof(HandleType))
+            .Cast<HandleType>()
+            .ToDictionary(o => o, o => $"{o} handle");
+
+        public HandleRoot(ulong addr, ulong obj, ClrType type, HandleType handleType, GCRootKind kind, ClrAppDomain domain)
         {
-            Name = Enum.GetName(typeof(HandleType), hndType) + " handle";
             Address = addr;
             Object = obj;
             Kind = kind;
             Type = type;
+            HandleType = handleType;
             AppDomain = domain;
         }
 
         public override ClrAppDomain AppDomain { get; }
         public override bool IsPinned => Kind == GCRootKind.Pinning || Kind == GCRootKind.AsyncPinning;
         public override GCRootKind Kind { get; }
-        public override string Name { get; }
+        public override string Name => s_nameByHandleType[HandleType];
         public override ClrType Type { get; }
+        public HandleType HandleType { get; }
     }
 }

@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 int offset = GetOffset(obj, seg);
 
-                lock (seg.Objects.SyncRoot)
+                lock (seg.Objects)
                     return seg.Objects[offset];
             }
 
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 int offset = GetOffset(obj, seg);
 
-                lock (seg.Objects.SyncRoot)
+                lock (seg.Objects)
                 {
                     if (seg.Objects[offset])
                     {
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (GetSegment(obj, out HeapHashSegment seg))
             {
                 int offset = GetOffset(obj, seg);
-                lock (seg.Objects.SyncRoot)
+                lock (seg.Objects)
                 {
                     if (seg.Objects[offset])
                     {

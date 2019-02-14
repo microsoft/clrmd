@@ -477,26 +477,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
         {
-            int ps = DesktopHeap.PointerSize;
-            int offset = fieldOffset;
-
             if (!IsArray)
             {
+                int offset = fieldOffset;
+
                 if (!inner)
-                    offset -= ps;
+                    offset -= DesktopHeap.PointerSize;
 
                 foreach (ClrInstanceField field in Fields)
                 {
-                    if (field.Offset <= offset)
-                    {
-                        int size = field.Size;
+                    if (field.ElementType == ClrElementType.Unknown)
+                        break;
 
-                        if (offset < field.Offset + size)
-                        {
-                            childField = field;
-                            childFieldOffset = offset - field.Offset;
-                            return true;
-                        }
+                    if (field.Offset <= offset && offset < field.Offset + field.Size)
+                    {
+                        childField = field;
+                        childFieldOffset = offset - field.Offset;
+                        return true;
                     }
                 }
             }
