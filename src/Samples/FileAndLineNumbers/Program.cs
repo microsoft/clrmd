@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
+using SharpPdb.Managed;
 
 class Program
 {
@@ -20,7 +21,7 @@ class Program
             foreach (ClrThread thread in runtime.Threads)
             {
                 Console.WriteLine("Thread {0:x}:", thread.OSThreadId);
-                
+
                 foreach (ClrStackFrame frame in thread.StackTrace)
                 {
                     if (frame.Kind == ClrStackFrameType.Runtime)
@@ -46,37 +47,34 @@ struct FileAndLineNumber
 
 static class Extensions
 {
-    static Dictionary<PdbInfo, PdbReader> s_pdbReaders = new Dictionary<PdbInfo, PdbReader>();
+    static Dictionary<PdbInfo, IPdbFile> s_pdbReaders = new Dictionary<PdbInfo, IPdbFile>();
     public static FileAndLineNumber GetSourceLocation(this ClrStackFrame frame)
     {
-        PdbReader reader = GetReaderForFrame(frame);
+        IPdbFile reader = GetReaderForFrame(frame);
         if (reader == null)
             return new FileAndLineNumber();
-        
-        PdbFunction function = reader.GetFunctionFromToken(frame.Method.MetadataToken);
+
+        IPdbFunction function = reader.GetFunctionFromToken((int)frame.Method.MetadataToken);
         int ilOffset = FindIlOffset(frame);
 
         return FindNearestLine(function, ilOffset);
     }
 
-    private static FileAndLineNumber FindNearestLine(PdbFunction function, int ilOffset)
+    private static FileAndLineNumber FindNearestLine(IPdbFunction function, int ilOffset)
     {
         int distance = int.MaxValue;
         FileAndLineNumber nearest = new FileAndLineNumber();
 
-        foreach (PdbSequencePointCollection sequenceCollection in function.SequencePoints)
+        foreach (IPdbSequencePoint point in function.SequencePoints)
         {
-            foreach (PdbSequencePoint point in sequenceCollection.Lines)
+            int dist = (int)Math.Abs(point.Offset - ilOffset);
+            if (dist < distance)
             {
-                int dist = (int)Math.Abs(point.Offset - ilOffset);
-                if (dist < distance)
-                {
-                    nearest.File = sequenceCollection.File.Name;
-                    nearest.Line = (int)point.LineBegin;
-                }
-                
-                distance = dist;
+                nearest.File = point.Source.Name;
+                nearest.Line = point.StartLine;
             }
+
+            distance = dist;
         }
 
         return nearest;
@@ -99,14 +97,14 @@ static class Extensions
 
         return last;
     }
-    
 
-    private static PdbReader GetReaderForFrame(ClrStackFrame frame)
+
+    private static IPdbFile GetReaderForFrame(ClrStackFrame frame)
     {
         ClrModule module = frame.Method?.Type?.Module;
         PdbInfo info = module?.Pdb;
 
-        PdbReader reader = null;
+        IPdbFile reader = null;
         if (info != null)
         {
             if (!s_pdbReaders.TryGetValue(info, out reader))
@@ -114,7 +112,7 @@ static class Extensions
                 SymbolLocator locator = GetSymbolLocator(module);
                 string pdbPath = locator.FindPdb(info);
                 if (pdbPath != null)
-                    reader = new PdbReader(pdbPath);
+                    reader = PdbReader.OpenPdb(pdbPath);
 
                 s_pdbReaders[info] = reader;
             }

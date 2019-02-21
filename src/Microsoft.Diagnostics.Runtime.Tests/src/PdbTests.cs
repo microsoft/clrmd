@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
+using SharpPdb.Managed;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -43,10 +44,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             PdbReader.GetPdbProperties(TestTargets.NestedException.Pdb, out Guid pdbSignature, out int pdbAge);
 
             // Ensure we get the same answer a different way.
-            using (PdbReader pdbReader = new PdbReader(TestTargets.NestedException.Pdb))
+            using (IPdbFile pdbFile = PdbReader.OpenPdb(TestTargets.NestedException.Pdb))
             {
-                Assert.Equal(pdbAge, pdbReader.Age);
-                Assert.Equal(pdbSignature, pdbReader.Signature);
+                Assert.Equal(pdbAge, pdbFile.Age);
+                Assert.Equal(pdbSignature, pdbFile.Guid);
             }
 
             // Ensure the PEFile has the same signature/age.
@@ -68,21 +69,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrThread thread = runtime.GetMainThread();
 
                 HashSet<int> sourceLines = new HashSet<int>();
-                using (PdbReader reader = new PdbReader(TestTargets.NestedException.Pdb))
+                using (IPdbFile reader = PdbReader.OpenPdb(TestTargets.NestedException.Pdb))
                 {
-                    Assert.Equal(TestTargets.NestedException.Source, reader.Sources.Single().Name, true);
+                    var sources = reader.Functions.SelectMany(f => f.SequencePoints).Select(sp => sp.Source).Unique();
 
-                    IEnumerable<PdbFunction> functions = from frame in thread.StackTrace
+                    Assert.Single(sources);
+                    Assert.Equal(TestTargets.NestedException.Source, sources.Single().Name, true);
+
+                    IEnumerable<IPdbFunction> functions = from frame in thread.StackTrace
                                     where frame.Kind != ClrStackFrameType.Runtime
-                                    select reader.GetFunctionFromToken(frame.Method.MetadataToken);
+                                    select reader.GetFunctionFromToken((int)frame.Method.MetadataToken);
 
-                    foreach (PdbFunction function in functions)
-                    {
-                        PdbSequencePointCollection sourceFile = function.SequencePoints.Single();
-
-                        foreach (int line in sourceFile.Lines.Select(l => l.LineBegin))
+                    foreach (IPdbFunction function in functions)
+                        foreach (int line in function.SequencePoints.Select(sp => sp.StartLine))
                             sourceLines.Add(line);
-                    }
                 }
 
                 int curr = 0;
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.Modules.Where(m => m.Name.Equals(TestTargets.NestedException.Executable, StringComparison.OrdinalIgnoreCase)).Single();
                 ClrType type = module.GetTypeByName("Program");
 
-                using (PdbReader pdb = new PdbReader(TestTargets.NestedException.Pdb))
+                using (IPdbFile pdb = PdbReader.OpenPdb(TestTargets.NestedException.Pdb))
                 {
                     foreach (ClrMethod method in type.Methods)
                     {
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         if (method.Type != type || method.IsConstructor || method.IsClassConstructor)
                             continue;
 
-                        Assert.NotNull(pdb.GetFunctionFromToken(method.MetadataToken));
+                        Assert.NotNull(pdb.GetFunctionFromToken((int)method.MetadataToken));
                     }
                 }
             }

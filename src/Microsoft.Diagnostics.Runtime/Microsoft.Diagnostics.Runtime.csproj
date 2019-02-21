@@ -33,4 +33,8 @@
       <PackagePath></PackagePath>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpPdb" Version="1.0.1" />
+  </ItemGroup>
 </Project>

@@ -2,14 +2,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net461;netcoreapp2.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- This _IS_ a Unit Test Project, but because of build_test_assets.cmd, we don't want to run as part of CI right now -->
     <IsUnitTestProject Condition="'$(ContinuousIntegrationBuild)' == 'true'">false</IsUnitTestProject>
 
-    <!-- 
-      We would need to download 32bit dotnet cli, which would add extra time to PR runs 
-      Testing 64bit only on Desktop sufficiently covers our interop code paths.  
+    <!--
+      We would need to download 32bit dotnet cli, which would add extra time to PR runs
+      Testing 64bit only on Desktop sufficiently covers our interop code paths.
     -->
     <TestArchitectures Condition="'$(TargetFramework)' == 'net46'">x64;x86</TestArchitectures>
 
