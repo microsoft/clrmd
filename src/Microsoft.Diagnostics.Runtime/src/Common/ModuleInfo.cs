@@ -46,7 +46,24 @@ namespace Microsoft.Diagnostics.Runtime
         [Obsolete]
         public PEFile GetPEFile()
         {
-            return PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), true);
+            return PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), virt: true);
+        }
+
+        /// <summary>
+        /// Returns a PEImage from a stream constructed using instance fields of this object.
+        /// If the PEImage cannot be constructed, null is returned.
+        /// </summary>
+        /// <returns></returns>
+        public PEImage GetPEImage()
+        {
+            try
+            {
+                return new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>

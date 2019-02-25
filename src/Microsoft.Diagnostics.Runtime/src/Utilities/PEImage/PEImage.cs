@@ -32,6 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly Lazy<List<SectionHeader>> _sections;
         private readonly Lazy<List<PdbInfo>> _pdbs;
         private readonly Lazy<Interop.IMAGE_DATA_DIRECTORY[]> _directories;
+        private readonly Lazy<ResourceEntry> _resources;
 
         private Interop.IMAGE_DATA_DIRECTORY GetDirectory(int index) => _directories.Value[index];
         private int HeaderOffset => _peHeaderOffset + sizeof(uint);
@@ -62,18 +63,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _virt = isVirtual;
             Stream = stream;
 
-            ushort? dosHeaderMagic = Read<ushort>(0);
+            ushort? dosHeaderMagic = TryRead<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
             {
                 IsValid = false;
             }
             else
             {
-                _peHeaderOffset = Read<int>(PESignatureOffsetLocation) ?? 0;
+                _peHeaderOffset = TryRead<int>(PESignatureOffsetLocation) ?? 0;
                 uint? peSignature = null;
 
                 if (_peHeaderOffset != 0)
-                    peSignature = Read<uint>(_peHeaderOffset);
+                    peSignature = TryRead<uint>(_peHeaderOffset);
 
                 IsValid = peSignature.HasValue && peSignature.Value == ExpectedPESignature;
             }
@@ -84,7 +85,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _directories = new Lazy<Interop.IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
             _sections = new Lazy<List<SectionHeader>>(ReadSections);
             _pdbs = new Lazy<List<PdbInfo>>(ReadPdbs);
+            _resources = new Lazy<ResourceEntry>(CreateResourceRoot);
         }
+
+        internal int ResourceVirtualAddress => (int)GetDirectory(2).VirtualAddress;
+
+        /// <summary>
+        /// Returns the root resource node of this PEImage.
+        /// </summary>
+        public ResourceEntry Resources => _resources.Value;
 
         /// <summary>
         /// The underlying stream.
@@ -210,6 +219,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return read;
         }
 
+        private ResourceEntry CreateResourceRoot()
+        {
+            return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
+        }
 
         private List<SectionHeader> ReadSections()
         {
@@ -224,13 +237,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SeekTo(ImageDataDirectoryOffset);
 
             // Sanity check, there's a null row at the end of the data directory table
-            ulong? zero = Read<ulong>();
+            ulong? zero = TryRead<ulong>();
             if (zero != 0)
                 return sections;
 
             for (int i = 0; i < header.NumberOfSections; i++)
             {
-                IMAGE_SECTION_HEADER? sectionHdr = Read<IMAGE_SECTION_HEADER>();
+                IMAGE_SECTION_HEADER? sectionHdr = TryRead<IMAGE_SECTION_HEADER>();
                 if (sectionHdr.HasValue)
                     sections.Add(new SectionHeader(sectionHdr.Value));
             }
@@ -259,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 SeekTo(offset);
                 for (int i = 0; i < count; i++)
                 {
-                    IMAGE_DEBUG_DIRECTORY? entryRead = Read<IMAGE_DEBUG_DIRECTORY>();
+                    IMAGE_DEBUG_DIRECTORY? entryRead = TryRead<IMAGE_DEBUG_DIRECTORY>();
                     if (entryRead.HasValue)
                     {
                         IMAGE_DEBUG_DIRECTORY tmp = entryRead.Value;
@@ -273,11 +286,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     int ptr = tmp.Item1;
                     int size = tmp.Item2;
 
-                    int? cvSig = Read<int>(ptr);
+                    int? cvSig = TryRead<int>(ptr);
                     if (cvSig.HasValue && cvSig.Value == CV_INFO_PDB70.PDB70CvSignature)
                     {
-                        Guid guid = Read<Guid>() ?? default;
-                        int age = Read<int>() ?? -1;
+                        Guid guid = TryRead<Guid>() ?? default;
+                        int age = TryRead<int>() ?? -1;
 
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
@@ -318,25 +331,47 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return Encoding.ASCII.GetString(buffer, 0, len);
         }
 
-        private T? Read<T>() where T : struct
+        private T? TryRead<T>() where T : struct
         {
-            return Read<T>(_offset);
+            return TryRead<T>(_offset);
         }
 
-        private T? Read<T>(int offset) where T : struct
+        private T? TryRead<T>(int offset) where T : struct
         {
             int size = Marshal.SizeOf(typeof(T));
             byte[] buffer = GetBuffer(size);
 
             SeekTo(offset);
-            if (Stream.Read(buffer, 0, size) != size)
+            int result = Stream.Read(buffer, 0, size);
+            _offset = offset + result;
+
+            if (result != size)
                 return null;
 
-            _offset = offset + size;
             fixed (byte* tmp = buffer)
                 return (T)Marshal.PtrToStructure(new IntPtr(tmp), typeof(T));
         }
-        
+
+        internal T Read<T>(ref int offset) where T : struct
+        {
+            int size = Marshal.SizeOf(typeof(T));
+            byte[] buffer = GetBuffer(size);
+
+            SeekTo(offset);
+            int result = Stream.Read(buffer, 0, size);
+            _offset = offset + result;
+            offset += result;
+
+            if (result != size)
+                return default;
+
+            fixed (byte* tmp = buffer)
+                return (T)Marshal.PtrToStructure(new IntPtr(tmp), typeof(T));
+        }
+
+
+        internal T Read<T>(int offset) where T : struct => Read<T>(ref offset);
+
         private byte[] GetBuffer(int size)
         {
             if (size <= _buffer.Length)
@@ -359,7 +394,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!IsValid)
                 return null;
 
-            IMAGE_FILE_HEADER? header = Read<IMAGE_FILE_HEADER>(HeaderOffset);
+            IMAGE_FILE_HEADER? header = TryRead<IMAGE_FILE_HEADER>(HeaderOffset);
             return header.HasValue ? new ImageFileHeader(header.Value) : null;
         }
 
@@ -372,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             SeekTo(DataDirectoryOffset);
             for (int i = 0; i < directories.Length; i++)
-                directories[i] = Read<Interop.IMAGE_DATA_DIRECTORY>() ?? default;
+                directories[i] = TryRead<Interop.IMAGE_DATA_DIRECTORY>() ?? default;
 
             return directories;
         }
@@ -382,7 +417,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!IsValid)
                 return null;
 
-            IMAGE_OPTIONAL_HEADER_AGNOSTIC? optional = Read<IMAGE_OPTIONAL_HEADER_AGNOSTIC>(OptionalHeaderOffset);
+            IMAGE_OPTIONAL_HEADER_AGNOSTIC? optional = TryRead<IMAGE_OPTIONAL_HEADER_AGNOSTIC>(OptionalHeaderOffset);
             if (!optional.HasValue)
                 return null;
 
@@ -392,12 +427,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 SeekTo(SpecificHeaderOffset);
                 return new IMAGE_OPTIONAL_HEADER_SPECIFIC()
                 {
-                    SizeOfStackReserve = (is32Bit ? Read<uint>() : Read<ulong>()) ?? 0,
-                    SizeOfStackCommit = (is32Bit ? Read<uint>() : Read<ulong>()) ?? 0,
-                    SizeOfHeapReserve = (is32Bit ? Read<uint>() : Read<ulong>()) ?? 0,
-                    SizeOfHeapCommit = (is32Bit ? Read<uint>() : Read<ulong>()) ?? 0,
-                    LoaderFlags = (Read<uint>()) ?? 0,
-                    NumberOfRvaAndSizes = (Read<uint>()) ?? 0
+                    SizeOfStackReserve = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
+                    SizeOfStackCommit = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
+                    SizeOfHeapReserve = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
+                    SizeOfHeapCommit = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
+                    LoaderFlags = (TryRead<uint>()) ?? 0,
+                    NumberOfRvaAndSizes = (TryRead<uint>()) ?? 0
                 };
             });
 
@@ -412,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (offset == -1)
                 return null;
 
-            IMAGE_COR20_HEADER? corHdr = Read<IMAGE_COR20_HEADER>(offset);
+            IMAGE_COR20_HEADER? corHdr = TryRead<IMAGE_COR20_HEADER>(offset);
             return corHdr.HasValue ? new CorHeader(corHdr.Value) : null;
         }
     }
