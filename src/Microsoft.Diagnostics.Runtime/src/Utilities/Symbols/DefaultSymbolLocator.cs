@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (File.Exists(fullDestPath))
                 return fullDestPath;
 
-            if (serverPath.StartsWith("http:"))
+            if (serverPath.StartsWith("http:") || serverPath.StartsWith("https:"))
             {
                 string fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
                 try
