@@ -37,6 +37,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public bool IsSymServer { get; }
         /// <summary>
+        /// returns true if this element of the symbol server path is a local cache specification
+        /// </summary>
+        public bool IsCache { get; }
+        /// <summary>
         /// returns the local cache for a symbol server specifcation.  returns null if not specified
         /// </summary>
         public string Cache { get; set; }
@@ -174,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             m = Regex.Match(strElem, @"^\s*CACHE\*(.*?)\s*$", RegexOptions.IgnoreCase);
             if (m.Success)
             {
-                IsSymServer = true;
+                IsCache = true;
                 Cache = m.Groups[1].Value;
             }
             else

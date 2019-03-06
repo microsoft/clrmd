@@ -110,6 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Finally, check the symbol paths.
             string exeIndexPath = null;
+            string activeSymbolCache = SymbolCache;
             foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
@@ -117,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (exeIndexPath == null)
                         exeIndexPath = GetIndexPath(fileName, buildTimeStamp, imageSize);
 
-                    string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? SymbolCache);
+                    string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? activeSymbolCache);
                     if (target == null)
                     {
                         Trace($"Server '{element.Target}' did not have file '{Path.GetFileName(fileName)}' with timestamp={buildTimeStamp:x} and filesize={imageSize:x}.");
@@ -128,6 +129,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         SetFileEntry(missingFiles, entry, target);
                         return target;
                     }
+                }
+                else if (element.IsCache)
+                {
+                    if (!string.IsNullOrEmpty(element.Cache))
+                        activeSymbolCache = element.Cache;
+                    else
+                        activeSymbolCache = SymbolCache;
                 }
                 else
                 {
