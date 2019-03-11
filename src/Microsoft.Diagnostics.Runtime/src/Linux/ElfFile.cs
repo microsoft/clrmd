@@ -100,24 +100,22 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             LoadProgramHeaders();
-            ElfProgramHeader noteHeader = _programHeaders.SingleOrDefault(ph => ph.Header.Type == ElfProgramHeaderType.Note);
-
-            if (noteHeader == null)
-            {
-                _notes = new ElfNote[0];
-                return;
-            }
 
             List<ElfNote> notes = new List<ElfNote>();
-
-            Reader reader = new Reader(noteHeader.AddressSpace);
-            long position = 0;
-            while (position < reader.DataSource.Length)
+            foreach (ElfProgramHeader programHeader in _programHeaders)
             {
-                ElfNote note = new ElfNote(reader, position);
-                notes.Add(note);
+                if (programHeader.Header.Type == ElfProgramHeaderType.Note)
+                {
+                    Reader reader = new Reader(programHeader.AddressSpace);
+                    long position = 0;
+                    while (position < reader.DataSource.Length)
+                    {
+                        ElfNote note = new ElfNote(reader, position);
+                        notes.Add(note);
 
-                position += note.TotalSize;
+                        position += note.TotalSize;
+                    }
+                }
             }
 
             _notes = notes.ToArray();
