@@ -207,9 +207,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (CLRVersion == DesktopVersion.v2)
                 return Request<ISegmentData, V2SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
 
-            SegmentData result = (SegmentData)Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
-            if (IntPtr.Size == 4)
-                result = new SegmentData(ref result);
+            ISegmentData result = Request<ISegmentData, SegmentData>(DacRequests.HEAPSEGMENT_DATA, segmentAddr);
+            if (IntPtr.Size == 4 && result != null)
+            {
+                // fixup pointers
+                SegmentData s = (SegmentData) result;
+                result = new SegmentData(ref s);
+            }
 
             return result;
         }
