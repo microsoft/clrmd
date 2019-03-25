@@ -6,16 +6,18 @@ namespace Microsoft.Diagnostics.Runtime.Native
 {
     internal class NativeStackFrame : ClrStackFrame
     {
-        public NativeStackFrame(ulong ip, string symbolName, ClrModule module)
+        public NativeStackFrame(ulong ip, string symbolName, ClrModule module, byte[] context)
         {
             InstructionPointer = ip;
             DisplayString = symbolName;
             Module = module;
+            Context = context;
         }
 
         public override string DisplayString { get; }
         public ClrModule Module { get; }
         public override ulong InstructionPointer { get; }
+        public override byte[] Context { get; }
         public override ClrStackFrameType Kind => ClrStackFrameType.Unknown;
         public override ClrMethod Method => null;
         public override ulong StackPointer => 0;
