@@ -6,14 +6,14 @@ To do this, first install both the x86 and x64 version of Debugging Tools
 for Windows (windbg, cdb, etc).  Then you will need to set the following
 environment variables:
 
-set CSC=[path_to_csc]
-set Debug32=[path_to_32bit_cdb_folder]
-set Debug64=[path_to_64bit_cdb_folder]
+set csc=[path_to_csc]
+set cdb32=[path_to_32bit_cdb]
+set cdb64=[path_to_64bit_cdb]
 
 Then run build_test_assets.cmd.
 
 For example:
-	set CSC=c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
-	set DEBUG32=d:\x86\
-	set DEBUG64=d:\amd64\
+	set csc=c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
+	set cdb32=d:\x86\cdb.exe
+	set cdb64=d:\amd64\cdb.exe
 	build_test_assets.cmd
