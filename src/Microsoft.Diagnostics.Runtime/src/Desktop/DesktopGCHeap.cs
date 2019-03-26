@@ -23,24 +23,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            _arrayType = new Lazy<ClrType>(CreateArrayType);
-            _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0));
             ErrorType = new ErrorType(this);
+            _arrayType = new Lazy<ClrType>(CreateArrayType);
+            _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0) ?? ErrorType);
 
-            StringType = DesktopRuntime.StringMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0) : ErrorType;
-            ObjectType = DesktopRuntime.ObjectMethodTable != 0 ? GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) : ErrorType;
-            if (DesktopRuntime.FreeMethodTable != 0)
-            {
-                ClrType free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
-
-                ((DesktopHeapType)free).Shared = true;
-                ((BaseDesktopHeapType)free).DesktopModule = ObjectType.Module as DesktopModule;
-                Free = free;
-            }
-            else
-            {
-                Free = ErrorType;
-            }
+            StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0) ?? ErrorType;
+            ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) ?? ErrorType;
+            Free = CreateFree();
 
             InitSegments(runtime);
         }
@@ -48,6 +37,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrType CreateFree()
         {
             ClrType free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
+            if (free == null)
+                return ErrorType;
 
             ((DesktopHeapType)free).Shared = true;
             ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
@@ -57,6 +48,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrType CreateArrayType()
         {
             ClrType type = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
+            if (type == null)
+                return ErrorType;
+
             type.ComponentType = ObjectType;
             return type;
         }
