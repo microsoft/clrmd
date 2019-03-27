@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using JetBrains.Annotations;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -18,6 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
         /// a valid managed object.
         /// </summary>
+        [CanBeNull]
         public abstract ClrType GetObjectType(ulong objRef);
 
         /// <summary>
@@ -94,6 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns a  wrapper around a System.Exception object (or one of its subclasses).
         /// </summary>
+        [CanBeNull]
         public virtual ClrException GetExceptionObject(ulong objRef)
         {
             return null;
@@ -102,18 +105,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the runtime associated with this heap.
         /// </summary>
+        [NotNull]
         public abstract ClrRuntime Runtime { get; }
 
         /// <summary>
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
         /// of increasing object addresses.
         /// </summary>
+        [NotNull]
         public abstract IList<ClrSegment> Segments { get; }
 
         /// <summary>
         /// Enumerate the roots of the process.  (That is, all objects which keep other objects alive.)
         /// Equivalent to EnumerateRoots(true).
         /// </summary>
+        [NotNull]
         public abstract IEnumerable<ClrRoot> EnumerateRoots();
 
         /// <summary>
@@ -182,6 +188,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The ClrType matching 'name', null if the type was not found, and undefined if more than one
         /// type shares the same name.
         /// </returns>
+        [CanBeNull]
         public abstract ClrType GetTypeByName(string name);
 
         /// <summary>
@@ -190,6 +197,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
+        [CanBeNull]
         public abstract ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable);
 
         /// <summary>
@@ -198,6 +206,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
+        [CanBeNull]
         public virtual ClrType GetTypeByMethodTable(ulong methodTable)
         {
             return GetTypeByMethodTable(methodTable, 0);
@@ -206,6 +215,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the ClrType representing free space on the GC heap.
         /// </summary>
+        [NotNull]
         public abstract ClrType Free { get; }
 
         /// <summary>
@@ -218,6 +228,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// EnumerateRoots).  You would want to enumerate statics with roots if you care about what exact statics
         /// root what objects, but not if you care about performance.
         /// </param>
+        [NotNull]
         public abstract IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics);
 
         /// <summary>
@@ -227,6 +238,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// An enumeration of all types in the target process.  May return null if it's unsupported for
         /// that version of CLR.
         /// </returns>
+        [CanBeNull]
         public virtual IEnumerable<ClrType> EnumerateTypes()
         {
             return null;
@@ -235,6 +247,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
+        [NotNull]
         public virtual IEnumerable<ulong> EnumerateFinalizableObjectAddresses()
         {
             throw new NotImplementedException();
@@ -245,6 +258,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// or implicitly through "lock (obj)".  This is roughly equivalent to combining SOS's !syncblk command
         /// with !dumpheap -thinlock.
         /// </summary>
+        [NotNull]
         public virtual IEnumerable<BlockingObject> EnumerateBlockingObjects()
         {
             throw new NotImplementedException();
@@ -264,12 +278,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// for easier use in linq queries.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
+        [NotNull]
         public abstract IEnumerable<ulong> EnumerateObjectAddresses();
 
         /// <summary>
         /// Enumerates all objects on the heap.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
+        [NotNull]
         public abstract IEnumerable<ClrObject> EnumerateObjects();
 
         /// <summary>
@@ -312,6 +328,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the GC segment for the given object.
         /// </summary>
+        [CanBeNull]
         public abstract ClrSegment GetSegmentByAddress(ulong objRef);
 
         /// <summary>

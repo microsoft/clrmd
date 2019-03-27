@@ -9,16 +9,18 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using JetBrains.Annotations;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal abstract class DesktopGCHeap : HeapBase
     {
-        public DesktopGCHeap(DesktopRuntimeBase runtime)
+        public DesktopGCHeap([NotNull] DesktopRuntimeBase runtime)
             : base(runtime)
         {
-            DesktopRuntime = runtime;
+            DesktopRuntime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+
             _types = new List<ClrType>(1000);
             Revision = runtime.Revision;
 
@@ -148,6 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
+        [CanBeNull]
         internal abstract ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj);
 
         protected ClrType TryGetComponentType(ulong obj, ulong cmt)
