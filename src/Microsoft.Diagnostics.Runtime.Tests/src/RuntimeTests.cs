@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                HashSet<string> expected = new HashSet<string>(new[] {"mscorlib.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe"}, StringComparer.OrdinalIgnoreCase);
+                HashSet<string> expected = new HashSet<string>(new[] {"mscorlib.dll", "system.dll", "system.core.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe"}, StringComparer.OrdinalIgnoreCase);
                 HashSet<ClrModule> modules = new HashSet<ClrModule>();
 
                 foreach (ClrModule module in runtime.Modules)
