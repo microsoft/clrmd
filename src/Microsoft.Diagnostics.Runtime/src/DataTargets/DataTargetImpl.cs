@@ -17,7 +17,6 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IDataReader _dataReader;
         private uint? _pid;
         private ClrInfo[] _versions;
-        private ModuleInfo _native;
 
         private readonly Lazy<ModuleInfo[]> _modules;
         private readonly List<DacLibrary> _dacLibraries = new List<DacLibrary>(2);
@@ -28,17 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
             DebuggerInterface = client;
             Architecture = _dataReader.GetArchitecture();
             _modules = new Lazy<ModuleInfo[]>(InitModules);
-        }
-
-        internal ModuleInfo NativeRuntime
-        {
-            get
-            {
-                if (_versions == null)
-                    _versions = InitVersions();
-
-                return _native;
-            }
         }
 
         public override uint ProcessId
@@ -89,16 +77,6 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules.Value;
         }
 
-        private ModuleInfo FindModule(ulong addr)
-        {
-            // TODO: Make binary search.
-            foreach (ModuleInfo module in _modules.Value)
-                if (module.ImageBase <= addr && addr < module.ImageBase + module.FileSize)
-                    return module;
-
-            return null;
-        }
-
         private static readonly Regex s_invalidChars = new Regex($"[{Regex.Escape(new string(Path.GetInvalidPathChars()))}]");
 
         private ModuleInfo[] InitModules()
@@ -108,50 +86,27 @@ namespace Microsoft.Diagnostics.Runtime
             return sortedModules.ToArray();
         }
 
-#pragma warning disable 0618
         private ClrInfo[] InitVersions()
         {
             List<ClrInfo> versions = new List<ClrInfo>();
             foreach (ModuleInfo module in EnumerateModules())
             {
-                string clrName = Path.GetFileNameWithoutExtension(module.FileName).ToLower();
-
-                if (clrName != "clr" && clrName != "mscorwks" && clrName != "coreclr" && clrName != "mrt100_app" && clrName != "libcoreclr")
+                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var platform))
                     continue;
 
-                ClrFlavor flavor;
-                switch (clrName)
-                {
-                    case "mrt100_app":
-                        _native = module;
-                        continue;
+                string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
+                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
 
-                    case "libcoreclr":
-                    case "coreclr":
-                        flavor = ClrFlavor.Core;
-                        break;
-
-                    default:
-                        flavor = ClrFlavor.Desktop;
-                        break;
-                }
-
-                bool isLinux = clrName == "libcoreclr";
-
-                const string LinuxDacFileName = "libmscordaccore.so";
-
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), isLinux ? LinuxDacFileName : DacInfo.GetDacFileName(flavor, Architecture));
-
-                if (isLinux)
+                if (platform == Platform.Linux)
                 {
                     if (File.Exists(dacLocation))
                     {
                         // Works around issue https://github.com/dotnet/coreclr/issues/20205
                         int processId = Process.GetCurrentProcess().Id;
-                        string tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId.ToString());
+                        string tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId);
                         Directory.CreateDirectory(tempDirectory);
 
-                        string symlink = Path.Combine(tempDirectory, LinuxDacFileName);
+                        string symlink = Path.Combine(tempDirectory, dacFileName);
                         if (LinuxFunctions.symlink(dacLocation, symlink) == 0)
                         {
                             dacLocation = symlink;
@@ -159,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     else
                     {
-                        dacLocation = LinuxDacFileName;
+                        dacLocation = dacFileName;
                     }
                 }
                 else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
@@ -168,25 +123,14 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 VersionInfo version = module.Version;
-                string dacAgnosticName;
-                string dacFileName;
-                if (isLinux)
-                {
-                    // Linux never has a "long" named DAC
-                    dacAgnosticName = LinuxDacFileName;
-                    dacFileName = LinuxDacFileName;
-                }
-                else
-                {
-                    dacAgnosticName = DacInfo.GetDacRequestFileName(flavor, Architecture, Architecture, version);
-                    dacFileName = DacInfo.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version);
-                }
+                string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, Architecture, Architecture, version, platform);
+                string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, Architecture, version, platform);
 
                 DacInfo dacInfo = new DacInfo(_dataReader, dacAgnosticName, Architecture)
                 {
                     FileSize = module.FileSize,
                     TimeStamp = module.TimeStamp,
-                    FileName = dacFileName,
+                    FileName = dacRegularName,
                     Version = module.Version
                 };
 
@@ -199,8 +143,6 @@ namespace Microsoft.Diagnostics.Runtime
             Array.Sort(result);
             return result;
         }
-
-#pragma warning restore 0618
 
         public override void Dispose()
         {
