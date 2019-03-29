@@ -70,14 +70,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
         {
-            string filename = Path.GetFileName(img.Path);
-
             return new ModuleInfo
             {
                 FileName = img.Path,
                 FileSize = (uint)img.Size,
                 ImageBase = (ulong)img.BaseAddress,
-                IsRuntime = filename.Equals("libcoreclr.so", StringComparison.OrdinalIgnoreCase),
                 BuildId = img.Open()?.BuildId
             };
         }

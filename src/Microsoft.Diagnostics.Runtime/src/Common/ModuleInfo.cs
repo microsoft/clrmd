@@ -34,11 +34,6 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual string FileName { get; set; }
 
         /// <summary>
-        /// Returns true if this module is a native (non-managed) .Net runtime module.
-        /// </summary>
-        public bool IsRuntime { get; internal set; }
-
-        /// <summary>
         /// Returns a PEFile from a stream constructed using instance fields of this object.
         /// If the PEFile cannot be constructed correctly, null is returned
         /// </summary>
