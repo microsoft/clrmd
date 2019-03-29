@@ -90,11 +90,17 @@ namespace Microsoft.Diagnostics.Runtime
             if (initAddr != IntPtr.Zero)
             {
                 IntPtr dllMain = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DllMain");
+                if (dllMain == IntPtr.Zero)
+                    throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
+
                 DllMain main = (DllMain)Marshal.GetDelegateForFunctionPointer(dllMain, typeof(DllMain));
                 int result = main(dacLibrary, 1, IntPtr.Zero);
             }
 
             IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "CLRDataCreateInstance");
+            if (addr == IntPtr.Zero)
+                throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
+
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
 
             CreateDacInstance func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
