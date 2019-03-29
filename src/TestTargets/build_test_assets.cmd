@@ -1,51 +1,68 @@
-for %%X in (csc.exe) do (set CSC=%%~$PATH:X)
+@echo off
 
-if not defined CSC goto :csc_not_found
-if not defined DEBUG32 goto :debug32_not_defined
-if not defined DEBUG64 goto :debug64_not_defined
+rem set csc="c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+rem set cdb32="C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe"
+rem set cdb64="C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe"
 
-set BinPath=%~dp0bin
+if not defined csc goto :csc_not_defined
+if not exist %csc% goto :csc_not_found
+if not defined cdb32 goto :cdb32_not_defined
+if not exist %cdb32% goto :cdb32_not_found
+if not defined cdb64 goto :cdb64_not_defined
+if not exist %cdb64% goto :cdb64_not_found
+
+set SourcePath=%~dp0
+set BinPath=%SourcePath%\Bin
 set Bin32=%BinPath%\x86
 set Bin64=%BinPath%\x64
 
+rmdir /S /Q %BinPath%
 mkdir %BinPath%
 mkdir %Bin32%
 mkdir %Bin64%
 
-csc.exe /debug /target:library /pdb:%Bin32%\SharedLibrary.pdb /out:%Bin32%\SharedLibrary.dll %~dp0\Shared\SharedLibrary.cs
-csc.exe /debug /target:library /pdb:%Bin64%\SharedLibrary.pdb /out:%Bin64%\SharedLibrary.dll %~dp0\Shared\SharedLibrary.cs
+%csc% /debug /target:library /out:%Bin32%\SharedLibrary.dll /pdb:%Bin32%\SharedLibrary.pdb %SourcePath%\Shared\SharedLibrary.cs
+%csc% /debug /target:library /out:%Bin64%\SharedLibrary.dll /pdb:%Bin64%\SharedLibrary.pdb %SourcePath%\Shared\SharedLibrary.cs
 
-for %%c in (*.cs) do (
-    csc.exe /unsafe /reference:%Bin32%\SharedLibrary.dll /platform:x86 /debug /pdb:%Bin32%\%%~nc.pdb /out:%Bin32%\%%~nc.exe %~dp0%%c
-    csc.exe /unsafe /reference:%Bin64%\SharedLibrary.dll /platform:x64 /debug /pdb:%Bin64%\%%~nc.pdb /out:%Bin64%\%%~nc.exe %~dp0%%c
-    
-    echo csc.exe /reference:%Bin64%\SharedLibrary.dll /platform:x64 /debug /pdb:%Bin64%\%%~nc.pdb /out:%Bin64%\%%~nc.exe %~dp0%%c
+for %%c in (%SourcePath%\*.cs) do (
+    %csc% /unsafe /reference:%Bin32%\SharedLibrary.dll /platform:x86 /debug /out:%Bin32%\%%~nc.exe /pdb:%Bin32%\%%~nc.pdb %%c
+    %csc% /unsafe /reference:%Bin64%\SharedLibrary.dll /platform:x64 /debug /out:%Bin64%\%%~nc.exe /pdb:%Bin64%\%%~nc.pdb %%c
 )
 
-
-for %%c in (*.cs) do (
-    %DEBUG32%\cdb.exe -g -G -c ".dump /ma %Bin32%\%%~nc_wks.dmp;.dump /ma %Bin32%\%%~nc_wks.dmp;.dump /m %Bin32%\%%~nc_wks_mini.dmp;q" %Bin32%\%%~nc.exe
-    %DEBUG64%\cdb.exe -g -G -c ".dump /ma %Bin64%\%%~nc_wks.dmp;.dump /ma %Bin64%\%%~nc_wks.dmp;.dump /m %Bin64%\%%~nc_wks_mini.dmp;q" %Bin64%\%%~nc.exe
+for %%c in (%SourcePath%\*.cs) do (
+    %cdb32% -g -G -c ".dump /ma %Bin32%\%%~nc_wks.dmp;.dump /ma %Bin32%\%%~nc_wks.dmp;.dump /m %Bin32%\%%~nc_wks_mini.dmp;q" %Bin32%\%%~nc.exe
+    %cdb64% -g -G -c ".dump /ma %Bin64%\%%~nc_wks.dmp;.dump /ma %Bin64%\%%~nc_wks.dmp;.dump /m %Bin64%\%%~nc_wks_mini.dmp;q" %Bin64%\%%~nc.exe
 )
-
 
 set COMPLUS_BuildFlavor=SVR
-%DEBUG32%\cdb.exe -g -G -c ".dump /ma %Bin32%\types_svr.dmp;.dump /ma %Bin32%\types_svr.dmp;q" %Bin32%\types.exe
-%DEBUG64%\cdb.exe -g -G -c ".dump /ma %Bin64%\types_svr.dmp;.dump /ma %Bin64%\types_svr.dmp;q" %Bin64%\types.exe
+%cdb32% -g -G -c ".dump /ma %Bin32%\types_svr.dmp;.dump /ma %Bin32%\types_svr.dmp;q" %Bin32%\types.exe
+%cdb64% -g -G -c ".dump /ma %Bin64%\types_svr.dmp;.dump /ma %Bin64%\types_svr.dmp;q" %Bin64%\types.exe
 set COMPLUS_BuildFlavor=
 
 goto :exit
 
+:csc_not_defined
+echo Error: csc is not defined.
+goto :exit
+
+:cdb32_not_defined
+echo Error: cdb32 is not defined.
+goto :exit
+
+:cdb64_not_defined
+echo Error: cdb64 is not defined.
+goto :exit
+
 :csc_not_found
-echo Error: csc.exe not found on your PATH.
+echo Error: csc.exe (%csc%) not found.
 goto :exit
 
-:debug32_not_defined
-echo Error: DEBUG32 is not defined or does not have cdb.exe in that path.
+:cdb32_not_found
+echo Error: cdb.exe (x86) (%cdb32%) not found.
 goto :exit
 
-:debug64_not_defined
-echo Error: DEBUG64 is not defined or does not have cdb.exe in that path.
+:cdb64_not_found
+echo Error: cdb.exe (x64) (%cdb64%) not found.
 goto :exit
 
 :exit
