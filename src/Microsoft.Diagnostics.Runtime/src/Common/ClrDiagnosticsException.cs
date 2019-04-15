@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     [Serializable]
     public class ClrDiagnosticsException : Exception
     {
-        internal ClrDiagnosticsException(string message, ClrDiagnosticsExceptionKind kind = ClrDiagnosticsExceptionKind.Unknown, int hr = 0)
+        internal ClrDiagnosticsException(string message, ClrDiagnosticsExceptionKind kind = ClrDiagnosticsExceptionKind.Unknown, int hr = -2146233088)
             : base(message)
         {
             Kind = kind;
