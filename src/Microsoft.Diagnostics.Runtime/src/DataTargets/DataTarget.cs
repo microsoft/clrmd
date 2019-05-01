@@ -132,7 +132,18 @@ namespace Microsoft.Diagnostics.Runtime
             IDataReader reader;
             if (attachFlag == AttachFlag.Passive)
             {
-                reader = new LiveDataReader(pid, false);
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    reader = new LiveDataReader(pid, false);
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    reader = new Linux.LinuxLiveDataReader((uint) pid);
+                }
+                else
+                {
+                    throw new NotSupportedException("Passive attach is not supported on OSX.s");
+                }
             }
             else
             {
@@ -142,6 +153,15 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
+
+            if (reader is Linux.LinuxLiveDataReader)
+            {
+                // TODO: discuss this design of 
+                // 1) add a method to IDataReader2 to return the list of module full path
+                // 2) make DefaultSymbolLocator use that list as hint to load binaries 
+                dataTarget.SymbolLocator = new Linux.LinuxDefaultSymbolLocator(((Linux.LinuxLiveDataReader) reader).GetModulesFullPath());
+            }
+
             return dataTarget;
         }
 
