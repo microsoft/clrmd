@@ -4,6 +4,10 @@ ENV BUILD_CONFIGURATION=Debug
 ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 EXPOSE 5000
 
+# install ClrMD dependency libdl.so
+RUN apt-get update
+RUN apt-get install -y libc6-dev
+
 WORKDIR /src
 COPY ["Samples/ContainerWebApp/ContainerWebApp.csproj", "./Samples/ContainerWebApp/"]
 COPY ["Microsoft.Diagnostics.Runtime/Microsoft.Diagnostics.Runtime.csproj", "./Microsoft.Diagnostics.Runtime/"]
