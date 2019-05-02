@@ -50,13 +50,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public uint GetPointerSize()
         {
-            return (uint)IntPtr.Size;            
+            return (uint)IntPtr.Size;
         }
 
         public IList<ModuleInfo> EnumerateModules()
         {
             List<ModuleInfo> result = new List<ModuleInfo>();
-            foreach(var entry in _memoryMapEntries)
+            foreach (var entry in _memoryMapEntries)
             {
                 if (string.IsNullOrEmpty(entry.FilePath))
                 {
@@ -70,8 +70,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     {
                         ImageBase = entry.BeginAddr,
                         FileName = entry.FileName,
-                        FileSize = (uint) fileInfo.Length,
-                        TimeStamp = (uint) new DateTimeOffset(fileInfo.CreationTimeUtc).ToUnixTimeSeconds()
+                        FileSize = (uint)fileInfo.Length,
+                        TimeStamp = (uint)new DateTimeOffset(fileInfo.CreationTimeUtc).ToUnixTimeSeconds()
                     };
                     result.Add(moduleInfo);
                 }
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
-            foreach(var entry in _memoryMapEntries)
+            foreach (var entry in _memoryMapEntries)
             {
                 if (addr >= entry.BeginAddr && addr <= entry.EndAddr && !string.IsNullOrEmpty(entry.FilePath))
                 {
@@ -91,10 +91,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     {
                         v = this.ParseForVersion(entry.FileName.Substring(i1 + 4));
                     }
-                    if ( v == null)
+                    if (v == null)
                     {
                         string dirName = Path.GetFileName(Path.GetDirectoryName(entry.FilePath));
-                        v  = this.ParseForVersion(dirName);
+                        v = this.ParseForVersion(dirName);
                     }
                     if (v != null)
                     {
@@ -110,37 +110,33 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             this.OpenMemFile();
             bytesRead = 0;
-            try
-            {
-                _memoryStream.Seek((long) address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(buffer, 0, bytesRequested);
-                return bytesRead > 0;
-            }
-            catch(Exception )
+            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
+            if (readableBytesCount <= 0)
             {
                 return false;
             }
+            _memoryStream.Seek((long)address, SeekOrigin.Begin);
+            bytesRead = _memoryStream.Read(buffer, 0, readableBytesCount);
+            return bytesRead > 0;
         }
 
         public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             this.OpenMemFile();
             bytesRead = 0;
-            byte[] bytes = new byte[bytesRequested];
-            try
-            {
-                _memoryStream.Seek((long) address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(bytes, 0, bytesRequested);
-                if (bytesRead > 0)
-                {
-                    Marshal.Copy(bytes, 0, buffer, bytesRead);
-                }
-                return bytesRead > 0;
-            }
-            catch(Exception )
+            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
+            if (readableBytesCount <= 0)
             {
                 return false;
             }
+            byte[] bytes = new byte[readableBytesCount];
+            _memoryStream.Seek((long)address, SeekOrigin.Begin);
+            bytesRead = _memoryStream.Read(bytes, 0, readableBytesCount);
+            if (bytesRead > 0)
+            {
+                Marshal.Copy(bytes, 0, buffer, bytesRead);
+            }
+            return bytesRead > 0;
         }
 
         public ulong ReadPointerUnsafe(ulong address)
@@ -175,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
         {
-            foreach(var entry in _memoryMapEntries)
+            foreach (var entry in _memoryMapEntries)
             {
                 if (entry.BeginAddr <= addr && entry.EndAddr >= addr)
                 {
@@ -211,11 +207,65 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _memoryStream = File.OpenRead($"/proc/{this.ProcessId}/mem");
         }
 
+        private int GetReadableBytesCount(ulong address, int bytesRequested)
+        {
+            if (bytesRequested < 1)
+            {
+                return 0;
+            }
+            ulong endAddress = address + (ulong)bytesRequested - 1;
+            int startIndex = -1;
+            for (int i = 0; i < _memoryMapEntries.Count; i++)
+            {
+                var entry = _memoryMapEntries[i];
+                if (entry.BeginAddr <= address && address < entry.EndAddr && entry.IsReadable())
+                {
+                    startIndex = i;
+                }
+            }
+            if (startIndex < 0)
+            {
+                return 0;
+            }
+            int endIndex = _memoryMapEntries.Count - 1;
+            for (int i = startIndex; i < _memoryMapEntries.Count; i++)
+            {
+                var entry = _memoryMapEntries[i];
+                if (!entry.IsReadable()         // the current region is not readable
+                    || entry.BeginAddr > endAddress
+                    || (i > startIndex && _memoryMapEntries[i - 1].EndAddr != entry.BeginAddr))   // the region is no longer continuous
+                {
+                    endIndex = i - 1;
+                    break;
+                }
+            }
+            int readableBytesCount = 0;
+            ulong offset = address - _memoryMapEntries[startIndex].BeginAddr;
+            for (int i = startIndex; i <= endIndex; i++)
+            {
+                var entry = _memoryMapEntries[i];
+                ulong regionSize = entry.EndAddr - entry.BeginAddr - offset;
+                if (regionSize >= (ulong) bytesRequested)
+                {
+                    readableBytesCount += bytesRequested;
+                    bytesRequested = 0;
+                    break;
+                }
+                else
+                {
+                    bytesRequested -= (int)regionSize;
+                    readableBytesCount += (int)regionSize;
+                }
+                offset = 0;
+            }
+            return readableBytesCount;
+        }
+
         private Version ParseForVersion(string s)
         {
             StringBuilder b = new StringBuilder();
-            string[] parts = s.Split(new char[]{'-', '.', ','}, StringSplitOptions.RemoveEmptyEntries);
-            foreach(var p in parts)
+            string[] parts = s.Split(new char[] { '-', '.', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var p in parts)
             {
                 int i;
                 if (int.TryParse(p, out i))
@@ -255,10 +305,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             List<MemoryMapEntry> result = new List<MemoryMapEntry>();
             string mapsFilePath = $"/proc/{this.ProcessId}/maps";
-            using(FileStream fs = File.OpenRead(mapsFilePath))
-            using(StreamReader sr = new StreamReader(fs))
+            using (FileStream fs = File.OpenRead(mapsFilePath))
+            using (StreamReader sr = new StreamReader(fs))
             {
-                while(true)
+                while (true)
                 {
                     string line = sr.ReadLine();
                     if (string.IsNullOrEmpty(line))
@@ -266,7 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         break;
                     }
                     string address, permission, offset, dev, inode, path;
-                    string[] parts = line.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 5)
                     {
                         path = string.Empty;
@@ -298,15 +348,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private int ParsePermission(string permission)
         {
-            // parse something like rwxp or r-xp
+            // parse something like rwxp or r-xp. more info see 
+            // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
             if (permission.Length != 4)
             {
                 return 0;
             }
-            int r = permission[0] != '-' ? 8 : 0;
-            int w = permission[1] != '-' ? 4 : 0;
-            int x = permission[2] != '-' ? 2 : 0;
-            int p = permission[3] != '-' ? 1 : 0;
+            int r = permission[0] != '-' ? 8 : 0;   // 8: can read
+            int w = permission[1] != '-' ? 4 : 0;   // 4: can write
+            int x = permission[2] != '-' ? 2 : 0;   // 2: can execute
+            int p = permission[3] != '-' ? 1 : 0;   // 1: private
             return r + w + x + p;
         }
     }
@@ -318,5 +369,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public string FilePath { get; set; }
         public string FileName { get; set; }
         public int Permission { get; set; }
+
+        public bool IsReadable()
+        {
+            return (this.Permission & 8) > 0;
+        }
     }
 }
