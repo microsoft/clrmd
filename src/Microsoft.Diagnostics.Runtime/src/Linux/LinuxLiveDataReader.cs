@@ -65,14 +65,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 var module = result.FirstOrDefault(m => m.FileName == entry.FileName);
                 if (module == null)
                 {
-                    var fileInfo = new FileInfo(entry.FilePath);
                     ModuleInfo moduleInfo = new ModuleInfo(this)
                     {
                         ImageBase = entry.BeginAddr,
-                        FileName = entry.FileName,
-                        FileSize = (uint)fileInfo.Length,
-                        TimeStamp = (uint)new DateTimeOffset(fileInfo.CreationTimeUtc).ToUnixTimeSeconds()
+                        FileName = entry.FileName
                     };
+                    if (File.Exists(entry.FilePath))
+                    {
+                        var fileInfo = new FileInfo(entry.FilePath);
+                        moduleInfo.FileSize = (uint)fileInfo.Length;
+                        moduleInfo.TimeStamp = (uint)new DateTimeOffset(fileInfo.CreationTimeUtc).ToUnixTimeSeconds();
+                    }
                     result.Add(moduleInfo);
                 }
             }
@@ -115,9 +118,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 return false;
             }
+            try{
             _memoryStream.Seek((long)address, SeekOrigin.Begin);
             bytesRead = _memoryStream.Read(buffer, 0, readableBytesCount);
             return bytesRead > 0;
+            }
+            catch(Exception ex)
+            {
+                return false;
+            }
         }
 
         public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
@@ -129,6 +138,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 return false;
             }
+            try
+            {
             byte[] bytes = new byte[readableBytesCount];
             _memoryStream.Seek((long)address, SeekOrigin.Begin);
             bytesRead = _memoryStream.Read(bytes, 0, readableBytesCount);
@@ -137,6 +148,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 Marshal.Copy(bytes, 0, buffer, bytesRead);
             }
             return bytesRead > 0;
+            }
+            catch(Exception )
+            {
+                return false;
+            }
         }
 
         public ulong ReadPointerUnsafe(ulong address)
@@ -258,6 +274,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
                 offset = 0;
             }
+            /* if (readableBytesCount > 0)
+            {
+                Console.WriteLine($"ReadMemoryRegion: {address:X} {readableBytesCount} {_memoryMapEntries[startIndex].FilePath} {_memoryMapEntries[startIndex].Permission}");
+            }*/
             return readableBytesCount;
         }
 
@@ -372,7 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool IsReadable()
         {
-            return (this.Permission & 8) > 0;
+            return (this.Permission & 8) > 0; //&& (this.Permission & 2) == 0;
         }
     }
 }
