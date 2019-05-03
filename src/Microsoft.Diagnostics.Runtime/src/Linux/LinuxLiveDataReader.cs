@@ -16,7 +16,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
     /// A data reader targets a Linux process, implemented by reading /proc/<pid>/maps 
-    /// and /proc/<pid>/mem files.
+    /// and /proc/<pid>/mem files. The process must have READ permission to the above 2
+    /// files. 
+    ///   1. The current process can run as root.
+    ///   2. If executed from within a Docker container, the best way is to use "ptrace 
+    ///      attach" to obtain the permission. 
+    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent. 
+    ///        - the process must call the following before constructing the data reader.
+    ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
+    ///             wait(NULL);
     /// </summary>
     internal class LinuxLiveDataReader : IDataReader2
     {
@@ -118,12 +126,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 return false;
             }
-            try{
-            _memoryStream.Seek((long)address, SeekOrigin.Begin);
-            bytesRead = _memoryStream.Read(buffer, 0, readableBytesCount);
-            return bytesRead > 0;
+            try
+            {
+                _memoryStream.Seek((long)address, SeekOrigin.Begin);
+                bytesRead = _memoryStream.Read(buffer, 0, readableBytesCount);
+                return bytesRead > 0;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return false;
             }
@@ -140,16 +149,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
             try
             {
-            byte[] bytes = new byte[readableBytesCount];
-            _memoryStream.Seek((long)address, SeekOrigin.Begin);
-            bytesRead = _memoryStream.Read(bytes, 0, readableBytesCount);
-            if (bytesRead > 0)
-            {
-                Marshal.Copy(bytes, 0, buffer, bytesRead);
+                byte[] bytes = new byte[readableBytesCount];
+                _memoryStream.Seek((long)address, SeekOrigin.Begin);
+                bytesRead = _memoryStream.Read(bytes, 0, readableBytesCount);
+                if (bytesRead > 0)
+                {
+                    Marshal.Copy(bytes, 0, buffer, bytesRead);
+                }
+                return bytesRead > 0;
             }
-            return bytesRead > 0;
-            }
-            catch(Exception )
+            catch (Exception)
             {
                 return false;
             }
@@ -274,10 +283,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
                 offset = 0;
             }
-            /* if (readableBytesCount > 0)
-            {
-                Console.WriteLine($"ReadMemoryRegion: {address:X} {readableBytesCount} {_memoryMapEntries[startIndex].FilePath} {_memoryMapEntries[startIndex].Permission}");
-            }*/
             return readableBytesCount;
         }
 
@@ -392,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool IsReadable()
         {
-            return (this.Permission & 8) > 0; //&& (this.Permission & 2) == 0;
+            return (this.Permission & 8) > 0;
         }
     }
 }
