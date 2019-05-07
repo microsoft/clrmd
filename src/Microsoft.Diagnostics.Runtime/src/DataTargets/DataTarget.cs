@@ -132,6 +132,9 @@ namespace Microsoft.Diagnostics.Runtime
             IDataReader reader;
             if (attachFlag == AttachFlag.Passive)
             {
+#if NET45
+                reader = new LiveDataReader(pid, false);
+#else
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     reader = new LiveDataReader(pid, false);
@@ -144,6 +147,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     throw new NotSupportedException("Passive attach is not supported on OSX.s");
                 }
+#endif
             }
             else
             {
@@ -153,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
-
+#if !NET45
             if (reader is Linux.LinuxLiveDataReader)
             {
                 // TODO: discuss this design of 
@@ -161,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // 2) make DefaultSymbolLocator use that list as hint to load binaries 
                 dataTarget.SymbolLocator = new Linux.LinuxDefaultSymbolLocator(((Linux.LinuxLiveDataReader) reader).GetModulesFullPath());
             }
-
+#endif
             return dataTarget;
         }
 
