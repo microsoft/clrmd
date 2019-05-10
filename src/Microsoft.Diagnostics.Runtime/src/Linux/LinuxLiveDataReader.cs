@@ -4,13 +4,10 @@
 #if !NET45
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -31,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private List<MemoryMapEntry> _memoryMapEntries;
         private FileStream _memoryStream;
         private List<uint> _threadIDs = new List<uint>();
+        private byte[] _ptrBuffer = new byte[IntPtr.Size];
 
         public LinuxLiveDataReader(uint processId)
         {
@@ -50,6 +48,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public void Flush()
         {
+            _threadIDs.Clear();
+            _memoryStream?.Dispose();
+            _memoryStream = null;
+            _memoryMapEntries = this.LoadMemoryMap();
         }
 
         public Architecture GetArchitecture()
@@ -167,12 +169,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ulong ReadPointerUnsafe(ulong address)
         {
-            byte[] ptrBuffer = new byte[IntPtr.Size];
-            if (!ReadMemory(address, ptrBuffer, IntPtr.Size, out int read))
+            if (!ReadMemory(address, _ptrBuffer, IntPtr.Size, out int read))
             {
                 return 0;
             }
-            return IntPtr.Size == 4 ? BitConverter.ToUInt32(ptrBuffer, 0) : BitConverter.ToUInt64(ptrBuffer, 0);
+            return IntPtr.Size == 4 ? BitConverter.ToUInt32(_ptrBuffer, 0) : BitConverter.ToUInt64(_ptrBuffer, 0);
         }
 
         public uint ReadDwordUnsafe(ulong address)
@@ -187,7 +188,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ulong GetThreadTeb(uint thread)
         {
-            throw new NotImplementedException();
+            // not implemented
+            return 0;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()
@@ -295,10 +297,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void LoadThreads()
         {
-            if (!_threadIDs.Any())
+            if (_threadIDs.Count == 0)
             {
                 string taskDirPath = $"/proc/{this.ProcessId}/task";
-                foreach(var taskDir in Directory.GetDirectories(taskDirPath))
+                foreach (var taskDir in Directory.GetDirectories(taskDirPath))
                 {
                     string dirName = Path.GetFileName(taskDir);
                     uint taskId;
@@ -307,11 +309,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         _threadIDs.Add(taskId);
                     }
                 }
-                foreach(var tid in _threadIDs)
+                foreach (var tid in _threadIDs)
                 {
                     if (tid != this.ProcessId)
                     {
-                        ulong ret = ptrace(PTRACE_ATTACH, (int) tid, IntPtr.Zero, IntPtr.Zero);
+                        ulong ret = ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                         if (ret != 0)
                         {
                             throw new InvalidOperationException($"ptrace attach failed with 0x{ret:x}. Please ensure SYS_PTRACE capability is enabled. When running inside a Docker container, add 'SYS_PTRACE' to securityContext.capabilities.");
