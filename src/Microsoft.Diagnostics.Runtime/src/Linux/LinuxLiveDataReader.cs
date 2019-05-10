@@ -29,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private FileStream _memoryStream;
         private List<uint> _threadIDs = new List<uint>();
         private byte[] _ptrBuffer = new byte[IntPtr.Size];
+        private byte[] _dwordBuffer = new byte[4];
 
         public LinuxLiveDataReader(uint processId)
         {
@@ -178,12 +179,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public uint ReadDwordUnsafe(ulong address)
         {
-            byte[] ptrBuffer = new byte[4];
-            if (!ReadMemory(address, ptrBuffer, 4, out int read))
+            if (!ReadMemory(address, _dwordBuffer, 4, out int read))
             {
                 return 0;
             }
-            return BitConverter.ToUInt32(ptrBuffer, 0);
+            return BitConverter.ToUInt32(_dwordBuffer, 0);
         }
 
         public ulong GetThreadTeb(uint thread)
