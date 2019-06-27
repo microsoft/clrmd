@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -53,10 +54,18 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             get
             {
-                foreach (ElfNote note in Notes)
-                    if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
-                        return note.ReadContents(0, (int)note.Header.ContentSize);
-
+                if (Header.ProgramHeaderOffset != IntPtr.Zero && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
+                {
+                    try
+                    {
+                        foreach (ElfNote note in Notes)
+                            if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
+                                return note.ReadContents(0, (int)note.Header.ContentSize);
+                    }
+                    catch (IOException)
+                    {
+                    }
+                }
                 return null;
             }
         }
