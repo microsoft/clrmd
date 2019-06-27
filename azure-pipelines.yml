@@ -64,7 +64,7 @@ jobs:
     - job: Linux
       container: LinuxContainer
       pool:
-        name: Ubuntu 1604
+        name: Hosted Ubuntu 1604
       strategy:
         matrix:
           debug:
