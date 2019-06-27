@@ -20,7 +20,6 @@ jobs:
     enableMicrobuild: true
     enableTelemetry: true
     enablePublishBuildArtifacts: true
-    enableTelemetry: true
     enablePublishTestResults: true
     helixRepo: Microsoft/clrmd
     jobs:
@@ -54,28 +53,28 @@ jobs:
         name: Build
         displayName: Build
         condition: succeeded()
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Packages
-      inputs:
-        PathtoPublish: '$(Artifacts)/packages/$(_BuildConfig)'
-        PublishLocation: Container
-        ArtifactName: Packages_$(Agent.Os)_$(Agent.JobName)
-      continueOnError: true
-      condition: always()
-  - job: Linux
-    container: LinuxContainer
-    pool:
-      name: ubuntu-16.04
-    strategy:
-      matrix:
-        debug:
-          _BuildConfig: Debug
-        release:
-          _BuildConfig: Release
-    steps:
-    - script: eng/common/cibuild.sh
-        --configuration $(_BuildConfig)
-        --prepareMachine
-      name: Build
-      displayName: Build
-      condition: succeeded()
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Packages
+        inputs:
+          PathtoPublish: '$(Artifacts)/packages/$(_BuildConfig)'
+          PublishLocation: Container
+          ArtifactName: Packages_$(Agent.Os)_$(Agent.JobName)
+        continueOnError: true
+        condition: always()
+    - job: Linux
+      container: LinuxContainer
+      pool:
+        name: ubuntu-16.04
+      strategy:
+        matrix:
+          debug:
+            _BuildConfig: Debug
+          release:
+            _BuildConfig: Release
+      steps:
+      - script: eng/common/cibuild.sh
+          --configuration $(_BuildConfig)
+          --prepareMachine
+        name: Build
+        displayName: Build
+        condition: succeeded()
