@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (type != MINIDUMP_STREAM_TYPE.MemoryListStream &&
                 type != MINIDUMP_STREAM_TYPE.Memory64ListStream)
             {
-                throw new ClrDiagnosticsException("Type must be either MemoryListStream or Memory64ListStream", ClrDiagnosticsException.HR.CrashDumpError);
+                throw new ClrDiagnosticsException("Type must be either MemoryListStream or Memory64ListStream", ClrDiagnosticsExceptionKind.CrashDumpError);
             }
 
             _listType = type;
@@ -211,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     throw new ClrDiagnosticsException(
                         "Unexpected inconsistency error in dump memory chunk " + i
                         + " with target base address " + _chunks[i].TargetStartAddress + ".",
-                        ClrDiagnosticsException.HR.CrashDumpError);
+                        ClrDiagnosticsExceptionKind.CrashDumpError);
                 }
 
                 // If there's a next to compare to, and it's a MinidumpWithFullMemory, then we expect
@@ -224,13 +224,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     throw new ClrDiagnosticsException(
                         "Unexpected relative addresses inconsistency between dump memory chunks "
                         + i + " and " + (i + 1) + ".",
-                        ClrDiagnosticsException.HR.CrashDumpError);
+                        ClrDiagnosticsExceptionKind.CrashDumpError);
                 }
 
                 // Because we sorted and split/merged entries we can expect them to be increasing and non-overlapping
                 if (i < Count - 1 && _chunks[i].TargetEndAddress > _chunks[i + 1].TargetStartAddress)
                 {
-                    throw new ClrDiagnosticsException("Unexpected overlap between memory chunks", ClrDiagnosticsException.HR.CrashDumpError);
+                    throw new ClrDiagnosticsException("Unexpected overlap between memory chunks", ClrDiagnosticsExceptionKind.CrashDumpError);
                 }
             }
         }

@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IGCInfo data = GetGCInfoImpl();
             if (data == null)
             {
-                throw new ClrDiagnosticsException("This runtime is not initialized and contains no data.", ClrDiagnosticsException.HR.RuntimeUninitialized);
+                throw new ClrDiagnosticsException("This runtime is not initialized and contains no data.", ClrDiagnosticsExceptionKind.RuntimeUninitialized);
             }
 
             return data;

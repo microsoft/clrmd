@@ -30,15 +30,11 @@ namespace Microsoft.Diagnostics.Runtime
                 Process process = Process.GetProcessById(pid);
                 int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if (hr != 0)
-                {
-                    throw new ClrDiagnosticsException(string.Format("Could not create snapshot to process. Error {0}.", hr));
-                }
+                    throw new ClrDiagnosticsException($"Could not create snapshot to process. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
 
                 hr = PssQuerySnapshot(_snapshotHandle, PSS_QUERY_INFORMATION_CLASS.PSS_QUERY_VA_CLONE_INFORMATION, out _cloneHandle, IntPtr.Size);
                 if (hr != 0)
-                {
-                    throw new ClrDiagnosticsException(string.Format("Could not query the snapshot. Error {0}.", hr));
-                }
+                    throw new ClrDiagnosticsException($"Could not query the snapshot. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
 
                 _pid = GetProcessId(_cloneHandle);
             }
@@ -50,14 +46,17 @@ namespace Microsoft.Diagnostics.Runtime
             _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
 
             if (_process == IntPtr.Zero)
-                throw new ClrDiagnosticsException(string.Format("Could not attach to process. Error {0}.", Marshal.GetLastWin32Error()));
+            {
+                int hr = Marshal.GetLastWin32Error();
+                throw new ClrDiagnosticsException($"Could not attach to process. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
+            }
 
             using (Process p = Process.GetCurrentProcess())
                 if (DataTarget.PlatformFunctions.TryGetWow64(p.Handle, out bool wow64) &&
                     DataTarget.PlatformFunctions.TryGetWow64(_process, out bool targetWow64) &&
                     wow64 != targetWow64)
                 {
-                    throw new ClrDiagnosticsException("Dac architecture mismatch!");
+                    throw new ClrDiagnosticsException("Dac architecture mismatch!", ClrDiagnosticsExceptionKind.DacError);
                 }
         }
 
@@ -72,9 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
                 CloseHandle(_cloneHandle);
                 int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
                 if (hr != 0)
-                {
-                    throw new ClrDiagnosticsException(string.Format("Could not free the snapshot. Error {0}.", hr));
-                }
+                    throw new ClrDiagnosticsException($"Could not free the snapshot. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
 
                 try
                 {
@@ -119,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
             uint size = (uint)modules.Length * sizeof(uint);
 
             if (!EnumProcessModules(_process, modules, size, out needed))
-                throw new ClrDiagnosticsException("Unable to get process modules.", ClrDiagnosticsException.HR.DataRequestError);
+                throw new ClrDiagnosticsException("Unable to get process modules.", ClrDiagnosticsExceptionKind.DataRequestError);
 
             for (int i = 0; i < modules.Length; i++)
             {
