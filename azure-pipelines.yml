@@ -32,6 +32,7 @@ jobs:
           name: NetCoreInternal-Pool
           queue: BuildPool.Windows.10.Amd64.VS2017
       variables:
+      - DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 2
       - _SignArgs: ''
       - _OfficialBuildIdArgs: ''
       - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
