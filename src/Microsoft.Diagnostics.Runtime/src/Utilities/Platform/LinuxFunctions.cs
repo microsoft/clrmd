@@ -27,7 +27,9 @@ namespace Microsoft.Diagnostics.Runtime
                 _freeLibrary = ptr => { freeLibrary(ptr); return true; };
                 _getExport = (Func<IntPtr, string, IntPtr>)nativeLibraryType.GetMethod("GetExport", new Type[] { typeof(IntPtr), typeof(string) })?.CreateDelegate(typeof(Func<IntPtr, string, IntPtr>));
             }
-            else
+            if (_loadLibrary == null ||
+                _freeLibrary == null ||
+                _getExport == null)
             {
                 // On glibc based Linux distributions, 'libdl.so' is a symlink provided by development packages.
                 // To work on production machines, we fall back to 'libdl.so.2' which is the actual library name.
