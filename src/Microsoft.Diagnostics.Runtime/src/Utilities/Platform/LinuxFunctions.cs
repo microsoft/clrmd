@@ -24,7 +24,10 @@ namespace Microsoft.Diagnostics.Runtime
                 // .NET Core 3.0+
                 _loadLibrary = (Func<string, IntPtr>)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
                 Action<IntPtr> freeLibrary = (Action<IntPtr>)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
-                _freeLibrary = ptr => { freeLibrary(ptr); return true; };
+                if (freeLibrary != null)
+                {
+                    _freeLibrary = ptr => { freeLibrary(ptr); return true; };
+                }
                 _getExport = (Func<IntPtr, string, IntPtr>)nativeLibraryType.GetMethod("GetExport", new Type[] { typeof(IntPtr), typeof(string) })?.CreateDelegate(typeof(Func<IntPtr, string, IntPtr>));
             }
             if (_loadLibrary == null ||
