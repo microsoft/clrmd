@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the filename of the dac dll according to the specified parameters
         /// </summary>
-        [Obsolete]
+        [Obsolete("Use ClrInfoProvider.GetDacRequestFileName")]
         public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo clrVersion)
         {
             //method is kept for backward compatibility //TODO: remove

@@ -34,17 +34,6 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual string FileName { get; set; }
 
         /// <summary>
-        /// Returns a PEFile from a stream constructed using instance fields of this object.
-        /// If the PEFile cannot be constructed correctly, null is returned
-        /// </summary>
-        /// <returns></returns>
-        [Obsolete]
-        public PEFile GetPEFile()
-        {
-            return PEFile.TryLoad(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), virt: true);
-        }
-
-        /// <summary>
         /// Returns a PEImage from a stream constructed using instance fields of this object.
         /// If the PEImage cannot be constructed, null is returned.
         /// </summary>
