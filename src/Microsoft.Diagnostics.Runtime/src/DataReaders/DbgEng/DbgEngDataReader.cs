@@ -439,7 +439,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
-            version = new VersionInfo();
+            version = default;
 
             int hr = _symbols.GetModuleByOffset(addr, 0, out uint index, out ulong baseAddr);
             if (hr != 0)
@@ -454,10 +454,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (hr != 0)
                 return;
 
-            version.Minor = (ushort)Marshal.ReadInt16(buffer, 8);
-            version.Major = (ushort)Marshal.ReadInt16(buffer, 10);
-            version.Patch = (ushort)Marshal.ReadInt16(buffer, 12);
-            version.Revision = (ushort)Marshal.ReadInt16(buffer, 14);
+            int minor = (ushort)Marshal.ReadInt16(buffer, 8);
+            int major = (ushort)Marshal.ReadInt16(buffer, 10);
+            int patch = (ushort)Marshal.ReadInt16(buffer, 12);
+            int revision = (ushort)Marshal.ReadInt16(buffer, 14);
+            
+            version = new VersionInfo(major, minor, revision, patch);
         }
 
         internal int GetModuleVersionInformation(uint index, ulong baseAddress, string p, byte[] buffer, uint needed1, out uint needed2)
