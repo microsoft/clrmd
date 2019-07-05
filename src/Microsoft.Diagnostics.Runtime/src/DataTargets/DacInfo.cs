@@ -17,23 +17,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the filename of the dac dll according to the specified parameters
         /// </summary>
+        [Obsolete]
         public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo clrVersion)
         {
-            string dacName = flavor == ClrFlavor.Core ? "mscordaccore" : "mscordacwks";
-            return string.Format(
-                "{0}_{1}_{2}_{3}.{4}.{5}.{6:D2}.dll",
-                dacName,
-                currentArchitecture,
-                targetArchitecture,
-                clrVersion.Major,
-                clrVersion.Minor,
-                clrVersion.Revision,
-                clrVersion.Patch);
-        }
-
-        internal static string GetDacFileName(ClrFlavor flavor, Architecture targetArchitecture)
-        {
-            return flavor == ClrFlavor.Core ? "mscordaccore.dll" : "mscordacwks.dll";
+            //method is kept for backward compatibility //TODO: remove
+            return ClrInfoProvider.GetDacRequestFileName(flavor, currentArchitecture, targetArchitecture, clrVersion, Platform.Windows);
         }
 
         /// <summary>

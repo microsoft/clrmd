@@ -65,27 +65,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>-1 if less, 0 if equal, 1 if greater.</returns>
         public int CompareTo(object obj)
         {
-            if (obj == null)
-                return 1;
-
-            if (!(obj is ClrInfo))
-                throw new InvalidOperationException("Object not ClrInfo.");
-
-            ClrFlavor flv = ((ClrInfo)obj).Flavor;
-            if (flv != Flavor)
-                return flv.CompareTo(Flavor); // Intentionally reversed.
-
-            VersionInfo rhs = ((ClrInfo)obj).Version;
-            if (Version.Major != rhs.Major)
-                return Version.Major.CompareTo(rhs.Major);
-
-            if (Version.Minor != rhs.Minor)
-                return Version.Minor.CompareTo(rhs.Minor);
-
-            if (Version.Revision != rhs.Revision)
-                return Version.Revision.CompareTo(rhs.Revision);
-
-            return Version.Patch.CompareTo(rhs.Patch);
+            if (ReferenceEquals(this, obj)) return 0;
+            if (ReferenceEquals(null, obj)) return 1;
+            
+            if (!(obj is ClrInfo other))
+                throw new InvalidOperationException("Object is not a ClrInfo.");
+            
+            if (Flavor != other.Flavor)
+                return other.Flavor.CompareTo(Flavor); // Intentionally reversed
+            
+            return Version.CompareTo(other.Version);
         }
 
         /// <summary>
