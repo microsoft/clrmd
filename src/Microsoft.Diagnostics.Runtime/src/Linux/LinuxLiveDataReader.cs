@@ -309,22 +309,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         _threadIDs.Add(taskId);
                     }
                 }
-                foreach (var tid in _threadIDs)
-                {
-                    if (tid != this.ProcessId)
-                    {
-                        ulong ret = ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
-                        if (ret != 0)
-                        {
-                            throw new InvalidOperationException($"ptrace attach failed with 0x{ret:x}. Please ensure SYS_PTRACE capability is enabled. When running inside a Docker container, add 'SYS_PTRACE' to securityContext.capabilities.");
-                        }
-                        int ret2 = wait(IntPtr.Zero);
-                        if (ret2 != tid)
-                        {
-                            throw new InvalidOperationException($"wait failed with {ret2}. is thread {tid} still running?");
-                        }
-                    }
-                }
             }
         }
 
