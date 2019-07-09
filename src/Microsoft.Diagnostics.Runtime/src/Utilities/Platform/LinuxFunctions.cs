@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -16,6 +17,8 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly Func<IntPtr, bool> _freeLibrary;
         private readonly Func<IntPtr, string, IntPtr> _getExport;
 
+        private delegate bool TryGetExport(IntPtr handle, string name, out IntPtr address);
+
         public LinuxFunctions()
         {
             Type nativeLibraryType = Type.GetType("System.Runtime.InteropServices.NativeLibrary, System.Runtime.InteropServices", throwOnError: false);
@@ -23,12 +26,22 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 // .NET Core 3.0+
                 _loadLibrary = (Func<string, IntPtr>)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
-                Action<IntPtr> freeLibrary = (Action<IntPtr>)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
+
+                var freeLibrary = (Action<IntPtr>)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
                 if (freeLibrary != null)
                 {
                     _freeLibrary = ptr => { freeLibrary(ptr); return true; };
                 }
-                _getExport = (Func<IntPtr, string, IntPtr>)nativeLibraryType.GetMethod("GetExport", new Type[] { typeof(IntPtr), typeof(string) })?.CreateDelegate(typeof(Func<IntPtr, string, IntPtr>));
+
+                var tryGetExport = (TryGetExport)nativeLibraryType.GetMethod("TryGetExport", new Type[] { typeof(IntPtr), typeof(string), typeof(IntPtr).MakeByRefType() })
+                    ?.CreateDelegate(typeof(TryGetExport));
+                if (tryGetExport != null)
+                {
+                    _getExport = (IntPtr handle, string name) => {
+                        tryGetExport(handle, name, out IntPtr address);
+                        return address;
+                    };
+                }
             }
             if (_loadLibrary == null ||
                 _freeLibrary == null ||
