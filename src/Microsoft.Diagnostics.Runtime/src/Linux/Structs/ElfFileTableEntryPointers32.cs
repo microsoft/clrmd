@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct ElfFileTableEntryPointers
+    public struct ElfFileTableEntryPointers32
     {
-        public IntPtr Start;
-        public IntPtr Stop;
-        public IntPtr PageOffset;
+        public int Start;
+        public int Stop;
+        public int PageOffset;
     }
 }

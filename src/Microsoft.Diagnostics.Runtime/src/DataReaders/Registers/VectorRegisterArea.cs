@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Explicit)]
-    internal struct VectorRegisterArea
+    public struct VectorRegisterArea
     {
         public const int VectorRegisterSize = 26;
 

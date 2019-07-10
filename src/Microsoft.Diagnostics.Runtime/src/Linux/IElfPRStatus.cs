@@ -2,15 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ElfFileTableHeader
+    internal interface IElfPRStatus
     {
-        public IntPtr EntryCount;
-        public IntPtr PageSize;
+        uint ProcessId { get; }
+
+        uint ThreadId { get; }
+
+        unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context);
     }
 }

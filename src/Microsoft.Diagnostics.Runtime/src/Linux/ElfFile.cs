@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private ElfSectionHeader[] _sections;
         private string[] _sectionNames;
 
-        public ElfHeader Header { get; }
+        public IElfHeader Header { get; }
 
         public IReadOnlyCollection<ElfNote> Notes
         {
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             get
             {
-                if (Header.ProgramHeaderOffset != IntPtr.Zero && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
+                if (Header.ProgramHeaderOffset != 0 && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
                 {
                     try
                     {
@@ -79,11 +79,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (virt)
                 _virtualAddressReader = reader;
 
-            Header = reader.Read<ElfHeader>(position);
-            Header.Validate(reader.DataSource.Name);
+            ElfHeaderCommon common = reader.Read<ElfHeaderCommon>(position);
+            Header = common.GetHeader(reader, position);
+            if (Header == null)
+                throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
-        internal ElfFile(ElfHeader header, Reader reader, long position = 0, bool virt = false)
+        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool virt = false)
         {
             _reader = reader;
             _position = position;
@@ -113,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             List<ElfNote> notes = new List<ElfNote>();
             foreach (ElfProgramHeader programHeader in _programHeaders)
             {
-                if (programHeader.Header.Type == ElfProgramHeaderType.Note)
+                if (programHeader.Type == ElfProgramHeaderType.Note)
                 {
                     Reader reader = new Reader(programHeader.AddressSpace);
                     long position = 0;
@@ -137,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             _programHeaders = new ElfProgramHeader[Header.ProgramHeaderCount];
             for (int i = 0; i < _programHeaders.Length; i++)
-                _programHeaders[i] = new ElfProgramHeader(_reader, _position + (long)Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+                _programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
 
         private string GetSectionName(int section)
@@ -177,11 +179,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             int nameTableIndex = Header.SectionHeaderStringIndex;
-            if (Header.SectionHeaderOffset != IntPtr.Zero && Header.SectionHeaderCount > 0 && nameTableIndex != 0)
+            if (Header.SectionHeaderOffset != 0 && Header.SectionHeaderCount > 0 && nameTableIndex != 0)
             {
                 ref ElfSectionHeader hdr = ref _sections[nameTableIndex];
-                long offset = hdr.FileOffset.ToInt64();
-                int size = checked((int)hdr.FileSize.ToInt64());
+                long offset = checked((long)hdr.FileOffset);
+                int size = checked((int)hdr.FileSize);
 
                 _sectionNameTable = _reader.ReadBytes(offset, size);
             }
@@ -194,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             _sections = new ElfSectionHeader[Header.SectionHeaderCount];
             for (int i = 0; i < _sections.Length; i++)
-                _sections[i] = _reader.Read<ElfSectionHeader>(_position + (long)Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
+                _sections[i] = new ElfSectionHeader(_reader, Header.Is64Bit, _position + Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
         }
 
 #if DEBUG
