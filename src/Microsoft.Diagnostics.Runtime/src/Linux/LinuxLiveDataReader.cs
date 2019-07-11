@@ -74,13 +74,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 {
                     continue;
                 }
-                var module = result.FirstOrDefault(m => m.FileName == entry.FileName);
+                var module = result.FirstOrDefault(m => m.FileName == entry.FilePath);
                 if (module == null)
                 {
                     ModuleInfo moduleInfo = new ModuleInfo(this)
                     {
                         ImageBase = entry.BeginAddr,
-                        FileName = entry.FileName
+                        FileName = entry.FilePath
                     };
                     if (File.Exists(entry.FilePath))
                     {
