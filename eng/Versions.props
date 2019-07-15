@@ -3,7 +3,8 @@
   <PropertyGroup>
     <!-- This repo version -->
     <VersionPrefix>1.1.0</VersionPrefix>
-    <PreReleaseVersionLabel></PreReleaseVersionLabel>
+    <PreReleaseVersionLabel>
+    </PreReleaseVersionLabel>
     <AutoGenerateAssemblyVersion>true</AutoGenerateAssemblyVersion>
   </PropertyGroup>
 </Project>
