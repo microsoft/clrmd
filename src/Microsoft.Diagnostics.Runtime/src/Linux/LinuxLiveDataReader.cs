@@ -228,6 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (ret != 0)
                 {
                     Console.WriteLine($"PTRACE_GETREGS returns {ret:x} for {threadID}");
+                    return false;
                 }
                 RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
                 CopyContext(ctx, ref r);
@@ -256,6 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (ret != 0)
                 {
                     Console.WriteLine($"PTRACE_GETREGS returns {ret:x} for {threadID}");
+                    return false;
                 }
                 RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
                 CopyContext(ctx, ref r);
@@ -307,6 +309,26 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     if (uint.TryParse(dirName, out taskId) && taskId > 0)
                     {
                         _threadIDs.Add(taskId);
+                    }
+                }
+                foreach (var tid in _threadIDs)
+                {
+                    if (tid != this.ProcessId)
+                    {
+                        bool attached = false;
+                        ulong ret = ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                        if (ret == 0)
+                        {
+                            int ret2 = wait(IntPtr.Zero);
+                            if (ret2 == tid)
+                            {
+                                attached = true;
+                            }
+                        }
+                        if (!attached)
+                        {
+                            Console.WriteLine($"Attach to thread {tid} failed.");
+                        }
                     }
                 }
             }
