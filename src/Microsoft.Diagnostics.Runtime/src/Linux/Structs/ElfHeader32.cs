@@ -11,9 +11,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly ElfHeaderCommon _common;
 
-        private readonly int _entry;
-        private readonly int _programHeaderOffset;
-        private readonly int _sectionHeaderOffset;
+        private readonly uint _entry;
+        private readonly uint _programHeaderOffset;
+        private readonly uint _sectionHeaderOffset;
 
         private readonly uint _flags;
         private readonly ushort _ehSize;

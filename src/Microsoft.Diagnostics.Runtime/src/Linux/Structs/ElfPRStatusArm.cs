@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal struct ElfPRStatusArm : IElfPRStatus
     {
         public ElfSignalInfo SignalInfo;
-        public ushort CurrentSignal;
+        public short CurrentSignal;
         ushort Padding;
         public uint SignalsPending;
         public uint SignalsHeld;

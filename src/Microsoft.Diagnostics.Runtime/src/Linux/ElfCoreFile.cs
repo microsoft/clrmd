@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
             long position = 0;
-            long entryCount = 0;
+            ulong entryCount = 0;
             if (ElfFile.Header.Is64Bit)
             {
                 ElfFileTableHeader64 header = fileNote.ReadContents<ElfFileTableHeader64>(ref position);

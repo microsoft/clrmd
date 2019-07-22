@@ -11,9 +11,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly ElfHeaderCommon _common;
 
-        private readonly long _entry;
-        private readonly long _programHeaderOffset;
-        private readonly long _sectionHeaderOffset;
+        private readonly ulong _entry;
+        private readonly ulong _programHeaderOffset;
+        private readonly ulong _sectionHeaderOffset;
 
         private readonly uint _flags;
         private readonly ushort _ehSize;
@@ -33,9 +33,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfMachine Architecture => _common.Architecture;
 
-        public long ProgramHeaderOffset => _programHeaderOffset;
+        public long ProgramHeaderOffset => checked((long)_programHeaderOffset);
 
-        public long SectionHeaderOffset => _sectionHeaderOffset;
+        public long SectionHeaderOffset => checked((long)_sectionHeaderOffset);
 
         public ushort ProgramHeaderEntrySize => _programHeaderEntrySize;
 

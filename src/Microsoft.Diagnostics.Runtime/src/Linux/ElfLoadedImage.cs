@@ -43,11 +43,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             _fileTable.Add(pointers);
 
-            long start = pointers.Start;
+            long start = checked((long)pointers.Start);
             if (BaseAddress == 0 || start < BaseAddress)
                 BaseAddress = start;
 
-            long end = pointers.Stop;
+            long end = checked((long)pointers.Stop);
             if (_end < end)
                 _end = end;
         }

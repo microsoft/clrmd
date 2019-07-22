@@ -10,11 +10,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal struct ElfProgramHeader32
     {
         public ElfProgramHeaderType Type;   // p_type
-        public int FileOffset;              // p_offset
-        public int VirtualAddress;          // p_vaddr
-        public int PhysicalAddress;         // p_paddr
-        public int FileSize;                // p_filesz
-        public int VirtualSize;             // p_memsz
+        public uint FileOffset;             // p_offset
+        public uint VirtualAddress;         // p_vaddr
+        public uint PhysicalAddress;        // p_paddr
+        public uint FileSize;               // p_filesz
+        public uint VirtualSize;            // p_memsz
         public uint Flags;                  // p_flags
         public uint Alignment;              // p_align
     }

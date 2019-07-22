@@ -24,10 +24,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 var header = reader.Read<ElfProgramHeader64>(headerPositon);
                 Type = header.Type;
-                VirtualAddress = header.VirtualAddress;
-                VirtualSize = header.VirtualSize;
-                FileOffset = header.FileOffset;
-                FileSize = header.FileSize;
+                VirtualAddress = unchecked((long)header.VirtualAddress);
+                VirtualSize = unchecked((long)header.VirtualSize);
+                FileOffset = unchecked((long)header.FileOffset);
+                FileSize = unchecked((long)header.FileSize);
             }
             else
             {
