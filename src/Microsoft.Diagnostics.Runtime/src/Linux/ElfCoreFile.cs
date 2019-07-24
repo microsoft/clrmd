@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,11 +17,25 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private ELFVirtualAddressSpace _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
-        public ElfMachine Architecture => (ElfMachine)ElfFile.Header.Machine;
 
-        public IEnumerable<ElfPRStatus> EnumeratePRStatus()
+        public IEnumerable<IElfPRStatus> EnumeratePRStatus()
         {
-            return GetNotes(ElfNoteType.PrpsStatus).Select(r => r.ReadContents<ElfPRStatus>(0));
+            ElfMachine architecture = ElfFile.Header.Architecture;
+
+            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r => {
+                switch (architecture)
+                {
+                    case ElfMachine.EM_X86_64:
+                        return r.ReadContents<ElfPRStatusX64>(0);
+
+                    case ElfMachine.EM_ARM:
+                        return r.ReadContents<ElfPRStatusArm>(0);
+
+                    case ElfMachine.EM_AARCH64:
+                        return r.ReadContents<ElfPRStatusArm64>(0);
+                }
+                throw new NotSupportedException($"Invalid architecture {architecture}");
+            });
         }
 
         public IReadOnlyCollection<ElfLoadedImage> LoadedImages
@@ -66,14 +81,36 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
             long position = 0;
-            ElfFileTableHeader header = fileNote.ReadContents<ElfFileTableHeader>(ref position);
+            ulong entryCount = 0;
+            if (ElfFile.Header.Is64Bit)
+            {
+                ElfFileTableHeader64 header = fileNote.ReadContents<ElfFileTableHeader64>(ref position);
+                entryCount = header.EntryCount;
+            }
+            else
+            {
+                ElfFileTableHeader32 header = fileNote.ReadContents<ElfFileTableHeader32>(ref position);
+                entryCount = header.EntryCount;
+            }
 
-            ElfFileTableEntryPointers[] fileTable = new ElfFileTableEntryPointers[header.EntryCount.ToInt32()];
+            ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
             List<ElfLoadedImage> images = new List<ElfLoadedImage>(fileTable.Length);
             Dictionary<string, ElfLoadedImage> lookup = new Dictionary<string, ElfLoadedImage>(fileTable.Length);
 
             for (int i = 0; i < fileTable.Length; i++)
-                fileTable[i] = fileNote.ReadContents<ElfFileTableEntryPointers>(ref position);
+            {
+                if (ElfFile.Header.Is64Bit)
+                {
+                    fileTable[i] = fileNote.ReadContents<ElfFileTableEntryPointers64>(ref position);
+                }
+                else
+                {
+                    ElfFileTableEntryPointers32 entry = fileNote.ReadContents<ElfFileTableEntryPointers32>(ref position);
+                    fileTable[i].Start = entry.Start;
+                    fileTable[i].Stop = entry.Stop;
+                    fileTable[i].PageOffset = entry.PageOffset;
+                }
+            }
 
             long size = fileNote.Header.ContentSize - position;
             byte[] bytes = fileNote.ReadContents(position, (int)size);
@@ -88,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 start = end + 1;
 
                 if (!lookup.TryGetValue(path, out ElfLoadedImage image))
-                    image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, path);
+                    image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
 
                 image.AddTableEntryPointers(fileTable[i]);
             }

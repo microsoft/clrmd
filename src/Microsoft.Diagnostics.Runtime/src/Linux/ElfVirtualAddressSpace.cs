@@ -17,9 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ELFVirtualAddressSpace(IReadOnlyList<ElfProgramHeader> segments, IAddressSpace addressSpace)
         {
-            Length = segments.Max(s => s.Header.VirtualAddress + s.Header.VirtualSize);
+            Length = segments.Max(s => s.VirtualAddress + s.VirtualSize);
             // FileSize == 0 means the segment isn't backed by any data
-            _segments = segments.Where((programHeader) => programHeader.Header.FileSize > 0).ToArray();
+            _segments = segments.Where((programHeader) => programHeader.FileSize > 0).ToArray();
             _addressSpace = addressSpace;
         }
 
@@ -33,13 +33,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 int i = 0;
                 for (; i < _segments.Length; i++)
                 {
-                    ref ElfProgramHeader64 header = ref _segments[i].RefHeader;
+                    long virtualAddress = _segments[i].VirtualAddress;
+                    long virtualSize = _segments[i].VirtualSize;
 
-                    long upperAddress = header.VirtualAddress + header.VirtualSize;
-                    if (header.VirtualAddress <= position && position < upperAddress)
+                    long upperAddress = virtualAddress + virtualSize;
+                    if (virtualAddress <= position && position < upperAddress)
                     {
                         int bytesToReadRange = (int)Math.Min(count - bytesRead, upperAddress - position);
-                        long segmentOffset = position - header.VirtualAddress;
+                        long segmentOffset = position - virtualAddress;
                         int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, buffer, bufferOffset, bytesToReadRange);
                         if (bytesReadRange == 0) {
                             goto done;

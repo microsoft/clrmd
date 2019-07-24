@@ -6,10 +6,12 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct TimeVal
+    internal interface IElfPRStatus
     {
-        public long Seconds;
-        public long Milliseconds;
+        uint ProcessId { get; }
+
+        uint ThreadId { get; }
+
+        unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context);
     }
 }

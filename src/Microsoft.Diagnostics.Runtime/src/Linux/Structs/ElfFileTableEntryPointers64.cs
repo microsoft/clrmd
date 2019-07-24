@@ -8,9 +8,10 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct ElfFileTableHeader
+    internal struct ElfFileTableEntryPointers64
     {
-        public IntPtr EntryCount;
-        public IntPtr PageSize;
+        public ulong Start;
+        public ulong Stop;
+        public ulong PageOffset;
     }
 }

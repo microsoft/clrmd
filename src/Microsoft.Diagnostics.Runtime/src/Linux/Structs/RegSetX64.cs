@@ -30,11 +30,44 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ulong EFlags;
         public ulong Rsp;
         public ulong SS;
-        public ulong FS;
-        public ulong GS;
+        public ulong FSBase;
+        public ulong GSBase;
         public ulong DS;
         public ulong ES;
-        public ulong Reg25;
-        public ulong Reg26;
+        public ulong FS;
+        public ulong GS;
+
+        public unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context)
+        {
+            if (contextSize != AMD64Context.Size)
+                return false;
+
+            AMD64Context* ctx = (AMD64Context*)context;
+            ctx->ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
+            ctx->R15 = R15;
+            ctx->R14 = R14;
+            ctx->R13 = R13;
+            ctx->R12 = R12;
+            ctx->Rbp = Rbp;
+            ctx->Rbx = Rbx;
+            ctx->R11 = R11;
+            ctx->R10 = R10;
+            ctx->R9 = R9;
+            ctx->R8 = R8;
+            ctx->Rax = Rax;
+            ctx->Rcx = Rcx;
+            ctx->Rdx = Rdx;
+            ctx->Rsi = Rsi;
+            ctx->Rdi = Rdi;
+            ctx->Rip = Rip;
+            ctx->Rsp = Rsp;
+            ctx->Cs = (ushort)CS;
+            ctx->Ds = (ushort)DS;
+            ctx->Ss = (ushort)SS;
+            ctx->Fs = (ushort)FS;
+            ctx->Gs = (ushort)GS;
+
+            return true;
+        }
     }
 }

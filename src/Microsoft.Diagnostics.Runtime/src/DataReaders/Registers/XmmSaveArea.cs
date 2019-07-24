@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Explicit)]
-    internal struct XmmSaveArea
+    public struct XmmSaveArea
     {
         public const int HeaderSize = 2;
         public const int LegacySize = 8;

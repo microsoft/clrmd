@@ -220,7 +220,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return false;
             }
             AMD64Context* ctx = (AMD64Context*)context.ToPointer();
-            ctx->ContextFlags = (int)contextFlags;
+            ctx->ContextFlags = contextFlags;
             IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
             try
             {
@@ -248,7 +248,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
             IntPtr ptrContext = Marshal.AllocHGlobal(sizeof(AMD64Context));
             AMD64Context* ctx = (AMD64Context*)ptrContext;
-            ctx->ContextFlags = (int)contextFlags;
+            ctx->ContextFlags = contextFlags;
             IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
             try
             {
