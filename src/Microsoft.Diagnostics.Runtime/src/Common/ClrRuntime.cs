@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates the list of appdomains in the process.
         /// </summary>
-        public abstract IReadOnlyList<ClrAppDomain> AppDomains { get; }
+        public abstract IList<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
         /// Give access to the System AppDomain

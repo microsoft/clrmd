@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrThreadPool ThreadPool => _threadpool.Value;
         public override ClrAppDomain SystemDomain => _appDomains.Value.System;
         public override ClrAppDomain SharedDomain => _appDomains.Value.Shared;
-        public override IReadOnlyList<ClrAppDomain> AppDomains => _appDomains.Value.Domains;
+        public override IList<ClrAppDomain> AppDomains => _appDomains.Value.Domains;
         public bool IsSingleDomain => _appDomains.Value.Domains.Count == 1;
 
         public override ClrMethod GetMethodByHandle(ulong methodHandle)
@@ -840,11 +840,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             public readonly DesktopAppDomain System;
             public readonly DesktopAppDomain Shared;
-            public readonly IReadOnlyList<ClrAppDomain> Domains;
+            public readonly IList<ClrAppDomain> Domains;
             
             public static readonly DomainContainer Empty = new DomainContainer(null, null, new ClrAppDomain[0]);
 
-            public DomainContainer(DesktopAppDomain system, DesktopAppDomain shared, IReadOnlyList<ClrAppDomain> domains)
+            public DomainContainer(DesktopAppDomain system, DesktopAppDomain shared, IList<ClrAppDomain> domains)
             {
                 System = system;
                 Shared = shared;
