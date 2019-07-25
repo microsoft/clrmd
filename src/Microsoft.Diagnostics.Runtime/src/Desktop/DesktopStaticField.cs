@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrType TryBuildType(ClrHeap heap)
         {
             ClrRuntime runtime = heap.Runtime;
-            IList<ClrAppDomain> domains = runtime.AppDomains;
+            IReadOnlyList<ClrAppDomain> domains = runtime.AppDomains;
             ClrType[] types = new ClrType[domains.Count];
 
             ClrElementType elType = ElementType;

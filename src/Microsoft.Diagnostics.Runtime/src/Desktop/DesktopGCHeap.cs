@@ -667,11 +667,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // Walking a module is sloooow.  Ensure we only walk each module once.
             HashSet<ulong> modules = new HashSet<ulong>();
 
-            foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SystemDomainAddress)))
-                modules.Add(module);
+            if (DesktopRuntime.SystemDomain != null)
+                foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SystemDomain.Address)))
+                    modules.Add(module);
 
-            foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SharedDomainAddress)))
-                modules.Add(module);
+            if (DesktopRuntime.SharedDomain != null)
+                foreach (ulong module in DesktopRuntime.EnumerateModules(DesktopRuntime.GetAppDomainData(DesktopRuntime.SharedDomain.Address)))
+                    modules.Add(module);
 
             IAppDomainStoreData ads = DesktopRuntime.GetAppDomainStoreData();
             if (ads == null)

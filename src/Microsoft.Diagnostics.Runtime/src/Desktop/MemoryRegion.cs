@@ -152,11 +152,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (HasAppDomainData)
                 {
-                    if (_domainModuleHeap == _runtime.SharedDomainAddress)
+                    if (_runtime.SharedDomain != null && _domainModuleHeap == _runtime.SharedDomain.Address)
                     {
                         value = $"{value} for Shared AppDomain";
                     }
-                    else if (_domainModuleHeap == _runtime.SystemDomainAddress)
+                    else if (_runtime.SystemDomain != null && _domainModuleHeap == _runtime.SystemDomain.Address)
                     {
                         value = $"{value} for System AppDomain";
                     }
