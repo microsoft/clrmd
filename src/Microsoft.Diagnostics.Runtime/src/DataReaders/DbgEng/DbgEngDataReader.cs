@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            int hr = _control.GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType);
+            int hr = _control.GetEffectiveProcessorType(out IMAGE_FILE_MACHINE machineType);
             if (hr != 0)
                 throw new ClrDiagnosticsException($"Failed to get processor type, HRESULT: {hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
 
@@ -502,12 +502,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
             _systemObjects.SetCurrentThreadId(id);
-        }
-
-        internal void GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType)
-        {
-            SetClientInstance();
-            _control.GetEffectiveProcessorType(out machineType);
         }
 
         public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
