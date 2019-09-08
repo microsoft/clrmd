@@ -14,6 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
         private ElfLoadedImage[] _loadedImages;
+        private Dictionary<ulong, ulong> _auxvEntries;
         private ELFVirtualAddressSpace _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
@@ -36,6 +37,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
                 throw new NotSupportedException($"Invalid architecture {architecture}");
             });
+        }
+
+        public ulong GetAuxvValue(ElfAuxvType type)
+        {
+            LoadAuxvTable();
+            _auxvEntries.TryGetValue((ulong)type, out ulong value);
+            return value;
         }
 
         public IReadOnlyCollection<ElfLoadedImage> LoadedImages
@@ -71,6 +79,39 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private IEnumerable<ElfNote> GetNotes(ElfNoteType type)
         {
             return ElfFile.Notes.Where(n => n.Type == type);
+        }
+
+        private void LoadAuxvTable()
+        {
+            if (_auxvEntries != null)
+                return;
+
+            _auxvEntries = new Dictionary<ulong, ulong>();
+            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).Single();
+            long position = 0;
+
+            while (true)
+            {
+                ulong type;
+                ulong value;
+                if (ElfFile.Header.Is64Bit)
+                {
+                    var elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
+                    type = elfauxv64.Type;
+                    value = elfauxv64.Value;
+                }
+                else
+                {
+                    var elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
+                    type = elfauxv32.Type;
+                    value = elfauxv32.Value;
+                }
+                if (type == (ulong)ElfAuxvType.Null)
+                {
+                    break;
+                }
+                _auxvEntries.Add(type, value);
+            }
         }
 
         private void LoadFileTable()

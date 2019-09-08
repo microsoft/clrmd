@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context)
         {
-            if (contextSize != AMD64Context.Size)
+            if (contextSize < AMD64Context.Size)
                 return false;
 
             AMD64Context* ctx = (AMD64Context*)context;

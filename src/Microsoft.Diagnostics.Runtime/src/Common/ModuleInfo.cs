@@ -65,6 +65,8 @@ namespace Microsoft.Diagnostics.Runtime
                 InitData();
                 return _managed;
             }
+
+            set => _managed = value;
         }
 
         /// <summary>

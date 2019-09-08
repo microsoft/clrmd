@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly int _pointerSize;
         private readonly Architecture _architecture;
         private Dictionary<uint, IElfPRStatus> _threads;
+        private IList<ModuleInfo> _modules;
         private readonly byte[] _buffer = new byte[512];
 
         public CoreDumpReader(string filename)
@@ -81,23 +82,38 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            return _core.LoadedImages.Select(img => CreateModuleInfo(img)).ToArray();
+            if (_modules == null)
+            {
+                // Need to filter out non-modules like the interpreter (named something 
+                // like "ld-2.23") and anything that starts with /dev/ because their 
+                // memory range overlaps with actual modules.
+                ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
+                _modules = _core.LoadedImages
+                    .Where((img) => (ulong)img.BaseAddress != interpreter && !img.Path.StartsWith("/dev/"))
+                    .Select(img => CreateModuleInfo(img))
+                    .ToArray();
+            }
+            return _modules;
         }
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
         {
+            ElfFile file = img.Open();
+
             return new ModuleInfo
             {
                 FileName = img.Path,
                 FileSize = (uint)img.Size,
                 ImageBase = (ulong)img.BaseAddress,
-                BuildId = img.Open()?.BuildId
+                BuildId = file?.BuildId,
+                IsManaged = file == null
             };
         }
 
         public void Flush()
         {
             _threads = null;
+            _modules = null;
         }
 
         public Architecture GetArchitecture()
