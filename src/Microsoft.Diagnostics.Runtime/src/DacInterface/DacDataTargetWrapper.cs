@@ -83,6 +83,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     machineType = IMAGE_FILE_MACHINE.THUMB2;
                     break;
 
+                case Architecture.Arm64:
+                    machineType = IMAGE_FILE_MACHINE.ARM64;
+                    break;
+
                 default:
                     machineType = IMAGE_FILE_MACHINE.UNKNOWN;
                     break;
@@ -320,6 +324,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
                 case Architecture.Arm:
                     return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM;
+
+                case Architecture.Arm64:
+                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM64;
 
                 default:
                     throw new Exception();

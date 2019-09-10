@@ -124,6 +124,9 @@ namespace Microsoft.Diagnostics.Runtime
                 case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_ARM:
                     return Architecture.Arm;
 
+                case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_ARM64:
+                    return Architecture.Arm64;
+
                 case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_AMD64:
                     return Architecture.Amd64;
 
@@ -139,6 +142,7 @@ namespace Microsoft.Diagnostics.Runtime
             switch (GetArchitecture())
             {
                 case Architecture.Amd64:
+                case Architecture.Arm64:
                     return 8;
 
                 default:

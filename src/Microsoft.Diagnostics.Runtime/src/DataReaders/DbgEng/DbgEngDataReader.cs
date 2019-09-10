@@ -161,6 +161,9 @@ namespace Microsoft.Diagnostics.Runtime
                 case IMAGE_FILE_MACHINE.THUMB2:
                     return Architecture.Arm;
 
+                case IMAGE_FILE_MACHINE.ARM64:
+                    return Architecture.Arm64;
+
                 default:
                     return Architecture.Unknown;
             }
