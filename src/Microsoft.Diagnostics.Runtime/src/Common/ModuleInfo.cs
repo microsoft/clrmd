@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return _managed;
             }
 
-            set => _managed = value;
+            internal set => _managed = value;
         }
 
         /// <summary>

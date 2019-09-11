@@ -87,9 +87,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             _auxvEntries = new Dictionary<ulong, ulong>();
-            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).Single();
-            long position = 0;
+            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
+            if (auxvNote == null)
+                throw new BadImageFormatException($"No auxv entries in coredump");
 
+            long position = 0;
             while (true)
             {
                 ulong type;
