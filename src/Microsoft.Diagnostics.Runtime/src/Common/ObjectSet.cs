@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -40,19 +41,24 @@ namespace Microsoft.Diagnostics.Runtime
             _heap = heap;
             _minObjSize = heap.PointerSize * 3;
 
-            _segments = new HeapHashSegment[_heap.Segments.Count];
-
-            for (int i = 0; i < _segments.Length; i++)
+            List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Count);
+            foreach (ClrSegment seg in _heap.Segments)
             {
-                ulong start = _heap.Segments[i].Start;
-                ulong end = _heap.Segments[i].End;
-                _segments[i] = new HeapHashSegment
+                ulong start = seg.Start;
+                ulong end = seg.End;
+
+                if (start < end)
                 {
-                    StartAddress = start,
-                    EndAddress = end,
-                    Objects = new BitArray(checked((int)(end - start) / _minObjSize), false)
-                };
+                    segments.Add(new HeapHashSegment
+                    {
+                        StartAddress = start,
+                        EndAddress = end,
+                        Objects = new BitArray((int)(end - start) / _minObjSize, false)
+                    });
+                }
             }
+
+            _segments = segments.ToArray();
         }
 
         /// <summary>
