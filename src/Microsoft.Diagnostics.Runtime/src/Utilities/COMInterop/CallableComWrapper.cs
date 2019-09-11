@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return count;
         }
 
-        private protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
+        protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library;
             _library.AddRef();

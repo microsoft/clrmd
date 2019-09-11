@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context)
         {
-            if (contextSize != Arm64Context.Size)
+            if (contextSize < Arm64Context.Size)
                 return false;
 
             Arm64Context* ctx = (Arm64Context*)context;

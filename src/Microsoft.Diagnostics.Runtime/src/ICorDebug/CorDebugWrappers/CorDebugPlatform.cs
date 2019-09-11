@@ -14,6 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.ICorDebug
         CORDB_PLATFORM_WINDOWS_IA64 = 2, // Windows on Intel IA-64
         CORDB_PLATFORM_MAC_PPC = 3, // MacOS on PowerPC
         CORDB_PLATFORM_MAC_X86 = 4, // MacOS on Intel x86
-        CORDB_PLATFORM_WINDOWS_ARM = 5 // Windows on ARM
+        CORDB_PLATFORM_WINDOWS_ARM = 5, // Windows on ARM
+        CORDB_PLATFORM_MAC_AMD64 = 6,
+        CORDB_PLATFORM_WINDOWS_ARM64 = 7 // Windows on ARM64
     }
 }

@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context)
         {
-            if (contextSize != ArmContext.Size)
+            if (contextSize < ArmContext.Size)
                 return false;
 
             ArmContext* ctx = (ArmContext*)context;
