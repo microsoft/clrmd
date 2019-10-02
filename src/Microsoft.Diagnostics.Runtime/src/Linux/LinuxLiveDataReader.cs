@@ -301,26 +301,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         _threadIDs.Add(taskId);
                     }
                 }
-                foreach (var tid in _threadIDs)
-                {
-                    if (tid != this.ProcessId)
-                    {
-                        bool attached = false;
-                        ulong ret = ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
-                        if (ret == 0)
-                        {
-                            int ret2 = wait(IntPtr.Zero);
-                            if (ret2 == tid)
-                            {
-                                attached = true;
-                            }
-                        }
-                        if (!attached)
-                        {
-                            System.Diagnostics.Trace.WriteLine($"Attach to thread {tid} failed.");
-                        }
-                    }
-                }
             }
         }
 
