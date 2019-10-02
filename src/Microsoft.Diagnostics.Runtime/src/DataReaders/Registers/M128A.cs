@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal struct M128A
+    public struct M128A
     {
         public ulong Low;
         public ulong High;

@@ -2,16 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Runtime.InteropServices;
-
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ElfFileTableEntryPointers
+    internal enum ElfAuxvType
     {
-        public IntPtr Start;
-        public IntPtr Stop;
-        public IntPtr PageOffset;
+        Null = 0,           // end of vector
+        Base = 7,           // base address of interpreter
     }
 }

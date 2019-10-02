@@ -176,7 +176,7 @@ that if you are already attached with Visual Studio or an instance of Windbg, an
 invasive attach through ClrMD will fail. A non-invasive attach gets around this
 problem. Any number of non-invasive debuggers may be attached to a process. Both
 an invasive and non-invasive attach will pause the debugee (so this means VS's
-debugger will not function again until you detatch). The primary difference
+debugger will not function again until you detach). The primary difference
 between the two is that you cannot control the target process or receive debug
 notifications (such as exceptions) when using a non-invasive attach.
 
@@ -202,7 +202,7 @@ debugger has the target process paused. You should use an invasive attach if you
 need to control the target process. You should use a non-invasive attach for all
 other uses of the API.
 
-## Detatching from a process or dump
+## Detaching from a process or dump
 
 `DataTarget` implements the `IDisposable` interface. Every instance of
 `DataTarget` should be wrapped with a `using` statement (otherwise you should find
@@ -214,7 +214,7 @@ until you dispose of `DataTarget`. Second, and more importantly is the live
 process case. For a live process, ClrMD acts as a real debugger, which has a lot
 of implications in terms of program termination. Primarily, if you kill the
 debugger process without detaching from the target process, Windows will kill
-the target process. Calling `DataTarget`'s `Dispose` method will detatch from
+the target process. Calling `DataTarget`'s `Dispose` method will detach from
 any live process.
 
 `DataTarget` itself has a finalizer (which calls `Dispose`), and this will be run

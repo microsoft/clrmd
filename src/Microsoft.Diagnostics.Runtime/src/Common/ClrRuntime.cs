@@ -55,8 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int PointerSize { get; }
 
         /// <summary>
-        /// Enumerates the list of appdomains in the process.  Note the System appdomain and Shared
-        /// AppDomain are omitted.
+        /// Enumerates the list of appdomains in the process.
         /// </summary>
         public abstract IList<ClrAppDomain> AppDomains { get; }
 

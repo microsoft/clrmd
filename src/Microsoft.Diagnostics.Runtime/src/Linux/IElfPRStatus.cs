@@ -2,16 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Runtime.InteropServices;
+
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal enum ElfNoteType : uint
+    internal interface IElfPRStatus
     {
-        PrpsStatus = 1,
-        PrpsFpreg = 2,
-        PrpsInfo = 3,
-        TASKSTRUCT = 4,
-        Aux = 6,
+        uint ProcessId { get; }
 
-        File = 0x46494c45 // "FILE" in ascii
+        uint ThreadId { get; }
+
+        unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context);
     }
 }

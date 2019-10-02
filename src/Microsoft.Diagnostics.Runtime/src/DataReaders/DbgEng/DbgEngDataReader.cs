@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
 
-            int hr = _control.GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType);
+            int hr = _control.GetEffectiveProcessorType(out IMAGE_FILE_MACHINE machineType);
             if (hr != 0)
                 throw new ClrDiagnosticsException($"Failed to get processor type, HRESULT: {hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
 
@@ -160,6 +160,9 @@ namespace Microsoft.Diagnostics.Runtime
                 case IMAGE_FILE_MACHINE.THUMB:
                 case IMAGE_FILE_MACHINE.THUMB2:
                     return Architecture.Arm;
+
+                case IMAGE_FILE_MACHINE.ARM64:
+                    return Architecture.Arm64;
 
                 default:
                     return Architecture.Unknown;
@@ -437,15 +440,14 @@ namespace Microsoft.Diagnostics.Runtime
             return _symbols.GetModuleByModuleName(image, (uint)start, out index, out baseAddress);
         }
 
-        public void GetVersionInfo(ulong addr, out VersionInfo version)
+        public void GetVersionInfo(ulong baseAddr, out VersionInfo version)
         {
             version = default;
 
-            int hr = _symbols.GetModuleByOffset(addr, 0, out uint index, out ulong baseAddr);
-            if (hr != 0)
+            if (!FindModuleIndex(baseAddr, out uint index))
                 return;
 
-            hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out uint needed);
+            int hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out uint needed);
             if (hr != 0)
                 return;
 
@@ -460,6 +462,30 @@ namespace Microsoft.Diagnostics.Runtime
             int revision = (ushort)Marshal.ReadInt16(buffer, 14);
             
             version = new VersionInfo(major, minor, revision, patch);
+        }
+
+        private bool FindModuleIndex(ulong baseAddr, out uint index)
+        {
+            /* GetModuleByOffset returns the first module (from startIndex) which
+             * includes baseAddr.
+             * However when loading 64-bit dumps of 32-bit processes it seems that
+             * the module sizes are sometimes wrong, which may cause a wrong module
+             * to be found because it overlaps the beginning of the queried module,
+             * so search until we find a module that actually has the correct
+             * baseAddr*/
+            uint nextIndex = 0;
+            while (true)
+            {
+                int hr = _symbols.GetModuleByOffset(baseAddr, nextIndex, out index, out ulong claimedBaseAddr);
+                if (hr != 0)
+                {
+                    index = 0;
+                    return false;
+                }
+                if (claimedBaseAddr == baseAddr)
+                    return true;
+                nextIndex = index + 1;
+            }
         }
 
         internal int GetModuleVersionInformation(uint index, ulong baseAddress, string p, byte[] buffer, uint needed1, out uint needed2)
@@ -502,12 +528,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SetClientInstance();
             _systemObjects.SetCurrentThreadId(id);
-        }
-
-        internal void GetExecutingProcessorType(out IMAGE_FILE_MACHINE machineType)
-        {
-            SetClientInstance();
-            _control.GetEffectiveProcessorType(out machineType);
         }
 
         public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
