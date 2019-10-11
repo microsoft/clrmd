@@ -224,11 +224,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
             try
             {
-                ulong ret = ptrace(PTRACE_GETREGS, (int) threadID, IntPtr.Zero, ptr);
-                if (ret != 0)
-                {
-                    Console.WriteLine($"PTRACE_GETREGS returns {ret:x} for {threadID}");
-                }
+                ptrace(PTRACE_GETREGS, (int) threadID, IntPtr.Zero, ptr);
                 RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
                 CopyContext(ctx, ref r);
             }
@@ -252,11 +248,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
             try
             {
-                ulong ret = ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, ptr);
-                if (ret != 0)
-                {
-                    Console.WriteLine($"PTRACE_GETREGS returns {ret:x} for {threadID}");
-                }
+                ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, ptr);
                 RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
                 CopyContext(ctx, ref r);
                 Marshal.Copy(ptrContext, context, 0, sizeof(AMD64Context));
