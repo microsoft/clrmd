@@ -105,16 +105,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             for (ulong i = 0; i < count; i++)
             {
                 tempMD = _memory64List.GetElement((uint)i);
-                MinidumpMemoryChunk chunk = new MinidumpMemoryChunk
-                {
-                    Size = tempMD.DataSize,
-                    TargetStartAddress = tempMD.StartOfMemoryRange,
-                    TargetEndAddress = tempMD.StartOfMemoryRange + tempMD.DataSize,
-                    RVA = currentRVA.Value
-                };
 
-                currentRVA.Value += tempMD.DataSize;
-                chunks.Add(chunk);
+                if (tempMD.DataSize > 0)
+                {
+                    MinidumpMemoryChunk chunk = new MinidumpMemoryChunk
+                    {
+                        Size = tempMD.DataSize,
+                        TargetStartAddress = tempMD.StartOfMemoryRange,
+                        TargetEndAddress = tempMD.StartOfMemoryRange + tempMD.DataSize,
+                        RVA = currentRVA.Value
+                    };
+
+                    currentRVA.Value += tempMD.DataSize;
+                    chunks.Add(chunk);
+                }
             }
 
             chunks.Sort();
@@ -136,11 +140,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 MinidumpMemoryChunk chunk = new MinidumpMemoryChunk();
                 tempMD = _memoryList.GetElement((uint)i);
-                chunk.Size = tempMD.Memory.DataSize;
-                chunk.TargetStartAddress = tempMD.StartOfMemoryRange;
-                chunk.TargetEndAddress = tempMD.StartOfMemoryRange + tempMD.Memory.DataSize;
-                chunk.RVA = tempMD.Memory.Rva.Value;
-                chunks.Add(chunk);
+                if (tempMD.Memory.DataSize > 0)
+                {
+                    chunk.Size = tempMD.Memory.DataSize;
+                    chunk.TargetStartAddress = tempMD.StartOfMemoryRange;
+                    chunk.TargetEndAddress = tempMD.StartOfMemoryRange + tempMD.Memory.DataSize;
+                    chunk.RVA = tempMD.Memory.Rva.Value;
+                    chunks.Add(chunk);
+                }
             }
 
             chunks.Sort();
