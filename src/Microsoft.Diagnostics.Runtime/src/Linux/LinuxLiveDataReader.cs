@@ -222,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 iov_base = (void*)address,
                 iov_len = (IntPtr)readableBytesCount
             };
-            bytesRead = (int)process_vm_readv((int)ProcessId, &local, 1, &remote, 1, 0).ToInt64();
+            bytesRead = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
             return bytesRead > 0;
         }
 
@@ -538,7 +538,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private static extern ulong ptrace(uint command, int pid, IntPtr addr, IntPtr data);
 
         [DllImport("libc", SetLastError = true)]
-        private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, ulong liovcnt, iovec* remote_iov, ulong riovcnt, ulong flags);
+        private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
 
         private unsafe struct iovec
         {
