@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private List<MemoryMapEntry> _memoryMapEntries;
         private FileStream _memoryStream;
+        private bool _initializedMemFile;
         private List<uint> _threadIDs = new List<uint>();
         private byte[] _ptrBuffer = new byte[IntPtr.Size];
         private byte[] _dwordBuffer = new byte[4];
@@ -45,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             _memoryStream?.Dispose();
             _memoryStream = null;
+            _initializedMemFile = false;
         }
 
         public void Flush()
@@ -52,6 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _threadIDs.Clear();
             _memoryStream?.Dispose();
             _memoryStream = null;
+            _initializedMemFile = false;
             _memoryMapEntries = this.LoadMemoryMap();
         }
 
@@ -124,6 +127,31 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             this.OpenMemFile();
+            if (_memoryStream != null)
+            {
+                return ReadMemoryProcMem(address, buffer, bytesRequested, out bytesRead);
+            }
+            else
+            {
+                return ReadMemoryReadv(address, buffer, bytesRequested, out bytesRead);
+            }
+        }
+
+        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        {
+            this.OpenMemFile();
+            if (_memoryStream != null)
+            {
+                return ReadMemoryProcMem(address, buffer, bytesRequested, out bytesRead);
+            }
+            else
+            {
+                return ReadMemoryReadv(address, buffer, bytesRequested, out bytesRead);
+            }
+        }
+
+        private bool ReadMemoryProcMem(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        {
             bytesRead = 0;
             int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
             if (readableBytesCount <= 0)
@@ -142,9 +170,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        private bool ReadMemoryProcMem(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            this.OpenMemFile();
             bytesRead = 0;
             int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
             if (readableBytesCount <= 0)
@@ -166,6 +193,37 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 return false;
             }
+        }
+
+        private unsafe bool ReadMemoryReadv(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        {
+            fixed (void* p = buffer)
+            {
+                return ReadMemoryReadv(address, (IntPtr)p, bytesRequested, out bytesRead);
+            }
+        }
+
+        private unsafe bool ReadMemoryReadv(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        {
+            bytesRead = 0;
+            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
+            if (readableBytesCount <= 0)
+            {
+                return false;
+            }
+
+            var local = new iovec
+            {
+                iov_base = (void*)buffer,
+                iov_len = (IntPtr)readableBytesCount
+            };
+            var remote = new iovec
+            {
+                iov_base = (void*)address,
+                iov_len = (IntPtr)readableBytesCount
+            };
+            bytesRead = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
+            return bytesRead > 0;
         }
 
         public ulong ReadPointerUnsafe(ulong address)
@@ -306,11 +364,19 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void OpenMemFile()
         {
-            if (_memoryStream != null)
+            if (_initializedMemFile)
             {
                 return;
             }
-            _memoryStream = File.OpenRead($"/proc/{this.ProcessId}/mem");
+            if (File.Exists("/proc/self/mem"))
+            {
+                _memoryStream = File.OpenRead($"/proc/{this.ProcessId}/mem");
+            }
+            else
+            {
+                // WSL 1 doesn't have /proc/<pid>/mem
+            }
+            _initializedMemFile = true;
         }
 
         private int GetReadableBytesCount(ulong address, int bytesRequested)
@@ -472,9 +538,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private static extern ulong ptrace(uint command, int pid, IntPtr addr, IntPtr data);
 
         [DllImport("libc", SetLastError = true)]
-        private static extern int wait(IntPtr status);
+        private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
 
-        private const uint PTRACE_ATTACH = 16;
+        private unsafe struct iovec
+        {
+            public void* iov_base;
+            public IntPtr iov_len;
+        }
+
         private const uint PTRACE_GETREGS = 12;
     }
 
