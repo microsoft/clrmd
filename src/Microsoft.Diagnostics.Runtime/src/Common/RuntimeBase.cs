@@ -222,6 +222,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal abstract ISegmentData GetSegmentData(ulong addr);
         internal abstract IGCInfo GetGCInfo();
         internal abstract IMethodTableData GetMethodTableData(ulong addr);
+        internal abstract IMethodTableCollectibleData GetMethodTableCollectibleData(ulong addr);
         internal abstract uint GetTlsSlot();
         internal abstract uint GetThreadTypeIndex();
 

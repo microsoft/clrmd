@@ -26,6 +26,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly uint _baseSize;
         private readonly uint _componentSize;
         private readonly bool _containsPointers;
+        private readonly bool _isCollectible;
+        private readonly ulong _loaderAllocatorObjectHandle;
         private byte _finalizable;
 
         private List<ClrInstanceField> _fields;
@@ -473,6 +475,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override bool IsArray => _componentSize != 0 && this != DesktopHeap.StringType && this != DesktopHeap.Free;
         public override bool ContainsPointers => _containsPointers;
+        public override bool IsCollectible => _isCollectible;
+
+        public override ulong LoaderAllocatorObject
+        {
+            get
+            {
+                if (_isCollectible)
+                {
+                    DesktopHeap.ReadPointer(_loaderAllocatorObjectHandle, out ulong loaderAllocatorObject);
+                    return loaderAllocatorObject;
+                }
+
+                return 0;
+            }
+        }
+
         public override bool IsString => this == DesktopHeap.StringType;
 
         public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
@@ -981,7 +999,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return builder.ToString();
         }
 
-        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap)
+        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap, IMethodTableCollectibleData mtCollectibleData = null)
             : base(mt, heap, module, token)
         {
             _name = new Lazy<string>(typeNameFactory);
@@ -992,6 +1010,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _componentSize = mtData.ComponentSize;
             _containsPointers = mtData.ContainsPointers;
             _hasMethods = mtData.NumMethods > 0;
+
+            if (mtCollectibleData != null)
+            {
+                _isCollectible = mtCollectibleData.Collectible;
+                _loaderAllocatorObjectHandle = mtCollectibleData.LoaderAllocatorObjectHandle;
+            }
         }
 
         public DesktopHeapType(ulong mt, DesktopGCHeap heap, DesktopBaseModule module, uint token) : base(mt, heap, module, token)

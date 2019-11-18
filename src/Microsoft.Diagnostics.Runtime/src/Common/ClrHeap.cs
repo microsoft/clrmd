@@ -373,6 +373,9 @@ namespace Microsoft.Diagnostics.Runtime
 
     public readonly struct ClrObjectReference
     {
+        /// <value>
+        /// -1 if the target object is not referenced by a field.
+        /// </value>
         public int FieldOffset { get; }
         public ulong Address { get; }
         public ClrType TargetType { get; }

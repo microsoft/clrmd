@@ -92,6 +92,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual bool ContainsPointers => true;
 
+        public virtual bool IsCollectible => false;
+
+        public virtual ulong LoaderAllocatorObject => 0;
+
         /// <summary>
         /// All types know the heap they belong to.
         /// </summary>

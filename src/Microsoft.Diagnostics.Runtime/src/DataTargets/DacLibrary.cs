@@ -13,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private bool _disposed;
         private SOSDac _sos;
+        private SOSDac6 _sos6;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
@@ -28,6 +29,14 @@ namespace Microsoft.Diagnostics.Runtime
                 _sos = InternalDacPrivateInterface.GetSOSDacInterface();
 
             return _sos;
+        }
+
+        internal SOSDac6 GetSOSInterface6NoAddRef()
+        {
+            if (_sos6 == null)
+                _sos6 = InternalDacPrivateInterface.GetSOSDacInterface6();
+
+            return _sos6;
         }
 
         public SOSDac SOSDacInterface

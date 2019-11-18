@@ -197,6 +197,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Request<IMethodTableData, LegacyMethodTableData>(DacRequests.METHODTABLE_DATA, addr);
         }
 
+        internal override IMethodTableCollectibleData GetMethodTableCollectibleData(ulong addr)
+        {
+            throw new NotImplementedException();
+        }
+
         internal override IGCInfo GetGCInfoImpl()
         {
             return Request<IGCInfo, GCInfo>(DacRequests.GCHEAP_DATA);

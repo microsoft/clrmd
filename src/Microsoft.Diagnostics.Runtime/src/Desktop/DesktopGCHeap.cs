@@ -1349,7 +1349,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             uint offset = (uint)gcrefs.Count;
 
-            if (type.ContainsPointers)
+            if (type.ContainsPointers || type.IsCollectible)
             {
                 EnumerateObjectReferences(obj, type, true, (addr, offs) => { gcrefs.Add(addr); });
             }

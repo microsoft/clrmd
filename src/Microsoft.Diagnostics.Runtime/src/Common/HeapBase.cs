@@ -235,24 +235,36 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 Debug.Assert(type == GetObjectType(obj));
 
-            if (type == null || !type.ContainsPointers)
+            if (type == null || (!type.ContainsPointers && !type.IsCollectible))
                 return s_emptyObjectSet;
 
-            GCDesc gcdesc = type.GCDesc;
-            if (gcdesc == null)
-                return s_emptyObjectSet;
+            List<ClrObject> result = null;
 
-            ulong size = type.GetSize(obj);
-            if (carefully)
+            if (type.ContainsPointers)
             {
-                ClrSegment seg = GetSegmentByAddress(obj);
-                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                GCDesc gcdesc = type.GCDesc;
+                if (gcdesc == null)
                     return s_emptyObjectSet;
+
+                ulong size = type.GetSize(obj);
+                if (carefully)
+                {
+                    ClrSegment seg = GetSegmentByAddress(obj);
+                    if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                        return s_emptyObjectSet;
+                }
+
+                result = new List<ClrObject>();
+                MemoryReader reader = GetMemoryReaderForAddress(obj);
+                gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
             }
 
-            List<ClrObject> result = new List<ClrObject>();
-            MemoryReader reader = GetMemoryReaderForAddress(obj);
-            gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
+            if (type.IsCollectible)
+            {
+                result ??= new List<ClrObject>(1);
+                result.Add(GetObject(type.LoaderAllocatorObject));
+            }
+
             return result;
         }
 
@@ -263,24 +275,37 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 Debug.Assert(type == GetObjectType(obj));
 
-            if (type == null || !type.ContainsPointers)
+            if (type == null || (!type.ContainsPointers && !type.IsCollectible))
                 return s_emptyObjectReferenceSet;
 
-            GCDesc gcdesc = type.GCDesc;
-            if (gcdesc == null)
-                return s_emptyObjectReferenceSet;
+            List<ClrObjectReference> result = null;
 
-            ulong size = type.GetSize(obj);
-            if (carefully)
+            if (type.ContainsPointers)
             {
-                ClrSegment seg = GetSegmentByAddress(obj);
-                if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                GCDesc gcdesc = type.GCDesc;
+                if (gcdesc == null)
                     return s_emptyObjectReferenceSet;
+
+                ulong size = type.GetSize(obj);
+                if (carefully)
+                {
+                    ClrSegment seg = GetSegmentByAddress(obj);
+                    if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                        return s_emptyObjectReferenceSet;
+                }
+
+                result = new List<ClrObjectReference>();
+                MemoryReader reader = GetMemoryReaderForAddress(obj);
+                gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObjectReference(offset, reference, GetObjectType(reference))));
             }
 
-            List<ClrObjectReference> result = new List<ClrObjectReference>();
-            MemoryReader reader = GetMemoryReaderForAddress(obj);
-            gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObjectReference(offset, reference, GetObjectType(reference))));
+            if (type.IsCollectible)
+            {
+                result ??= new List<ClrObjectReference>(1);
+                ulong loaderAllocatorObject = type.LoaderAllocatorObject;
+                result.Add(new ClrObjectReference(-1, loaderAllocatorObject, GetObjectType(loaderAllocatorObject)));
+            }
+
             return result;
         }
 
@@ -291,23 +316,28 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 Debug.Assert(type == GetObjectType(obj));
 
-            if (!type.ContainsPointers)
-                return;
-
-            GCDesc gcdesc = type.GCDesc;
-            if (gcdesc == null)
-                return;
-
-            ulong size = type.GetSize(obj);
-            if (carefully)
+            if (type.ContainsPointers)
             {
-                ClrSegment seg = GetSegmentByAddress(obj);
-                if (seg == null || obj + size > seg.End || !seg.IsLarge && size > 85000)
+                GCDesc gcdesc = type.GCDesc;
+                if (gcdesc == null)
                     return;
+
+                ulong size = type.GetSize(obj);
+                if (carefully)
+                {
+                    ClrSegment seg = GetSegmentByAddress(obj);
+                    if (seg == null || obj + size > seg.End || !seg.IsLarge && size > 85000)
+                        return;
+                }
+
+                MemoryReader reader = GetMemoryReaderForAddress(obj);
+                gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), callback);
             }
 
-            MemoryReader reader = GetMemoryReaderForAddress(obj);
-            gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), callback);
+            if (type.IsCollectible)
+            {
+                callback(type.LoaderAllocatorObject, -1);
+            }
         }
 
         private ulong ReadPointer(MemoryReader reader, ulong addr)
