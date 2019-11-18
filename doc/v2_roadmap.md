@@ -55,6 +55,7 @@ I really hope to find a better solution for testing the product. Since we requir
 
 1.  Blocking Objects - will be either reference code or in a separate library.
 2.  GCRoot - I want folks to share an implementation but it will likely be pushed to a separate library.
+3.  PDB reading - This is out of date, doesn't support portable pdbs, and there are better libraries to do it.  It was added back before there was really any PDB reading code to use (this was before NuGet) so it's a good time to axe this implementation.
 
 # Features under consideration (not commited to)
 
