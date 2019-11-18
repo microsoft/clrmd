@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -37,6 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return null;
 
             return new ElfFile(header, _vaReader, BaseAddress, true);
+        }
+
+        public PEImage OpenAsPEImage()
+        {
+            Stream stream = new ReaderStream(BaseAddress, _vaReader);
+            return new PEImage(stream, isVirtual: true);
         }
 
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
