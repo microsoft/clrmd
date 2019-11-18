@@ -3,17 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class HandleRoot : ClrRoot
     {
-        private static readonly Dictionary<HandleType, string> s_nameByHandleType = Enum.GetValues(typeof(HandleType))
-            .Cast<HandleType>()
-            .ToDictionary(o => o, o => $"{o} handle");
-
         public HandleRoot(ulong addr, ulong obj, ClrType type, HandleType handleType, GCRootKind kind, ClrAppDomain domain)
         {
             Address = addr;
@@ -27,7 +21,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrAppDomain AppDomain { get; }
         public override bool IsPinned => Kind == GCRootKind.Pinning || Kind == GCRootKind.AsyncPinning;
         public override GCRootKind Kind { get; }
-        public override string Name => s_nameByHandleType[HandleType];
+
+        public override string Name => HandleType switch
+        {
+            HandleType.WeakShort => "weak short handle",
+            HandleType.WeakLong => "weak long handle",
+            HandleType.Strong => "strong handle",
+            HandleType.Pinned => "pinned handle",
+            HandleType.RefCount => "ref counted handle",
+            HandleType.Dependent => "dependent handle",
+            HandleType.AsyncPinned => "async pinned handle",
+            HandleType.SizedRef => "sized ref handle",
+            _ => throw new NotImplementedException()
+        };
+
         public override ClrType Type { get; }
         public HandleType HandleType { get; }
     }
