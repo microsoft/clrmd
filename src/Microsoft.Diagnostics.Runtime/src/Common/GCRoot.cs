@@ -106,7 +106,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
 
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>()
+            {
+                { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
+            };
 
             ObjectSet processedObjects = parallel 
                 ? new ParallelObjectSet(Heap) 
@@ -152,9 +155,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             GCRootPath? ProcessRoot(ulong rootRef, ClrType rootType, Func<ClrRoot> rootFunc)
             {
-                if (processedObjects.Contains(rootRef))
-                    return null;
-
                 Debug.Assert(Heap.GetObjectType(rootRef) == rootType);
 
                 var rootObject = ClrObject.Create(rootRef, rootType);
@@ -286,12 +286,19 @@ namespace Microsoft.Diagnostics.Runtime
             bool unique,
             CancellationToken cancelToken)
         {
-            seen.Add(source.Address);
+            LinkedList<PathEntry> path = new LinkedList<PathEntry>();
+
+            if (knownEndPoints != null && knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject> ending))
+            {
+                yield return GetResult(ending);
+                yield break;
+            }
+
+            if (!seen.Add(source.Address))
+                yield return null;
 
             if (source.Type == null)
                 yield break;
-
-            LinkedList<PathEntry> path = new LinkedList<PathEntry>();
 
             if (source.Address == target)
             {
@@ -401,30 +408,23 @@ namespace Microsoft.Diagnostics.Runtime
                     foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
                     {
                         cancelToken.ThrowIfCancellationRequested();
-                        if (ending == null && knownEndPoints != null)
+                        if (!unique && ending == null && knownEndPoints != null)
                         {
                             lock (knownEndPoints)
                             {
-                                if (unique)
-                                {
-                                    if (knownEndPoints.ContainsKey(reference.Address))
-                                        continue;
-                                }
-                                else
-                                {
-                                    knownEndPoints.TryGetValue(reference.Address, out ending);
-                                }
+                                knownEndPoints.TryGetValue(reference.Address, out ending);
                             }
+                        }
+
+                        if (reference.Address == target)
+                        {
+                            found = true;
                         }
 
                         if (!seen.Contains(reference.Address))
                         {
-                            if (result is null)
-                                result = new Stack<ClrObject>();
-
+                            result ??= new Stack<ClrObject>();
                             result.Push(reference);
-                            if (reference.Address == target)
-                                found = true;
                         }
                     }
                 }
@@ -434,16 +434,21 @@ namespace Microsoft.Diagnostics.Runtime
 
             LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> ending = null)
             {
-                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
+                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object));
 
                 for (; ending != null; ending = ending.Next)
                     result.AddLast(ending.Value);
 
-                if (knownEndPoints != null)
+                if (!unique && knownEndPoints != null)
                     lock (knownEndPoints)
                         for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
-                            if (node.Value.Address != target)
-                                knownEndPoints[node.Value.Address] = node;
+                        {
+                            ulong address = node.Value.Address;
+                            if (knownEndPoints.ContainsKey(address))
+                                break;
+
+                            knownEndPoints[address] = node;
+                        }
 
                 return result;
             }

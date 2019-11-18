@@ -1,7 +1,11 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
+//                                              object
+//                                            /
+// SingleRef -- object[] -- DoubleRef -- TripleRef -- SingleRef -- TargetType
+//                              \           / \           /
+//                                SingleRef     SingleRef 
 class GCRootTarget
 {
     static object TheRoot;
@@ -11,18 +15,14 @@ class GCRootTarget
     {
         TargetType target = new TargetType();
         SingleRef s = new SingleRef();
-        DoubleRef d;
-        TripleRef t;
+        DoubleRef d = new DoubleRef();
+        TripleRef t = new TripleRef();
 
         TheRoot = s;
 
         object[] arr = new object[42];
         s.Item1 = arr;
-        d = new DoubleRef();
         arr[27] = d;
-
-
-        t = new TripleRef();
 
         // parallel path.
         d.Item1 = new SingleRef() { Item1 = t };
