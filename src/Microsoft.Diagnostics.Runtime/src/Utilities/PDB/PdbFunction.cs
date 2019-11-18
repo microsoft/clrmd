@@ -108,8 +108,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         break;
 
                     default:
-                        //Console.WriteLine("{0,6}: {1:x2} {2}",
-                        //                  bits.Position, rec, (SYM)rec);
                         bits.Position = stop;
                         break;
                 }
@@ -160,7 +158,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
                         {
                             bits.SkipCString(out proc.name);
                         }
-                        //Console.WriteLine("token={0:X8} [{1}::{2}]", proc.token, module, proc.name);
 
                         bits.Position = stop;
                         funcs[func++] = new PdbFunction( /*module,*/ proc, bits);
