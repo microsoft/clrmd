@@ -4,7 +4,7 @@ The first version of ClrMD is nearly 10 years old now, and it's starting to show
 
 In the coming months, I am planning to build ClrMD v2 which will have a lot of breaking changes for the library.  I am planning to continue fixing critical ClrMD v1 issues for the forseeable future.  However, the ClrMD v2 codebase will be a *significant* refactor of the current codebase, and all new features and development will go into ClrMD v2 (with critical fixes and some stuff being backported).
 
-This document briefly outlines my plans and roadmap for ClrMD v2.  I would love any feedback from the community about this plan, so **I have created Issue https://github.com/microsoft/clrmd/issues/306 for any suggestions, concerns, and feature requests**.  I also plan to do all development in the open, a ClrMD v2 branch will be created and active as I'm doing my refactor work.
+This document briefly outlines my plans and roadmap for ClrMD v2.  I would love any feedback from the community about this plan, so **I have created Issue https://github.com/microsoft/clrmd/issues/311 for any suggestions, concerns, and feature requests**.  I also plan to do all development in the open, a ClrMD v2 branch will be created and active as I'm doing my refactor work.
 
 This document is a bit sparse now, but it will be continually updated as I get more feedback and as I make changes to the v2 codebase.
 
