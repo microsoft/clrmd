@@ -55,3 +55,9 @@ I really hope to find a better solution for testing the product. Since we requir
 
 1.  Blocking Objects - will be either reference code or in a separate library.
 2.  GCRoot - I want folks to share an implementation but it will likely be pushed to a separate library.
+
+# Features under consideration (not commited to)
+
+1.  Allow x64 process to debug x32 dumps.  This is very, very difficult to acheive architecturally, because CLR's underlying debugging API is native code and deeply tied to architecture.  I don't believe I will be able to implement this reasonably, but I intend to take a close look at it.
+2.  Thread safety.  Is it possible to inspect the heap from multiple threads without too much of a perf penalty?  The real issue with this is the DbgEng based IDataReader does not support access from multiple threads.  This is theoretically possible using a custom dump reader.
+3.  A way to control the amount of memory ClrMD caches.
