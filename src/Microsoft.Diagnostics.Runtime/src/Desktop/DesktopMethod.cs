@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             get
             {
                 if (_ilMap == null)
-                    _ilMap = _runtime.GetILMap(_ip);
+                    _ilMap = _runtime.GetILMap(_ip, HotColdInfo);
 
                 return _ilMap;
             }

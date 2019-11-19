@@ -755,9 +755,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal ILToNativeMap[] GetILMap(ulong ip)
+        internal ILToNativeMap[] GetILMap(ulong ip, HotColdRegions hotColdInfo)
         {
             List<ILToNativeMap> list = new List<ILToNativeMap>();
+
+
+            ulong size = hotColdInfo.ColdSize + hotColdInfo.HotSize;
+            ulong coldEnd = hotColdInfo.ColdStart + hotColdInfo.ColdSize;
+            ulong hotEnd = hotColdInfo.HotStart + hotColdInfo.HotSize;
+
 
             foreach (ClrDataMethod method in _dacInterface.EnumerateMethodInstancesByAddress(ip))
             {
@@ -766,13 +772,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     for (int i = 0; i < map.Length; i++)
                     {
-                        // There seems to be a bug in IL to native mappings where a throw statement
-                        // may end up with an end address lower than the start address.  This is a
-                        // workaround for that issue.
                         if (map[i].StartAddress > map[i].EndAddress)
                         {
                             if (i + 1 == map.Length)
-                                map[i].EndAddress = map[i].StartAddress + 0x20;
+                                map[i].EndAddress = FindEnd(hotColdInfo, map[i].StartAddress);
                             else
                                 map[i].EndAddress = map[i + 1].StartAddress - 1;
                         }
@@ -785,6 +788,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             return list.ToArray();
+        }
+
+        private static ulong FindEnd(HotColdRegions reg, ulong address)
+        {
+            ulong hotEnd = reg.HotStart + reg.HotSize;
+            if (reg.HotStart <= address && address < hotEnd)
+                return hotEnd;
+
+            ulong coldEnd = reg.ColdStart + reg.ColdSize;
+            if (reg.ColdStart <= address && address < coldEnd)
+                return coldEnd;
+
+            // Shouldn't reach here, but give a sensible answer if we do.
+            return address + 0x20;
         }
 
         internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
