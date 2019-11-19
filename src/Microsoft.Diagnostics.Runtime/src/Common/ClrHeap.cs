@@ -245,6 +245,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// or implicitly through "lock (obj)".  This is roughly equivalent to combining SOS's !syncblk command
         /// with !dumpheap -thinlock.
         /// </summary>
+        [Obsolete]
         public virtual IEnumerable<BlockingObject> EnumerateBlockingObjects()
         {
             throw new NotImplementedException();

@@ -208,14 +208,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
+        [Obsolete]
         private BlockingObject[] _managedLocks;
 
+        [Obsolete]
         public override IEnumerable<BlockingObject> EnumerateBlockingObjects()
         {
             InitLockInspection();
             return _managedLocks;
         }
 
+        [Obsolete]
         internal void InitLockInspection()
         {
             if (_managedLocks != null)

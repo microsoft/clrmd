@@ -159,6 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return DesktopRuntime.EnumerateStackFrames(this);
         }
 
+        [Obsolete]
         public override IList<BlockingObject> BlockingObjects
         {
             get

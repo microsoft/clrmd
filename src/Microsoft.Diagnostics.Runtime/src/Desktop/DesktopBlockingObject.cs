@@ -7,6 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
+    [Obsolete]
     internal class DesktopBlockingObject : BlockingObject
     {
         private bool _locked;
