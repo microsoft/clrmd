@@ -26,6 +26,12 @@ I am also considering removing Lazy<T> usage throughout most of the codebase bec
 
 Things like GCRoot, BlockingObjects, etc I don't want to carry forward in the base ClrMD library.  To be clear the plan for this is to put that code in either a side-library or as a code example you can put into your own project.  The functionality will still remain for those that use it today, but I want to make ClrMD more of a "building blocks" library and push these features that merely make use of ClrMD into their own codebase.
 
+## Clean up inheritance related issues
+
+From issue [313](https://github.com/microsoft/clrmd/issues/313): "(If you are not from Mono team) I believe the general conventions are exposing protected properties for private fields instead of exposing protected fields."
+
+Additionally we need to clean up what is meant to be reimplmeneted by folks and what is not.
+
 ## Clean up poor design choices from 8 years ago.
 
 I erased the concept of "Assembly" even though it really exists...  That was a bad call.
