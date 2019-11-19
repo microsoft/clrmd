@@ -393,7 +393,7 @@ namespace Microsoft.Diagnostics.Runtime
             Stack<ClrObject> GetRefs(
                 ClrObject obj,
                 out bool found,
-                out LinkedListNode<ClrObject> ending)
+                out LinkedListNode<ClrObject> end)
             {
                 // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
                 //Debug.Assert(obj.Type != null);
@@ -402,17 +402,17 @@ namespace Microsoft.Diagnostics.Runtime
                 Stack<ClrObject> result = null;
 
                 found = false;
-                ending = null;
+                end = null;
                 if (obj.ContainsPointers)
                 {
                     foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
                     {
                         cancelToken.ThrowIfCancellationRequested();
-                        if (!unique && ending == null && knownEndPoints != null)
+                        if (!unique && end == null && knownEndPoints != null)
                         {
                             lock (knownEndPoints)
                             {
-                                knownEndPoints.TryGetValue(reference.Address, out ending);
+                                knownEndPoints.TryGetValue(reference.Address, out end);
                             }
                         }
 
@@ -432,12 +432,12 @@ namespace Microsoft.Diagnostics.Runtime
                 return result ?? s_emptyStack;
             }
 
-            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> ending = null)
+            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> end = null)
             {
                 LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object));
 
-                for (; ending != null; ending = ending.Next)
-                    result.AddLast(ending.Value);
+                for (; end != null; end = end.Next)
+                    result.AddLast(end.Value);
 
                 if (!unique && knownEndPoints != null)
                     lock (knownEndPoints)
