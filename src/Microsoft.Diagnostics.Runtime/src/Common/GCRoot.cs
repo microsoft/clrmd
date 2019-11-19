@@ -423,7 +423,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (!seen.Contains(reference.Address))
                         {
-                            result ??= new Stack<ClrObject>();
+                            result = result ?? new Stack<ClrObject>();
                             result.Push(reference);
                         }
                     }
