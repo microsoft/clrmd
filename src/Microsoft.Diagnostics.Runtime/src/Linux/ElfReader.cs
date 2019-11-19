@@ -71,6 +71,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
+        public int ReadBytes(byte[] buffer, long offset, int size) => DataSource.Read(offset, buffer, 0, size);
+
         public byte[] ReadBytes(long offset, int size)
         {
             byte[] buffer = new byte[size];

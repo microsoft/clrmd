@@ -8,6 +8,7 @@ using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
+    [Obsolete]
     internal class LockInspection
     {
         private const int HASHCODE_BITS = 25;

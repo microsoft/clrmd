@@ -151,6 +151,13 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
+#if !NET45
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    throw new PlatformNotSupportedException("Currently only AttachFlag.Passive is supported for AttachToProcess");
+                }
+#endif
+
                 DbgEngDataReader dbgeng = new DbgEngDataReader(pid, attachFlag, msecTimeout);
                 reader = dbgeng;
                 client = dbgeng.DebuggerInterface;

@@ -78,24 +78,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public CommandOptions Options { get; }
 
         /// <summary>
-        /// Run 'commandLine', sending the output to the console, and wait for the command to complete.
-        /// This simulates what batch filedo when executing their commands.  It is a bit more verbose
-        /// by default, however
-        /// </summary>
-        /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
-        /// <param variable="options">Additional qualifiers that control how the process is run</param>
-        /// <returns>A Command structure that can be queried to determine ExitCode, Output, etc.</returns>
-        public static Command RunToConsole(string commandLine, CommandOptions options)
-        {
-            return Run(commandLine, options.Clone().AddOutputStream(Console.Out));
-        }
-
-        public static Command RunToConsole(string commandLine)
-        {
-            return RunToConsole(commandLine, new CommandOptions());
-        }
-
-        /// <summary>
         /// Run 'commandLine' as a subprocess and waits for the command to complete.
         /// Output is captured and placed in the 'Output' property of the returned Command
         /// structure.
@@ -339,14 +321,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // We use taskkill because it is built into windows, and knows
             // how to kill all subchildren of a process, which important. 
             // TODO (should we use WMI instead?)
-            Console.WriteLine("Killing process tree " + Id + " Cmd: " + _commandLine);
+            Debug.WriteLine("Killing process tree " + Id + " Cmd: " + _commandLine);
             try
             {
                 Run("taskkill /f /t /pid " + Process.Id);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
             }
 
             int ticks = 0;
@@ -356,8 +338,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ticks++;
                 if (ticks > 100)
                 {
-                    Console.WriteLine("ERROR: process is not dead 1 sec after killing " + Process.Id);
-                    Console.WriteLine("Cmd: " + _commandLine);
+                    Debug.WriteLine("ERROR: process is not dead 1 sec after killing " + Process.Id);
+                    Debug.WriteLine("Cmd: " + _commandLine);
                 }
             } while (!Process.HasExited);
 

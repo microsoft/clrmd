@@ -377,7 +377,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.Pdb
             }
 
             bits.Position = 4;
-            // Console.WriteLine("{0}:", info.moduleName);
             funcs = PdbFunction.LoadManagedFunctions( /*info.moduleName,*/
                 bits,
                 (uint)info.cbSyms,

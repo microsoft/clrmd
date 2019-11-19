@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;
         private readonly IntPtr _cloneHandle;
-        private IntPtr _process;
+        private readonly IntPtr _process;
         private readonly int _pid;
 
         private const int PROCESS_VM_READ = 0x10;
@@ -68,7 +68,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (_originalPid != 0)
             {
-                CloseHandle(_cloneHandle);
                 int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
                 if (hr != 0)
                     throw new ClrDiagnosticsException($"Could not free the snapshot. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
@@ -83,10 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             if (_process != IntPtr.Zero)
-            {
                 CloseHandle(_process);
-                _process = IntPtr.Zero;
-            }
         }
 
         public void Flush()

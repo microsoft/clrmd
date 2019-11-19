@@ -1,17 +1,14 @@
 ﻿using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Tests;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace GCRootDemo
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             Helpers.TestWorkingDirectory = Environment.CurrentDirectory;
 
@@ -34,7 +31,7 @@ namespace GCRootDemo
                  * which you can use to cancel GCRoot at any time (it will throw an OperationCancelledException).
                  */
                 GCRoot gcroot = new GCRoot(heap);
-                foreach (RootPath rootPath in gcroot.EnumerateGCRoots(target, CancellationToken.None))
+                foreach (GCRootPath rootPath in gcroot.EnumerateGCRoots(target, CancellationToken.None))
                 {
                     Console.Write($"{rootPath.Root} -> ");
                     Console.WriteLine(string.Join(" -> ", rootPath.Path.Select(obj => obj.Address)));
@@ -57,9 +54,13 @@ namespace GCRootDemo
                     // of handles on the handle table until we enumerate them all.)
 
                     if (total > 0)
+                    {
                         Console.WriteLine($"heap searched={(int)(100 * current / (float)total)}%");
+                    }
                     else
+                    {
                         Console.WriteLine($"objects inspected={current}");
+                    }
                 };
 
                 // ==========================================
@@ -130,7 +131,7 @@ namespace GCRootDemo
 
                 Console.WriteLine("Get ready for a lot of output, since we are raw printing status updates!");
                 Console.WriteLine();
-                foreach (RootPath rootPath in gcroot.EnumerateGCRoots(target, CancellationToken.None))
+                foreach (GCRootPath rootPath in gcroot.EnumerateGCRoots(target, CancellationToken.None))
                 {
                     Console.Write($"{rootPath.Root} -> ");
                     Console.WriteLine(string.Join(" -> ", rootPath.Path.Select(obj => obj.Address)));

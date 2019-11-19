@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Diagnostics.Runtime.Desktop;
@@ -50,6 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override uint LockCount => _lockCount;
         public override ulong Teb => _teb;
 
+        [Obsolete]
         internal void SetBlockingObjects(BlockingObject[] blobjs)
         {
             _blockingObjs = blobjs;
@@ -208,6 +210,8 @@ namespace Microsoft.Diagnostics.Runtime
         protected ulong _appDomain;
         protected ulong _teb;
         protected ulong _exception;
+
+        [Obsolete]
         protected BlockingObject[] _blockingObjs;
         protected bool _preemptive;
 
