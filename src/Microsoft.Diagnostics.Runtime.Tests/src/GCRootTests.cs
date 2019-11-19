@@ -245,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Single(paths);
             GCRootPath rootPath = paths[0];
 
-            AssertPathIsCorrect(gcroot.Heap, rootPath.Path.ToArray(), rootPath.Path.First().Address, target);
+            AssertPathIsCorrect(gcroot.Heap, rootPath.Path, rootPath.Path.First().Address, target);
         }
 
         [Fact]
@@ -281,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(rootPaths.Length >= 2);
 
             foreach (GCRootPath rootPath in rootPaths)
-                AssertPathIsCorrect(heap, rootPath.Path.ToArray(), rootPath.Path.First().Address, target);
+                AssertPathIsCorrect(heap, rootPath.Path, rootPath.Path.First().Address, target);
 
             bool hasThread = false, hasStatic = false;
             foreach (GCRootPath rootPath in rootPaths)
@@ -297,7 +297,39 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void FindPath()
+        public void GCRootsDirectHandles()
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
+
+            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            GCRoot gcroot = new GCRoot(heap);
+
+            ulong target = heap.GetObjectsOfType("DirectTarget").Single();
+
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, CancellationToken.None).Count());
+
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, CancellationToken.None).Count());
+        }
+
+        [Fact]
+        public void GCRootsIndirectHandles()
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
+
+            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            GCRoot gcroot = new GCRoot(heap);
+
+            ulong target = heap.GetObjectsOfType("IndirectTarget").Single();
+
+            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, CancellationToken.None));
+
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, CancellationToken.None).Count());
+        }
+
+        [Fact]
+        public void FindSinglePath()
         {
             using (DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump())
             {
@@ -306,15 +338,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 gcroot.ClearCache();
                 Assert.False(gcroot.IsFullyCached);
-                FindPathImpl(gcroot);
+                FindSinglePathImpl(gcroot);
 
                 gcroot.BuildCache(CancellationToken.None);
                 Assert.True(gcroot.IsFullyCached);
-                FindPathImpl(gcroot);
+                FindSinglePathImpl(gcroot);
             }
         }
 
-        private void FindPathImpl(GCRoot gcroot)
+        private void FindSinglePathImpl(GCRoot gcroot)
         {
             ClrHeap heap = gcroot.Heap;
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
@@ -378,10 +410,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrObject curr = path[i];
                 Assert.Equal(curr.Type, heap.GetObjectType(curr.Address));
 
-                List<ulong> refs = new List<ulong>();
-                curr.Type.EnumerateRefsOfObject(curr.Address, (obj, offs) => refs.Add(obj));
+                IEnumerable<ClrObject> refs = curr.EnumerateObjectReferences();
 
-                ulong next = path[i + 1].Address;
+                ClrObject next = path[i + 1];
                 Assert.Contains(next, refs);
             }
 
