@@ -4,8 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -351,6 +355,56 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(value, (T)v);
 
             return field;
+        }
+
+        [Fact]
+        public void CollectibleTypeTest()
+        {
+            CollectibleAssemblyLoadContext context = new CollectibleAssemblyLoadContext();
+
+            RuntimeHelpers.RunClassConstructor(context.LoadFromAssemblyPath(Assembly.GetExecutingAssembly().Location)
+                .GetType(typeof(CollectibleUnmanagedStruct).FullName).TypeHandle);
+
+            RuntimeHelpers.RunClassConstructor(Assembly.GetExecutingAssembly()
+                .GetType(typeof(UncollectibleUnmanagedStruct).FullName).TypeHandle);
+
+            using DataTarget dataTarget = DataTarget.AttachToProcess(Process.GetCurrentProcess().Id, uint.MaxValue, AttachFlag.Passive);
+
+            ClrHeap heap = dataTarget.ClrVersions.Single().CreateRuntime().Heap;
+
+            ClrType[] types = heap.EnumerateObjectAddresses().Select(addr => heap.GetObjectType(addr)).ToArray();
+
+            ClrType collectibleType = types.Single(type => type?.Name == typeof(CollectibleUnmanagedStruct).FullName);
+
+            Assert.False(collectibleType.ContainsPointers);
+            Assert.True(collectibleType.IsCollectible);
+            Assert.NotEqual(default, collectibleType.LoaderAllocatorObject);
+            Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(collectibleType.LoaderAllocatorObject).Name);
+
+            ClrType uncollectibleType = types.Single(type => type?.Name == typeof(UncollectibleUnmanagedStruct).FullName);
+
+            Assert.False(uncollectibleType.ContainsPointers);
+            Assert.False(uncollectibleType.IsCollectible);
+            Assert.Equal(default, uncollectibleType.LoaderAllocatorObject);
+
+            context.Unload();
+        }
+
+        private struct CollectibleUnmanagedStruct
+        {
+            public static CollectibleUnmanagedStruct Instance = default;
+        }
+
+        private struct UncollectibleUnmanagedStruct
+        {
+            public static UncollectibleUnmanagedStruct Instance = default;
+        }
+
+        private sealed class CollectibleAssemblyLoadContext : AssemblyLoadContext
+        {
+            public CollectibleAssemblyLoadContext() : base(true)
+            {
+            }
         }
     }
 
