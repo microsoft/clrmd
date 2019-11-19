@@ -339,7 +339,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             SetClientInstance();
-            return _symbols3.GetModuleNameString(Which, (uint)Index, Base, Buffer, BufferSize, out NameSize);
+            return _symbols3.GetModuleNameStringWide(Which, (uint)Index, Base, Buffer, (int)BufferSize, out NameSize);
         }
 
         internal int GetNumberModules(out uint count, out uint unloadedCount)
@@ -500,17 +500,6 @@ namespace Microsoft.Diagnostics.Runtime
             return _symbols3.GetModuleVersionInformation(index, baseAddress, "\\", buffer, needed1, out needed2);
         }
 
-        internal int GetModuleNameString(DEBUG_MODNAME requestType, uint index, ulong baseAddress, StringBuilder sbpath, uint needed1, out uint needed2)
-        {
-            if (_symbols3 == null)
-            {
-                needed2 = 0;
-                return -1;
-            }
-
-            SetClientInstance();
-            return _symbols3.GetModuleNameString(requestType, index, baseAddress, sbpath, needed1, out needed2);
-        }
 
         internal int GetModuleParameters(uint Count, ulong[] Bases, uint Start, DEBUG_MODULE_PARAMETERS[] Params)
         {
