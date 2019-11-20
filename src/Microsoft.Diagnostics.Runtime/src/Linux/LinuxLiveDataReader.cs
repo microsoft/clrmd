@@ -99,28 +99,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
-            foreach (var entry in _memoryMapEntries)
-            {
-                if (addr >= entry.BeginAddr && addr <= entry.EndAddr && !string.IsNullOrEmpty(entry.FilePath))
-                {
-                    Version v = null;
-                    int i1 = entry.FileName.LastIndexOf(".so.");
-                    if (i1 > 0)
-                    {
-                        v = this.ParseForVersion(entry.FileName.Substring(i1 + 4));
-                    }
-                    if (v == null)
-                    {
-                        string dirName = Path.GetFileName(Path.GetDirectoryName(entry.FilePath));
-                        v = this.ParseForVersion(dirName);
-                    }
-                    if (v != null)
-                    {
-                        version = new VersionInfo(v.Major, v.Minor, v.Build, v.Revision);
-                        return;
-                    }
-                }
-            }
             version = new VersionInfo();
         }
 
@@ -431,46 +409,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 offset = 0;
             }
             return readableBytesCount;
-        }
-
-        private Version ParseForVersion(string s)
-        {
-            StringBuilder b = new StringBuilder();
-            string[] parts = s.Split(new char[] { '-', '.', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in parts)
-            {
-                int i;
-                if (int.TryParse(p, out i))
-                {
-                    if (b.Length > 0)
-                    {
-                        b.Append('.');
-                    }
-                    b.Append(p);
-                }
-            }
-            Version v = null;
-            Version.TryParse(b.ToString(), out v);
-            if (v != null)
-            {
-                if (v.Major < 0)
-                {
-                    v = new Version(0, v.Minor, v.Build, v.Revision);
-                }
-                if (v.Minor < 0)
-                {
-                    v = new Version(v.Major, 0, v.Build, v.Revision);
-                }
-                if (v.Build < 0)
-                {
-                    v = new Version(v.Major, v.Minor, 0, v.Revision);
-                }
-                if (v.Revision < 0)
-                {
-                    v = new Version(v.Major, v.Minor, v.Build, 0);
-                }
-            }
-            return v;
         }
 
         private List<MemoryMapEntry> LoadMemoryMap()
