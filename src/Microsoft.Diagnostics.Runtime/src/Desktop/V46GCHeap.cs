@@ -98,7 +98,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (mtData == null)
                         return null;
 
-                    ret = new DesktopHeapType(() => GetTypeName(mt, module, token), module, token, mt, mtData, this);
+                    IMethodTableCollectibleData mtCollectibleData = DesktopRuntime.GetMethodTableCollectibleData(mt);
+                    ret = new DesktopHeapType(() => GetTypeName(mt, module, token), module, token, mt, mtData, this, mtCollectibleData);
 
                     index = _types.Count;
                     ((DesktopHeapType)ret).SetIndex(index);

@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         private List<ClrHandle> _handles;
         private SOSDac _sos;
+        private SOSDac6 _sos6;
 
         public V45Runtime(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
@@ -41,6 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             if (_sos == null)
                 _sos = DacLibrary.GetSOSInterfaceNoAddRef();
+
+            if (_sos6 == null)
+                _sos6 = DacLibrary.GetSOSInterface6NoAddRef();
 
             Debug.Assert(_sos != null);
         }
@@ -238,6 +242,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal override IMethodTableData GetMethodTableData(ulong addr)
         {
             if (_sos.GetMethodTableData(addr, out MethodTableData data))
+                return data;
+
+            return null;
+        }
+
+        internal override IMethodTableCollectibleData GetMethodTableCollectibleData(ulong addr)
+        {
+            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(addr, out MethodTableCollectibleData data))
                 return data;
 
             return null;

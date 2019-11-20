@@ -403,7 +403,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 found = false;
                 end = null;
-                if (obj.ContainsPointers)
+                if (obj.Type.ContainsPointers || obj.Type.IsCollectible)
                 {
                     foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
                     {
