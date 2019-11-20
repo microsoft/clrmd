@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -29,7 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)
         {
-            return runtime.Modules.Single(m => m.FileName.EndsWith(".exe"));
+            // .NET Core SDK 3.x creates an executable host by default (FDE)
+            return runtime.Modules.Single(m => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? m.FileName.EndsWith(".exe") : File.Exists(Path.ChangeExtension(m.FileName, null)));
         }
 
         public static ClrMethod GetMethod(this ClrType type, string name)
@@ -53,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrAppDomain GetDomainByName(this ClrRuntime runtime, string domainName)
         {
-            return runtime.AppDomains.Where(ad => ad.Name == domainName).Single();
+            return runtime.AppDomains.Single(ad => ad.Name == domainName);
         }
 
         public static ClrModule GetModule(this ClrRuntime runtime, string filename)
@@ -66,13 +69,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
-            ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
+            ClrThread thread = runtime.Threads.Single(t => !t.IsBackground);
             return thread;
         }
 
         public static ClrStackFrame GetFrame(this ClrThread thread, string functionName)
         {
-            return thread.StackTrace.Where(sf => sf.Method != null ? sf.Method.Name == functionName : false).Single();
+            return thread.StackTrace.Single(sf => sf.Method != null ? sf.Method.Name == functionName : false);
         }
 
         public static string TestWorkingDirectory

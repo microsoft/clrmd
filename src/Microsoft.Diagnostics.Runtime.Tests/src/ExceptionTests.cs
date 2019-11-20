@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         internal static void TestProperties(ClrRuntime runtime)
         {
-            ClrThread thread = runtime.Threads.Single(t => !t.IsFinalizer);
+            ClrThread thread = runtime.GetMainThread();
             ClrException ex = thread.CurrentException;
             Assert.NotNull(ex);
 

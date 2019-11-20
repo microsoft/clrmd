@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class PEImageResourceTests
     {
-        [Fact]
+        [FrameworkFact]
         public void TestResourceImages()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -53,6 +53,4 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             public int dwDbiSizeOfImage;
         }
     }
-
-
 }

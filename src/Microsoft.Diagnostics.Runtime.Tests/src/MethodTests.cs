@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class MethodTests
     {
-        [Fact]
+        [FrameworkFact]
         public void MethodHandleMultiDomainTests()
         {
             ulong[] methodDescs;
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// This test tests a patch in v45runtime.GetNameForMD(ulong md) that
         /// corrects an error from sos
         /// </summary>
-        [Fact]
+        [FrameworkFact]
         public void CompleteSignatureIsRetrievedForMethodsWithGenericParameters()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();

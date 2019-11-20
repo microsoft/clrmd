@@ -1,0 +1,86 @@
+﻿<Project>
+
+  <PropertyGroup>
+    <BinDir>bin\</BinDir>
+    <Bin32Dir>$(BinDir)x86\</Bin32Dir>
+    <Bin64Dir>$(BinDir)x64\</Bin64Dir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <CscPath Condition="'$(CscPath)' == ''">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath>
+    <Cdb32Path Condition="'$(Cdb32Path)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</Cdb32Path>
+    <Cdb64Path Condition="'$(Cdb64Path)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</Cdb64Path>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TestSources Condition="'$(OS)' == 'Windows_NT'" Include="*\*.cs" Exclude="Shared\*" />
+    <TestProjects Condition="'$(OS)' != 'Windows_NT'" Include="*\*.csproj" Exclude="*;Shared\*;AppDomains\*" />
+  </ItemGroup>
+
+  <UsingTask
+    TaskName="SetEnvironmentVariable"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.Core">
+
+    <ParameterGroup>
+      <Variable ParameterType="System.String" Required="true" />
+      <Value ParameterType="System.String" />
+    </ParameterGroup>
+
+    <Task>
+      <Code>Environment.SetEnvironmentVariable(Variable, Value);</Code>
+    </Task>
+
+  </UsingTask>
+
+  <Target Name="BuildCommon">
+    <RemoveDir Directories="$(BinDir)" />
+  </Target>
+
+  <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildWindows" AfterTargets="BuildCommon">
+    <MakeDir Directories="$(Bin32Dir)" />
+    <MakeDir Directories="$(Bin64Dir)" />
+
+    <Error Condition="!Exists('$(CscPath)')" Text="csc.exe ($(CscPath)) not found." />
+    <Error Condition="!Exists('$(Cdb32Path)')" Text="cdb.exe (x86) ($(Cdb32Path)) not found." />
+    <Error Condition="!Exists('$(Cdb64Path)')" Text="cdb.exe (x64) ($(Cdb64Path)) not found." />
+
+    <Exec Command='"$(CscPath)" /debug /target:library /out:$(Bin32Dir)SharedLibrary.dll Shared\SharedLibrary.cs' />
+    <Exec Command='"$(CscPath)" /debug /target:library /out:$(Bin64Dir)SharedLibrary.dll Shared\SharedLibrary.cs' />
+
+    <Exec Command='"$(CscPath)" /unsafe /reference:$(Bin32Dir)SharedLibrary.dll /platform:x86 /debug /out:$(Bin32Dir)%(TestSources.Filename).exe %(TestSources.Identity)' />
+    <Exec Command='"$(CscPath)" /unsafe /reference:$(Bin64Dir)SharedLibrary.dll /platform:x64 /debug /out:$(Bin64Dir)%(TestSources.Filename).exe %(TestSources.Identity)' />
+
+    <Exec Command='"$(Cdb32Path)" -g -G -c ".dump /ma $(Bin32Dir)%(TestSources.Filename)_wks.dmp;.dump /m $(Bin32Dir)%(TestSources.Filename)_wks_mini.dmp;q" $(Bin32Dir)%(TestSources.Filename).exe' />
+    <Exec Command='"$(Cdb64Path)" -g -G -c ".dump /ma $(Bin64Dir)%(TestSources.Filename)_wks.dmp;.dump /m $(Bin64Dir)%(TestSources.Filename)_wks_mini.dmp;q" $(Bin64Dir)%(TestSources.Filename).exe' />
+
+    <SetEnvironmentVariable Variable="COMPlus_BuildFlavor" Value="SVR" />
+    <Exec Command='"$(Cdb32Path)" -g -G -c ".dump /ma $(Bin32Dir)Types_svr.dmp;q" $(Bin32Dir)Types.exe' />
+    <Exec Command='"$(Cdb64Path)" -g -G -c ".dump /ma $(Bin64Dir)Types_svr.dmp;q" $(Bin64Dir)Types.exe' />
+    <SetEnvironmentVariable Variable="COMPlus_BuildFlavor" />
+  </Target>
+
+  <Target Condition="'$(OS)' != 'Windows_NT'" Name="BuildNonWindows" AfterTargets="BuildCommon">
+    <Exec Command="dotnet build --output $(Bin64Dir) %(TestProjects.Identity)" />
+
+    <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" Value="1" />
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" Value="coredump" />
+
+    <Exec Command='"$(MSBuildThisFileDirectory)$(Bin64Dir)%(TestProjects.Filename)"' WorkingDirectory="%(TestProjects.RelativeDir)" ContinueOnError="true" />
+    <Move SourceFiles="%(TestProjects.RelativeDir)coredump" DestinationFiles="$(Bin64Dir)%(TestProjects.Filename)_wks.dmp" />
+
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" Value="1" />
+    <Exec Command='"$(MSBuildThisFileDirectory)$(Bin64Dir)%(TestProjects.Filename)"' WorkingDirectory="%(TestProjects.RelativeDir)" ContinueOnError="true" />
+    <Move SourceFiles="%(TestProjects.RelativeDir)coredump" DestinationFiles="$(Bin64Dir)%(TestProjects.Filename)_wks_mini.dmp" />
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" />
+
+    <SetEnvironmentVariable Variable="COMPlus_gcServer" Value="1" />
+    <Exec Command='"$(MSBuildThisFileDirectory)$(Bin64Dir)Types"' WorkingDirectory="Types\" ContinueOnError="true" />
+    <SetEnvironmentVariable Variable="COMPlus_gcServer" />
+    <Move SourceFiles="Types\coredump" DestinationFiles="$(Bin64Dir)Types_svr.dmp" />
+
+    <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" />
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" />
+  </Target>
+
+</Project>

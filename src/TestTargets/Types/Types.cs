@@ -12,7 +12,11 @@ class Types
 
     static object s_i = 42;
 
-    public static void Main(string[] args)
+    static Types()
+    {
+    }
+
+    public static void Main()
     {
         Foo f = new Foo();
         Foo[] foos = new Foo[] { f };
