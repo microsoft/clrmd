@@ -1,27 +1,24 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Diagnostics.Runtime;
 
 namespace DesktopTest
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            using (DataTarget dt = DataTarget.LoadCrashDump(@"D:\work\09_27_cloudtest\CloudTestAgent.DMP"))
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using DataTarget dt = DataTarget.AttachToProcess(Process.GetCurrentProcess().Id, uint.MaxValue, AttachFlag.Passive);
 
-                foreach (ClrThread thread in runtime.Threads)
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            foreach (ClrThread thread in runtime.Threads)
+            {
+                Console.WriteLine($"{thread.OSThreadId}");
+                foreach (ClrStackFrame frame in thread.StackTrace)
                 {
-                    Console.WriteLine($"{thread.OSThreadId}");
-                    foreach (ClrStackFrame frame in thread.StackTrace)
-                    {
-                        Console.WriteLine($"    {frame}");
-                    }
+                    Console.WriteLine($"    {frame}");
                 }
             }
         }

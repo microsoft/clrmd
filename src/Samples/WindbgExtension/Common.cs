@@ -1,13 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.Interop;
-using RGiesecke.DllExport;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.Interop;
+using RGiesecke.DllExport;
 
 namespace WindbgExtension
 {
@@ -55,7 +55,7 @@ namespace WindbgExtension
                 stream.AutoFlush = true;
                 Console.SetOut(stream);
 
-                DataTarget = Microsoft.Diagnostics.Runtime.DataTarget.CreateFromDebuggerInterface(DebugClient);
+                DataTarget = DataTarget.CreateFromDebuggerInterface(DebugClient);
             }
 
             // If our ClrRuntime instance is null, it means that this is our first call, or
@@ -106,7 +106,7 @@ namespace WindbgExtension
 
         static uint DEBUG_EXTENSION_VERSION(uint Major, uint Minor)
         {
-            return ((((Major) & 0xffff) << 16) | ((Minor) & 0xffff));
+            return (((Major) & 0xffff) << 16) | ((Minor) & 0xffff);
         }
     }
     
@@ -126,36 +126,22 @@ namespace WindbgExtension
             m_control = (IDebugControl)client;
         }
 
-        public override bool CanRead
-        {
-            get { return false; }
-        }
+        public override bool CanRead => false;
 
-        public override bool CanSeek
-        {
-            get { return false; }
-        }
+        public override bool CanSeek => false;
 
-        public override bool CanWrite
-        {
-            get { return true; }
-        }
+        public override bool CanWrite => true;
 
         public override void Flush()
         {
         }
 
-        public override long Length
-        {
-            get { return -1; }
-        }
+        public override long Length => -1;
 
         public override long Position
         {
-            get
-            {
-                return 0;
-            }
+            get => 0;
+
             set
             {
             }

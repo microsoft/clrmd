@@ -1,8 +1,8 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using RGiesecke.DllExport;
-using System;
+﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime;
+using RGiesecke.DllExport;
 
 namespace WindbgExtension
 {
