@@ -51,13 +51,13 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException($"Could not attach to process. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
             }
 
-            using (Process p = Process.GetCurrentProcess())
-                if (DataTarget.PlatformFunctions.TryGetWow64(p.Handle, out bool wow64) &&
-                    DataTarget.PlatformFunctions.TryGetWow64(_process, out bool targetWow64) &&
-                    wow64 != targetWow64)
-                {
-                    throw new ClrDiagnosticsException("Dac architecture mismatch!", ClrDiagnosticsExceptionKind.DacError);
-                }
+            using Process p = Process.GetCurrentProcess();
+            if (DataTarget.PlatformFunctions.TryGetWow64(p.Handle, out bool wow64)
+                && DataTarget.PlatformFunctions.TryGetWow64(_process, out bool targetWow64)
+                && wow64 != targetWow64)
+            {
+                throw new ClrDiagnosticsException("Dac architecture mismatch!", ClrDiagnosticsExceptionKind.DacError);
+            }
         }
 
         public uint ProcessId => (uint)_pid;
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr[] modules = new IntPtr[needed / 4];
             uint size = (uint)modules.Length * sizeof(uint);
 
-            if (!EnumProcessModules(_process, modules, size, out needed))
+            if (!EnumProcessModules(_process, modules, size, out _))
                 throw new ClrDiagnosticsException("Unable to get process modules.", ClrDiagnosticsExceptionKind.DataRequestError);
 
             for (int i = 0; i < modules.Length; i++)
@@ -239,28 +239,23 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
         {
-            using (SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID))
-            {
-                if (thread.IsInvalid)
-                    return false;
+            using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
+            if (thread.IsInvalid)
+                return false;
 
-                bool res = GetThreadContext(thread.DangerousGetHandle(), context);
-                return res;
-            }
+            return GetThreadContext(thread.DangerousGetHandle(), context);
         }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
         {
-            using (SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID))
-            {
-                if (thread.IsInvalid)
-                    return false;
+            using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
+            if (thread.IsInvalid)
+                return false;
 
-                fixed (byte* b = context)
-                {
-                    bool res = GetThreadContext(thread.DangerousGetHandle(), new IntPtr(b));
-                    return res;
-                }
+            fixed (byte* b = context)
+            {
+                bool res = GetThreadContext(thread.DangerousGetHandle(), new IntPtr(b));
+                return res;
             }
         }
 

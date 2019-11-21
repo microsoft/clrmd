@@ -28,9 +28,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private List<MemoryMapEntry> _memoryMapEntries;
         private FileStream _memoryStream;
         private bool _initializedMemFile;
-        private List<uint> _threadIDs = new List<uint>();
-        private byte[] _ptrBuffer = new byte[IntPtr.Size];
-        private byte[] _dwordBuffer = new byte[4];
+        private readonly List<uint> _threadIDs = new List<uint>();
+        private readonly byte[] _ptrBuffer = new byte[IntPtr.Size];
+        private readonly byte[] _dwordBuffer = new byte[4];
 
         public LinuxLiveDataReader(uint processId)
         {
@@ -206,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ulong ReadPointerUnsafe(ulong address)
         {
-            if (!ReadMemory(address, _ptrBuffer, IntPtr.Size, out int read))
+            if (!ReadMemory(address, _ptrBuffer, IntPtr.Size, out int _))
             {
                 return 0;
             }
@@ -215,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public uint ReadDwordUnsafe(ulong address)
         {
-            if (!ReadMemory(address, _dwordBuffer, 4, out int read))
+            if (!ReadMemory(address, _dwordBuffer, 4, out int _))
             {
                 return 0;
             }
@@ -331,8 +331,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 foreach (var taskDir in Directory.GetDirectories(taskDirPath))
                 {
                     string dirName = Path.GetFileName(taskDir);
-                    uint taskId;
-                    if (uint.TryParse(dirName, out taskId) && taskId > 0)
+                    if (uint.TryParse(dirName, out uint taskId) && taskId > 0)
                     {
                         _threadIDs.Add(taskId);
                     }
@@ -398,7 +397,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (regionSize >= (ulong) bytesRequested)
                 {
                     readableBytesCount += bytesRequested;
-                    bytesRequested = 0;
                     break;
                 }
                 else
@@ -425,7 +423,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     {
                         break;
                     }
-                    string address, permission, offset, dev, inode, path;
+                    string address, permission, path;
                     string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 5)
                     {
@@ -440,7 +438,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         // Unknown data format 
                         continue;
                     }
-                    address = parts[0]; permission = parts[1]; offset = parts[2]; dev = parts[3]; inode = parts[4];
+                    address = parts[0];
+                    permission = parts[1];
                     string[] addressBeginEnd = address.Split('-');
                     MemoryMapEntry entry = new MemoryMapEntry()
                     {

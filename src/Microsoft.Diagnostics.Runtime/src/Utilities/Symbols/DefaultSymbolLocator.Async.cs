@@ -16,7 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public partial class DefaultSymbolLocator : SymbolLocator
     {
-        private static readonly Dictionary<PdbEntry, Task<string>> s_pdbs = new Dictionary<PdbEntry, Task<string>>();
         private static readonly Dictionary<FileEntry, Task<string>> s_files = new Dictionary<FileEntry, Task<string>>();
         private static readonly Dictionary<string, Task> s_copy = new Dictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
 
@@ -75,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string fileIndexPath = GetIndexPath(fileSimpleName, buildTimeStamp, imageSize);
             string cachePath = Path.Combine(SymbolCache, fileIndexPath);
 
-            Func<string, bool> match = file => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
+            bool match(string file) => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
             string result = CheckLocalPaths(fileFullPath, fileSimpleName, cachePath, match);
             if (result != null)
             {
@@ -269,16 +268,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
                     WebResponse response = await req.GetResponseAsync();
-                    using (Stream fromStream = response.GetResponseStream())
-                    {
-                        if (returnContents)
-                            return await new StreamReader(fromStream).ReadToEndAsync();
+                    using Stream fromStream = response.GetResponseStream();
+                    if (returnContents)
+                        return await new StreamReader(fromStream).ReadToEndAsync();
 
-                        Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
-                        await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength);
-                        Trace("Found '{0}' at '{1}'.  Copied to '{2}'.", Path.GetFileName(fileIndexPath), fullUri, fullDestPath);
-                        return fullDestPath;
-                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
+                    await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength);
+                    Trace("Found '{0}' at '{1}'.  Copied to '{2}'.", Path.GetFileName(fileIndexPath), fullUri, fullDestPath);
+                    return fullDestPath;
                 }
                 catch (WebException)
                 {
@@ -423,38 +420,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 lock (missingFiles)
                     missingFiles.Add(entry);
-            }
-        }
-
-        private string GetPdbEntry(PdbEntry entry)
-        {
-            lock (s_pdbs)
-            {
-                if (s_pdbs.TryGetValue(entry, out Task<string> task))
-                    return task.Result;
-            }
-
-            return null;
-        }
-
-        private void SetPdbEntry(HashSet<PdbEntry> missing, PdbEntry entry, string value)
-        {
-            if (value != null)
-            {
-                lock (s_pdbs)
-                {
-                    if (!s_pdbs.ContainsKey(entry))
-                    {
-                        Task<string> task = new Task<string>(() => value);
-                        s_pdbs[entry] = task;
-                        task.Start();
-                    }
-                }
-            }
-            else
-            {
-                lock (missing)
-                    missing.Add(entry);
             }
         }
 

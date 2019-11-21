@@ -237,3 +237,6 @@ space_after_operator_keyword = true
 # _XMLDOC_
 xmldoc_indent_text = zero_indent
 
+
+# IDE1006: Naming Styles
+dotnet_diagnostic.IDE1006.severity = none

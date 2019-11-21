@@ -19,8 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private Reader _virtualAddressReader;
         private ElfNote[] _notes;
         private ElfProgramHeader[] _programHeaders;
-        private ElfSectionHeader[] _sections;
-        private string[] _sectionNames;
 
         public IElfHeader Header { get; }
 
@@ -142,71 +140,5 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
 
-        private string GetSectionName(int section)
-        {
-            LoadSections();
-            if (section < 0 || section >= _sections.Length)
-                throw new ArgumentOutOfRangeException(nameof(section));
-
-            if (_sectionNames == null)
-                _sectionNames = new string[_sections.Length];
-
-            if (_sectionNames[section] != null)
-                return _sectionNames[section];
-
-            LoadSectionNameTable();
-            ref ElfSectionHeader hdr = ref _sections[section];
-            int idx = hdr.NameIndex;
-
-            if (hdr.Type == ElfSectionHeaderType.Null || idx == 0)
-                return _sectionNames[section] = string.Empty;
-
-            int len = 0;
-            for (len = 0; idx + len < _sectionNameTable.Length && _sectionNameTable[idx + len] != 0; len++)
-                ;
-
-            string name = Encoding.ASCII.GetString(_sectionNameTable, idx, len);
-            _sectionNames[section] = name;
-
-            return _sectionNames[section];
-        }
-
-        private byte[] _sectionNameTable;
-
-        private void LoadSectionNameTable()
-        {
-            if (_sectionNameTable != null)
-                return;
-
-            int nameTableIndex = Header.SectionHeaderStringIndex;
-            if (Header.SectionHeaderOffset != 0 && Header.SectionHeaderCount > 0 && nameTableIndex != 0)
-            {
-                ref ElfSectionHeader hdr = ref _sections[nameTableIndex];
-                long offset = checked((long)hdr.FileOffset);
-                int size = checked((int)hdr.FileSize);
-
-                _sectionNameTable = _reader.ReadBytes(offset, size);
-            }
-        }
-
-        private void LoadSections()
-        {
-            if (_sections != null)
-                return;
-
-            _sections = new ElfSectionHeader[Header.SectionHeaderCount];
-            for (int i = 0; i < _sections.Length; i++)
-                _sections[i] = new ElfSectionHeader(_reader, Header.Is64Bit, _position + Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
-        }
-
-#if DEBUG
-        private void LoadAllSectionNames()
-        {
-            LoadSections();
-
-            for (int i = 0; i < _sections.Length; i++)
-                GetSectionName(i);
-        }
-#endif
     }
 }

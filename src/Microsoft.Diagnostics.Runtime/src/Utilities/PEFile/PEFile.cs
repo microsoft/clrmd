@@ -149,13 +149,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                using (PEFile pefile = new PEFile(filename))
-                {
-                    PEHeader header = pefile.Header;
-                    timestamp = header.TimeDateStampSec;
-                    filesize = (int)header.SizeOfImage;
-                    return true;
-                }
+                using PEFile pefile = new PEFile(filename);
+                PEHeader header = pefile.Header;
+                timestamp = header.TimeDateStampSec;
+                filesize = (int)header.SizeOfImage;
+                return true;
             }
             catch
             {
@@ -169,13 +167,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                using (PEFile pefile = new PEFile(stream, virt))
-                {
-                    PEHeader header = pefile.Header;
-                    timestamp = header.TimeDateStampSec;
-                    filesize = (int)header.SizeOfImage;
-                    return true;
-                }
+                using PEFile pefile = new PEFile(stream, virt);
+                PEHeader header = pefile.Header;
+                timestamp = header.TimeDateStampSec;
+                filesize = (int)header.SizeOfImage;
+                return true;
             }
             catch
             {

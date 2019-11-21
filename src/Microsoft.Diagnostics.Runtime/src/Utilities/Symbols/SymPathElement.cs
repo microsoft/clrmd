@@ -21,9 +21,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static List<SymPathElement> GetElements(string symbolPath)
         {
-            List<SymPathElement> result = new List<SymPathElement>();
             string[] entries = (symbolPath ?? "").Split(';');
-            result = new List<SymPathElement>(entries.Length);
+            List<SymPathElement>  result = new List<SymPathElement>(entries.Length);
 
             foreach (string element in entries)
                 if (!string.IsNullOrEmpty(element))
@@ -107,8 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public override bool Equals(object obj)
         {
-            SymPathElement asSymPathElem = obj as SymPathElement;
-            if (asSymPathElem == null)
+            if (!(obj is SymPathElement asSymPathElem))
                 return false;
 
             return

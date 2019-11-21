@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _streamPointer = streamPointer;
         }
 
-        private DumpPointer _streamPointer;
+        private readonly DumpPointer _streamPointer;
 
         public ulong Count
         {

@@ -119,22 +119,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture GetArchitecture()
         {
-            switch (_dumpReader.ProcessorArchitecture)
+            return _dumpReader.ProcessorArchitecture switch
             {
-                case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_ARM:
-                    return Architecture.Arm;
-
-                case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_ARM64:
-                    return Architecture.Arm64;
-
-                case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_AMD64:
-                    return Architecture.Amd64;
-
-                case ProcessorArchitecture.PROCESSOR_ARCHITECTURE_INTEL:
-                    return Architecture.X86;
-            }
-
-            return Architecture.Unknown;
+                ProcessorArchitecture.PROCESSOR_ARCHITECTURE_ARM => Architecture.Arm,
+                ProcessorArchitecture.PROCESSOR_ARCHITECTURE_ARM64 => Architecture.Arm64,
+                ProcessorArchitecture.PROCESSOR_ARCHITECTURE_AMD64 => Architecture.Amd64,
+                ProcessorArchitecture.PROCESSOR_ARCHITECTURE_INTEL => Architecture.X86,
+                _ => Architecture.Unknown,
+            };
         }
 
         public uint GetPointerSize()
@@ -195,8 +187,6 @@ namespace Microsoft.Diagnostics.Runtime
             VersionInfo versionInfo = new VersionInfo(major, minor, rev, patch);
             return versionInfo;
         }
-
-        private byte[] _ptrBuffer = new byte[IntPtr.Size];
 
         public ulong ReadPointerUnsafe(ulong addr)
         {

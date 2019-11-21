@@ -19,7 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ulong _cachedMethodTable;
         private ulong[] _methodTables;
         private readonly Lazy<string> _name;
-        private int _index;
 
         private TypeAttributes _attributes;
         private readonly ulong _parent;
@@ -36,7 +35,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private int[] _fieldNameMap;
 
         private int _baseArrayOffset;
-        private bool _hasMethods;
         private bool? _runtimeType;
         private EnumData _enumData;
         private bool _notRCW;
@@ -376,7 +374,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (import == null)
                 return;
 
-            IntPtr hnd = IntPtr.Zero;
             List<string> names = new List<string>();
             foreach (int token in import.EnumerateFields((int)_token))
             {
@@ -385,20 +382,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if ((int)attr == 0x606 && name == "value__")
                     {
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
-
-                        if (parser.GetCallingConvInfo(out int sigType) && parser.GetElemType(out int elemType))
+                        if (parser.GetCallingConvInfo(out _) && parser.GetElemType(out int elemType))
                             _enumData.ElementType = (ClrElementType)elemType;
                     }
 
                     // public, static, literal, has default
-                    int intAttr = (int)attr;
                     if ((int)attr == 0x8056)
                     {
                         names.Add(name);
 
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
-                        parser.GetCallingConvInfo(out int ccinfo);
-                        parser.GetElemType(out int elemType);
+                        parser.GetCallingConvInfo(out _);
+                        parser.GetElemType(out _);
 
                         Type type = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
                         if (type != null)
@@ -812,8 +807,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (addr == 0)
                 return null;
 
-            ClrElementType cet = ClrElementType.Unknown;
             ClrType componentType = ComponentType;
+            ClrElementType cet;
             if (componentType != null)
             {
                 cet = componentType.ElementType;
@@ -871,9 +866,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return start;
 
             start++;
-
-            bool hasSubtypeArity = false;
             int paramCount = 0;
+
+            bool hasSubtypeArity;
             do
             {
                 int currParamCount = 0;
@@ -1009,7 +1004,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _baseSize = mtData.BaseSize;
             _componentSize = mtData.ComponentSize;
             _containsPointers = mtData.ContainsPointers;
-            _hasMethods = mtData.NumMethods > 0;
 
             if (mtCollectibleData != null)
             {
@@ -1021,12 +1015,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public DesktopHeapType(ulong mt, DesktopGCHeap heap, DesktopBaseModule module, uint token) : base(mt, heap, module, token)
         {
         }
-
-        internal void SetIndex(int index)
-        {
-            _index = index;
-        }
-
         private void InitFlags()
         {
             if (_attributes != 0 || DesktopModule == null)

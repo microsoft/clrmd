@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             // Get type name.
-            if (!meta.GetTypeDefProperties((int)token, out string name, out TypeAttributes attrs, out int parent))
+            if (!meta.GetTypeDefProperties((int)token, out string name, out _, out _))
                 return null;
 
             if (meta.GetNestedClassProperties((int)token, out int enclosing) && token != enclosing)
@@ -287,23 +287,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private static int GetHandleOrder(HandleType handleType)
         {
-            switch (handleType)
+            return handleType switch
             {
-                case HandleType.AsyncPinned:
-                    return 0;
-
-                case HandleType.Pinned:
-                    return 1;
-
-                case HandleType.Strong:
-                    return 2;
-
-                case HandleType.RefCount:
-                    return 3;
-
-                default:
-                    return 4;
-            }
+                HandleType.AsyncPinned => 0,
+                HandleType.Pinned => 1,
+                HandleType.Strong => 2,
+                HandleType.RefCount => 3,
+                _ => 4,
+            };
         }
 
         protected internal override IEnumerable<ClrHandle> EnumerateStrongHandles()
@@ -617,7 +608,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _initializedStringFields = true;
             }
 
-            int length = 0;
+            int length;
             if (_stringLength != null)
                 length = (int)_stringLength.GetValue(strAddr);
             else if (!DesktopRuntime.ReadDword(strAddr + DesktopRuntime.GetStringLengthOffset(), out length))
@@ -626,14 +617,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (length == 0)
                 return "";
 
-            ulong data = 0;
+            ulong data;
             if (_firstChar != null)
                 data = _firstChar.GetAddress(strAddr);
             else
                 data = strAddr + DesktopRuntime.GetStringFirstCharOffset();
 
             byte[] buffer = new byte[length * 2];
-            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out int read))
+            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out _))
                 return null;
 
             return Encoding.Unicode.GetString(buffer);
@@ -710,7 +701,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             ClrType type = GetTypeByMethodTable(pair.MethodTable, 0, 0);
                             if (type != null)
                             {
-                                ClrElementType cet = type.ElementType;
+                                _ = type.ElementType;
                             }
                         }
                     }
@@ -940,6 +931,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     return ClrElementType.Int8;
                 case "System.Enum":
                     return ClrElementType.Int32;
+                default:
+                    break;
             }
 
             return ClrElementType.Struct;

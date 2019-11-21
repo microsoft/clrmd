@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_fileLoader == null)
-                    _fileLoader = new FileLoader(this);
+                    _fileLoader = new FileLoader();
 
                 return _fileLoader;
             }
@@ -314,7 +314,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
             if (clrDataProcess == null) throw new ArgumentNullException(nameof(clrDataProcess));
 
-            DacLibrary lib = new DacLibrary(this, DacLibrary.TryGetDacPtr(clrDataProcess));
+            DacLibrary lib = new DacLibrary(DacLibrary.TryGetDacPtr(clrDataProcess));
 
             // Figure out what version we are on.
             if (lib.GetSOSInterfaceNoAddRef() != null)

@@ -13,29 +13,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestAllFinalizableObjects()
         {
-            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizableObjectAddresses());
-                
-                Assert.Equal(0, stats.A);
-                Assert.Equal(13, stats.B);
-                Assert.Equal(25, stats.C);
-            }
+            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizableObjectAddresses());
+
+            Assert.Equal(0, stats.A);
+            Assert.Equal(13, stats.B);
+            Assert.Equal(25, stats.C);
         }
 
         [Fact]
         public void TestFinalizerQueueObjects()
         {
-            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                Stats stats = GetStats(runtime.Heap, runtime.EnumerateFinalizerQueueObjectAddresses());
-                
-                Assert.Equal(42, stats.A);
-                Assert.Equal(0, stats.B);
-                Assert.Equal(0, stats.C);
-            }
+            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            Stats stats = GetStats(runtime.Heap, runtime.EnumerateFinalizerQueueObjectAddresses());
+
+            Assert.Equal(42, stats.A);
+            Assert.Equal(0, stats.B);
+            Assert.Equal(0, stats.C);
         }
         
         private static Stats GetStats(ClrHeap heap, IEnumerable<ulong> addresses)

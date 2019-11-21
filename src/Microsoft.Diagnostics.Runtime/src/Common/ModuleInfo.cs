@@ -104,12 +104,10 @@ namespace Microsoft.Diagnostics.Runtime
             
             try
             {
-                using (ReadVirtualStream stream = new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize))
-                {
-                    PEImage image = new PEImage(stream, isVirtual: true);
-                    _managed = image.OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
-                    _pdb = image.DefaultPdb;
-                }
+                using ReadVirtualStream stream = new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize);
+                PEImage image = new PEImage(stream, isVirtual: true);
+                _managed = image.OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
+                _pdb = image.DefaultPdb;
             }
             catch
             {

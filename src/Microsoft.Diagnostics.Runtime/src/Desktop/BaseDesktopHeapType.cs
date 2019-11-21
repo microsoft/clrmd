@@ -90,8 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
             }
 
-            BaseDesktopHeapType baseType = BaseType as BaseDesktopHeapType;
-            List<ClrInterface> interfaces = baseType != null ? new List<ClrInterface>(baseType.Interfaces) : null;
+            List<ClrInterface> interfaces = BaseType is BaseDesktopHeapType baseType ? new List<ClrInterface>(baseType.Interfaces) : null;
             MetaDataImport import = DesktopModule.GetMetadataImport();
             if (import == null)
             {
@@ -123,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrInterface GetInterface(MetaDataImport import, int mdIFace)
         {
             ClrInterface result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out string name, out TypeAttributes attrs, out int extends))
+            if (!import.GetTypeDefProperties(mdIFace, out string name, out _, out int extends))
             {
                 name = import.GetTypeRefName(mdIFace);
             }

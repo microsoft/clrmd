@@ -39,12 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _reader.ReadBytes(position + contentsoffset, length);
         }
 
-        public T ReadContents<T>(long position, uint nameSize)
-            where T : struct
-        {
-            long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
-            return _reader.Read<T>(contentsoffset + position);
-        }
 
         public T ReadContents<T>(ref long position)
             where T : struct

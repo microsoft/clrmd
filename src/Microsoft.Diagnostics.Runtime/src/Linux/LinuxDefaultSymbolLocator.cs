@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     /// </summary>
     internal class LinuxDefaultSymbolLocator : DefaultSymbolLocator
     {
-        private IEnumerable<string> _modules;
+        private readonly IEnumerable<string> _modules;
         
         public LinuxDefaultSymbolLocator(IEnumerable<string> modules) : base()
         {

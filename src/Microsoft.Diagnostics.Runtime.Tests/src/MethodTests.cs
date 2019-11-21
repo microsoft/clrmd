@@ -90,19 +90,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void CompleteSignatureIsRetrievedForMethodsWithGenericParameters()
         {
-            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                ClrModule module = runtime.GetModule("sharedlibrary.dll");
-                ClrType type = module.GetTypeByName("Foo");
+            ClrModule module = runtime.GetModule("sharedlibrary.dll");
+            ClrType type = module.GetTypeByName("Foo");
 
-                ClrMethod genericMethod = type.GetMethod("GenericBar");
+            ClrMethod genericMethod = type.GetMethod("GenericBar");
 
-                string methodName = genericMethod.GetFullSignature();
+            string methodName = genericMethod.GetFullSignature();
 
-                Assert.Equal(')', methodName.Last());
-            }
+            Assert.Equal(')', methodName.Last());
         }
     }
 }

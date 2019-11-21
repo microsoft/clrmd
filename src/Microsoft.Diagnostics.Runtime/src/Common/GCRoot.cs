@@ -423,7 +423,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (!seen.Contains(reference.Address))
                         {
-                            result = result ?? new Stack<ClrObject>();
+                            result ??= new Stack<ClrObject>();
                             result.Push(reference);
                         }
                     }
@@ -494,12 +494,6 @@ namespace Microsoft.Diagnostics.Runtime
                 list.Add(tmp.Value.ToString());
 
             return list;
-        }
-
-        [Conditional("GCROOTTRACE")]
-        private void TraceCurrent(ulong next, IEnumerable<ulong> refs)
-        {
-            Debug.WriteLine($"Considering: {new ClrObject(next, Heap.GetObjectType(next))} Refs:{string.Join(" ", refs)}");
         }
 
         [Conditional("GCROOTTRACE")]

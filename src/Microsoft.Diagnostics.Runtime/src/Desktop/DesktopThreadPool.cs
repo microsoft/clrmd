@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                     }
                                 }
 
-                                if (!GetFieldObject(queueHeadType, queueHead, "Next", out queueHeadType, out queueHead))
+                                if (!GetFieldObject(queueHeadType, queueHead, "Next", out _, out queueHead))
                                     break;
                             } while (queueHead != 0);
                         }

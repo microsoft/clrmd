@@ -55,12 +55,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     try
                     {
 
-                        using (ReadVirtualStream stream = new ReadVirtualStream(_runtime.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000)))
-                        {
-                            PEImage pefile = new PEImage(stream, true);
-                            if (pefile.IsValid)
-                                _pdb = pefile.DefaultPdb ?? s_failurePdb;
-                        }
+                        using ReadVirtualStream stream = new ReadVirtualStream(_runtime.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000));
+                        PEImage pefile = new PEImage(stream, true);
+                        if (pefile.IsValid)
+                            _pdb = pefile.DefaultPdb ?? s_failurePdb;
                     }
                     catch
                     {
@@ -140,7 +138,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal void AddMapping(ClrAppDomain domain, ulong domainModule)
         {
-            DesktopAppDomain appDomain = (DesktopAppDomain)domain;
             _mapping[domain] = domainModule;
         }
 
@@ -161,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override ulong GetDomainModule(ClrAppDomain domain)
         {
-            IList<ClrAppDomain> domains = _runtime.AppDomains;
+            _ = _runtime.AppDomains;
             if (domain == null)
             {
                 foreach (ulong addr in _mapping.Values)

@@ -94,36 +94,34 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Dictionary<ulong, List<ulong>> result = new Dictionary<ulong, List<ulong>>();
 
-            using (SOSHandleEnum handleEnum = _sos.EnumerateHandles())
+            using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
+            if (handleEnum == null)
+                return result;
+
+            HandleData[] handles = new HandleData[32];
+
+            int fetched;
+            while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {
-                if (handleEnum == null)
-                    return result;
-
-                HandleData[] handles = new HandleData[32];
-
-                int fetched;
-                while ((fetched = handleEnum.ReadHandles(handles)) != 0)
+                for (int i = 0; i < fetched; i++)
                 {
-                    for (int i = 0; i < fetched; i++)
+                    cancelToken.ThrowIfCancellationRequested();
+
+                    HandleType type = (HandleType)handles[i].Type;
+                    if (type != HandleType.Dependent)
+                        continue;
+
+                    if (ReadPointer(handles[i].Handle, out ulong address))
                     {
-                        cancelToken.ThrowIfCancellationRequested();
+                        if (!result.TryGetValue(address, out List<ulong> value))
+                            result[address] = value = new List<ulong>();
 
-                        HandleType type = (HandleType)handles[i].Type;
-                        if (type != HandleType.Dependent)
-                            continue;
-
-                        if (ReadPointer(handles[i].Handle, out ulong address))
-                        {
-                            if (!result.TryGetValue(address, out List<ulong> value))
-                                result[address] = value = new List<ulong>();
-
-                            value.Add(handles[i].Secondary);
-                        }
+                        value.Add(handles[i].Secondary);
                     }
                 }
-
-                return result;
             }
+
+            return result;
         }
 
         internal override IEnumerable<ClrRoot> EnumerateStackReferences(ClrThread thread, bool includeDead)
@@ -136,39 +134,37 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private IEnumerable<ClrRoot> EnumerateStackReferencesWorker(ClrThread thread)
         {
-            using (SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId))
+            using SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
+            if (stackRefEnum == null)
+                yield break;
+
+            ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
+            ClrHeap heap = Heap;
+            StackRefData[] refs = new StackRefData[1024];
+
+            const int GCInteriorFlag = 1;
+            const int GCPinnedFlag = 2;
+            int fetched = 0;
+            while ((fetched = stackRefEnum.ReadStackReferences(refs)) != 0)
             {
-                if (stackRefEnum == null)
-                    yield break;
-
-                ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
-                ClrHeap heap = Heap;
-                StackRefData[] refs = new StackRefData[1024];
-
-                const int GCInteriorFlag = 1;
-                const int GCPinnedFlag = 2;
-                int fetched = 0;
-                while ((fetched = stackRefEnum.ReadStackReferences(refs)) != 0)
+                for (uint i = 0; i < fetched && i < refs.Length; ++i)
                 {
-                    for (uint i = 0; i < fetched && i < refs.Length; ++i)
-                    {
-                        if (refs[i].Object == 0)
-                            continue;
+                    if (refs[i].Object == 0)
+                        continue;
 
-                        bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
-                        bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
+                    bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
+                    bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
 
-                        ClrType type = null;
+                    ClrType type = null;
 
-                        if (!interior)
-                            type = heap.GetObjectType(refs[i].Object);
+                    if (!interior)
+                        type = heap.GetObjectType(refs[i].Object);
 
-                        ClrStackFrame frame = thread.StackTrace.SingleOrDefault(
-                            f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
+                    ClrStackFrame frame = thread.StackTrace.SingleOrDefault(
+                        f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
 
-                        if (interior || type != null)
-                            yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior, frame);
-                    }
+                    if (interior || type != null)
+                        yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior, frame);
                 }
             }
         }

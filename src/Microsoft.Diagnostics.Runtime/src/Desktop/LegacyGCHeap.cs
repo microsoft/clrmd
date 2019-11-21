@@ -111,7 +111,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     ret = new DesktopHeapType(() => GetTypeName(hnd, module, token), module, token, mt, mtData, this) {ComponentType = componentType};
                     index = _types.Count;
-                    ((DesktopHeapType)ret).SetIndex(index);
                     _indices[hnd] = index;
                     _typeEntry[modEnt] = index;
                     _types.Add(ret);
@@ -128,7 +127,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType GetObjectType(ulong objRef)
         {
-            ulong mt, cmt = 0;
+            ulong cmt;
+            ulong mt;
 
             if (_lastObject.Address == objRef)
                 return _lastObject.Type;

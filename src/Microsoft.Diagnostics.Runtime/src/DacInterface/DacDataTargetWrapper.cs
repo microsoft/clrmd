@@ -54,31 +54,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
-            Architecture arch = _dataReader.GetArchitecture();
-
-            switch (arch)
+            machineType = _dataReader.GetArchitecture() switch
             {
-                case Architecture.Amd64:
-                    machineType = IMAGE_FILE_MACHINE.AMD64;
-                    break;
-
-                case Architecture.X86:
-                    machineType = IMAGE_FILE_MACHINE.I386;
-                    break;
-
-                case Architecture.Arm:
-                    machineType = IMAGE_FILE_MACHINE.THUMB2;
-                    break;
-
-                case Architecture.Arm64:
-                    machineType = IMAGE_FILE_MACHINE.ARM64;
-                    break;
-
-                default:
-                    machineType = IMAGE_FILE_MACHINE.UNKNOWN;
-                    break;
-            }
-
+                Architecture.Amd64 => IMAGE_FILE_MACHINE.AMD64,
+                Architecture.X86 => IMAGE_FILE_MACHINE.I386,
+                Architecture.Arm => IMAGE_FILE_MACHINE.THUMB2,
+                Architecture.Arm64 => IMAGE_FILE_MACHINE.ARM64,
+                _ => IMAGE_FILE_MACHINE.UNKNOWN,
+            };
             return S_OK;
         }
 

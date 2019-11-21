@@ -30,8 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         // to provide equality so that we can use them in hashes and collections.
         public override bool Equals(object obj)
         {
-            DumpModule other = obj as DumpModule;
-            if (other == null) return false;
+            if (!(obj is DumpModule other)) return false;
 
             return other._owner == _owner && other.Raw == Raw;
         }

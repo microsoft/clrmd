@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (clrTlsSlot == uint.MaxValue)
                 return 0;
 
-            ulong tlsSlot = 0;
+            ulong tlsSlot;
             if (clrTlsSlot < maxTlsSlot)
             {
                 tlsSlot = lowerTlsSlots + ptrSize * clrTlsSlot;

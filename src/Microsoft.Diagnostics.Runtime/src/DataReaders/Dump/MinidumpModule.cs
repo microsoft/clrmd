@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Address that module is loaded within target.
         /// </summary>
-        private ulong _baseofimage;
+        private readonly ulong _baseofimage;
         public ulong BaseOfImage => DumpNative.ZeroExtendAddress(_baseofimage);
 
         /// <summary>
@@ -48,8 +48,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private MINIDUMP_LOCATION_DESCRIPTOR _miscRecord;
 
-        private ulong _reserved0;
-        private ulong _reserved1;
+        private readonly ulong _reserved0;
+        private readonly ulong _reserved1;
 
         /// <summary>
         /// Gets TimeDateStamp as a DateTime. This is based off a 32-bit value and will overflow in 2038.

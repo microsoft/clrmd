@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Reserved.
         /// </summary>
-        private int _reserved;
+        private readonly int _reserved;
 #pragma warning restore 0169
     }
 }

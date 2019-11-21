@@ -260,8 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             uint bytesRead = ReadPartialMemoryInternal(
                 targetRequestStart,
                 destinationBuffer,
-                destinationBufferSizeInBytes,
-                0);
+                destinationBufferSizeInBytes);
             return bytesRead;
         }
 
@@ -334,8 +333,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool AcquireReadLock()
         {
-            int result = 0;
-            int value = 0;
+            int result;
+            int value;
             do
             {
                 value = _lock;
@@ -355,8 +354,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool AcquireWriteLock()
         {
-            int result = 0;
-            result = Interlocked.CompareExchange(ref _lock, -1, 0);
+            int result = Interlocked.CompareExchange(ref _lock, -1, 0);
             while (result != 0)
             {
                 Thread.Sleep(50);
@@ -377,8 +375,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected uint ReadPartialMemoryInternal(
             ulong targetRequestStart,
             IntPtr destinationBuffer,
-            uint destinationBufferSizeInBytes,
-            uint startIndex)
+            uint destinationBufferSizeInBytes)
         {
             EnsureValid();
 
@@ -551,7 +548,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         // DumpPointer (raw pointer that's aware of remaining buffer size) for start of minidump. 
         // This is useful for computing RVAs.
-        private DumpPointer _base;
+        private readonly DumpPointer _base;
 
         // Cached info
         private MINIDUMP_SYSTEM_INFO _info;

@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _streamPointer = streamPointer;
         }
 
-        private DumpPointer _streamPointer;
+        private readonly DumpPointer _streamPointer;
 
         public uint Count => _streamPointer.ReadUInt32();
 

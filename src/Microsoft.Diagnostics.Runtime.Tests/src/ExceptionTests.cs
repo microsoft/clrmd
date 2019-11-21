@@ -12,11 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void ExceptionPropertyTest()
         {
-            using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                TestProperties(runtime);
-            }
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            TestProperties(runtime);
         }
 
         internal static void TestProperties(ClrRuntime runtime)

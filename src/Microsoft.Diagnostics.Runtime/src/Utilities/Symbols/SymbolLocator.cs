@@ -213,27 +213,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 try
                 {
-                    using (FileStream fs = File.OpenRead(fullPath))
+                    using FileStream fs = File.OpenRead(fullPath);
+                    if (Path.GetExtension(fullPath) == ".so")
                     {
-                        if (Path.GetExtension(fullPath) == ".so")
-                        {
-                            Debug.WriteLine("Validate binary not yet implemented for .so!");
-                            Debugger.Break();
+                        Debug.WriteLine("Validate binary not yet implemented for .so!");
+                        Debugger.Break();
+                        return true;
+                    }
+
+                    PEImage peimage = new PEImage(fs, false);
+                    if (peimage.IsValid)
+                    {
+                        if (!checkProperties || peimage.IndexTimeStamp == buildTimeStamp && peimage.IndexFileSize == imageSize)
                             return true;
-                        }
 
-                        PEImage peimage = new PEImage(fs, false);
-                        if (peimage.IsValid)
-                        {
-                            if (!checkProperties || peimage.IndexTimeStamp == buildTimeStamp && peimage.IndexFileSize == imageSize)
-                                return true;
-
-                            Trace($"Rejected file '{fullPath}' because file size and time stamp did not match.");
-                        }
-                        else
-                        {
-                            Trace($"Rejected file '{fullPath}' because it is not a valid PE image.");
-                        }
+                        Trace($"Rejected file '{fullPath}' because file size and time stamp did not match.");
+                    }
+                    else
+                    {
+                        Trace($"Rejected file '{fullPath}' because it is not a valid PE image.");
                     }
                 }
                 catch (Exception e)

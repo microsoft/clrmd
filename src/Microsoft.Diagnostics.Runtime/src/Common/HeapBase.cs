@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (type.IsCollectible)
             {
-                result = result ?? new List<ClrObject>(1);
+                result ??= new List<ClrObject>(1);
                 result.Add(GetObject(type.LoaderAllocatorObject));
             }
 
@@ -301,7 +301,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (type.IsCollectible)
             {
-                result = result ?? new List<ClrObjectReference>(1);
+                result ??= new List<ClrObjectReference>(1);
                 ulong loaderAllocatorObject = type.LoaderAllocatorObject;
                 result.Add(new ClrObjectReference(-1, loaderAllocatorObject, GetObjectType(loaderAllocatorObject)));
             }

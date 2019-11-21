@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
+#pragma warning disable IDE0051 // Remove unused private members
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     [Obsolete]
@@ -478,7 +479,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ulong FindWaitHandle(ulong start, ulong stop, HashSet<string> eventTypes)
         {
-            ClrHeap heap = _runtime.Heap;
             foreach (ulong obj in EnumerateObjectsOfTypes(start, stop, eventTypes))
                 return obj;
 
@@ -487,7 +487,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private ulong FindWaitObjects(ulong start, ulong stop, string typeName)
         {
-            ClrHeap heap = _runtime.Heap;
             foreach (ulong obj in EnumerateObjectsOfType(start, stop, typeName))
                 return obj;
 

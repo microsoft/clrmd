@@ -12,11 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     internal class FileLoader
     {
         private readonly Dictionary<string, PEImage> _pefileCache = new Dictionary<string, PEImage>(StringComparer.OrdinalIgnoreCase);
-        private readonly DataTarget _dataTarget;
 
-        public FileLoader(DataTarget dt)
+        public FileLoader()
         {
-            _dataTarget = dt;
         }
 
         public PEImage LoadPEImage(string fileName)

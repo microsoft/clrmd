@@ -146,11 +146,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (!filePtrData.StartsWith("MSG:") && File.Exists(filePtrData))
             {
-                using (FileStream fs = File.OpenRead(filePtrData))
-                {
-                    CopyStreamToFile(fs, filePtrData, targetPath, fs.Length);
-                    return targetPath;
-                }
+                using FileStream fs = File.OpenRead(filePtrData);
+                CopyStreamToFile(fs, filePtrData, targetPath, fs.Length);
+                return targetPath;
             }
 
             Trace("Error resolving file.ptr: content '{0}' from '{1}.", filePtrData, filePtrSigPath);
@@ -176,17 +174,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
                     WebResponse response = req.GetResponse();
-                    using (Stream fromStream = response.GetResponseStream())
+                    using Stream fromStream = response.GetResponseStream();
+                    if (returnContents)
                     {
-                        if (returnContents)
-                        {
-                            TextReader reader = new StreamReader(fromStream);
-                            return reader.ReadToEnd();
-                        }
-
-                        CopyStreamToFile(fromStream, fullUri, fullDestPath, response.ContentLength);
-                        return fullDestPath;
+                        TextReader reader = new StreamReader(fromStream);
+                        return reader.ReadToEnd();
                     }
+
+                    CopyStreamToFile(fromStream, fullUri, fullDestPath, response.ContentLength);
+                    return fullDestPath;
                 }
                 catch (WebException)
                 {

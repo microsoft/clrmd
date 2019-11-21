@@ -11,26 +11,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void InstanceFieldProperties()
         {
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrHeap heap = runtime.Heap;
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
 
-                ClrType foo = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
-                Assert.NotNull(foo);
+            ClrType foo = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
+            Assert.NotNull(foo);
 
-                CheckField(foo, "i", ClrElementType.Int32, "System.Int32", 4);
+            CheckField(foo, "i", ClrElementType.Int32, "System.Int32", 4);
 
 
-                CheckField(foo, "s", ClrElementType.String, "System.String", IntPtr.Size);
-                CheckField(foo, "b", ClrElementType.Boolean, "System.Boolean", 1);
-                CheckField(foo, "f", ClrElementType.Float, "System.Single", 4);
-                CheckField(foo, "d", ClrElementType.Double, "System.Double", 8);
-                CheckField(foo, "o", ClrElementType.Object, "System.Object", IntPtr.Size);
-
-                // Fails due to:  https://github.com/Microsoft/clrmd/issues/101
-                //CheckField(foo, "st", ClrElementType.Struct, "Struct", 4);
-            }
+            CheckField(foo, "s", ClrElementType.String, "System.String", IntPtr.Size);
+            CheckField(foo, "b", ClrElementType.Boolean, "System.Boolean", 1);
+            CheckField(foo, "f", ClrElementType.Float, "System.Single", 4);
+            CheckField(foo, "d", ClrElementType.Double, "System.Double", 8);
+            CheckField(foo, "o", ClrElementType.Object, "System.Object", IntPtr.Size);
         }
 
         private static void CheckField(ClrType type, string fieldName, ClrElementType element, string typeName, int size)

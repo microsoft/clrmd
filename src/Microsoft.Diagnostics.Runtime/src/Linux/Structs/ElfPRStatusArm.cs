@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         public ElfSignalInfo SignalInfo;
         public short CurrentSignal;
-        ushort Padding;
+        readonly ushort Padding;
         public uint SignalsPending;
         public uint SignalsHeld;
 

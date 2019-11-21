@@ -6,6 +6,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+#pragma warning disable IDE0051 // Remove unused private members
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal struct SigParser
@@ -66,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipInt()
         {
-            return GetData(out int tmp);
+            return GetData(out int _);
         }
 
         public bool GetData(out int data)
@@ -170,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool PeekData(out int data)
         {
-            return UncompressData(out data, out int size);
+            return UncompressData(out data, out _);
         }
 
         private bool PeekElemTypeSlow(out int etype)
@@ -297,8 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             while (ELEMENT_TYPE_CMOD_REQD == bElementType || ELEMENT_TYPE_CMOD_OPT == bElementType)
             {
                 sigTemp.SkipBytes(1);
-
-                if (!sigTemp.GetToken(out int token))
+                if (!sigTemp.GetToken(out _))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))
@@ -338,7 +339,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 sigTemp.SkipBytes(1);
 
-                if (!sigTemp.GetToken(out int token))
+                if (!sigTemp.GetToken(out int _))
                     return false;
 
                 if (!sigTemp.PeekByte(out bElementType))

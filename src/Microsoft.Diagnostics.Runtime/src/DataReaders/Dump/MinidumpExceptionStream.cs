@@ -24,14 +24,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ThreadId = dump.PtrToStructureAdjustOffset<uint>(ref offset);
             __alignment = dump.PtrToStructureAdjustOffset<uint>(ref offset);
 
-            ExceptionRecord = new MINIDUMP_EXCEPTION();
-
-            ExceptionRecord.ExceptionCode = dump.PtrToStructureAdjustOffset<uint>(ref offset);
-            ExceptionRecord.ExceptionFlags = dump.PtrToStructureAdjustOffset<uint>(ref offset);
-            ExceptionRecord.ExceptionRecord = dump.PtrToStructureAdjustOffset<ulong>(ref offset);
-            ExceptionRecord.ExceptionAddress = dump.PtrToStructureAdjustOffset<ulong>(ref offset);
-            ExceptionRecord.NumberParameters = dump.PtrToStructureAdjustOffset<uint>(ref offset);
-            ExceptionRecord.__unusedAlignment = dump.PtrToStructureAdjustOffset<uint>(ref offset);
+            ExceptionRecord = new MINIDUMP_EXCEPTION
+            {
+                ExceptionCode = dump.PtrToStructureAdjustOffset<uint>(ref offset),
+                ExceptionFlags = dump.PtrToStructureAdjustOffset<uint>(ref offset),
+                ExceptionRecord = dump.PtrToStructureAdjustOffset<ulong>(ref offset),
+                ExceptionAddress = dump.PtrToStructureAdjustOffset<ulong>(ref offset),
+                NumberParameters = dump.PtrToStructureAdjustOffset<uint>(ref offset),
+                __unusedAlignment = dump.PtrToStructureAdjustOffset<uint>(ref offset)
+            };
 
             if (ExceptionRecord.ExceptionInformation.Length != DumpNative.EXCEPTION_MAXIMUM_PARAMETERS)
             {

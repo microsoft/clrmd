@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public uint Priority;
 
         // Target Address of Teb (Thread Environment block)
-        private ulong _teb;
+        private readonly ulong _teb;
         public ulong Teb => DumpNative.ZeroExtendAddress(_teb);
 
         /// <summary>

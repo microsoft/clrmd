@@ -175,7 +175,6 @@ namespace Microsoft.Diagnostics.Runtime
             
             ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
             ClrHeap heap = Heap;
-            ulong mask = (ulong)(PointerSize - 1);
             MemoryReader cache = MemoryReader;
             cache.EnsureRangeInCache(stackBase);
             for (ulong stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)PointerSize)
@@ -589,7 +588,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong[] array = new ulong[count];
             byte[] tmp = new byte[(int)count * IntPtr.Size];
-            if (!ReadMemory(start, tmp, tmp.Length, out int read))
+            if (!ReadMemory(start, tmp, tmp.Length, out _))
                 return s_emptyPointerArray;
 
             if (IntPtr.Size == 4)

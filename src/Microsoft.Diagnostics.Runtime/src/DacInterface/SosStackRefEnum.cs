@@ -41,6 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
+#pragma warning disable IDE0051 // Remove unused private members
 
     internal struct ISOSStackRefEnumVTable
     {

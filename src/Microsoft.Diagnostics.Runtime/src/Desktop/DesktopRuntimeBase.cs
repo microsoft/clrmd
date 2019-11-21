@@ -488,7 +488,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     if (!_appDomains.IsValueCreated)
                     {
-                        DomainContainer value = _appDomains.Value;
+                        _ = _appDomains.Value;
                     }
 
                     _moduleList = UniqueModules(_modules.Values).ToArray();
@@ -684,55 +684,47 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
-            using (ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf))
+            using ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf);
+            if (stackwalk == null)
+                yield break;
+
+            byte[] context = ContextHelper.Context;
+            do
             {
-                if (stackwalk == null)
-                    yield break;
+                if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out _, context))
+                    break;
 
-                byte[] context = ContextHelper.Context;
-                do
+                ulong ip, sp;
+
+                if (PointerSize == 4)
                 {
-                    if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, context))
-                        break;
+                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                }
+                else
+                {
+                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
+                }
 
-                    ulong ip, sp;
+                ulong frameVtbl = stackwalk.GetFrameVtable();
+                if (frameVtbl != 0)
+                {
+                    sp = frameVtbl;
+                    ReadPointer(sp, out frameVtbl);
+                }
 
-                    if (PointerSize == 4)
-                    {
-                        ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                        sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
-                    }
-                    else
-                    {
-                        ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
-                        sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
-                    }
+                byte[] contextCopy = new byte[context.Length];
+                Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
 
-                    ulong frameVtbl = stackwalk.GetFrameVtable();
-                    if (frameVtbl != 0)
-                    {
-                        sp = frameVtbl;
-                        ReadPointer(sp, out frameVtbl);
-                    }
-
-                    byte[] contextCopy = new byte[context.Length];
-                    Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
-
-                    DesktopStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
-                    yield return frame;
-                } while (stackwalk.Next());
-            }
+                DesktopStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
+                yield return frame;
+            } while (stackwalk.Next());
         }
 
         internal ILToNativeMap[] GetILMap(ulong ip, HotColdRegions hotColdInfo)
         {
             List<ILToNativeMap> list = new List<ILToNativeMap>();
-
-
-            ulong size = hotColdInfo.ColdSize + hotColdInfo.HotSize;
-            ulong coldEnd = hotColdInfo.ColdStart + hotColdInfo.ColdSize;
-            ulong hotEnd = hotColdInfo.HotStart + hotColdInfo.HotSize;
-
 
             foreach (ClrDataMethod method in _dacInterface.EnumerateMethodInstancesByAddress(ip))
             {

@@ -71,8 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override string ToString(bool detailed)
         {
-            string value = null;
-
+            string value;
             switch (Type)
             {
                 case ClrMemoryRegionType.LowFrequencyLoaderHeap:
