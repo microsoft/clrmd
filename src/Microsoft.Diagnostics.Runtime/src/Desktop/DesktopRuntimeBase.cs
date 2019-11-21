@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
 
@@ -24,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal abstract class DesktopRuntimeBase : RuntimeBase
     {
         protected CommonMethodTables _commonMTs;
-        private Dictionary<uint, ICorDebugThread> _corDebugThreads;
         private ClrModule[] _moduleList;
         private Lazy<List<ClrThread>> _threads;
         private Lazy<DesktopGCHeap> _heap;
@@ -141,36 +139,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             return new DesktopCCWData(_heap.Value, addr, ccw);
-        }
-
-        internal ICorDebugThread GetCorDebugThread(uint osid)
-        {
-            if (_corDebugThreads == null)
-            {
-                _corDebugThreads = new Dictionary<uint, ICorDebugThread>();
-
-                ICorDebugProcess process = CorDebugProcess;
-                if (process == null)
-                    return null;
-
-                process.EnumerateThreads(out ICorDebugThreadEnum threadEnum);
-
-                ICorDebugThread[] threads = new ICorDebugThread[1];
-                while (threadEnum.Next(1, threads, out uint fetched) == 0 && fetched == 1)
-                {
-                    try
-                    {
-                        threads[0].GetID(out uint id);
-                        _corDebugThreads[id] = threads[0];
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-
-            _corDebugThreads.TryGetValue(osid, out ICorDebugThread result);
-            return result;
         }
 
         public override IList<ClrThread> Threads => _threads.Value;

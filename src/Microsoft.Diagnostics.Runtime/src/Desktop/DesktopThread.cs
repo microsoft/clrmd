@@ -5,14 +5,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThread : ThreadBase
     {
         internal DesktopRuntimeBase DesktopRuntime { get; }
-        internal ICorDebugThread CorDebugThread => DesktopRuntime.GetCorDebugThread(OSThreadId);
         public override ClrRuntime Runtime => DesktopRuntime;
 
         public override ClrException CurrentException
@@ -111,47 +109,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 return _stackTrace;
             }
-        }
-
-        internal unsafe void InitLocalData()
-        {
-            if (_corDebugInit)
-                return;
-
-            _corDebugInit = true;
-
-            ICorDebugThread3 thread = (ICorDebugThread3)CorDebugThread;
-            thread.CreateStackWalk(out ICorDebugStackWalk stackwalk);
-
-            do
-            {
-                stackwalk.GetFrame(out ICorDebugFrame frame);
-
-                ICorDebugILFrame ilFrame = frame as ICorDebugILFrame;
-                if (ilFrame == null)
-                    continue;
-
-                byte[] context = ContextHelper.Context;
-
-                fixed (byte* ptr = context)
-                    stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, new IntPtr(ptr));
-
-                ulong ip, sp;
-                if (IntPtr.Size == 4)
-                {
-                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
-                }
-                else
-                {
-                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
-                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
-                }
-
-                DesktopStackFrame result = _stackTrace.Where(frm => sp == frm.StackPointer && ip == frm.InstructionPointer).Select(p => (DesktopStackFrame)p).SingleOrDefault();
-                if (result != null)
-                    result.CordbFrame = ilFrame;
-            } while (stackwalk.Next() == 0);
         }
 
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace()

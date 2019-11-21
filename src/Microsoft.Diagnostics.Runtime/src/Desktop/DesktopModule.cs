@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ulong Size => _size.Value;
         public override ulong MetadataAddress { get; }
         public override ulong MetadataLength { get; }
-        public override object MetadataImport => GetMetadataImport();
+        public override MetaDataImport MetadataImport => GetMetadataImport();
 
         public override DebuggableAttribute.DebuggingModes DebuggingMode
         {

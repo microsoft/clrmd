@@ -34,7 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ulong MetadataAddress => 0;
         public override ulong MetadataLength => 0;
-        public override object MetadataImport => null;
 
         internal override ulong GetDomainModule(ClrAppDomain appDomain)
         {

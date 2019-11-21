@@ -7,7 +7,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -197,20 +196,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private void InitILInfo()
         {
             ClrModule module = Type?.Module;
-            object mdImport = module?.MetadataImport;
+            MetaDataImport mdImport = module.MetadataImport;
             uint rva = 0;
-            if (mdImport is IMetadataImport metadataImport)
-            {
-                if (metadataImport.GetRVA(_token, out rva, out uint flags) != 0)
-                {
-                    // GetRVA fail
-                    return;
-                }
-            }
-            else if (mdImport is MetaDataImport dacMetaDataImport)
-            {
-                rva = dacMetaDataImport.GetRva((int) _token);
-            }
+
+            if (mdImport != null)
+                rva = mdImport.GetRva((int)_token);
+
             ulong il = _runtime.GetILForModule(module, rva);
             if (il != 0)
             {

@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Text;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -26,8 +25,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _method;
             }
         }
-
-        public ICorDebugILFrame CordbFrame { get; internal set; }
 
         public override string ToString()
         {
