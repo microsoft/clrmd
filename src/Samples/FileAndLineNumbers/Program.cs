@@ -1,37 +1,36 @@
-﻿using Microsoft.Diagnostics.Runtime.Tests;
-using Microsoft.Diagnostics.Runtime;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.Tests;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 
 class Program
 {
-    static void Main(string[] args)
+    static void Main()
     {
         Helpers.TestWorkingDirectory = Environment.CurrentDirectory;
 
-        using (DataTarget dt = TestTargets.NestedException.LoadFullDump())
-        {
-            dt.SymbolLocator.SymbolPath += ";" + Environment.CurrentDirectory;
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+        DataTarget dt = TestTargets.NestedException.LoadFullDump();
 
-            foreach (ClrThread thread in runtime.Threads)
+        dt.SymbolLocator.SymbolPath += ";" + Environment.CurrentDirectory;
+        ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+        foreach (ClrThread thread in runtime.Threads)
+        {
+            Console.WriteLine("Thread {0:x}:", thread.OSThreadId);
+
+            foreach (ClrStackFrame frame in thread.StackTrace)
             {
-                Console.WriteLine("Thread {0:x}:", thread.OSThreadId);
-                
-                foreach (ClrStackFrame frame in thread.StackTrace)
+                if (frame.Kind == ClrStackFrameType.Runtime)
                 {
-                    if (frame.Kind == ClrStackFrameType.Runtime)
-                    {
-                        Console.WriteLine("{0,12:x} {1,12:x} {2}", frame.InstructionPointer, frame.StackPointer, frame.DisplayString);
-                    }
-                    else
-                    {
-                        FileAndLineNumber info = frame.GetSourceLocation();
-                        Console.WriteLine("{0,12:x} {1,12:x} {2} [{3} @ {4}]", frame.InstructionPointer, frame.StackPointer, frame.DisplayString, info.File, info.Line);
-                    }
+                    Console.WriteLine("{0,12:x} {1,12:x} {2}", frame.InstructionPointer, frame.StackPointer, frame.DisplayString);
+                }
+                else
+                {
+                    FileAndLineNumber info = frame.GetSourceLocation();
+                    Console.WriteLine("{0,12:x} {1,12:x} {2} [{3} @ {4}]", frame.InstructionPointer, frame.StackPointer, frame.DisplayString, info.File, info.Line);
                 }
             }
         }
@@ -46,13 +45,13 @@ struct FileAndLineNumber
 
 static class Extensions
 {
-    static Dictionary<PdbInfo, PdbReader> s_pdbReaders = new Dictionary<PdbInfo, PdbReader>();
+    static readonly Dictionary<PdbInfo, PdbReader> s_pdbReaders = new Dictionary<PdbInfo, PdbReader>();
     public static FileAndLineNumber GetSourceLocation(this ClrStackFrame frame)
     {
         PdbReader reader = GetReaderForFrame(frame);
         if (reader == null)
             return new FileAndLineNumber();
-        
+
         PdbFunction function = reader.GetFunctionFromToken(frame.Method.MetadataToken);
         int ilOffset = FindIlOffset(frame);
 
@@ -74,7 +73,7 @@ static class Extensions
                     nearest.File = sequenceCollection.File.Name;
                     nearest.Line = (int)point.LineBegin;
                 }
-                
+
                 distance = dist;
             }
         }
@@ -99,7 +98,7 @@ static class Extensions
 
         return last;
     }
-    
+
 
     private static PdbReader GetReaderForFrame(ClrStackFrame frame)
     {
