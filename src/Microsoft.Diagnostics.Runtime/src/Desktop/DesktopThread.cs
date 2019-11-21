@@ -135,7 +135,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             DesktopRuntime = clr;
         }
-
-        private bool _corDebugInit;
     }
 }

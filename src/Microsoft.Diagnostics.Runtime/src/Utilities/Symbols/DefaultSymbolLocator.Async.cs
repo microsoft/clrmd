@@ -58,43 +58,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        /// <summary>
-        /// Attempts to locate a pdb based on its name, guid, and revision number.
-        /// </summary>
-        /// <param name="pdbName">The name the pdb is indexed under.</param>
-        /// <param name="pdbIndexGuid">The guid the pdb is indexed under.</param>
-        /// <param name="pdbIndexAge">The age of the pdb.</param>
-        /// <returns>A full path on disk (local) of where the pdb was copied to.</returns>
-        public override async Task<string> FindPdbAsync(string pdbName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            if (string.IsNullOrWhiteSpace(pdbName))
-                throw new ArgumentNullException(nameof(pdbName));
-
-            // Ensure we don't attempt to download the same pdb multiple times.
-            string pdbSimpleName = Path.GetFileName(pdbName);
-            PdbEntry pdbEntry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-
-            HashSet<PdbEntry> missingPdbs = _missingPdbs;
-
-            Task<string> task = null;
-            lock (s_pdbs)
-            {
-                if (IsMissing(missingPdbs, pdbEntry))
-                    return null;
-
-                if (!s_pdbs.TryGetValue(pdbEntry, out task))
-                    task = s_pdbs[pdbEntry] = DownloadPdbWorker(pdbName, pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            }
-
-            // If we failed to find the file, we need to clear out the empty task, since the user could
-            // change symbol paths and we need s_files to only contain positive results.
-            string result = await task;
-            if (result == null)
-                ClearFailedTask(s_pdbs, task, missingPdbs, pdbEntry);
-
-            return result;
-        }
-
         private static void ClearFailedTask<T>(Dictionary<T, Task<string>> tasks, Task<string> task, HashSet<T> missingFiles, T fileEntry)
         {
             lock (tasks)
@@ -105,20 +68,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 lock (missingFiles)
                     missingFiles.Add(fileEntry);
             }
-        }
-
-        private async Task<string> DownloadPdbWorker(string pdbFullPath, string pdbSimpleName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            string cachePath = Path.Combine(SymbolCache, pdbIndexPath);
-
-            Func<string, bool> match = file => ValidatePdb(file, pdbIndexGuid, pdbIndexAge);
-            string result = CheckLocalPaths(pdbFullPath, pdbSimpleName, cachePath, match);
-            if (result != null)
-                return result;
-
-            result = await SearchSymbolServerForFile(pdbSimpleName, pdbIndexPath, match);
-            return result;
         }
 
         private async Task<string> DownloadFileWorker(string fileFullPath, string fileSimpleName, int buildTimeStamp, int imageSize, bool checkProperties)
