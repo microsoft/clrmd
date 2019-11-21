@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         }
                         else if (type == ClrElementType.SZArray)
                         {
-                            res = sigParser.PeekElemType(out etype);
+                            sigParser.PeekElemType(out etype);
                             type = (ClrElementType)etype;
 
                             if (type.IsObjectReference())
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         else if (type == ClrElementType.Pointer)
                         {
                             // Only deal with single pointers for now and types that have already been constructed
-                            res = sigParser.GetElemType(out etype);
+                            sigParser.GetElemType(out etype);
                             type = (ClrElementType)etype;
 
                             sigParser.GetToken(out int token);
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             // struct, then try to get the token
                             int token = 0;
                             if (etype == 0x11 || etype == 0x12)
-                                res = res && sigParser.GetToken(out token);
+                                sigParser.GetToken(out token);
 
                             if (token != 0)
                                 result = (BaseDesktopHeapType)heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);
@@ -139,16 +139,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     res = res && sigParser.SkipCustomModifiers();
                     res = res && sigParser.GetElemType(out etype);
 
-                    res = res && sigParser.GetElemType(out etype);
+                    _ = res && sigParser.GetElemType(out etype);
 
                     // Generic instantiation
                     if (etype == 0x15)
-                        res = res && sigParser.GetElemType(out etype);
+                        sigParser.GetElemType(out etype);
 
                     // If it's a class or struct, then try to get the token
                     int token = 0;
                     if (etype == 0x11 || etype == 0x12)
-                        res = res && sigParser.GetToken(out token);
+                        sigParser.GetToken(out token);
 
                     if (token != 0)
                         result.ComponentType = heap.GetGCHeapTypeFromModuleAndToken(data.Module, (uint)token);

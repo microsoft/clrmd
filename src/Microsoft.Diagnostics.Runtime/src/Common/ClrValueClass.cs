@@ -97,8 +97,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (field.Type == null)
                 throw new Exception("Field does not have an associated class.");
 
-            ClrHeap heap = Type.Heap;
-
             ulong addr = field.GetAddress(Address, _interior);
             return new ClrValueClass(addr, field.Type, true);
         }

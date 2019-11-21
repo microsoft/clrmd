@@ -7,14 +7,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using IMAGE_DATA_DIRECTORY = Microsoft.Diagnostics.Runtime.Interop.IMAGE_DATA_DIRECTORY;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class DacDataTargetWrapper : COMCallableIUnknown, ICorDebugDataTarget
+    internal unsafe class DacDataTargetWrapper : COMCallableIUnknown
     {
         private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
@@ -53,45 +52,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.Complete();
         }
 
-        public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesRead)
-        {
-            if (ReadVirtual(self, address, buffer, (int)bytesRequested, out int read) >= 0)
-            {
-                bytesRead = (uint)read;
-                return S_OK;
-            }
-
-            bytesRead = 0;
-            return E_FAIL;
-        }
-
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
-            Architecture arch = _dataReader.GetArchitecture();
-
-            switch (arch)
+            machineType = _dataReader.GetArchitecture() switch
             {
-                case Architecture.Amd64:
-                    machineType = IMAGE_FILE_MACHINE.AMD64;
-                    break;
-
-                case Architecture.X86:
-                    machineType = IMAGE_FILE_MACHINE.I386;
-                    break;
-
-                case Architecture.Arm:
-                    machineType = IMAGE_FILE_MACHINE.THUMB2;
-                    break;
-
-                case Architecture.Arm64:
-                    machineType = IMAGE_FILE_MACHINE.ARM64;
-                    break;
-
-                default:
-                    machineType = IMAGE_FILE_MACHINE.UNKNOWN;
-                    break;
-            }
-
+                Architecture.Amd64 => IMAGE_FILE_MACHINE.AMD64,
+                Architecture.X86 => IMAGE_FILE_MACHINE.I386,
+                Architecture.Arm => IMAGE_FILE_MACHINE.THUMB2,
+                Architecture.Arm64 => IMAGE_FILE_MACHINE.ARM64,
+                _ => IMAGE_FILE_MACHINE.UNKNOWN,
+            };
             return S_OK;
         }
 
@@ -192,11 +162,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public int ReadVirtual(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
-        {
-            return ReadMemory(address, buffer, bytesRequested, out bytesRead);
-        }
-
         public int WriteVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
         {
             // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
@@ -251,10 +216,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public int SetThreadContext(IntPtr self, uint threadID, uint contextSize, IntPtr context)
-        {
-            return E_NOTIMPL;
-        }
 
         public int Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
         {
@@ -308,43 +269,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
             
             return S_OK;
-        }
-
-        CorDebugPlatform ICorDebugDataTarget.GetPlatform()
-        {
-            Architecture arch = _dataReader.GetArchitecture();
-
-            switch (arch)
-            {
-                case Architecture.Amd64:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_AMD64;
-
-                case Architecture.X86:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_X86;
-
-                case Architecture.Arm:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM;
-
-                case Architecture.Arm64:
-                    return CorDebugPlatform.CORDB_PLATFORM_WINDOWS_ARM64;
-
-                default:
-                    throw new Exception();
-            }
-        }
-
-        uint ICorDebugDataTarget.ReadVirtual(ulong address, IntPtr buffer, uint bytesRequested)
-        {
-            if (ReadVirtual(IntPtr.Zero, address, buffer, (int)bytesRequested, out int read) >= 0)
-                return (uint)read;
-
-            throw new Exception();
-        }
-
-        void ICorDebugDataTarget.GetThreadContext(uint threadId, uint contextFlags, uint contextSize, IntPtr context)
-        {
-            if (!_dataReader.GetThreadContext(threadId, contextFlags, contextSize, context))
-                throw new Exception();
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

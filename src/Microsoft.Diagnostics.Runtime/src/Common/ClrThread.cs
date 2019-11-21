@@ -113,18 +113,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Debug.Assert(stackwalkPolicy != ClrRootStackwalkPolicy.SkipStack);
 
-            switch (stackwalkPolicy)
+            return stackwalkPolicy switch
             {
-                case ClrRootStackwalkPolicy.Automatic:
-                    return runtime.Threads.Count < 512 ? true : false;
-
-                case ClrRootStackwalkPolicy.Exact:
-                    return true;
-
-                default:
-                case ClrRootStackwalkPolicy.Fast:
-                    return false;
-            }
+                ClrRootStackwalkPolicy.Automatic => runtime.Threads.Count < 512 ? true : false,
+                ClrRootStackwalkPolicy.Exact => true,
+                _ => false,
+            };
         }
 
         /// <summary>
@@ -242,11 +236,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if the thread is a COM multithreaded apartment.
         /// </summary>
         public abstract bool IsMTA { get; }
-
-        /// <summary>
-        /// Returns the object this thread is blocked waiting on, or null if the thread is not blocked.
-        /// </summary>
-        [Obsolete]
-        public abstract IList<BlockingObject> BlockingObjects { get; }
     }
 }

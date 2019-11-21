@@ -125,8 +125,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return (bool)_minidump;
 
                 SetClientInstance();
-
-                _control.GetDebuggeeType(out DEBUG_CLASS cls, out DEBUG_CLASS_QUALIFIER qual);
+                _control.GetDebuggeeType(out _, out DEBUG_CLASS_QUALIFIER qual);
 
                 if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
                 {
@@ -238,7 +237,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong[] GetImageBases()
         {
-            if (GetNumberModules(out uint count, out uint unloadedCount) < 0)
+            if (GetNumberModules(out uint count, out _) < 0)
                 return null;
 
             List<ulong> bases = new List<ulong>((int)count);
@@ -264,7 +263,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             DEBUG_MODULE_PARAMETERS[] mods = new DEBUG_MODULE_PARAMETERS[bases.Length];
             List<ModuleInfo> modules = new List<ModuleInfo>();
-            HashSet<ulong> encounteredBases = new HashSet<ulong>();
 
             if (bases != null && CanEnumerateModules)
             {
@@ -284,7 +282,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], null, 0, out uint needed) >= 0 && needed > 1)
                         {
                             sbpath.EnsureCapacity((int)needed);
-                            if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], sbpath, needed, out needed) >= 0)
+                            if (GetModuleNameString(DEBUG_MODNAME.IMAGE, i, bases[i], sbpath, needed, out _) >= 0)
                                 info.FileName = sbpath.ToString();
                         }
 
@@ -447,12 +445,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (!FindModuleIndex(baseAddr, out uint index))
                 return;
 
-            int hr = GetModuleVersionInformation(index, baseAddr, "\\", null, 0, out uint needed);
+            int hr = GetModuleVersionInformation(index, baseAddr, null, 0, out uint needed);
             if (hr != 0)
                 return;
 
             byte[] buffer = new byte[needed];
-            hr = GetModuleVersionInformation(index, baseAddr, "\\", buffer, needed, out needed);
+            hr = GetModuleVersionInformation(index, baseAddr, buffer, needed, out _);
             if (hr != 0)
                 return;
 
@@ -488,7 +486,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal int GetModuleVersionInformation(uint index, ulong baseAddress, string p, byte[] buffer, uint needed1, out uint needed2)
+        internal int GetModuleVersionInformation(uint index, ulong baseAddress, byte[] buffer, uint needed1, out uint needed2)
         {
             if (_symbols3 == null)
             {
@@ -559,7 +557,7 @@ namespace Microsoft.Diagnostics.Runtime
             int hr = _systemObjects.GetCurrentThreadId(out uint id);
             bool haveId = hr == 0;
 
-            if (_systemObjects.GetThreadIdBySystemId(thread, out id) == 0 && _systemObjects.SetCurrentThreadId(id) == 0)
+            if (_systemObjects.GetThreadIdBySystemId(thread, out uint newId) == 0 && _systemObjects.SetCurrentThreadId(newId) == 0)
                 _systemObjects.GetCurrentThreadTeb(out teb);
 
             if (haveId)

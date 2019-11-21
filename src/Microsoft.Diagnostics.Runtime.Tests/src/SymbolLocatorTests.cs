@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -26,18 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             return new DefaultSymbolLocator {SymbolCache = Helpers.TestWorkingDirectory};
         }
-
-        [Fact]
-        public void SymbolLocatorTimeoutTest()
-        {
-            SymbolLocator locator = GetLocator();
-            locator.Timeout = 10000;
-            locator.SymbolCache += "\\TestTimeout";
-
-            string pdb = locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
-            Assert.NotNull(pdb);
-        }
-
+        
         [Fact]
         public void FindBinaryNegativeTest()
         {
@@ -46,13 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(dac);
         }
 
-        [Fact]
-        public void FindPdbNegativeTest()
-        {
-            SymbolLocator _locator = GetLocator();
-            string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1);
-            Assert.Null(pdb);
-        }
 
         [Fact]
         public async Task FindBinaryAsyncNegativeTest()
@@ -71,22 +52,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public async Task FindPdbAsyncNegativeTest()
-        {
-            SymbolLocator _locator = GetLocator();
-
-            List<Task<string>> tasks = new List<Task<string>>();
-            for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge + 1));
-
-            // Ensure we got the same answer for everything.
-            foreach (Task<string> task in tasks)
-            {
-                string pdb = await task;
-                Assert.Null(pdb);
-            }
-        }
 
         [Fact]
         public void FindBinaryTest()
@@ -97,23 +62,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(File.Exists(dac));
         }
 
-        [Fact]
-        public void FindPdbTest()
-        {
-            SymbolLocator _locator = GetLocator();
-            string pdb = _locator.FindPdb(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
-            Assert.NotNull(pdb);
-            Assert.True(File.Exists(pdb));
-
-            Assert.True(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
-        }
-
-        private static bool PdbMatches(string pdb, Guid guid, int age)
-        {
-            PdbReader.GetPdbProperties(pdb, out Guid fileGuid, out int fileAge);
-
-            return guid == fileGuid;
-        }
 
         [Fact]
         public async Task FindBinaryAsyncTest()
@@ -140,30 +88,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 string taskDac = await task;
                 Assert.Equal(dac, taskDac);
-            }
-        }
-
-        [Fact]
-        public async Task FindPdbAsyncTest()
-        {
-            SymbolLocator _locator = GetLocator();
-            Task<string> first = _locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge);
-
-            List<Task<string>> tasks = new List<Task<string>>();
-            for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindPdbAsync(WellKnownNativePdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
-
-            string pdb = await first;
-
-            Assert.NotNull(pdb);
-            Assert.True(File.Exists(pdb));
-            Assert.True(PdbMatches(pdb, WellKnownNativePdbGuid, WellKnownNativePdbAge));
-
-            // Ensure we got the same answer for everything.
-            foreach (Task<string> task in tasks)
-            {
-                string taskPdb = await task;
-                Assert.Equal(taskPdb, pdb);
             }
         }
     }

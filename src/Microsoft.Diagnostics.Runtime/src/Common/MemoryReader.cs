@@ -166,14 +166,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool MisalignedRead(ulong addr, out uint value)
         {
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out int size);
+            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out _);
             value = BitConverter.ToUInt32(_dword, 0);
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out int value)
         {
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out int size);
+            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out _);
             value = BitConverter.ToInt32(_dword, 0);
             return res;
         }

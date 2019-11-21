@@ -16,7 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public partial class DefaultSymbolLocator : SymbolLocator
     {
-        private static readonly Dictionary<PdbEntry, Task<string>> s_pdbs = new Dictionary<PdbEntry, Task<string>>();
         private static readonly Dictionary<FileEntry, Task<string>> s_files = new Dictionary<FileEntry, Task<string>>();
         private static readonly Dictionary<string, Task> s_copy = new Dictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
 
@@ -58,43 +57,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        /// <summary>
-        /// Attempts to locate a pdb based on its name, guid, and revision number.
-        /// </summary>
-        /// <param name="pdbName">The name the pdb is indexed under.</param>
-        /// <param name="pdbIndexGuid">The guid the pdb is indexed under.</param>
-        /// <param name="pdbIndexAge">The age of the pdb.</param>
-        /// <returns>A full path on disk (local) of where the pdb was copied to.</returns>
-        public override async Task<string> FindPdbAsync(string pdbName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            if (string.IsNullOrWhiteSpace(pdbName))
-                throw new ArgumentNullException(nameof(pdbName));
-
-            // Ensure we don't attempt to download the same pdb multiple times.
-            string pdbSimpleName = Path.GetFileName(pdbName);
-            PdbEntry pdbEntry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-
-            HashSet<PdbEntry> missingPdbs = _missingPdbs;
-
-            Task<string> task = null;
-            lock (s_pdbs)
-            {
-                if (IsMissing(missingPdbs, pdbEntry))
-                    return null;
-
-                if (!s_pdbs.TryGetValue(pdbEntry, out task))
-                    task = s_pdbs[pdbEntry] = DownloadPdbWorker(pdbName, pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            }
-
-            // If we failed to find the file, we need to clear out the empty task, since the user could
-            // change symbol paths and we need s_files to only contain positive results.
-            string result = await task;
-            if (result == null)
-                ClearFailedTask(s_pdbs, task, missingPdbs, pdbEntry);
-
-            return result;
-        }
-
         private static void ClearFailedTask<T>(Dictionary<T, Task<string>> tasks, Task<string> task, HashSet<T> missingFiles, T fileEntry)
         {
             lock (tasks)
@@ -107,26 +69,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private async Task<string> DownloadPdbWorker(string pdbFullPath, string pdbSimpleName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            string cachePath = Path.Combine(SymbolCache, pdbIndexPath);
-
-            Func<string, bool> match = file => ValidatePdb(file, pdbIndexGuid, pdbIndexAge);
-            string result = CheckLocalPaths(pdbFullPath, pdbSimpleName, cachePath, match);
-            if (result != null)
-                return result;
-
-            result = await SearchSymbolServerForFile(pdbSimpleName, pdbIndexPath, match);
-            return result;
-        }
-
         private async Task<string> DownloadFileWorker(string fileFullPath, string fileSimpleName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string fileIndexPath = GetIndexPath(fileSimpleName, buildTimeStamp, imageSize);
             string cachePath = Path.Combine(SymbolCache, fileIndexPath);
 
-            Func<string, bool> match = file => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
+            bool match(string file) => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
             string result = CheckLocalPaths(fileFullPath, fileSimpleName, cachePath, match);
             if (result != null)
             {
@@ -320,16 +268,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
                     WebResponse response = await req.GetResponseAsync();
-                    using (Stream fromStream = response.GetResponseStream())
-                    {
-                        if (returnContents)
-                            return await new StreamReader(fromStream).ReadToEndAsync();
+                    using Stream fromStream = response.GetResponseStream();
+                    if (returnContents)
+                        return await new StreamReader(fromStream).ReadToEndAsync();
 
-                        Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
-                        await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength);
-                        Trace("Found '{0}' at '{1}'.  Copied to '{2}'.", Path.GetFileName(fileIndexPath), fullUri, fullDestPath);
-                        return fullDestPath;
-                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
+                    await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength);
+                    Trace("Found '{0}' at '{1}'.  Copied to '{2}'.", Path.GetFileName(fileIndexPath), fullUri, fullDestPath);
+                    return fullDestPath;
                 }
                 catch (WebException)
                 {
@@ -474,38 +420,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 lock (missingFiles)
                     missingFiles.Add(entry);
-            }
-        }
-
-        private string GetPdbEntry(PdbEntry entry)
-        {
-            lock (s_pdbs)
-            {
-                if (s_pdbs.TryGetValue(entry, out Task<string> task))
-                    return task.Result;
-            }
-
-            return null;
-        }
-
-        private void SetPdbEntry(HashSet<PdbEntry> missing, PdbEntry entry, string value)
-        {
-            if (value != null)
-            {
-                lock (s_pdbs)
-                {
-                    if (!s_pdbs.ContainsKey(entry))
-                    {
-                        Task<string> task = new Task<string>(() => value);
-                        s_pdbs[entry] = task;
-                        task.Start();
-                    }
-                }
-            }
-            else
-            {
-                lock (missing)
-                    missing.Add(entry);
             }
         }
 

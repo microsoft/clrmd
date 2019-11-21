@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.ICorDebug;
 
 #pragma warning disable 649
 
@@ -24,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal abstract class DesktopRuntimeBase : RuntimeBase
     {
         protected CommonMethodTables _commonMTs;
-        private Dictionary<uint, ICorDebugThread> _corDebugThreads;
         private ClrModule[] _moduleList;
         private Lazy<List<ClrThread>> _threads;
         private Lazy<DesktopGCHeap> _heap;
@@ -141,36 +139,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             return new DesktopCCWData(_heap.Value, addr, ccw);
-        }
-
-        internal ICorDebugThread GetCorDebugThread(uint osid)
-        {
-            if (_corDebugThreads == null)
-            {
-                _corDebugThreads = new Dictionary<uint, ICorDebugThread>();
-
-                ICorDebugProcess process = CorDebugProcess;
-                if (process == null)
-                    return null;
-
-                process.EnumerateThreads(out ICorDebugThreadEnum threadEnum);
-
-                ICorDebugThread[] threads = new ICorDebugThread[1];
-                while (threadEnum.Next(1, threads, out uint fetched) == 0 && fetched == 1)
-                {
-                    try
-                    {
-                        threads[0].GetID(out uint id);
-                        _corDebugThreads[id] = threads[0];
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-
-            _corDebugThreads.TryGetValue(osid, out ICorDebugThread result);
-            return result;
         }
 
         public override IList<ClrThread> Threads => _threads.Value;
@@ -520,7 +488,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     if (!_appDomains.IsValueCreated)
                     {
-                        DomainContainer value = _appDomains.Value;
+                        _ = _appDomains.Value;
                     }
 
                     _moduleList = UniqueModules(_modules.Values).ToArray();
@@ -716,55 +684,47 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
-            using (ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf))
+            using ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf);
+            if (stackwalk == null)
+                yield break;
+
+            byte[] context = ContextHelper.Context;
+            do
             {
-                if (stackwalk == null)
-                    yield break;
+                if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out _, context))
+                    break;
 
-                byte[] context = ContextHelper.Context;
-                do
+                ulong ip, sp;
+
+                if (PointerSize == 4)
                 {
-                    if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out uint size, context))
-                        break;
+                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                }
+                else
+                {
+                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
+                }
 
-                    ulong ip, sp;
+                ulong frameVtbl = stackwalk.GetFrameVtable();
+                if (frameVtbl != 0)
+                {
+                    sp = frameVtbl;
+                    ReadPointer(sp, out frameVtbl);
+                }
 
-                    if (PointerSize == 4)
-                    {
-                        ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                        sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
-                    }
-                    else
-                    {
-                        ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
-                        sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
-                    }
+                byte[] contextCopy = new byte[context.Length];
+                Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
 
-                    ulong frameVtbl = stackwalk.GetFrameVtable();
-                    if (frameVtbl != 0)
-                    {
-                        sp = frameVtbl;
-                        ReadPointer(sp, out frameVtbl);
-                    }
-
-                    byte[] contextCopy = new byte[context.Length];
-                    Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
-
-                    DesktopStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
-                    yield return frame;
-                } while (stackwalk.Next());
-            }
+                DesktopStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
+                yield return frame;
+            } while (stackwalk.Next());
         }
 
         internal ILToNativeMap[] GetILMap(ulong ip, HotColdRegions hotColdInfo)
         {
             List<ILToNativeMap> list = new List<ILToNativeMap>();
-
-
-            ulong size = hotColdInfo.ColdSize + hotColdInfo.HotSize;
-            ulong coldEnd = hotColdInfo.ColdStart + hotColdInfo.ColdSize;
-            ulong hotEnd = hotColdInfo.HotStart + hotColdInfo.HotSize;
-
 
             foreach (ClrDataMethod method in _dacInterface.EnumerateMethodInstancesByAddress(ip))
             {

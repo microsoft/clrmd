@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
             return pUnk;
         }
 
-        internal DacLibrary(DataTarget dataTarget, IntPtr pUnk)
+        internal DacLibrary(IntPtr pUnk)
         {
             InternalDacPrivateInterface = new ClrDataProcess(this, pUnk);
         }
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
                 DllMain main = (DllMain)Marshal.GetDelegateForFunctionPointer(dllMain, typeof(DllMain));
-                int result = main(dacLibrary, 1, IntPtr.Zero);
+                main(dacLibrary, 1, IntPtr.Zero);
             }
 
             IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "CLRDataCreateInstance");
@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        private void Dispose(bool disposing)
+        private void Dispose(bool _)
         {
             if (!_disposed)
             {

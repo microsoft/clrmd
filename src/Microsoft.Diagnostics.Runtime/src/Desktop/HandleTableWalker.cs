@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public int AddHandle(ulong addr, ulong obj, int hndType, uint refCnt, uint dependentTarget, ulong appDomain)
         {
             // If we fail to get the MT of this object, just skip it and keep going
-            if (!GetMethodTables(obj, out ulong mt, out ulong cmt))
+            if (!GetMethodTables(obj, out _, out _))
                 return _max-- > 0 ? 1 : 0;
 
             ClrHandle handle = new ClrHandle

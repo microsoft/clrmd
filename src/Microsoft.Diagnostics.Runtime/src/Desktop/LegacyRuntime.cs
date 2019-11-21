@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             HandleTableWalker handleTable = new HandleTableWalker(this);
 
-            byte[] input = null;
+            byte[] input;
             if (CLRVersion == DesktopVersion.v2)
                 input = handleTable.V2Request;
             else
@@ -566,12 +566,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IMethodTableData mtData = GetMethodTableData(mt);
             if (mtData != null)
             {
-                byte[] buffer = null;
-                if (CLRVersion == DesktopVersion.v2)
-                    buffer = GetByteArrayForStruct<V2EEClassData>();
-                else
-                    buffer = GetByteArrayForStruct<V4EEClassData>();
-
+                byte[] buffer = CLRVersion == DesktopVersion.v2 ? GetByteArrayForStruct<V2EEClassData>() : GetByteArrayForStruct<V4EEClassData>();
                 if (Request(DacRequests.EECLASS_DATA, mtData.EEClass, buffer))
                 {
                     if (CLRVersion == DesktopVersion.v2)

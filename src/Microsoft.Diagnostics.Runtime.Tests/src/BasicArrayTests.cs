@@ -130,7 +130,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementValue_WhenReferenceArray_ReturnsExpectedElement(int setElementIndex)
         {
             // Arrange
-            var originalArray = _prototype.ReferenceArrayWithBlanks;
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act 
@@ -146,7 +145,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementValue_WhenReferenceArrayHasNullElement_ReturnsEmptyObject(int blankElementIndex)
         {
             // Arrange
-            var originalArray = _prototype.ReferenceArrayWithBlanks;
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act 
@@ -165,11 +163,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
-            Action readingCustomStructArrayElement = () => structArray.Type.GetArrayElementValue(structArray, index);
-
             // Assert
-            Assert.ThrowsAny<Exception>(readingCustomStructArrayElement);
+            Assert.ThrowsAny<Exception>(() => structArray.Type.GetArrayElementValue(structArray, index));
         }
 
         [Theory, AutoData]
@@ -180,12 +175,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
 
             var index = seed % originalArray.Length;
-
-            // Act 
-            Action readingCustomStructArrayElement = () => structArray.Type.GetArrayElementValue(structArray, index);
-
+            
             // Assert
-            Assert.ThrowsAny<Exception>(readingCustomStructArrayElement);
+            Assert.ThrowsAny<Exception>(() => structArray.Type.GetArrayElementValue(structArray, index));
         }
 
         [Theory, AutoData]
@@ -197,11 +189,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
-            Action readingCustomStructArrayElement = () => structArray.Type.GetArrayElementValue(structArray, index);
-
             // Assert
-            Assert.ThrowsAny<Exception>(readingCustomStructArrayElement);
+            Assert.ThrowsAny<Exception>(() => structArray.Type.GetArrayElementValue(structArray, index));
         }
 
         [Theory, AutoData]
@@ -246,7 +235,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenReferenceArray_ReturnsExpectedElement(int setElementIndex)
         {
             // Arrange
-            var originalArray = _prototype.ReferenceArrayWithBlanks;
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act 
@@ -264,7 +252,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenReferenceArrayHasNullElement_ReturnsNotEmptyPosition(int blankElementIndex)
         {
             // Arrange
-            var originalArray = _prototype.ReferenceArrayWithBlanks;
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act 

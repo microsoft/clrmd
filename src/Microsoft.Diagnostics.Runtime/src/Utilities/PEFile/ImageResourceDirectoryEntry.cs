@@ -27,8 +27,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int DataOffset => _dataOffsetAndFlag & 0x7FFFFFFF;
         public int Id => 0xFFFF & _nameOffsetAndFlag;
 
-        private int _nameOffsetAndFlag;
-        private int _dataOffsetAndFlag;
+        private readonly int _nameOffsetAndFlag;
+        private readonly int _dataOffsetAndFlag;
 
         internal string GetName(PEBuffer buff, int resourceStartFileOffset)
         {
@@ -44,51 +44,30 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal static string GetTypeNameForTypeId(int typeId)
         {
-            switch (typeId)
+            return typeId switch
             {
-                case 1:
-                    return "Cursor";
-                case 2:
-                    return "BitMap";
-                case 3:
-                    return "Icon";
-                case 4:
-                    return "Menu";
-                case 5:
-                    return "Dialog";
-                case 6:
-                    return "String";
-                case 7:
-                    return "FontDir";
-                case 8:
-                    return "Font";
-                case 9:
-                    return "Accelerator";
-                case 10:
-                    return "RCData";
-                case 11:
-                    return "MessageTable";
-                case 12:
-                    return "GroupCursor";
-                case 14:
-                    return "GroupIcon";
-                case 16:
-                    return "Version";
-                case 19:
-                    return "PlugPlay";
-                case 20:
-                    return "Vxd";
-                case 21:
-                    return "Aniicursor";
-                case 22:
-                    return "Aniicon";
-                case 23:
-                    return "Html";
-                case 24:
-                    return "RT_MANIFEST";
-            }
-
-            return typeId.ToString();
+                1 => "Cursor",
+                2 => "BitMap",
+                3 => "Icon",
+                4 => "Menu",
+                5 => "Dialog",
+                6 => "String",
+                7 => "FontDir",
+                8 => "Font",
+                9 => "Accelerator",
+                10 => "RCData",
+                11 => "MessageTable",
+                12 => "GroupCursor",
+                14 => "GroupIcon",
+                16 => "Version",
+                19 => "PlugPlay",
+                20 => "Vxd",
+                21 => "Aniicursor",
+                22 => "Aniicon",
+                23 => "Html",
+                24 => "RT_MANIFEST",
+                _ => typeId.ToString(),
+            };
         }
     }
 }

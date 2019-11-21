@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
         public int CompareTo(object obj)
         {
             if (ReferenceEquals(this, obj)) return 0;
-            if (ReferenceEquals(null, obj)) return 1;
+            if (obj is null) return 1;
             
             if (!(obj is ClrInfo other))
                 throw new InvalidOperationException("Object is not a ClrInfo.");

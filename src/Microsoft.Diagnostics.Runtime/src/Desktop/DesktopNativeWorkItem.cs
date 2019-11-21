@@ -13,29 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Callback = result.Function;
             Data = result.Context;
 
-            switch (result.FunctionType)
+            Kind = result.FunctionType switch
             {
-                default:
-                case WorkRequestFunctionTypes.UNKNOWNWORKITEM:
-                    Kind = WorkItemKind.Unknown;
-                    break;
-
-                case WorkRequestFunctionTypes.TIMERDELETEWORKITEM:
-                    Kind = WorkItemKind.TimerDelete;
-                    break;
-
-                case WorkRequestFunctionTypes.QUEUEUSERWORKITEM:
-                    Kind = WorkItemKind.QueueUserWorkItem;
-                    break;
-
-                case WorkRequestFunctionTypes.ASYNCTIMERCALLBACKCOMPLETION:
-                    Kind = WorkItemKind.AsyncTimer;
-                    break;
-
-                case WorkRequestFunctionTypes.ASYNCCALLBACKCOMPLETION:
-                    Kind = WorkItemKind.AsyncCallback;
-                    break;
-            }
+                WorkRequestFunctionTypes.TIMERDELETEWORKITEM => WorkItemKind.TimerDelete,
+                WorkRequestFunctionTypes.QUEUEUSERWORKITEM => WorkItemKind.QueueUserWorkItem,
+                WorkRequestFunctionTypes.ASYNCTIMERCALLBACKCOMPLETION => WorkItemKind.AsyncTimer,
+                WorkRequestFunctionTypes.ASYNCCALLBACKCOMPLETION => WorkItemKind.AsyncCallback,
+                _ => WorkItemKind.Unknown,
+            };
         }
 
         public DesktopNativeWorkItem(WorkRequestData result)

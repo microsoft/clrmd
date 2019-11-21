@@ -90,19 +90,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr != S_OK)
                 return null;
 
-            using (ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask))
-            {
-                // There's a bug in certain runtimes where we will fail to release data deep in the runtime
-                // when a C++ exception occurs while constructing a ClrDataStackWalk.  This is a workaround
-                // for the largest of the leaks caused by this issue.
-                //     https://github.com/Microsoft/clrmd/issues/47
-                int count = AddRef();
-                ClrStackWalk res = dataTask.CreateStackWalk(_library, flags);
-                int released = Release();
-                if (released == count && res == null)
-                    Release();
-                return res;
-            }
+            using ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask);
+            // There's a bug in certain runtimes where we will fail to release data deep in the runtime
+            // when a C++ exception occurs while constructing a ClrDataStackWalk.  This is a workaround
+            // for the largest of the leaks caused by this issue.
+            //     https://github.com/Microsoft/clrmd/issues/47
+            int count = AddRef();
+            ClrStackWalk res = dataTask.CreateStackWalk(_library, flags);
+            int released = Release();
+            if (released == count && res == null)
+                Release();
+            return res;
         }
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ulong addr)
@@ -159,6 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
+#pragma warning disable IDE0051 // Remove unused private members
 
     internal struct IXCLRDataProcessVtable
     {

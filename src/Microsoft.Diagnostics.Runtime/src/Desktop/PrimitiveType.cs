@@ -91,55 +91,25 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private string GetElementTypeName()
         {
-            switch (ElementType)
+            return ElementType switch
             {
-                case ClrElementType.Boolean:
-                    return "System.Boolean";
-
-                case ClrElementType.Char:
-                    return "System.Char";
-
-                case ClrElementType.Int8:
-                    return "System.SByte";
-
-                case ClrElementType.UInt8:
-                    return "System.Byte";
-
-                case ClrElementType.Int16:
-                    return "System.Int16";
-
-                case ClrElementType.UInt16:
-                    return "System.UInt16";
-
-                case ClrElementType.Int32:
-                    return "System.Int32";
-
-                case ClrElementType.UInt32:
-                    return "System.UInt32";
-
-                case ClrElementType.Int64:
-                    return "System.Int64";
-
-                case ClrElementType.UInt64:
-                    return "System.UInt64";
-
-                case ClrElementType.Float:
-                    return "System.Single";
-
-                case ClrElementType.Double:
-                    return "System.Double";
-
-                case ClrElementType.NativeInt:
-                    return "System.IntPtr";
-
-                case ClrElementType.NativeUInt:
-                    return "System.UIntPtr";
-
-                case ClrElementType.Struct:
-                    return "Sytem.ValueType";
-            }
-
-            return ElementType.ToString();
+                ClrElementType.Boolean => "System.Boolean",
+                ClrElementType.Char => "System.Char",
+                ClrElementType.Int8 => "System.SByte",
+                ClrElementType.UInt8 => "System.Byte",
+                ClrElementType.Int16 => "System.Int16",
+                ClrElementType.UInt16 => "System.UInt16",
+                ClrElementType.Int32 => "System.Int32",
+                ClrElementType.UInt32 => "System.UInt32",
+                ClrElementType.Int64 => "System.Int64",
+                ClrElementType.UInt64 => "System.UInt64",
+                ClrElementType.Float => "System.Single",
+                ClrElementType.Double => "System.Double",
+                ClrElementType.NativeInt => "System.IntPtr",
+                ClrElementType.NativeUInt => "System.UIntPtr",
+                ClrElementType.Struct => "Sytem.ValueType",
+                _ => ElementType.ToString(),
+            };
         }
     }
 }

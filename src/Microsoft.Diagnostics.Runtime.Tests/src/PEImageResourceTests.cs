@@ -11,19 +11,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestResourceImages()
         {
-            using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
-            {
-                ClrInfo clr = dt.ClrVersions.Single();
-                PEImage image = clr.ModuleInfo.GetPEImage();
-                ResourceEntry entry = image.Resources;
-                WalkEntry(entry);
-            }
+            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            ClrInfo clr = dt.ClrVersions.Single();
+            PEImage image = clr.ModuleInfo.GetPEImage();
+            ResourceEntry entry = image.Resources;
+            WalkEntry(entry);
         }
 
 
         private static void WalkEntry(ResourceEntry entry, int depth = 0)
         {
-            string depthStr = new string(' ', depth * 4);
             foreach (var child in entry.Children)
             {
                 WalkEntry(child, depth + 1);

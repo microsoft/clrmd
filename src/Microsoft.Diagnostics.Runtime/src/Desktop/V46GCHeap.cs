@@ -41,7 +41,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
-                cache = null;
                 mt = DesktopRuntime.DataReader.ReadPointerUnsafe(objRef);
             }
 
@@ -102,7 +101,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     ret = new DesktopHeapType(() => GetTypeName(mt, module, token), module, token, mt, mtData, this, mtCollectibleData);
 
                     index = _types.Count;
-                    ((DesktopHeapType)ret).SetIndex(index);
                     _indices[mt] = index;
 
                     // Arrays share a common token, so it's not helpful to look them up here.

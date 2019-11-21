@@ -51,12 +51,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override uint LockCount => _lockCount;
         public override ulong Teb => _teb;
 
-        [Obsolete]
-        internal void SetBlockingObjects(BlockingObject[] blobjs)
-        {
-            _blockingObjs = blobjs;
-        }
-
         internal enum TlsThreadType
         {
             ThreadType_GC = 0x00000001,
@@ -150,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (clrTlsSlot == uint.MaxValue)
                 return 0;
 
-            ulong tlsSlot = 0;
+            ulong tlsSlot;
             if (clrTlsSlot < maxTlsSlot)
             {
                 tlsSlot = lowerTlsSlots + ptrSize * clrTlsSlot;
@@ -211,8 +205,6 @@ namespace Microsoft.Diagnostics.Runtime
         protected ulong _teb;
         protected ulong _exception;
 
-        [Obsolete]
-        protected BlockingObject[] _blockingObjs;
         protected bool _preemptive;
 
         protected int ThreadType

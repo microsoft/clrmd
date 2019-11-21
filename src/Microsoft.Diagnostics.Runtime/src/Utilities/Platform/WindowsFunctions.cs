@@ -93,7 +93,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             [DllImport("version.dll")]
             public static extern bool VerQueryValue(byte[] pBlock, string pSubBlock, out IntPtr val, out int len);
 
-            private const int VS_FIXEDFILEINFO_size = 0x34;
             public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
 
             [DllImport("kernel32.dll")]

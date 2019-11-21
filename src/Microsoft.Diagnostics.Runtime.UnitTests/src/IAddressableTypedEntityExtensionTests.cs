@@ -9,6 +9,7 @@ using Xunit;
 using System;
 
 #pragma warning disable xUnit1026
+#pragma warning disable IDE0060
 
 namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
@@ -93,9 +94,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         [Theory, AutoNSubstituteData]
         public void GetFieldFrom_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueClass target, [Frozen]ClrType clrObjectType, ClrObject rawClrObject, ClrInstanceField clrObjValueField)
         {
-            // Arrange
-            IAddressableTypedEntity entity = rawClrObject;
-
             clrObjValueField.IsValueClass.Returns(true);
             clrObjValueField.Type.Returns(target.Type);
 

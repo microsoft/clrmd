@@ -16,68 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public partial class DefaultSymbolLocator : SymbolLocator
     {
         /// <summary>
-        /// Default implementation of finding a pdb.
-        /// </summary>
-        /// <param name="pdbName">The name the pdb is indexed under.</param>
-        /// <param name="pdbIndexGuid">The guid the pdb is indexed under.</param>
-        /// <param name="pdbIndexAge">The age of the pdb.</param>
-        /// <returns>A full path on disk (local) of where the pdb was copied to.</returns>
-        public override string FindPdb(string pdbName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            if (string.IsNullOrEmpty(pdbName))
-                return null;
-
-            string pdbSimpleName = Path.GetFileName(pdbName);
-            if (pdbName != pdbSimpleName)
-            {
-                if (ValidatePdb(pdbName, pdbIndexGuid, pdbIndexAge))
-                    return pdbName;
-            }
-
-            // Check to see if it's already cached.
-            PdbEntry entry = new PdbEntry(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            string result = GetPdbEntry(entry);
-            if (result != null)
-                return result;
-
-            HashSet<PdbEntry> missingPdbs = _missingPdbs;
-            if (IsMissing(missingPdbs, entry))
-                return null;
-
-            string pdbIndexPath = GetIndexPath(pdbSimpleName, pdbIndexGuid, pdbIndexAge);
-            foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
-            {
-                if (element.IsSymServer)
-                {
-                    string targetPath = TryGetFileFromServer(element.Target, pdbIndexPath, element.Cache ?? SymbolCache);
-                    if (targetPath != null)
-                    {
-                        Trace("Found pdb {0} from server '{1}' on path '{2}'.  Copied to '{3}'.", pdbSimpleName, element.Target, pdbIndexPath, targetPath);
-                        SetPdbEntry(missingPdbs, entry, targetPath);
-                        return targetPath;
-                    }
-
-                    Trace("No matching pdb found on server '{0}' on path '{1}'.", element.Target, pdbIndexPath);
-                }
-                else
-                {
-                    string fullPath = Path.Combine(element.Target, pdbSimpleName);
-                    if (ValidatePdb(fullPath, pdbIndexGuid, pdbIndexAge))
-                    {
-                        Trace($"Found pdb '{pdbSimpleName}' at '{fullPath}'.");
-                        SetPdbEntry(missingPdbs, entry, fullPath);
-                        return fullPath;
-                    }
-
-                    Trace($"Mismatched pdb found at '{fullPath}'.");
-                }
-            }
-
-            SetPdbEntry(missingPdbs, entry, null);
-            return null;
-        }
-
-        /// <summary>
         /// Attempts to locate a binary via the symbol server.  This function will then copy the file
         /// locally to the symbol cache and return the location of the local file on disk.
         /// </summary>
@@ -158,10 +96,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return fileName + @"\" + buildTimeStamp.ToString("x") + imageSize.ToString("x") + @"\" + fileName;
         }
 
-        private static string GetIndexPath(string pdbSimpleName, Guid pdbIndexGuid, int pdbIndexAge)
-        {
-            return pdbSimpleName + @"\" + pdbIndexGuid.ToString().Replace("-", "") + pdbIndexAge.ToString("x") + @"\" + pdbSimpleName;
-        }
 
         private string TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
         {
@@ -212,11 +146,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (!filePtrData.StartsWith("MSG:") && File.Exists(filePtrData))
             {
-                using (FileStream fs = File.OpenRead(filePtrData))
-                {
-                    CopyStreamToFile(fs, filePtrData, targetPath, fs.Length);
-                    return targetPath;
-                }
+                using FileStream fs = File.OpenRead(filePtrData);
+                CopyStreamToFile(fs, filePtrData, targetPath, fs.Length);
+                return targetPath;
             }
 
             Trace("Error resolving file.ptr: content '{0}' from '{1}.", filePtrData, filePtrSigPath);
@@ -224,35 +156,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private string GetPhysicalFileFromServer(string serverPath, string pdbIndexPath, string symbolCacheDir, bool returnContents = false)
+        private string GetPhysicalFileFromServer(string serverPath, string indexPath, string symbolCacheDir, bool returnContents = false)
         {
             if (string.IsNullOrEmpty(serverPath))
                 return null;
 
-            string fullDestPath = Path.Combine(symbolCacheDir, pdbIndexPath);
+            string fullDestPath = Path.Combine(symbolCacheDir, indexPath);
             if (File.Exists(fullDestPath))
                 return fullDestPath;
 
             if (serverPath.StartsWith("http:") || serverPath.StartsWith("https:"))
             {
-                string fullUri = serverPath + "/" + pdbIndexPath.Replace('\\', '/');
+                string fullUri = serverPath + "/" + indexPath.Replace('\\', '/');
                 try
                 {
                     HttpWebRequest req = (HttpWebRequest)WebRequest.Create(fullUri);
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
                     WebResponse response = req.GetResponse();
-                    using (Stream fromStream = response.GetResponseStream())
+                    using Stream fromStream = response.GetResponseStream();
+                    if (returnContents)
                     {
-                        if (returnContents)
-                        {
-                            TextReader reader = new StreamReader(fromStream);
-                            return reader.ReadToEnd();
-                        }
-
-                        CopyStreamToFile(fromStream, fullUri, fullDestPath, response.ContentLength);
-                        return fullDestPath;
+                        TextReader reader = new StreamReader(fromStream);
+                        return reader.ReadToEnd();
                     }
+
+                    CopyStreamToFile(fromStream, fullUri, fullDestPath, response.ContentLength);
+                    return fullDestPath;
                 }
                 catch (WebException)
                 {
@@ -266,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            string fullSrcPath = Path.Combine(serverPath, pdbIndexPath);
+            string fullSrcPath = Path.Combine(serverPath, indexPath);
             if (!File.Exists(fullSrcPath))
                 return null;
 
