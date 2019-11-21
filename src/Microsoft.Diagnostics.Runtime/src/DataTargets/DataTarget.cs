@@ -56,26 +56,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Creates a DataTarget from a crash dump, specifying the dump reader to use.
-        /// </summary>
-        /// <param name="fileName">The crash dump's filename.</param>
-        /// <param name="dumpReader">The type of dump reader to use.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget LoadCrashDump(string fileName, CrashDumpReader dumpReader)
-        {
-            if (dumpReader == CrashDumpReader.DbgEng)
-            {
-                DbgEngDataReader reader = new DbgEngDataReader(fileName);
-                return CreateFromReader(reader, reader.DebuggerInterface);
-            }
-            else
-            {
-                DumpDataReader reader = new DumpDataReader(fileName);
-                return CreateFromReader(reader, null);
-            }
-        }
-
-        /// <summary>
         /// Create an instance of DataTarget from a user defined DataReader
         /// </summary>
         /// <param name="reader">A user defined DataReader.</param>
