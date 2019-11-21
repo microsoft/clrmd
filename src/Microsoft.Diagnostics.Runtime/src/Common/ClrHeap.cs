@@ -241,17 +241,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Enumerates all managed locks in the process.  That is anything using System.Monitor either explicitly
-        /// or implicitly through "lock (obj)".  This is roughly equivalent to combining SOS's !syncblk command
-        /// with !dumpheap -thinlock.
-        /// </summary>
-        [Obsolete]
-        public virtual IEnumerable<BlockingObject> EnumerateBlockingObjects()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Returns true if the GC heap is in a consistent state for heap enumeration.  This will return false
         /// if the process was stopped in the middle of a GC, which can cause the GC heap to be unwalkable.
         /// Note, you may still attempt to walk the heap if this function returns false, but you will likely

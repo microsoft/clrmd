@@ -116,20 +116,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return DesktopRuntime.EnumerateStackFrames(this);
         }
 
-        [Obsolete]
-        public override IList<BlockingObject> BlockingObjects
-        {
-            get
-            {
-                ((DesktopGCHeap)DesktopRuntime.Heap).InitLockInspection();
-
-                if (_blockingObjs == null)
-                    return new BlockingObject[0];
-
-                return _blockingObjs;
-            }
-        }
-
         internal DesktopThread(DesktopRuntimeBase clr, IThreadData thread, ulong address, bool finalizer)
             : base(thread, address, finalizer)
         {
