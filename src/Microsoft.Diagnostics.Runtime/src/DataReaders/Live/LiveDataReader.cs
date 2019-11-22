@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -14,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal unsafe class LiveDataReader : IDataReader
     {
+        private bool _disposed = false;
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;
         private readonly IntPtr _cloneHandle;
@@ -61,47 +61,56 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        private void Dispose(bool _)
+        {
+            if (!_disposed)
+            {
+                if (_originalPid != 0)
+                {
+                    int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
+                    if (hr != 0)
+                        throw new ClrDiagnosticsException($"Could not free the snapshot. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
+
+                    try
+                    {
+                        Process.GetProcessById(_pid).Kill();
+                    }
+                    catch (Win32Exception)
+                    {
+                    }
+                }
+
+                if (_process != IntPtr.Zero)
+                    CloseHandle(_process);
+
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~LiveDataReader()
+        {
+            Dispose(false);
+        }
+
         public uint ProcessId => (uint)_pid;
 
         public bool IsMinidump => false;
 
-        public void Close()
-        {
-            if (_originalPid != 0)
-            {
-                int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
-                if (hr != 0)
-                    throw new ClrDiagnosticsException($"Could not free the snapshot. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
 
-                try
-                {
-                    Process.GetProcessById(_pid).Kill();
-                }
-                catch (Win32Exception)
-                {
-                }
-            }
 
-            if (_process != IntPtr.Zero)
-                CloseHandle(_process);
-        }
-
-        public void Flush()
+        public void ClearCachedData()
         {
         }
 
-        public Architecture GetArchitecture()
-        {
-            if (IntPtr.Size == 4)
-                return Architecture.X86;
-
-            return Architecture.Amd64;
-        }
-
-        public uint GetPointerSize()
-        {
-            return (uint)IntPtr.Size;
-        }
+        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
+        
+        public int PointerSize => IntPtr.Size;
 
         public IList<ModuleInfo> EnumerateModules()
         {

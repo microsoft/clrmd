@@ -206,5 +206,12 @@ namespace Microsoft.Diagnostics.Runtime
                 return true;
             }
         }
+
+
+
+        internal void Dispose()
+        {
+            DacLibrary?.Dispose();
+        }
     }
 }

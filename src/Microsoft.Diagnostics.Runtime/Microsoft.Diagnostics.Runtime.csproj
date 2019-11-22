@@ -14,10 +14,10 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\eng\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
     <RepositoryUrl>https://github.com/Microsoft/clrmd</RepositoryUrl>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net472|AnyCPU'">
     <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net45|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net472|AnyCPU'">
     <DefineConstants>TRACE;NET45</DefineConstants>
     <DocumentationFile>Microsoft.Diagnostics.Runtime.xml</DocumentationFile>
   </PropertyGroup>

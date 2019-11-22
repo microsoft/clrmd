@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Revision++;
             _dacInterface.Flush();
-            _dataTarget.DataReader.Flush();
+            _dataTarget.DataReader.ClearCachedData();
 
             MemoryReader = null;
             _moduleList = null;

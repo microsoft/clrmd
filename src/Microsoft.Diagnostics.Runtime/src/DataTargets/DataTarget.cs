@@ -5,10 +5,13 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Desktop;
 using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 // TODO: remove this after code is cleaned up
@@ -20,169 +23,17 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A crash dump or live process to read out of.
     /// </summary>
-    public abstract class DataTarget : IDisposable
+    public sealed class DataTarget : IDisposable
     {
-        /// <summary>
-        /// A set of helper functions that are consistently implemented across all platforms.
-        /// </summary>
-        public static PlatformFunctions PlatformFunctions { get; }
-
-        static DataTarget()
-        {
-#if !NET45
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                PlatformFunctions = new LinuxFunctions();
-            else
-#endif
-            PlatformFunctions = new WindowsFunctions();
-        }
-
-        /// <summary>
-        /// Creates a DataTarget from a crash dump.
-        /// </summary>
-        /// <param name="fileName">The crash dump's filename.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget LoadCrashDump(string fileName)
-        {
-            DbgEngDataReader reader = new DbgEngDataReader(fileName);
-            return CreateFromReader(reader, reader.DebuggerInterface);
-        }
-
-        /// <summary>
-        /// Creates a DataTarget from a coredump.  Note that since we have to load a native library (libmscordaccore.so)
-        /// this must be run on a Linux machine.
-        /// </summary>
-        /// <param name="filename">The path to a core dump.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget LoadCoreDump(string filename)
-        {
-            CoreDumpReader reader = new CoreDumpReader(filename);
-            return CreateFromReader(reader, null);
-        }
-
-        /// <summary>
-        /// Create an instance of DataTarget from a user defined DataReader
-        /// </summary>
-        /// <param name="reader">A user defined DataReader.</param>
-        /// <returns>A new DataTarget instance.</returns>
-        public static DataTarget CreateFromDataReader(IDataReader reader)
-        {
-            return CreateFromReader(reader, null);
-        }
-
-        private static DataTarget CreateFromReader(IDataReader reader, IDebugClient client)
-        {
-#if _TRACING
-            reader = new TraceDataReader(reader);
-#endif
-            return new DataTargetImpl(reader, client);
-        }
-
-        /// <summary>
-        /// Creates a data target from an existing IDebugClient interface.  If you created and attached
-        /// a dbgeng based debugger to a process you may pass the IDebugClient RCW object to this function
-        /// to create the DataTarget.
-        /// </summary>
-        /// <param name="client">The dbgeng IDebugClient object.  We will query interface on this for IDebugClient.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget CreateFromDebuggerInterface(IDebugClient client)
-        {
-            DbgEngDataReader reader = new DbgEngDataReader(client);
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, reader.DebuggerInterface);
-
-            return dataTarget;
-        }
-
-        /// <summary>
-        /// Invasively attaches to a live process.
-        /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
-        /// <param name="msecTimeout">Timeout in milliseconds.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget AttachToProcess(int pid, uint msecTimeout)
-        {
-            return AttachToProcess(pid, msecTimeout, AttachFlag.Invasive);
-        }
-
-        /// <summary>
-        /// Attaches to a live process.
-        /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
-        /// <param name="msecTimeout">Timeout in milliseconds.</param>
-        /// <param name="attachFlag">The type of attach requested for the target process.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget AttachToProcess(int pid, uint msecTimeout, AttachFlag attachFlag)
-        {
-            IDebugClient client = null;
-            IDataReader reader;
-            if (attachFlag == AttachFlag.Passive)
-            {
-#if NET45
-                reader = new LiveDataReader(pid, false);
-#else
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    reader = new LiveDataReader(pid, false);
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    reader = new Linux.LinuxLiveDataReader((uint) pid);
-                }
-                else
-                {
-                    throw new NotSupportedException("Passive attach is not supported on OSX.s");
-                }
-#endif
-            }
-            else
-            {
-#if !NET45
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    throw new PlatformNotSupportedException("Currently only AttachFlag.Passive is supported for AttachToProcess");
-                }
-#endif
-
-                DbgEngDataReader dbgeng = new DbgEngDataReader(pid, attachFlag, msecTimeout);
-                reader = dbgeng;
-                client = dbgeng.DebuggerInterface;
-            }
-
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, client);
-#if !NET45
-            if (reader is Linux.LinuxLiveDataReader)
-            {
-                // TODO: discuss this design of 
-                // 1) add a method to IDataReader2 to return the list of module full path
-                // 2) make DefaultSymbolLocator use that list as hint to load binaries 
-                dataTarget.SymbolLocator = new Linux.LinuxDefaultSymbolLocator(((Linux.LinuxLiveDataReader) reader).GetModulesFullPath());
-            }
-#endif
-            return dataTarget;
-        }
-
-        /// <summary>
-        /// Attaches to a snapshot process (see https://msdn.microsoft.com/en-us/library/dn457825(v=vs.85).aspx).
-        /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget CreateSnapshotAndAttach(int pid)
-        {
-            IDataReader reader = new LiveDataReader(pid, true);
-            DataTargetImpl dataTarget = new DataTargetImpl(reader, null);
-            return dataTarget;
-        }
-
-        /// <summary>
-        /// Returns the ProcessId of the DataTarget.  May return uint.MaxValue if the underlying IDataReader does
-        /// not implement this functionality.
-        /// </summary>
-        public abstract uint ProcessId { get; }
+        private bool _disposed;
+        private ClrInfo[] _clrs;
+        private ModuleInfo[] _modules;
+        private readonly Dictionary<string, PEImage> _pefileCache = new Dictionary<string, PEImage>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// The data reader for this instance.
         /// </summary>
-        public abstract IDataReader DataReader { get; }
+        public IDataReader DataReader { get; }
 
         private SymbolLocator _symbolLocator;
         /// <summary>
@@ -200,160 +51,218 @@ namespace Microsoft.Diagnostics.Runtime
             set => _symbolLocator = value;
         }
 
-        private FileLoader _fileLoader;
-        internal FileLoader FileLoader
+        /// <summary>
+        /// Creates a DataTarget from the given reader.
+        /// </summary>
+        /// <param name="reader">The data reader to use.</param>
+        public DataTarget(IDataReader reader)
         {
-            get
-            {
-                if (_fileLoader == null)
-                    _fileLoader = new FileLoader();
+            DataReader = reader ?? throw new ArgumentNullException(nameof(reader));
 
-                return _fileLoader;
+            DebugOnlyLoadLazyValues();
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                foreach (PEImage img in _pefileCache.Values)
+                    img.Stream.Dispose();
+
+                _pefileCache.Clear();
+                _disposed = true;
             }
         }
 
-        /// <summary>
-        /// Returns true if the target process is a minidump, or otherwise might have limited memory.  If IsMinidump
-        /// returns true, a greater range of functions may fail to return data due to the data not being present in
-        /// the application/crash dump you are debugging.
-        /// </summary>
-        public abstract bool IsMinidump { get; }
+        internal PEImage LoadPEImage(string fileName)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataTarget));
 
-        /// <summary>
-        /// Returns the architecture of the target process or crash dump.
-        /// </summary>
-        public abstract Architecture Architecture { get; }
+            if (string.IsNullOrEmpty(fileName))
+                return null;
+
+            if (_pefileCache.TryGetValue(fileName, out PEImage result))
+                return result;
+
+            Stream stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            result = new PEImage(stream);
+
+            if (!result.IsValid)
+            {
+                stream.Dispose();
+                result = null;
+            }
+
+            _pefileCache[fileName] = result;
+            return result;
+        }
+
+        [Conditional("DEBUG")]
+        private void DebugOnlyLoadLazyValues()
+        {
+            // Prefetch these values in debug builds for easier debugging
+            GetOrCreateClrVersions();
+            EnumerateModules();
+        }
 
         /// <summary>
         /// Returns the list of Clr versions loaded into the process.
         /// </summary>
-        public abstract IList<ClrInfo> ClrVersions { get; }
+        public IReadOnlyList<ClrInfo> ClrVersions => GetOrCreateClrVersions();
 
-        /// <summary>
-        /// Returns the pointer size for the target process.
-        /// </summary>
-        public abstract uint PointerSize { get; }
+        private IReadOnlyList<ClrInfo> GetOrCreateClrVersions()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataTarget));
 
-        /// <summary>
-        /// Returns the IDebugClient interface associated with this datatarget.  (Will return null if the
-        /// user attached passively.)
-        /// </summary>
-        public abstract IDebugClient DebuggerInterface { get; }
+            if (_clrs != null)
+                return _clrs;
+
+            Architecture arch = DataReader.Architecture;
+            List<ClrInfo> versions = new List<ClrInfo>(2);
+            foreach (ModuleInfo module in EnumerateModules())
+            {
+                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var platform))
+                    continue;
+
+                string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
+                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
+
+                if (platform == Platform.Linux)
+                {
+                    if (File.Exists(dacLocation))
+                    {
+                        // Works around issue https://github.com/dotnet/coreclr/issues/20205
+                        int processId = Process.GetCurrentProcess().Id;
+                        string tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId);
+                        Directory.CreateDirectory(tempDirectory);
+
+                        string symlink = Path.Combine(tempDirectory, dacFileName);
+                        if (LinuxFunctions.symlink(dacLocation, symlink) == 0)
+                        {
+                            dacLocation = symlink;
+                        }
+                    }
+                    else
+                    {
+                        dacLocation = dacFileName;
+                    }
+                }
+                else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
+                {
+                    dacLocation = null;
+                }
+
+                VersionInfo version = module.Version;
+                string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
+                string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
+
+                DacInfo dacInfo = new DacInfo(DataReader, dacAgnosticName, arch)
+                {
+                    FileSize = module.FileSize,
+                    TimeStamp = module.TimeStamp,
+                    FileName = dacRegularName,
+                    Version = module.Version
+                };
+
+                versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
+            }
+
+            _clrs = versions.ToArray();
+            return _clrs;
+        }
+
 
         /// <summary>
         /// Enumerates information about the loaded modules in the process (both managed and unmanaged).
         /// </summary>
-        public abstract IEnumerable<ModuleInfo> EnumerateModules();
-
-        /// <summary>
-        /// IDisposable implementation.
-        /// </summary>
-        public abstract void Dispose();
-
-        protected internal abstract void AddDacLibrary(DacLibrary dacLibrary);
-
-        /// <summary>
-        /// Creates a runtime from the given Dac file on disk.
-        /// </summary>
-        internal ClrRuntime CreateRuntime(ClrInfo clrInfo)
+        public IEnumerable<ModuleInfo> EnumerateModules()
         {
-            if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataTarget));
 
-            string dac = clrInfo.LocalMatchingDac;
-            if (dac != null && !File.Exists(dac))
-                dac = null;
+            if (_modules != null)
+                return _modules;
 
-            if (dac == null)
-                dac = SymbolLocator.FindBinary(clrInfo.DacInfo);
-
-            if (!File.Exists(dac))
-                throw new FileNotFoundException("Could not find matching DAC for this runtime.", clrInfo.DacInfo.FileName);
-
-            if (IntPtr.Size != (int)DataReader.GetPointerSize())
-                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
-
-            return ConstructRuntime(clrInfo, dac);
+            char[] invalid = Path.GetInvalidPathChars();
+            _modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
+            Array.Sort(_modules, (a, b)=> a.ImageBase.CompareTo(b.ImageBase));
+            return _modules;
         }
 
+
+        #region Statics
         /// <summary>
-        /// Creates a runtime from a given IXClrDataProcess interface. Used for debugger plugins.
+        /// A set of helper functions that are consistently implemented across all platforms.
         /// </summary>
-        internal unsafe ClrRuntime CreateRuntime(ClrInfo clrInfo, object clrDataProcess)
+        public static PlatformFunctions PlatformFunctions { get; }
+
+        static DataTarget()
         {
-            if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
-            if (clrDataProcess == null) throw new ArgumentNullException(nameof(clrDataProcess));
-
-            DacLibrary lib = new DacLibrary(DacLibrary.TryGetDacPtr(clrDataProcess));
-
-            // Figure out what version we are on.
-            if (lib.GetSOSInterfaceNoAddRef() != null)
-                return new V45Runtime(clrInfo, this, lib);
-
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(V2HeapDetails));
-            try
-            {
-                int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, ReadOnlySpan<byte>.Empty, buffer);
-                if ((uint)val == 0x80070057)
-                    return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v4, 10000);
-
-                return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v2, 3054);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-        }
-
-        /// <summary>
-        /// Creates a runtime from the given Dac file on disk.
-        /// </summary>
-        /// <param name="clrInfo">CLR info</param>
-        /// <param name="dacFilename">A full path to the matching mscordacwks for this process.</param>
-        /// <param name="ignoreMismatch">Whether or not to ignore mismatches between </param>
-        /// <returns></returns>
-        internal ClrRuntime CreateRuntime(ClrInfo clrInfo, string dacFilename, bool ignoreMismatch = false)
-        {
-            if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
-            if (string.IsNullOrEmpty(dacFilename)) throw new ArgumentNullException(nameof(dacFilename));
-
-            if (!File.Exists(dacFilename))
-                throw new FileNotFoundException(dacFilename);
-
-            if (!ignoreMismatch)
-            {
-                PlatformFunctions.GetFileVersion(dacFilename, out int major, out int minor, out int revision, out int patch);
-                if (major != clrInfo.Version.Major || minor != clrInfo.Version.Minor || revision != clrInfo.Version.Revision || patch != clrInfo.Version.Patch)
-                    throw new InvalidOperationException($"Mismatched dac. Version: {major}.{minor}.{revision}.{patch}");
-            }
-
-            return ConstructRuntime(clrInfo, dacFilename);
-        }
-
-        private ClrRuntime ConstructRuntime(ClrInfo clrInfo, string dac)
-        {
-            if (IntPtr.Size != (int)DataReader.GetPointerSize())
-                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
-
-            if (IsMinidump)
-                SymbolLocator.PrefetchBinary(clrInfo.ModuleInfo.FileName, (int)clrInfo.ModuleInfo.TimeStamp, (int)clrInfo.ModuleInfo.FileSize);
-
-            DacLibrary lib = new DacLibrary(this, dac);
-
-            if (clrInfo.Flavor == ClrFlavor.Core)
-                return new V45Runtime(clrInfo, this, lib);
-
-            DesktopVersion ver;
-            if (clrInfo.Version.Major == 2)
-                ver = DesktopVersion.v2;
-            else if (clrInfo.Version.Major == 4 && clrInfo.Version.Minor == 0 && clrInfo.Version.Patch < 10000)
-                ver = DesktopVersion.v4;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                PlatformFunctions = new LinuxFunctions();
             else
+                PlatformFunctions = new WindowsFunctions();
+        }
+
+        /// <summary>
+        /// Creates a DataTarget from a crash dump.
+        /// </summary>
+        /// <param name="fileName">The crash dump's filename.</param>
+        /// <returns>A DataTarget instance.</returns>
+        public static DataTarget LoadCrashDump(string fileName) => new DataTarget(new DbgEngDataReader(fileName));
+
+        /// <summary>
+        /// Creates a DataTarget from a coredump.  Note that since we have to load a native library (libmscordaccore.so)
+        /// this must be run on a Linux machine.
+        /// </summary>
+        /// <param name="filename">The path to a core dump.</param>
+        /// <returns>A DataTarget instance.</returns>
+        public static DataTarget LoadCoreDump(string filename) => new DataTarget(new CoreDumpReader(filename));
+
+        /// <summary>
+        /// Passively attaches to a live process.  Note that this method assumes that you have alread suspended
+        /// the target process.  It is unsupported to inspect a running process.
+        /// </summary>
+        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <returns>A DataTarget instance.</returns>
+        public static DataTarget PassiveAttachToProcess(int pid)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                // Assume future versions will all work on the newest runtime version.
-                return new V45Runtime(clrInfo, this, lib);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader((uint)pid);
+                return new DataTarget(reader)
+                {
+                    SymbolLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+                };
             }
 
-            return new LegacyRuntime(clrInfo, this, lib, ver, clrInfo.Version.Patch);
+            return new DataTarget(new LiveDataReader(pid, createSnapshot: false));
         }
+
+        /// <summary>
+        /// Attaches to a live process.
+        /// </summary>
+        /// <param name="pid">The process ID of the process to suspend and attach to.</param>
+        /// <returns>A DataTarget instance.</returns>
+        public static DataTarget SuspendAndAttachToProcess(int pid)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                throw new NotImplementedException("Suspending a process is not yet implemented on Linux");
+
+            return new DataTarget(new DbgEngDataReader(pid, invasive: false, 5000));
+        }
+
+        /// <summary>
+        /// Attaches to a snapshot process (see https://msdn.microsoft.com/en-us/library/dn457825(v=vs.85).aspx).
+        /// </summary>
+        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <returns>A DataTarget instance.</returns>
+        public static DataTarget CreateSnapshotAndAttach(int pid)
+        {
+            return new DataTarget(new LiveDataReader(pid, createSnapshot: true));
+        }
+        #endregion
     }
 }

@@ -75,9 +75,9 @@ namespace Microsoft.Diagnostics.Runtime
             return pUnk;
         }
 
-        internal DacLibrary(IntPtr pUnk)
+        public DacLibrary(IntPtr pClrDataProcess)
         {
-            InternalDacPrivateInterface = new ClrDataProcess(this, pUnk);
+            InternalDacPrivateInterface = new ClrDataProcess(this, pClrDataProcess);
         }
 
         public DacLibrary(DataTarget dataTarget, string dacDll)
@@ -93,7 +93,6 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException("Failed to load dac: " + dacLibrary);
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
-            dataTarget.AddDacLibrary(this);
 
             IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
             if (initAddr == IntPtr.Zero)
