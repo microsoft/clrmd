@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Xunit;
 
@@ -16,6 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class TypeTests
     {
+        public static readonly string ModuleName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "types.exe" : "types.dll";
+
         [Fact]
         public void IntegerObjectClrType()
         {
@@ -23,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ClrStaticField field = runtime.GetModule("types.exe").GetTypeByName("Types").GetStaticFieldByName("s_i");
+            ClrStaticField field = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_i");
 
             ulong addr = (ulong)field.GetValue(runtime.AppDomains.Single());
             ClrType type = heap.GetObjectType(addr);
@@ -39,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains(addr, heap.EnumerateObjectAddresses());
         }
 
-        [Fact]
+        [FrameworkFact]
         public void ArrayComponentTypeTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -91,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
+        [FrameworkFact]
         public void TypeEqualityTest()
         {
             // This test ensures that only one ClrType is created when we have a type loaded into two different AppDomains with two different
@@ -117,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(types[0], typeFromModule);
         }
 
-        [Fact]
+        [WindowsFact]
         public void VariableRootTest()
         {
             // Test to make sure that a specific static and local variable exist.
@@ -133,8 +136,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrRoot staticRoot = fooRoots.Single(r => r.Kind == GCRootKind.StaticVar);
             Assert.Contains("s_foo", staticRoot.Name);
-
-            ClrRoot[] arr = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
 
             ClrRoot[] localVarRoots = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
 
@@ -157,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
         }
 
-        [Fact]
+        [FrameworkFact]
         public void EETypeTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -211,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
+        [FrameworkFact]
         public void GetObjectMethodTableTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -254,7 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
+        [FrameworkFact]
         public void EnumerateMethodTableTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -311,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrType fooType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
-            ulong obj = (ulong)runtime.GetModule("types.exe").GetTypeByName("Types").GetStaticFieldByName("s_foo").GetValue(runtime.AppDomains.Single());
+            ulong obj = (ulong)runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").GetValue(runtime.AppDomains.Single());
 
             Assert.Same(fooType, heap.GetObjectType(obj));
 
@@ -399,7 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrAppDomain domain = runtime.AppDomains.Single();
 
-            ClrModule typesModule = runtime.GetModule("types.exe");
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = heap.GetTypeByName("Types");
 
             ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
@@ -432,7 +433,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrAppDomain domain = runtime.AppDomains.Single();
 
-            ClrModule typesModule = runtime.GetModule("types.exe");
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = heap.GetTypeByName("Types");
 
             ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
@@ -450,7 +451,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrAppDomain domain = runtime.AppDomains.Single();
 
-            ClrModule typesModule = runtime.GetModule("types.exe");
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = heap.GetTypeByName("Types");
 
             ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);

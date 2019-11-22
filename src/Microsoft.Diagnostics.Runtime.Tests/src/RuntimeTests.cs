@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class RuntimeTests
     {
-        [Fact]
+        [WindowsFact]
         public void CreationSpecificDacNegativeTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(info, runtime.ClrInfo);
         }
 
-        [Fact]
+        [FrameworkFact]
         public void ModuleEnumerationTest()
         {
             // This test ensures that we enumerate all modules in the process exactly once.

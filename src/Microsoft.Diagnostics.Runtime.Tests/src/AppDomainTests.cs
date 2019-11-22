@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class AppDomainTests
     {
-        [Fact]
+        [FrameworkFact]
         public void ModuleDomainTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(domainList.Length, moduleDomains.Count);
         }
 
-        [Fact]
+        [FrameworkFact]
         public void AppDomainPropertyTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(2, NestedExceptionExe.Id);
         }
 
-        [Fact]
+        [FrameworkFact]
         public void SystemAndSharedLibraryModulesTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
+        [FrameworkFact]
         public void ModuleAppDomainEqualityTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();

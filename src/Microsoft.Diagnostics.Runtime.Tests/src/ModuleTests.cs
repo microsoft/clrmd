@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(shared.GetTypeByName("Foo"));
             Assert.Null(shared.GetTypeByName("Types"));
 
-            ClrModule types = runtime.GetModule("types.exe");
+            ClrModule types = runtime.GetModule(TypeTests.ModuleName);
             Assert.NotNull(types.GetTypeByName("Types"));
             Assert.Null(types.GetTypeByName("Foo"));
         }

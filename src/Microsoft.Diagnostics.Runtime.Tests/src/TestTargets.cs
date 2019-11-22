@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -24,15 +25,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public static class TestTargets
     {
-        private static readonly Lazy<TestTarget> _arrays = new Lazy<TestTarget>(() => new TestTarget("Arrays.cs"));
-        private static readonly Lazy<TestTarget> _clrObjects = new Lazy<TestTarget>(() => new TestTarget("ClrObjects.cs"));
-        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
-        private static readonly Lazy<TestTarget> _gcroot2 = new Lazy<TestTarget>(() => new TestTarget("GCRoot2.cs"));
-        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
-        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
-        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
-        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
-        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
+        private static readonly Lazy<TestTarget> _arrays = new Lazy<TestTarget>(() => new TestTarget("Arrays"));
+        private static readonly Lazy<TestTarget> _clrObjects = new Lazy<TestTarget>(() => new TestTarget("ClrObjects"));
+        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot"));
+        private static readonly Lazy<TestTarget> _gcroot2 = new Lazy<TestTarget>(() => new TestTarget("GCRoot2"));
+        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException"));
+        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles"));
+        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types"));
+        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains"));
+        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
@@ -68,21 +69,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
         }
 
-        public TestTarget(string source)
+        public TestTarget(string name)
         {
-            Source = Path.Combine(TestRoot, source);
+            Source = Path.Combine(TestRoot, name, name + ".cs");
             if (!File.Exists(Source))
-                throw new FileNotFoundException($"Could not find source file: {source}");
+                throw new FileNotFoundException($"Could not find source file: {name}.cs");
 
-            Executable = Path.Combine(Path.GetDirectoryName(Source), "bin", Architecture, Path.ChangeExtension(source, ".exe"));
+            Executable = Path.Combine(TestRoot, "bin", Architecture, name + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : null));
             Pdb = Path.ChangeExtension(Executable, ".pdb");
 
             if (!File.Exists(Executable) || !File.Exists(Pdb))
             {
-                string buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
-                throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: {buildTestAssets}");
+                string buildTestAssets = Path.Combine(TestRoot, "TestTargets.csproj");
+                throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: dotnet build {buildTestAssets}");
             }
         }
+
+        private static DataTarget LoadDump(string path) =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? DataTarget.LoadCrashDump(path)
+                : DataTarget.LoadCoreDump(path);
 
         private string BuildDumpName(GCMode gcmode, bool full)
         {
@@ -94,16 +100,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return filename;
         }
 
-        public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
-        {
-            string path = BuildDumpName(gc, false);
-            return DataTarget.LoadCrashDump(path);
-        }
+        public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
 
-        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
-        {
-            string path = BuildDumpName(gc, true);
-            return DataTarget.LoadCrashDump(path);
-        }
+        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, true));
     }
 }
