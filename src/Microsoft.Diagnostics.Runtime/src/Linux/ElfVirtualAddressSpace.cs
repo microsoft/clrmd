@@ -25,10 +25,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public long Length { get; }
 
-        public int Read(long position, byte[] buffer, int bufferOffset, int count)
+        public int Read(long position, Span<byte> buffer)
         {
             int bytesRead = 0;
-            while (bytesRead != count)
+            while (bytesRead != buffer.Length)
             {
                 int i = 0;
                 for (; i < _segments.Length; i++)
@@ -39,25 +39,26 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     long upperAddress = virtualAddress + virtualSize;
                     if (virtualAddress <= position && position < upperAddress)
                     {
-                        int bytesToReadRange = (int)Math.Min(count - bytesRead, upperAddress - position);
+                        int bytesToReadRange = (int)Math.Min(buffer.Length - bytesRead, upperAddress - position);
                         long segmentOffset = position - virtualAddress;
-                        int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, buffer, bufferOffset, bytesToReadRange);
-                        if (bytesReadRange == 0) {
+
+                        Span<byte> slice = buffer.Slice(bytesRead, bytesToReadRange);
+                        int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, slice);
+                        if (bytesReadRange == 0)
                             goto done;
-                        }
+
                         position += bytesReadRange;
-                        bufferOffset += bytesReadRange;
                         bytesRead += bytesReadRange;
                         break;
                     }
                 }
-                if (i == _segments.Length) {
+
+                if (i == _segments.Length)
                     break;
-                }
             }
+
         done:
-            // Zero the rest of the buffer if read less than requested
-            Array.Clear(buffer, bufferOffset, count - bytesRead);
+            buffer.Slice(bytesRead, bytesRead - buffer.Length).Clear();
             return bytesRead;
         }
     }

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -30,7 +31,6 @@ namespace Microsoft.Diagnostics.Runtime
         private uint _instance;
         private bool _disposed;
 
-        private readonly byte[] _ptrBuffer = new byte[IntPtr.Size];
         private List<ModuleInfo> _modules;
         private bool? _minidump;
 
@@ -205,34 +205,25 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = null;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
+            SetClientInstance();
             GetThreadIdBySystemId(threadID, out uint id);
-
             SetCurrentThreadId(id);
-            GetThreadContext(context, contextSize);
 
-            return true;
+            fixed (byte *ptr = context)
+                return _advanced.GetThreadContext(new IntPtr(ptr), context.Length) == 0;
         }
 
-        private void GetThreadContext(IntPtr context, uint contextSize)
+        internal int ReadVirtual(ulong address, Span<byte> buffer, out int bytesRead)
         {
             SetClientInstance();
-            _advanced.GetThreadContext(context, contextSize);
-        }
 
-        internal int ReadVirtual(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            SetClientInstance();
-            if (buffer == null)
-                throw new ArgumentNullException(nameof(buffer));
-
-            if (buffer.Length < bytesRequested)
-                bytesRequested = buffer.Length;
-
-            int res = _spaces.ReadVirtual(address, buffer, (uint)bytesRequested, out uint read);
-            bytesRead = (int)read;
-            return res;
+            fixed (byte* ptr = buffer)
+            {
+                int res = _spaces.ReadVirtual(address, new IntPtr(ptr), buffer.Length, out bytesRead);
+                return res;
+            }
         }
 
         private ulong[] GetImageBases()
@@ -385,32 +376,26 @@ namespace Microsoft.Diagnostics.Runtime
             return hr == 0;
         }
 
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            return ReadVirtual(address, buffer, bytesRequested, out bytesRead) >= 0;
-        }
-
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int read) => ReadVirtual(address, buffer, out read) >= 0;
+        
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            if (ReadVirtual(addr, _ptrBuffer, IntPtr.Size, out int read) != 0)
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (ReadVirtual(addr, buffer, out int _) != 0)
                 return 0;
 
-            fixed (byte* r = _ptrBuffer)
-            {
-                if (IntPtr.Size == 4)
-                    return *((uint*)r);
-
-                return *((ulong*)r);
-            }
+            fixed (byte *ptr = buffer)
+                return IntPtr.Size == 4 ? Unsafe.ReadUnaligned<uint>(ptr) : Unsafe.ReadUnaligned<ulong>(ptr);
         }
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            if (ReadVirtual(addr, _ptrBuffer, 4, out int read) != 0)
+            Span<byte> buffer = stackalloc byte[4];
+            if (ReadVirtual(addr, buffer, out int _) != 0)
                 return 0;
 
-            fixed (byte* r = _ptrBuffer)
-                return *((uint*)r);
+            fixed (byte* ptr = buffer)
+                return Unsafe.ReadUnaligned<uint>(ptr);
         }
 
         internal void SetSymbolPath(string path)
@@ -517,21 +502,6 @@ namespace Microsoft.Diagnostics.Runtime
             _systemObjects.SetCurrentThreadId(id);
         }
 
-        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
-        {
-            SetClientInstance();
-
-            bool res = _spacesPtr.ReadVirtual(address, buffer, (uint)bytesRequested, out uint read) >= 0;
-            bytesRead = res ? (int)read : 0;
-            return res;
-        }
-
-        public int ReadVirtual(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
-        {
-            SetClientInstance();
-            return _spaces.ReadVirtual(address, buffer, bytesRequested, out bytesRead);
-        }
-
         public IEnumerable<uint> EnumerateAllThreads()
         {
             SetClientInstance();
@@ -593,17 +563,6 @@ namespace Microsoft.Diagnostics.Runtime
             // and start releasing newly created IDebug objects.
             if (count == 0)
                 s_needRelease = true;
-        }
-
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
-        {
-            GetThreadIdBySystemId(threadID, out uint id);
-
-            SetCurrentThreadId(id);
-            fixed (byte* pContext = &context[0])
-                GetThreadContext(new IntPtr(pContext), contextSize);
-
-            return true;
         }
     }
 }

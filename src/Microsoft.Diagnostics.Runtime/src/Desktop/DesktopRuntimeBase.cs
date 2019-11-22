@@ -402,32 +402,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return DesktopMethod.Create(this, mdData);
         }
-
-        internal IEnumerable<IRWLockData> EnumerateLockData(ulong thread)
-        {
-            // add offset of the m_pHead (tagLockEntry) field
-            thread += GetRWLockDataOffset();
-            if (ReadPointer(thread, out ulong firstEntry))
-            {
-                ulong lockEntry = firstEntry;
-                byte[] output = GetByteArrayForStruct<RWLockData>();
-                do
-                {
-                    if (!ReadMemory(lockEntry, output, output.Length, out int read) || read != output.Length)
-                        break;
-
-                    IRWLockData result = ConvertStruct<IRWLockData, RWLockData>(output);
-                    if (result != null)
-                        yield return result;
-
-                    if (result.Next == lockEntry)
-                        break;
-
-                    lockEntry = result.Next;
-                } while (lockEntry != firstEntry);
-            }
-        }
-
+        
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0 || _dataReader.IsMinidump);

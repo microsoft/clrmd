@@ -767,7 +767,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Debug.Assert(IsArray);
 
-            if (!DesktopHeap.DesktopRuntime.ReadDword(objRef + (uint)DesktopHeap.DesktopRuntime.PointerSize, out uint res))
+            if (!DesktopHeap.DesktopRuntime.ReadPrimitive(objRef + (uint)DesktopHeap.DesktopRuntime.PointerSize, out uint res))
                 res = 0;
 
             return (int)res;

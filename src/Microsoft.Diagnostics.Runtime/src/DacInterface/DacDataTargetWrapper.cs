@@ -112,7 +112,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            if (_dataReader.ReadMemory(address, buffer, bytesRequested, out int read))
+            Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
+
+            if (_dataReader.ReadMemory(address, span, out int read))
             {
                 bytesRead = read;
                 return S_OK;
@@ -142,23 +144,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 {
                     Debug.Assert(peimage.IsValid);
                     int rva = checked((int)(address - info.ImageBase));
-                    bytesRead = peimage.Read(rva, new Span<byte>(buffer.ToPointer(), bytesRequested));
+                    bytesRead = peimage.Read(rva, span);
                     return S_OK;
                 }
             }
 
-            return E_FAIL;
-        }
-
-        public int ReadMemory(ulong address, byte[] buffer, uint bytesRequested, out uint bytesRead)
-        {
-            if (_dataReader.ReadMemory(address, buffer, (int)bytesRequested, out int read))
-            {
-                bytesRead = (uint)read;
-                return S_OK;
-            }
-
-            bytesRead = 0;
             return E_FAIL;
         }
 
@@ -208,9 +198,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context)
         {
-            if (_dataReader.GetThreadContext(threadID, contextFlags, contextSize, context))
+            Span<byte> span = new Span<byte>(context.ToPointer(), contextSize);
+            if (_dataReader.GetThreadContext(threadID, contextFlags, span))
                 return S_OK;
 
             return E_FAIL;
@@ -331,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             uint threadID,
             uint contextFlags,
-            uint contextSize,
+            int contextSize,
             IntPtr context);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

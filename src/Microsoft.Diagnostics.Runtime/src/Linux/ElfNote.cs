@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
@@ -33,15 +34,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
 
-        public byte[] ReadContents(long position, int length)
+        public int ReadContents(long position, Span<byte> buffer)
         {
             long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
-            return _reader.ReadBytes(position + contentsoffset, length);
+            return _reader.ReadBytes(position + contentsoffset, buffer);
         }
 
 
         public T ReadContents<T>(ref long position)
-            where T : struct
+            where T : unmanaged
         {
             long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
             long locationOrig = contentsOffset + position;
@@ -53,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         }
 
         public T ReadContents<T>(long position)
-            where T : struct
+            where T : unmanaged
         {
             long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
             long location = contentsOffset + position;

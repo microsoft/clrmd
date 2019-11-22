@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -16,7 +17,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int c_maxStackDepth = 1024 * 1024 * 1024; // 1gb
 
-        private static readonly ulong[] s_emptyPointerArray = new ulong[0];
         protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
         protected IDataReader _dataReader;
@@ -421,85 +421,35 @@ namespace Microsoft.Diagnostics.Runtime
             return offset + sizeof(ulong);
         }
 
-        public override bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead) => _dataReader.ReadMemory(address, buffer, out bytesRead);
+
+
+        public unsafe bool ReadPrimitive<T>(ulong addr, out T value) where T: unmanaged
         {
-            return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
+            {
+                fixed (byte* ptr = buffer)
+                    value = Unsafe.ReadUnaligned<T>(ptr);
+
+                return true;
+            }
+
+            value = default;
+            return false;
         }
 
-        private readonly byte[] _dataBuffer = new byte[8];
-
-        public bool ReadByte(ulong addr, out byte value)
+        public override bool ReadPointer(ulong addr, out ulong value)
         {
-            // todo: There's probably a more efficient way to implement this if ReadVirtual accepted an "out byte"
-            //       "out dword", "out long", etc.
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
-                return false;
-
-            Debug.Assert(read == 1);
-
-            value = _dataBuffer[0];
-            return true;
-        }
-
-        public bool ReadByte(ulong addr, out sbyte value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
-                return false;
-
-            Debug.Assert(read == 1);
-
-            value = (sbyte)_dataBuffer[0];
-            return true;
-        }
-
-        public bool ReadDword(ulong addr, out int value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(int), out int read))
-                return false;
-
-            Debug.Assert(read == 4);
-
-            value = BitConverter.ToInt32(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadDword(ulong addr, out uint value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(uint), out int read))
-                return false;
-
-            Debug.Assert(read == 4);
-
-            value = BitConverter.ToUInt32(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadFloat(ulong addr, out float value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(float));
-
-            value = BitConverter.ToSingle(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadFloat(ulong addr, out double value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(double), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(double));
-
-            value = BitConverter.ToDouble(_dataBuffer, 0);
-            return true;
+            return false;
         }
 
         public bool ReadString(ulong addr, out string value)
@@ -508,101 +458,14 @@ namespace Microsoft.Diagnostics.Runtime
             return value != null;
         }
 
-        public bool ReadShort(ulong addr, out short value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(short), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(short));
-
-            value = BitConverter.ToInt16(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadShort(ulong addr, out ushort value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ushort), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(ushort));
-
-            value = BitConverter.ToUInt16(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadQword(ulong addr, out ulong value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ulong), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(ulong));
-
-            value = BitConverter.ToUInt64(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadQword(ulong addr, out long value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(long), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(long));
-
-            value = BitConverter.ToInt64(_dataBuffer, 0);
-            return true;
-        }
-
-        public override bool ReadPointer(ulong addr, out ulong value)
-        {
-            int ptrSize = PointerSize;
-            if (!ReadMemory(addr, _dataBuffer, ptrSize, out int read))
-            {
-                value = 0xcccccccc;
-                return false;
-            }
-
-            Debug.Assert(read == ptrSize);
-
-            if (ptrSize == 4)
-                value = BitConverter.ToUInt32(_dataBuffer, 0);
-            else
-                value = BitConverter.ToUInt64(_dataBuffer, 0);
-
-            return true;
-        }
 
         internal IEnumerable<ulong> GetPointersInRange(ulong start, ulong stop)
         {
             // Possible we have empty list, or inconsistent data.
             if (start >= stop)
-                return s_emptyPointerArray;
+                yield break;
 
-            // Enumerate individually if we have too many.
-            ulong count = (stop - start) / (ulong)IntPtr.Size;
-            if (count > 4096)
-                return EnumeratePointersInRange(start, stop);
-
-            ulong[] array = new ulong[count];
-            byte[] tmp = new byte[(int)count * IntPtr.Size];
-            if (!ReadMemory(start, tmp, tmp.Length, out _))
-                return s_emptyPointerArray;
-
-            if (IntPtr.Size == 4)
-                for (uint i = 0; i < array.Length; ++i)
-                    array[i] = BitConverter.ToUInt32(tmp, (int)(i * IntPtr.Size));
-            else
-                for (uint i = 0; i < array.Length; ++i)
-                    array[i] = BitConverter.ToUInt64(tmp, (int)(i * IntPtr.Size));
-
-            return array;
-        }
-
-        private IEnumerable<ulong> EnumeratePointersInRange(ulong start, ulong stop)
-        {
+            // TODO: rewrite
             for (ulong ptr = start; ptr < stop; ptr += (uint)IntPtr.Size)
             {
                 if (!ReadPointer(ptr, out ulong obj))

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -155,12 +156,15 @@ namespace Microsoft.Diagnostics.Runtime
                 version = new VersionInfo();
         }
 
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
         {
             try
             {
-                int res = ReadProcessMemory(_process, address.AsIntPtr(), buffer, bytesRequested, out bytesRead);
-                return res != 0;
+                fixed (byte* ptr = buffer)
+                {
+                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out bytesRead);
+                    return res != 0;
+                }
             }
             catch
             {
@@ -168,44 +172,25 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
             }
         }
-
-        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
-        {
-            try
-            {
-                int res = ReadProcessMemory(_process, address.AsIntPtr(), buffer, bytesRequested, out bytesRead);
-                return res != 0;
-            }
-            catch
-            {
-                bytesRead = 0;
-                return false;
-            }
-        }
-
-        private readonly byte[] _ptrBuffer = new byte[IntPtr.Size];
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            if (!ReadMemory(addr, _ptrBuffer, IntPtr.Size, out int read))
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+
+            if (!ReadMemory(addr, buffer, out int read))
                 return 0;
 
-            fixed (byte* r = _ptrBuffer)
-            {
-                if (IntPtr.Size == 4)
-                    return *((uint*)r);
-
-                return *((ulong*)r);
-            }
+            return buffer.AsPointer();
         }
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            if (!ReadMemory(addr, _ptrBuffer, 4, out int read))
+            Span<byte> buffer = stackalloc byte[4];
+
+            if (!ReadMemory(addr, buffer, out int read))
                 return 0;
 
-            fixed (byte* r = _ptrBuffer)
-                return *((uint*)r);
+            return buffer.AsUInt32();
         }
 
         public ulong GetThreadTeb(uint thread)
@@ -237,42 +222,31 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
             if (thread.IsInvalid)
                 return false;
 
-            return GetThreadContext(thread.DangerousGetHandle(), context);
-        }
-
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
-        {
-            using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
-            if (thread.IsInvalid)
-                return false;
-
-            fixed (byte* b = context)
-            {
-                bool res = GetThreadContext(thread.DangerousGetHandle(), new IntPtr(b));
-                return res;
-            }
+            fixed (byte *ptr = context)
+                return GetThreadContext(thread.DangerousGetHandle(), new IntPtr(ptr));
         }
 
         private void GetFileProperties(ulong moduleBase, out uint filesize, out uint timestamp)
         {
             filesize = 0;
             timestamp = 0;
-            byte[] buffer = new byte[4];
 
-            if (ReadMemory(moduleBase + 0x3c, buffer, buffer.Length, out int read) && read == buffer.Length)
+            Span<byte> buffer = stackalloc byte[4];
+
+            if (ReadMemory(moduleBase + 0x3c, buffer, out int read) && read == buffer.Length)
             {
-                uint sigOffset = (uint)BitConverter.ToInt32(buffer, 0);
+                uint sigOffset = buffer.AsUInt32();
                 int sigLength = 4;
 
-                if (ReadMemory(moduleBase + sigOffset, buffer, buffer.Length, out read) && read == buffer.Length)
+                if (ReadMemory(moduleBase + sigOffset, buffer, out read) && read == buffer.Length)
                 {
-                    uint header = (uint)BitConverter.ToInt32(buffer, 0);
+                    uint header = buffer.AsUInt32();
 
                     // Ensure the module contains the magic "PE" value at the offset it says it does.  This check should
                     // never fail unless we have the wrong base address for CLR.
@@ -281,11 +255,11 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         const int timeDataOffset = 4;
                         const int imageSizeOffset = 0x4c;
-                        if (ReadMemory(moduleBase + sigOffset + (ulong)sigLength + timeDataOffset, buffer, buffer.Length, out read) && read == buffer.Length)
-                            timestamp = (uint)BitConverter.ToInt32(buffer, 0);
+                        if (ReadMemory(moduleBase + sigOffset + (ulong)sigLength + timeDataOffset, buffer, out read) && read == buffer.Length)
+                            timestamp = buffer.AsUInt32();
 
-                        if (ReadMemory(moduleBase + sigOffset + (ulong)sigLength + imageSizeOffset, buffer, buffer.Length, out read) && read == buffer.Length)
-                            filesize = (uint)BitConverter.ToInt32(buffer, 0);
+                        if (ReadMemory(moduleBase + sigOffset + (ulong)sigLength + imageSizeOffset, buffer, out read) && read == buffer.Length)
+                            filesize = buffer.AsUInt32();
                     }
                 }
             }
@@ -308,8 +282,8 @@ namespace Microsoft.Diagnostics.Runtime
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
-            byte[] lpBuffer,
+            [Out]
+            byte* lpBuffer,
             int dwSize,
             out int lpNumberOfBytesRead);
 

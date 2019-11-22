@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -12,8 +13,6 @@ namespace Microsoft.Diagnostics.Runtime
         protected ulong _currPageStart;
         protected int _currPageSize;
         protected byte[] _data;
-        private readonly byte[] _ptr;
-        private readonly byte[] _dword;
         protected IDataReader _dataReader;
         protected int _cacheSize;
 
@@ -21,12 +20,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             _data = new byte[cacheSize];
             _dataReader = dataReader;
-            uint sz = _dataReader.GetPointerSize();
-            if (sz != 4 && sz != 8)
-                throw new InvalidOperationException("DataReader reported an invalid pointer size.");
-
-            _ptr = new byte[sz];
-            _dword = new byte[4];
             _cacheSize = cacheSize;
         }
 
@@ -69,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong offset = addr - _currPageStart;
                 fixed (byte* b = &_data[offset])
-                    if (_ptr.Length == 4)
+                    if (IntPtr.Size == 4)
                         value = *((uint*)b);
                     else
                         value = *((ulong*)b);
@@ -123,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
             // However, the amount of data requested may fall off of the page.  In that case,
             // fall back to MisalignedRead.
             ulong offset = addr - _currPageStart;
-            if (offset + (uint)_ptr.Length > (uint)_currPageSize)
+            if (offset + (uint)IntPtr.Size > (uint)_currPageSize)
             {
                 if (!MoveToPage(addr))
                     return MisalignedRead(addr, out value);
@@ -134,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime
             // If we reach here we know we are on the right page of memory in the cache, and
             // that the read won't fall off of the end of the page.
             fixed (byte* b = &_data[offset])
-                if (_ptr.Length == 4)
+                if (IntPtr.Size == 4)
                     value = *((uint*)b);
                 else
                     value = *((ulong*)b);
@@ -155,26 +148,36 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool MisalignedRead(ulong addr, out ulong value)
         {
-            bool res = _dataReader.ReadMemory(addr, _ptr, _ptr.Length, out int size);
-            fixed (byte* b = _ptr)
-                if (_ptr.Length == 4)
-                    value = *((uint*)b);
+            Span<byte> span = stackalloc byte[IntPtr.Size];
+            bool res = _dataReader.ReadMemory(addr, span, out int size);
+
+            fixed (byte* b = span)
+                if (IntPtr.Size == 4)
+                    value = *(uint*)b;
                 else
-                    value = *((ulong*)b);
+                    value = *(ulong*)b;
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out uint value)
         {
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out _);
-            value = BitConverter.ToUInt32(_dword, 0);
+            Span<byte> span = stackalloc byte[4];
+            bool res = _dataReader.ReadMemory(addr, span, out _);
+            
+            fixed (byte *ptr = span)
+                value = Unsafe.ReadUnaligned<uint>(ptr);
+
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out int value)
         {
-            bool res = _dataReader.ReadMemory(addr, _dword, _dword.Length, out _);
-            value = BitConverter.ToInt32(_dword, 0);
+            Span<byte> span = stackalloc byte[4];
+            bool res = _dataReader.ReadMemory(addr, span, out _);
+
+            fixed (byte* ptr = span)
+                value = Unsafe.ReadUnaligned<int>(ptr);
+
             return res;
         }
 
@@ -186,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected virtual bool ReadMemory(ulong addr)
         {
             _currPageStart = addr;
-            bool res = _dataReader.ReadMemory(_currPageStart, _data, _cacheSize, out _currPageSize);
+            bool res = _dataReader.ReadMemory(_currPageStart, new Span<byte>(_data, 0, _cacheSize), out _currPageSize);
 
             if (!res)
             {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
@@ -37,35 +38,38 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ulong FS;
         public ulong GS;
 
-        public unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context)
+        public unsafe bool CopyContext(uint contextFlags, Span<byte> buffer)
         {
-            if (contextSize < AMD64Context.Size)
+            if (buffer.Length < AMD64Context.Size)
                 return false;
 
-            AMD64Context* ctx = (AMD64Context*)context;
-            ctx->ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
-            ctx->R15 = R15;
-            ctx->R14 = R14;
-            ctx->R13 = R13;
-            ctx->R12 = R12;
-            ctx->Rbp = Rbp;
-            ctx->Rbx = Rbx;
-            ctx->R11 = R11;
-            ctx->R10 = R10;
-            ctx->R9 = R9;
-            ctx->R8 = R8;
-            ctx->Rax = Rax;
-            ctx->Rcx = Rcx;
-            ctx->Rdx = Rdx;
-            ctx->Rsi = Rsi;
-            ctx->Rdi = Rdi;
-            ctx->Rip = Rip;
-            ctx->Rsp = Rsp;
-            ctx->Cs = (ushort)CS;
-            ctx->Ds = (ushort)DS;
-            ctx->Ss = (ushort)SS;
-            ctx->Fs = (ushort)FS;
-            ctx->Gs = (ushort)GS;
+            fixed (byte* context = buffer)
+            {
+                AMD64Context* ctx = (AMD64Context*)context;
+                ctx->ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
+                ctx->R15 = R15;
+                ctx->R14 = R14;
+                ctx->R13 = R13;
+                ctx->R12 = R12;
+                ctx->Rbp = Rbp;
+                ctx->Rbx = Rbx;
+                ctx->R11 = R11;
+                ctx->R10 = R10;
+                ctx->R9 = R9;
+                ctx->R8 = R8;
+                ctx->Rax = Rax;
+                ctx->Rcx = Rcx;
+                ctx->Rdx = Rdx;
+                ctx->Rsi = Rsi;
+                ctx->Rdi = Rdi;
+                ctx->Rip = Rip;
+                ctx->Rsp = Rsp;
+                ctx->Cs = (ushort)CS;
+                ctx->Ds = (ushort)DS;
+                ctx->Ss = (ushort)SS;
+                ctx->Fs = (ushort)FS;
+                ctx->Gs = (ushort)GS;
+            }
 
             return true;
         }

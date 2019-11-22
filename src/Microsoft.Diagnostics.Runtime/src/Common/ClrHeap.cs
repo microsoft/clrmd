@@ -328,13 +328,6 @@ namespace Microsoft.Diagnostics.Runtime
             return $"ClrHeap {sizeMb}mb {segCount} segments";
         }
 
-        /// <summary>
-        /// Read 'count' bytes from the ClrHeap at 'address' placing it in 'buffer' starting at offset 'offset'
-        /// </summary>
-        public virtual int ReadMemory(ulong address, byte[] buffer, int offset, int count)
-        {
-            return 0;
-        }
 
         /// <summary>
         /// Attempts to efficiently read a pointer from memory.  This acts exactly like ClrRuntime.ReadPointer, but

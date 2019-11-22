@@ -64,12 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return _versions;
             }
         }
-
-        public override bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
-        }
-
+        
         public override IDebugClient DebuggerInterface { get; }
 
         public override IEnumerable<ModuleInfo> EnumerateModules()

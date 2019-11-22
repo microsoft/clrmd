@@ -55,17 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="bytesRequested">The number of bytes to read.</param>
         /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
         /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
-        bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead);
-
-        /// <summary>
-        /// Read memory out of the target process.
-        /// </summary>
-        /// <param name="address">The address of memory to read.</param>
-        /// <param name="buffer">The buffer to write to.</param>
-        /// <param name="bytesRequested">The number of bytes to read.</param>
-        /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
-        /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
-        bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead);
+        bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead);
 
         /// <summary>
         /// Returns true if the data target is a minidump (or otherwise may not contain full heap data).
@@ -99,18 +89,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="threadID">The OS thread ID to read the context from.</param>
         /// <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
-        /// <param name="contextSize">The size (in bytes) of the context parameter.</param>
-        /// <param name="context">A pointer to the buffer to write to.</param>
-        bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context);
+        /// <param name="context">A span to write the context to.</param>
+        bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context);
 
-        /// <summary>
-        /// Gets the thread context for the given thread.
-        /// </summary>
-        /// <param name="threadID">The OS thread ID to read the context from.</param>
-        /// <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
-        /// <param name="contextSize">The size (in bytes) of the context parameter.</param>
-        /// <param name="context">A pointer to the buffer to write to.</param>
-        bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context);
 
         /// <summary>
         /// Read a pointer out of the target process.

@@ -6,8 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -29,8 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private FileStream _memoryStream;
         private bool _initializedMemFile;
         private readonly List<uint> _threadIDs = new List<uint>();
-        private readonly byte[] _ptrBuffer = new byte[IntPtr.Size];
-        private readonly byte[] _dwordBuffer = new byte[4];
 
         public LinuxLiveDataReader(uint processId)
         {
@@ -102,36 +100,23 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             version = new VersionInfo();
         }
 
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public bool ReadMemory(ulong address, Span<byte> span, out int bytesRead)
         {
             this.OpenMemFile();
             if (_memoryStream != null)
             {
-                return ReadMemoryProcMem(address, buffer, bytesRequested, out bytesRead);
+                return ReadMemoryProcMem(address, span, out bytesRead);
             }
             else
             {
-                return ReadMemoryReadv(address, buffer, bytesRequested, out bytesRead);
+                return ReadMemoryReadv(address, span, out bytesRead);
             }
         }
 
-        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
-        {
-            this.OpenMemFile();
-            if (_memoryStream != null)
-            {
-                return ReadMemoryProcMem(address, buffer, bytesRequested, out bytesRead);
-            }
-            else
-            {
-                return ReadMemoryReadv(address, buffer, bytesRequested, out bytesRead);
-            }
-        }
-
-        private bool ReadMemoryProcMem(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        private bool ReadMemoryProcMem(ulong address, Span<byte> span, out int bytesRead)
         {
             bytesRead = 0;
-            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
+            int readableBytesCount = this.GetReadableBytesCount(address, span.Length);
             if (readableBytesCount <= 0)
             {
                 return false;
@@ -139,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             try
             {
                 _memoryStream.Seek((long)address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(buffer, 0, readableBytesCount);
+                bytesRead = _memoryStream.Read(span);
                 return bytesRead > 0;
             }
             catch (Exception)
@@ -148,78 +133,49 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private bool ReadMemoryProcMem(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        private unsafe bool ReadMemoryReadv(ulong address, Span<byte> buffer, out int bytesRead)
         {
             bytesRead = 0;
-            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
+            int readableBytesCount = this.GetReadableBytesCount(address, buffer.Length);
             if (readableBytesCount <= 0)
             {
                 return false;
             }
-            try
+
+            fixed (byte* ptr = buffer)
             {
-                byte[] bytes = new byte[readableBytesCount];
-                _memoryStream.Seek((long)address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(bytes, 0, readableBytesCount);
-                if (bytesRead > 0)
+                var local = new iovec
                 {
-                    Marshal.Copy(bytes, 0, buffer, bytesRead);
-                }
-                return bytesRead > 0;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        private unsafe bool ReadMemoryReadv(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            fixed (void* p = buffer)
-            {
-                return ReadMemoryReadv(address, (IntPtr)p, bytesRequested, out bytesRead);
-            }
-        }
-
-        private unsafe bool ReadMemoryReadv(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
-        {
-            bytesRead = 0;
-            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
-            if (readableBytesCount <= 0)
-            {
-                return false;
+                    iov_base = ptr,
+                    iov_len = (IntPtr)readableBytesCount
+                };
+                var remote = new iovec
+                {
+                    iov_base = (void*)address,
+                    iov_len = (IntPtr)readableBytesCount
+                };
+                bytesRead = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
             }
 
-            var local = new iovec
-            {
-                iov_base = (void*)buffer,
-                iov_len = (IntPtr)readableBytesCount
-            };
-            var remote = new iovec
-            {
-                iov_base = (void*)address,
-                iov_len = (IntPtr)readableBytesCount
-            };
-            bytesRead = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
             return bytesRead > 0;
         }
 
-        public ulong ReadPointerUnsafe(ulong address)
+        public unsafe ulong ReadPointerUnsafe(ulong address)
         {
-            if (!ReadMemory(address, _ptrBuffer, IntPtr.Size, out int _))
-            {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out int _))
                 return 0;
-            }
-            return IntPtr.Size == 4 ? BitConverter.ToUInt32(_ptrBuffer, 0) : BitConverter.ToUInt64(_ptrBuffer, 0);
+
+            return buffer.AsPointer();
         }
 
-        public uint ReadDwordUnsafe(ulong address)
+        public unsafe uint ReadDwordUnsafe(ulong address)
         {
-            if (!ReadMemory(address, _dwordBuffer, 4, out int _))
-            {
+            Span<byte> buffer = stackalloc byte[4];
+            if (!ReadMemory(address, buffer, out int _))
                 return 0;
-            }
-            return BitConverter.ToUInt32(_dwordBuffer, 0);
+
+            return buffer.AsUInt32();
         }
 
         public ulong GetThreadTeb(uint thread)
@@ -248,25 +204,27 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return false;
         }
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             this.LoadThreads();
-            if (!_threadIDs.Contains(threadID) || contextSize != AMD64Context.Size)
-            {
+            if (!_threadIDs.Contains(threadID) || context.Length != AMD64Context.Size)
                 return false;
-            }
-            AMD64Context* ctx = (AMD64Context*)context.ToPointer();
-            ctx->ContextFlags = contextFlags;
-            IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
-            try
+
+            fixed (byte* ctxPtr = context)
             {
-                ptrace(PTRACE_GETREGS, (int) threadID, IntPtr.Zero, ptr);
-                RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
-                CopyContext(ctx, ref r);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(ptr);
+                AMD64Context* ctx = (AMD64Context*)ctxPtr;
+                ctx->ContextFlags = contextFlags;
+                IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
+                try
+                {
+                    ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, ptr);
+                    RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
+                    CopyContext(ctx, ref r);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(ptr);
+                }
             }
             return true;
         }

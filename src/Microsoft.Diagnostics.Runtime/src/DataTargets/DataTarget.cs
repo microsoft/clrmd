@@ -230,22 +230,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract uint PointerSize { get; }
 
         /// <summary>
-        /// Reads memory from the target.
-        /// </summary>
-        /// <param name="address">The address to read from.</param>
-        /// <param name="buffer">
-        /// The buffer to store the data in.  Size must be greator or equal to
-        /// bytesRequested.
-        /// </param>
-        /// <param name="bytesRequested">The amount of bytes to read from the target process.</param>
-        /// <param name="bytesRead">The actual number of bytes read.</param>
-        /// <returns>
-        /// True if any bytes were read out of the process (including a partial read).  False
-        /// if no bytes could be read from the address.
-        /// </returns>
-        public abstract bool ReadProcessMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead);
-
-        /// <summary>
         /// Returns the IDebugClient interface associated with this datatarget.  (Will return null if the
         /// user attached passively.)
         /// </summary>

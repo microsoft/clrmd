@@ -21,7 +21,6 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly Architecture _architecture;
         private Dictionary<uint, IElfPRStatus> _threads;
         private List<ModuleInfo> _modules;
-        private readonly byte[] _buffer = new byte[512];
 
         public CoreDumpReader(string filename)
         {
@@ -137,29 +136,12 @@ namespace Microsoft.Diagnostics.Runtime
             return (uint)_pointerSize;
         }
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             InitThreads();
 
             if (_threads.TryGetValue(threadID, out IElfPRStatus status))
-            {
-                return status.CopyContext(contextFlags, contextSize, context.ToPointer());
-            }
-
-            return false;
-        }
-
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
-        {
-            InitThreads();
-
-            if (_threads.TryGetValue(threadID, out IElfPRStatus status))
-            {
-                fixed (byte* ptr = context)
-                {
-                    return status.CopyContext(contextFlags, contextSize, ptr);
-                }
-            }
+                return status.CopyContext(contextFlags, context);
 
             return false;
         }
@@ -178,43 +160,27 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ReadDwordUnsafe(ulong addr)
         {
-            int read = _core.ReadMemory((long)addr, _buffer, 4);
+            Span<byte> buffer = stackalloc byte[4];
+
+            int read = _core.ReadMemory((long)addr, buffer);
             if (read == 4)
-                return BitConverter.ToUInt32(_buffer, 0);
+                return buffer.AsUInt32();
 
             return 0;
         }
 
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
         {
-            bytesRead = _core.ReadMemory((long)address, buffer, bytesRequested);
+            bytesRead = _core.ReadMemory((long)address, buffer);
             return bytesRead > 0;
-        }
-
-        public bool ReadMemory(ulong address, IntPtr ptr, int bytesRequested, out int bytesRead)
-        {
-            byte[] buffer = _buffer;
-            if (bytesRequested > buffer.Length)
-                buffer = new byte[bytesRequested];
-
-            bool result = ReadMemory(address, buffer, bytesRequested, out bytesRead);
-            if (result)
-                Marshal.Copy(buffer, 0, ptr, bytesRead);
-
-            return result;
         }
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            int read = _core.ReadMemory((long)addr, _buffer, _pointerSize);
-            if (read == _pointerSize)
-            {
-                if (_pointerSize == 8)
-                    return BitConverter.ToUInt64(_buffer, 0);
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
 
-                if (_pointerSize == 4)
-                    return BitConverter.ToUInt32(_buffer, 0);
-            }
+            if (_core.ReadMemory((long)addr, buffer) == IntPtr.Size)
+                return buffer.AsPointer();
 
             return 0;
         }

@@ -120,22 +120,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             mt = 0;
             cmt = 0;
 
-            byte[] data = new byte[IntPtr.Size * 3]; // TODO assumes bitness same as dump
-            if (!_runtime.ReadMemory(obj, data, data.Length, out int read) || read != data.Length)
+            Span<byte> data = stackalloc byte[IntPtr.Size * 3];
+            if (!_runtime.ReadMemory(obj, data, out int read) || read != data.Length)
                 return false;
 
-            if (IntPtr.Size == 4)
-                mt = BitConverter.ToUInt32(data, 0);
-            else
-                mt = BitConverter.ToUInt64(data, 0);
-
+            mt = data.AsPointer(0);
             if (mt == _runtime.ArrayMethodTable)
-            {
-                if (IntPtr.Size == 4)
-                    cmt = BitConverter.ToUInt32(data, 2 * IntPtr.Size);
-                else
-                    cmt = BitConverter.ToUInt64(data, 2 * IntPtr.Size);
-            }
+                cmt = data.AsPointer(2);
 
             return true;
         }

@@ -96,18 +96,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The CcwData describing the given CCW, or null.</returns>
         public abstract CcwData GetCcwDataByAddress(ulong addr);
 
-        /// <summary>
-        /// Read data out of the target process.
-        /// </summary>
-        /// <param name="address">The address to start the read from.</param>
-        /// <param name="buffer">The buffer to write memory to.</param>
-        /// <param name="bytesRequested">How many bytes to read (must be less than/equal to buffer.Length)</param>
-        /// <param name="bytesRead">
-        /// The number of bytes actually read out of the process.  This will be less than
-        /// bytes requested if the request falls off the end of an allocation.
-        /// </param>
-        /// <returns>False if the memory is not readable (free or no read permission), true if *some* memory was read.</returns>
-        public abstract bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead);
 
         /// <summary>
         /// Reads a pointer value out of the target process.  This function reads only the target's pointer size,
