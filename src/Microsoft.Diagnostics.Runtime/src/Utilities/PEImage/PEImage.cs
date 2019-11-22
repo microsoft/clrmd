@@ -1,10 +1,11 @@
 ﻿using Microsoft.Diagnostics.Runtime.Interop;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -63,20 +64,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _virt = isVirtual;
             Stream = stream;
 
-            ushort? dosHeaderMagic = TryRead<ushort>(0);
+            ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
             {
                 IsValid = false;
             }
             else
             {
-                _peHeaderOffset = TryRead<int>(PESignatureOffsetLocation) ?? 0;
-                uint? peSignature = null;
+                _peHeaderOffset = Read<int>(PESignatureOffsetLocation);
 
+                uint peSignature = 0;
                 if (_peHeaderOffset != 0)
-                    peSignature = TryRead<uint>(_peHeaderOffset);
+                    peSignature = Read<uint>(_peHeaderOffset);
 
-                IsValid = peSignature.HasValue && peSignature.Value == ExpectedPESignature;
+                IsValid = peSignature == ExpectedPESignature;
             }
 
             _imageFileHeader = new Lazy<ImageFileHeader>(ReadImageFileHeader);
@@ -181,42 +182,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Reads data out of PE image into a native buffer.
         /// </summary>
-        /// <param name="dest">The location to write the data.</param>
         /// <param name="virtualAddress">The address to read from.</param>
+        /// <param name="dest">The location to write the data.</param>
         /// <param name="bytesRequested">The number of bytes to read.</param>
         /// <returns>The number of bytes actually read from the image and written to dest.</returns>
-        public int Read(IntPtr dest, int virtualAddress, int bytesRequested)
-        {
-            byte[] buffer = GetBuffer(bytesRequested);
-
-            int offset = RvaToOffset(virtualAddress);
-            if (offset == -1)
-                return 0;
-
-            SeekTo(offset);
-            int read = Stream.Read(buffer, 0, bytesRequested);
-            if (read > 0)
-                Marshal.Copy(buffer, 0, dest, read);
-
-            return read;
-        }
-
-        /// <summary>
-        /// Reads data out of PE image into a byte array.
-        /// </summary>
-        /// <param name="dest">The location to write the data.</param>
-        /// <param name="virtualAddress">The address to read from.</param>
-        /// <param name="bytesRequested">The number of bytes to read.</param>
-        /// <returns>The number of bytes actually read from the image and written to dest.</returns>
-        public int Read(byte[] dest, int virtualAddress, int bytesRequested)
+        public int Read(int virtualAddress, Span<byte> dest)
         {
             int offset = RvaToOffset(virtualAddress);
             if (offset == -1)
                 return 0;
 
             SeekTo(offset);
-            int read = Stream.Read(dest, 0, bytesRequested);
-            return read;
+            return Stream.Read(dest);
         }
 
         private ResourceEntry CreateResourceRoot()
@@ -237,16 +214,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SeekTo(ImageDataDirectoryOffset);
 
             // Sanity check, there's a null row at the end of the data directory table
-            ulong? zero = TryRead<ulong>();
-            if (zero != 0)
+
+            if (!TryRead(out ulong zero) || zero != 0)
                 return sections;
 
             for (int i = 0; i < header.NumberOfSections; i++)
-            {
-                IMAGE_SECTION_HEADER? sectionHdr = TryRead<IMAGE_SECTION_HEADER>();
-                if (sectionHdr.HasValue)
-                    sections.Add(new SectionHeader(sectionHdr.Value));
-            }
+                if (TryRead(out IMAGE_SECTION_HEADER sectionHdr))
+                    sections.Add(new SectionHeader(sectionHdr));
 
             return sections;
         }
@@ -272,12 +246,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 SeekTo(offset);
                 for (int i = 0; i < count; i++)
                 {
-                    IMAGE_DEBUG_DIRECTORY? entryRead = TryRead<IMAGE_DEBUG_DIRECTORY>();
-                    if (entryRead.HasValue)
+                    if (TryRead(out IMAGE_DEBUG_DIRECTORY directory))
                     {
-                        IMAGE_DEBUG_DIRECTORY tmp = entryRead.Value;
-                        if (tmp.Type == IMAGE_DEBUG_TYPE.CODEVIEW && tmp.SizeOfData >= sizeof(CV_INFO_PDB70))
-                            entries.Add(Tuple.Create(_virt ? tmp.AddressOfRawData : tmp.PointerToRawData, tmp.SizeOfData));
+                        if (directory.Type == IMAGE_DEBUG_TYPE.CODEVIEW && directory.SizeOfData >= sizeof(CV_INFO_PDB70))
+                            entries.Add(Tuple.Create(_virt ? directory.AddressOfRawData : directory.PointerToRawData, directory.SizeOfData));
                     }
                 }
 
@@ -286,11 +258,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     int ptr = tmp.Item1;
                     int size = tmp.Item2;
 
-                    int? cvSig = TryRead<int>(ptr);
-                    if (cvSig.HasValue && cvSig.Value == CV_INFO_PDB70.PDB70CvSignature)
+                    if (TryRead(out int cvSig) && cvSig == CV_INFO_PDB70.PDB70CvSignature)
                     {
-                        Guid guid = TryRead<Guid>() ?? default;
-                        int age = TryRead<int>() ?? -1;
+                        Guid guid = Read<Guid>();
+                        int age = Read<int>();
 
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
@@ -315,71 +286,95 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             SeekTo(offset);
 
-            byte[] buffer = GetBuffer(len);
-            if (Stream.Read(buffer, 0, len) != len)
-                return null;
-
-            for (int i = 0; i < len; i++)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
+            try
             {
-                if (buffer[i] == 0)
+                if (Stream.Read(buffer, 0, len) != len)
+                    return null;
+
+                for (int i = 0; i < len; i++)
                 {
-                    len = i;
-                    break;
+                    if (buffer[i] == 0)
+                    {
+                        len = i;
+                        break;
+                    }
                 }
+
+                return Encoding.ASCII.GetString(buffer, 0, len);
             }
-            
-            return Encoding.ASCII.GetString(buffer, 0, len);
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
-        private T? TryRead<T>() where T : struct
+        private bool TryRead<T>(out T result) where T : unmanaged => TryRead(_offset, out result);
+
+        private bool TryRead<T>(int offset, out T t) where T : unmanaged
         {
-            return TryRead<T>(_offset);
+            t = default;
+            int size = Unsafe.SizeOf<T>();
+
+            // .Net Core only.  This isn't compiled into Desktop CLR because Stream.Read(Span<byte>) doesn't
+            // exist, and so our stackalloc + copy will be more inefficent than just renting our own byte array.
+#if CORE_ONLY
+            if (size < Configuration.MaxStackAlloc)
+            {
+                byte* ptr = stackalloc byte[size];
+                SeekTo(offset);
+
+                int read = Stream.Read(new Span<byte>(ptr, size));
+                _offset = offset + read;
+                if (read != size)
+                    return false;
+
+                Unsafe.Copy(ref t, ptr);
+                return true;
+            }
+#endif
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                SeekTo(offset);
+                int read = Stream.Read(buffer, 0, size);
+                _offset = offset + read;
+
+                if (read != size)
+                    return false;
+
+                fixed (byte* ptr = buffer)
+                    Unsafe.Copy(ref t, ptr);
+
+                return true;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
-        private T? TryRead<T>(int offset) where T : struct
+        internal T Read<T>(int offset) where T : unmanaged => Read<T>(ref offset);
+
+        internal T Read<T>(ref int offset) where T : unmanaged
         {
-            int size = Marshal.SizeOf(typeof(T));
-            byte[] buffer = GetBuffer(size);
+            int size = Unsafe.SizeOf<T>();
+            T t = default;
 
             SeekTo(offset);
-            int result = Stream.Read(buffer, 0, size);
-            _offset = offset + result;
+            int read = Stream.Read(new Span<byte>(&t, size));
+            offset += read;
+            _offset = offset;
 
-            if (result != size)
-                return null;
-
-            fixed (byte* tmp = buffer)
-                return (T)Marshal.PtrToStructure(new IntPtr(tmp), typeof(T));
-        }
-
-        internal T Read<T>(ref int offset) where T : struct
-        {
-            int size = Marshal.SizeOf(typeof(T));
-            byte[] buffer = GetBuffer(size);
-
-            SeekTo(offset);
-            int result = Stream.Read(buffer, 0, size);
-            _offset = offset + result;
-            offset += result;
-
-            if (result != size)
+            if (read != size)
                 return default;
-
-            fixed (byte* tmp = buffer)
-                return (T)Marshal.PtrToStructure(new IntPtr(tmp), typeof(T));
+            return t;
         }
 
 
-        internal T Read<T>(int offset) where T : struct => Read<T>(ref offset);
-
-        private byte[] GetBuffer(int size)
-        {
-            if (size <= _buffer.Length)
-                return _buffer;
-
-            return new byte[size];
-        }
-
+        internal T Read<T>() where T : unmanaged => Read<T>(_offset);
+        
         private void SeekTo(int offset)
         {
             if (offset != _offset)
@@ -394,8 +389,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!IsValid)
                 return null;
 
-            IMAGE_FILE_HEADER? header = TryRead<IMAGE_FILE_HEADER>(HeaderOffset);
-            return header.HasValue ? new ImageFileHeader(header.Value) : null;
+            if (TryRead(HeaderOffset, out IMAGE_FILE_HEADER header))
+                return new ImageFileHeader(header);
+
+            return null;
         }
 
         private Interop.IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
@@ -407,7 +404,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             SeekTo(DataDirectoryOffset);
             for (int i = 0; i < directories.Length; i++)
-                directories[i] = TryRead<Interop.IMAGE_DATA_DIRECTORY>() ?? default;
+                directories[i] = Read<Interop.IMAGE_DATA_DIRECTORY>();
 
             return directories;
         }
@@ -417,26 +414,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!IsValid)
                 return null;
 
-            IMAGE_OPTIONAL_HEADER_AGNOSTIC? optional = TryRead<IMAGE_OPTIONAL_HEADER_AGNOSTIC>(OptionalHeaderOffset);
-            if (!optional.HasValue)
+            if (!TryRead(OptionalHeaderOffset, out IMAGE_OPTIONAL_HEADER_AGNOSTIC optional))
                 return null;
 
-            bool is32Bit = optional.Value.Magic == 0x010b;
+            bool is32Bit = optional.Magic == 0x010b;
             Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> specific = new Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC>(() =>
             {
                 SeekTo(SpecificHeaderOffset);
                 return new IMAGE_OPTIONAL_HEADER_SPECIFIC()
                 {
-                    SizeOfStackReserve = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
-                    SizeOfStackCommit = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
-                    SizeOfHeapReserve = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
-                    SizeOfHeapCommit = (is32Bit ? TryRead<uint>() : TryRead<ulong>()) ?? 0,
-                    LoaderFlags = (TryRead<uint>()) ?? 0,
-                    NumberOfRvaAndSizes = (TryRead<uint>()) ?? 0
+                    SizeOfStackReserve = is32Bit ? Read<uint>() : Read<ulong>(),
+                    SizeOfStackCommit = is32Bit ? Read<uint>() : Read<ulong>(),
+                    SizeOfHeapReserve = is32Bit ? Read<uint>() : Read<ulong>(),
+                    SizeOfHeapCommit = is32Bit ? Read<uint>() : Read<ulong>(),
+                    LoaderFlags = Read<uint>(),
+                    NumberOfRvaAndSizes = Read<uint>()
                 };
             });
 
-            return new ImageOptionalHeader(optional.Value, specific, _directories, is32Bit);
+            return new ImageOptionalHeader(optional, specific, _directories, is32Bit);
         }
 
         private CorHeader ReadCorHeader()
@@ -447,8 +443,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (offset == -1)
                 return null;
 
-            IMAGE_COR20_HEADER? corHdr = TryRead<IMAGE_COR20_HEADER>(offset);
-            return corHdr.HasValue ? new CorHeader(corHdr.Value) : null;
+            if (TryRead(offset, out IMAGE_COR20_HEADER hdr))
+                return new CorHeader(hdr);
+
+            return null;
         }
     }
 }

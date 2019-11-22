@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -72,18 +74,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// The data associated with this entry.
         /// </summary>
         /// <returns>A byte array of the data, or a byte[] of length 0 if this entry contains no data.</returns>
-        public byte[] GetData()
+        public int GetData(Span<byte> span)
         {
             GetDataVaAndSize(out int va, out int size);
             if (size == 0 || va == 0)
-                return new byte[0];
+                return 0;
 
-            byte[] result = new byte[size];
-            int count = Image.Read(result, va, size);
-            if (count < size)
-                Array.Resize(ref result, count);
-
-            return result;
+            return Image.Read(va, span);
         }
 
         /// <summary>
@@ -92,18 +89,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <typeparam name="T">A struct type to convert.</typeparam>
         /// <param name="offset">The offset into the data.</param>
         /// <returns>The struct that was read out of the data section.</returns>
-        public T GetData<T>(int offset = 0) where T : struct
+        public unsafe T GetData<T>(int offset = 0) where T : unmanaged
         {
-            byte[] data = GetData();
-            int size = Marshal.SizeOf(typeof(T));
-            if (size + offset > data.Length)
-                throw new IndexOutOfRangeException();
+            int size = Unsafe.SizeOf<T>();
+            GetDataVaAndSize(out int va, out int sectionSize);
+            if (va == 0 || sectionSize < size + offset)
+                return default;
 
-            GCHandle hnd = GCHandle.Alloc(data, GCHandleType.Pinned);
-            T result = (T)Marshal.PtrToStructure(hnd.AddrOfPinnedObject(), typeof(T));
-            hnd.Free();
-
-            return result;
+            T output;
+            int read = Image.Read(va + offset, new Span<byte>(&output, size));
+            return read == size ? output : default;
         }
 
         private ResourceEntry[] GetChildren()

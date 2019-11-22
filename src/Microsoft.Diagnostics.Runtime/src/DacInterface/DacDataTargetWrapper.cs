@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 {
                     Debug.Assert(peimage.IsValid);
                     int rva = checked((int)(address - info.ImageBase));
-                    bytesRead = peimage.Read(buffer, rva, bytesRequested);
+                    bytesRead = peimage.Read(rva, new Span<byte>(buffer.ToPointer(), bytesRequested));
                     return S_OK;
                 }
             }
@@ -263,7 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             checked
             {
-                int read = peimage.Read(buffer, (int)rva, (int)size);
+                int read = peimage.Read((int)rva, new Span<byte>(buffer.ToPointer(), (int)size));
                 if (pDataSize != null)
                     *pDataSize = read;
             }
