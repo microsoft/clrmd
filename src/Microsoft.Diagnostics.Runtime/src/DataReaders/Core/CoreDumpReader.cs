@@ -6,19 +6,16 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoreDumpReader : IDataReader2
+    internal class CoreDumpReader : IDataReader
     {
         private readonly string _source;
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
-        private readonly int _pointerSize;
-        private readonly Architecture _architecture;
         private Dictionary<uint, IElfPRStatus> _threads;
         private List<ModuleInfo> _modules;
 
@@ -32,23 +29,23 @@ namespace Microsoft.Diagnostics.Runtime
             switch (architecture)
             {
                 case ElfMachine.EM_X86_64:
-                    _pointerSize = 8;
-                    _architecture = Architecture.Amd64;
+                    PointerSize = 8;
+                    Architecture = Architecture.Amd64;
                     break;
 
                 case ElfMachine.EM_386:
-                    _pointerSize = 4;
-                    _architecture = Architecture.X86;
+                    PointerSize = 4;
+                    Architecture = Architecture.X86;
                     break;
 
                 case ElfMachine.EM_AARCH64:
-                    _pointerSize = 8;
-                    _architecture = Architecture.Arm64;
+                    PointerSize = 8;
+                    Architecture = Architecture.Arm64;
                     break;
 
                 case ElfMachine.EM_ARM:
-                    _pointerSize = 4;
-                    _architecture = Architecture.Arm;
+                    PointerSize = 4;
+                    Architecture = Architecture.Arm;
                     break;
 
                 default:
@@ -58,8 +55,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool IsMinidump => false; // TODO
 
-        public void Close()
+        public void Dispose()
         {
+            _stream.Dispose();
         }
 
         public uint ProcessId
@@ -120,21 +118,15 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        public void Flush()
+        public void ClearCachedData()
         {
             _threads = null;
             _modules = null;
         }
 
-        public Architecture GetArchitecture()
-        {
-            return _architecture;
-        }
+        public Architecture Architecture { get; }
 
-        public uint GetPointerSize()
-        {
-            return (uint)_pointerSize;
-        }
+        public int PointerSize { get; }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
@@ -144,11 +136,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return status.CopyContext(contextFlags, context);
 
             return false;
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            throw new NotImplementedException();
         }
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)

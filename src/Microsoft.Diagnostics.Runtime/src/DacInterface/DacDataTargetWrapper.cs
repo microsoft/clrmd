@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
-            machineType = _dataReader.GetArchitecture() switch
+            machineType = _dataReader.Architecture switch
             {
                 Architecture.Amd64 => IMAGE_FILE_MACHINE.AMD64,
                 Architecture.X86 => IMAGE_FILE_MACHINE.I386,
@@ -86,9 +86,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public int GetPointerSize(IntPtr self, out uint pointerSize)
+        public int GetPointerSize(IntPtr self, out int pointerSize)
         {
-            pointerSize = _dataReader.GetPointerSize();
+            pointerSize = _dataReader.PointerSize;
             return S_OK;
         }
 
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEImage peimage = _dataTarget.FileLoader.LoadPEImage(filePath);
+                PEImage peimage = _dataTarget.LoadPEImage(filePath);
                 if (peimage != null)
                 {
                     Debug.Assert(peimage.IsValid);
@@ -234,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return E_FAIL;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEImage peimage = _dataTarget.FileLoader.LoadPEImage(filePath);
+            PEImage peimage = _dataTarget.LoadPEImage(filePath);
             if (peimage == null)
                 return E_FAIL;
 
@@ -279,7 +279,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetPointerSizeDelegate(IntPtr self, out uint pointerSize);
+        private delegate int GetPointerSizeDelegate(IntPtr self, out int pointerSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);

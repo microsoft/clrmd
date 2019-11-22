@@ -24,30 +24,38 @@ namespace Microsoft.Diagnostics.Runtime
             _file.WriteLine(reader.GetType().ToString());
         }
 
-        public void Close()
+        public uint ProcessId => _reader.ProcessId;
+
+        public void Dispose()
         {
-            _file.WriteLine("Close");
-            _reader.Close();
+            _file.WriteLine("Dispose");
+            _reader.Dispose();
         }
 
-        public void Flush()
+        public void ClearCachedData()
         {
-            _file.WriteLine("Flush");
-            _reader.Flush();
+            _file.WriteLine("ClearCachedData");
+            _reader.ClearCachedData();
         }
 
-        public Architecture GetArchitecture()
+        public Architecture Architecture
         {
-            Architecture arch = _reader.GetArchitecture();
-            _file.WriteLine("GetArchitecture - {0}", arch);
-            return arch;
+            get
+            {
+                Architecture arch = _reader.Architecture;
+                _file.WriteLine("Architecture - {0}", arch);
+                return arch;
+            }
         }
 
-        public uint GetPointerSize()
+        public int PointerSize
         {
-            uint ptrsize = _reader.GetPointerSize();
-            _file.WriteLine("GetPointerSize - {0}", ptrsize);
-            return ptrsize;
+            get
+            {
+                int ptrsize = _reader.PointerSize;
+                _file.WriteLine("PointerSize - {0}", ptrsize);
+                return ptrsize;
+            }
         }
 
         public IList<ModuleInfo> EnumerateModules()
@@ -83,13 +91,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsMinidump { get; }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            ulong teb = _reader.GetThreadTeb(thread);
-            _file.WriteLine("GetThreadTeb - {0:x} {1:x}", thread, teb);
-            return teb;
-        }
 
         public IEnumerable<uint> EnumerateAllThreads()
         {

@@ -1,12 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
-#if !NET45
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
@@ -23,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
     ///             wait(NULL);
     /// </summary>
-    internal class LinuxLiveDataReader : IDataReader2
+    internal class LinuxLiveDataReader : IDataReader
     {
         private List<MemoryMapEntry> _memoryMapEntries;
         private FileStream _memoryStream;
@@ -40,14 +38,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool IsMinidump { get { return false; } }
 
-        public void Close()
+        public void Dispose()
         {
             _memoryStream?.Dispose();
             _memoryStream = null;
             _initializedMemFile = false;
         }
 
-        public void Flush()
+        public void ClearCachedData()
         {
             _threadIDs.Clear();
             _memoryStream?.Dispose();
@@ -56,15 +54,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _memoryMapEntries = this.LoadMemoryMap();
         }
 
-        public Architecture GetArchitecture()
-        {
-            return IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
-        }
-
-        public uint GetPointerSize()
-        {
-            return (uint)IntPtr.Size;
-        }
+        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
+        public int PointerSize => IntPtr.Size;
 
         public IList<ModuleInfo> EnumerateModules()
         {
@@ -176,12 +167,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return 0;
 
             return buffer.AsUInt32();
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            // not implemented
-            return 0;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()
@@ -458,4 +443,3 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         }
     }
 }
-#endif

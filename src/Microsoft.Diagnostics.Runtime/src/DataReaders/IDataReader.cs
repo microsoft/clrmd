@@ -10,29 +10,35 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// An interface for reading data out of the target process.
     /// </summary>
-    public interface IDataReader
+    public interface IDataReader : IDisposable
     {
-        /// <summary>
-        /// Called when the DataTarget is closing (Disposing).  Used to clean up resources.
-        /// </summary>
-        void Close();
-
-        /// <summary>
-        /// Informs the data reader that the user has requested all data be flushed.
-        /// </summary>
-        void Flush();
-
         /// <summary>
         /// Gets the architecture of the target.
         /// </summary>
         /// <returns>The architecture of the target.</returns>
-        Architecture GetArchitecture();
+        Architecture Architecture { get; }
 
         /// <summary>
         /// Gets the size of a pointer in the target process.
         /// </summary>
         /// <returns>The pointer size of the target process.</returns>
-        uint GetPointerSize();
+        int PointerSize { get; }
+
+        /// <summary>
+        /// The ProcessId of the DataTarget.
+        /// </summary>
+        uint ProcessId { get; }
+
+        /// <summary>
+        /// Returns true if the data target is a minidump which might not contain full heap data.
+        /// </summary>
+        bool IsMinidump { get; }
+
+        /// <summary>
+        /// Enumerates the OS thread ID of all threads in the process.
+        /// </summary>
+        /// <returns>An enumeration of all threads in the target process.</returns>
+        IEnumerable<uint> EnumerateAllThreads();
 
         /// <summary>
         /// Enumerates modules in the target process.
@@ -56,25 +62,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
         /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
         bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead);
-
-        /// <summary>
-        /// Returns true if the data target is a minidump (or otherwise may not contain full heap data).
-        /// </summary>
-        /// <returns>True if the data target is a minidump (or otherwise may not contain full heap data).</returns>
-        bool IsMinidump { get; }
-
-        /// <summary>
-        /// Gets the TEB of the specified thread.
-        /// </summary>
-        /// <param name="thread">The OS thread ID to get the TEB for.</param>
-        /// <returns>The address of the thread's teb.</returns>
-        ulong GetThreadTeb(uint thread);
-
-        /// <summary>
-        /// Enumerates the OS thread ID of all threads in the process.
-        /// </summary>
-        /// <returns>An enumeration of all threads in the target process.</returns>
-        IEnumerable<uint> EnumerateAllThreads();
 
         /// <summary>
         /// Gets information about the given memory range.
@@ -110,5 +97,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// the data target.
         /// </returns>
         uint ReadDwordUnsafe(ulong addr);
+
+        /// <summary>
+        /// Informs the data reader that the user has requested all data be flushed.
+        /// </summary>
+        void ClearCachedData();
     }
 }

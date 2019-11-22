@@ -14,10 +14,12 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class DbgEngDataReader : IDisposable, IDataReader2
+    internal class DbgEngDataReader : IDisposable, IDataReader
     {
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true;
+
+        private int? _pointerSize;
 
         private IDebugDataSpaces _spaces;
         private IDebugDataSpaces2 _spaces2;
@@ -81,12 +83,12 @@ namespace Microsoft.Diagnostics.Runtime
             s_needRelease = false;
         }
 
-        public DbgEngDataReader(int pid, AttachFlag flags, uint msecTimeout)
+        public DbgEngDataReader(int pid, bool invasive, uint msecTimeout)
         {
             IDebugClient client = CreateIDebugClient();
             CreateClient(client);
 
-            DEBUG_ATTACH attach = flags == AttachFlag.Invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
+            DEBUG_ATTACH attach = invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
             int hr = _control.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
 
             if (hr == 0)
@@ -140,32 +142,35 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public Architecture GetArchitecture()
+        public Architecture Architecture
         {
-            SetClientInstance();
-
-            int hr = _control.GetEffectiveProcessorType(out IMAGE_FILE_MACHINE machineType);
-            if (hr != 0)
-                throw new ClrDiagnosticsException($"Failed to get processor type, HRESULT: {hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
-
-            switch (machineType)
+            get
             {
-                case IMAGE_FILE_MACHINE.I386:
-                    return Architecture.X86;
+                SetClientInstance();
 
-                case IMAGE_FILE_MACHINE.AMD64:
-                    return Architecture.Amd64;
+                int hr = _control.GetEffectiveProcessorType(out IMAGE_FILE_MACHINE machineType);
+                if (hr != 0)
+                    throw new ClrDiagnosticsException($"Failed to get processor type, HRESULT: {hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
 
-                case IMAGE_FILE_MACHINE.ARM:
-                case IMAGE_FILE_MACHINE.THUMB:
-                case IMAGE_FILE_MACHINE.THUMB2:
-                    return Architecture.Arm;
+                switch (machineType)
+                {
+                    case IMAGE_FILE_MACHINE.I386:
+                        return Architecture.X86;
 
-                case IMAGE_FILE_MACHINE.ARM64:
-                    return Architecture.Arm64;
+                    case IMAGE_FILE_MACHINE.AMD64:
+                        return Architecture.Amd64;
 
-                default:
-                    return Architecture.Unknown;
+                    case IMAGE_FILE_MACHINE.ARM:
+                    case IMAGE_FILE_MACHINE.THUMB:
+                    case IMAGE_FILE_MACHINE.THUMB2:
+                        return Architecture.Arm;
+
+                    case IMAGE_FILE_MACHINE.ARM64:
+                        return Architecture.Arm64;
+
+                    default:
+                        return Architecture.Unknown;
+                }
             }
         }
 
@@ -183,26 +188,34 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport("dbgeng.dll")]
         public static extern int DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
 
-        public void Close()
-        {
-            Dispose();
-        }
 
         internal IDebugClient DebuggerInterface { get; private set; }
 
-        public uint GetPointerSize()
+        public int PointerSize
         {
-            SetClientInstance();
-            int hr = _control.IsPointer64Bit();
-            if (hr == 0)
-                return 8;
-            if (hr == 1)
-                return 4;
+            get
+            {
+                if (_pointerSize.HasValue)
+                    return _pointerSize.Value;
 
-            throw new ClrDiagnosticsException($"IsPointer64Bit failed, HRESULT: {hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
+                SetClientInstance();
+                int hr = _control.IsPointer64Bit();
+                if (hr == 0)
+                {
+                    _pointerSize = 8;
+                    return 8;
+                }
+                if (hr == 1)
+                {
+                    _pointerSize = 4;
+                    return 4;
+                }
+
+                throw new ClrDiagnosticsException($"IsPointer64Bit failed, HRESULT: {hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
+            }
         }
 
-        public void Flush()
+        public void ClearCachedData()
         {
             _modules = null;
         }
@@ -500,23 +513,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             return Array.Empty<uint>();
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            SetClientInstance();
-
-            ulong teb = 0;
-            int hr = _systemObjects.GetCurrentThreadId(out uint id);
-            bool haveId = hr == 0;
-
-            if (_systemObjects.GetThreadIdBySystemId(thread, out uint newId) == 0 && _systemObjects.SetCurrentThreadId(newId) == 0)
-                AssertSuccess(_systemObjects.GetCurrentThreadTeb(out teb));
-
-            if (haveId)
-                AssertSuccess(_systemObjects.SetCurrentThreadId(id));
-
-            return teb;
         }
 
         public void Dispose()

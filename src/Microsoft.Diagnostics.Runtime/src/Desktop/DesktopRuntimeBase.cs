@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Revision++;
             _dacInterface.Flush();
-            _dataTarget.DataReader.Flush();
+            _dataTarget.DataReader.ClearCachedData();
 
             MemoryReader = null;
             _moduleList = null;
@@ -102,17 +102,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override IEnumerable<ClrException> EnumerateSerializedExceptions()
         {
             return Array.Empty<ClrException>();
-        }
-
-        public override IEnumerable<int> EnumerateGCThreads()
-        {
-            foreach (uint thread in _dataReader.EnumerateAllThreads())
-            {
-                ulong teb = _dataReader.GetThreadTeb(thread);
-                int threadType = ThreadBase.GetTlsSlotForThread(this, teb);
-                if ((threadType & (int)ThreadBase.TlsThreadType.ThreadType_GC) == (int)ThreadBase.TlsThreadType.ThreadType_GC)
-                    yield return (int)thread;
-            }
         }
 
         /// <summary>
