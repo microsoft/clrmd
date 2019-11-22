@@ -31,22 +31,6 @@
     <TargetProjects Include="*\*.csproj" Exclude="*;Shared\*;AppDomains\*" />
   </ItemGroup>
 
-  <UsingTask
-    TaskName="SetEnvironmentVariable"
-    TaskFactory="RoslynCodeTaskFactory"
-    AssemblyName="Microsoft.Build.Tasks.Core">
-
-    <ParameterGroup>
-      <Variable ParameterType="System.String" Required="true" />
-      <Value ParameterType="System.String" />
-    </ParameterGroup>
-
-    <Task>
-      <Code>Environment.SetEnvironmentVariable(Variable, Value);</Code>
-    </Task>
-
-  </UsingTask>
-
   <Target Name="PreBuildCommon">
 
     <MakeDir Directories="$(BinDir64)" />
@@ -141,5 +125,21 @@
     <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" />
   </Target>
+
+  <UsingTask
+    TaskName="SetEnvironmentVariable"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.Core">
+
+    <ParameterGroup>
+      <Variable ParameterType="System.String" Required="true" />
+      <Value ParameterType="System.String" />
+    </ParameterGroup>
+
+    <Task>
+      <Code>Environment.SetEnvironmentVariable(Variable, Value);</Code>
+    </Task>
+
+  </UsingTask>
 
 </Project>
