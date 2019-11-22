@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _flush(Self);
         }
 
-        public int Request(uint reqCode, Span<byte> input, Span<byte> output)
+        public int Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
         {
             InitDelegate(ref _request, VTable->Request);
 

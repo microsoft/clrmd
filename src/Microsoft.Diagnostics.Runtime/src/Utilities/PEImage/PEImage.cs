@@ -320,15 +320,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 #if !NET45
             if (size < Configuration.MaxStackAlloc)
             {
-                byte* ptr = stackalloc byte[size];
+                Span<byte> span = stackalloc byte[size];
                 SeekTo(offset);
 
-                int read = Stream.Read(new Span<byte>(ptr, size));
+                int read = Stream.Read(span);
                 _offset = offset + read;
                 if (read != size)
                     return false;
 
-                Unsafe.Copy(ref t, ptr);
+                t = Unsafe.As<byte, T>(ref span[0]);
                 return true;
             }
 #endif
@@ -343,8 +343,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (read != size)
                     return false;
 
-                fixed (byte* ptr = buffer)
-                    Unsafe.Copy(ref t, ptr);
+                t = Unsafe.As<byte, T>(ref buffer[0]);
 
                 return true;
             }

@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                             if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
                             {
                                 _buildId = new byte[note.Header.ContentSize];
-                                note.ReadContents(0, new Span<byte>(_buildId, 0, _buildId.Length));
+                                note.ReadContents(0, _buildId);
                                 return _buildId;
                             }
                         }

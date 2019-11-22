@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
             try
             {
-                int read = fileNote.ReadContents(position, new Span<byte>(bytes, 0, size));
+                int read = fileNote.ReadContents(position, bytes);
                 int start = 0;
                 for (int i = 0; i < fileTable.Length; i++)
                 {
