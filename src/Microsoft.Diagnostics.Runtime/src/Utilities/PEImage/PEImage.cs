@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // .Net Core only.  This isn't compiled into Desktop CLR because Stream.Read(Span<byte>) doesn't
             // exist, and so our stackalloc + copy will be more inefficent than just renting our own byte array.
-#if CORE_ONLY
+#if !NET45
             if (size < Configuration.MaxStackAlloc)
             {
                 byte* ptr = stackalloc byte[size];
