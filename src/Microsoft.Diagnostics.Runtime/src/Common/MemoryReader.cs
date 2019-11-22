@@ -5,10 +5,11 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class MemoryReader
+    internal class MemoryReader
     {
         protected ulong _currPageStart;
         protected int _currPageSize;
@@ -61,11 +62,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
                 ulong offset = addr - _currPageStart;
-                fixed (byte* b = &_data[offset])
-                    if (IntPtr.Size == 4)
-                        value = *((uint*)b);
-                    else
-                        value = *((ulong*)b);
+                ref byte b = ref _data[offset];
+                if (IntPtr.Size == 4)
+                    value = Unsafe.As<byte, uint>(ref b);
+                else
+                    value = Unsafe.As<byte, ulong>(ref b);
 
                 return true;
             }
@@ -78,9 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
                 ulong offset = addr - _currPageStart;
-                value = BitConverter.ToUInt32(_data, (int)offset);
-                fixed (byte* b = &_data[offset])
-                    value = *((uint*)b);
+                value = Unsafe.As<byte, uint>(ref _data[offset]);
                 return true;
             }
 
@@ -92,9 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
                 ulong offset = addr - _currPageStart;
-                fixed (byte* b = &_data[offset])
-                    value = *((int*)b);
-
+                value = Unsafe.As<byte, int>(ref _data[offset]);
                 return true;
             }
 
@@ -126,11 +123,11 @@ namespace Microsoft.Diagnostics.Runtime
 
             // If we reach here we know we are on the right page of memory in the cache, and
             // that the read won't fall off of the end of the page.
-            fixed (byte* b = &_data[offset])
-                if (IntPtr.Size == 4)
-                    value = *((uint*)b);
-                else
-                    value = *((ulong*)b);
+            ref byte b = ref _data[offset];
+            if (IntPtr.Size == 4)
+                value = Unsafe.As<byte, uint>(ref b);
+            else
+                value = Unsafe.As<byte, ulong>(ref b);
 
             return true;
         }
@@ -151,32 +148,30 @@ namespace Microsoft.Diagnostics.Runtime
             Span<byte> span = stackalloc byte[IntPtr.Size];
             bool res = _dataReader.ReadMemory(addr, span, out int size);
 
-            fixed (byte* b = span)
-                if (IntPtr.Size == 4)
-                    value = *(uint*)b;
-                else
-                    value = *(ulong*)b;
+            ref byte b = ref MemoryMarshal.GetReference(span);
+            if (IntPtr.Size == 4)
+                value = Unsafe.As<byte, uint>(ref b);
+            else
+                value = Unsafe.As<byte, ulong>(ref b);
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out uint value)
         {
-            Span<byte> span = stackalloc byte[4];
+            Span<byte> span = stackalloc byte[sizeof(uint)];
             bool res = _dataReader.ReadMemory(addr, span, out _);
-            
-            fixed (byte *ptr = span)
-                value = Unsafe.ReadUnaligned<uint>(ptr);
+
+            value = span.AsUInt32();
 
             return res;
         }
 
         private bool MisalignedRead(ulong addr, out int value)
         {
-            Span<byte> span = stackalloc byte[4];
+            Span<byte> span = stackalloc byte[sizeof(int)];
             bool res = _dataReader.ReadMemory(addr, span, out _);
 
-            fixed (byte* ptr = span)
-                value = Unsafe.ReadUnaligned<int>(ptr);
+            value = span.AsInt32();
 
             return res;
         }

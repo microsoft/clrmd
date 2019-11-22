@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -15,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class DbgEngDataReader : IDisposable, IDataReader2
+    internal class DbgEngDataReader : IDisposable, IDataReader2
     {
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true;
@@ -208,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = null;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             SetClientInstance();
             GetThreadIdBySystemId(threadID, out uint id);
@@ -218,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return _advanced.GetThreadContext(new IntPtr(ptr), context.Length) == 0;
         }
 
-        internal int ReadVirtual(ulong address, Span<byte> buffer, out int bytesRead)
+        internal unsafe int ReadVirtual(ulong address, Span<byte> buffer, out int bytesRead)
         {
             SetClientInstance();
 
@@ -387,8 +386,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (ReadVirtual(addr, buffer, out int _) != 0)
                 return 0;
 
-            fixed (byte *ptr = buffer)
-                return IntPtr.Size == 4 ? Unsafe.ReadUnaligned<uint>(ptr) : Unsafe.ReadUnaligned<ulong>(ptr);
+            return IntPtr.Size == 4 ? MemoryMarshal.Read<uint>(buffer) : MemoryMarshal.Read<ulong>(buffer);
         }
 
         public uint ReadDwordUnsafe(ulong addr)
@@ -397,8 +395,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (ReadVirtual(addr, buffer, out int _) != 0)
                 return 0;
 
-            fixed (byte* ptr = buffer)
-                return Unsafe.ReadUnaligned<uint>(ptr);
+            return MemoryMarshal.Read<uint>(buffer);
         }
 
 

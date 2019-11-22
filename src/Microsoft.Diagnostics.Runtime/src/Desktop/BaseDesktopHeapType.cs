@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), new Span<byte>(buffer, 0, buffer.Length), out int read) || read != buffer.Length)
+            if (!runtime.ReadMemory(_constructedMT - (ulong)(slots * IntPtr.Size), buffer, out int read) || read != buffer.Length)
                 return null;
 
             // Construct the gc desc

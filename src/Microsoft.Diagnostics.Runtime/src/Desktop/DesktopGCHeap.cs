@@ -607,7 +607,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             byte[] buffer = ArrayPool<byte>.Shared.Rent(length * 2);
             try
             {
-                if (!DesktopRuntime.ReadMemory(data, new Span<byte>(buffer, 0, length * 2), out int count))
+                if (!DesktopRuntime.ReadMemory(data, buffer, out int count))
                     return null;
 
                 return Encoding.Unicode.GetString(buffer, 0, count);
