@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
             int version = 0;
-            if (lib.DacPrivateInterface.Request(DacRequests.VERSION, Span<byte>.Empty, new Span<byte>((byte*)&version, sizeof(int))) != 0)
+            if (lib.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
                 throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsExceptionKind.DacError);
 
             if (version != 9)

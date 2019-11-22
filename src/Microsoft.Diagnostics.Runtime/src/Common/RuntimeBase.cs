@@ -5,9 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Desktop;
 
@@ -222,8 +220,7 @@ namespace Microsoft.Diagnostics.Runtime
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
             {
-                fixed (byte* ptr = buffer)
-                    value = Unsafe.ReadUnaligned<T>(ptr);
+                value = MemoryMarshal.Read<T>(buffer);
 
                 return true;
             }

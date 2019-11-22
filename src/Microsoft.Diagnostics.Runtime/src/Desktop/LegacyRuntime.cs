@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -35,12 +36,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
-            byte[] tmp = new byte[sizeof(int)];
+            Span<byte> tmp = stackalloc byte[sizeof(int)];
 
             if (!Request(DacRequests.VERSION, null, tmp))
                 throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsExceptionKind.DacError);
 
-            int v = BitConverter.ToInt32(tmp, 0);
+            int v = tmp.AsInt32();
             if (v != 8)
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsExceptionKind.DacError);
         }
@@ -100,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback)
         {
-            byte[] input = new byte[sizeof(ulong) * 2];
+            Span<byte> input = stackalloc byte[sizeof(ulong) * 2];
             WriteValueToBuffer(heap, input, 0);
             WriteValueToBuffer(Marshal.GetFunctionPointerForDelegate(callback), input, sizeof(ulong));
 
@@ -109,11 +110,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback)
         {
-            byte[] input;
-            if (IntPtr.Size == 4)
-                input = new byte[sizeof(ulong) * 2];
-            else
-                input = new byte[sizeof(ulong) * 3];
+            Span<byte> input = IntPtr.Size == 4
+                ? (stackalloc byte[sizeof(ulong) * 2])
+                : (stackalloc byte[sizeof(ulong) * 3]);
 
             WriteValueToBuffer(appDomain, input, 0);
             WriteValueToBuffer(type, input, sizeof(ulong));
@@ -341,17 +340,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IEnumerable<ICodeHeap> EnumerateJitHeaps()
         {
-            byte[] output = new byte[sizeof(int)];
+            Span<byte> output = stackalloc byte[sizeof(int)];
             if (Request(DacRequests.JITLIST, null, output))
             {
                 int JitManagerSize = Marshal.SizeOf(typeof(JitManagerInfo));
-                int count = BitConverter.ToInt32(output, 0);
+                int count = output.AsInt32();
                 int size = JitManagerSize * count;
 
                 if (size > 0)
                 {
-                    output = new byte[size];
-                    if (Request(DacRequests.MANAGER_LIST, null, output))
+                    byte[] outputArray = new byte[size];
+                    if (Request(DacRequests.MANAGER_LIST, null, outputArray))
                     {
                         MutableJitCodeHeapInfo heapInfo = new MutableJitCodeHeapInfo();
                         int CodeHeapTypeOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "codeHeapType").ToInt32();
@@ -361,19 +360,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                         for (int i = 0; i < count; ++i)
                         {
-                            int type = BitConverter.ToInt32(output, i * JitManagerSize + sizeof(ulong));
+                            int type = BitConverter.ToInt32(outputArray, i * JitManagerSize + sizeof(ulong));
 
                             // Is this code heap IL?
                             if ((type & 3) != 0)
                                 continue;
 
-                            ulong address = BitConverter.ToUInt64(output, i * JitManagerSize);
-                            byte[] jitManagerBuffer = new byte[sizeof(ulong) * 2];
+                            ulong address = BitConverter.ToUInt64(outputArray, i * JitManagerSize);
+                            Span<byte> jitManagerBuffer = stackalloc byte[sizeof(ulong) * 2];
                             WriteValueToBuffer(address, jitManagerBuffer, 0);
 
                             if (Request(DacRequests.JITHEAPLIST, jitManagerBuffer, jitManagerBuffer))
                             {
-                                int heapCount = BitConverter.ToInt32(jitManagerBuffer, sizeof(ulong));
+                                int heapCount = Unsafe.ReadUnaligned<int>(ref jitManagerBuffer[sizeof(ulong)]);
 
                                 byte[] codeHeapBuffer = new byte[heapCount * JitCodeHeapInfoSize];
                                 if (Request(DacRequests.CODEHEAP_LIST, jitManagerBuffer, codeHeapBuffer))
@@ -702,8 +701,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return values;
 
             CodeHeaderData codeHeader = new CodeHeaderData();
-            byte[] slotArgs = new byte[0x10];
-            byte[] result = new byte[sizeof(ulong)];
+            Span<byte> slotArgs = stackalloc byte[0x10];
+            Span<byte> result = stackalloc byte[sizeof(ulong)];
 
             WriteValueToBuffer(methodTable, slotArgs, 0);
             for (int i = 0; i < mtData.NumMethods; ++i)
@@ -712,7 +711,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!Request(DacRequests.METHODTABLE_SLOT, slotArgs, result))
                     continue;
 
-                ulong ip = BitConverter.ToUInt64(result, 0);
+                ulong ip = result.AsUInt64();
 
                 if (!RequestStruct(DacRequests.CODEHEADER_DATA, ip, ref codeHeader))
                     continue;
@@ -829,14 +828,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         protected override ulong GetThreadFromThinlock(uint threadId)
         {
-            byte[] input = new byte[sizeof(uint)];
+            Span<byte> input = stackalloc byte[sizeof(uint)];
             WriteValueToBuffer(threadId, input, 0);
 
-            byte[] output = new byte[sizeof(ulong)];
+            Span<byte> output = stackalloc byte[sizeof(ulong)];
             if (!Request(DacRequests.THREAD_THINLOCK_DATA, input, output))
                 return 0;
 
-            return BitConverter.ToUInt64(output, 0);
+            return output.AsUInt64();
         }
 
         internal override int GetSyncblkCount()
@@ -866,11 +865,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetTlsSlot()
         {
-            byte[] value = new byte[sizeof(uint)];
+            Span<byte> value = stackalloc byte[sizeof(uint)];
             if (!Request(DacRequests.CLRTLSDATA_INDEX, null, value))
                 return uint.MaxValue;
 
-            return BitConverter.ToUInt32(value, 0);
+            return value.AsUInt32();
         }
 
         internal override uint GetThreadTypeIndex()
@@ -926,26 +925,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private bool Request(uint id, ulong param, byte[] output)
         {
-            byte[] input = BitConverter.GetBytes(param);
+            Span<byte> input = stackalloc byte[sizeof(ulong)];
+            Unsafe.As<byte, ulong>(ref input[0]) = param;
 
             return Request(id, input, output);
         }
 
         private bool Request(uint id, uint param, byte[] output)
         {
-            byte[] input = BitConverter.GetBytes(param);
+            Span<byte> input = stackalloc byte[sizeof(uint)];
+            Unsafe.As<byte, uint>(ref input[0]) = param;
 
             return Request(id, input, output);
         }
 
-        private unsafe bool Request(uint id, byte[] input, byte[] output)
+        private bool Request(uint id, ReadOnlySpan<byte> input, Span<byte> output)
         {
-            fixed (byte* pInput = input)
-            fixed (byte* pOutput = output)
-            {
-                int result = _dacInterface.Request(id, new Span<byte>(pInput, input?.Length ?? 0), new Span<byte>(pOutput, output?.Length ?? 0));
-                return result >= 0;
-            }
+            int result = _dacInterface.Request(id, input, output);
+            return result >= 0;
         }
 
         private I Request<I, T>(uint id, byte[] input)
@@ -1013,7 +1010,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool RequestStruct<T>(uint id, ulong addr, ref T t)
             where T : struct
         {
-            byte[] input = new byte[sizeof(ulong)];
+            Span<byte> input = stackalloc byte[sizeof(ulong)];
             byte[] output = GetByteArrayForStruct<T>();
 
             WriteValueToBuffer(addr, input, 0);
@@ -1082,7 +1079,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        private int WriteValueToBuffer(IntPtr ptr, byte[] buffer, int offset)
+        private int WriteValueToBuffer(IntPtr ptr, Span<byte> buffer, int offset)
         {
             ulong value = (ulong)ptr.ToInt64();
             for (int i = offset; i < offset + IntPtr.Size; ++i)
@@ -1094,7 +1091,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return offset + IntPtr.Size;
         }
 
-        private int WriteValueToBuffer(int value, byte[] buffer, int offset)
+        private int WriteValueToBuffer(int value, Span<byte> buffer, int offset)
         {
             for (int i = offset; i < offset + sizeof(int); ++i)
             {
@@ -1105,7 +1102,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return offset + sizeof(int);
         }
 
-        private int WriteValueToBuffer(uint value, byte[] buffer, int offset)
+        private int WriteValueToBuffer(uint value, Span<byte> buffer, int offset)
         {
             for (int i = offset; i < offset + sizeof(int); ++i)
             {
@@ -1116,7 +1113,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return offset + sizeof(int);
         }
 
-        private int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
+        private int WriteValueToBuffer(ulong value, Span<byte> buffer, int offset)
         {
             for (int i = offset; i < offset + sizeof(ulong); ++i)
             {

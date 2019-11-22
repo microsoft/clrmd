@@ -288,12 +288,9 @@ namespace Microsoft.Diagnostics.Runtime
             byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(V2HeapDetails));
             try
             {
-                fixed (byte* pBuffer = buffer)
-                {
-                    int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, Span<byte>.Empty, new Span<byte>(pBuffer, buffer.Length));
-                    if ((uint)val == 0x80070057)
-                        return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v4, 10000);
-                }
+                int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, ReadOnlySpan<byte>.Empty, buffer);
+                if ((uint)val == 0x80070057)
+                    return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v4, 10000);
 
                 return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v2, 3054);
             }

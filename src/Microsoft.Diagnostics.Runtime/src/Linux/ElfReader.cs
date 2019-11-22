@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
             try
             {
-                int read = DataSource.Read(position, new Span<byte>(buffer, 0, len));
+                int read = DataSource.Read(position, buffer);
                 if (read == 0)
                     return string.Empty;
 
