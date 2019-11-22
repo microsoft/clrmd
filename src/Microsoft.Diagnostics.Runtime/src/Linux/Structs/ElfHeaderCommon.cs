@@ -13,14 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private const uint Magic = 0x464c457f;
 
-        private uint _magic;
-        private byte _class;
-        private byte _data;
+        private readonly uint _magic;
+        private readonly byte _class;
+        private readonly byte _data;
 
-        private byte _unused0;
-        private byte _unused1;
-        private uint _unused2;
-        private uint _unused3;
+        private readonly byte _unused0;
+        private readonly byte _unused1;
+        private readonly uint _unused2;
+        private readonly uint _unused3;
 
         private readonly ElfHeaderType _type;
         private readonly ushort _machine;

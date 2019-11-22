@@ -9,7 +9,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal class ReadVirtualStream : Stream
     {
-        private byte[] _tmp;
         private long _pos;
         private readonly long _disp;
         private long _len;
