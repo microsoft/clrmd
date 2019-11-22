@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private IMAGE_COR20_HEADER _header;
 
-        internal CorHeader(IMAGE_COR20_HEADER header)
+        internal CorHeader(ref IMAGE_COR20_HEADER header)
         {
             _header = header;
         }

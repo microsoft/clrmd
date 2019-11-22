@@ -17,7 +17,7 @@
         public ushort NumberOfLineNumbers { get; private set; }
         public IMAGE_SCN Characteristics { get; private set; }
 
-        internal SectionHeader(IMAGE_SECTION_HEADER section)
+        internal SectionHeader(ref IMAGE_SECTION_HEADER section)
         {
             Name = section.Name;
             VirtualSize = section.VirtualSize;

@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             for (int i = 0; i < header.NumberOfSections; i++)
                 if (TryRead(out IMAGE_SECTION_HEADER sectionHdr))
-                    sections.Add(new SectionHeader(sectionHdr));
+                    sections.Add(new SectionHeader(ref sectionHdr));
 
             return sections;
         }
@@ -389,7 +389,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return null;
 
             if (TryRead(HeaderOffset, out IMAGE_FILE_HEADER header))
-                return new ImageFileHeader(header);
+                return new ImageFileHeader(ref header);
 
             return null;
         }
@@ -431,7 +431,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 };
             });
 
-            return new ImageOptionalHeader(optional, specific, _directories, is32Bit);
+            return new ImageOptionalHeader(ref optional, specific, _directories, is32Bit);
         }
 
         private CorHeader ReadCorHeader()
@@ -443,7 +443,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return null;
 
             if (TryRead(offset, out IMAGE_COR20_HEADER hdr))
-                return new CorHeader(hdr);
+                return new CorHeader(ref hdr);
 
             return null;
         }
