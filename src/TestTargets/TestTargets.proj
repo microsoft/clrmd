@@ -13,22 +13,22 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <TestSources Include="*\*.cs" Exclude="Shared\*">
+    <TargetSources Include="*\*.cs" Exclude="Shared\*">
       <ExePath32>$(BinDir32)%(Filename).exe</ExePath32>
       <ExePath64>$(BinDir64)%(Filename).exe</ExePath64>
-    </TestSources>
-    <TestExes32 Include="@(TestSources->'%(ExePath32)')">
+    </TargetSources>
+    <TargetExes32 Include="@(TargetSources->'%(ExePath32)')">
       <FullDumpPath>$(BinDir32)%(Filename)_wks.dmp</FullDumpPath>
       <MiniDumpPath>$(BinDir32)%(Filename)_wks_mini.dmp</MiniDumpPath>
-    </TestExes32>
-    <TestExes64 Include="@(TestSources->'%(ExePath64)')">
+    </TargetExes32>
+    <TargetExes64 Include="@(TargetSources->'%(ExePath64)')">
       <FullDumpPath>$(BinDir64)%(Filename)_wks.dmp</FullDumpPath>
       <MiniDumpPath>$(BinDir64)%(Filename)_wks_mini.dmp</MiniDumpPath>
-    </TestExes64>
+    </TargetExes64>
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-    <TestProjects Include="*\*.csproj" Exclude="*;Shared\*;AppDomains\*" />
+    <TargetProjects Include="*\*.csproj" Exclude="*;Shared\*;AppDomains\*" />
   </ItemGroup>
 
   <UsingTask
@@ -79,11 +79,11 @@
     Condition="'$(OS)' == 'Windows_NT'"
     Name="BuildWindows"
     AfterTargets="BuildWindowsShared"
-    Inputs="@(TestSources)"
-    Outputs="@(TestSources->'%(ExePath32)');@(TestSources->'%(ExePath64)')">
+    Inputs="@(TargetSources)"
+    Outputs="@(TargetSources->'%(ExePath32)');@(TargetSources->'%(ExePath64)')">
 
-    <Exec Command='"$(CscPath)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /platform:x86 /debug /out:%(TestSources.ExePath32) %(TestSources.Identity)' />
-    <Exec Command='"$(CscPath)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /platform:x64 /debug /out:%(TestSources.ExePath64) %(TestSources.Identity)' />
+    <Exec Command='"$(CscPath)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /platform:x86 /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /platform:x64 /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
 
   </Target>
 
@@ -91,14 +91,14 @@
     Condition="'$(OS)' == 'Windows_NT'"
     Name="DumpWindows"
     AfterTargets="BuildWindows"
-    Inputs="@(TestExes32);@(TestExes64)"
-    Outputs="@(TestExes32->'%(FullDumpPath)');@(TestExes32->'%(MiniDumpPath)');@(TestExes64->'%(FullDumpPath)');@(TestExes64->'%(MiniDumpPath)')">
+    Inputs="@(TargetExes32);@(TargetExes64)"
+    Outputs="@(TargetExes32->'%(FullDumpPath)');@(TargetExes32->'%(MiniDumpPath)');@(TargetExes64->'%(FullDumpPath)');@(TargetExes64->'%(MiniDumpPath)')">
 
-    <Delete Files="%(TestExes32.FullDumpPath);%(TestExes32.MiniDumpPath)" />
-    <Delete Files="%(TestExes64.FullDumpPath);%(TestExes64.MiniDumpPath)" />
+    <Delete Files="%(TargetExes32.FullDumpPath);%(TargetExes32.MiniDumpPath)" />
+    <Delete Files="%(TargetExes64.FullDumpPath);%(TargetExes64.MiniDumpPath)" />
 
-    <Exec Command='"$(CdbPath32)" -g -G -c ".dump /ma %(TestExes32.FullDumpPath);.dump /m %(TestExes32.MiniDumpPath);q" %(TestExes32.Identity)' />
-    <Exec Command='"$(CdbPath64)" -g -G -c ".dump /ma %(TestExes64.FullDumpPath);.dump /m %(TestExes64.MiniDumpPath);q" %(TestExes64.Identity)' />
+    <Exec Command='"$(CdbPath32)" -g -G -c ".dump /ma %(TargetExes32.FullDumpPath);.dump /m %(TargetExes32.MiniDumpPath);q" %(TargetExes32.Identity)' />
+    <Exec Command='"$(CdbPath64)" -g -G -c ".dump /ma %(TargetExes64.FullDumpPath);.dump /m %(TargetExes64.MiniDumpPath);q" %(TargetExes64.Identity)' />
 
   </Target>
 
@@ -120,17 +120,17 @@
   </Target>
 
   <Target Condition="'$(OS)' != 'Windows_NT'" Name="BuildNonWindows" AfterTargets="PreBuildCommon">
-    <Exec Command="dotnet build --output $(BinDir64) %(TestProjects.Identity)" />
+    <Exec Command="dotnet build --output $(BinDir64) %(TargetProjects.Identity)" />
 
     <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" Value="1" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" Value="coredump" />
 
-    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)%(TestProjects.Filename)"' WorkingDirectory="%(TestProjects.RelativeDir)" ContinueOnError="true" />
-    <Move SourceFiles="%(TestProjects.RelativeDir)coredump" DestinationFiles="$(BinDir64)%(TestProjects.Filename)_wks.dmp" />
+    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)%(TargetProjects.Filename)"' WorkingDirectory="%(TargetProjects.RelativeDir)" ContinueOnError="true" />
+    <Move SourceFiles="%(TargetProjects.RelativeDir)coredump" DestinationFiles="$(BinDir64)%(TargetProjects.Filename)_wks.dmp" />
 
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" Value="1" />
-    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)%(TestProjects.Filename)"' WorkingDirectory="%(TestProjects.RelativeDir)" ContinueOnError="true" />
-    <Move SourceFiles="%(TestProjects.RelativeDir)coredump" DestinationFiles="$(BinDir64)%(TestProjects.Filename)_wks_mini.dmp" />
+    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)%(TargetProjects.Filename)"' WorkingDirectory="%(TargetProjects.RelativeDir)" ContinueOnError="true" />
+    <Move SourceFiles="%(TargetProjects.RelativeDir)coredump" DestinationFiles="$(BinDir64)%(TargetProjects.Filename)_wks_mini.dmp" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" />
 
     <SetEnvironmentVariable Variable="COMPlus_gcServer" Value="1" />
