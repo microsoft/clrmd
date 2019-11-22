@@ -597,6 +597,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
+#pragma warning disable CA1823
         private const int mdtModule = 0x00000000; //
         private const int mdtTypeRef = 0x01000000; //
         private const int mdtTypeDef = 0x02000000; //

@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
+#pragma warning disable CA1305 // Specify IFormatProvider
+
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class TraceDataReader : IDataReader
@@ -54,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int hash = 0;
             foreach (ModuleInfo module in modules)
-                hash ^= module.FileName.ToLower().GetHashCode();
+                hash ^= module.FileName.ToUpperInvariant().GetHashCode();
 
             _file.WriteLine("EnumerateModules - {0} {1:x}", modules.Count, hash);
             return modules;

@@ -352,40 +352,4 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         protected internal virtual long TotalObjects => -1;
     }
-
-    public readonly struct ClrObjectReference
-    {
-        /// <value>
-        /// -1 if the target object is not referenced by a field.
-        /// </value>
-        public int FieldOffset { get; }
-        public ulong Address { get; }
-        public ClrType TargetType { get; }
-
-        public ClrObjectReference(int fieldOffset, ulong address, ClrType targetType)
-        {
-            FieldOffset = fieldOffset;
-            Address = address;
-            TargetType = targetType;
-        }
-
-        public ClrObject Object => new ClrObject(Address, TargetType);
-    }
-
-    /// <summary>
-    /// Defines the state of the thread from the runtime's perspective.
-    /// </summary>
-    public enum GcMode
-    {
-        /// <summary>
-        /// In Cooperative mode the thread must cooperate before a GC may proceed.  This means when a GC
-        /// starts, the runtime will attempt to suspend the thread at a safepoint but cannot immediately
-        /// stop the thread until it synchronizes.
-        /// </summary>
-        Cooperative,
-        /// <summary>
-        /// In Preemptive mode the runtime is free to suspend the thread at any time for a GC to occur.
-        /// </summary>
-        Preemptive
-    }
 }

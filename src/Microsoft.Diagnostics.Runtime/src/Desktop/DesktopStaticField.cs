@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        private int GetDepth(ClrType curr)
+        private static int GetDepth(ClrType curr)
         {
             int depth = 0;
             while (curr != null)

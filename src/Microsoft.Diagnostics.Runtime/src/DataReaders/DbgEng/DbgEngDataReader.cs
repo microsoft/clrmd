@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -43,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         private void SetClientInstance()
         {
             if (_systemObjects3 != null && s_totalInstanceCount > 1)
-                _systemObjects3.SetCurrentSystemId(_instance);
+                AssertSuccess(_systemObjects3.SetCurrentSystemId(_instance));
         }
 
         public DbgEngDataReader(string dumpFile)
@@ -63,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
             CreateClient(client);
 
             // This actually "attaches" to the crash dump.
-            _control.WaitForEvent(0, 0xffffffff);
+            AssertSuccess(_control.WaitForEvent(0, 0xffffffff));
         }
 
         public DbgEngDataReader(IDebugClient client)
@@ -126,11 +127,11 @@ namespace Microsoft.Diagnostics.Runtime
                     return (bool)_minidump;
 
                 SetClientInstance();
-                _control.GetDebuggeeType(out _, out DEBUG_CLASS_QUALIFIER qual);
+                AssertSuccess(_control.GetDebuggeeType(out _, out DEBUG_CLASS_QUALIFIER qual));
 
                 if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
                 {
-                    _control.GetDumpFormatFlags(out DEBUG_FORMAT flags);
+                    AssertSuccess(_control.GetDumpFormatFlags(out DEBUG_FORMAT flags));
                     _minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
                     return _minidump.Value;
                 }
@@ -172,7 +173,8 @@ namespace Microsoft.Diagnostics.Runtime
         private static IDebugClient CreateIDebugClient()
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            DebugCreate(ref guid, out object obj);
+            int hr = DebugCreate(ref guid, out object obj);
+            Debug.Assert(hr == 0);
 
             IDebugClient client = (IDebugClient)obj;
             return client;
@@ -180,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport("dbgeng.dll")]
-        public static extern uint DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
+        public static extern int DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
 
         public void Close()
         {
@@ -251,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong[] bases = GetImageBases();
             if (bases == null || bases.Length == 0)
-                return new ModuleInfo[0];
+                return Array.Empty<ModuleInfo>();
 
             DEBUG_MODULE_PARAMETERS[] mods = new DEBUG_MODULE_PARAMETERS[bases.Length];
             List<ModuleInfo> modules = new List<ModuleInfo>();
@@ -317,7 +319,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ClrDiagnosticsException("This version of DbgEng is too old to create multiple instances of DataTarget.", ClrDiagnosticsExceptionKind.DebuggerError);
 
             if (_systemObjects3 != null)
-                _systemObjects3.GetCurrentSystemId(out _instance);
+                AssertSuccess(_systemObjects3.GetCurrentSystemId(out _instance));
         }
 
         internal int GetModuleNameString(DEBUG_MODNAME Which, int Index, ulong Base, StringBuilder Buffer, uint BufferSize, out uint NameSize)
@@ -399,30 +401,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return Unsafe.ReadUnaligned<uint>(ptr);
         }
 
-        internal void SetSymbolPath(string path)
-        {
-            SetClientInstance();
-            _symbols.SetSymbolPath(path);
-            _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, ".reload", DEBUG_EXECUTE.NOT_LOGGED);
-        }
-
-        internal int QueryVirtual(ulong addr, out MEMORY_BASIC_INFORMATION64 mem)
-        {
-            if (_spaces2 == null)
-            {
-                mem = new MEMORY_BASIC_INFORMATION64();
-                return -1;
-            }
-
-            SetClientInstance();
-            return _spaces2.QueryVirtual(addr, out mem);
-        }
-
-        internal int GetModuleByModuleName(string image, int start, out uint index, out ulong baseAddress)
-        {
-            SetClientInstance();
-            return _symbols.GetModuleByModuleName(image, (uint)start, out index, out baseAddress);
-        }
 
         public void GetVersionInfo(ulong baseAddr, out VersionInfo version)
         {
@@ -501,13 +479,13 @@ namespace Microsoft.Diagnostics.Runtime
         internal void GetThreadIdBySystemId(uint threadID, out uint id)
         {
             SetClientInstance();
-            _systemObjects.GetThreadIdBySystemId(threadID, out id);
+            AssertSuccess(_systemObjects.GetThreadIdBySystemId(threadID, out id));
         }
 
         internal void SetCurrentThreadId(uint id)
         {
             SetClientInstance();
-            _systemObjects.SetCurrentThreadId(id);
+            AssertSuccess(_systemObjects.SetCurrentThreadId(id));
         }
 
         public IEnumerable<uint> EnumerateAllThreads()
@@ -524,7 +502,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return sysIds;
             }
 
-            return new uint[0];
+            return Array.Empty<uint>();
         }
 
         public ulong GetThreadTeb(uint thread)
@@ -536,10 +514,10 @@ namespace Microsoft.Diagnostics.Runtime
             bool haveId = hr == 0;
 
             if (_systemObjects.GetThreadIdBySystemId(thread, out uint newId) == 0 && _systemObjects.SetCurrentThreadId(newId) == 0)
-                _systemObjects.GetCurrentThreadTeb(out teb);
+                AssertSuccess(_systemObjects.GetCurrentThreadTeb(out teb));
 
             if (haveId)
-                _systemObjects.SetCurrentThreadId(id);
+                AssertSuccess(_systemObjects.SetCurrentThreadId(id));
 
             return teb;
         }
@@ -561,16 +539,21 @@ namespace Microsoft.Diagnostics.Runtime
             if (count == 0 && s_needRelease && disposing)
             {
                 if (_systemObjects3 != null)
-                    _systemObjects3.SetCurrentSystemId(_instance);
+                    AssertSuccess(_systemObjects3.SetCurrentSystemId(_instance));
 
-                DebuggerInterface.EndSession(DEBUG_END.ACTIVE_DETACH);
-                DebuggerInterface.DetachProcesses();
+                AssertSuccess(DebuggerInterface.EndSession(DEBUG_END.ACTIVE_DETACH));
+                AssertSuccess(DebuggerInterface.DetachProcesses());
             }
 
             // If there are no more debug instances, we can safely reset this variable
             // and start releasing newly created IDebug objects.
             if (count == 0)
                 s_needRelease = true;
+        }
+
+        private static void AssertSuccess(int hr)
+        {
+            Debug.Assert(hr >= 0);
         }
     }
 }

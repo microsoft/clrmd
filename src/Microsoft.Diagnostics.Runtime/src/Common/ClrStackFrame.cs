@@ -96,6 +96,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The default name used when a module name cannot be calculated.
         /// </summary>
-        public static string UnknownModuleName = "UNKNOWN";
+        public const string UnknownModuleName = "UNKNOWN";
     }
 }

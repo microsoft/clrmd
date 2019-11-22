@@ -355,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return EnumerateStackRootsWorker();
             }
 
-            return new ClrRoot[0];
+            return Array.Empty<ClrRoot>();
         }
 
         private IEnumerable<ClrRoot> EnumerateStackRootsWorker()
@@ -924,7 +924,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool _initializedStringFields;
         private ClrType[] _basicTypes;
 
-        internal readonly ClrInterface[] EmptyInterfaceList = new ClrInterface[0];
+        internal readonly ClrInterface[] EmptyInterfaceList = Array.Empty<ClrInterface>();
         internal Dictionary<string, ClrInterface> Interfaces = new Dictionary<string, ClrInterface>();
         private readonly Lazy<ClrType> _arrayType;
         private readonly Lazy<ClrType> _exceptionType;
@@ -1289,7 +1289,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
                 else
                 {
-                    result = s_emptyObjectSet;
+                    result = Array.Empty<ClrObject>();
                 }
             }
             else

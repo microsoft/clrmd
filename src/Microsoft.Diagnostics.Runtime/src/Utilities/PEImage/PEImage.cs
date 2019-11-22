@@ -57,11 +57,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="isVirtual">Whether stream points to a PE image mapped into an address space (such as in a live process or crash dump).</param>
         public PEImage(Stream stream, bool isVirtual)
         {
+            _virt = isVirtual;
+            Stream = stream ?? throw new ArgumentNullException(nameof(stream));
+
             if (!stream.CanSeek)
                 throw new ArgumentException($"{nameof(stream)} is not seekable.");
-
-            _virt = isVirtual;
-            Stream = stream;
 
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)

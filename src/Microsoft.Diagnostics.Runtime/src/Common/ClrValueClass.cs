@@ -20,11 +20,6 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Address { get; }
 
         /// <summary>
-        /// The address of the object in Hex format.
-        /// </summary>
-        public string HexAddress => Address.ToString("x");
-
-        /// <summary>
         /// The type of the object.
         /// </summary>
         public ClrType Type { get; }

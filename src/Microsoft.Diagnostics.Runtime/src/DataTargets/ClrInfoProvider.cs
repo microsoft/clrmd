@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -28,7 +29,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (moduleName == null)
                 return false;
 
+#pragma warning disable CA1304 // Specify CultureInfo
             moduleName = moduleName.ToLower();
+#pragma warning restore CA1304 // Specify CultureInfo
             return true;
         }
 
@@ -41,6 +44,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>true if module corresponds to a supported runtime</returns>
         public static bool IsSupportedRuntime(ModuleInfo moduleInfo, out ClrFlavor flavor, out Platform platform)
         {
+            if (moduleInfo == null)
+                throw new ArgumentNullException(nameof(moduleInfo));
+
             flavor = default;
             platform = default;
 

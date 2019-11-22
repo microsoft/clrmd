@@ -11,6 +11,10 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
+// TODO: remove this after code is cleaned up
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>

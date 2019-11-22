@@ -5,6 +5,7 @@
 using System;
 using System.Runtime.Serialization;
 
+#pragma warning disable CA1032 // Implement standard exception constructors
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>

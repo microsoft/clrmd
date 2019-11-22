@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA1066 // Type {0} should implement IEquatable<T> because it overrides Equals
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object obj)
         {
             if (obj == null)
-                throw new ArgumentNullException(nameof(obj));
+                return false;
 
             if (obj.GetType() != typeof(M128A))
                 return false;

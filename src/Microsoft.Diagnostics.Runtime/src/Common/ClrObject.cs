@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
             Type = type;
 
             Debug.Assert(address == 0 || type != null);
-            Debug.Assert(address == 0 || type.Heap.GetObjectType(address) == type);
+            Debug.Assert(address == 0 || (type != null && type.Heap.GetObjectType(address) == type));
         }
 
         /// <summary>
@@ -52,11 +52,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The address of the object.
         /// </summary>
         public ulong Address { get; private set; }
-
-        /// <summary>
-        /// The address of the object in Hex format.
-        /// </summary>
-        public string HexAddress => Address.ToString("x");
 
         /// <summary>
         /// The type of the object.

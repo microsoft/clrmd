@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrType BaseType => DesktopHeap.ObjectType;
         public override int ElementSize => 0;
         public override ClrHeap Heap => DesktopHeap;
-        public override IList<ClrInterface> Interfaces => new ClrInterface[0];
+        public override IList<ClrInterface> Interfaces => Array.Empty<ClrInterface>();
         public override bool IsAbstract => false;
         public override bool IsFinalizable => false;
         public override bool IsInterface => false;
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            return new ulong[0];
+            return Array.Empty<ulong>();
         }
 
         public override void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action)
@@ -86,6 +86,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return 0;
         }
 
-        public override IList<ClrInstanceField> Fields => new ClrInstanceField[0];
+        public override IList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
     }
 }

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private ISOSDac6VTable* VTable => (ISOSDac6VTable*)_vtable;
 
         public SOSDac6(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, ref IID_ISOSDac6, ptr)
+            : base(library?.OwningLibrary, ref IID_ISOSDac6, ptr)
         {
         }
 

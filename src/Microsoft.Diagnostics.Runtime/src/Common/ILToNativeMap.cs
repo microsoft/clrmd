@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#pragma warning disable CA1051 // Do not declare visible instance fields
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -33,11 +34,11 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{ILOffset,2:X} - [{StartAddress:X}-{EndAddress:X}]";
         }
 
+#pragma warning disable CA1823
 #pragma warning disable 0169
         /// <summary>
         /// Reserved.
         /// </summary>
         private readonly int _reserved;
-#pragma warning restore 0169
     }
 }

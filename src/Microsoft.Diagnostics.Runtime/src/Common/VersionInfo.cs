@@ -99,5 +99,35 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return $"v{Major}.{Minor}.{Revision}.{Patch:D2}";
         }
+
+        public static bool operator ==(VersionInfo left, VersionInfo right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(VersionInfo left, VersionInfo right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator <(VersionInfo left, VersionInfo right)
+        {
+            return left.CompareTo(right) < 0;
+        }
+
+        public static bool operator <=(VersionInfo left, VersionInfo right)
+        {
+            return left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >(VersionInfo left, VersionInfo right)
+        {
+            return left.CompareTo(right) > 0;
+        }
+
+        public static bool operator >=(VersionInfo left, VersionInfo right)
+        {
+            return left.CompareTo(right) >= 0;
+        }
     }
 }

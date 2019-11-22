@@ -34,6 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public uint ThreadId => Pid;
 
-        public unsafe bool CopyContext(uint contextFlags, Span<byte> buffer) => RegisterSet.CopyContext(contextFlags, buffer);
+        public unsafe bool CopyContext(uint contextFlags, Span<byte> buffer) => RegisterSet.CopyContext(buffer);
     }
 }

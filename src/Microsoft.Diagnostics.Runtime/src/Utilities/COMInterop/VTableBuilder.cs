@@ -36,6 +36,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="func">The function to add to the next slot of the VTable.</param>
         public void AddMethod(Delegate func, bool validate = false)
         {
+            if (func is null)
+                throw new ArgumentNullException(nameof(func));
+
             if (_complete)
                 throw new InvalidOperationException();
 

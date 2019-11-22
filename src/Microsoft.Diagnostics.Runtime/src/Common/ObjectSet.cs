@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -38,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="heap">A ClrHeap to add objects from.</param>
         public ObjectSet(ClrHeap heap)
         {
-            _heap = heap;
+            _heap = heap ?? throw new ArgumentNullException(nameof(heap));
             _minObjSize = heap.PointerSize * 3;
 
             List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Count);

@@ -1116,7 +1116,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return offset + sizeof(int);
         }
 
-        private int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
+        private static int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
         {
             for (int i = offset; i < offset + sizeof(ulong); ++i)
             {

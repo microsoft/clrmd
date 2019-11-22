@@ -17,11 +17,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
-        private static RejitData[] s_emptyRejit;
         private readonly DacLibrary _library;
 
         public SOSDac(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, ref IID_ISOSDac, ptr)
+            : base(library?.OwningLibrary, ref IID_ISOSDac, ptr)
         {
             _library = library;
         }
@@ -100,10 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return result;
             }
 
-            if (s_emptyRejit == null)
-                s_emptyRejit = new RejitData[0];
-
-            return s_emptyRejit;
+            return Array.Empty<RejitData>();
         }
 
         public bool GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
@@ -538,7 +534,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (count <= 0)
             {
                 if (func(Self, address, 0, null, out needed) < 0)
-                    return new ulong[0];
+                    return Array.Empty<ulong>();
 
                 count = needed;
             }
@@ -557,14 +553,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (count <= 0)
             {
                 if (!GetAppDomainStoreData(out AppDomainStoreData addata))
-                    return new ulong[0];
+                    return Array.Empty<ulong>();
 
                 count = addata.AppDomainCount;
             }
 
             ulong[] data = new ulong[count];
             int hr = _getAppDomainList(Self, data.Length, data, out int needed);
-            return hr == S_OK ? data : new ulong[0];
+            return hr == S_OK ? data : Array.Empty<ulong>();
         }
 
         public bool GetThreadData(ulong address, out ThreadData data)
@@ -636,12 +632,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getJitManagers, VTable->GetJitManagerList);
             int hr = _getJitManagers(Self, 0, null, out int needed);
             if (hr != S_OK || needed == 0)
-                return new JitManagerInfo[0];
+                return Array.Empty<JitManagerInfo>();
 
             JitManagerInfo[] result = new JitManagerInfo[needed];
             hr = _getJitManagers(Self, result.Length, result, out needed);
 
-            return hr == S_OK ? result : new JitManagerInfo[0];
+            return hr == S_OK ? result : Array.Empty<JitManagerInfo>();
         }
 
         public JitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
@@ -649,12 +645,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getCodeHeaps, VTable->GetCodeHeapList);
             int hr = _getCodeHeaps(Self, jitManager, 0, null, out int needed);
             if (hr != S_OK || needed == 0)
-                return new JitCodeHeapInfo[0];
+                return Array.Empty<JitCodeHeapInfo>();
 
             JitCodeHeapInfo[] result = new JitCodeHeapInfo[needed];
             hr = _getCodeHeaps(Self, jitManager, result.Length, result, out needed);
 
-            return hr == S_OK ? result : new JitCodeHeapInfo[0];
+            return hr == S_OK ? result : Array.Empty<JitCodeHeapInfo>();
         }
 
         public enum ModuleMapTraverseKind
@@ -856,6 +852,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 #pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable CA1823
 
     internal struct ISOSDacVTable
     {

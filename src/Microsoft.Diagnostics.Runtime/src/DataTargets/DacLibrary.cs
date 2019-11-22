@@ -82,6 +82,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DacLibrary(DataTarget dataTarget, string dacDll)
         {
+            if (dataTarget is null)
+                throw new ArgumentNullException(nameof(dataTarget));
+
             if (dataTarget.ClrVersions.Count == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
@@ -117,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
             int res = func(ref guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
             if (res != 0)
-                throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsExceptionKind.DacError, res);
+                throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", ClrDiagnosticsExceptionKind.DacError, res);
 
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
@@ -139,6 +142,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 InternalDacPrivateInterface?.Dispose();
                 _sos?.Dispose();
+                _sos6?.Dispose();
                 OwningLibrary?.Release();
 
                 _disposed = true;

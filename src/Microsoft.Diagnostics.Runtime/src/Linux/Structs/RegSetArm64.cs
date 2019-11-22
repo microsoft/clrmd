@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ulong pc;
         public ulong pstate;
 
-        public unsafe bool CopyContext(uint contextFlags, Span<byte> buffer)
+        public unsafe bool CopyContext(Span<byte> buffer)
         {
             if (buffer.Length < Arm64Context.Size)
                 return false;

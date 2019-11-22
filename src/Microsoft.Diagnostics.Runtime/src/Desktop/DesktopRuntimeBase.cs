@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrException> EnumerateSerializedExceptions()
         {
-            return new ClrException[0];
+            return Array.Empty<ClrException>();
         }
 
         public override IEnumerable<int> EnumerateGCThreads()
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
                 else
                 {
-                    heaps = new IHeapDetails[0];
+                    heaps = Array.Empty<IHeapDetails>();
                 }
             }
             else
@@ -479,11 +479,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             ClrModule mscorlib = null;
             string moduleName = ClrInfo.Flavor == ClrFlavor.Core
-                ? "system.private.corelib"
-                : "mscorlib";
+                ? "SYSTEM.PRIVATE.CORELIB"
+                : "MSCORLIB";
 
             foreach (ClrModule module in _modules.Values)
-                if (module.Name.ToLowerInvariant().Contains(moduleName))
+                if (module.Name.ToUpperInvariant().Contains(moduleName))
                 {
                     mscorlib = module;
                     break;
@@ -496,7 +496,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 foreach (ulong assembly in GetAssemblyList(ads.SharedDomain, sharedDomain.AssemblyCount))
                 {
                     string name = GetAssemblyName(assembly);
-                    if (name.ToLowerInvariant().Contains(moduleName))
+                    if (name.ToUpperInvariant().Contains(moduleName))
                     {
                         IAssemblyData assemblyData = GetAssemblyData(ads.SharedDomain, assembly);
                         ulong module = GetModuleList(assembly, assemblyData.ModuleCount).Single();
@@ -795,7 +795,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             public readonly DesktopAppDomain Shared;
             public readonly IList<ClrAppDomain> Domains;
             
-            public static readonly DomainContainer Empty = new DomainContainer(null, null, new ClrAppDomain[0]);
+            public static readonly DomainContainer Empty = new DomainContainer(null, null, Array.Empty<ClrAppDomain>());
 
             public DomainContainer(DesktopAppDomain system, DesktopAppDomain shared, IList<ClrAppDomain> domains)
             {
