@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -14,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
 
-        private readonly byte[] _ulongBuffer = new byte[8];
         private RequestDelegate _request;
         private NextDelegate _next;
         private GetContextDelegate _getContext;
@@ -28,9 +28,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _request, VTable->Request);
 
-            int hr = _request(Self, 0xf0000000, 0, null, (uint)_ulongBuffer.Length, _ulongBuffer);
+            byte* ptrBuffer = stackalloc byte[8];
+            for (int i = 0; i < 8; i++)
+                ptrBuffer[i] = 0xcc;
+
+            int hr = _request(Self, 0xf0000000, 0, null, 8u, ptrBuffer);
             if (hr == S_OK)
-                return BitConverter.ToUInt64(_ulongBuffer, 0);
+            {
+                ulong result = Unsafe.ReadUnaligned<ulong>(ptrBuffer);
+                return result;
+            }
 
             return 0;
         }
@@ -62,11 +69,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             uint reqCode,
             uint inBufferSize,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-            byte[] inBuffer,
+            byte* inBuffer,
             uint outBufferSize,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
-            byte[] outBuffer);
+            byte* outBuffer);
     }
 
 #pragma warning disable CS0169
