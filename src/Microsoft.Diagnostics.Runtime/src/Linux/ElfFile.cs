@@ -19,6 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private Reader _virtualAddressReader;
         private ElfNote[] _notes;
         private ElfProgramHeader[] _programHeaders;
+        private byte[] _buildId;
 
         public IElfHeader Header { get; }
 
@@ -52,13 +53,22 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             get
             {
+                if (_buildId != null)
+                    return _buildId;
+
                 if (Header.ProgramHeaderOffset != 0 && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
                 {
                     try
                     {
                         foreach (ElfNote note in Notes)
+                        {
                             if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
-                                return note.ReadContents(0, (int)note.Header.ContentSize);
+                            {
+                                _buildId = new byte[note.Header.ContentSize];
+                                note.ReadContents(0, new Span<byte>(_buildId, 0, _buildId.Length));
+                                return _buildId;
+                            }
+                        }
                     }
                     catch (IOException)
                     {

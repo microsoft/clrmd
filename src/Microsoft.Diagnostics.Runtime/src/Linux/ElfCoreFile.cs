@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -63,12 +64,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 #endif
         }
 
-        public int ReadMemory(long address, byte[] buffer, int bytesRequested)
+        public int ReadMemory(long address, Span<byte> buffer)
         {
             if (_virtualAddressSpace == null)
                 _virtualAddressSpace = new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
 
-            return _virtualAddressSpace.Read(address, buffer, 0, bytesRequested);
+            return _virtualAddressSpace.Read(address, buffer);
         }
 
         private IEnumerable<ElfNote> GetNotes(ElfNoteType type)
@@ -150,22 +151,30 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
             }
 
-            long size = fileNote.Header.ContentSize - position;
-            byte[] bytes = fileNote.ReadContents(position, (int)size);
-            int start = 0;
-            for (int i = 0; i < fileTable.Length; i++)
+            int size = (int)(fileNote.Header.ContentSize - position);
+            byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
+            try
             {
-                int end = start;
-                while (bytes[end] != 0)
-                    end++;
+                int read = fileNote.ReadContents(position, new Span<byte>(bytes, 0, size));
+                int start = 0;
+                for (int i = 0; i < fileTable.Length; i++)
+                {
+                    int end = start;
+                    while (bytes[end] != 0)
+                        end++;
 
-                string path = Encoding.ASCII.GetString(bytes, start, end - start);
-                start = end + 1;
+                    string path = Encoding.ASCII.GetString(bytes, start, end - start);
+                    start = end + 1;
 
-                if (!lookup.TryGetValue(path, out ElfLoadedImage image))
-                    image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
+                    if (!lookup.TryGetValue(path, out ElfLoadedImage image))
+                        image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
 
-                image.AddTableEntryPointers(fileTable[i]);
+                    image.AddTableEntryPointers(fileTable[i]);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(bytes);
             }
 
             _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();

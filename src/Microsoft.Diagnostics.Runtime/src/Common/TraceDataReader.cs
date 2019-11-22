@@ -66,9 +66,9 @@ namespace Microsoft.Diagnostics.Runtime
             _file.WriteLine("GetVersionInfo - {0:x} {1}", baseAddress, version.ToString());
         }
 
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
         {
-            bool result = _reader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
+            bool result = _reader.ReadMemory(address, buffer, out bytesRead);
 
             StringBuilder sb = new StringBuilder();
             int count = bytesRead > 8 ? 8 : bytesRead;
@@ -77,13 +77,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             _file.WriteLine("ReadMemory {0}- {1:x} {2} {3}", result ? "" : "failed ", address, bytesRead, sb);
 
-            return result;
-        }
-
-        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
-        {
-            bool result = _reader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
-            _file.WriteLine("ReadMemory {0}- {1:x} {2}", result ? "" : "failed ", address, bytesRead);
             return result;
         }
 
@@ -121,16 +114,9 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            bool result = _reader.GetThreadContext(threadID, contextFlags, contextSize, context);
-            _file.WriteLine("GetThreadContext - {0}", result);
-            return result;
-        }
-
-        public bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
-        {
-            bool result = _reader.GetThreadContext(threadID, contextFlags, contextSize, context);
+            bool result = _reader.GetThreadContext(threadID, contextFlags, context);
             _file.WriteLine("GetThreadContext - {0}", result);
             return result;
         }

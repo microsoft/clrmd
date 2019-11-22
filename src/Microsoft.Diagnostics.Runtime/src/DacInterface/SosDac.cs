@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -28,10 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSDac(CallableCOMWrapper toClone) : base(toClone)
         {
         }
-
-        private const int CharBufferSize = 256;
-        private byte[] _buffer = new byte[CharBufferSize];
-
+        
         private DacGetIntPtr _getHandleEnum;
         private DacGetIntPtrWithArg _getStackRefEnum;
         private DacGetThreadData _getThreadData;
@@ -149,25 +147,30 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_getMethodDescName(Self, md, 0, null, out int needed) < S_OK)
                 return null;
 
-            byte[] buffer = AcquireBuffer(needed * 2);
-
-            if (_getMethodDescName(Self, md, needed, buffer, out int actuallyNeeded) < S_OK)
-                return null;
-
-            // Patch for a bug on sos side :
-            //  Sometimes, when the target method has parameters with generic types
-            //  the first call to GetMethodDescName sets an incorrect value into pNeeded.
-            //  In those cases, a second call directly after the first returns the correct value.
-            if (needed != actuallyNeeded)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
+            try
             {
-                ReleaseBuffer(buffer);
-                buffer = AcquireBuffer(actuallyNeeded * 2);
-                if (_getMethodDescName(Self, md, actuallyNeeded, buffer, out actuallyNeeded) < S_OK)
+                if (_getMethodDescName(Self, md, needed, buffer, out int actuallyNeeded) < S_OK)
                     return null;
-            }
 
-            ReleaseBuffer(buffer);
-            return string.Intern(Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2));
+                // Patch for a bug on sos side :
+                //  Sometimes, when the target method has parameters with generic types
+                //  the first call to GetMethodDescName sets an incorrect value into pNeeded.
+                //  In those cases, a second call directly after the first returns the correct value.
+                if (needed != actuallyNeeded)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                    buffer = ArrayPool<byte>.Shared.Rent(actuallyNeeded * 2);
+                    if (_getMethodDescName(Self, md, actuallyNeeded, buffer, out actuallyNeeded) < S_OK)
+                        return null;
+                }
+
+                return string.Intern(Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2));
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         public ulong GetMethodTableSlot(ulong mt, int slot)
@@ -453,21 +456,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (needed == 0)
                 return "";
 
-            byte[] buffer = AcquireBuffer(needed * 2);
-            hr = func(Self, addr, needed, buffer, out needed);
-            if (hr != S_OK)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
+            try
             {
-                ReleaseBuffer(buffer);
-                return null;
+                hr = func(Self, addr, needed, buffer, out needed);
+                if (hr != S_OK)
+                    return null;
+
+                if (skipNull)
+                    needed--;
+
+                string result = Encoding.Unicode.GetString(buffer, 0, needed * 2);
+                return result;
             }
-
-            if (skipNull)
-                needed--;
-
-            string result = Encoding.Unicode.GetString(buffer, 0, needed * 2);
-
-            ReleaseBuffer(buffer);
-            return result;
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         private string GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
@@ -479,41 +484,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (needed == 0)
                 return "";
 
-            byte[] buffer = AcquireBuffer(needed);
-            hr = func(Self, addr, needed, buffer, out needed);
-            if (hr != S_OK)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
+            try
             {
-                ReleaseBuffer(buffer);
-                return null;
+                hr = func(Self, addr, needed, buffer, out needed);
+                if (hr != S_OK)
+                    return null;
+
+                int len = Array.IndexOf(buffer, (byte)0);
+                if (len >= 0)
+                    needed = len;
+
+                string result = Encoding.ASCII.GetString(buffer, 0, needed);
+                return result;
             }
-
-            int len = Array.IndexOf(buffer, (byte)0);
-            if (len >= 0)
-                needed = len;
-
-            string result = Encoding.ASCII.GetString(buffer, 0, needed);
-
-            ReleaseBuffer(buffer);
-            return result;
-        }
-
-        private byte[] AcquireBuffer(int size)
-        {
-            if (_buffer == null)
-                _buffer = new byte[CharBufferSize];
-
-            if (size > _buffer.Length)
-                return new byte[size];
-
-            byte[] result = _buffer;
-            _buffer = null;
-            return result;
-        }
-
-        private void ReleaseBuffer(byte[] buffer)
-        {
-            if (buffer.Length == CharBufferSize)
-                _buffer = buffer;
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         public ulong GetMethodTableByEEClass(ulong eeclass)

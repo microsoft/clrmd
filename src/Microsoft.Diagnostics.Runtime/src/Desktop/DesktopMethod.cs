@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 _il = new ILInfo();
 
-                if (_runtime.ReadByte(il, out byte b))
+                if (_runtime.ReadPrimitive(il, out byte b))
                 {
                     bool isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
                     if (isTinyHeader)
@@ -216,12 +216,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         _il.Length = b >> (int) (IMAGE_COR_ILMETHOD.FormatShift - 1);
                         _il.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
                     }
-                    else if (_runtime.ReadDword(il, out uint tmp))
+                    else if (_runtime.ReadPrimitive(il, out uint tmp))
                     {
                         _il.Flags = tmp;
-                        _runtime.ReadDword(il + 4, out tmp);
+                        _runtime.ReadPrimitive(il + 4, out tmp);
                         _il.Length = (int) tmp;
-                        _runtime.ReadDword(il + 8, out tmp);
+                        _runtime.ReadPrimitive(il + 8, out tmp);
                         _il.LocalVarSignatureToken = tmp;
                         _il.Address = il + 12;
                     }

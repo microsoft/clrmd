@@ -295,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return false;
 
             ulong flagsAddr = data.ClassData + (_containingType.MetadataToken & ~0x02000000u) - 1;
-            if (!_heap.DesktopRuntime.ReadByte(flagsAddr, out byte flags))
+            if (!_heap.DesktopRuntime.ReadPrimitive(flagsAddr, out byte flags))
                 return false;
 
             return (flags & 1) != 0;

@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
                 uint offset = runtime.GetExceptionHROffset();
-                runtime.ReadDword(_object + offset, out int hr);
+                runtime.ReadPrimitive(_object + offset, out int hr);
 
                 return hr;
             }

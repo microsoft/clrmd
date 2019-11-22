@@ -17,11 +17,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetThreadContext(
             [In] IntPtr Context,
-            [In] uint ContextSize);
+            [In] int ContextSize);
 
         [PreserveSig]
         int SetThreadContext(
             [In] IntPtr Context,
-            [In] uint ContextSize);
+            [In] int ContextSize);
     }
 }

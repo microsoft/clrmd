@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private SOSDac _sos;
         private SOSDac6 _sos6;
 
-        public V45Runtime(ClrInfo info, DataTarget dt, DacLibrary lib)
+        public unsafe V45Runtime(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
             if (!GetCommonMethodTables(ref _commonMTs))
@@ -28,13 +28,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
-            byte[] tmp = new byte[sizeof(int)];
-
-            if (!Request(DacRequests.VERSION, null, tmp))
+            int version = 0;
+            if (lib.DacPrivateInterface.Request(DacRequests.VERSION, Span<byte>.Empty, new Span<byte>((byte*)&version, sizeof(int))) != 0)
                 throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsExceptionKind.DacError);
 
-            int v = BitConverter.ToInt32(tmp, 0);
-            if (v != 9)
+            if (version != 9)
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsExceptionKind.DacError);
         }
 

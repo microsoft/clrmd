@@ -922,5 +922,343 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
             return Encoding.ASCII.GetString(_buffer, 0, len);
         }
+
+
+        private bool Request(uint id, ulong param, byte[] output)
+        {
+            byte[] input = BitConverter.GetBytes(param);
+
+            return Request(id, input, output);
+        }
+
+        private bool Request(uint id, uint param, byte[] output)
+        {
+            byte[] input = BitConverter.GetBytes(param);
+
+            return Request(id, input, output);
+        }
+
+        private unsafe bool Request(uint id, byte[] input, byte[] output)
+        {
+            fixed (byte* pInput = input)
+            fixed (byte* pOutput = output)
+            {
+                int result = _dacInterface.Request(id, new Span<byte>(pInput, input?.Length ?? 0), new Span<byte>(pOutput, output?.Length ?? 0));
+                return result >= 0;
+            }
+        }
+
+        private I Request<I, T>(uint id, byte[] input)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, input, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private I Request<I, T>(uint id, ulong param)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, param, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private I Request<I, T>(uint id, uint param)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, param, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private I Request<I, T>(uint id)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, null, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private bool RequestStruct<T>(uint id, ref T t)
+            where T : struct
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, null, output))
+                return false;
+
+            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+            t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return true;
+        }
+
+        private bool RequestStruct<T>(uint id, ulong addr, ref T t)
+            where T : struct
+        {
+            byte[] input = new byte[sizeof(ulong)];
+            byte[] output = GetByteArrayForStruct<T>();
+
+            WriteValueToBuffer(addr, input, 0);
+
+            if (!Request(id, input, output))
+                return false;
+
+            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+            t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return true;
+        }
+
+        private ulong[] RequestAddrList(uint id, int length)
+        {
+            byte[] bytes = new byte[length * sizeof(ulong)];
+            if (!Request(id, null, bytes))
+                return null;
+
+            ulong[] result = new ulong[length];
+            for (uint i = 0; i < length; ++i)
+                result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
+
+            return result;
+        }
+
+        private ulong[] RequestAddrList(uint id, ulong param, int length)
+        {
+            byte[] bytes = new byte[length * sizeof(ulong)];
+            if (!Request(id, param, bytes))
+                return null;
+
+            ulong[] result = new ulong[length];
+            for (uint i = 0; i < length; ++i)
+                result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
+
+            return result;
+        }
+
+        private static string BytesToString(byte[] output)
+        {
+            int len = 0;
+            while (len < output.Length && (output[len] != 0 || output[len + 1] != 0))
+                len += 2;
+
+            if (len > output.Length)
+                len = output.Length;
+
+            return Encoding.Unicode.GetString(output, 0, len);
+        }
+
+        private byte[] GetByteArrayForStruct<T>()
+            where T : struct
+        {
+            return new byte[Marshal.SizeOf(typeof(T))];
+        }
+
+        private I ConvertStruct<I, T>(byte[] bytes)
+            where I : class
+            where T : I
+        {
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            I result = (I)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return result;
+        }
+
+
+        private int WriteValueToBuffer(IntPtr ptr, byte[] buffer, int offset)
+        {
+            ulong value = (ulong)ptr.ToInt64();
+            for (int i = offset; i < offset + IntPtr.Size; ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + IntPtr.Size;
+        }
+
+        private int WriteValueToBuffer(int value, byte[] buffer, int offset)
+        {
+            for (int i = offset; i < offset + sizeof(int); ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + sizeof(int);
+        }
+
+        private int WriteValueToBuffer(uint value, byte[] buffer, int offset)
+        {
+            for (int i = offset; i < offset + sizeof(int); ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + sizeof(int);
+        }
+
+        private int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
+        {
+            for (int i = offset; i < offset + sizeof(ulong); ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + sizeof(ulong);
+        }
+
+        private class HandleTableWalker
+        {
+            private readonly DesktopRuntimeBase _runtime;
+            private readonly ClrHeap _heap;
+            private int _max = 10000;
+            private VISITHANDLEV2 _mV2Delegate;
+            private VISITHANDLEV4 _mV4Delegate;
+
+            public List<ClrHandle> Handles { get; }
+            public byte[] V4Request
+            {
+                get
+                {
+                    // MULTITHREAD ISSUE
+                    if (_mV4Delegate == null)
+                        _mV4Delegate = VisitHandleV4;
+
+                    IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(_mV4Delegate);
+                    byte[] request = new byte[IntPtr.Size * 2];
+                    FunctionPointerToByteArray(functionPtr, request, 0);
+
+                    return request;
+                }
+            }
+
+            public byte[] V2Request
+            {
+                get
+                {
+                    // MULTITHREAD ISSUE
+                    if (_mV2Delegate == null)
+                        _mV2Delegate = VisitHandleV2;
+
+                    IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(_mV2Delegate);
+                    byte[] request = new byte[IntPtr.Size * 2];
+
+                    FunctionPointerToByteArray(functionPtr, request, 0);
+
+                    return request;
+                }
+            }
+
+            public HandleTableWalker(DesktopRuntimeBase dac)
+            {
+                _runtime = dac;
+                _heap = dac.Heap;
+                Handles = new List<ClrHandle>();
+            }
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            private delegate int VISITHANDLEV4(ulong HandleAddr, ulong HandleValue, int HandleType, uint ulRefCount, ulong appDomainPtr, IntPtr token);
+
+            private int VisitHandleV4(ulong addr, ulong obj, int hndType, uint refCnt, ulong appDomain, IntPtr unused)
+            {
+                Debug.Assert(unused == IntPtr.Zero);
+
+                return AddHandle(addr, obj, hndType, refCnt, 0, appDomain);
+            }
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            private delegate int VISITHANDLEV2(ulong HandleAddr, ulong HandleValue, int HandleType, ulong appDomainPtr, IntPtr token);
+
+            private int VisitHandleV2(ulong addr, ulong obj, int hndType, ulong appDomain, IntPtr unused)
+            {
+                Debug.Assert(unused == IntPtr.Zero);
+
+                // V2 cannot actually get the ref count from a handle.  We'll always report the RefCount as
+                // 1 in this case so the user will treat this as a strong handle (which the majority of COM
+                // handles are).
+                uint refCnt = 0;
+                if (hndType == (uint)HandleType.RefCount)
+                    refCnt = 1;
+
+                return AddHandle(addr, obj, hndType, refCnt, 0, appDomain);
+            }
+
+            public int AddHandle(ulong addr, ulong obj, int hndType, uint refCnt, uint dependentTarget, ulong appDomain)
+            {
+                // If we fail to get the MT of this object, just skip it and keep going
+                if (!GetMethodTables(obj, out _, out _))
+                    return _max-- > 0 ? 1 : 0;
+
+                ClrHandle handle = new ClrHandle
+                {
+                    Address = addr,
+                    Object = obj,
+                    Type = _heap.GetObjectType(obj),
+                    HandleType = (HandleType)hndType,
+                    RefCount = refCnt,
+                    AppDomain = _runtime.GetAppDomainByAddress(appDomain),
+                    DependentTarget = dependentTarget
+                };
+
+                if (dependentTarget != 0)
+                    handle.DependentType = _heap.GetObjectType(dependentTarget);
+
+                Handles.Add(handle);
+                handle = handle.GetInteriorHandle();
+                if (handle != null)
+                    Handles.Add(handle);
+
+                // Stop if we have too many handles (likely infinite loop in dac due to
+                // inconsistent data).
+                return _max-- > 0 ? 1 : 0;
+            }
+
+            private bool GetMethodTables(ulong obj, out ulong mt, out ulong cmt)
+            {
+                mt = 0;
+                cmt = 0;
+
+                Span<byte> data = stackalloc byte[IntPtr.Size * 3];
+                if (!_runtime.ReadMemory(obj, data, out int read) || read != data.Length)
+                    return false;
+
+                mt = data.AsPointer(0);
+                if (mt == _runtime.ArrayMethodTable)
+                    cmt = data.AsPointer(2);
+
+                return true;
+            }
+
+            private static void FunctionPointerToByteArray(IntPtr functionPtr, byte[] request, int start)
+            {
+                long ptr = functionPtr.ToInt64();
+
+                for (int i = start; i < start + sizeof(ulong); ++i)
+                {
+                    request[i] = (byte)ptr;
+                    ptr >>= 8;
+                }
+            }
+        }
     }
 }

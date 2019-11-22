@@ -45,34 +45,15 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (offset == 0)
+            if (_dataReader.ReadMemory((ulong)(_pos + _disp), new Span<byte>(buffer, offset, count), out int read))
             {
-                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out int read))
-                {
-                    if (read > 0)
-                        _pos += read;
-
-                    return read;
-                }
-
-                return 0;
-            }
-            else
-            {
-                if (_tmp == null || _tmp.Length < count)
-                    _tmp = new byte[count];
-
-                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out int read))
-                    return 0;
-
                 if (read > 0)
-                {
-                    Buffer.BlockCopy(_tmp, 0, buffer, offset, read);
                     _pos += read;
-                }
 
                 return read;
             }
+
+            return 0;
         }
 
         public override long Seek(long offset, SeekOrigin origin)

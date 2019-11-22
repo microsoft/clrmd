@@ -75,11 +75,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _flush(Self);
         }
 
-        public int Request(uint reqCode, uint inBufferSize, byte[] inBuffer, uint outBufferSize, byte[] outBuffer)
+        public int Request(uint reqCode, Span<byte> input, Span<byte> output)
         {
             InitDelegate(ref _request, VTable->Request);
 
-            return _request(Self, reqCode, inBufferSize, inBuffer, outBufferSize, outBuffer);
+            fixed (byte* pInput = input)
+            fixed (byte* pOutput = output)
+                return _request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
         }
 
         public ClrStackWalk CreateStackWalk(uint id, uint flags)
@@ -141,12 +143,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int RequestDelegate(
             IntPtr self,
             uint reqCode,
-            uint inBufferSize,
-            [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-            byte[] inBuffer,
-            uint outBufferSize,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
-            byte[] outBuffer);
+            int inBufferSize,
+            byte* inBuffer,
+            int outBufferSize,
+            byte* outBuffer);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int FlushDelegate(IntPtr self);

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -16,7 +17,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int c_maxStackDepth = 1024 * 1024 * 1024; // 1gb
 
-        private static readonly ulong[] s_emptyPointerArray = new ulong[0];
         protected ClrDataProcess _dacInterface;
         private MemoryReader _cache;
         protected IDataReader _dataReader;
@@ -214,292 +214,35 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal abstract ClrAppDomain GetAppDomainByAddress(ulong addr);
 
-        protected bool Request(uint id, ulong param, byte[] output)
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead) => _dataReader.ReadMemory(address, buffer, out bytesRead);
+
+
+        public unsafe bool ReadPrimitive<T>(ulong addr, out T value) where T: unmanaged
         {
-            byte[] input = BitConverter.GetBytes(param);
-
-            return Request(id, input, output);
-        }
-
-        protected bool Request(uint id, uint param, byte[] output)
-        {
-            byte[] input = BitConverter.GetBytes(param);
-
-            return Request(id, input, output);
-        }
-
-        protected bool Request(uint id, byte[] input, byte[] output)
-        {
-            uint inSize = 0;
-            if (input != null)
-                inSize = (uint)input.Length;
-
-            uint outSize = 0;
-            if (output != null)
-                outSize = (uint)output.Length;
-
-            int result = _dacInterface.Request(id, inSize, input, outSize, output);
-
-            return result >= 0;
-        }
-
-        protected I Request<I, T>(uint id, byte[] input)
-            where T : struct, I
-            where I : class
-        {
-            byte[] output = GetByteArrayForStruct<T>();
-
-            if (!Request(id, input, output))
-                return null;
-
-            return ConvertStruct<I, T>(output);
-        }
-
-        protected I Request<I, T>(uint id, ulong param)
-            where T : struct, I
-            where I : class
-        {
-            byte[] output = GetByteArrayForStruct<T>();
-
-            if (!Request(id, param, output))
-                return null;
-
-            return ConvertStruct<I, T>(output);
-        }
-
-        protected I Request<I, T>(uint id, uint param)
-            where T : struct, I
-            where I : class
-        {
-            byte[] output = GetByteArrayForStruct<T>();
-
-            if (!Request(id, param, output))
-                return null;
-
-            return ConvertStruct<I, T>(output);
-        }
-
-        protected I Request<I, T>(uint id)
-            where T : struct, I
-            where I : class
-        {
-            byte[] output = GetByteArrayForStruct<T>();
-
-            if (!Request(id, null, output))
-                return null;
-
-            return ConvertStruct<I, T>(output);
-        }
-
-        protected bool RequestStruct<T>(uint id, ref T t)
-            where T : struct
-        {
-            byte[] output = GetByteArrayForStruct<T>();
-
-            if (!Request(id, null, output))
-                return false;
-
-            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
-            t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
-            handle.Free();
-            return true;
-        }
-
-        protected bool RequestStruct<T>(uint id, ulong addr, ref T t)
-            where T : struct
-        {
-            byte[] input = new byte[sizeof(ulong)];
-            byte[] output = GetByteArrayForStruct<T>();
-
-            WriteValueToBuffer(addr, input, 0);
-
-            if (!Request(id, input, output))
-                return false;
-
-            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
-            t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
-            handle.Free();
-            return true;
-        }
-
-        protected ulong[] RequestAddrList(uint id, int length)
-        {
-            byte[] bytes = new byte[length * sizeof(ulong)];
-            if (!Request(id, null, bytes))
-                return null;
-
-            ulong[] result = new ulong[length];
-            for (uint i = 0; i < length; ++i)
-                result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
-
-            return result;
-        }
-
-        protected ulong[] RequestAddrList(uint id, ulong param, int length)
-        {
-            byte[] bytes = new byte[length * sizeof(ulong)];
-            if (!Request(id, param, bytes))
-                return null;
-
-            ulong[] result = new ulong[length];
-            for (uint i = 0; i < length; ++i)
-                result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
-
-            return result;
-        }
-
-        protected static string BytesToString(byte[] output)
-        {
-            int len = 0;
-            while (len < output.Length && (output[len] != 0 || output[len + 1] != 0))
-                len += 2;
-
-            if (len > output.Length)
-                len = output.Length;
-
-            return Encoding.Unicode.GetString(output, 0, len);
-        }
-
-        protected byte[] GetByteArrayForStruct<T>()
-            where T : struct
-        {
-            return new byte[Marshal.SizeOf(typeof(T))];
-        }
-
-        protected I ConvertStruct<I, T>(byte[] bytes)
-            where I : class
-            where T : I
-        {
-            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            I result = (I)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
-            handle.Free();
-            return result;
-        }
-
-        protected int WriteValueToBuffer(IntPtr ptr, byte[] buffer, int offset)
-        {
-            ulong value = (ulong)ptr.ToInt64();
-            for (int i = offset; i < offset + IntPtr.Size; ++i)
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
             {
-                buffer[i] = (byte)value;
-                value >>= 8;
+                fixed (byte* ptr = buffer)
+                    value = Unsafe.ReadUnaligned<T>(ptr);
+
+                return true;
             }
 
-            return offset + IntPtr.Size;
+            value = default;
+            return false;
         }
 
-        protected int WriteValueToBuffer(int value, byte[] buffer, int offset)
+        public override bool ReadPointer(ulong addr, out ulong value)
         {
-            for (int i = offset; i < offset + sizeof(int); ++i)
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
             {
-                buffer[i] = (byte)value;
-                value >>= 8;
+                value = buffer.AsPointer();
+                return true;
             }
 
-            return offset + sizeof(int);
-        }
-
-        protected int WriteValueToBuffer(uint value, byte[] buffer, int offset)
-        {
-            for (int i = offset; i < offset + sizeof(int); ++i)
-            {
-                buffer[i] = (byte)value;
-                value >>= 8;
-            }
-
-            return offset + sizeof(int);
-        }
-
-        protected int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
-        {
-            for (int i = offset; i < offset + sizeof(ulong); ++i)
-            {
-                buffer[i] = (byte)value;
-                value >>= 8;
-            }
-
-            return offset + sizeof(ulong);
-        }
-
-        public override bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            return _dataReader.ReadMemory(address, buffer, bytesRequested, out bytesRead);
-        }
-
-        private readonly byte[] _dataBuffer = new byte[8];
-
-        public bool ReadByte(ulong addr, out byte value)
-        {
-            // todo: There's probably a more efficient way to implement this if ReadVirtual accepted an "out byte"
-            //       "out dword", "out long", etc.
             value = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
-                return false;
-
-            Debug.Assert(read == 1);
-
-            value = _dataBuffer[0];
-            return true;
-        }
-
-        public bool ReadByte(ulong addr, out sbyte value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, 1, out int read))
-                return false;
-
-            Debug.Assert(read == 1);
-
-            value = (sbyte)_dataBuffer[0];
-            return true;
-        }
-
-        public bool ReadDword(ulong addr, out int value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(int), out int read))
-                return false;
-
-            Debug.Assert(read == 4);
-
-            value = BitConverter.ToInt32(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadDword(ulong addr, out uint value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(uint), out int read))
-                return false;
-
-            Debug.Assert(read == 4);
-
-            value = BitConverter.ToUInt32(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadFloat(ulong addr, out float value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(float), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(float));
-
-            value = BitConverter.ToSingle(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadFloat(ulong addr, out double value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(double), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(double));
-
-            value = BitConverter.ToDouble(_dataBuffer, 0);
-            return true;
+            return false;
         }
 
         public bool ReadString(ulong addr, out string value)
@@ -508,101 +251,14 @@ namespace Microsoft.Diagnostics.Runtime
             return value != null;
         }
 
-        public bool ReadShort(ulong addr, out short value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(short), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(short));
-
-            value = BitConverter.ToInt16(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadShort(ulong addr, out ushort value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ushort), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(ushort));
-
-            value = BitConverter.ToUInt16(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadQword(ulong addr, out ulong value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(ulong), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(ulong));
-
-            value = BitConverter.ToUInt64(_dataBuffer, 0);
-            return true;
-        }
-
-        public bool ReadQword(ulong addr, out long value)
-        {
-            value = 0;
-            if (!ReadMemory(addr, _dataBuffer, sizeof(long), out int read))
-                return false;
-
-            Debug.Assert(read == sizeof(long));
-
-            value = BitConverter.ToInt64(_dataBuffer, 0);
-            return true;
-        }
-
-        public override bool ReadPointer(ulong addr, out ulong value)
-        {
-            int ptrSize = PointerSize;
-            if (!ReadMemory(addr, _dataBuffer, ptrSize, out int read))
-            {
-                value = 0xcccccccc;
-                return false;
-            }
-
-            Debug.Assert(read == ptrSize);
-
-            if (ptrSize == 4)
-                value = BitConverter.ToUInt32(_dataBuffer, 0);
-            else
-                value = BitConverter.ToUInt64(_dataBuffer, 0);
-
-            return true;
-        }
 
         internal IEnumerable<ulong> GetPointersInRange(ulong start, ulong stop)
         {
             // Possible we have empty list, or inconsistent data.
             if (start >= stop)
-                return s_emptyPointerArray;
+                yield break;
 
-            // Enumerate individually if we have too many.
-            ulong count = (stop - start) / (ulong)IntPtr.Size;
-            if (count > 4096)
-                return EnumeratePointersInRange(start, stop);
-
-            ulong[] array = new ulong[count];
-            byte[] tmp = new byte[(int)count * IntPtr.Size];
-            if (!ReadMemory(start, tmp, tmp.Length, out _))
-                return s_emptyPointerArray;
-
-            if (IntPtr.Size == 4)
-                for (uint i = 0; i < array.Length; ++i)
-                    array[i] = BitConverter.ToUInt32(tmp, (int)(i * IntPtr.Size));
-            else
-                for (uint i = 0; i < array.Length; ++i)
-                    array[i] = BitConverter.ToUInt64(tmp, (int)(i * IntPtr.Size));
-
-            return array;
-        }
-
-        private IEnumerable<ulong> EnumeratePointersInRange(ulong start, ulong stop)
-        {
+            // TODO: rewrite
             for (ulong ptr = start; ptr < stop; ptr += (uint)IntPtr.Size)
             {
                 if (!ReadPointer(ptr, out ulong obj))

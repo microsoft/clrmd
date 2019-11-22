@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Runtime.InteropServices;
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -12,6 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         uint ThreadId { get; }
 
-        unsafe bool CopyContext(uint contextFlags, uint contextSize, void* context);
+        bool CopyContext(uint contextFlags, Span<byte> context);
     }
 }

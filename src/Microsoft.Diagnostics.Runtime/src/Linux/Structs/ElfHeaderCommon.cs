@@ -11,13 +11,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private const int EI_NIDENT = 16;
 
-        private const byte Magic0 = 0x7f;
-        private const byte Magic1 = (byte)'E';
-        private const byte Magic2 = (byte)'L';
-        private const byte Magic3 = (byte)'F';
+        private const uint Magic = 0x464c457f;
 
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = EI_NIDENT)]
-        private readonly byte[] _ident;
+        private uint _magic;
+        private byte _class;
+        private byte _data;
+
+        private byte _unused0;
+        private byte _unused1;
+        private uint _unused2;
+        private uint _unused3;
+
         private readonly ElfHeaderType _type;
         private readonly ushort _machine;
         private readonly uint _version;
@@ -26,10 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             get
             {
-                if (_ident[0] != Magic0 ||
-                    _ident[1] != Magic1 ||
-                    _ident[2] != Magic2 ||
-                    _ident[3] != Magic3)
+                if (_magic != Magic)
                     return false;
 
                 return Data == ElfData.LittleEndian;
@@ -40,9 +41,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfMachine Architecture => (ElfMachine)_machine;
 
-        public ElfClass Class => (ElfClass)_ident[4];
+        public ElfClass Class => (ElfClass)_class;
 
-        public ElfData Data => (ElfData)_ident[5];
+        public ElfData Data => (ElfData)_data;
 
         public IElfHeader GetHeader(Reader reader, long position)
         {

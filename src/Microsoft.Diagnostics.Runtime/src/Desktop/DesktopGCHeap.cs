@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -591,7 +592,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             int length;
             if (_stringLength != null)
                 length = (int)_stringLength.GetValue(strAddr);
-            else if (!DesktopRuntime.ReadDword(strAddr + DesktopRuntime.GetStringLengthOffset(), out length))
+            else if (!DesktopRuntime.ReadPrimitive(strAddr + DesktopRuntime.GetStringLengthOffset(), out length))
                 return null;
 
             if (length == 0)
@@ -603,23 +604,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else
                 data = strAddr + DesktopRuntime.GetStringFirstCharOffset();
 
-            byte[] buffer = new byte[length * 2];
-            if (!DesktopRuntime.ReadMemory(data, buffer, buffer.Length, out _))
-                return null;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(length * 2);
+            try
+            {
+                if (!DesktopRuntime.ReadMemory(data, new Span<byte>(buffer, 0, length * 2), out int count))
+                    return null;
 
-            return Encoding.Unicode.GetString(buffer);
+                return Encoding.Unicode.GetString(buffer, 0, count);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
-        public override int ReadMemory(ulong address, byte[] buffer, int offset, int count)
-        {
-            if (offset != 0)
-                throw new NotImplementedException("Non-zero offsets not supported (yet)");
-
-            if (!DesktopRuntime.ReadMemory(address, buffer, count, out int bytesRead))
-                return 0;
-
-            return bytesRead;
-        }
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
@@ -719,7 +717,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Boolean:
                 {
-                    if (!DesktopRuntime.ReadByte(addr, out byte val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out byte val))
                         return null;
 
                     return val != 0;
@@ -727,7 +725,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Int32:
                 {
-                    if (!DesktopRuntime.ReadDword(addr, out int val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out int val))
                         return null;
 
                     return val;
@@ -735,7 +733,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.UInt32:
                 {
-                    if (!DesktopRuntime.ReadDword(addr, out uint val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out uint val))
                         return null;
 
                     return val;
@@ -743,7 +741,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Int64:
                 {
-                    if (!DesktopRuntime.ReadQword(addr, out long val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out long val))
                         return long.MaxValue;
 
                     return val;
@@ -751,7 +749,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.UInt64:
                 {
-                    if (!DesktopRuntime.ReadQword(addr, out ulong val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out ulong val))
                         return long.MaxValue;
 
                     return val;
@@ -777,7 +775,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Int8:
                 {
-                    if (!DesktopRuntime.ReadByte(addr, out sbyte val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out sbyte val))
                         return null;
 
                     return val;
@@ -785,7 +783,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.UInt8:
                 {
-                    if (!DesktopRuntime.ReadByte(addr, out byte val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out byte val))
                         return null;
 
                     return val;
@@ -793,7 +791,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Float:
                 {
-                    if (!DesktopRuntime.ReadFloat(addr, out float val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out float val))
                         return null;
 
                     return val;
@@ -801,7 +799,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Double: // double
                 {
-                    if (!DesktopRuntime.ReadFloat(addr, out double val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out double val))
                         return null;
 
                     return val;
@@ -809,7 +807,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Int16:
                 {
-                    if (!DesktopRuntime.ReadShort(addr, out short val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out short val))
                         return null;
 
                     return val;
@@ -817,7 +815,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Char: // u2
                 {
-                    if (!DesktopRuntime.ReadShort(addr, out ushort val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out ushort val))
                         return null;
 
                     return (char)val;
@@ -825,7 +823,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.UInt16:
                 {
-                    if (!DesktopRuntime.ReadShort(addr, out ushort val))
+                    if (!DesktopRuntime.ReadPrimitive(addr, out ushort val))
                         return null;
 
                     return val;

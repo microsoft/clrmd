@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (offset != 0)
                 throw new NotImplementedException();
 
-            int read = _reader.ReadBytes(buffer, _baseAddress + _position, count);
+            int read = _reader.ReadBytes(_baseAddress + _position, new Span<byte>(buffer, 0, count));
             Debug.Assert(read >= 0);
             _position += read;
 
