@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ulong FS;
         public ulong GS;
 
-        public unsafe bool CopyContext(uint contextFlags, Span<byte> buffer)
+        public unsafe bool CopyContext(Span<byte> buffer)
         {
             if (buffer.Length < AMD64Context.Size)
                 return false;

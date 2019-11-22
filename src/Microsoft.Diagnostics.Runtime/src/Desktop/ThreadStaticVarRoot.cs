@@ -10,6 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Address = addr;
             Object = obj;
+#pragma warning disable CA1305 // Specify IFormatProvider
             Name = string.Format("thread static var {0}.{1}", typeName, variableName);
             AppDomain = appDomain;
             Type = type;

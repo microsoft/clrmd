@@ -19,10 +19,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int ReadVirtual(
             [In] ulong Offset,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
-            byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            [Out]
+            IntPtr buffer,
+            [In] int BufferSize,
+            [Out] out int BytesRead);
 
         [PreserveSig]
         new int WriteVirtual(

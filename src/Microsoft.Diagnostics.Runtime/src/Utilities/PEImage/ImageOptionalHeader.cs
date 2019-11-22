@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private IMAGE_OPTIONAL_HEADER_SPECIFIC OptionalSpecific => _specific.Value;
 
-        internal ImageOptionalHeader(IMAGE_OPTIONAL_HEADER_AGNOSTIC optional, Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> specific, Lazy<Interop.IMAGE_DATA_DIRECTORY[]> directories, bool is32bit)
+        internal ImageOptionalHeader(ref IMAGE_OPTIONAL_HEADER_AGNOSTIC optional, Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> specific, Lazy<Interop.IMAGE_DATA_DIRECTORY[]> directories, bool is32bit)
         {
             _optional = optional;
             _specific = specific;

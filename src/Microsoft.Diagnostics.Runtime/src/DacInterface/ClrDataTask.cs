@@ -36,6 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 #pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable CA1823
 
     internal struct ClrDataTaskVTable
     {

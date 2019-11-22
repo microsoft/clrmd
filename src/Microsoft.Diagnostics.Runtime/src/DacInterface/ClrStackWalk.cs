@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetContextDelegate _getContext;
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
-            : base(library.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)
+            : base(library?.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)
         {
         }
 
@@ -77,6 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 #pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable CA1823
 
     internal struct IXCLRDataStackWalkVTable
     {

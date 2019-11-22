@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private IMAGE_FILE_HEADER _header;
 
-        internal ImageFileHeader(IMAGE_FILE_HEADER header)
+        internal ImageFileHeader(ref IMAGE_FILE_HEADER header)
         {
             _header = header;
         }

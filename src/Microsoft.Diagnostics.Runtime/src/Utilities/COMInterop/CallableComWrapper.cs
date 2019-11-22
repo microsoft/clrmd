@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     public unsafe class CallableCOMWrapper : COMHelper, IDisposable
@@ -23,6 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected CallableCOMWrapper(CallableCOMWrapper toClone)
         {
+            if (toClone == null)
+                throw new ArgumentNullException(nameof(toClone));
+
             if (toClone._disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
@@ -45,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
-            _library = library;
+            _library = library ?? throw new ArgumentNullException(nameof(library));
             _library.AddRef();
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;

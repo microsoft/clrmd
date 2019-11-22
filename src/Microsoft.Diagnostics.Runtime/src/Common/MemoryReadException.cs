@@ -4,6 +4,9 @@
 
 using System.IO;
 
+#pragma warning disable CA2237 // Mark ISerializable types with serializable
+#pragma warning disable CA1032 // Implement standard exception constructors
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>

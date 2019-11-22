@@ -15,16 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// Returns the filename of the dac dll according to the specified parameters
-        /// </summary>
-        [Obsolete("Use ClrInfoProvider.GetDacRequestFileName")]
-        public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo clrVersion)
-        {
-            //method is kept for backward compatibility //TODO: remove
-            return ClrInfoProvider.GetDacRequestFileName(flavor, currentArchitecture, targetArchitecture, clrVersion, Platform.Windows);
-        }
-
-        /// <summary>
         /// The platform-agnostic filename of the dac dll
         /// </summary>
         public string PlatformAgnosticFileName { get; set; }

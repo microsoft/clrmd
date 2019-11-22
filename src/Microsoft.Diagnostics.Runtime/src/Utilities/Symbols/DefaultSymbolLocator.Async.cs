@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // If we failed to find the file, we need to clear out the empty task, since the user could
             // change symbol paths and we need s_files to only contain positive results.
-            string result = await task;
+            string result = await task.ConfigureAwait(false);
             if (result == null)
                 ClearFailedTask(s_files, task, missingFiles, fileEntry);
 
@@ -82,11 +82,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return result;
             }
 
-            result = await SearchSymbolServerForFile(fileSimpleName, fileIndexPath, match);
+            result = await SearchSymbolServerForFile(fileSimpleName, fileIndexPath, match).ConfigureAwait(false);
             return result;
         }
 
-        private string CheckLocalPaths(string fullName, string simpleName, string fullDestPath, Func<string, bool> matches)
+        private static string CheckLocalPaths(string fullName, string simpleName, string fullDestPath, Func<string, bool> matches)
         {
             // We were given a full path instead of simply "foo.bar".
             if (fullName != simpleName)
@@ -125,8 +125,28 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            string result = await tasks.GetFirstNonNullResult();
+            string result = await GetFirstNonNullResult(tasks).ConfigureAwait(false);
             return result;
+        }
+
+        private static async Task<T> GetFirstNonNullResult<T>(List<Task<T>> tasks)
+            where T : class
+        {
+            while (tasks.Count > 0)
+            {
+                Task<T> task = await Task.WhenAny(tasks).ConfigureAwait(false);
+
+                T result = task.Result;
+                if (result != null)
+                    return result;
+
+                if (tasks.Count == 1)
+                    break;
+
+                tasks.Remove(task);
+            }
+
+            return null;
         }
 
         private async Task<string> CheckAndCopyRemoteFile(string sourcePath, string fullDestPath, Func<string, bool> matches)
@@ -137,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             try
             {
                 using (Stream stream = File.OpenRead(sourcePath))
-                    await CopyStreamToFileAsync(stream, sourcePath, fullDestPath, stream.Length);
+                    await CopyStreamToFileAsync(stream, sourcePath, fullDestPath, stream.Length).ConfigureAwait(false);
 
                 return fullDestPath;
             }
@@ -173,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Task<string> filePtrDownload = GetPhysicalFileFromServerAsync(urlForServer, filePtrSigPath, fullDestPath, true);
 
             // Handle compressed download.
-            string result = await compressedFilePathDownload;
+            string result = await compressedFilePathDownload.ConfigureAwait(false);
             if (result != null)
             {
                 try
@@ -195,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Handle uncompressed download.
-            result = await rawFileDownload;
+            result = await rawFileDownload.ConfigureAwait(false);
             if (result != null)
             {
                 Trace($"Found '{Path.GetFileName(fileIndexPath)}' on server '{urlForServer}'.  Copied to '{result}'.");
@@ -203,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Handle redirection case.
-            string filePtrData = (await filePtrDownload ?? "").Trim();
+            string filePtrData = (await filePtrDownload.ConfigureAwait(false) ?? "").Trim();
             if (filePtrData.StartsWith("PATH:"))
                 filePtrData = filePtrData.Substring(5);
 
@@ -212,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 try
                 {
                     using (FileStream input = File.OpenRead(filePtrData))
-                        await CopyStreamToFileAsync(input, filePtrSigPath, fullDestPath, input.Length);
+                        await CopyStreamToFileAsync(input, filePtrSigPath, fullDestPath, input.Length).ConfigureAwait(false);
 
                     Trace($"Found '{Path.GetFileName(fileIndexPath)}' on server '{urlForServer}'.  Copied to '{fullDestPath}'.");
                     return fullDestPath;
@@ -231,7 +251,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private void TryDeleteFile(string file)
+        private static void TryDeleteFile(string file)
         {
             if (File.Exists(file))
             {
@@ -264,16 +284,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 string fullUri = serverPath + "/" + fileIndexPath.Replace('\\', '/');
                 try
                 {
-                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(fullUri);
+                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(new Uri(fullUri));
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
-                    WebResponse response = await req.GetResponseAsync();
+                    WebResponse response = await req.GetResponseAsync().ConfigureAwait(false);
                     using Stream fromStream = response.GetResponseStream();
                     if (returnContents)
-                        return await new StreamReader(fromStream).ReadToEndAsync();
+                    {
+                        using StreamReader stream = new StreamReader(fromStream);
+                        return await stream.ReadToEndAsync().ConfigureAwait(false);
+                    }
 
                     Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
-                    await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength);
+                    await CopyStreamToFileAsync(fromStream, fullUri, fullDestPath, response.ContentLength).ConfigureAwait(false);
                     Trace("Found '{0}' at '{1}'.  Copied to '{2}'.", Path.GetFileName(fileIndexPath), fullUri, fullDestPath);
                     return fullDestPath;
                 }
@@ -306,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             using (FileStream fs = File.OpenRead(fullSrcPath))
-                await CopyStreamToFileAsync(fs, fullSrcPath, fullDestPath, fs.Length);
+                await CopyStreamToFileAsync(fs, fullSrcPath, fullDestPath, fs.Length).ConfigureAwait(false);
 
             return fullDestPath;
         }
@@ -341,7 +364,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A task indicating when the copy is completed.</returns>
         protected override void CopyStreamToFile(Stream stream, string fullSrcPath, string fullDestPath, long size)
         {
-            Task task = Task.Run(async () => { await CopyStreamToFileAsync(stream, fullSrcPath, fullDestPath, size); });
+            Task task = Task.Run(async () => { await CopyStreamToFileAsync(stream, fullSrcPath, fullDestPath, size).ConfigureAwait(false); });
             task.Wait();
         }
 
@@ -355,6 +378,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A task indicating when the copy is completed.</returns>
         protected override async Task CopyStreamToFileAsync(Stream input, string fullSrcPath, string fullDestPath, long size)
         {
+            if (input == null)
+                throw new ArgumentNullException(nameof(input));
+
             Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
 
             Task result;
@@ -382,7 +408,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     }
                 }
 
-                await result;
+                await result.ConfigureAwait(false);
             }
             finally
             {
@@ -428,7 +454,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             try
             {
                 if (!string.IsNullOrWhiteSpace(name))
-                    new Task(async () => await FindBinaryAsync(name, timestamp, imagesize, true)).Start();
+                    new Task(async () => await FindBinaryAsync(name, timestamp, imagesize, true).ConfigureAwait(false)).Start();
             }
             catch (Exception e)
             {

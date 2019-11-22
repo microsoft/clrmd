@@ -299,9 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     message = "";
                 else if (message.Length > 0)
                     message += "\r\n";
-                throw new Exception(
-                    message + "Process returned exit code 0x" + Process.ExitCode.ToString("x") + "\r\n" +
-                    "  Cmd: " + _commandLine + outSpec);
+                throw new Exception($"{message} Process returned exit code 0x{Process.ExitCode:x} Cmd: {_commandLine}{outSpec}");
             }
         }
 

@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Uh oh, this shouldn't have happened.  Let's look more carefully (slowly).
             foreach (ClrModule module in _runtime.Modules)
-                if (module.AssemblyName.ToLower().Contains("mscorlib"))
+                if (module.AssemblyName.ToUpperInvariant().Contains("MSCORLIB"))
                     return module;
 
             // Ok...not sure why we couldn't find it.

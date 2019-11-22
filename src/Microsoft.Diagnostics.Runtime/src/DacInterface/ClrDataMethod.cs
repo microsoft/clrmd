@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetILAddressMapDelegate _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
-            : base(library.OwningLibrary, ref IID_IXCLRDataMethodInstance, pUnk)
+            : base(library?.OwningLibrary, ref IID_IXCLRDataMethodInstance, pUnk)
         {
         }
 
@@ -46,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 #pragma warning disable CS0169
 #pragma warning disable CS0649
 #pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable CA1823
 
     internal struct IXCLRDataMethodInstanceVTable
     {

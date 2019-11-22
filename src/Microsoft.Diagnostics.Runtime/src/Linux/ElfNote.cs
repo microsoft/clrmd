@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public long TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
 
-        private int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
+        private static int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
 
         public int ReadContents(long position, Span<byte> buffer)
         {
@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             Header = _reader.Read<ElfNoteHeader>(_position);
         }
 
-        private uint Align4(uint x)
+        private static uint Align4(uint x)
         {
             return (x + 3U) & ~3U;
         }

@@ -125,7 +125,8 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 StringBuilder sb = new StringBuilder(1024);
-                GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
+                uint res = GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
+                Debug.Assert(res != 0);
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
                 GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
@@ -148,7 +149,8 @@ namespace Microsoft.Diagnostics.Runtime
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
             StringBuilder filename = new StringBuilder(1024);
-            GetModuleFileNameExA(_process, addr.AsIntPtr(), filename, filename.Capacity);
+            uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), filename, filename.Capacity);
+            Debug.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);

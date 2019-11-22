@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class ResourceEntry
     {
-        private static readonly ResourceEntry[] s_emptyChildren = new ResourceEntry[0];
+        private static readonly ResourceEntry[] s_emptyChildren = Array.Empty<ResourceEntry>();
         private ResourceEntry[] _children;
         private readonly int _offset;
 

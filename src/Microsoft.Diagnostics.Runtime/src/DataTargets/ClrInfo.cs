@@ -9,8 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents information about a single Clr runtime in a process.
     /// </summary>
-    [Serializable]
-    public class ClrInfo : IComparable
+    public class ClrInfo
     {
         private readonly DataTarget _dataTarget;
         
@@ -56,25 +55,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             return Version.ToString();
-        }
-
-        /// <summary>
-        /// IComparable.  Sorts the object by version.
-        /// </summary>
-        /// <param name="obj">The object to compare to.</param>
-        /// <returns>-1 if less, 0 if equal, 1 if greater.</returns>
-        public int CompareTo(object obj)
-        {
-            if (ReferenceEquals(this, obj)) return 0;
-            if (obj is null) return 1;
-            
-            if (!(obj is ClrInfo other))
-                throw new InvalidOperationException("Object is not a ClrInfo.");
-            
-            if (Flavor != other.Flavor)
-                return other.Flavor.CompareTo(Flavor); // Intentionally reversed
-            
-            return Version.CompareTo(other.Version);
         }
 
         /// <summary>

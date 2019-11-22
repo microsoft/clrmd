@@ -151,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override bool IsArray => true;
 
-        public override IList<ClrInstanceField> Fields => new ClrInstanceField[0];
+        public override IList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
 
-        public override IList<ClrStaticField> StaticFields => new ClrStaticField[0];
+        public override IList<ClrStaticField> StaticFields => Array.Empty<ClrStaticField>();
 
-        public override IList<ClrThreadStaticField> ThreadStaticFields => new ClrThreadStaticField[0];
+        public override IList<ClrThreadStaticField> ThreadStaticFields => Array.Empty<ClrThreadStaticField>();
 
-        public override IList<ClrMethod> Methods => new ClrMethod[0];
+        public override IList<ClrMethod> Methods => Array.Empty<ClrMethod>();
 
         public override ulong GetSize(ulong objRef)
         {
@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrHeap Heap => DesktopHeap;
 
-        public override IList<ClrInterface> Interfaces => new ClrInterface[0];
+        public override IList<ClrInterface> Interfaces => Array.Empty<ClrInterface>();
 
         public override bool IsFinalizable => false;
 

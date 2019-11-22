@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public uint cpsr;
         public uint orig_r0;
 
-        public unsafe bool CopyContext(uint contextFlags, Span<byte> context)
+        public unsafe bool CopyContext(Span<byte> context)
         {
             if (context.Length < ArmContext.Size)
                 return false;

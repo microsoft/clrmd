@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#pragma warning disable 0649
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
@@ -29,18 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private readonly int _nameOffsetAndFlag;
         private readonly int _dataOffsetAndFlag;
-
-        internal string GetName(PEBuffer buff, int resourceStartFileOffset)
-        {
-            if (IsStringName)
-            {
-                int nameLen = *((ushort*)buff.Fetch(NameOffset + resourceStartFileOffset, 2));
-                char* namePtr = (char*)buff.Fetch(NameOffset + resourceStartFileOffset + 2, nameLen);
-                return new string(namePtr);
-            }
-
-            return Id.ToString();
-        }
 
         internal static string GetTypeNameForTypeId(int typeId)
         {

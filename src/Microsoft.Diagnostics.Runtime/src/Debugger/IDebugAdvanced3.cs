@@ -16,16 +16,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     public interface IDebugAdvanced3 : IDebugAdvanced2
     {
         /* IDebugAdvanced */
-
         [PreserveSig]
         new int GetThreadContext(
             [In] IntPtr Context,
-            [In] uint ContextSize);
+            [In] int ContextSize);
 
         [PreserveSig]
         new int SetThreadContext(
             [In] IntPtr Context,
-            [In] uint ContextSize);
+            [In] int ContextSize);
 
         /* IDebugAdvanced2 */
 

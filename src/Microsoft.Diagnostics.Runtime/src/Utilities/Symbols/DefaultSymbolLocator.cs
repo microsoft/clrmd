@@ -26,9 +26,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
         public override string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
-            string fullPath = fileName;
-            fileName = Path.GetFileName(fullPath).ToLower();
+#pragma warning disable CA1304 // Specify CultureInfo
+            fileName = Path.GetFileName(fileName).ToLower();
+#pragma warning restore CA1304 // Specify CultureInfo
 
+            string fullPath = fileName;
             // First see if we already have the result cached.
             FileEntry entry = new FileEntry(fileName, buildTimeStamp, imageSize);
             string result = GetFileEntry(entry);
@@ -91,11 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private static string GetIndexPath(string fileName, int buildTimeStamp, int imageSize)
-        {
-            return fileName + @"\" + buildTimeStamp.ToString("x") + imageSize.ToString("x") + @"\" + fileName;
-        }
-
+        private static string GetIndexPath(string fileName, int buildTimeStamp, int imageSize) => $"{fileName}\\{buildTimeStamp:x}{imageSize:x}\\{fileName}";
 
         private string TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
         {
@@ -170,14 +168,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 string fullUri = serverPath + "/" + indexPath.Replace('\\', '/');
                 try
                 {
-                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(fullUri);
+                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(new Uri(fullUri));
                     req.UserAgent = "Microsoft-Symbol-Server/6.13.0009.1140";
                     req.Timeout = Timeout;
                     WebResponse response = req.GetResponse();
                     using Stream fromStream = response.GetResponseStream();
                     if (returnContents)
                     {
-                        TextReader reader = new StreamReader(fromStream);
+                        using TextReader reader = new StreamReader(fromStream);
                         return reader.ReadToEnd();
                     }
 

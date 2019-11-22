@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             ModuleInfo info = GetModule(address);
             if (info != null)
             {
-                if (Path.GetExtension(info.FileName).ToLower() == ".so")
+                if (Path.GetExtension(info.FileName).Equals(".so", StringComparison.OrdinalIgnoreCase))
                 {
                     // TODO
                     Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");

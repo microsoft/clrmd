@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public override int GetHashCode()
         {
-            return FileName.ToLower().GetHashCode() ^ Guid.GetHashCode() ^ Revision;
+            return FileName.ToUpperInvariant().GetHashCode() ^ Guid.GetHashCode() ^ Revision;
         }
 
         public override bool Equals(object obj)

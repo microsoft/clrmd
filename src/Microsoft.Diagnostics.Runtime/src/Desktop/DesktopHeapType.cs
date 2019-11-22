@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
 
                 if (!cache.ReadDword(loc, out uint count))
-                    throw new Exception("Could not read from heap at " + objRef.ToString("x"));
+                    throw new MemoryReadException(objRef);
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
                 if (DesktopHeap.StringType == this && DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v2)
@@ -539,7 +539,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     InitFields();
 
                 if (_statics == null)
-                    return s_emptyStatics;
+                    return Array.Empty<ClrStaticField>();
 
                 return _statics;
             }
@@ -553,7 +553,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     InitFields();
 
                 if (_threadStatics == null)
-                    return s_emptyThreadStatics;
+                    return Array.Empty<ClrThreadStaticField>();
 
                 return _threadStatics;
             }
@@ -698,7 +698,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
                 else
                 {
-                    _methods = new ClrMethod[0];
+                    _methods = Array.Empty<ClrMethod>();
                 }
 
                 return _methods;
@@ -1169,8 +1169,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
         }
-
-        private static readonly ClrStaticField[] s_emptyStatics = new ClrStaticField[0];
-        private static readonly ClrThreadStaticField[] s_emptyThreadStatics = new ClrThreadStaticField[0];
     }
 }

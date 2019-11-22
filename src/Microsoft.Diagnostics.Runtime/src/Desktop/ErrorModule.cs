@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public override PdbInfo Pdb => null;
-        public override IList<ClrAppDomain> AppDomains => new ClrAppDomain[0];
+        public override IList<ClrAppDomain> AppDomains => System.Array.Empty<ClrAppDomain>();
         public override string AssemblyName => "<error>";
         public override string Name => "<error>";
         public override bool IsDynamic => false;
@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            return new ClrType[0];
+            return System.Array.Empty<ClrType>();
         }
 
         public override ulong MetadataAddress => 0;

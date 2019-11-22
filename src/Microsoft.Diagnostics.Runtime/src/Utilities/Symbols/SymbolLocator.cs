@@ -10,6 +10,8 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
+#pragma warning disable CA1305 // Specify IFormatProvider
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
@@ -84,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Retrieves a list of the default Microsoft symbol servers.
         /// </summary>
-        public static string[] MicrosoftSymbolServers { get; } = {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
+        public static IReadOnlyList<string> MicrosoftSymbolServers { get; } = new string[] {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
 
         /// <summary>
         /// This property gets and sets the global _NT_SYMBOL_PATH environment variable.
@@ -177,6 +179,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
         public string FindBinary(ModuleInfo module, bool checkProperties = true)
         {
+            if (module == null)
+                throw new ArgumentNullException(nameof(module));
             return FindBinary(module.FileName, module.TimeStamp, module.FileSize, checkProperties);
         }
 
@@ -254,6 +258,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>True if the method successfully copied the file, false otherwise.</returns>
         protected virtual void CopyStreamToFile(Stream input, string fullSrcPath, string fullDestPath, long size)
         {
+            if (input is null)
+                throw new ArgumentNullException(nameof(input));
+
             Debug.Assert(input != null);
 
             try
@@ -336,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
         public async Task<string> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true)
         {
-            return await FindBinaryAsync(fileName, (int)buildTimeStamp, (int)imageSize, checkProperties);
+            return await FindBinaryAsync(fileName, (int)buildTimeStamp, (int)imageSize, checkProperties).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -359,7 +366,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
         public async Task<string> FindBinaryAsync(ModuleInfo module, bool checkProperties = true)
         {
-            return await FindBinaryAsync(module.FileName, module.TimeStamp, module.FileSize, checkProperties);
+            if (module == null)
+                throw new ArgumentNullException(nameof(module));
+            return await FindBinaryAsync(module.FileName, module.TimeStamp, module.FileSize, checkProperties).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -371,7 +380,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
         public async Task<string> FindBinaryAsync(DacInfo dac)
         {
-            return await FindBinaryAsync(dac, false);
+            return await FindBinaryAsync(dac, false).ConfigureAwait(false);
         }
 
         /// <summary>

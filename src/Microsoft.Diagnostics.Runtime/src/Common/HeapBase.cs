@@ -11,9 +11,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal abstract class HeapBase : ClrHeap
     {
-        protected static readonly ClrObject[] s_emptyObjectSet = new ClrObject[0];
-        protected static readonly ClrObjectReference[] s_emptyObjectReferenceSet = new ClrObjectReference[0];
-
         private ulong _minAddr; // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.  
         private ulong _maxAddr;
         private ClrSegment[] _segments;
@@ -129,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                _segments = new ClrSegment[0];
+                _segments = Array.Empty<ClrSegment>();
             }
         }
 
@@ -236,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime
                 Debug.Assert(type == GetObjectType(obj));
 
             if (type == null || (!type.ContainsPointers && !type.IsCollectible))
-                return s_emptyObjectSet;
+                return Array.Empty<ClrObject>();
 
             List<ClrObject> result = null;
 
@@ -244,14 +241,14 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 GCDesc gcdesc = type.GCDesc;
                 if (gcdesc == null)
-                    return s_emptyObjectSet;
+                    return Array.Empty<ClrObject>();
 
                 ulong size = type.GetSize(obj);
                 if (carefully)
                 {
                     ClrSegment seg = GetSegmentByAddress(obj);
                     if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
-                        return s_emptyObjectSet;
+                        return Array.Empty<ClrObject>();
                 }
 
                 result = new List<ClrObject>();
@@ -276,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime
                 Debug.Assert(type == GetObjectType(obj));
 
             if (type == null || (!type.ContainsPointers && !type.IsCollectible))
-                return s_emptyObjectReferenceSet;
+                return Array.Empty<ClrObjectReference>();
 
             List<ClrObjectReference> result = null;
 
@@ -284,14 +281,14 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 GCDesc gcdesc = type.GCDesc;
                 if (gcdesc == null)
-                    return s_emptyObjectReferenceSet;
+                    return Array.Empty<ClrObjectReference>();
 
                 ulong size = type.GetSize(obj);
                 if (carefully)
                 {
                     ClrSegment seg = GetSegmentByAddress(obj);
                     if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
-                        return s_emptyObjectReferenceSet;
+                        return Array.Empty<ClrObjectReference>();
                 }
 
                 result = new List<ClrObjectReference>();

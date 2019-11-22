@@ -133,7 +133,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             ClrInfo[] result = versions.ToArray();
-            Array.Sort(result);
             return result;
         }
 

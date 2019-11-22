@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct();
         }
 
-        private unsafe void CopyContext(AMD64Context* ctx, ref RegSetX64 registerSet)
+        private static unsafe void CopyContext(AMD64Context* ctx, ref RegSetX64 registerSet)
         {
             ctx->R15 = registerSet.R15;
             ctx->R14 = registerSet.R14;
@@ -413,7 +413,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        private int ParsePermission(string permission)
+        private static int ParsePermission(string permission)
         {
             // parse something like rwxp or r-xp. more info see 
             // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
