@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -273,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Creates a runtime from a given IXClrDataProcess interface. Used for debugger plugins.
         /// </summary>
-        internal ClrRuntime CreateRuntime(ClrInfo clrInfo, object clrDataProcess)
+        internal unsafe ClrRuntime CreateRuntime(ClrInfo clrInfo, object clrDataProcess)
         {
             if (clrInfo == null) throw new ArgumentNullException(nameof(clrInfo));
             if (clrDataProcess == null) throw new ArgumentNullException(nameof(clrDataProcess));
@@ -284,13 +285,22 @@ namespace Microsoft.Diagnostics.Runtime
             if (lib.GetSOSInterfaceNoAddRef() != null)
                 return new V45Runtime(clrInfo, this, lib);
 
-            byte[] buffer = new byte[Marshal.SizeOf(typeof(V2HeapDetails))];
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(V2HeapDetails));
+            try
+            {
+                fixed (byte* pBuffer = buffer)
+                {
+                    int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, Span<byte>.Empty, new Span<byte>(pBuffer, buffer.Length));
+                    if ((uint)val == 0x80070057)
+                        return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v4, 10000);
+                }
 
-            int val = lib.InternalDacPrivateInterface.Request(DacRequests.GCHEAPDETAILS_STATIC_DATA, 0, null, (uint)buffer.Length, buffer);
-            if ((uint)val == 0x80070057)
-                return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v4, 10000);
-
-            return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v2, 3054);
+                return new LegacyRuntime(clrInfo, this, lib, DesktopVersion.v2, 3054);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         /// <summary>

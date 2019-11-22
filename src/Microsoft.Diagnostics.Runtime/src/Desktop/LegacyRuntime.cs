@@ -922,5 +922,209 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
             return Encoding.ASCII.GetString(_buffer, 0, len);
         }
+
+
+        private bool Request(uint id, ulong param, byte[] output)
+        {
+            byte[] input = BitConverter.GetBytes(param);
+
+            return Request(id, input, output);
+        }
+
+        private bool Request(uint id, uint param, byte[] output)
+        {
+            byte[] input = BitConverter.GetBytes(param);
+
+            return Request(id, input, output);
+        }
+
+        private unsafe bool Request(uint id, byte[] input, byte[] output)
+        {
+            fixed (byte* pInput = input)
+            fixed (byte* pOutput = output)
+            {
+                int result = _dacInterface.Request(id, new Span<byte>(pInput, input?.Length ?? 0), new Span<byte>(pOutput, output?.Length ?? 0));
+                return result >= 0;
+            }
+        }
+
+        private I Request<I, T>(uint id, byte[] input)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, input, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private I Request<I, T>(uint id, ulong param)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, param, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private I Request<I, T>(uint id, uint param)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, param, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private I Request<I, T>(uint id)
+            where T : struct, I
+            where I : class
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, null, output))
+                return null;
+
+            return ConvertStruct<I, T>(output);
+        }
+
+        private bool RequestStruct<T>(uint id, ref T t)
+            where T : struct
+        {
+            byte[] output = GetByteArrayForStruct<T>();
+
+            if (!Request(id, null, output))
+                return false;
+
+            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+            t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return true;
+        }
+
+        private bool RequestStruct<T>(uint id, ulong addr, ref T t)
+            where T : struct
+        {
+            byte[] input = new byte[sizeof(ulong)];
+            byte[] output = GetByteArrayForStruct<T>();
+
+            WriteValueToBuffer(addr, input, 0);
+
+            if (!Request(id, input, output))
+                return false;
+
+            GCHandle handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+            t = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return true;
+        }
+
+        private ulong[] RequestAddrList(uint id, int length)
+        {
+            byte[] bytes = new byte[length * sizeof(ulong)];
+            if (!Request(id, null, bytes))
+                return null;
+
+            ulong[] result = new ulong[length];
+            for (uint i = 0; i < length; ++i)
+                result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
+
+            return result;
+        }
+
+        private ulong[] RequestAddrList(uint id, ulong param, int length)
+        {
+            byte[] bytes = new byte[length * sizeof(ulong)];
+            if (!Request(id, param, bytes))
+                return null;
+
+            ulong[] result = new ulong[length];
+            for (uint i = 0; i < length; ++i)
+                result[i] = BitConverter.ToUInt64(bytes, (int)(i * sizeof(ulong)));
+
+            return result;
+        }
+
+        private static string BytesToString(byte[] output)
+        {
+            int len = 0;
+            while (len < output.Length && (output[len] != 0 || output[len + 1] != 0))
+                len += 2;
+
+            if (len > output.Length)
+                len = output.Length;
+
+            return Encoding.Unicode.GetString(output, 0, len);
+        }
+
+        private byte[] GetByteArrayForStruct<T>()
+            where T : struct
+        {
+            return new byte[Marshal.SizeOf(typeof(T))];
+        }
+
+        private I ConvertStruct<I, T>(byte[] bytes)
+            where I : class
+            where T : I
+        {
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            I result = (I)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return result;
+        }
+
+
+        private int WriteValueToBuffer(IntPtr ptr, byte[] buffer, int offset)
+        {
+            ulong value = (ulong)ptr.ToInt64();
+            for (int i = offset; i < offset + IntPtr.Size; ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + IntPtr.Size;
+        }
+
+        private int WriteValueToBuffer(int value, byte[] buffer, int offset)
+        {
+            for (int i = offset; i < offset + sizeof(int); ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + sizeof(int);
+        }
+
+        private int WriteValueToBuffer(uint value, byte[] buffer, int offset)
+        {
+            for (int i = offset; i < offset + sizeof(int); ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + sizeof(int);
+        }
+
+        private int WriteValueToBuffer(ulong value, byte[] buffer, int offset)
+        {
+            for (int i = offset; i < offset + sizeof(ulong); ++i)
+            {
+                buffer[i] = (byte)value;
+                value >>= 8;
+            }
+
+            return offset + sizeof(ulong);
+        }
     }
 }
