@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -264,12 +265,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 string folder = Path.GetDirectoryName(fullDestPath);
                 Directory.CreateDirectory(folder);
 
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
                 FileStream file = null;
                 try
                 {
                     file = new FileStream(fullDestPath, FileMode.OpenOrCreate);
-                    byte[] buffer = new byte[2048];
-                    int read;
+                        int read;
                     while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
                         file.Write(buffer, 0, read);
                 }
@@ -277,6 +278,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (file != null)
                         file.Dispose();
+
+                    ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
             catch (Exception e)

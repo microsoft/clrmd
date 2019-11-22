@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -434,17 +435,24 @@ namespace Microsoft.Diagnostics.Runtime
             if (hr != 0)
                 return;
 
-            byte[] buffer = new byte[needed];
-            hr = GetModuleVersionInformation(index, baseAddr, buffer, needed, out _);
-            if (hr != 0)
-                return;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent((int)needed);
+            try
+            {
+                hr = GetModuleVersionInformation(index, baseAddr, buffer, needed, out _);
+                if (hr != 0)
+                    return;
 
-            int minor = (ushort)Marshal.ReadInt16(buffer, 8);
-            int major = (ushort)Marshal.ReadInt16(buffer, 10);
-            int patch = (ushort)Marshal.ReadInt16(buffer, 12);
-            int revision = (ushort)Marshal.ReadInt16(buffer, 14);
-            
-            version = new VersionInfo(major, minor, revision, patch);
+                int minor = (ushort)Marshal.ReadInt16(buffer, 8);
+                int major = (ushort)Marshal.ReadInt16(buffer, 10);
+                int patch = (ushort)Marshal.ReadInt16(buffer, 12);
+                int revision = (ushort)Marshal.ReadInt16(buffer, 14);
+
+                version = new VersionInfo(major, minor, revision, patch);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         private bool FindModuleIndex(ulong baseAddr, out uint index)

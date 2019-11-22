@@ -3,11 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal sealed class WindowsFunctions : PlatformFunctions
+    internal unsafe sealed class WindowsFunctions : PlatformFunctions
     {
         public override bool FreeLibrary(IntPtr module)
         {
@@ -22,22 +23,29 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (len <= 0)
                 return false;
 
-            byte[] data = new byte[len];
-            if (!NativeMethods.GetFileVersionInfo(dll, handle, len, data))
-                return false;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
+            try
+            {
+                fixed (byte* data = buffer)
+                {
+                    if (!NativeMethods.GetFileVersionInfo(dll, handle, len, data))
+                        return false;
 
-            if (!NativeMethods.VerQueryValue(data, "\\", out IntPtr ptr, out len))
-                return false;
+                    if (!NativeMethods.VerQueryValue(data, "\\", out IntPtr ptr, out len))
+                        return false;
 
-            byte[] vsFixedInfo = new byte[len];
-            Marshal.Copy(ptr, vsFixedInfo, 0, len);
+                    minor = (ushort)Marshal.ReadInt16(ptr, 8);
+                    major = (ushort)Marshal.ReadInt16(ptr, 10);
+                    patch = (ushort)Marshal.ReadInt16(ptr, 12);
+                    revision = (ushort)Marshal.ReadInt16(ptr, 14);
 
-            minor = (ushort)Marshal.ReadInt16(vsFixedInfo, 8);
-            major = (ushort)Marshal.ReadInt16(vsFixedInfo, 10);
-            patch = (ushort)Marshal.ReadInt16(vsFixedInfo, 12);
-            revision = (ushort)Marshal.ReadInt16(vsFixedInfo, 14);
-
-            return true;
+                    return true;
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         public override IntPtr GetProcAddress(IntPtr module, string method)
@@ -85,13 +93,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             public static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool isWow64);
 
             [DllImport("version.dll")]
-            public static extern bool GetFileVersionInfo(string sFileName, int handle, int size, byte[] infoBuffer);
+            public static extern bool GetFileVersionInfo(string sFileName, int handle, int size, byte* infoBuffer);
 
             [DllImport("version.dll")]
             public static extern int GetFileVersionInfoSize(string sFileName, out int handle);
 
             [DllImport("version.dll")]
-            public static extern bool VerQueryValue(byte[] pBlock, string pSubBlock, out IntPtr val, out int len);
+            public static extern bool VerQueryValue(byte* pBlock, string pSubBlock, out IntPtr val, out int len);
 
             public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
 

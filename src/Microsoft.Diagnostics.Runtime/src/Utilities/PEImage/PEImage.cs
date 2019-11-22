@@ -23,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int DebugDataDirectory = 6;
         
         private readonly bool _virt;
-        private readonly byte[] _buffer = new byte[260];
         private int _offset = 0;
         private readonly int _peHeaderOffset;
 
