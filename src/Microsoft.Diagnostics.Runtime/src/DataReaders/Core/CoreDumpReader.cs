@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoreDumpReader : IDataReader2
+    internal class CoreDumpReader : IDataReader
     {
         private readonly string _source;
         private readonly Stream _stream;
@@ -144,11 +144,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return status.CopyContext(contextFlags, context);
 
             return false;
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            throw new NotImplementedException();
         }
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)

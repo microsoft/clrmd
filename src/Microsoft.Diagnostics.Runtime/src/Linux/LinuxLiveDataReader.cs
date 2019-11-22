@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
     ///             wait(NULL);
     /// </summary>
-    internal class LinuxLiveDataReader : IDataReader2
+    internal class LinuxLiveDataReader : IDataReader
     {
         private List<MemoryMapEntry> _memoryMapEntries;
         private FileStream _memoryStream;
@@ -176,12 +176,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return 0;
 
             return buffer.AsUInt32();
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            // not implemented
-            return 0;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()

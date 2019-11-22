@@ -14,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class DbgEngDataReader : IDisposable, IDataReader2
+    internal class DbgEngDataReader : IDisposable, IDataReader
     {
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true;
@@ -500,23 +500,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             return Array.Empty<uint>();
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            SetClientInstance();
-
-            ulong teb = 0;
-            int hr = _systemObjects.GetCurrentThreadId(out uint id);
-            bool haveId = hr == 0;
-
-            if (_systemObjects.GetThreadIdBySystemId(thread, out uint newId) == 0 && _systemObjects.SetCurrentThreadId(newId) == 0)
-                AssertSuccess(_systemObjects.GetCurrentThreadTeb(out teb));
-
-            if (haveId)
-                AssertSuccess(_systemObjects.SetCurrentThreadId(id));
-
-            return teb;
         }
 
         public void Dispose()

@@ -63,12 +63,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if the data target is a minidump (or otherwise may not contain full heap data).</returns>
         bool IsMinidump { get; }
 
-        /// <summary>
-        /// Gets the TEB of the specified thread.
-        /// </summary>
-        /// <param name="thread">The OS thread ID to get the TEB for.</param>
-        /// <returns>The address of the thread's teb.</returns>
-        ulong GetThreadTeb(uint thread);
 
         /// <summary>
         /// Enumerates the OS thread ID of all threads in the process.
@@ -110,5 +104,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// the data target.
         /// </returns>
         uint ReadDwordUnsafe(ulong addr);
+
+        /// <summary>
+        /// The ProcessId of the DataTarget.
+        /// </summary>
+        uint ProcessId { get; }
     }
 }

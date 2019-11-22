@@ -104,17 +104,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Array.Empty<ClrException>();
         }
 
-        public override IEnumerable<int> EnumerateGCThreads()
-        {
-            foreach (uint thread in _dataReader.EnumerateAllThreads())
-            {
-                ulong teb = _dataReader.GetThreadTeb(thread);
-                int threadType = ThreadBase.GetTlsSlotForThread(this, teb);
-                if ((threadType & (int)ThreadBase.TlsThreadType.ThreadType_GC) == (int)ThreadBase.TlsThreadType.ThreadType_GC)
-                    yield return (int)thread;
-            }
-        }
-
         /// <summary>
         /// Returns the version of the target process (v2, v4, v45)
         /// </summary>

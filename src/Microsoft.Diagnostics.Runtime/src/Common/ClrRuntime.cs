@@ -39,11 +39,6 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ServerGC { get; protected set; }
 
         /// <summary>
-        /// Enumerates the OS thread ID of GC threads in the runtime.
-        /// </summary>
-        public abstract IEnumerable<int> EnumerateGCThreads();
-
-        /// <summary>
         /// The number of logical GC heaps in the process.  This is always 1 for a workstation
         /// GC, and usually it's the number of logical processors in a server GC application.
         /// </summary>

@@ -12,7 +12,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class LiveDataReader : IDataReader2
+    internal unsafe class LiveDataReader : IDataReader
     {
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;
@@ -193,12 +193,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return 0;
 
             return buffer.AsUInt32();
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            // todo
-            throw new NotImplementedException();
         }
 
         public IEnumerable<uint> EnumerateAllThreads()

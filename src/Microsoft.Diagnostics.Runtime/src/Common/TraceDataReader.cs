@@ -24,6 +24,8 @@ namespace Microsoft.Diagnostics.Runtime
             _file.WriteLine(reader.GetType().ToString());
         }
 
+        public uint ProcessId => _reader.ProcessId;
+
         public void Close()
         {
             _file.WriteLine("Close");
@@ -83,13 +85,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsMinidump { get; }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            ulong teb = _reader.GetThreadTeb(thread);
-            _file.WriteLine("GetThreadTeb - {0:x} {1:x}", thread, teb);
-            return teb;
-        }
 
         public IEnumerable<uint> EnumerateAllThreads()
         {

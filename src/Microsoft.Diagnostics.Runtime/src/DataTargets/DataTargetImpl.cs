@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
     internal class DataTargetImpl : DataTarget
     {
         private readonly IDataReader _dataReader;
-        private uint? _pid;
         private ClrInfo[] _versions;
 
         private readonly Lazy<ModuleInfo[]> _modules;
@@ -29,22 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = new Lazy<ModuleInfo[]>(InitModules);
         }
 
-        public override uint ProcessId
-        {
-            get
-            {
-                if (!_pid.HasValue)
-                {
-                    if (_dataReader is IDataReader2 reader2)
-                        _pid = reader2.ProcessId;
-                    else
-                        _pid = uint.MaxValue;
-                }
-
-                return _pid.Value;
-            }
-        }
-
+        public override uint ProcessId => _dataReader.ProcessId;
 
         public override IDataReader DataReader => _dataReader;
 
