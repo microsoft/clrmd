@@ -348,7 +348,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             RuntimeHelpers.RunClassConstructor(Assembly.GetExecutingAssembly()
                 .GetType(typeof(UncollectibleUnmanagedStruct).FullName).TypeHandle);
 
-            using DataTarget dataTarget = DataTarget.AttachToProcess(Process.GetCurrentProcess().Id, uint.MaxValue, AttachFlag.Passive);
+            using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
 
             ClrHeap heap = dataTarget.ClrVersions.Single().CreateRuntime().Heap;
 
