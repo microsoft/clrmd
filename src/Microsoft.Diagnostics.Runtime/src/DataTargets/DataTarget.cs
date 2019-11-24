@@ -66,6 +66,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (!_disposed)
             {
+                DataReader.Dispose();
+
                 foreach (PEImage img in _pefileCache.Values)
                     img.Stream.Dispose();
 
@@ -231,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader((uint)pid);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: false);
                 return new DataTarget(reader)
                 {
                     SymbolLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
@@ -249,7 +251,13 @@ namespace Microsoft.Diagnostics.Runtime
         public static DataTarget SuspendAndAttachToProcess(int pid)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                throw new NotImplementedException("Suspending a process is not yet implemented on Linux");
+            {
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: true);
+                return new DataTarget(reader)
+                {
+                    SymbolLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+                };
+            }
 
             return new DataTarget(new DbgEngDataReader(pid, invasive: false, 5000));
         }
