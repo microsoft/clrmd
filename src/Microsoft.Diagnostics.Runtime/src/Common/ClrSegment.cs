@@ -89,6 +89,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual bool IsEphemeral => false;
 
+        public virtual bool IsReadOnly => false;
+
         /// <summary>
         /// Ephemeral heap sements have geneation 0 and 1 in them.  Gen 1 is always above Gen 2 and
         /// Gen 0 is above Gen 1.  This property tell where Gen 0 start in memory.   Note that

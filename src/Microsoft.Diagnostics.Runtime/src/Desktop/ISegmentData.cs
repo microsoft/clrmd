@@ -12,5 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong End { get; }
         ulong Committed { get; }
         ulong Reserved { get; }
+        bool ReadOnly { get; }
     }
 }

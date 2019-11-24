@@ -16,6 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override ClrHeap Heap => _heap;
 
         public override bool IsLarge => _large;
+        public override bool IsReadOnly => _segment.ReadOnly;
 
         public override ulong ReservedEnd => _segment.Reserved;
         public override ulong CommittedEnd => _segment.Committed;
