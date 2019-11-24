@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -239,15 +240,19 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             ref AMD64Context ctx = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
             ctx.ContextFlags = contextFlags;
-            IntPtr registerSet = Marshal.AllocHGlobal(sizeof(RegSetX64));
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(RegSetX64));
             try
             {
-                ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, registerSet);
-                CopyContext(ref ctx, Unsafe.AsRef<RegSetX64>(registerSet.ToPointer()));
+                fixed (byte* data = buffer)
+                {
+                    ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, new IntPtr(data));
+                }
+
+                CopyContext(ref ctx, Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())));
             }
             finally
             {
-                Marshal.FreeHGlobal(registerSet);
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return true;
