@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents an addressable entity (class or struct) with associated type.
     /// <para>Allows locating field values by known names.</para>
     /// </summary>
-    public interface IAddressableTypedEntity: IEquatable<IAddressableTypedEntity>
+    public interface IAddressableTypedEntity : IEquatable<IAddressableTypedEntity>
     {
         /// <summary>
         /// Gets the address of this entity.

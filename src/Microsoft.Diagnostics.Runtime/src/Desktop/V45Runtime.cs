@@ -379,7 +379,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _sos.TraverseModuleMap(
                 SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable,
                 module,
-                delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); });
+                delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); });
 
             return mts;
         }

@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Retrieves a list of the default Microsoft symbol servers.
         /// </summary>
-        public static IReadOnlyList<string> MicrosoftSymbolServers { get; } = new string[] {"http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols"};
+        public static IReadOnlyList<string> MicrosoftSymbolServers { get; } = new string[] { "http://msdl.microsoft.com/download/symbols", "http://referencesource.microsoft.com/symbols" };
 
         /// <summary>
         /// This property gets and sets the global _NT_SYMBOL_PATH environment variable.
@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 try
                 {
                     file = new FileStream(fullDestPath, FileMode.OpenOrCreate);
-                        int read;
+                    int read;
                     while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
                         file.Write(buffer, 0, read);
                 }

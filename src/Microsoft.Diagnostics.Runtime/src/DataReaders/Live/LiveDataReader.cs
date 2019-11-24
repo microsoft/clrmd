@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
-        
+
         public int PointerSize => IntPtr.Size;
 
         public IList<ModuleInfo> EnumerateModules()
@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (thread.IsInvalid)
                 return false;
 
-            fixed (byte *ptr = context)
+            fixed (byte* ptr = context)
                 return GetThreadContext(thread.DangerousGetHandle(), new IntPtr(ptr));
         }
 

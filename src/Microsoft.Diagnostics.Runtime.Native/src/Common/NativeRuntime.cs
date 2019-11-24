@@ -75,9 +75,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             _threads = threads.ToArray();
         }
-        
+
         /*
-         
+
         internal unsafe IList<ClrRoot> EnumerateStackRoots(ClrThread thread)
         {
             int contextSize;

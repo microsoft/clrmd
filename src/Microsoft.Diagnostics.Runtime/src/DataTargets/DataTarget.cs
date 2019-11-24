@@ -9,8 +9,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
-using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -187,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             char[] invalid = Path.GetInvalidPathChars();
             _modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
-            Array.Sort(_modules, (a, b)=> a.ImageBase.CompareTo(b.ImageBase));
+            Array.Sort(_modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
             return _modules;
         }
 

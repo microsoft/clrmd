@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -37,7 +36,8 @@ namespace Microsoft.Diagnostics.Runtime
                     ?.CreateDelegate(typeof(TryGetExport));
                 if (tryGetExport != null)
                 {
-                    _getExport = (IntPtr handle, string name) => {
+                    _getExport = (IntPtr handle, string name) =>
+                    {
                         tryGetExport(handle, name, out IntPtr address);
                         return address;
                     };

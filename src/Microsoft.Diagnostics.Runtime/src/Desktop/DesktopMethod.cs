@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             GCInfo = mdData.GCInfo;
             ClrHeap heap = runtime.Heap;
             _type = (DesktopHeapType)heap.GetTypeByMethodTable(mdData.MethodTable, 0);
-            HotColdInfo = new HotColdRegions {HotStart = _ip, HotSize = mdData.HotSize, ColdStart = mdData.ColdStart, ColdSize = mdData.ColdSize};
+            HotColdInfo = new HotColdRegions { HotStart = _ip, HotSize = mdData.HotSize, ColdStart = mdData.ColdStart, ColdSize = mdData.ColdSize };
         }
 
         public override string Name
@@ -213,14 +213,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (isTinyHeader)
                     {
                         _il.Address = il + 1;
-                        _il.Length = b >> (int) (IMAGE_COR_ILMETHOD.FormatShift - 1);
+                        _il.Length = b >> (int)(IMAGE_COR_ILMETHOD.FormatShift - 1);
                         _il.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
                     }
                     else if (_runtime.ReadPrimitive(il, out uint tmp))
                     {
                         _il.Flags = tmp;
                         _runtime.ReadPrimitive(il + 4, out tmp);
-                        _il.Length = (int) tmp;
+                        _il.Length = (int)tmp;
                         _runtime.ReadPrimitive(il + 8, out tmp);
                         _il.LocalVarSignatureToken = tmp;
                         _il.Address = il + 12;

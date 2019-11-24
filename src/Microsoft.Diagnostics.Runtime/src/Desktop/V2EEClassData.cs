@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         ulong IEEClassData.Module => Module;
         ulong IEEClassData.MethodTable => MethodTable;
-        
+
         uint IFieldInfo.InstanceFields => (uint)NumInstanceFields;
         uint IFieldInfo.StaticFields => (uint)NumStaticFields;
         uint IFieldInfo.ThreadStaticFields => 0;

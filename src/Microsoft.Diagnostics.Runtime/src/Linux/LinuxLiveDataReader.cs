@@ -10,13 +10,13 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader targets a Linux process, implemented by reading /proc/<pid>/maps 
-    /// and /proc/<pid>/mem files. The process must have READ permission to the above 2
-    /// files. 
+    /// A data reader targets a Linux process, implemented by reading /proc/[pid]/maps
+    /// and /proc/[pid]/mem files. The process must have READ permission to the above 2
+    /// files.
     ///   1. The current process can run as root.
-    ///   2. If executed from within a Docker container, the best way is to use "ptrace 
-    ///      attach" to obtain the permission. 
-    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent. 
+    ///   2. If executed from within a Docker container, the best way is to use "ptrace
+    ///      attach" to obtain the permission.
+    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent.
     ///        - the process must call the following before constructing the data reader.
     ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
     ///             wait(NULL);
@@ -337,7 +337,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 var entry = _memoryMapEntries[i];
                 ulong regionSize = entry.EndAddr - entry.BeginAddr - offset;
-                if (regionSize >= (ulong) bytesRequested)
+                if (regionSize >= (ulong)bytesRequested)
                 {
                     readableBytesCount += bytesRequested;
                     break;
@@ -378,7 +378,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     }
                     else
                     {
-                        // Unknown data format 
+                        // Unknown data format
                         continue;
                     }
                     address = parts[0];
@@ -400,7 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private static int ParsePermission(string permission)
         {
-            // parse something like rwxp or r-xp. more info see 
+            // parse something like rwxp or r-xp. more info see
             // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
             if (permission.Length != 4)
             {

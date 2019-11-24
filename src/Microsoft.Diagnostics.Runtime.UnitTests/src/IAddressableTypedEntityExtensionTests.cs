@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
-using System;
 
 #pragma warning disable xUnit1026
 #pragma warning disable IDE0060
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         [Theory, AutoNSubstituteData]
         public void GetFieldFrom_WhenNullTypePassed_ThrowsArgumentNullException(IAddressableTypedEntity entity, string fieldName)
         {
-            // Arrange 
+            // Arrange
             entity.Type.Returns((ClrType)null);
 
             Action getFieldFromTypelessEntity = () => entity.GetFieldFrom(fieldName);
@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         {
             // Arrange
             IAddressableTypedEntity entity = rawStruct;
-            
+
             structValueField.IsValueClass.Returns(true);
             structValueField.Type.Returns(entity.Type);
             structValueField.GetAddress(entity.Address, Arg.Any<bool>()).Returns(target.Address);

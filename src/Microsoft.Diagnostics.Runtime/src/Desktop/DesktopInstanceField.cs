@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType Type => _type.Value;
 
-        // these are optional.  
+        // these are optional.
         /// <summary>
         /// If the field has a well defined offset from the base of the object, return it (otherwise -1).
         /// </summary>

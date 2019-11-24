@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
         [Theory, AutoNSubstituteData]
         public void Equals_WhenDifferentAddress_ReturnsFalse([Frozen] ClrHeap heap, [Frozen] ClrType type, ClrObject first, ClrObject second)
-        {           
+        {
             // Act
             var areSame = first == second;
 
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             // Arrange
             clrField.IsObjectReference.Returns(true);
             clrField.GetAddress(source.Address).Returns(fieldAddress);
-          
+
             heap.ReadPointer(fieldAddress, out var whatever)
                 .Returns(call =>
             {
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
         [Theory, AutoNSubstituteData]
         public void GetObjectField_WhenFieldDoesNotExistInType_ThrowsArgumentException(ClrObject clrObject, string unexistingField)
-        { 
+        {
             // Act
             Action locateUnexistingField = () => clrObject.GetObjectField(unexistingField);
 
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         [Theory, AutoNSubstituteData]
         public void GetObjectField_WhenTypeHasValueTypeField_ThrowsArgumentException([Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField valueField)
         {
-            // Arrange   
+            // Arrange
             valueField.IsObjectReference.Returns(false);
 
             // Act
@@ -133,10 +133,10 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             clrField.GetAddress(clrObject.Address).Returns(corruptedFieldPointer);
 
             heap.ReadPointer(corruptedFieldPointer, out var whatever).Returns(false);
-  
+
             // Act
             Action locateObjectFromValueTypeField = () => clrObject.GetObjectField(clrField.Name);
-           
+
             // Assert
             locateObjectFromValueTypeField.Should().Throw<MemoryReadException>();
         }
@@ -157,6 +157,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
             // Assert
             structRefFieldTarget.Equals(target).Should().BeTrue();
-        }        
+        }
     }
 }

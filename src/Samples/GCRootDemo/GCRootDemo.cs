@@ -109,7 +109,7 @@ namespace GCRootDemo
                 * automatically (and is on by default)...but only if you use .BuildCache and build the *complete* GC heap
                 * in local memory.  Since limitations in ClrMD and the APIs it's built on do not allow multithreading,
                 * we only do multithreaded processing if we never need to call into ClrMD while walking objects.
-                * 
+                *
                 * One downside is that multithreaded processing means the order of roots enumerated is not stable from
                 * run to run.  You can turn off multithreaded processing so that the results of GCRoot are stable between
                 * runs (though slower to run), but GCRoot makes NO guarantees about the order of roots you receive, and

@@ -23,6 +23,6 @@ namespace Microsoft.Diagnostics.Runtime
             ClrInstanceField field = entityType.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{entityType}' does not contain a field named '{fieldName}'");
 
             return field.IsObjectReference ? (IAddressableTypedEntity)entity.GetObjectField(fieldName) : entity.GetValueClassField(fieldName);
-        }    
+        }
     }
 }

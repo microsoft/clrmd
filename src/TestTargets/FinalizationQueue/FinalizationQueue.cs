@@ -23,13 +23,13 @@ public class FinalizationQueueTarget
 
         throw new Exception();
     }
-    
+
     private static void BlockQueue()
     {
         // Pause the finalizer queue
         Console.WriteLine(new DieHard());
     }
-    
+
     private static void CreateA()
     {
         for (var i = 0; i < ObjectsCountA; i++)
