@@ -37,8 +37,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public LinuxLiveDataReader(int processId, bool suspend)
         {
-            this.ProcessId = (uint)processId;
-            _memoryMapEntries = this.LoadMemoryMap();
+            ProcessId = (uint)processId;
+            _memoryMapEntries = LoadMemoryMap();
 
             if (suspend)
             {
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _memoryStream?.Dispose();
             _memoryStream = null;
             _initializedMemFile = false;
-            _memoryMapEntries = this.LoadMemoryMap();
+            _memoryMapEntries = LoadMemoryMap();
         }
 
         public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool ReadMemory(ulong address, Span<byte> span, out int bytesRead)
         {
-            this.OpenMemFile();
+            OpenMemFile();
             if (_memoryStream != null)
             {
                 return ReadMemoryProcMem(address, span, out bytesRead);
@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private bool ReadMemoryProcMem(ulong address, Span<byte> span, out int bytesRead)
         {
-            int readableBytesCount = this.GetReadableBytesCount(address, span.Length);
+            int readableBytesCount = GetReadableBytesCount(address, span.Length);
             if (readableBytesCount <= 0)
             {
                 bytesRead = 0;
@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private unsafe bool ReadMemoryReadv(ulong address, Span<byte> buffer, out int bytesRead)
         {
             bytesRead = 0;
-            int readableBytesCount = this.GetReadableBytesCount(address, buffer.Length);
+            int readableBytesCount = GetReadableBytesCount(address, buffer.Length);
             if (readableBytesCount <= 0)
             {
                 return false;
@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public IEnumerable<uint> EnumerateAllThreads()
         {
-            this.LoadThreads();
+            LoadThreads();
             return _threadIDs;
         }
 
@@ -239,7 +239,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            this.LoadThreads();
+            LoadThreads();
             if (!_threadIDs.Contains(threadID) || context.Length != AMD64Context.Size)
                 return false;
 
@@ -293,7 +293,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             if (_threadIDs.Count == 0)
             {
-                string taskDirPath = $"/proc/{this.ProcessId}/task";
+                string taskDirPath = $"/proc/{ProcessId}/task";
                 foreach (var taskDir in Directory.GetDirectories(taskDirPath))
                 {
                     string dirName = Path.GetFileName(taskDir);
@@ -313,7 +313,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
             if (File.Exists("/proc/self/mem"))
             {
-                _memoryStream = File.OpenRead($"/proc/{this.ProcessId}/mem");
+                _memoryStream = File.OpenRead($"/proc/{ProcessId}/mem");
             }
             else
             {
@@ -378,7 +378,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private List<MemoryMapEntry> LoadMemoryMap()
         {
             List<MemoryMapEntry> result = new List<MemoryMapEntry>();
-            string mapsFilePath = $"/proc/{this.ProcessId}/maps";
+            string mapsFilePath = $"/proc/{ProcessId}/maps";
             using StreamReader reader = new StreamReader(mapsFilePath);
             while (true)
             {
@@ -462,7 +462,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool IsReadable()
         {
-            return (this.Permission & 8) != 0;
+            return (Permission & 8) != 0;
         }
     }
 }
