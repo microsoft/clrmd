@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_dataReader == null)
                 return;
-            
+
             try
             {
                 using ReadVirtualStream stream = new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize);

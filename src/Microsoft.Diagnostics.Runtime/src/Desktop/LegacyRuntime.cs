@@ -215,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (IntPtr.Size == 4 && result != null)
             {
                 // fixup pointers
-                SegmentData s = (SegmentData) result;
+                SegmentData s = (SegmentData)result;
                 result = new SegmentData(ref s);
             }
 
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 V2ModuleData data = new V2ModuleData();
                 if (!RequestStruct(DacRequests.MODULE_DATA, addr, ref data))
                     return null;
-                
+
                 COMHelper.Release(data.MetaDataImport);
                 result = data;
             }
@@ -496,7 +496,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             List<MethodTableTokenPair> mts = new List<MethodTableTokenPair>();
 
-            SOSDac.ModuleMapTraverse traverse = delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
+            SOSDac.ModuleMapTraverse traverse = delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); };
             LegacyModuleMapTraverseArgs args = new LegacyModuleMapTraverseArgs
             {
                 Callback = Marshal.GetFunctionPointerForDelegate(traverse),
@@ -522,7 +522,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             DacLibrary.DacDataTarget.SetNextCurrentThreadId(0x12345678);
             DacLibrary.DacDataTarget.SetNextTLSValue(appDomain);
 
-            IDomainLocalModuleData result =  Request<IDomainLocalModuleData, LegacyDomainLocalModuleData>(DacRequests.DOMAINLOCALMODULE_DATA_FROM_MODULE, module);
+            IDomainLocalModuleData result = Request<IDomainLocalModuleData, LegacyDomainLocalModuleData>(DacRequests.DOMAINLOCALMODULE_DATA_FROM_MODULE, module);
 
             DacLibrary.DacDataTarget.SetNextCurrentThreadId(null);
             DacLibrary.DacDataTarget.SetNextTLSValue(null);
@@ -926,7 +926,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool Request(uint id, ulong param, byte[] output)
         {
             Span<byte> input = stackalloc byte[sizeof(ulong)];
-            Unsafe.As<byte, ulong>(ref input[0]) = param;
+            Unsafe.As<byte, ulong>(ref MemoryMarshal.GetReference(input)) = param;
 
             return Request(id, input, output);
         }
@@ -934,7 +934,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool Request(uint id, uint param, byte[] output)
         {
             Span<byte> input = stackalloc byte[sizeof(uint)];
-            Unsafe.As<byte, uint>(ref input[0]) = param;
+            Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(input)) = param;
 
             return Request(id, input, output);
         }

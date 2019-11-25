@@ -314,9 +314,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return this;
         }
 
-        // We ar friends with the Command class 
+        // We are friends with the Command class
 
         // TODO implement
-        // internal bool showCommand;          // Show the command before running it. 
+        // internal bool showCommand;          // Show the command before running it.
     }
 }

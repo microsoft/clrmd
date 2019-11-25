@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -22,9 +21,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-        if (_pefileCache.TryGetValue(fileName, out PEImage result))
-            return result;
-            
+            if (_pefileCache.TryGetValue(fileName, out PEImage result))
+                return result;
+
             Stream stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
             result = new PEImage(stream);
 

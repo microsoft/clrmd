@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -407,7 +406,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             {
                                 ulong addr = 0;
                                 // We must manually get the value, as strings will not be returned as an object address.
-                                try // If this fails for whatever reasion, don't fail completely.  
+                                try // If this fails for whatever reasion, don't fail completely.
                                 {
                                     addr = staticField.GetAddress(ad);
                                 }
@@ -426,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             }
                         }
 
-                        NextStatic: ;
+                    NextStatic:;
                     }
 
                     // Thread statics
@@ -708,126 +707,126 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 case ClrElementType.Array:
                 case ClrElementType.SZArray:
                 case ClrElementType.Object:
-                {
-                    if (!MemoryReader.TryReadPtr(addr, out ulong val))
-                        return null;
+                    {
+                        if (!MemoryReader.TryReadPtr(addr, out ulong val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.Boolean:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out byte val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out byte val))
+                            return null;
 
-                    return val != 0;
-                }
+                        return val != 0;
+                    }
 
                 case ClrElementType.Int32:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out int val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out int val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.UInt32:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out uint val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out uint val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.Int64:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out long val))
-                        return long.MaxValue;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out long val))
+                            return long.MaxValue;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.UInt64:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out ulong val))
-                        return long.MaxValue;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out ulong val))
+                            return long.MaxValue;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.NativeUInt: // native unsigned int
                 case ClrElementType.Pointer:
                 case ClrElementType.FunctionPointer:
-                {
-                    if (!MemoryReader.TryReadPtr(addr, out ulong val))
-                        return null;
+                    {
+                        if (!MemoryReader.TryReadPtr(addr, out ulong val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.NativeInt: // native int
-                {
-                    if (!MemoryReader.TryReadPtr(addr, out ulong val))
-                        return null;
+                    {
+                        if (!MemoryReader.TryReadPtr(addr, out ulong val))
+                            return null;
 
-                    return (long)val;
-                }
+                        return (long)val;
+                    }
 
                 case ClrElementType.Int8:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out sbyte val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out sbyte val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.UInt8:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out byte val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out byte val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.Float:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out float val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out float val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.Double: // double
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out double val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out double val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.Int16:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out short val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out short val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
 
                 case ClrElementType.Char: // u2
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out ushort val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out ushort val))
+                            return null;
 
-                    return (char)val;
-                }
+                        return (char)val;
+                    }
 
                 case ClrElementType.UInt16:
-                {
-                    if (!DesktopRuntime.ReadPrimitive(addr, out ushort val))
-                        return null;
+                    {
+                        if (!DesktopRuntime.ReadPrimitive(addr, out ushort val))
+                            return null;
 
-                    return val;
-                }
+                        return val;
+                    }
             }
 
             throw new Exception("Unexpected element type.");
@@ -1137,7 +1136,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal BaseDesktopHeapType CreatePointerType(BaseDesktopHeapType innerType, ClrElementType clrElementType, string nameHint)
         {
-            return new DesktopPointerType(this, (DesktopBaseModule)DesktopRuntime.Mscorlib, clrElementType, 0, nameHint) {ComponentType = innerType};
+            return new DesktopPointerType(this, (DesktopBaseModule)DesktopRuntime.Mscorlib, clrElementType, 0, nameHint) { ComponentType = innerType };
         }
 
         internal BaseDesktopHeapType GetArrayType(ClrElementType clrElementType, int ranks, string nameHint)
@@ -1521,7 +1520,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             private Entry NewEntry(ulong obj)
             {
-                Entry result = new Entry {Start = obj, End = obj, Dictionary = new SortedDictionary<ulong, int>()};
+                Entry result = new Entry { Start = obj, End = obj, Dictionary = new SortedDictionary<ulong, int>() };
                 _entries.Add(result);
                 return result;
             }

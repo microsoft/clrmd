@@ -70,15 +70,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DbgEngDataReader(IDebugClient client)
         {
-            //* We need to be very careful to not cleanup the IDebugClient interfaces
-            // * (that is, detach from the target process) if we created this wrapper
-            // * from a pre-existing IDebugClient interface.  Setting s_needRelease to
-            // * false will keep us from *ever* explicitly detaching from any IDebug
-            // * interface (even ones legitimately attached with other constructors),
-            // * but this is the best we can do with DbgEng's design.  Better to leak
-            // * a small amount of memory (and file locks) than detatch someone else's
-            // * IDebug interface unexpectedly.
-            // 
+            // We need to be very careful to not cleanup the IDebugClient interfaces
+            // (that is, detach from the target process) if we created this wrapper
+            // from a pre-existing IDebugClient interface.  Setting s_needRelease to
+            // false will keep us from *ever* explicitly detaching from any IDebug
+            // interface (even ones legitimately attached with other constructors),
+            // but this is the best we can do with DbgEng's design.  Better to leak
+            // a small amount of memory (and file locks) than detatch someone else's
+            // IDebug interface unexpectedly.
             CreateClient(client);
             s_needRelease = false;
         }
@@ -226,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
             GetThreadIdBySystemId(threadID, out uint id);
             SetCurrentThreadId(id);
 
-            fixed (byte *ptr = context)
+            fixed (byte* ptr = context)
                 return _advanced.GetThreadContext(new IntPtr(ptr), context.Length) == 0;
         }
 
@@ -392,7 +391,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool ReadMemory(ulong address, Span<byte> buffer, out int read) => ReadVirtual(address, buffer, out read) >= 0;
-        
+
         public ulong ReadPointerUnsafe(ulong addr)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
@@ -451,7 +450,8 @@ namespace Microsoft.Diagnostics.Runtime
              * the module sizes are sometimes wrong, which may cause a wrong module
              * to be found because it overlaps the beginning of the queried module,
              * so search until we find a module that actually has the correct
-             * baseAddr*/
+             * baseAddr
+             */
             uint nextIndex = 0;
             while (true)
             {

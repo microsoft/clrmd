@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (ret != null)
                 return ret;
 
-            // See if we have a file that tells us to redirect elsewhere. 
+            // See if we have a file that tells us to redirect elsewhere.
             string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
             string filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
             if (filePtrData == null)

@@ -1,5 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int ImageDataDirectoryCount = 15;
         private const int ComDataDirectory = 14;
         private const int DebugDataDirectory = 6;
-        
+
         private readonly bool _virt;
         private int _offset = 0;
         private readonly int _peHeaderOffset;
@@ -265,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
                         string filename = ReadString(nameLen);
-                        
+
                         PdbInfo pdb = new PdbInfo(filename, guid, age);
                         result.Add(pdb);
                     }
@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private string ReadString(int len) => ReadString(_offset, len);
-        
+
 
         private string ReadString(int offset, int len)
         {
@@ -372,7 +372,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
 
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
-        
+
         private void SeekTo(int offset)
         {
             if (offset != _offset)
@@ -393,16 +393,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private Interop.IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
+        private IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
         {
-            Interop.IMAGE_DATA_DIRECTORY[] directories = new Interop.IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
+            IMAGE_DATA_DIRECTORY[] directories = new IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
 
             if (!IsValid)
                 return directories;
 
             SeekTo(DataDirectoryOffset);
             for (int i = 0; i < directories.Length; i++)
-                directories[i] = Read<Interop.IMAGE_DATA_DIRECTORY>();
+                directories[i] = Read<IMAGE_DATA_DIRECTORY>();
 
             return directories;
         }

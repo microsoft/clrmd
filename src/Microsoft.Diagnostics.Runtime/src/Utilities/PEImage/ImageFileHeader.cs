@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// The architecture type of the computer. An image file can only be run on the specified computer or a system that emulates the specified computer. 
+        /// The architecture type of the computer. An image file can only be run on the specified computer or a system that emulates the specified computer.
         /// </summary>
         public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE)_header.Machine;
 

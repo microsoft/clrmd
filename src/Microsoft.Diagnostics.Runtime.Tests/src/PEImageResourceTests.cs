@@ -1,7 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests

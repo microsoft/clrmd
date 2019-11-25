@@ -339,9 +339,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool ReadPointer(ulong addr, out ulong value);
 
         protected internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
-        
+
         protected internal abstract IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, ClrType type, bool carefully);
-        
+
         protected internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
 
         /// <summary>

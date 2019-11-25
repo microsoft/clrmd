@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
-using System.Buffers;
 using System.IO;
+using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -15,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrInfo
     {
         private readonly DataTarget _dataTarget;
-        
+
         internal ClrRuntime Runtime { get; }
-        
+
         internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
         {
             _dataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
@@ -118,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRuntime ConstructRuntime(string dac)
         {
-            if (IntPtr.Size != (int)_dataTarget.DataReader.PointerSize)
+            if (IntPtr.Size != _dataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
             DacLibrary lib = new DacLibrary(_dataTarget, dac);
