@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -42,6 +43,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (suspend)
             {
                 int status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
+
+                if (status >= 0)
+                    status = waitpid(processId, IntPtr.Zero, 0);
+
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
@@ -109,8 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 {
                     continue;
                 }
-                var module = result.FirstOrDefault(m => m.FileName == entry.FilePath);
-                if (module == null)
+                if (!result.Exists(module => module.FileName == entry.FilePath))
                 {
                     ModuleInfo moduleInfo = new ModuleInfo(this)
                     {
@@ -131,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
-            version = new VersionInfo();
+            version = default;
         }
 
         public bool ReadMemory(ulong address, Span<byte> span, out int bytesRead)
@@ -149,10 +153,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private bool ReadMemoryProcMem(ulong address, Span<byte> span, out int bytesRead)
         {
-            bytesRead = 0;
             int readableBytesCount = this.GetReadableBytesCount(address, span.Length);
             if (readableBytesCount <= 0)
             {
+                bytesRead = 0;
                 return false;
             }
             try
@@ -161,8 +165,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 bytesRead = _memoryStream.Read(span);
                 return bytesRead > 0;
             }
-            catch (Exception)
+            catch (IOException)
             {
+                bytesRead = 0;
                 return false;
             }
         }
@@ -228,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     return true;
                 }
             }
-            vq = new VirtualQueryData();
+            vq = default;
             return false;
         }
 
@@ -417,15 +422,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             // parse something like rwxp or r-xp. more info see
             // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
-            if (permission.Length != 4)
-            {
-                return 0;
-            }
+            Debug.Assert(permission.Length == 4);
+
             int r = permission[0] != '-' ? 8 : 0;   // 8: can read
             int w = permission[1] != '-' ? 4 : 0;   // 4: can write
             int x = permission[2] != '-' ? 2 : 0;   // 2: can execute
             int p = permission[3] != '-' ? 1 : 0;   // 1: private
-            return r + w + x + p;
+            return r | w | x | p;
         }
 
         private const string LibC = "libc";
@@ -435,6 +438,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         [DllImport(LibC, SetLastError = true)]
         private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
+
+        [DllImport(LibC)]
+        private static extern int waitpid(int pid, IntPtr status, int options);
 
         private unsafe struct iovec
         {
