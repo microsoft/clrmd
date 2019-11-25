@@ -58,7 +58,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">The address of memory to read.</param>
         /// <param name="buffer">The buffer to write to.</param>
-        /// <param name="bytesRequested">The number of bytes to read.</param>
         /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
         /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
         bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead);

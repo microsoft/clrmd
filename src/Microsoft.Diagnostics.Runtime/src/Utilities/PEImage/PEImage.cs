@@ -183,7 +183,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="virtualAddress">The address to read from.</param>
         /// <param name="dest">The location to write the data.</param>
-        /// <param name="bytesRequested">The number of bytes to read.</param>
         /// <returns>The number of bytes actually read from the image and written to dest.</returns>
         public int Read(int virtualAddress, Span<byte> dest)
         {
