@@ -13,32 +13,244 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal abstract class DesktopGCHeap : HeapBase
+    internal sealed class ClrHeapImpl : ClrHeap
     {
-        public DesktopGCHeap(DesktopRuntimeBase runtime)
-            : base(runtime)
+        private ulong _minAddr; // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.
+        private ulong _maxAddr;
+        private ClrSegment[] _segments;
+        private ulong[] _sizeByGen = new ulong[4];
+        private ulong _totalHeapSize;
+        private int _lastSegmentIdx; // The last segment we looked at.
+
+
+        public ClrHeapImpl(DesktopRuntimeBase runtime)
         {
+            CanWalkHeap = runtime.CanWalkHeap;
+            MemoryReader = new MemoryReader(runtime.DataReader, 0x10000);
+            PointerSize = runtime.PointerSize;
+
             DesktopRuntime = runtime;
             _types = new List<ClrType>(1000);
             Revision = runtime.Revision;
 
             // Prepopulate a few important method tables.
-            ErrorType = new ErrorType(this);
             _arrayType = new Lazy<ClrType>(CreateArrayType);
-            _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0) ?? ErrorType);
+            _exceptionType = new Lazy<ClrType>(() => GetTypeByMethodTable(DesktopRuntime.ExceptionMethodTable, 0, 0));
 
-            StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0) ?? ErrorType;
-            ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0) ?? ErrorType;
+            StringType = GetTypeByMethodTable(DesktopRuntime.StringMethodTable, 0, 0);
+            ObjectType = GetTypeByMethodTable(DesktopRuntime.ObjectMethodTable, 0, 0);
             Free = CreateFree();
 
             InitSegments(runtime);
+        }
+
+        public override bool ReadPointer(ulong addr, out ulong value)
+        {
+            if (MemoryReader.Contains(addr))
+                return MemoryReader.ReadPtr(addr, out value);
+
+            return Runtime.ReadPointer(addr, out value);
+        }
+
+        internal int Revision { get; set; }
+
+        public override int PointerSize { get; }
+
+        public override bool CanWalkHeap { get; }
+
+        public override IList<ClrSegment> Segments => _segments;
+        public override ulong TotalHeapSize => _totalHeapSize;
+
+        public override ulong GetSizeByGen(int gen)
+        {
+            Debug.Assert(gen >= 0 && gen < 4);
+            return _sizeByGen[gen];
+        }
+
+        public override ClrType GetTypeByName(string name)
+        {
+            foreach (ClrModule module in Runtime.Modules)
+            {
+                ClrType type = module.GetTypeByName(name);
+                if (type != null)
+                    return type;
+            }
+
+            return null;
+        }
+
+        internal MemoryReader MemoryReader { get; }
+
+        private void UpdateSegmentData(HeapSegment segment)
+        {
+            _totalHeapSize += segment.Length;
+            _sizeByGen[0] += segment.Gen0Length;
+            _sizeByGen[1] += segment.Gen1Length;
+            if (!segment.IsLarge)
+                _sizeByGen[2] += segment.Gen2Length;
+            else
+                _sizeByGen[3] += segment.Gen2Length;
+        }
+
+        private void InitSegments(RuntimeBase runtime)
+        {
+            // Populate segments
+            if (runtime.GetHeaps(out SubHeap[] heaps))
+            {
+                List<HeapSegment> segments = new List<HeapSegment>();
+                foreach (SubHeap heap in heaps)
+                {
+                    if (heap != null)
+                    {
+                        ISegmentData seg = runtime.GetSegmentData(heap.FirstLargeSegment);
+                        while (seg != null)
+                        {
+                            HeapSegment segment = new HeapSegment(runtime, seg, heap, true, this);
+                            segments.Add(segment);
+
+                            UpdateSegmentData(segment);
+                            seg = runtime.GetSegmentData(seg.Next);
+                        }
+
+                        seg = runtime.GetSegmentData(heap.FirstSegment);
+                        while (seg != null)
+                        {
+                            HeapSegment segment = new HeapSegment(runtime, seg, heap, false, this);
+                            segments.Add(segment);
+
+                            UpdateSegmentData(segment);
+                            seg = runtime.GetSegmentData(seg.Next);
+                        }
+                    }
+                }
+
+                UpdateSegments(segments.ToArray());
+            }
+            else
+            {
+                _segments = Array.Empty<ClrSegment>();
+            }
+        }
+
+        private void UpdateSegments(ClrSegment[] segments)
+        {
+            // sort the segments.
+            Array.Sort(segments, delegate (ClrSegment x, ClrSegment y) { return x.Start.CompareTo(y.Start); });
+            _segments = segments;
+
+            _minAddr = ulong.MaxValue;
+            _maxAddr = ulong.MinValue;
+            _totalHeapSize = 0;
+            _sizeByGen = new ulong[4];
+            foreach (ClrSegment gcSegment in _segments)
+            {
+                if (gcSegment.Start < _minAddr)
+                    _minAddr = gcSegment.Start;
+                if (_maxAddr < gcSegment.End)
+                    _maxAddr = gcSegment.End;
+
+                _totalHeapSize += gcSegment.Length;
+                if (gcSegment.IsLarge)
+                    _sizeByGen[3] += gcSegment.Length;
+                else
+                {
+                    _sizeByGen[2] += gcSegment.Gen2Length;
+                    _sizeByGen[1] += gcSegment.Gen1Length;
+                    _sizeByGen[0] += gcSegment.Gen0Length;
+                }
+            }
+        }
+
+
+        public override ClrSegment GetSegmentByAddress(ulong objRef)
+        {
+            if (_minAddr <= objRef && objRef < _maxAddr)
+            {
+                // Start the segment search where you where last
+                int curIdx = _lastSegmentIdx;
+                for (; ; )
+                {
+                    ClrSegment segment = _segments[curIdx];
+                    unchecked
+                    {
+                        long offsetInSegment = (long)(objRef - segment.Start);
+                        if (0 <= offsetInSegment)
+                        {
+                            long intOffsetInSegment = offsetInSegment;
+                            if (intOffsetInSegment < (long)segment.Length)
+                            {
+                                _lastSegmentIdx = curIdx;
+                                return segment;
+                            }
+                        }
+                    }
+
+                    // Get the next segment loop until you come back to where you started.
+                    curIdx++;
+                    if (curIdx >= Segments.Count)
+                        curIdx = 0;
+                    if (curIdx == _lastSegmentIdx)
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        protected internal override IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, ClrType type, bool carefully)
+        {
+            if (type == null)
+                type = GetObjectType(obj);
+            else
+                Debug.Assert(type == GetObjectType(obj));
+
+            if (type == null || (!type.ContainsPointers && !type.IsCollectible))
+                return Array.Empty<ClrObjectReference>();
+
+            List<ClrObjectReference> result = null;
+
+            if (type.ContainsPointers)
+            {
+                GCDesc gcdesc = type.GCDesc;
+                if (gcdesc == null)
+                    return Array.Empty<ClrObjectReference>();
+
+                ulong size = type.GetSize(obj);
+                if (carefully)
+                {
+                    ClrSegment seg = GetSegmentByAddress(obj);
+                    if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                        return Array.Empty<ClrObjectReference>();
+                }
+
+                result = new List<ClrObjectReference>();
+                MemoryReader reader = GetMemoryReaderForAddress(obj);
+                gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObjectReference(offset, reference, GetObjectType(reference))));
+            }
+
+            if (type.IsCollectible)
+            {
+                result ??= new List<ClrObjectReference>(1);
+                ulong loaderAllocatorObject = type.LoaderAllocatorObject;
+                result.Add(new ClrObjectReference(-1, loaderAllocatorObject, GetObjectType(loaderAllocatorObject)));
+            }
+
+            return result;
+        }
+
+        private static ulong ReadPointer(MemoryReader reader, ulong addr)
+        {
+            if (reader.ReadPtr(addr, out ulong result))
+                return result;
+
+            return 0;
         }
 
         private ClrType CreateFree()
         {
             ClrType free = GetTypeByMethodTable(DesktopRuntime.FreeMethodTable, 0, 0);
             if (free == null)
-                return ErrorType;
+                return null;
 
             ((DesktopHeapType)free).Shared = true;
             ((BaseDesktopHeapType)free).DesktopModule = (DesktopModule)ObjectType.Module;
@@ -49,15 +261,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             ClrType type = GetTypeByMethodTable(DesktopRuntime.ArrayMethodTable, DesktopRuntime.ObjectMethodTable, 0);
             if (type == null)
-                return ErrorType;
+                return null;
 
             type.ComponentType = ObjectType;
             return type;
-        }
-
-        protected override int GetRuntimeRevision()
-        {
-            return DesktopRuntime.Revision;
         }
 
         public override ClrRuntime Runtime => DesktopRuntime;
@@ -110,7 +317,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return true;
         }
 
-        protected override MemoryReader GetMemoryReaderForAddress(ulong obj)
+        public override ulong GetMethodTable(ulong obj)
+        {
+            if (MemoryReader.ReadPtr(obj, out ulong mt))
+                return mt;
+
+            return 0;
+        }
+
+        private MemoryReader GetMemoryReaderForAddress(ulong obj)
         {
             if (MemoryReader.Contains(obj))
                 return MemoryReader;
@@ -142,9 +357,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        internal abstract ClrType GetTypeByMethodTable(ulong mt, ulong cmt, ulong obj);
-
-        protected ClrType TryGetComponentType(ulong obj, ulong cmt)
+        private ClrType TryGetComponentType(ulong obj, ulong cmt)
         {
             ClrType result = null;
             IObjectData data = GetObjectData(obj);
@@ -164,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        protected static string GetTypeNameFromToken(DesktopModule module, uint token)
+        private static string GetTypeNameFromToken(DesktopModule module, uint token)
         {
             if (module == null)
                 return null;
@@ -225,6 +438,114 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Dictionary<ClrThread, ClrRoot[]> _stackCache;
         private ClrHandle[] _strongHandles;
         private Dictionary<ulong, List<ulong>> _dependentHandles;
+        private ClrObject _lastObject;
+        private readonly Dictionary<ulong, int> _indices = new Dictionary<ulong, int>();
+        public override ClrType GetObjectType(ulong objRef)
+        {
+            ulong mt;
+
+            if (_lastObject.Address == objRef)
+                return _lastObject.Type;
+
+            if (IsHeapCached)
+            {
+                if (!_objectMap.TryGetValue(objRef, out int index))
+                    return null;
+
+                return _objects[index].Type;
+            }
+
+            MemoryReader cache = MemoryReader;
+            if (cache.Contains(objRef))
+            {
+                if (!cache.ReadPtr(objRef, out mt))
+                    return null;
+            }
+            else if (DesktopRuntime.MemoryReader.Contains(objRef))
+            {
+                cache = DesktopRuntime.MemoryReader;
+                if (!cache.ReadPtr(objRef, out mt))
+                    return null;
+            }
+            else
+            {
+                mt = DesktopRuntime.DataReader.ReadPointerUnsafe(objRef);
+            }
+
+            unchecked
+            {
+                if (((byte)mt & 3) != 0)
+                    mt &= ~3UL;
+            }
+
+            ClrType type = GetTypeByMethodTable(mt, 0, objRef);
+            _lastObject = ClrObject.Create(objRef, type);
+
+            return type;
+        }
+
+        public override ClrType GetTypeByMethodTable(ulong mt, ulong cmt)
+        {
+            return GetTypeByMethodTable(mt, 0, 0);
+        }
+
+        internal ClrType GetTypeByMethodTable(ulong mt, ulong _, ulong obj)
+        {
+            if (mt == 0)
+                return null;
+
+            ClrType ret = null;
+
+            // See if we already have the type.
+            if (_indices.TryGetValue(mt, out int index))
+            {
+                ret = _types[index];
+            }
+            else
+            {
+                // No, so we'll have to construct it.
+                ulong moduleAddr = DesktopRuntime.GetModuleForMT(mt);
+                DesktopModule module = DesktopRuntime.GetModule(moduleAddr);
+                uint token = DesktopRuntime.GetMetadataToken(mt);
+
+                bool isFree = mt == DesktopRuntime.FreeMethodTable;
+                if (token == 0xffffffff && !isFree)
+                    return null;
+
+                // Dynamic functions/modules
+                uint tokenEnt = token;
+                if (!isFree && (module == null || module.IsDynamic))
+                    tokenEnt = unchecked((uint)mt);
+
+                ModuleEntry modEnt = new ModuleEntry(module, tokenEnt);
+
+                if (ret == null)
+                {
+                    IMethodTableData mtData = DesktopRuntime.GetMethodTableData(mt);
+                    if (mtData == null)
+                        return null;
+
+                    IMethodTableCollectibleData mtCollectibleData = DesktopRuntime.GetMethodTableCollectibleData(mt);
+                    ret = new DesktopHeapType(() => GetTypeName(mt, module, token), module, token, mt, mtData, this, mtCollectibleData);
+
+                    index = _types.Count;
+                    _indices[mt] = index;
+
+                    // Arrays share a common token, so it's not helpful to look them up here.
+                    if (!ret.IsArray)
+                        _typeEntry[modEnt] = index;
+
+                    _types.Add(ret);
+                    Debug.Assert(_types[index] == ret);
+                }
+            }
+
+            if (obj != 0 && ret.ComponentType == null && ret.IsArray)
+                ret.ComponentType = TryGetComponentType(obj, 0);
+
+            return ret;
+        }
+
 
         public override void CacheRoots(CancellationToken cancelToken)
         {
@@ -579,10 +900,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
-                if (_firstChar?.Type == ErrorType)
+                if (_firstChar?.Type == null)
                     _firstChar = null;
 
-                if (_stringLength?.Type == ErrorType)
+                if (_stringLength?.Type == null)
                     _stringLength = null;
 
                 _initializedStringFields = true;
@@ -915,8 +1236,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return ClrElementType.Struct;
         }
 
-        protected List<ClrType> _types;
-        protected Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
+        private readonly List<ClrType> _types;
+        private readonly Dictionary<ModuleEntry, int> _typeEntry = new Dictionary<ModuleEntry, int>(new ModuleEntryCompare());
         private Dictionary<ArrayRankHandle, BaseDesktopHeapType> _arrayTypes;
 
         private ClrInstanceField _firstChar, _stringLength;
@@ -933,7 +1254,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ExtendedArray<ulong> _gcRefs;
 
         internal DesktopRuntimeBase DesktopRuntime { get; }
-        internal BaseDesktopHeapType ErrorType { get; }
         internal ClrType ObjectType { get; }
         internal ClrType StringType { get; }
         internal ClrType ValueType { get; private set; }
@@ -1219,32 +1539,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrObject> EnumerateObjects()
         {
-            RevisionValidator.Validate(Revision, GetRuntimeRevision());
-
             if (IsHeapCached)
                 return _objectMap.Enumerate().Select(item => ClrObject.Create(item.Key, _objects[item.Value].Type));
 
-            return base.EnumerateObjects();
+            return EnumerateObjectsWorker();
         }
 
-        public override IEnumerable<ulong> EnumerateObjectAddresses()
+        private IEnumerable<ClrObject> EnumerateObjectsWorker()
         {
-            RevisionValidator.Validate(Revision, GetRuntimeRevision());
+            for (int i = 0; i < _segments.Length; ++i)
+            {
+                ClrSegment seg = _segments[i];
 
-            if (IsHeapCached)
-                return _objectMap.Enumerate().Select(item => item.Key);
-
-            return base.EnumerateObjectAddresses();
-        }
-
-        public override ClrType GetObjectType(ulong objRef)
-        {
-            Debug.Assert(IsHeapCached);
-
-            if (!_objectMap.TryGetValue(objRef, out int index))
-                return null;
-
-            return _objects[index].Type;
+                for (ulong obj = seg.GetFirstObject(out ClrType type); obj != 0; obj = seg.NextObject(obj, out type))
+                {
+                    _lastSegmentIdx = i;
+                    yield return ClrObject.Create(obj, type);
+                }
+            }
         }
 
         protected internal override void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
@@ -1262,7 +1574,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
-                base.EnumerateObjectReferences(obj, type, carefully, callback);
+                EnumerateObjectReferencesWorker(obj, type, carefully, callback);
             }
 
             if (_dependentHandles == null)
@@ -1272,6 +1584,78 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_dependentHandles.TryGetValue(obj, out List<ulong> value))
                 foreach (ulong item in value)
                     callback(item, -1);
+        }
+
+        private void EnumerateObjectReferencesWorker(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback)
+        {
+            if (type == null)
+                type = GetObjectType(obj);
+            else
+                Debug.Assert(type == GetObjectType(obj));
+
+            if (type.ContainsPointers)
+            {
+                GCDesc gcdesc = type.GCDesc;
+                if (gcdesc == null)
+                    return;
+
+                ulong size = type.GetSize(obj);
+                if (carefully)
+                {
+                    ClrSegment seg = GetSegmentByAddress(obj);
+                    if (seg == null || obj + size > seg.End || !seg.IsLarge && size > 85000)
+                        return;
+                }
+
+                MemoryReader reader = GetMemoryReaderForAddress(obj);
+                gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), callback);
+            }
+
+            if (type.IsCollectible)
+            {
+                callback(type.LoaderAllocatorObject, -1);
+            }
+        }
+
+
+        private IEnumerable<ClrObject> EnumerateObjectReferencesWorker(ulong obj, ClrType type, bool carefully)
+        {
+            if (type == null)
+                type = GetObjectType(obj);
+            else
+                Debug.Assert(type == GetObjectType(obj));
+
+            if (type == null || (!type.ContainsPointers && !type.IsCollectible))
+                return Array.Empty<ClrObject>();
+
+            List<ClrObject> result = null;
+
+            if (type.ContainsPointers)
+            {
+                GCDesc gcdesc = type.GCDesc;
+                if (gcdesc == null)
+                    return Array.Empty<ClrObject>();
+
+                ulong size = type.GetSize(obj);
+                if (carefully)
+                {
+                    ClrSegment seg = GetSegmentByAddress(obj);
+                    if (seg == null || obj + size > seg.End || (!seg.IsLarge && size > 85000))
+                        return Array.Empty<ClrObject>();
+                }
+
+                result = new List<ClrObject>();
+                MemoryReader reader = GetMemoryReaderForAddress(obj);
+                gcdesc.WalkObject(obj, size, ptr => ReadPointer(reader, ptr), (reference, offset) => result.Add(new ClrObject(reference, GetObjectType(reference))));
+            }
+
+            if (type.IsCollectible)
+            {
+                result ??= new List<ClrObject>(1);
+                result.Add(GetObject(type.LoaderAllocatorObject));
+            }
+
+            return result;
         }
 
         protected internal override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully)
@@ -1293,7 +1677,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else
             {
-                result = base.EnumerateObjectReferences(obj, type, carefully);
+                result = EnumerateObjectReferencesWorker(obj, type, carefully);
             }
 
             if (_dependentHandles == null)
@@ -1335,15 +1719,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 });
         }
 
-        protected string GetTypeName(ulong mt, DesktopModule module, uint token)
+        private string GetTypeName(ulong mt, DesktopModule module, uint token)
         {
             string typeName = DesktopRuntime.GetMethodTableName(mt);
-            return GetBetterTypeName(typeName, module, token);
-        }
-
-        protected string GetTypeName(TypeHandle hnd, DesktopModule module, uint token)
-        {
-            string typeName = DesktopRuntime.GetTypeName(hnd);
             return GetBetterTypeName(typeName, module, token);
         }
 

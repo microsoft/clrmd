@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     throw new MemoryReadException(objRef);
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
-                if (DesktopHeap.StringType == this && DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v2)
+                if (DesktopHeap.StringType == this)
                     count++;
 
                 size = count * (ulong)_componentSize + _baseSize;
@@ -222,10 +222,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_checkedIfIsCCW)
                 return !_notCCW;
 
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
-                return false;
-
             IObjectData data = DesktopHeap.GetObjectData(obj);
             _notCCW = !(data != null && data.CCW != 0);
             _checkedIfIsCCW = true;
@@ -236,10 +232,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override CcwData GetCCWData(ulong obj)
         {
             if (_notCCW)
-                return null;
-
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
                 return null;
 
             DesktopCCWData result = null;
@@ -265,10 +257,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_checkedIfIsRCW)
                 return !_notRCW;
 
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
-                return false;
-
             IObjectData data = DesktopHeap.GetObjectData(obj);
             _notRCW = !(data != null && data.RCW != 0);
             _checkedIfIsRCW = true;
@@ -281,13 +269,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // Most types can't possibly be RCWs.
             if (_notRCW)
                 return null;
-
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
-            {
-                _notRCW = true;
-                return null;
-            }
 
             DesktopRCWData result = null;
             IObjectData data = DesktopHeap.GetObjectData(obj);
@@ -787,10 +768,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
                 else if (componentType != null)
                 {
-                    if (!componentType.IsObjectReference || !Heap.Runtime.HasArrayComponentMethodTables)
+                    if (!componentType.IsObjectReference)
                         _baseArrayOffset = IntPtr.Size * 2;
-                    else
-                        _baseArrayOffset = IntPtr.Size * 3;
                 }
                 else
                 {
@@ -994,7 +973,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return builder.ToString();
         }
 
-        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap, IMethodTableCollectibleData mtCollectibleData = null)
+        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, ClrHeapImpl heap, IMethodTableCollectibleData mtCollectibleData = null)
             : base(mt, heap, module, token)
         {
             _name = new Lazy<string>(typeNameFactory);
@@ -1012,7 +991,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public DesktopHeapType(ulong mt, DesktopGCHeap heap, DesktopBaseModule module, uint token) : base(mt, heap, module, token)
+        public DesktopHeapType(ulong mt, ClrHeapImpl heap, DesktopBaseModule module, uint token) : base(mt, heap, module, token)
         {
         }
         private void InitFlags()

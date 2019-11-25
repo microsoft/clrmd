@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.IsType<int>(value);
             Assert.Equal(42, (int)value);
 
-            Assert.Contains(addr, heap.EnumerateObjectAddresses());
+            Assert.Contains(addr, heap.EnumerateObjects().Select(a => a.Address));
         }
 
         [FrameworkFact]
@@ -50,15 +50,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             // Ensure that we always have a component for every array type.
-            foreach (ulong obj in heap.EnumerateObjectAddresses())
+            foreach (ClrObject obj in heap.EnumerateObjects())
             {
-                ClrType type = heap.GetObjectType(obj);
+                ClrType type = obj.Type;
                 Assert.True(!type.IsArray || type.ComponentType != null);
 
                 foreach (ClrInstanceField field in type.Fields)
                 {
                     Assert.NotNull(field.Type);
-                    Assert.True(!field.Type.IsArray || field.Type.ComponentType != null);
                     Assert.Same(heap, field.Type.Heap);
                 }
             }
@@ -82,9 +81,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            foreach (ulong obj in heap.EnumerateObjectAddresses())
+            foreach (ClrObject obj in heap.EnumerateObjects())
             {
-                ClrType type = heap.GetObjectType(obj);
+                ClrType type = obj.Type;
                 Assert.NotNull(type);
 
                 if (type.IsArray || type.IsPointer)
@@ -105,8 +104,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ClrType[] types = (from obj in heap.EnumerateObjectAddresses()
-                               let t = heap.GetObjectType(obj)
+            ClrType[] types = (from obj in heap.EnumerateObjects()
+                               let t = heap.GetObjectType(obj.Address)
                                where t.Name == TypeName
                                select t).ToArray();
 
@@ -165,9 +164,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            HashSet<ulong> methodTables = (from obj in heap.EnumerateObjectAddresses()
-                                           let type = heap.GetObjectType(obj)
-                                           where !type.IsFree
+            HashSet<ulong> methodTables = (from obj in heap.EnumerateObjects()
+                                           where !obj.Type.IsFree
                                            select heap.GetMethodTable(obj)).Unique();
 
             Assert.DoesNotContain(0ul, methodTables);
@@ -189,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            foreach (ClrType type in heap.EnumerateObjectAddresses().Select(obj => heap.GetObjectType(obj)).Unique())
+            foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj.Address)).Unique())
             {
                 Assert.NotEqual(0ul, type.MethodTable);
 
@@ -220,10 +218,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             int i = 0;
-            foreach (ulong obj in heap.EnumerateObjectAddresses())
+            foreach (ClrObject obj in heap.EnumerateObjects())
             {
                 i++;
-                ClrType type = heap.GetObjectType(obj);
+                ClrType type = obj.Type;
 
                 if (type.IsArray)
                 {
@@ -262,10 +260,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ulong[] fooObjects = (from obj in heap.EnumerateObjectAddresses()
-                                  let t = heap.GetObjectType(obj)
-                                  where t.Name == "Foo"
-                                  select obj).ToArray();
+            ulong[] fooObjects = (from obj in heap.EnumerateObjects()
+                                  where obj.Type.Name == "Foo"
+                                  select obj.Address).ToArray();
 
             // There are exactly two Foo objects in the process, one in each app domain.
             // They will have different method tables.
@@ -353,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrHeap heap = dataTarget.ClrVersions.Single().CreateRuntime().Heap;
 
-            ClrType[] types = heap.EnumerateObjectAddresses().Select(addr => heap.GetObjectType(addr)).ToArray();
+            ClrType[] types = heap.EnumerateObjects().Select(obj => obj.Type).ToArray();
 
             ClrType collectibleType = types.Single(type => type?.Name == typeof(CollectibleUnmanagedStruct).FullName);
 

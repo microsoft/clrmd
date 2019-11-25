@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadString(ulong addr, out string value)
         {
-            value = ((DesktopGCHeap)Heap).GetStringContents(addr);
+            value = ((ClrHeapImpl)Heap).GetStringContents(addr);
             return value != null;
         }
 

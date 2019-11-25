@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool IsEphemeral => _segment.Address == _subHeap.EphemeralSegment;
 
-        internal HeapSegment(RuntimeBase clr, ISegmentData segment, SubHeap subHeap, bool large, HeapBase heap)
+        internal HeapSegment(RuntimeBase clr, ISegmentData segment, SubHeap subHeap, bool large, ClrHeapImpl heap)
         {
             _clr = clr;
             _large = large;
@@ -211,6 +211,6 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly RuntimeBase _clr;
         private readonly ISegmentData _segment;
         private readonly SubHeap _subHeap;
-        private readonly HeapBase _heap;
+        private readonly ClrHeapImpl _heap;
     }
 }

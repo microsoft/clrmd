@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopRCWData(DesktopGCHeap heap, ulong rcw, IRCWData data)
+        internal DesktopRCWData(ClrHeapImpl heap, ulong rcw, IRCWData data)
         {
             _addr = rcw;
             _rcw = data;
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private readonly IRCWData _rcw;
-        private readonly DesktopGCHeap _heap;
+        private readonly ClrHeapImpl _heap;
         private uint _osThreadID;
         private List<ComInterfaceData> _interfaces;
         private readonly ulong _addr;
