@@ -125,18 +125,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (Flavor == ClrFlavor.Core)
                 return new V45Runtime(this, _dataTarget, lib);
 
-            DesktopVersion ver;
-            if (Version.Major == 2)
-                ver = DesktopVersion.v2;
-            else if (Version.Major == 4 && Version.Minor == 0 && Version.Patch < 10000)
-                ver = DesktopVersion.v4;
-            else
-            {
-                // Assume future versions will all work on the newest runtime version.
-                return new V45Runtime(this, _dataTarget, lib);
-            }
-
-            return new LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
+            if (Version.Major < 4 || (Version.Major == 4 && Version.Patch < 10000))
+                throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
+            
+            return new V45Runtime(this, _dataTarget, lib);
         }
     }
 }

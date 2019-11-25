@@ -47,8 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Debug.Assert(_sos != null);
         }
 
-        internal override DesktopVersion CLRVersion => DesktopVersion.v45;
-
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
             if (_handles != null)

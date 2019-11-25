@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     throw new MemoryReadException(objRef);
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
-                if (DesktopHeap.StringType == this && DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v2)
+                if (DesktopHeap.StringType == this)
                     count++;
 
                 size = count * (ulong)_componentSize + _baseSize;
@@ -222,10 +222,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_checkedIfIsCCW)
                 return !_notCCW;
 
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
-                return false;
-
             IObjectData data = DesktopHeap.GetObjectData(obj);
             _notCCW = !(data != null && data.CCW != 0);
             _checkedIfIsCCW = true;
@@ -236,10 +232,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override CcwData GetCCWData(ulong obj)
         {
             if (_notCCW)
-                return null;
-
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
                 return null;
 
             DesktopCCWData result = null;
@@ -265,10 +257,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_checkedIfIsRCW)
                 return !_notRCW;
 
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
-                return false;
-
             IObjectData data = DesktopHeap.GetObjectData(obj);
             _notRCW = !(data != null && data.RCW != 0);
             _checkedIfIsRCW = true;
@@ -281,13 +269,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             // Most types can't possibly be RCWs.
             if (_notRCW)
                 return null;
-
-            // The dac cannot report this information prior to v4.5.
-            if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
-            {
-                _notRCW = true;
-                return null;
-            }
 
             DesktopRCWData result = null;
             IObjectData data = DesktopHeap.GetObjectData(obj);

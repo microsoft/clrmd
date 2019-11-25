@@ -13,13 +13,6 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal enum DesktopVersion
-    {
-        v2,
-        v4,
-        v45
-    }
-
     internal abstract class DesktopRuntimeBase : RuntimeBase
     {
         protected CommonMethodTables _commonMTs;
@@ -103,11 +96,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             return Array.Empty<ClrException>();
         }
-
-        /// <summary>
-        /// Returns the version of the target process (v2, v4, v45)
-        /// </summary>
-        internal abstract DesktopVersion CLRVersion { get; }
 
         internal abstract IGCInfo GetGCInfoImpl();
 
