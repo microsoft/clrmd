@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IThreadData thread = GetThread(addr);
 
             // Ensure we don't hit an infinite loop
-            HashSet<ulong> seen = new HashSet<ulong> {addr};
+            HashSet<ulong> seen = new HashSet<ulong> { addr };
             while (thread != null)
             {
                 threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
@@ -391,7 +391,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return DesktopMethod.Create(this, mdData);
         }
-        
+
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0 || _dataReader.IsMinidump);
@@ -783,7 +783,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             public readonly DesktopAppDomain System;
             public readonly DesktopAppDomain Shared;
             public readonly IList<ClrAppDomain> Domains;
-            
+
             public static readonly DomainContainer Empty = new DomainContainer(null, null, Array.Empty<ClrAppDomain>());
 
             public DomainContainer(DesktopAppDomain system, DesktopAppDomain shared, IList<ClrAppDomain> domains)

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -13,25 +12,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         [FieldOffset(3)]
         public byte MinorLinkerVersion;
         [FieldOffset(4)]
-        public UInt32 SizeOfCode;
+        public uint SizeOfCode;
         [FieldOffset(8)]
-        public UInt32 SizeOfInitializedData;
+        public uint SizeOfInitializedData;
         [FieldOffset(12)]
-        public UInt32 SizeOfUninitializedData;
+        public uint SizeOfUninitializedData;
         [FieldOffset(16)]
-        public UInt32 AddressOfEntryPoint;
+        public uint AddressOfEntryPoint;
         [FieldOffset(20)]
-        public UInt32 BaseOfCode;
+        public uint BaseOfCode;
         [FieldOffset(24)]
-        public UInt64 ImageBase64;
+        public ulong ImageBase64;
         [FieldOffset(24)]
-        public UInt32 BaseOfData;
+        public uint BaseOfData;
         [FieldOffset(28)]
-        public UInt32 ImageBase;
+        public uint ImageBase;
         [FieldOffset(32)]
-        public UInt32 SectionAlignment;
+        public uint SectionAlignment;
         [FieldOffset(36)]
-        public UInt32 FileAlignment;
+        public uint FileAlignment;
         [FieldOffset(40)]
         public ushort MajorOperatingSystemVersion;
         [FieldOffset(42)]
@@ -45,13 +44,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         [FieldOffset(50)]
         public ushort MinorSubsystemVersion;
         [FieldOffset(52)]
-        public UInt32 Win32VersionValue;
+        public uint Win32VersionValue;
         [FieldOffset(56)]
-        public UInt32 SizeOfImage;
+        public uint SizeOfImage;
         [FieldOffset(60)]
-        public UInt32 SizeOfHeaders;
+        public uint SizeOfHeaders;
         [FieldOffset(64)]
-        public UInt32 CheckSum;
+        public uint CheckSum;
         [FieldOffset(68)]
         public ushort Subsystem;
         [FieldOffset(70)]

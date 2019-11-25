@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _position = offset;
             else if (origin == SeekOrigin.Current)
                 _position += offset;
-            else 
+            else
                 throw new InvalidOperationException();
 
             return _position;

@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            return new[] {MethodTable};
+            return new[] { MethodTable };
         }
 
         public override ClrModule Module => DesktopModule;

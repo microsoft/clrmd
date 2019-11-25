@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(0, stats.B);
             Assert.Equal(0, stats.C);
         }
-        
+
         private static Stats GetStats(ClrHeap heap, IEnumerable<ulong> addresses)
         {
             var stats = new Stats();
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             return stats;
         }
-        
+
         private class Stats
         {
             public int A;

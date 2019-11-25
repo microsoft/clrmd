@@ -1,5 +1,5 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
-using System;
+﻿using System;
+using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {

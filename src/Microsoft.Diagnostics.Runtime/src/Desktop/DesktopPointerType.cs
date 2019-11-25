@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            return new[] {MethodTable};
+            return new[] { MethodTable };
         }
 
         internal override ulong GetModuleAddress(ClrAppDomain domain)

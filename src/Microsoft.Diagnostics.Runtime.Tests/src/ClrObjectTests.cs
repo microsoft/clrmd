@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void GetField_WhenBool_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             var prototype = _connection.Prototype;
-            
+
             // Act
             bool actual = _primitiveCarrier.GetField<bool>(nameof(prototype.TrueBool));
 

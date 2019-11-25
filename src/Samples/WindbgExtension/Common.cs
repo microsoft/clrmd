@@ -109,7 +109,7 @@ namespace WindbgExtension
             return (((Major) & 0xffff) << 16) | ((Minor) & 0xffff);
         }
     }
-    
+
     class DbgEngStream : Stream
     {
         public void Clear()

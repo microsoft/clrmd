@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal abstract class HeapBase : ClrHeap
     {
-        private ulong _minAddr; // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.  
+        private ulong _minAddr; // Smallest and largest segment in the GC heap.  Used to make SegmentForObject faster.
         private ulong _maxAddr;
         private ClrSegment[] _segments;
         private ulong[] _sizeByGen = new ulong[4];
@@ -132,8 +132,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void UpdateSegments(ClrSegment[] segments)
         {
-            // sort the segments.  
-            Array.Sort(segments, delegate(ClrSegment x, ClrSegment y) { return x.Start.CompareTo(y.Start); });
+            // sort the segments.
+            Array.Sort(segments, delegate (ClrSegment x, ClrSegment y) { return x.Start.CompareTo(y.Start); });
             _segments = segments;
 
             _minAddr = ulong.MaxValue;
@@ -196,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 // Start the segment search where you where last
                 int curIdx = _lastSegmentIdx;
-                for (;;)
+                for (; ; )
                 {
                     ClrSegment segment = _segments[curIdx];
                     unchecked
@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                     }
 
-                    // Get the next segment loop until you come back to where you started.  
+                    // Get the next segment loop until you come back to where you started.
                     curIdx++;
                     if (curIdx >= Segments.Count)
                         curIdx = 0;

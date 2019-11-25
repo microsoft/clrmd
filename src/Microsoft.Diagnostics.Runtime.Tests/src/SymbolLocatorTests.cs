@@ -23,9 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         internal static SymbolLocator GetLocator()
         {
-            return new DefaultSymbolLocator {SymbolCache = Helpers.TestWorkingDirectory};
+            return new DefaultSymbolLocator { SymbolCache = Helpers.TestWorkingDirectory };
         }
-        
+
         [Fact]
         public void FindBinaryNegativeTest()
         {

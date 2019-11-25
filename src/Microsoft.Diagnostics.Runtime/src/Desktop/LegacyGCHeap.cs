@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (mtData == null)
                         return null;
 
-                    ret = new DesktopHeapType(() => GetTypeName(hnd, module, token), module, token, mt, mtData, this) {ComponentType = componentType};
+                    ret = new DesktopHeapType(() => GetTypeName(hnd, module, token), module, token, mt, mtData, this) { ComponentType = componentType };
                     index = _types.Count;
                     _indices[hnd] = index;
                     _typeEntry[modEnt] = index;

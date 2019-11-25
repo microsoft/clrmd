@@ -2,11 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
@@ -17,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class LinuxDefaultSymbolLocator : DefaultSymbolLocator
     {
         private readonly IEnumerable<string> _modules;
-        
+
         public LinuxDefaultSymbolLocator(IEnumerable<string> modules) : base()
         {
             _modules = modules;
@@ -26,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public override string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
             string name = Path.GetFileName(fileName);
-            foreach(var m in _modules)
+            foreach (var m in _modules)
             {
                 if (name == Path.GetFileName(m))
                 {

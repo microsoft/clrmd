@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (_constructedMT != 0)
                     {
                         _cachedMethodTable = _constructedMT;
-                        _methodTables = new[] {_cachedMethodTable};
+                        _methodTables = new[] { _cachedMethodTable };
                         return _methodTables;
                     }
                 }
@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override RcwData GetRCWData(ulong obj)
         {
-            // Most types can't possibly be RCWs.  
+            // Most types can't possibly be RCWs.
             if (_notRCW)
                 return null;
 
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
             else if (!_checkedIfIsRCW) // If the first time fails, we assume that all instances of this type can't be RCWs.
             {
-                _notRCW = true; // TODO FIX NOW review.  We really want to simply ask the runtime... 
+                _notRCW = true; // TODO FIX NOW review.  We really want to simply ask the runtime...
             }
 
             _checkedIfIsRCW = true;
@@ -1035,7 +1035,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
 
                 TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
@@ -1047,7 +1047,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
 
                 TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
@@ -1059,7 +1059,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
 
                 TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
@@ -1071,7 +1071,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
 
                 TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
@@ -1083,7 +1083,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
 
                 return (_attributes & TypeAttributes.Abstract) == TypeAttributes.Abstract;
@@ -1094,7 +1094,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
 
                 return (_attributes & TypeAttributes.Sealed) == TypeAttributes.Sealed;
@@ -1105,7 +1105,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             get
             {
-                if ((int)_attributes == 0)
+                if (_attributes == 0)
                     InitFlags();
                 return (_attributes & TypeAttributes.Interface) == TypeAttributes.Interface;
             }

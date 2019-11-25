@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return MethodTable == other.MethodTable && ComponentMethodTable == other.ComponentMethodTable;
         }
 
-        // TODO should not be needed. IEquatable should cover it.  
+        // TODO should not be needed. IEquatable should cover it.
         public static IEqualityComparer<TypeHandle> EqualityComparer = new HeapTypeEqualityComparer();
 
         private class HeapTypeEqualityComparer : IEqualityComparer<TypeHandle>
