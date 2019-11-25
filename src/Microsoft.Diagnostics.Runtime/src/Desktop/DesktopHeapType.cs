@@ -787,10 +787,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
                 else if (componentType != null)
                 {
-                    if (!componentType.IsObjectReference || !Heap.Runtime.HasArrayComponentMethodTables)
+                    if (!componentType.IsObjectReference)
                         _baseArrayOffset = IntPtr.Size * 2;
-                    else
-                        _baseArrayOffset = IntPtr.Size * 3;
                 }
                 else
                 {
@@ -994,7 +992,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return builder.ToString();
         }
 
-        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, DesktopGCHeap heap, IMethodTableCollectibleData mtCollectibleData = null)
+        internal DesktopHeapType(Func<string> typeNameFactory, DesktopModule module, uint token, ulong mt, IMethodTableData mtData, ClrHeapImpl heap, IMethodTableCollectibleData mtCollectibleData = null)
             : base(mt, heap, module, token)
         {
             _name = new Lazy<string>(typeNameFactory);
@@ -1012,7 +1010,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public DesktopHeapType(ulong mt, DesktopGCHeap heap, DesktopBaseModule module, uint token) : base(mt, heap, module, token)
+        public DesktopHeapType(ulong mt, ClrHeapImpl heap, DesktopBaseModule module, uint token) : base(mt, heap, module, token)
         {
         }
         private void InitFlags()

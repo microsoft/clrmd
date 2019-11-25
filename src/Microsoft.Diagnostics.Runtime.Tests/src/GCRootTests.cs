@@ -69,14 +69,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             ObjectSet hash = new ObjectSet(heap);
-            foreach (ulong obj in heap.EnumerateObjectAddresses())
+            foreach (ulong obj in heap.EnumerateObjects())
             {
                 Assert.False(hash.Contains(obj));
                 hash.Add(obj);
                 Assert.True(hash.Contains(obj));
             }
 
-            foreach (ulong obj in heap.EnumerateObjectAddresses())
+            foreach (ulong obj in heap.EnumerateObjects())
             {
                 Assert.True(hash.Contains(obj));
                 hash.Remove(obj);
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             ObjectSet hash = new ObjectSet(heap);
-            foreach (ulong obj in heap.EnumerateObjectAddresses())
+            foreach (ulong obj in heap.EnumerateObjects())
             {
                 Assert.False(hash.Contains(obj));
                 Assert.True(hash.Add(obj));

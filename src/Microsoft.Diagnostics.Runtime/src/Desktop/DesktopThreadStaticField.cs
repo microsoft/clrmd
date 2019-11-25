@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThreadStaticField : ClrThreadStaticField
     {
-        public DesktopThreadStaticField(DesktopGCHeap heap, IFieldData field, string name)
+        public DesktopThreadStaticField(ClrHeapImpl heap, IFieldData field, string name)
         {
             _field = field;
             Name = name;

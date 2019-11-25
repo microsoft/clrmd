@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override bool IsInternal => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Assembly;
         public override bool IsProtected => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Family;
 
-        public DesktopInstanceField(DesktopGCHeap heap, IFieldData data, string name, FieldAttributes attributes, IntPtr sig, int sigLen)
+        public DesktopInstanceField(ClrHeapImpl heap, IFieldData data, string name, FieldAttributes attributes, IntPtr sig, int sigLen)
         {
             Name = name;
             _field = data;
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _type = new Lazy<BaseDesktopHeapType>(() => GetType(_heap, data, sig, sigLen, (ClrElementType)_field.CorElementType));
         }
 
-        private static BaseDesktopHeapType GetType(DesktopGCHeap heap, IFieldData data, IntPtr sig, int sigLen, ClrElementType elementType)
+        private static BaseDesktopHeapType GetType(ClrHeapImpl heap, IFieldData data, IntPtr sig, int sigLen, ClrElementType elementType)
         {
             BaseDesktopHeapType result = null;
             ulong mt = data.TypeMethodTable;
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             if (result == null)
                                 if ((result = (BaseDesktopHeapType)heap.GetBasicType((ClrElementType)etype)) == null)
-                                    result = heap.ErrorType;
+                                    result = null;
                         }
                     }
                 }
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     else if (result.ComponentType == null)
                         if ((result.ComponentType = heap.GetBasicType((ClrElementType)etype)) == null)
-                            result.ComponentType = heap.ErrorType;
+                            result.ComponentType = null;
                 }
             }
 
@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override bool HasSimpleValue => _type != null && !ElementType.IsValueClass();
         public override int Size => GetSize(_type.Value, ElementType);
 
-        private readonly DesktopGCHeap _heap;
+        private readonly ClrHeapImpl _heap;
         private readonly Lazy<BaseDesktopHeapType> _type;
         private readonly IFieldData _field;
         private readonly FieldAttributes _attributes;

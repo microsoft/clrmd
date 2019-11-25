@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class DesktopStaticField : ClrStaticField
     {
         public DesktopStaticField(
-            DesktopGCHeap heap,
+            ClrHeapImpl heap,
             IFieldData field,
             BaseDesktopHeapType containingType,
             string name,
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             ClrElementType elType = ElementType;
             if (elType.IsPrimitive() || elType == ClrElementType.String)
-                return ((DesktopGCHeap)heap).GetBasicType(elType);
+                return ((ClrHeapImpl)heap).GetBasicType(elType);
 
             int count = 0;
             foreach (ClrAppDomain domain in domains)
@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly BaseDesktopHeapType _containingType;
         private readonly FieldAttributes _attributes;
         private readonly object _defaultValue;
-        private readonly DesktopGCHeap _heap;
+        private readonly ClrHeapImpl _heap;
         private readonly Lazy<ClrType> _typeResolver;
     }
 }

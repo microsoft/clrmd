@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public bool Shared { get; internal set; }
 
-        public BaseDesktopHeapType(ulong mt, DesktopGCHeap heap, DesktopBaseModule module, uint token)
+        public BaseDesktopHeapType(ulong mt, ClrHeapImpl heap, DesktopBaseModule module, uint token)
         {
             _constructedMT = mt;
             DesktopHeap = heap;
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        internal DesktopGCHeap DesktopHeap { get; set; }
+        internal ClrHeapImpl DesktopHeap { get; set; }
         internal DesktopBaseModule DesktopModule { get; set; }
 
         public override ClrElementType ElementType

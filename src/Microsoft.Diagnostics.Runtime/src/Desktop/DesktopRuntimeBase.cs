@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         protected CommonMethodTables _commonMTs;
         private ClrModule[] _moduleList;
         private Lazy<List<ClrThread>> _threads;
-        private Lazy<DesktopGCHeap> _heap;
+        private Lazy<ClrHeapImpl> _heap;
         private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal DesktopRuntimeBase(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
-            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _heap = new Lazy<ClrHeapImpl>(CreateHeap);
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _moduleFiles = new Dictionary<string, DesktopModule>();
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
-            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _heap = new Lazy<ClrHeapImpl>(CreateHeap);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
             _mscorlib = new Lazy<ClrModule>(GetMscorlib);
         }
@@ -175,12 +175,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrHeap Heap => _heap.Value;
 
-        private DesktopGCHeap CreateHeap()
+        private ClrHeapImpl CreateHeap()
         {
-            if (HasArrayComponentMethodTables)
-                return new LegacyGCHeap(this);
-
-            return new V46GCHeap(this);
+            return new ClrHeapImpl(this);
         }
 
         public override ClrThreadPool ThreadPool => _threadpool.Value;

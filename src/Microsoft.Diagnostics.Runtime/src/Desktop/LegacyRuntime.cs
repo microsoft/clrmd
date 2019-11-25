@@ -645,7 +645,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_stackTrace == 0)
                 return result;
 
-            DesktopGCHeap heap = (DesktopGCHeap)Heap;
+            ClrHeapImpl heap = (ClrHeapImpl)Heap;
             ClrType stackTraceType = heap.GetObjectType(_stackTrace);
 
             if (stackTraceType == null)

@@ -249,14 +249,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool CanWalkHeap { get; }
 
         /// <summary>
-        /// Enumerates all objects on the heap.  This is equivalent to enumerating all segments then walking
-        /// each object with ClrSegment.FirstObject, ClrSegment.NextObject, but in a simple enumerator
-        /// for easier use in linq queries.
-        /// </summary>
-        /// <returns>An enumerator for all objects on the heap.</returns>
-        public abstract IEnumerable<ulong> EnumerateObjectAddresses();
-
-        /// <summary>
         /// Enumerates all objects on the heap.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>

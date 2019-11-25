@@ -15,10 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
         public static IEnumerable<ulong> GetObjectsOfType(this ClrHeap heap, string name)
         {
-            return from obj in heap.EnumerateObjectAddresses()
-                   let type = heap.GetObjectType(obj)
-                   where type?.Name == name
-                   select obj;
+            return from obj in heap.EnumerateObjects()
+                   where obj.Type?.Name == name
+                   select obj.Address;
         }
 
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
