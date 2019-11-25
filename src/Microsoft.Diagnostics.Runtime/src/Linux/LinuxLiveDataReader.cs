@@ -10,8 +10,8 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader targets a Linux process, implemented by reading /proc/<pid>/maps 
-    /// and /proc/<pid>/mem files. The process must have READ permission to the above 2
+    /// A data reader targets a Linux process, implemented by reading /proc/[pid]/maps 
+    /// and /proc/[pid]/mem files. The process must have READ permission to the above 2
     /// files. 
     ///   1. The current process can run as root.
     ///   2. If executed from within a Docker container, the best way is to use "ptrace 
