@@ -6,12 +6,271 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class V45Runtime : DesktopRuntimeBase
+    interface IHeapBuilder
+    {
+        IDataReader DataReader { get; }
+        bool ServerGC { get; }
+        IReadOnlyList<HeapSegment> Segments { get; }
+        int LogicalHeapCount { get; }
+        IEnumerable<Tuple<ulong, ulong>> EnumerateDependentHandleLinks();
+
+        ulong ArrayMethodTable { get; }
+        ulong StringMethodTable { get; }
+        ulong ObjectMethodTable { get; }
+        ulong ExceptionMethodTable { get; }
+        ulong FreeMethodTable { get; }
+
+        bool CanWalkHeap { get; }
+
+        IReadOnlyList<ClrSegment> CreateClrSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts, out List<FinalizerQueueSegment> fqSegments)
+    }
+
+    internal unsafe sealed class ClrRuntimeBuilder : IHeapBuilder
+    {
+        private readonly SOSDac _sos;
+        private readonly CommonMethodTables _mts;
+        private readonly int _threads;
+        private readonly ulong _firstThread;
+
+        public IDataReader DataReader { get; }
+
+        public bool ServerGC { get; }
+
+        public int LogicalHeapCount { get; }
+
+        public IReadOnlyList<HeapSegment> Segments => throw new NotImplementedException();
+
+        public ulong ArrayMethodTable => _mts.ArrayMethodTable;
+
+        public ulong StringMethodTable => _mts.StringMethodTable;
+
+        public ulong ObjectMethodTable => _mts.ObjectMethodTable;
+
+        public ulong ExceptionMethodTable => _mts.ExceptionMethodTable;
+
+        public ulong FreeMethodTable => _mts.FreeMethodTable;
+
+        public bool CanWalkHeap { get; }
+
+        public IEnumerable<Tuple<ulong, ulong>> EnumerateDependentHandleLinks()
+        {
+            throw new NotImplementedException();
+        }
+
+        public ClrRuntimeBuilder(DacLibrary library, IDataReader reader)
+        {
+            _sos = library.SOSDacInterface;
+            DataReader = reader;
+
+            int version = 0;
+            if (library.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
+                throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsExceptionKind.DacError);
+
+            if (version != 9)
+                throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
+
+            if (_sos.GetCommonMethodTables(out _mts))
+                CanWalkHeap = ArrayMethodTable != 0 && StringMethodTable != 0 && ExceptionMethodTable != 0 && FreeMethodTable != 0 && ObjectMethodTable != 0;
+
+            if (_sos.GetGcHeapData(out GCInfo gcdata))
+            {
+                if (gcdata.MaxGeneration != 3)
+                    throw new NotSupportedException($"The GC reported a max generation of {gcdata.MaxGeneration} which this build of ClrMD does not support.");
+
+                ServerGC = gcdata.ServerMode != 0;
+                LogicalHeapCount = gcdata.HeapCount;
+                CanWalkHeap &= gcdata.GCStructuresValid != 0;
+            }
+            else
+            {
+                CanWalkHeap = false;
+            }
+
+            if (_sos.GetThreadStoreData(out ThreadStoreData data))
+            {
+                _threads = data.ThreadCount;
+                _firstThread = data.FirstThread;
+            }
+        }
+
+
+
+
+
+        public IReadOnlyList<ClrSegment> CreateClrSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts, out List<FinalizerQueueSegment> fqSegments)
+        {
+            List<ClrSegment> result = new List<ClrSegment>();
+            List<AllocationContext> allocContexts = new List<AllocationContext>();
+            List<FinalizerQueueSegment> finalizerSegments = new List<FinalizerQueueSegment>();
+
+            SegmentBuilder builder = new SegmentBuilder(_sos, clrHeap);
+            if (ServerGC)
+            {
+                ulong[] heapList = _sos.GetHeapList(LogicalHeapCount);
+                foreach (ulong addr in heapList)
+                    builder.AddHeap(addr, allocContexts, result, finalizerSegments);
+            }
+            else
+            {
+                builder.AddHeap(allocContexts, result, finalizerSegments);
+            }
+
+
+            ulong next = _firstThread;
+            HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
+
+            while (_sos.GetThreadData(next, out ThreadData thread))
+            {
+                if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
+                    allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
+
+                next = thread.NextThread;
+                if (next == 0 || seen.Add(next))
+                    break;
+            }
+
+            allocationContexts = allocContexts;
+            fqSegments = finalizerSegments;
+            return result;
+        }
+    }
+    
+    public struct FinalizerQueueSegment
+    {
+        public ulong Start { get; }
+        public ulong End { get; }
+
+        public FinalizerQueueSegment(ulong start, ulong end)
+        {
+            Start = start;
+            End = end;
+
+            Debug.Assert(Start < End);
+            Debug.Assert(End != 0);
+        }
+    }
+    public struct AllocationContext
+    {
+        public ulong Pointer { get; }
+        public ulong Limit { get; }
+
+        public AllocationContext(ulong pointer, ulong limit)
+        {
+            Pointer = pointer;
+            Limit = limit;
+
+            Debug.Assert(Pointer < Limit);
+            Debug.Assert(Limit != 0);
+        }
+    }
+
+    interface ISegmentBuilder
+    {
+        int LogicalHeap { get; }
+        ulong Start { get; }
+        ulong End { get; }
+        ulong ReservedEnd { get; }
+        ulong CommitedEnd { get; }
+        ulong Gen0Start { get; }
+        ulong Gen0Length { get; }
+        ulong Gen1Start { get; }
+        ulong Gen1Length { get; }
+        ulong Gen2Start { get; }
+        ulong Gen2Length { get; }
+
+
+        bool IsLargeObjectSegment { get; }
+        bool IsEphemeralSegment { get; }
+    }
+
+    internal sealed class SegmentBuilder : ISegmentBuilder
+    {
+        private HeapDetails _heap;
+        private SegmentData _segment;
+        private readonly SOSDac _sos;
+        private readonly HashSet<ulong> _seenSegments = new HashSet<ulong>() { 0 };
+        private readonly ClrHeap _clrHeap;
+
+        public int LogicalHeap { get; private set; }
+
+        public ulong Start => _segment.Start;
+
+        public ulong End => IsEphemeralSegment ? _heap.Allocated : _segment.Allocated;
+
+        public ulong ReservedEnd => _segment.Reserved;
+
+        public ulong CommitedEnd => _segment.Committed;
+
+        public ulong Gen0Start => IsEphemeralSegment ? _heap.GenerationTable[0].AllocationStart : End;
+
+        public ulong Gen0Length => End - Gen0Start;
+
+        public ulong Gen1Start => IsEphemeralSegment ? _heap.GenerationTable[1].AllocationStart : End;
+
+        public ulong Gen1Length => Gen0Start - Gen1Start;
+
+        public ulong Gen2Start => Start;
+
+        public ulong Gen2Length => Gen1Start - Start;
+
+        public bool IsLargeObjectSegment { get; private set; }
+
+        public bool IsEphemeralSegment => _heap.EphemeralHeapSegment == _segment.Address;
+
+        public SegmentBuilder(SOSDac sos, ClrHeap heap)
+        {
+            _sos = sos;
+            _clrHeap = heap;
+        }
+
+        public void AddHeap(ulong address, List<AllocationContext> allocationContexts, List<ClrSegment> segments, List<FinalizerQueueSegment> fqSegments)
+        {
+            LogicalHeap = 0;
+            if (_sos.GetServerHeapDetails(address, out _heap))
+            {
+                LogicalHeap++;
+                AddSegments(allocationContexts, segments);
+            }
+        }
+
+        public void AddHeap(List<AllocationContext> allocationContexts, List<ClrSegment> segments, List<FinalizerQueueSegment> fqSegments)
+        {
+            if (_sos.GetWksHeapDetails(out _heap))
+                AddSegments(allocationContexts, segments);
+        }
+
+        private void AddSegments(List<AllocationContext> allocationContexts, List<ClrSegment> segments)
+        {
+            if (_heap.EphemeralAllocContextPtr != 0 && _heap.EphemeralAllocContextPtr != _heap.EphemeralAllocContextLimit)
+                allocationContexts.Add(new AllocationContext(_heap.EphemeralAllocContextPtr, _heap.EphemeralAllocContextLimit));
+
+            IsLargeObjectSegment = true;
+            AddSegments(segments, _heap.GenerationTable[3].StartSegment);
+            IsLargeObjectSegment = false;
+            AddSegments(segments, _heap.EphemeralHeapSegment);
+        }
+
+        private void AddSegments(List<ClrSegment> segments, ulong address)
+        {
+            if (_seenSegments.Add(address))
+                return;
+
+            while (_sos.GetSegmentData(address, out _segment))
+            {
+                segments.Add(new HeapSegment(_clrHeap, this));
+                if (_seenSegments.Add(_segment.Next))
+                    break;
+            }
+        }
+    }
+
+    internal class V45Runtime : ClrRuntimeImpl
     {
         private List<ClrHandle> _handles;
         private SOSDac _sos;
@@ -20,31 +279,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public unsafe V45Runtime(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
-            if (!GetCommonMethodTables(ref _commonMTs))
-                throw new ClrDiagnosticsException("Could not request common MethodTable list.", ClrDiagnosticsExceptionKind.DacError);
-
-            if (!_commonMTs.Validate())
-                CanWalkHeap = false;
-
             // Ensure the version of the dac API matches the one we expect.  (Same for both
             // v2 and v4 rtm.)
-            int version = 0;
-            if (lib.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
-                throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsExceptionKind.DacError);
-
-            if (version != 9)
-                throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsExceptionKind.DacError);
-        }
-
-        protected override void InitApi()
-        {
-            if (_sos == null)
-                _sos = DacLibrary.GetSOSInterfaceNoAddRef();
-
-            if (_sos6 == null)
-                _sos6 = DacLibrary.GetSOSInterface6NoAddRef();
-
-            Debug.Assert(_sos != null);
         }
 
         public override IEnumerable<ClrHandle> EnumerateHandles()
@@ -179,26 +415,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        internal override IHeapDetails GetSvrHeapDetails(ulong addr)
-        {
-            if (_sos.GetServerHeapDetails(addr, out HeapDetails data))
-                return data;
-
-            return null;
-        }
-
-        internal override IHeapDetails GetWksHeapDetails()
-        {
-            if (_sos.GetWksHeapDetails(out HeapDetails details))
-                return details;
-
-            return null;
-        }
-
-        internal override ulong[] GetServerHeapList()
-        {
-            return _sos.GetHeapList(HeapCount);
-        }
 
         internal override ulong[] GetAppDomainList(int count)
         {

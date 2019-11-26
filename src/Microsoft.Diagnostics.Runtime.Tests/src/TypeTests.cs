@@ -157,29 +157,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
         }
 
-        [FrameworkFact]
-        public void EETypeTest()
-        {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-
-            HashSet<ulong> methodTables = (from obj in heap.EnumerateObjects()
-                                           where !obj.Type.IsFree
-                                           select heap.GetMethodTable(obj)).Unique();
-
-            Assert.DoesNotContain(0ul, methodTables);
-
-            foreach (ulong mt in methodTables)
-            {
-                ClrType type = heap.GetTypeByMethodTable(mt);
-                ulong eeclass = heap.GetEEClassByMethodTable(mt);
-                Assert.NotEqual(0ul, eeclass);
-
-                Assert.NotEqual(0ul, heap.GetMethodTableByEEClass(eeclass));
-            }
-        }
-
         [Fact]
         public void MethodTableHeapEnumeration()
         {

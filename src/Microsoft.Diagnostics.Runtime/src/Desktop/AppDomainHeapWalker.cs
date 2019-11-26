@@ -24,9 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly SOSDac.LoaderHeapTraverse _delegate;
         private ClrMemoryRegionType _type;
         private ulong _appDomain;
-        private readonly DesktopRuntimeBase _runtime;
+        private readonly ClrRuntimeImpl _runtime;
 
-        public AppDomainHeapWalker(DesktopRuntimeBase runtime)
+        public AppDomainHeapWalker(ClrRuntimeImpl runtime)
         {
             _runtime = runtime;
             _delegate = VisitOneHeap;

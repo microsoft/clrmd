@@ -31,12 +31,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrObject GetObject(ulong objRef) => ClrObject.Create(objRef, GetObjectType(objRef));
 
-        /// <summary>
-        /// Returns whether this version of CLR has component MethodTables.  Component MethodTables were removed from
-        /// desktop CLR in v4.6, and do not exist at all on .Net Native.  If this method returns false, all component
-        /// MethodTables will be 0, and expected to be 0 when an argument to a function.
-        /// </summary>
-        public virtual bool HasComponentMethodTables => true;
 
         /// <summary>
         /// Attempts to retrieve the MethodTable and component MethodTable from the given object.
@@ -64,32 +58,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The MethodTable of the object, or 0 if the address could not be read from.</returns>
         public abstract ulong GetMethodTable(ulong obj);
 
-        /// <summary>
-        /// Retrieves the EEClass from the given MethodTable.  EEClasses do not exist on
-        /// .Net Native.
-        /// </summary>
-        /// <param name="methodTable">The MethodTable to get the EEClass from.</param>
-        /// <returns>
-        /// The EEClass for the given MethodTable, 0 if methodTable is invalid or
-        /// does not exist.
-        /// </returns>
-        public virtual ulong GetEEClassByMethodTable(ulong methodTable)
-        {
-            return 0;
-        }
-
-        /// <summary>
-        /// Retrieves the MethodTable associated with the given EEClass.
-        /// </summary>
-        /// <param name="eeclass">The eeclass to get the method table from.</param>
-        /// <returns>
-        /// The MethodTable for the given EEClass, 0 if eeclass is invalid
-        /// or does not exist.
-        /// </returns>
-        public virtual ulong GetMethodTableByEEClass(ulong eeclass)
-        {
-            return 0;
-        }
 
         /// <summary>
         /// Returns a  wrapper around a System.Exception object (or one of its subclasses).
@@ -305,11 +273,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Pointer size of on the machine (4 or 8 bytes).
-        /// </summary>
-        public abstract int PointerSize { get; }
-
-        /// <summary>
         /// Returns a string representation of this heap, including the size and number of segments.
         /// </summary>
         /// <returns>The string representation of this heap.</returns>
@@ -335,13 +298,5 @@ namespace Microsoft.Diagnostics.Runtime
         protected internal abstract IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, ClrType type, bool carefully);
 
         protected internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
-
-        /// <summary>
-        /// This might be useful to be public, but we actually don't know the total number objects without walking the entire
-        /// heap.  This property is only valid if we have cached the heap...which leads to a weird programmatic interface (that
-        /// this simply property would throw InvalidOperationException unless the heap is cached).  I'm leaving this internal
-        /// until I am convinced there's a good way to surface this.
-        /// </summary>
-        protected internal virtual long TotalObjects => -1;
     }
 }

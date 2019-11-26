@@ -475,7 +475,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
             ulong size = type.GetSize(obj);
-            if (!seg.IsLarge && size >= 85000)
+            if (!seg.IsLargeObjectSegment && size >= 85000)
                 return true;
 
             return obj + size > seg.End;

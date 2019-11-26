@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrAppDomain[] _appDomainList;
         private PdbInfo _pdb;
 
-        public DesktopModule(DesktopRuntimeBase runtime, ulong address, IModuleData data, string name, string assemblyName)
+        public DesktopModule(ClrRuntimeImpl runtime, ulong address, IModuleData data, string name, string assemblyName)
             : base(runtime)
         {
             _address = address;

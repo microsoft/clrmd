@@ -603,7 +603,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             ulong[] refs = new ulong[heapCount];
             int hr = _getGCHeapList(Self, heapCount, refs, out int needed);
-            return hr == S_OK ? refs : null;
+            return hr == S_OK ? refs : Array.Empty<ulong>();
         }
 
         public bool GetServerHeapDetails(ulong addr, out HeapDetails data)

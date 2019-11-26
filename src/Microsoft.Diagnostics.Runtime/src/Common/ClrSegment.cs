@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// has a logical processor in the PC associated with it.  This property returns that logical
         /// processor number (starting at 0).
         /// </summary>
-        public abstract int ProcessorAffinity { get; }
+        public abstract int LogicalHeap { get; }
 
         /// <summary>
         /// The address of the end of memory reserved for the segment, but not committed.
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Large objects (greater than 85,000 bytes in size), are stored in their own segments and
         /// only collected on full (gen 2) collections.
         /// </summary>
-        public virtual bool IsLarge => false;
+        public virtual bool IsLargeObjectSegment => false;
 
         /// <summary>
         /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1

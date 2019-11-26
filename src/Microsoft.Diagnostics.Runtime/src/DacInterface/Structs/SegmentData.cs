@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong Committed;
         public readonly ulong Reserved;
         public readonly ulong Used;
-        public readonly ulong Mem;
+        public readonly ulong Start;
         public readonly ulong Next;
         public readonly ulong Heap;
         public readonly ulong HighAllocMark;
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 FixupPointer(ref Committed);
                 FixupPointer(ref Reserved);
                 FixupPointer(ref Used);
-                FixupPointer(ref Mem);
+                FixupPointer(ref Start);
                 FixupPointer(ref Next);
                 FixupPointer(ref Heap);
                 FixupPointer(ref HighAllocMark);
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         ulong ISegmentData.Address => Address;
         ulong ISegmentData.Next => Next;
-        ulong ISegmentData.Start => Mem;
+        ulong ISegmentData.Start => Start;
         ulong ISegmentData.End => Allocated;
         ulong ISegmentData.Reserved => Reserved;
         ulong ISegmentData.Committed => Committed;

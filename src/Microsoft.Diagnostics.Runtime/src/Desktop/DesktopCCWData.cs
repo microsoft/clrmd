@@ -21,8 +21,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_interfaces != null)
                     return _interfaces;
 
-                _heap.LoadAllTypes();
-
                 _interfaces = new List<ComInterfaceData>();
 
                 COMInterfacePointerData[] interfaces = _heap.DesktopRuntime.GetCCWInterfaces(_addr, _ccw.InterfaceCount);

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _sig;
         }
 
-        internal static DesktopMethod Create(DesktopRuntimeBase runtime, MetaDataImport metadata, IMethodDescData mdData)
+        internal static DesktopMethod Create(ClrRuntimeImpl runtime, MetaDataImport metadata, IMethodDescData mdData)
         {
             if (mdData == null)
                 return null;
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return _methodHandles;
         }
 
-        internal static ClrMethod Create(DesktopRuntimeBase runtime, IMethodDescData mdData)
+        internal static ClrMethod Create(ClrRuntimeImpl runtime, IMethodDescData mdData)
         {
             if (mdData == null)
                 return null;
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Create(runtime, module?.GetMetadataImport(), mdData);
         }
 
-        public DesktopMethod(DesktopRuntimeBase runtime, ulong md, IMethodDescData mdData, MethodAttributes attrs)
+        public DesktopMethod(ClrRuntimeImpl runtime, ulong md, IMethodDescData mdData, MethodAttributes attrs)
         {
             _runtime = runtime;
             _sig = runtime.GetNameForMD(md);
@@ -234,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly string _sig;
         private readonly ulong _ip;
         private readonly MethodAttributes _attrs;
-        private readonly DesktopRuntimeBase _runtime;
+        private readonly ClrRuntimeImpl _runtime;
         private readonly DesktopHeapType _type;
         private List<ulong> _methodHandles;
         private ILInfo _il;

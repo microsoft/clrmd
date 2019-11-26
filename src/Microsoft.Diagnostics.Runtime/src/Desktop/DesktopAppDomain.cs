@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopAppDomain : ClrAppDomain
     {
-        public override ClrRuntime Runtime => _runtime;
+        public override ClrRuntime Runtime { get; }
 
         /// <summary>
         /// ulong of the AppDomain.
@@ -26,8 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// </summary>
         public override string Name { get; }
         public override IList<ClrModule> Modules => _modules;
-
-        internal int InternalId { get; }
 
         public override string ConfigurationFile => _runtime.GetConfigFile(_address);
 
@@ -51,13 +49,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopAppDomain(DesktopRuntimeBase runtime, IAppDomainData data, string name)
+        internal DesktopAppDomain(ClrRuntime runtime, IAppDomainData data, string name)
         {
             _address = data.Address;
             Id = data.Id;
             Name = name;
-            InternalId = s_internalId++;
-            _runtime = runtime;
+            Runtime = runtime;
         }
 
         internal void AddModule(ClrModule module)
@@ -67,8 +64,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private readonly ulong _address;
         private readonly List<ClrModule> _modules = new List<ClrModule>();
-        private readonly DesktopRuntimeBase _runtime;
-
-        private static int s_internalId;
     }
 }

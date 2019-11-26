@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_cachedMethodTable != 0)
                     return _cachedMethodTable;
 
-                if (Shared || ((DesktopRuntimeBase)Heap.Runtime).IsSingleDomain)
+                if (Shared || ((ClrRuntimeImpl)Heap.Runtime).IsSingleDomain)
                     _cachedMethodTable = _constructedMT;
                 else
                 {
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            if (_methodTables == null && (Shared || ((DesktopRuntimeBase)Heap.Runtime).IsSingleDomain))
+            if (_methodTables == null && (Shared || ((ClrRuntimeImpl)Heap.Runtime).IsSingleDomain))
             {
                 if (_cachedMethodTable == 0)
                 {
@@ -551,7 +551,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return;
             }
 
-            DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
+            ClrRuntimeImpl runtime = DesktopHeap.DesktopRuntime;
             IFieldInfo fieldInfo = runtime.GetFieldInfo(_constructedMT);
 
             if (fieldInfo == null)
@@ -660,7 +660,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (DesktopModule != null)
                     metadata = DesktopModule.GetMetadataImport();
 
-                DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
+                ClrRuntimeImpl runtime = DesktopHeap.DesktopRuntime;
                 IList<ulong> mdList = runtime.GetMethodDescList(_constructedMT);
 
                 if (mdList != null)
@@ -1134,7 +1134,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal void InitMethodHandles()
         {
-            DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
+            ClrRuntimeImpl runtime = DesktopHeap.DesktopRuntime;
             foreach (ulong methodTable in EnumerateMethodTables())
             {
                 foreach (ulong methodDesc in runtime.GetMethodDescList(methodTable))

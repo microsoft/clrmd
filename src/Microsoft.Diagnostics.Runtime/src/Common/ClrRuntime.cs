@@ -14,11 +14,6 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrRuntime
     {
         /// <summary>
-        /// In .NET native crash dumps, we have a list of serialized exceptions objects. This property expose them as ClrException objects.
-        /// </summary>
-        public abstract IEnumerable<ClrException> EnumerateSerializedExceptions();
-
-        /// <summary>
         /// Used for internal purposes.
         /// </summary>
         public DacLibrary DacLibrary { get; protected set; }
@@ -32,22 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the DataTarget associated with this runtime.
         /// </summary>
         public abstract DataTarget DataTarget { get; }
-
-        /// <summary>
-        /// Whether or not the process is running in server GC mode or not.
-        /// </summary>
-        public bool ServerGC { get; protected set; }
-
-        /// <summary>
-        /// The number of logical GC heaps in the process.  This is always 1 for a workstation
-        /// GC, and usually it's the number of logical processors in a server GC application.
-        /// </summary>
-        public int HeapCount { get; protected set; }
-
-        /// <summary>
-        /// Returns the pointer size of the target process.
-        /// </summary>
-        public abstract int PointerSize { get; }
 
         /// <summary>
         /// Enumerates the list of appdomains in the process.
@@ -68,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>
-        public abstract IList<ClrThread> Threads { get; }
+        public abstract IReadOnlyList<ClrThread> Threads { get; }
 
         /// <summary>
         /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects

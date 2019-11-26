@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return sb.ToString();
         }
 
-        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, byte[] context, ulong ip, ulong sp, ulong md)
+        public DesktopStackFrame(ClrRuntimeImpl runtime, DesktopThread thread, byte[] context, ulong ip, ulong sp, ulong md)
         {
             _runtime = runtime;
             _thread = thread;
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             InitMethod(md);
         }
 
-        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, byte[] context, ulong sp, ulong md)
+        public DesktopStackFrame(ClrRuntimeImpl runtime, DesktopThread thread, byte[] context, ulong sp, ulong md)
         {
             _runtime = runtime;
             _thread = thread;
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             InitMethod(md);
         }
 
-        public DesktopStackFrame(DesktopRuntimeBase runtime, DesktopThread thread, byte[] context, ulong sp, string method, ClrMethod innerMethod)
+        public DesktopStackFrame(ClrRuntimeImpl runtime, DesktopThread thread, byte[] context, ulong sp, string method, ClrMethod innerMethod)
         {
             _runtime = runtime;
             _thread = thread;
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly string _frameName;
         private readonly ClrStackFrameType _type;
         private ClrMethod _method;
-        private readonly DesktopRuntimeBase _runtime;
+        private readonly ClrRuntimeImpl _runtime;
         private readonly DesktopThread _thread;
         private readonly byte[] _context;
     }

@@ -128,10 +128,10 @@ namespace Microsoft.Diagnostics.Runtime
                 return;
 
             _tlsInit = true;
-            _threadType = GetTlsSlotForThread((RuntimeBase)Runtime, Teb);
+            _threadType = GetTlsSlotForThread((ClrRuntimeImpl)Runtime, Teb);
         }
 
-        internal static int GetTlsSlotForThread(RuntimeBase runtime, ulong teb)
+        internal static int GetTlsSlotForThread(ClrRuntimeImpl runtime, ulong teb)
         {
             const int maxTlsSlot = 64;
             const int tlsSlotOffset = 0x1480; // Same on x86 and amd64

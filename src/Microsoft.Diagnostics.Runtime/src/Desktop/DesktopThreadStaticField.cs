@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_type == null)
                 return 0;
 
-            DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
+            ClrRuntimeImpl runtime = _type.DesktopHeap.DesktopRuntime;
             IModuleData moduleData = runtime.GetModuleData(_field.Module);
 
             return runtime.GetThreadStaticPointer(thread.Address, (ClrElementType)_field.CorElementType, (uint)Offset, (uint)moduleData.ModuleId, _type.Shared);

@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private static uint s_id;
         private readonly uint _id = s_id++;
 
-        public ErrorModule(DesktopRuntimeBase runtime)
+        public ErrorModule(ClrRuntimeImpl runtime)
             : base(runtime)
         {
         }

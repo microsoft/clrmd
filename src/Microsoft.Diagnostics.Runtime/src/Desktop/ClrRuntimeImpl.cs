@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
@@ -13,12 +14,11 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal abstract class DesktopRuntimeBase : RuntimeBase
+    internal abstract class ClrRuntimeImpl : ClrRuntime
     {
-        protected CommonMethodTables _commonMTs;
+        private ClrThread[] _threads;
         private ClrModule[] _moduleList;
-        private Lazy<List<ClrThread>> _threads;
-        private Lazy<ClrHeapImpl> _heap;
+        private ClrHeapImpl _heap;
         private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
@@ -27,15 +27,46 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private Dictionary<string, DesktopModule> _moduleFiles = new Dictionary<string, DesktopModule>();
         private Lazy<ClrModule> _mscorlib;
 
-        internal DesktopRuntimeBase(ClrInfo info, DataTarget dt, DacLibrary lib)
-            : base(info, dt, lib)
+
+
+
+        private const int c_maxStackDepth = 1024 * 1024 * 1024; // 1gb
+
+        private ClrDataProcess _dacInterface;
+        private IDataReader _dataReader;
+        private DataTarget _dataTarget;
+
+
+
+
+        internal ClrRuntimeImpl(ClrInfo info, DataTarget dt, DacLibrary lib)
         {
-            _heap = new Lazy<ClrHeapImpl>(CreateHeap);
-            _threads = new Lazy<List<ClrThread>>(CreateThreadList);
+            Debug.Assert(lib != null);
+            Debug.Assert(lib.InternalDacPrivateInterface != null);
+
+            ClrInfo = info;
+            _dataTarget = dt;
+            DacLibrary = lib;
+            _dacInterface = DacLibrary.InternalDacPrivateInterface;
+
+            _dacInterface.Flush();
+
+
+            _dataReader = dt.DataReader;
+
+
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
             _moduleSizes = new Lazy<Dictionary<ulong, uint>>(() => _dataReader.EnumerateModules().ToDictionary(module => module.ImageBase, module => module.FileSize));
             _mscorlib = new Lazy<ClrModule>(GetMscorlib);
+        }
+
+        [Conditional("DEBUG")]
+        private void DebugOnlyLoadLazyValues()
+        {
+            // Prefetch these values in debug builds for easier debugging
+            CreateHeap();
+            CreateThreadList();
         }
 
         /// <summary>
@@ -47,7 +78,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             OnRuntimeFlushed();
 
-            Revision++;
             _dacInterface.Flush();
             _dataTarget.DataReader.ClearCachedData();
 
@@ -55,20 +85,121 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _moduleList = null;
             _modules = new Dictionary<ulong, DesktopModule>();
             _moduleFiles = new Dictionary<string, DesktopModule>();
-            _threads = new Lazy<List<ClrThread>>(CreateThreadList);
+            _threads = null;
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
-            _heap = new Lazy<ClrHeapImpl>(CreateHeap);
+            _heap = null;
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
             _mscorlib = new Lazy<ClrModule>(GetMscorlib);
         }
+
+
+
+
+        public override DataTarget DataTarget => _dataTarget;
+
+        public IDataReader DataReader => _dataReader;
+
+
+
+        private struct StackRef
+        {
+            public ulong Address;
+            public ulong Object;
+
+            public StackRef(ulong stackPtr, ulong objRef)
+            {
+                Address = stackPtr;
+                Object = objRef;
+            }
+        }
+
+        internal virtual IEnumerable<ClrRoot> EnumerateStackReferences(ClrThread thread, bool includeDead)
+        {
+            ulong stackBase = thread.StackBase;
+            ulong stackLimit = thread.StackLimit;
+            if (stackLimit <= stackBase)
+            {
+                ulong tmp = stackLimit;
+                stackLimit = stackBase;
+                stackBase = tmp;
+            }
+
+            // Ensure sensible limits on stack walking.  If there's more than 1gb of stack space then either the target
+            // process is a really strange program, or we've somehow read the wrong base/limit.
+            if (stackBase == 0 || stackLimit - stackBase > c_maxStackDepth)
+                yield break;
+
+            ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
+            ClrHeap heap = Heap;
+            for (ulong stackPtr = stackBase; stackPtr < stackLimit; stackPtr += (uint)IntPtr.Size)
+            {
+                ulong objRef = _dataReader.ReadPointerUnsafe(stackPtr);
+                if (objRef != 0)
+                {
+                    // If the value isn't pointer aligned, it cannot be a managed pointer.
+                    if (heap.IsInHeap(objRef))
+                    {
+                        if (heap.ReadPointer(objRef, out ulong mt))
+                        {
+                            ClrType type = null;
+
+                            if (mt > 1024)
+                                type = heap.GetObjectType(objRef);
+
+                            if (type != null && !type.IsFree)
+                                yield return new LocalVarRoot(stackPtr, objRef, type, domain, thread, false, true, false, null);
+                        }
+                    }
+                }
+            }
+        }
+
+        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead) => _dataReader.ReadMemory(address, buffer, out bytesRead);
+
+
+        public unsafe bool ReadPrimitive<T>(ulong addr, out T value) where T : unmanaged
+        {
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
+            {
+                value = MemoryMarshal.Read<T>(buffer);
+
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public override bool ReadPointer(ulong addr, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
+        }
+
+        public bool ReadString(ulong addr, out string value)
+        {
+            value = ((ClrHeapImpl)Heap).GetStringContents(addr);
+            return value != null;
+        }
+
+
+
+
+
 
         internal ulong GetModuleSize(ulong address)
         {
             _moduleSizes.Value.TryGetValue(address, out uint size);
             return size;
         }
-
-        internal int Revision { get; set; }
 
         public ErrorModule ErrorModule
         {
@@ -81,62 +212,37 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal override IGCInfo GetGCInfo()
-        {
-            IGCInfo data = GetGCInfoImpl();
-            if (data == null)
-            {
-                throw new ClrDiagnosticsException("This runtime is not initialized and contains no data.", ClrDiagnosticsExceptionKind.RuntimeUninitialized);
-            }
-
-            return data;
-        }
-
-        public override IEnumerable<ClrException> EnumerateSerializedExceptions()
-        {
-            return Array.Empty<ClrException>();
-        }
-
-        internal abstract IGCInfo GetGCInfoImpl();
-
-        /// <summary>
-        /// Returns the pointer size of the target process.
-        /// </summary>
-        public override int PointerSize => IntPtr.Size;
-
-        /// <summary>
-        /// Returns the MethodTable for an array of objects.
-        /// </summary>
-        public ulong ArrayMethodTable => _commonMTs.ArrayMethodTable;
-
         public override CcwData GetCcwDataByAddress(ulong addr)
         {
             ICCWData ccw = GetCCWData(addr);
             if (ccw == null)
                 return null;
 
-            return new DesktopCCWData(_heap.Value, addr, ccw);
+            return new DesktopCCWData(_heap, addr, ccw);
         }
 
-        public override IList<ClrThread> Threads => _threads.Value;
+        public override IReadOnlyList<ClrThread> Threads => _threads ?? CreateThreadList();
 
-        private List<ClrThread> CreateThreadList()
+        private ClrThread[] CreateThreadList()
         {
             IThreadStoreData threadStore = GetThreadStoreData();
             ulong finalizer = ulong.MaxValue - 1;
             if (threadStore != null)
                 finalizer = threadStore.Finalizer;
 
-            List<ClrThread> threads = new List<ClrThread>();
+            ClrThread[] threads = new ClrThread[threadStore.Count];
+
+            int i = 0;
 
             ulong addr = GetFirstThread();
             IThreadData thread = GetThread(addr);
 
             // Ensure we don't hit an infinite loop
             HashSet<ulong> seen = new HashSet<ulong> { addr };
-            while (thread != null)
+            while (thread != null && i < threads.Length)
             {
-                threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
+                threads[i++] = new DesktopThread(this, thread, addr, addr == finalizer);
+
                 addr = thread.Next;
                 if (seen.Contains(addr) || addr == 0)
                     break;
@@ -145,34 +251,22 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 thread = GetThread(addr);
             }
 
-            return threads;
+            // Shouldn't happen unless we caught the runtime at a really bad place
+            if (i < threads.Length)
+                Array.Resize(ref threads, i);
+
+            return _threads = threads;
         }
 
-        public ulong ExceptionMethodTable => _commonMTs.ExceptionMethodTable;
-        public ulong ObjectMethodTable => _commonMTs.ObjectMethodTable;
-
-        /// <summary>
-        /// Returns the MethodTable for string objects.
-        /// </summary>
-        public ulong StringMethodTable => _commonMTs.StringMethodTable;
-
-        /// <summary>
-        /// Returns the MethodTable for free space markers.
-        /// </summary>
-        public ulong FreeMethodTable => _commonMTs.FreeMethodTable;
-
-        public override ClrHeap Heap => _heap.Value;
-
-        private ClrHeapImpl CreateHeap()
-        {
-            return new ClrHeapImpl(this);
-        }
+        public override ClrHeap Heap => _heap ?? CreateHeap();
 
         public override ClrThreadPool ThreadPool => _threadpool.Value;
         public override ClrAppDomain SystemDomain => _appDomains.Value.System;
         public override ClrAppDomain SharedDomain => _appDomains.Value.Shared;
         public override IList<ClrAppDomain> AppDomains => _appDomains.Value.Domains;
         public bool IsSingleDomain => _appDomains.Value.Domains.Count == 1;
+
+        private ClrHeapImpl CreateHeap() => _heap = new ClrHeapImpl(this);
 
         public override ClrMethod GetMethodByHandle(ulong methodHandle)
         {
@@ -359,7 +453,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// <summary>
         /// Converts an address into an AppDomain.
         /// </summary>
-        internal override ClrAppDomain GetAppDomainByAddress(ulong address)
+        internal ClrAppDomain GetAppDomainByAddress(ulong address)
         {
             foreach (ClrAppDomain ad in AppDomains)
                 if (ad.Address == address)
@@ -381,7 +475,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             Debug.Assert(address != 0 || _dataReader.IsMinidump);
 
-            foreach (ClrThread thread in _threads.Value)
+            foreach (ClrThread thread in Threads)
             {
                 ulong min = thread.StackBase;
                 ulong max = thread.StackLimit;
@@ -402,7 +496,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal uint GetExceptionMessageOffset()
         {
-            if (PointerSize == 8)
+            if (IntPtr.Size == 8)
                 return 0x20;
 
             return 0x10;
@@ -410,7 +504,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal uint GetStackTraceOffset()
         {
-            if (PointerSize == 8)
+            if (IntPtr.Size == 8)
                 return 0x40;
 
             return 0x20;
@@ -422,7 +516,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (thread == 0)
                 return null;
 
-            foreach (ClrThread clrThread in _threads.Value)
+            foreach (ClrThread clrThread in Threads)
                 if (clrThread.Address == thread)
                     return clrThread;
 
@@ -608,29 +702,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return res;
         }
 
-        /// <summary>
-        /// Returns the name of the type as specified by the TypeHandle.  Note this returns the name as specified by the
-        /// metadata, NOT as you would expect to see it in a C# program.  For example, generics are denoted with a ` and
-        /// the number of params.  Thus a Dictionary (with two type params) would look like:
-        /// System.Collections.Generics.Dictionary`2
-        /// </summary>
-        /// <param name="id">The TypeHandle to get the name of.</param>
-        /// <returns>The name of the type, or null on error.</returns>
-        internal string GetTypeName(TypeHandle id)
-        {
-            if (id.MethodTable == FreeMethodTable)
-                return "Free";
-
-            if (id.MethodTable == ArrayMethodTable && id.ComponentMethodTable != 0)
-            {
-                string name = GetMethodTableName(id.ComponentMethodTable);
-                if (name != null)
-                    return name + "[]";
-            }
-
-            return GetMethodTableName(id.MethodTable);
-        }
-
         internal IEnumerable<ClrStackFrame> EnumerateStackFrames(DesktopThread thread)
         {
             using ClrStackWalk stackwalk = _dacInterface.CreateStackWalk(thread.OSThreadId, 0xf);
@@ -645,7 +716,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 ulong ip, sp;
 
-                if (PointerSize == 4)
+                if (IntPtr.Size == 4)
                 {
                     ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
                     sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
@@ -714,6 +785,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return address + 0x20;
         }
 
+
+        internal abstract ulong GetFirstThread();
+        internal abstract IThreadData GetThread(ulong addr);
+        internal abstract IThreadStoreData GetThreadStoreData();
+        internal abstract ISegmentData GetSegmentData(ulong addr);
+        internal abstract IMethodTableData GetMethodTableData(ulong addr);
+        internal abstract IMethodTableCollectibleData GetMethodTableCollectibleData(ulong addr);
+        internal abstract uint GetTlsSlot();
+        internal abstract uint GetThreadTypeIndex();
         internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
         internal abstract uint GetExceptionHROffset();
         internal abstract ulong[] GetAppDomainList(int count);

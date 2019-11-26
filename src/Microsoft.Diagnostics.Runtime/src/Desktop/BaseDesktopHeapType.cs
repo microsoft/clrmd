@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private GCDesc FillGCDesc()
         {
-            DesktopRuntimeBase runtime = DesktopHeap.DesktopRuntime;
+            Runtime.RuntimeBase runtime = DesktopHeap.DesktopRuntime;
 
             Debug.Assert(_constructedMT != 0, "Attempted to fill GC desc with a constructed (not real) type.");
             if (!runtime.ReadPrimitive(_constructedMT - (ulong)IntPtr.Size, out int entries))

@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (field != null)
                     return (string)field.GetValue(_object);
 
-                DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
+                ClrRuntimeImpl runtime = _type.DesktopHeap.DesktopRuntime;
                 uint offset = runtime.GetExceptionMessageOffset();
                 Debug.Assert(offset > 0);
 
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (field != null)
                     return (int)field.GetValue(_object);
 
-                DesktopRuntimeBase runtime = _type.DesktopHeap.DesktopRuntime;
+                ClrRuntimeImpl runtime = _type.DesktopHeap.DesktopRuntime;
                 uint offset = runtime.GetExceptionHROffset();
                 runtime.ReadPrimitive(_object + offset, out int hr);
 

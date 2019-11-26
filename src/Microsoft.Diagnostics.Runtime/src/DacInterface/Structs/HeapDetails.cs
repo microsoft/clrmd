@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct HeapDetails : IHeapDetails
+    public readonly struct HeapDetails
     {
         public readonly ulong Address; // Only filled in in server mode, otherwise NULL
         public readonly ulong Allocated;
@@ -30,6 +30,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong LowestAddress;
         public readonly ulong HighestAddress;
         public readonly ulong CardTable;
+
+
+        public ulong EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
+        public ulong EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
 
         internal HeapDetails(ref HeapDetails other)
         {
@@ -73,8 +77,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         ulong IHeapDetails.FirstLargeHeapSegment => GenerationTable[3].StartSegment;
         ulong IHeapDetails.EphemeralSegment => EphemeralHeapSegment;
         ulong IHeapDetails.EphemeralEnd => Allocated;
-        ulong IHeapDetails.EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
-        ulong IHeapDetails.EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
         ulong IHeapDetails.FQAllObjectsStart => FinalizationFillPointers[0];
         ulong IHeapDetails.FQAllObjectsStop => FinalizationFillPointers[3];
         ulong IHeapDetails.FQRootsStart => FinalizationFillPointers[3];

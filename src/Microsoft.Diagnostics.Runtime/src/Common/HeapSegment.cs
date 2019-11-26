@@ -4,18 +4,31 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class HeapSegment : ClrSegment
     {
-        public override int ProcessorAffinity => _subHeap.HeapNum;
-        public override ulong Start => _segment.Start;
-        public override ulong End => _subHeap.EphemeralSegment == _segment.Address ? _subHeap.EphemeralEnd : _segment.End;
-        public override ClrHeap Heap => _heap;
+        internal HeapSegment(ClrHeap clrHeap, ISegmentBuilder builder)
+        {
+            Heap = clrHeap;
 
-        public override bool IsLarge => _large;
+            LogicalHeap = builder.LogicalHeap;
+            Start = builder.Start;
+            End = builder.End;
+            IsLargeObjectSegment = builder.IsLargeObjectSegment;
+        }
+
+        public override ClrHeap Heap { get; }
+
+        public override int LogicalHeap { get; }
+        public override ulong Start { get; }
+        public override ulong End { get; }
+
+        public override bool IsLargeObjectSegment { get; }
+        public virtual bool IsEphemeralSegment { get; }
 
         public override ulong ReservedEnd => _segment.Reserved;
         public override ulong CommittedEnd => _segment.Committed;
@@ -24,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (IsEphemeral)
+                if (IsEphemeralSegment)
                     return _subHeap.Gen0Start;
 
                 return End;
@@ -35,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (IsEphemeral)
+                if (IsEphemeralSegment)
                     return _subHeap.Gen1Start;
 
                 return End;
@@ -103,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return 0;
 
             // Ensure we aren't at the start of an alloc context
-            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
+            while (!IsLargeObjectSegment && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
             {
                 tmp += Align(minObjSize, _large);
 
@@ -155,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Ensure we aren't at the start of an alloc context
-            while (!IsLarge && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
+            while (!IsLargeObjectSegment && _subHeap.AllocPointers.TryGetValue(objRef, out ulong tmp))
             {
                 tmp += Align(minObjSize, _large);
 
@@ -196,21 +209,5 @@ namespace Microsoft.Diagnostics.Runtime
             return (size + AlignConst) & ~AlignConst;
         }
 
-        public override bool IsEphemeral => _segment.Address == _subHeap.EphemeralSegment;
-
-        internal HeapSegment(RuntimeBase clr, ISegmentData segment, SubHeap subHeap, bool large, ClrHeapImpl heap)
-        {
-            _clr = clr;
-            _large = large;
-            _segment = segment;
-            _heap = heap;
-            _subHeap = subHeap;
-        }
-
-        private readonly bool _large;
-        private readonly RuntimeBase _clr;
-        private readonly ISegmentData _segment;
-        private readonly SubHeap _subHeap;
-        private readonly ClrHeapImpl _heap;
     }
 }

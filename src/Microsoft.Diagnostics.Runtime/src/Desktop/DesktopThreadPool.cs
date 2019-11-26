@@ -8,10 +8,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThreadPool : ClrThreadPool
     {
-        private readonly DesktopRuntimeBase _runtime;
+        private readonly ClrRuntimeImpl _runtime;
         private ClrHeap _heap;
 
-        public DesktopThreadPool(DesktopRuntimeBase runtime, IThreadPoolData data)
+        public DesktopThreadPool(ClrRuntimeImpl runtime, IThreadPoolData data)
         {
             _runtime = runtime;
             TotalThreads = data.TotalThreads;

@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class MemoryRegion : ClrMemoryRegion
     {
-        private readonly DesktopRuntimeBase _runtime;
+        private readonly ClrRuntimeImpl _runtime;
         private ulong _domainModuleHeap;
         private GCSegmentType _segmentType;
 
@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return ToString(false);
         }
 
-        internal MemoryRegion(DesktopRuntimeBase clr, ulong addr, ulong size, ClrMemoryRegionType type, ulong moduleOrAppDomain)
+        internal MemoryRegion(ClrRuntimeImpl clr, ulong addr, ulong size, ClrMemoryRegionType type, ulong moduleOrAppDomain)
         {
             Address = addr;
             Size = size;
@@ -196,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _domainModuleHeap = moduleOrAppDomain;
         }
 
-        internal MemoryRegion(DesktopRuntimeBase clr, ulong addr, ulong size, ClrMemoryRegionType type, ClrAppDomain domain)
+        internal MemoryRegion(ClrRuntimeImpl clr, ulong addr, ulong size, ClrMemoryRegionType type, ClrAppDomain domain)
         {
             Address = addr;
             Size = size;
@@ -205,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _domainModuleHeap = domain.Address;
         }
 
-        internal MemoryRegion(DesktopRuntimeBase clr, ulong addr, ulong size, ClrMemoryRegionType type)
+        internal MemoryRegion(ClrRuntimeImpl clr, ulong addr, ulong size, ClrMemoryRegionType type)
         {
             Address = addr;
             Size = size;
@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Type = type;
         }
 
-        internal MemoryRegion(DesktopRuntimeBase clr, ulong addr, ulong size, ClrMemoryRegionType type, uint heap, GCSegmentType seg)
+        internal MemoryRegion(ClrRuntimeImpl clr, ulong addr, ulong size, ClrMemoryRegionType type, uint heap, GCSegmentType seg)
         {
             Address = addr;
             Size = size;

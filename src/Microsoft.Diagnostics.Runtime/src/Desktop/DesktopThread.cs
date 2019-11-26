@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThread : ThreadBase
     {
-        internal DesktopRuntimeBase DesktopRuntime { get; }
+        internal ClrRuntimeImpl DesktopRuntime { get; }
         public override ClrRuntime Runtime => DesktopRuntime;
 
         public override ClrException CurrentException
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return DesktopRuntime.EnumerateStackFrames(this);
         }
 
-        internal DesktopThread(DesktopRuntimeBase clr, IThreadData thread, ulong address, bool finalizer)
+        internal DesktopThread(ClrRuntimeImpl clr, IThreadData thread, ulong address, bool finalizer)
             : base(thread, address, finalizer)
         {
             DesktopRuntime = clr;
