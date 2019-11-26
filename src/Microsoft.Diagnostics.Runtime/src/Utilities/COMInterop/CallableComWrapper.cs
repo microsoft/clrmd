@@ -47,6 +47,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return count;
         }
 
+        public void SuppressRelease()
+        {
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
+
         protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library ?? throw new ArgumentNullException(nameof(library));
