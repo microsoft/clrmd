@@ -10,14 +10,17 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static Guid IID_IDebugDataSpaces2 = new Guid("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
         private IDebugDataSpacesVTable* VTable => (IDebugDataSpacesVTable*)_vtable;
-        public DebugDataSpaces(RefCountedFreeLibrary library, IntPtr pUnk)
+        public DebugDataSpaces(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, ref IID_IDebugDataSpaces2, pUnk)
         {
+            _sys = sys;
+            SuppressRelease();
         }
 
         public int ReadVirtual(ulong address, Span<byte> buffer)
         {
             InitDelegate(ref _readVirtual, VTable->ReadVirtual);
+            using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = buffer)
             {
                 _readVirtual(Self, address, ptr, buffer.Length, out int read);
@@ -28,12 +31,14 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public bool QueryVirtual(ulong address, out MEMORY_BASIC_INFORMATION64 info)
         {
             InitDelegate(ref _queryVirtual, VTable->QueryVirtual);
+            using IDisposable holder = _sys.Enter();
             return _queryVirtual(Self, address, out info) >= 0;
         }
 
 
         private ReadVirtualDelegate _readVirtual;
         private QueryVirtualDelegate _queryVirtual;
+        private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int ReadVirtualDelegate(IntPtr self, ulong address, byte *buffer, int size, out int read);

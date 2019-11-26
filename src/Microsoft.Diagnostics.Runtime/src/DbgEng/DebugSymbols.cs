@@ -1,5 +1,6 @@
 ﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,15 +11,18 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static Guid IID_IDebugSymbols3 = new Guid("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
         private IDebugSymbols3VTable* VTable => (IDebugSymbols3VTable*)_vtable;
-        public DebugSymbols(RefCountedFreeLibrary library, IntPtr pUnk)
+        public DebugSymbols(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, ref IID_IDebugSymbols3, pUnk)
         {
+            _sys = sys;
+            SuppressRelease();
         }
 
         public string GetModuleNameStringWide(DebugModuleName which, int index, ulong imageBase)
         {
             InitDelegate(ref _getModuleNameStringWide, VTable->GetModuleNameStringWide);
 
+            using IDisposable holder = _sys.Enter();
             int hr = _getModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
             if (hr < 0)
                 return null;
@@ -35,6 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         {
             InitDelegate(ref _getNumberModules, VTable->GetNumberModules);
 
+            using IDisposable holder = _sys.Enter();
             int hr = _getNumberModules(Self, out int count, out _);
             return hr == 0 ? count : 0;
         }
@@ -43,6 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         {
             InitDelegate(ref _getModuleByIndex, VTable->GetModuleByIndex);
 
+            using IDisposable holder = _sys.Enter();
             int hr = _getModuleByIndex(Self, i, out ulong imageBase);
             return hr == S_OK ? imageBase : 0;
         }
@@ -56,6 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             fixed (ulong* pBases = bases)
             fixed (DEBUG_MODULE_PARAMETERS* pParams = parameters)
             {
+                using IDisposable holder = _sys.Enter();
                 int hr = _getModuleParameters(Self, bases.Length, pBases, 0, pParams);
                 return hr == S_OK;
             }
@@ -65,26 +72,41 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         {
             InitDelegate(ref _getModuleVersionInformation, VTable->GetModuleVersionInformation);
 
-            const int count = 20;
             byte* item = stackalloc byte[3] { (byte)'\\', (byte)'\\', 0 };
-            byte* buffer = stackalloc byte[count];
 
-            int hr = _getModuleVersionInformation(Self, index, imgBase, item, buffer, count, out int needed);
+            using IDisposable holder = _sys.Enter();
+            int hr = _getModuleVersionInformation(Self, index, imgBase, item, null, 0, out int needed);
             if (hr < 0)
                 return default;
 
-            int minor = Unsafe.As<byte, ushort>(ref *(buffer + 8));
-            int major = Unsafe.As<byte, ushort>(ref *(buffer + 10));
-            int patch = Unsafe.As<byte, ushort>(ref *(buffer + 12));
-            int revision = Unsafe.As<byte, ushort>(ref *(buffer + 14));
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
+            try
+            {
+                fixed (byte* pBuffer = buffer)
+                    hr = _getModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out needed);
 
-            return new VersionInfo(major, minor, revision, patch);
+                if (hr < 0)
+                    return default;
+
+                int minor = (ushort)Marshal.ReadInt16(buffer, 8);
+                int major = (ushort)Marshal.ReadInt16(buffer, 10);
+                int patch = (ushort)Marshal.ReadInt16(buffer, 12);
+                int revision = (ushort)Marshal.ReadInt16(buffer, 14);
+
+
+                return new VersionInfo(major, minor, revision, patch);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         public bool GetModuleByOffset(ulong address, int index, out int outIndex, out ulong imgBase)
         {
             InitDelegate(ref _getModuleByOffset, VTable->GetModuleByOffset);
 
+            using IDisposable holder = _sys.Enter();
             int hr = _getModuleByOffset(Self, address, index, out outIndex, out imgBase);
             return hr == S_OK;
         }
@@ -96,6 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetModuleByIndexDelegate _getModuleByIndex;
         private GetNumberModulesDelegate _getNumberModules;
         private GetModuleNameStringWideDelegate _getModuleNameStringWide;
+        private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base,

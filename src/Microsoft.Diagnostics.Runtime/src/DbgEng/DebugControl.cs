@@ -10,17 +10,21 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static Guid IID_IDebugControl2 = new Guid("d4366723-44df-4bed-8c7e-4c05424f4588");
         private IDebugControlVTable* VTable => (IDebugControlVTable*)_vtable;
-        public DebugControl(RefCountedFreeLibrary library, IntPtr pUnk)
+        public DebugControl(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, ref IID_IDebugControl2, pUnk)
         {
+            _sys = sys;
+            SuppressRelease();
         }
 
         public const int INITIAL_BREAK = 0x20;
+        private readonly DebugSystemObjects _sys;
 
         public IMAGE_FILE_MACHINE GetEffectiveProcessorType()
         {
             InitDelegate(ref _getEffectiveProcessorType, VTable->GetEffectiveProcessorType);
 
+            using IDisposable holder = _sys.Enter();
             int hr = _getEffectiveProcessorType(Self, out IMAGE_FILE_MACHINE result);
             if (hr == 0)
                 return result;
@@ -31,6 +35,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public bool IsPointer64Bit()
         {
             InitDelegate(ref _isPointer64Bit, VTable->IsPointer64Bit);
+
+            using IDisposable holder = _sys.Enter();
             int hr = _isPointer64Bit(Self);
             return hr == 0;
         }
@@ -38,12 +44,16 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public bool WaitForEvent(uint timeout)
         {
             InitDelegate(ref _waitForEvent, VTable->WaitForEvent);
+
+            using IDisposable holder = _sys.Enter();
             return _waitForEvent(Self, 0, timeout) == 0;
         }
 
         public void AddEngineOptions(int options)
         {
             InitDelegate(ref _addEngineOptions, VTable->AddEngineOptions);
+
+            using IDisposable holder = _sys.Enter();
             int hr = _addEngineOptions(Self, options);
             Debug.Assert(hr == 0);
         }
@@ -51,6 +61,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public DEBUG_FORMAT GetDumpFormat()
         {
             InitDelegate(ref _getDumpFormat, VTable->GetDumpFormatFlags);
+
+            using IDisposable holder = _sys.Enter();
             int hr = _getDumpFormat(Self, out DEBUG_FORMAT result);
             if (hr == 0)
                 return result;
@@ -61,6 +73,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public DEBUG_CLASS_QUALIFIER GetDebuggeeClassQualifier()
         {
             InitDelegate(ref _getDebuggeeType, VTable->GetDebuggeeType);
+
+            using IDisposable holder = _sys.Enter();
             int hr = _getDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
             Debug.Assert(hr == 0);
             return result;

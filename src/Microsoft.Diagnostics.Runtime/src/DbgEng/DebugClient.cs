@@ -9,19 +9,24 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static Guid IID_IDebugClient = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
         private IDebugClientVTable* VTable => (IDebugClientVTable*)_vtable;
-        public DebugClient(RefCountedFreeLibrary library, IntPtr pUnk)
+        public DebugClient(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects system)
             : base(library, ref IID_IDebugClient, pUnk)
         {
+            _sys = system;
+            SuppressRelease();
         }
 
         private EndSessionDelegate _endSession;
         private DetatchProcessesDelegate _detatchProcesses;
         private AttachProcessDelegate _attachProcess;
         private OpenDumpFileDelegate _openDumpFile;
+        private readonly DebugSystemObjects _sys;
 
         public void EndSession(DebugEnd mode)
         {
             InitDelegate(ref _endSession, VTable->EndSession);
+
+            using IDisposable holder = _sys.Enter();
             int hr = _endSession(Self, mode);
             Debug.Assert(hr == 0);
         }
@@ -29,6 +34,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public void DetatchProcesses()
         {
             InitDelegate(ref _detatchProcesses, VTable->DetachProcesses);
+
+            using IDisposable holder = _sys.Enter();
             int hr = _detatchProcesses(Self);
             Debug.Assert(hr == 0);
         }
@@ -36,13 +43,19 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public int AttachProcess(uint pid, DebugAttach flags)
         {
             InitDelegate(ref _attachProcess, VTable->AttachProcess);
-            return _attachProcess(Self, 0, pid, flags);
+            int hr = _attachProcess(Self, 0, pid, flags);
+
+            _sys.Init();
+            return hr;
         }
 
         public int OpenDumpFile(string dumpFile)
         {
             InitDelegate(ref _openDumpFile, VTable->OpenDumpFile);
-            return _openDumpFile(Self, dumpFile);
+            int hr = _openDumpFile(Self, dumpFile);
+
+            _sys.Init();
+            return hr;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

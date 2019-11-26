@@ -3,9 +3,11 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
+
     internal unsafe sealed class DebugSystemObjects : CallableCOMWrapper
     {
         internal static Guid IID_DebugSystemObjects3 = new Guid("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
@@ -13,25 +15,24 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public DebugSystemObjects(RefCountedFreeLibrary library, IntPtr pUnk)
             : base(library, ref IID_DebugSystemObjects3, pUnk)
         {
+            SuppressRelease();
         }
+
+        public IDisposable Enter() => new SystemHolder(this, _systemId);
 
         public uint GetProcessId()
         {
             InitDelegate(ref _getProcessId, VTable->GetCurrentProcessSystemId);
+
+            using IDisposable holder = Enter();
             int hr = _getProcessId(Self, out uint id);
             return hr == S_OK ? id : 0;
         }
 
-        public int GetCurrentSystemId()
-        {
-            InitDelegate(ref _getSystemId, VTable->GetCurrentSystemId);
-            _getSystemId(Self, out int id);
-            return id;
-        }
-
-        public void SetCurrentSystemId(int id)
+        private void SetCurrentSystemId(int id)
         {
             InitDelegate(ref _setSystemId, VTable->SetCurrentSystemId);
+
             int hr = _setSystemId(Self, id);
             Debug.Assert(hr == S_OK);
         }
@@ -39,6 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public void SetCurrentThread(uint id)
         {
             InitDelegate(ref _setCurrentThread, VTable->SetCurrentThreadId);
+
+            using IDisposable holder = Enter();
             int hr = _setCurrentThread(Self, id);
             Debug.Assert(hr == S_OK);
         }
@@ -46,13 +49,23 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public int GetNumberThreads()
         {
             InitDelegate(ref _getNumberThreads, VTable->GetNumberThreads);
+
+            using IDisposable holder = Enter();
             int hr = _getNumberThreads(Self, out int count);
             Debug.Assert(hr == S_OK);
             return count;
         }
 
+        internal void Init()
+        {
+            InitDelegate(ref _getSystemId, VTable->GetCurrentSystemId);
+            _systemId = _getSystemId(Self, out int id);
+        }
+
         public uint[] GetThreadIds()
         {
+            using IDisposable holder = Enter();
+
             int count = GetNumberThreads();
             if (count == 0)
                 return Array.Empty<uint>();
@@ -75,6 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         {
             InitDelegate(ref _getThreadIdBySystemId, VTable->GetThreadIdBySystemId);
 
+            using IDisposable holder = Enter();
             int hr = _getThreadIdBySystemId(Self, sysId, out uint result);
             Debug.Assert(hr == S_OK);
             return result;
@@ -88,6 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetNumberThreadsDelegate _getNumberThreads;
         private GetThreadIdsByIndexDelegate _getThreadIdsByIndex;
         private GetThreadIdBySystemIdDelegate _getThreadIdBySystemId;
+        private int _systemId;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetCurrentProcessSystemIdDelegate(IntPtr self, out uint pid);
@@ -103,6 +118,28 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int GetThreadIdsByIndexDelegate(IntPtr self, int start, int count, int* ids, uint* systemIds);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetThreadIdBySystemIdDelegate(IntPtr self, uint sysId, out uint id);
+
+
+        private class SystemHolder : IDisposable
+        {
+            private static readonly object _sync = new object();
+            private static int _current = -1;
+
+            public SystemHolder(DebugSystemObjects sysObjs, int id)
+            {
+                Monitor.Enter(_sync);
+                if (_current != id)
+                {
+                    _current = id;
+                    sysObjs.SetCurrentSystemId(id);
+                }
+            }
+
+            public void Dispose()
+            {
+                Monitor.Exit(_sync);
+            }
+        }
     }
 
 
