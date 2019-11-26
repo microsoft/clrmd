@@ -7,9 +7,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using IMAGE_DATA_DIRECTORY = Microsoft.Diagnostics.Runtime.Interop.IMAGE_DATA_DIRECTORY;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {

@@ -1,5 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
-using Microsoft.Diagnostics.Runtime.Utilities;
+﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.InteropServices;
 
@@ -45,7 +44,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649

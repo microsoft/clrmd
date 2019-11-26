@@ -1,4 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
+﻿using Microsoft.Diagnostics.Runtime.DbgEng;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {

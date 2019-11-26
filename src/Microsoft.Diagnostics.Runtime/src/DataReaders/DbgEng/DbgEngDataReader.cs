@@ -3,15 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
-using Microsoft.Diagnostics.Runtime.Interop;
 
 
 #pragma warning disable CA2213 // Disposable fields should be disposed

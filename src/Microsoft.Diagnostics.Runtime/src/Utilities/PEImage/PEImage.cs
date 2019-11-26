@@ -1,11 +1,11 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -31,15 +31,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly Lazy<CorHeader> _corHeader;
         private readonly Lazy<List<SectionHeader>> _sections;
         private readonly Lazy<List<PdbInfo>> _pdbs;
-        private readonly Lazy<Interop.IMAGE_DATA_DIRECTORY[]> _directories;
+        private readonly Lazy<IMAGE_DATA_DIRECTORY[]> _directories;
         private readonly Lazy<ResourceEntry> _resources;
 
-        private Interop.IMAGE_DATA_DIRECTORY GetDirectory(int index) => _directories.Value[index];
+        private IMAGE_DATA_DIRECTORY GetDirectory(int index) => _directories.Value[index];
         private int HeaderOffset => _peHeaderOffset + sizeof(uint);
         private int OptionalHeaderOffset => HeaderOffset + sizeof(IMAGE_FILE_HEADER);
         private int SpecificHeaderOffset => OptionalHeaderOffset + sizeof(IMAGE_OPTIONAL_HEADER_AGNOSTIC);
         private int DataDirectoryOffset => SpecificHeaderOffset + (IsPE64 ? 5 * 8 : 6 * 4);
-        private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(Interop.IMAGE_DATA_DIRECTORY);
+        private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(IMAGE_DATA_DIRECTORY);
 
         /// <summary>
         /// Constructs a PEImage class for a given PE image (dll/exe) on disk.
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _imageFileHeader = new Lazy<ImageFileHeader>(ReadImageFileHeader);
             _imageOptionalHeader = new Lazy<ImageOptionalHeader>(ReadImageOptionalHeader);
             _corHeader = new Lazy<CorHeader>(ReadCorHeader);
-            _directories = new Lazy<Interop.IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
+            _directories = new Lazy<IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
             _sections = new Lazy<List<SectionHeader>>(ReadSections);
             _pdbs = new Lazy<List<PdbInfo>>(ReadPdbs);
             _resources = new Lazy<ResourceEntry>(CreateResourceRoot);
@@ -393,16 +393,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private Interop.IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
+        private IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
         {
-            Interop.IMAGE_DATA_DIRECTORY[] directories = new Interop.IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
+            IMAGE_DATA_DIRECTORY[] directories = new IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
 
             if (!IsValid)
                 return directories;
 
             SeekTo(DataDirectoryOffset);
             for (int i = 0; i < directories.Length; i++)
-                directories[i] = Read<Interop.IMAGE_DATA_DIRECTORY>();
+                directories[i] = Read<IMAGE_DATA_DIRECTORY>();
 
             return directories;
         }

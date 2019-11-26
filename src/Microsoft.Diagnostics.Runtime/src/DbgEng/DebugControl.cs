@@ -1,5 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
-using Microsoft.Diagnostics.Runtime.Utilities;
+﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -97,11 +96,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int AddEngineOptionsDelegate(IntPtr self, int options);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetDebuggeeTypeDelegate(IntPtr self, out DEBUG_CLASS cls, out DEBUG_CLASS_QUALIFIER qualifier);
+        private delegate int GetDebuggeeTypeDelegate(IntPtr self, out uint cls, out DEBUG_CLASS_QUALIFIER qualifier);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
-
 
 
 #pragma warning disable CS0169
