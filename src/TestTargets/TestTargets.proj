@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-    <CscPath Condition="'$(CscPath)' == ''">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath>
-    <CdbPath32 Condition="'$(CdbPath32)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</CdbPath32>
-    <CdbPath64 Condition="'$(CdbPath64)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</CdbPath64>
+    <CscPath>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath>
+    <CdbPath32>C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</CdbPath32>
+    <CdbPath64>C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</CdbPath64>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
@@ -56,8 +56,8 @@
     <MakeDir Directories="$(BinDir32)" />
 
     <Error Condition="!Exists('$(CscPath)')" Text="csc.exe ($(CscPath)) not found." />
-    <Error Condition="!Exists('$(CdbPath32)')" Text="cdb.exe (x86) ($(CdbPath32)) not found." />
-    <Error Condition="!Exists('$(CdbPath64)')" Text="cdb.exe (x64) ($(CdbPath64)) not found." />
+    <Error Condition="!Exists('$(CdbPath32)')" Text="cdb.exe (x86) ($(CdbPath32)) not found. Please install Debugging Tools for Windows, see https://docs.microsoft.com/windows-hardware/drivers/debugger/." />
+    <Error Condition="!Exists('$(CdbPath64)')" Text="cdb.exe (x64) ($(CdbPath64)) not found. Please install Debugging Tools for Windows, see https://docs.microsoft.com/windows-hardware/drivers/debugger/." />
 
   </Target>
 
