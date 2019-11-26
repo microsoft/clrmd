@@ -16,23 +16,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Dispose() => _context.Dispose();
 
         [Fact]
-        public void SuspendAndAttachToProcess()
+        public void PassiveAttachToProcess()
         {
-            using Process process = Process.Start(new ProcessStartInfo
-            {
-                FileName = TestTargets.Spin.Executable,
-                Arguments = "_",
-                RedirectStandardOutput = true,
-            });
+            using Process process = CreateProcess();
 
             try
             {
-                _ = process.StandardOutput.ReadLine();
+                using DataTarget dataTarget = DataTarget.PassiveAttachToProcess(process.Id);
+                ProcessThread mainThread = GetMainThread(process, dataTarget);
 
+                Assert.Equal(ThreadState.Running, mainThread.ThreadState);
+            }
+            finally
+            {
+                process.Kill();
+            }
+        }
+
+        [Fact]
+        public void SuspendAndAttachToProcess()
+        {
+            using Process process = CreateProcess();
+
+            try
+            {
                 using DataTarget dataTarget = DataTarget.SuspendAndAttachToProcess(process.Id);
-                ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-                uint mainThreadId = runtime.GetMainThread().OSThreadId;
-                ProcessThread mainThread = process.Threads.Cast<ProcessThread>().Single(thread => thread.Id == mainThreadId);
+                ProcessThread mainThread = GetMainThread(process, dataTarget);
 
                 Assert.Equal(ThreadState.Wait, mainThread.ThreadState);
             }
@@ -40,6 +49,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 process.Kill();
             }
+        }
+
+        private static Process CreateProcess()
+        {
+            Process process = Process.Start(new ProcessStartInfo
+            {
+                FileName = TestTargets.Spin.Executable,
+                Arguments = "_",
+                RedirectStandardOutput = true,
+            });
+
+            _ = process.StandardOutput.ReadLine();
+            return process;
+        }
+
+        private static ProcessThread GetMainThread(Process process, DataTarget dataTarget)
+        {
+            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            uint mainThreadId = runtime.GetMainThread().OSThreadId;
+            return process.Threads.Cast<ProcessThread>().Single(thread => thread.Id == mainThreadId);
         }
     }
 }
