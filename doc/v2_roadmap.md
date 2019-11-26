@@ -80,3 +80,9 @@ Here is a list of feedback I am tracking from the community (my summary):
 5.  Clean up the design of a lot of weird parts of the library.  - **Approved** - *That is the goal of ClrMD 2.0.*
 6.  Improve the messages and exceptions thrown by the library. - **Tentatively Planned**
 7.  Document the expected 'cost' of main operations in memory/CPU.  - **Unsure** - *There's so many factors here I'm not sure what success looks like, but I'll take a look.*
+
+# TODO reminders
+
+(Notes to myself about what I need to revisit.)
+
+1.  ThreadPool related code.
