@@ -22,5 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ulong ISegmentData.End => Allocated;
         ulong ISegmentData.Reserved => Reserved;
         ulong ISegmentData.Committed => Committed;
+        bool ISegmentData.ReadOnly => false;
     }
 }

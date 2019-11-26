@@ -54,5 +54,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         ulong ISegmentData.End => Allocated;
         ulong ISegmentData.Reserved => Reserved;
         ulong ISegmentData.Committed => Committed;
+        bool ISegmentData.ReadOnly => (Flags.ToInt64() & 1) == 1; // HEAP_SEGMENT_FLAGS_READONLY (https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/gc/gcinterface.dac.h#L14)
     }
 }
