@@ -68,3 +68,15 @@ I really hope to find a better solution for testing the product. Since we requir
 1.  Allow x64 process to debug x32 dumps.  This is very, very difficult to acheive architecturally, because CLR's underlying debugging API is native code and deeply tied to architecture.  I don't believe I will be able to implement this reasonably, but I intend to take a close look at it.
 2.  Thread safety.  Is it possible to inspect the heap from multiple threads without too much of a perf penalty?  The real issue with this is the DbgEng based IDataReader does not support access from multiple threads.  This is theoretically possible using a custom dump reader.
 3.  A way to control the amount of memory ClrMD caches.
+
+# Feedback from the community
+
+Here is a list of feedback I am tracking from the community (my summary):
+
+1.  It is difficult to build unit tests for code which uses ClrMD because it requires hydrating an entire object tree.  It would be nice if the library was mock-able.
+2.  Consider enabling nullable reference types. - **Approved**
+3.  Have a mode where I can indicate what is most important to me speed or memory usage. - **Approved** - *I plan to have a way to limit the amount ClrMD allocates at the cost of performance.* 
+4.  Consider using native memory where it makes sense (basically limit small allocations and other memory thrashing.  **Completed (mostly)** - *The library has moved to using Span with stackalloc/ArrayPool.Rent in the vast majority of allocation cases.  I've also removed the usage of most marshalled arrays in PInvoke signatures, preferring instead to pass pointers to byte arrays.*
+5.  Clean up the design of a lot of weird parts of the library.  - **Approved** - *That is the goal of ClrMD 2.0.*
+6.  Improve the messages and exceptions thrown by the library. - **Tentatively Planned**
+7.  Document the expected 'cost' of main operations in memory/CPU.  - **Unsure** - *There's so many factors here I'm not sure what success looks like, but I'll take a look.*
