@@ -23,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true;
 
-        private int? _pointerSize;
 
         private DebugClient _client;
         private DebugControl _control;
@@ -32,10 +31,10 @@ namespace Microsoft.Diagnostics.Runtime
         private DebugSymbols _symbols;
         private DebugSystemObjects _systemObjects;
 
-        private int _instance;
         private bool _disposed;
 
         private List<ModuleInfo> _modules;
+        private int? _pointerSize;
         private bool? _minidump;
         private Architecture? _architecture;
         private static readonly RefCountedFreeLibrary _library = new RefCountedFreeLibrary(IntPtr.Zero);
