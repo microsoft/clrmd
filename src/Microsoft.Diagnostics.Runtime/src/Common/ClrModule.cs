@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The IMetaDataImport interface for this module.  Note that this API does not provide a
         /// wrapper for IMetaDataImport.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
-        public virtual MetaDataImport MetadataImport => null; 
+        public virtual MetaDataImport MetadataImport => null;
 
         /// <summary>
         /// The debugging attributes for this module.

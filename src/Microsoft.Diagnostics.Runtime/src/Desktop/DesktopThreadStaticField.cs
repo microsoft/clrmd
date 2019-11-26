@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThreadStaticField : ClrThreadStaticField
     {
-        public DesktopThreadStaticField(DesktopGCHeap heap, IFieldData field, string name)
+        public DesktopThreadStaticField(ClrHeapImpl heap, IFieldData field, string name)
         {
             _field = field;
             Name = name;
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType Type => _type;
 
-        // these are optional.  
+        // these are optional.
         /// <summary>
         /// If the field has a well defined offset from the base of the object, return it (otherwise -1).
         /// </summary>

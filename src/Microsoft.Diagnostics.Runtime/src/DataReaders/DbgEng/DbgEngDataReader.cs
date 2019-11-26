@@ -54,9 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
                 var kind = (uint)hr == 0x80004005 ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
                 throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: 0x{hr:x8}", kind, hr).AddData("DumpFile", dumpFile);
             }
-
-
-
+            
             // This actually "attaches" to the crash dump.
             bool result = _control.WaitForEvent(0xffffffff);
             Debug.Assert(result);
@@ -276,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime
             read = _spaces.ReadVirtual(address, buffer);
             return read == buffer.Length;
         }
-        
+
         public ulong ReadPointerUnsafe(ulong addr)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
@@ -314,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime
              * the module sizes are sometimes wrong, which may cause a wrong module
              * to be found because it overlaps the beginning of the queried module,
              * so search until we find a module that actually has the correct
-             * baseAddr*/
+             * baseAddr */
             int nextIndex = 0;
             while (true)
             {

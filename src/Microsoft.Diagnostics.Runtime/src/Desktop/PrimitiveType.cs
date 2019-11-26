@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class PrimitiveType : BaseDesktopHeapType
     {
-        public PrimitiveType(DesktopGCHeap heap, ClrElementType type)
+        public PrimitiveType(ClrHeapImpl heap, ClrElementType type)
             : base(0, heap, heap.DesktopRuntime.ErrorModule, 0)
         {
             ElementType = type;

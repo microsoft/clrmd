@@ -1,22 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
+
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader targets a Linux process, implemented by reading /proc/<pid>/maps 
-    /// and /proc/<pid>/mem files. The process must have READ permission to the above 2
-    /// files. 
+    /// A data reader targets a Linux process, implemented by reading /proc/[pid]/maps
+    /// and /proc/[pid]/mem files. The process must have READ permission to the above 2
+    /// files.
     ///   1. The current process can run as root.
-    ///   2. If executed from within a Docker container, the best way is to use "ptrace 
-    ///      attach" to obtain the permission. 
-    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent. 
+    ///   2. If executed from within a Docker container, the best way is to use "ptrace
+    ///      attach" to obtain the permission.
+    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent.
     ///        - the process must call the following before constructing the data reader.
     ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
     ///             wait(NULL);
@@ -28,21 +31,61 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private bool _initializedMemFile;
         private readonly List<uint> _threadIDs = new List<uint>();
 
-        public LinuxLiveDataReader(uint processId)
+        private bool _suspended;
+        private bool _disposed;
+
+        public LinuxLiveDataReader(int processId, bool suspend)
         {
-            this.ProcessId = processId;
+            this.ProcessId = (uint)processId;
             _memoryMapEntries = this.LoadMemoryMap();
+
+            if (suspend)
+            {
+                int status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
+                if (status < 0)
+                {
+                    int errno = Marshal.GetLastWin32Error();
+                    throw new ClrDiagnosticsException($"Could not attach to pid {processId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
+                }
+
+                _suspended = true;
+            }
         }
+
+        ~LinuxLiveDataReader() => Dispose(false);
 
         public uint ProcessId { get; private set; }
 
-        public bool IsMinidump { get { return false; } }
+        public bool IsMinidump => false;
 
         public void Dispose()
         {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
             _memoryStream?.Dispose();
             _memoryStream = null;
             _initializedMemFile = false;
+
+            if (_suspended)
+            {
+                int status = (int)ptrace(PTRACE_DETACH, (int)ProcessId, IntPtr.Zero, IntPtr.Zero);
+                if (status < 0)
+                {
+                    int errno = Marshal.GetLastWin32Error();
+                    throw new ClrDiagnosticsException($"Could not detach from pid {ProcessId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
+                }
+
+                _suspended = false;
+            }
+
+            _disposed = true;
         }
 
         public void ClearCachedData()
@@ -162,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public unsafe uint ReadDwordUnsafe(ulong address)
         {
-            Span<byte> buffer = stackalloc byte[4];
+            Span<byte> buffer = stackalloc byte[sizeof(uint)];
             if (!ReadMemory(address, buffer, out int _))
                 return 0;
 
@@ -195,48 +238,23 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (!_threadIDs.Contains(threadID) || context.Length != AMD64Context.Size)
                 return false;
 
-            fixed (byte* ctxPtr = context)
-            {
-                AMD64Context* ctx = (AMD64Context*)ctxPtr;
-                ctx->ContextFlags = contextFlags;
-                IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
-                try
-                {
-                    ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, ptr);
-                    RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
-                    CopyContext(ctx, ref r);
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(ptr);
-                }
-            }
-            return true;
-        }
-
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
-        {
-            this.LoadThreads();
-            if (!_threadIDs.Contains(threadID) || contextSize != AMD64Context.Size)
-            {
-                return false;
-            }
-            IntPtr ptrContext = Marshal.AllocHGlobal(sizeof(AMD64Context));
-            AMD64Context* ctx = (AMD64Context*)ptrContext;
-            ctx->ContextFlags = contextFlags;
-            IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
+            ref AMD64Context ctx = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
+            ctx.ContextFlags = contextFlags;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(RegSetX64));
             try
             {
-                ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, ptr);
-                RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
-                CopyContext(ctx, ref r);
-                Marshal.Copy(ptrContext, context, 0, sizeof(AMD64Context));
+                fixed (byte* data = buffer)
+                {
+                    ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, new IntPtr(data));
+                }
+
+                CopyContext(ref ctx, Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())));
             }
             finally
             {
-                Marshal.FreeHGlobal(ptr);
-                Marshal.FreeHGlobal(ptrContext);
+                ArrayPool<byte>.Shared.Return(buffer);
             }
+
             return true;
         }
 
@@ -245,25 +263,25 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct();
         }
 
-        private static unsafe void CopyContext(AMD64Context* ctx, ref RegSetX64 registerSet)
+        private static void CopyContext(ref AMD64Context context, in RegSetX64 registerSet)
         {
-            ctx->R15 = registerSet.R15;
-            ctx->R14 = registerSet.R14;
-            ctx->R13 = registerSet.R13;
-            ctx->R12 = registerSet.R12;
-            ctx->Rbp = registerSet.Rbp;
-            ctx->Rbx = registerSet.Rbx;
-            ctx->R11 = registerSet.R11;
-            ctx->R10 = registerSet.R10;
-            ctx->R9 = registerSet.R9;
-            ctx->R8 = registerSet.R8;
-            ctx->Rax = registerSet.Rax;
-            ctx->Rcx = registerSet.Rcx;
-            ctx->Rdx = registerSet.Rdx;
-            ctx->Rsi = registerSet.Rsi;
-            ctx->Rdi = registerSet.Rdi;
-            ctx->Rip = registerSet.Rip;
-            ctx->Rsp = registerSet.Rsp;
+            context.R15 = registerSet.R15;
+            context.R14 = registerSet.R14;
+            context.R13 = registerSet.R13;
+            context.R12 = registerSet.R12;
+            context.Rbp = registerSet.Rbp;
+            context.Rbx = registerSet.Rbx;
+            context.R11 = registerSet.R11;
+            context.R10 = registerSet.R10;
+            context.R9 = registerSet.R9;
+            context.R8 = registerSet.R8;
+            context.Rax = registerSet.Rax;
+            context.Rcx = registerSet.Rcx;
+            context.Rdx = registerSet.Rdx;
+            context.Rsi = registerSet.Rsi;
+            context.Rdi = registerSet.Rdi;
+            context.Rip = registerSet.Rip;
+            context.Rsp = registerSet.Rsp;
         }
 
         private void LoadThreads()
@@ -337,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 var entry = _memoryMapEntries[i];
                 ulong regionSize = entry.EndAddr - entry.BeginAddr - offset;
-                if (regionSize >= (ulong) bytesRequested)
+                if (regionSize >= (ulong)bytesRequested)
                 {
                     readableBytesCount += bytesRequested;
                     break;
@@ -356,51 +374,48 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             List<MemoryMapEntry> result = new List<MemoryMapEntry>();
             string mapsFilePath = $"/proc/{this.ProcessId}/maps";
-            using (FileStream fs = File.OpenRead(mapsFilePath))
-            using (StreamReader sr = new StreamReader(fs))
+            using StreamReader reader = new StreamReader(mapsFilePath);
+            while (true)
             {
-                while (true)
+                string line = reader.ReadLine();
+                if (string.IsNullOrEmpty(line))
                 {
-                    string line = sr.ReadLine();
-                    if (string.IsNullOrEmpty(line))
-                    {
-                        break;
-                    }
-                    string address, permission, path;
-                    string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 5)
-                    {
-                        path = string.Empty;
-                    }
-                    else if (parts.Length == 6)
-                    {
-                        path = parts[5].StartsWith("[") ? string.Empty : parts[5];
-                    }
-                    else
-                    {
-                        // Unknown data format 
-                        continue;
-                    }
-                    address = parts[0];
-                    permission = parts[1];
-                    string[] addressBeginEnd = address.Split('-');
-                    MemoryMapEntry entry = new MemoryMapEntry()
-                    {
-                        BeginAddr = Convert.ToUInt64(addressBeginEnd[0], 16),
-                        EndAddr = Convert.ToUInt64(addressBeginEnd[1], 16),
-                        FilePath = path,
-                        FileName = string.IsNullOrEmpty(path) ? string.Empty : Path.GetFileName(path),
-                        Permission = ParsePermission(permission)
-                    };
-                    result.Add(entry);
+                    break;
                 }
+                string address, permission, path;
+                string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 5)
+                {
+                    path = string.Empty;
+                }
+                else if (parts.Length == 6)
+                {
+                    path = parts[5].StartsWith("[") ? string.Empty : parts[5];
+                }
+                else
+                {
+                    // Unknown data format
+                    continue;
+                }
+                address = parts[0];
+                permission = parts[1];
+                string[] addressBeginEnd = address.Split('-');
+                MemoryMapEntry entry = new MemoryMapEntry()
+                {
+                    BeginAddr = Convert.ToUInt64(addressBeginEnd[0], 16),
+                    EndAddr = Convert.ToUInt64(addressBeginEnd[1], 16),
+                    FilePath = path,
+                    Permission = ParsePermission(permission)
+                };
+                result.Add(entry);
             }
+
             return result;
         }
 
         private static int ParsePermission(string permission)
         {
-            // parse something like rwxp or r-xp. more info see 
+            // parse something like rwxp or r-xp. more info see
             // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
             if (permission.Length != 4)
             {
@@ -413,11 +428,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return r + w + x + p;
         }
 
+        private const string LibC = "libc";
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern ulong ptrace(uint command, int pid, IntPtr addr, IntPtr data);
+        [DllImport(LibC, SetLastError = true)]
+        private static extern IntPtr ptrace(uint request, int pid, IntPtr addr, IntPtr data);
 
-        [DllImport("libc", SetLastError = true)]
+        [DllImport(LibC, SetLastError = true)]
         private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
 
         private unsafe struct iovec
@@ -427,6 +443,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         }
 
         private const uint PTRACE_GETREGS = 12;
+        private const uint PTRACE_ATTACH = 16;
+        private const uint PTRACE_DETACH = 17;
     }
 
     internal class MemoryMapEntry
@@ -434,12 +452,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ulong BeginAddr { get; set; }
         public ulong EndAddr { get; set; }
         public string FilePath { get; set; }
-        public string FileName { get; set; }
         public int Permission { get; set; }
 
         public bool IsReadable()
         {
-            return (this.Permission & 8) > 0;
+            return (this.Permission & 8) != 0;
         }
     }
 }

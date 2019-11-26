@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
     public abstract class ObjectConnection<T> : IDisposable
         where T : new()
     {
-        protected ObjectConnection(TestTarget testTarget, Type type): this(testTarget, type.Name)
+        protected ObjectConnection(TestTarget testTarget, Type type) : this(testTarget, type.Name)
         {
         }
 

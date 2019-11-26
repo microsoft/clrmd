@@ -81,8 +81,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (_modules == null)
             {
-                // Need to filter out non-modules like the interpreter (named something 
-                // like "ld-2.23") and anything that starts with /dev/ because their 
+                // Need to filter out non-modules like the interpreter (named something
+                // like "ld-2.23") and anything that starts with /dev/ because their
                 // memory range overlaps with actual modules.
                 ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 

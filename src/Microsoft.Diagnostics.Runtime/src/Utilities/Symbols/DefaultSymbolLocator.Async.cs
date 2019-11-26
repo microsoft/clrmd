@@ -291,8 +291,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     using Stream fromStream = response.GetResponseStream();
                     if (returnContents)
                     {
-                        using StreamReader stream = new StreamReader(fromStream);
-                        return await stream.ReadToEndAsync().ConfigureAwait(false);
+                        using StreamReader reader = new StreamReader(fromStream);
+                        return await reader.ReadToEndAsync().ConfigureAwait(false);
                     }
 
                     Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));

@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public override DataTarget DataTarget => _dataTarget;
-        
+
         public IDataReader DataReader => _dataReader;
 
         protected abstract void InitApi();
@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
             // process is a really strange program, or we've somehow read the wrong base/limit.
             if (stackBase == 0 || stackLimit - stackBase > c_maxStackDepth)
                 yield break;
-            
+
             ClrAppDomain domain = GetAppDomainByAddress(thread.AppDomain);
             ClrHeap heap = Heap;
             MemoryReader cache = MemoryReader;
@@ -215,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead) => _dataReader.ReadMemory(address, buffer, out bytesRead);
 
 
-        public unsafe bool ReadPrimitive<T>(ulong addr, out T value) where T: unmanaged
+        public unsafe bool ReadPrimitive<T>(ulong addr, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             if (ReadMemory(addr, buffer, out int read) && read == buffer.Length)
@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadString(ulong addr, out string value)
         {
-            value = ((DesktopGCHeap)Heap).GetStringContents(addr);
+            value = ((ClrHeapImpl)Heap).GetStringContents(addr);
             return value != null;
         }
 

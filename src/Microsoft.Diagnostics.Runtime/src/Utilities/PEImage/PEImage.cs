@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Interop;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -21,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int ImageDataDirectoryCount = 15;
         private const int ComDataDirectory = 14;
         private const int DebugDataDirectory = 6;
-        
+
         private readonly bool _virt;
         private int _offset = 0;
         private readonly int _peHeaderOffset;
@@ -265,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
                         string filename = ReadString(nameLen);
-                        
+
                         PdbInfo pdb = new PdbInfo(filename, guid, age);
                         result.Add(pdb);
                     }
@@ -276,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private string ReadString(int len) => ReadString(_offset, len);
-        
+
 
         private string ReadString(int offset, int len)
         {
@@ -372,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
 
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
-        
+
         private void SeekTo(int offset)
         {
             if (offset != _offset)

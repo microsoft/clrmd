@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
-using System.Buffers;
 using System.IO;
+using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -15,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrInfo
     {
         private readonly DataTarget _dataTarget;
-        
+
         internal ClrRuntime Runtime { get; }
-        
+
         internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
         {
             _dataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
@@ -118,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRuntime ConstructRuntime(string dac)
         {
-            if (IntPtr.Size != (int)_dataTarget.DataReader.PointerSize)
+            if (IntPtr.Size != _dataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
             DacLibrary lib = new DacLibrary(_dataTarget, dac);
@@ -126,18 +125,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (Flavor == ClrFlavor.Core)
                 return new V45Runtime(this, _dataTarget, lib);
 
-            DesktopVersion ver;
-            if (Version.Major == 2)
-                ver = DesktopVersion.v2;
-            else if (Version.Major == 4 && Version.Minor == 0 && Version.Patch < 10000)
-                ver = DesktopVersion.v4;
-            else
-            {
-                // Assume future versions will all work on the newest runtime version.
-                return new V45Runtime(this, _dataTarget, lib);
-            }
-
-            return new LegacyRuntime(this, _dataTarget, lib, ver, Version.Patch);
+            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Patch < 10000))
+                throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
+            
+            return new V45Runtime(this, _dataTarget, lib);
         }
     }
 }

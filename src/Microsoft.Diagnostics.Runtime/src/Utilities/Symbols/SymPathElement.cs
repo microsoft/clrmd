@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public static List<SymPathElement> GetElements(string symbolPath)
         {
             string[] entries = (symbolPath ?? "").Split(';');
-            List<SymPathElement>  result = new List<SymPathElement>(entries.Length);
+            List<SymPathElement> result = new List<SymPathElement>(entries.Length);
 
             foreach (string element in entries)
                 if (!string.IsNullOrEmpty(element))
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (Target.StartsWith(@"\\"))
                         return true;
 
-                    // We assume drive letters from the back of the alphabet are remote.  
+                    // We assume drive letters from the back of the alphabet are remote.
                     if (2 <= Target.Length && Target[1] == ':')
                     {
                         char driveLetter = char.ToUpperInvariant(Target[0]);

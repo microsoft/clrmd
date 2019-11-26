@@ -47,8 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Debug.Assert(_sos != null);
         }
 
-        internal override DesktopVersion CLRVersion => DesktopVersion.v45;
-
         public override IEnumerable<ClrHandle> EnumerateHandles()
         {
             if (_handles != null)
@@ -379,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _sos.TraverseModuleMap(
                 SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable,
                 module,
-                delegate(uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); });
+                delegate (uint index, ulong mt, IntPtr token) { mts.Add(new MethodTableTokenPair(mt, index)); });
 
             return mts;
         }

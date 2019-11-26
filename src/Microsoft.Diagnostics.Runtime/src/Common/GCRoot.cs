@@ -111,8 +111,8 @@ namespace Microsoft.Diagnostics.Runtime
                 { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
             };
 
-            ObjectSet processedObjects = parallel 
-                ? new ParallelObjectSet(Heap) 
+            ObjectSet processedObjects = parallel
+                ? new ParallelObjectSet(Heap)
                 : new ObjectSet(Heap);
 
             Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = parallel
@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
                 foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
                 {
                     ReportObjectCount(processedObjects.Count);
-                    yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
+                    yield return new GCRootPath { Root = result.Item2, Path = result.Item1.ToArray() };
                 }
             }
 
@@ -182,14 +182,14 @@ namespace Microsoft.Diagnostics.Runtime
                         tasks[i] = task;
 
                         if (completed.Result.Item1 != null)
-                            result = new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
+                            result = new GCRootPath { Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray() };
                     }
                 }
                 else
                 {
                     LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
-                        result = new GCRootPath {Root = rootFunc(), Path = path.ToArray()};
+                        result = new GCRootPath { Root = rootFunc(), Path = path.ToArray() };
                 }
 
                 ReportObjectCount(processedObjects.Count);
@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (source.Address == target)
             {
-                path.AddLast(new PathEntry {Object = source});
+                path.AddLast(new PathEntry { Object = source });
                 yield return GetResult();
 
                 yield break;
@@ -318,7 +318,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Did the 'start' object point directly to 'end'?  If so, early out.
             if (foundTarget)
             {
-                path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
+                path.AddLast(new PathEntry { Object = Heap.GetObject(target) });
                 yield return GetResult();
             }
             else if (foundEnding != null)
@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime
                         // If we found the target object while enumerating refs of the current object, we are done.
                         if (foundTarget)
                         {
-                            path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
+                            path.AddLast(new PathEntry { Object = Heap.GetObject(target) });
                             TraceFullPath("FoundTarget", path);
 
                             yield return GetResult();

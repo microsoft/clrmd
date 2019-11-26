@@ -13,19 +13,12 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal enum DesktopVersion
-    {
-        v2,
-        v4,
-        v45
-    }
-
     internal abstract class DesktopRuntimeBase : RuntimeBase
     {
         protected CommonMethodTables _commonMTs;
         private ClrModule[] _moduleList;
         private Lazy<List<ClrThread>> _threads;
-        private Lazy<DesktopGCHeap> _heap;
+        private Lazy<ClrHeapImpl> _heap;
         private Lazy<DesktopThreadPool> _threadpool;
         private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
@@ -37,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal DesktopRuntimeBase(ClrInfo info, DataTarget dt, DacLibrary lib)
             : base(info, dt, lib)
         {
-            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _heap = new Lazy<ClrHeapImpl>(CreateHeap);
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
@@ -64,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _moduleFiles = new Dictionary<string, DesktopModule>();
             _threads = new Lazy<List<ClrThread>>(CreateThreadList);
             _appDomains = new Lazy<DomainContainer>(CreateAppDomainList);
-            _heap = new Lazy<DesktopGCHeap>(CreateHeap);
+            _heap = new Lazy<ClrHeapImpl>(CreateHeap);
             _threadpool = new Lazy<DesktopThreadPool>(CreateThreadPoolData);
             _mscorlib = new Lazy<ClrModule>(GetMscorlib);
         }
@@ -104,11 +97,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Array.Empty<ClrException>();
         }
 
-        /// <summary>
-        /// Returns the version of the target process (v2, v4, v45)
-        /// </summary>
-        internal abstract DesktopVersion CLRVersion { get; }
-
         internal abstract IGCInfo GetGCInfoImpl();
 
         /// <summary>
@@ -145,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             IThreadData thread = GetThread(addr);
 
             // Ensure we don't hit an infinite loop
-            HashSet<ulong> seen = new HashSet<ulong> {addr};
+            HashSet<ulong> seen = new HashSet<ulong> { addr };
             while (thread != null)
             {
                 threads.Add(new DesktopThread(this, thread, addr, addr == finalizer));
@@ -175,12 +163,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrHeap Heap => _heap.Value;
 
-        private DesktopGCHeap CreateHeap()
+        private ClrHeapImpl CreateHeap()
         {
-            if (HasArrayComponentMethodTables)
-                return new LegacyGCHeap(this);
-
-            return new V46GCHeap(this);
+            return new ClrHeapImpl(this);
         }
 
         public override ClrThreadPool ThreadPool => _threadpool.Value;
@@ -391,7 +376,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return DesktopMethod.Create(this, mdData);
         }
-        
+
         protected ClrThread GetThreadByStackAddress(ulong address)
         {
             Debug.Assert(address != 0 || _dataReader.IsMinidump);
@@ -783,7 +768,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             public readonly DesktopAppDomain System;
             public readonly DesktopAppDomain Shared;
             public readonly IList<ClrAppDomain> Domains;
-            
+
             public static readonly DomainContainer Empty = new DomainContainer(null, null, Array.Empty<ClrAppDomain>());
 
             public DomainContainer(DesktopAppDomain system, DesktopAppDomain shared, IList<ClrAppDomain> domains)

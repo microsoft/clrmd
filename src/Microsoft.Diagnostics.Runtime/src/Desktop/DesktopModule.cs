@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal ulong GetMTForDomain(ClrAppDomain domain, DesktopHeapType type)
         {
-            DesktopGCHeap heap = null;
+            ClrHeapImpl heap = null;
             IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_mapping[domain]);
 
             bool hasToken = type.MetadataToken != 0 && type.MetadataToken != uint.MaxValue;
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 else
                 {
                     if (heap == null)
-                        heap = (DesktopGCHeap)_runtime.Heap;
+                        heap = (ClrHeapImpl)_runtime.Heap;
 
                     if (heap.GetTypeByMethodTable(pair.MethodTable, 0) == type)
                         return pair.MethodTable;
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrType> EnumerateTypes()
         {
-            DesktopGCHeap heap = (DesktopGCHeap)_runtime.Heap;
+            ClrHeapImpl heap = (ClrHeapImpl)_runtime.Heap;
             IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_address);
             if (_typesLoaded)
             {

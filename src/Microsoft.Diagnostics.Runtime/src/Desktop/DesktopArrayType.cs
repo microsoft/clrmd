@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly int _ranks;
         private string _name;
 
-        public DesktopArrayType(DesktopGCHeap heap, DesktopBaseModule module, ClrElementType eltype, int ranks, uint token, string nameHint)
+        public DesktopArrayType(ClrHeapImpl heap, DesktopBaseModule module, ClrElementType eltype, int ranks, uint token, string nameHint)
             : base(0, heap, module, token)
         {
             ElementType = ClrElementType.Array;
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            return new[] {MethodTable};
+            return new[] { MethodTable };
         }
 
         public override ClrModule Module => DesktopModule;

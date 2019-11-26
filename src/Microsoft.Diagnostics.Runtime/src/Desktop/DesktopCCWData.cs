@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopCCWData(DesktopGCHeap heap, ulong ccw, ICCWData data)
+        internal DesktopCCWData(ClrHeapImpl heap, ulong ccw, ICCWData data)
         {
             _addr = ccw;
             _ccw = data;
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private readonly ulong _addr;
         private readonly ICCWData _ccw;
-        private readonly DesktopGCHeap _heap;
+        private readonly ClrHeapImpl _heap;
         private List<ComInterfaceData> _interfaces;
     }
 }

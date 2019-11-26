@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 RedirectStandardInput = options.Input != null
             };
 
-            Process = new Process {StartInfo = startInfo};
+            Process = new Process { StartInfo = startInfo };
             Process.StartInfo = startInfo;
             _output = new StringBuilder();
             if (options.elevate)
@@ -141,15 +141,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (options.environmentVariables != null)
             {
-                // copy over the environment variables to the process startInfo options. 
+                // copy over the environment variables to the process startInfo options.
                 foreach (string key in options.environmentVariables.Keys)
                 {
-                    // look for %VAR% strings in the value and subtitute the appropriate environment variable. 
+                    // look for %VAR% strings in the value and subtitute the appropriate environment variable.
                     string value = options.environmentVariables[key];
                     if (value != null)
                     {
                         int startAt = 0;
-                        for (;;)
+                        for (; ; )
                         {
                             m = new Regex(@"%(\w+)%").Match(value, startAt);
                             if (!m.Success) break;
@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                                     varValue = "";
                             }
 
-                            // replace this instance of the variable with its definition.  
+                            // replace this instance of the variable with its definition.
                             int varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
                             int varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
                             value = value.Substring(0, varStart) + varValue + value.Substring(varEnd, value.Length - varEnd);
@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Process.BeginErrorReadLine();
             }
 
-            // Send any input to the command 
+            // Send any input to the command
             if (options.input != null)
             {
                 Process.StandardInput.Write(options.input);
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 waitReturned = true;
                 //  TODO : HACK we see to have a race in the async process stuff
                 //  If you do Run("cmd /c set") you get truncated output at the
-                //  Looks like the problem in the framework.  
+                //  Looks like the problem in the framework.
                 for (int i = 0; i < 10; i++)
                     Thread.Sleep(1);
             }
@@ -255,7 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            // If we created the output stream, we should close it.  
+            // If we created the output stream, we should close it.
             if (_outputStream != null && Options.outputFile != null)
                 _outputStream.Dispose();
             _outputStream = null;
@@ -284,7 +284,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (_outputStream == null)
                 {
                     string outStr = _output.ToString();
-                    // Only show the first lineNumber the last two lines if there are a lot of output. 
+                    // Only show the first lineNumber the last two lines if there are a lot of output.
                     Match m = Regex.Match(outStr, @"^(\s*\n)?(.+\n)(.|\n)*?(.+\n.*\S)\s*$");
                     if (m.Success)
                         outStr = m.Groups[2].Value + "    <<< Omitted output ... >>>\r\n" + m.Groups[4].Value;
@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public void Kill()
         {
             // We use taskkill because it is built into windows, and knows
-            // how to kill all subchildren of a process, which important. 
+            // how to kill all subchildren of a process, which important.
             // TODO (should we use WMI instead?)
             Debug.WriteLine("Killing process tree " + Id + " Cmd: " + _commandLine);
             try
@@ -341,7 +341,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             } while (!Process.HasExited);
 
-            // If we created the output stream, we should close it.  
+            // If we created the output stream, we should close it.
             if (_outputStream != null && Options.outputFile != null)
                 _outputStream.Dispose();
             _outputStream = null;

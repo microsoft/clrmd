@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrType _pointerElementType;
         private string _name;
 
-        public DesktopPointerType(DesktopGCHeap heap, DesktopBaseModule module, ClrElementType eltype, uint token, string nameHint)
+        public DesktopPointerType(ClrHeapImpl heap, DesktopBaseModule module, ClrElementType eltype, uint token, string nameHint)
             : base(0, heap, module, token)
         {
             ElementType = ClrElementType.Pointer;
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ulong> EnumerateMethodTables()
         {
-            return new[] {MethodTable};
+            return new[] { MethodTable };
         }
 
         internal override ulong GetModuleAddress(ClrAppDomain domain)
