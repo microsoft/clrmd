@@ -27,7 +27,7 @@
     </TargetExes64>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+  <ItemGroup Condition="'$(OS)' == 'Unix'">
     <TargetSources Include="*\*.cs" Exclude="Shared\*;AppDomains\*">
       <ProjectPath>%(RelativeDir)%(Filename).csproj</ProjectPath>
       <ExePath>$(BinDir64)%(Filename)</ExePath>
@@ -42,13 +42,16 @@
     </TargetExes>
   </ItemGroup>
 
-  <Target Name="PreBuildCommon">
+  <Target Name="BeforeBuildCommon">
 
     <MakeDir Directories="$(BinDir64)" />
 
   </Target>
 
-  <Target Condition="'$(OS)' == 'Windows_NT'" Name="PreBuildWindows" AfterTargets="PreBuildCommon">
+  <Target
+    Condition="'$(OS)' == 'Windows_NT'"
+    Name="BeforeBuildWindows"
+    AfterTargets="BeforeBuildCommon">
 
     <MakeDir Directories="$(BinDir32)" />
 
@@ -61,7 +64,7 @@
   <Target
     Condition="'$(OS)' == 'Windows_NT'"
     Name="BuildWindowsShared"
-    AfterTargets="PreBuildWindows"
+    AfterTargets="BeforeBuildWindows"
     Inputs="Shared\SharedLibrary.cs"
     Outputs="$(BinDir32)SharedLibrary.dll;$(BinDir64)SharedLibrary.dll">
 
@@ -115,9 +118,9 @@
   </Target>
 
   <Target
-    Condition="'$(OS)' != 'Windows_NT'"
-    Name="BuildNonWindows"
-    AfterTargets="PreBuildCommon"
+    Condition="'$(OS)' == 'Unix'"
+    Name="BuildLinux"
+    AfterTargets="BeforeBuildCommon"
     Inputs="@(TargetSources);@(TargetProjects)"
     Outputs="@(TargetSources->'%(ExePath)');@(TargetProjects->'%(ExePath)')">
 
@@ -130,9 +133,9 @@
   </Target>
 
   <Target
-    Condition="'$(OS)' != 'Windows_NT'"
-    Name="BeforeDumpNonWindows"
-    AfterTargets="BuildNonWindows">
+    Condition="'$(OS)' == 'Unix'"
+    Name="BeforeDumpLinux"
+    AfterTargets="BuildLinux">
 
     <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" Value="1" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" Value="coredump" />
@@ -140,9 +143,9 @@
   </Target>
 
   <Target
-    Condition="'$(OS)' != 'Windows_NT'"
-    Name="HeapDumpNonWindows"
-    AfterTargets="BeforeDumpNonWindows"
+    Condition="'$(OS)' == 'Unix'"
+    Name="HeapDumpLinux"
+    AfterTargets="BeforeDumpLinux"
     Inputs="@(TargetExes)"
     Outputs="@(TargetExes->'%(HeapDumpPath)')">
 
@@ -152,9 +155,9 @@
   </Target>
 
   <Target
-    Condition="'$(OS)' != 'Windows_NT'"
-    Name="MiniDumpNonWindows"
-    AfterTargets="HeapDumpNonWindows"
+    Condition="'$(OS)' == 'Unix'"
+    Name="MiniDumpLinux"
+    AfterTargets="HeapDumpLinux"
     Inputs="@(TargetExes)"
     Outputs="@(TargetExes->'%(MiniDumpPath)')">
 
@@ -166,9 +169,9 @@
   </Target>
 
   <Target
-    Condition="'$(OS)' != 'Windows_NT'"
-    Name="DumpNonWindowsServerGC"
-    AfterTargets="MiniDumpNonWindows"
+    Condition="'$(OS)' == 'Unix'"
+    Name="DumpLinuxServerGC"
+    AfterTargets="MiniDumpLinux"
     Inputs="$(BinDir64)Types"
     Outputs="$(BinDir64)Types_svr.dmp">
 
@@ -180,9 +183,9 @@
   </Target>
 
   <Target
-    Condition="'$(OS)' != 'Windows_NT'"
-    Name="AfterDumpNonWindows"
-    AfterTargets="DumpNonWindowsServerGC">
+    Condition="'$(OS)' == 'Unix'"
+    Name="AfterDumpLinux"
+    AfterTargets="DumpLinuxServerGC">
 
     <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" />
