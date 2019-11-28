@@ -7,59 +7,32 @@ using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
+    // Todo:  Convert to struct, ClrObject.AsException();
     internal class DesktopException : ClrException
     {
-        public DesktopException(ulong objRef, BaseDesktopHeapType type)
+        public DesktopException(ClrObject obj)
         {
-            _object = objRef;
-            _type = type;
+            _object = obj;
         }
 
-        public override ClrType Type => _type;
+        public override ClrType Type => _object.Type;
 
-        public override string Message
-        {
-            get
-            {
-                ClrInstanceField field = _type.GetFieldByName("_message");
-                if (field != null)
-                    return (string)field.GetValue(_object);
-
-                ClrRuntimeImpl runtime = _type.DesktopHeap.DesktopRuntime;
-                uint offset = runtime.GetExceptionMessageOffset();
-                Debug.Assert(offset > 0);
-
-                ulong message = _object + offset;
-                if (!runtime.ReadPointer(message, out message))
-                    return null;
-
-                return _type.DesktopHeap.GetStringContents(message);
-            }
-        }
-
+        public override string Message => _object.GetStringField("_message");
         public override ulong Address => _object;
 
         public override ClrException Inner
         {
             get
             {
-                // TODO:  This needs to get the field offset by runtime instead.
-                ClrInstanceField field = _type.GetFieldByName("_innerException");
-                if (field == null)
+                ClrObject inner = _object.GetObjectField("_innerException");
+                if (inner.IsNull)
                     return null;
 
-                object inner = field.GetValue(_object);
-                if (inner == null || !(inner is ulong) || (ulong)inner == 0)
-                    return null;
-
-                ulong ex = (ulong)inner;
-                BaseDesktopHeapType type = (BaseDesktopHeapType)_type.DesktopHeap.GetObjectType(ex);
-
-                return new DesktopException(ex, type);
+                return new DesktopException(inner);
             }
         }
 
-        public override IList<ClrStackFrame> StackTrace
+        public override IReadOnlyList<ClrStackFrame> StackTrace
         {
             get
             {
@@ -86,8 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        private readonly ulong _object;
-        private readonly BaseDesktopHeapType _type;
+        private readonly ClrObject _object;
         private IList<ClrStackFrame> _stackTrace;
     }
 }

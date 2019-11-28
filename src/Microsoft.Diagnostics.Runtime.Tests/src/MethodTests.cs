@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrMethod genericMethod = type.GetMethod("GenericBar");
 
-            string methodName = genericMethod.GetFullSignature();
+            string methodName = genericMethod.Signature();
 
             Assert.Equal(')', methodName.Last());
         }

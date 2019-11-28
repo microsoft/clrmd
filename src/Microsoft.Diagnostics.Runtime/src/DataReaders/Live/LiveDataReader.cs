@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -194,14 +195,36 @@ namespace Microsoft.Diagnostics.Runtime
             return buffer.AsPointer();
         }
 
-        public uint ReadDwordUnsafe(ulong addr)
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
-            Span<byte> buffer = stackalloc byte[4];
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
 
-            if (!ReadMemory(addr, buffer, out int read))
-                return 0;
+            value = default;
+            return false;
+        }
 
-            return buffer.AsUInt32();
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()

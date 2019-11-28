@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -144,18 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
             Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
             version = new VersionInfo();
         }
-
-        public uint ReadDwordUnsafe(ulong addr)
-        {
-            Span<byte> buffer = stackalloc byte[4];
-
-            int read = _core.ReadMemory((long)addr, buffer);
-            if (read == 4)
-                return buffer.AsUInt32();
-
-            return 0;
-        }
-
+        
         public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
         {
             bytesRead = _core.ReadMemory((long)address, buffer);
@@ -170,6 +160,38 @@ namespace Microsoft.Diagnostics.Runtime
                 return buffer.AsPointer();
 
             return 0;
+        }
+
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        {
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         public bool VirtualQuery(ulong address, out VirtualQueryData vq)

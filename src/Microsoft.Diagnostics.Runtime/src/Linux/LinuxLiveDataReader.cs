@@ -199,22 +199,43 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return bytesRead > 0;
         }
 
-        public unsafe ulong ReadPointerUnsafe(ulong address)
+        public ulong ReadPointerUnsafe(ulong address)
         {
-            Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (!ReadMemory(address, buffer, out int _))
-                return 0;
-
-            return buffer.AsPointer();
+            ReadPointer(address, out ulong value);
+            return value;
         }
 
-        public unsafe uint ReadDwordUnsafe(ulong address)
-        {
-            Span<byte> buffer = stackalloc byte[sizeof(uint)];
-            if (!ReadMemory(address, buffer, out int _))
-                return 0;
 
-            return buffer.AsUInt32();
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        {
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()

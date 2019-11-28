@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizableObjectAddresses());
+            Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizableObjects());
 
             Assert.Equal(0, stats.A);
             Assert.Equal(13, stats.B);
@@ -27,19 +27,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            Stats stats = GetStats(runtime.Heap, runtime.EnumerateFinalizerQueueObjectAddresses());
+            Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizerRoots());
 
             Assert.Equal(42, stats.A);
             Assert.Equal(0, stats.B);
             Assert.Equal(0, stats.C);
         }
 
-        private static Stats GetStats(ClrHeap heap, IEnumerable<ulong> addresses)
+        private static Stats GetStats(ClrHeap heap, IEnumerable<ClrObject> addresses)
         {
             var stats = new Stats();
-            foreach (var address in addresses)
+            foreach (ClrObject obj in addresses)
             {
-                var type = heap.GetObjectType(address);
+                var type = obj.Type;
                 if (type.Name == "SampleA")
                     stats.A++;
                 else if (type.Name == "SampleB")

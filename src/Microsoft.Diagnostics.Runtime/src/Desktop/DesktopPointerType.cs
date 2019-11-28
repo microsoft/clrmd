@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class DesktopPointerType : BaseDesktopHeapType
+    internal class DesktopPointerType : ClrType
     {
         private readonly ClrElementType _pointerElement;
         private ClrType _pointerElementType;
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public override ClrHeap Heap => DesktopHeap;
-        public override IList<ClrInterface> Interfaces => Array.Empty<ClrInterface>();
+        public override IList<ClrInterface> EnumerateInterfaces => Array.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override bool IsPublic => true;
         public override bool IsPrivate => false;

@@ -5,18 +5,88 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    interface IHeapBuilder
+    public interface ITypeFactory
+    {
+        ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
+        ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType);
+        ClrModule GetOrCreateModule(ClrRuntime runtime, ulong address);
+        void CreateFieldsForMethodTable(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] staticFields);
+        CcwData CreateCCWForObject(ulong obj);
+        RcwData CreateRCWForObject(ulong obj);
+    }
+
+    public interface ITypeData
+    {
+        bool IsShared { get; }
+        bool ContainsPointers { get; }
+        uint Token { get; }
+        ulong MethodTable { get; }
+        ulong ParentMethodTable { get; }
+        int BaseSize { get; }
+        int ComponentSize { get; }
+        int MethodCount { get; }
+
+        ITypeHelpers Helpers { get; }
+    }
+
+    public interface IObjectData
+    {
+        ulong DataPointer { get; }
+        ulong ElementTypeHandle { get; }
+        ClrElementType ElementType { get; }
+        ulong RCW { get; }
+        ulong CCW { get; }
+    }
+
+    public interface ITypeHelpers
     {
         IDataReader DataReader { get; }
+        ITypeFactory Factory { get; }
+
+        string GetTypeName(ulong mt);
+        ulong GetLoaderAllocatorHandle(ulong mt);
+        IEnumerable<IMethodData> EnumerateMethods(ulong mt);
+
+        // TODO: Should not expose this:
+        IObjectData GetObjectData(ulong objRef);
+    }
+
+    public interface IMethodHelpers
+    {
+        IDataReader DataReader { get; }
+
+        string GetSignature(ulong methodDesc);
+        IReadOnlyList<ILToNativeMap> GetILMap(ulong nativeCode, in HotColdRegions hotColdInfo);
+        ulong GetILForModule(ulong address, uint rva);
+    }
+
+    public interface IMethodData
+    {
+        IMethodHelpers Helpers { get; }
+
+        uint Token { get; }
+        MethodCompilationType CompilationType { get; }
+        ulong GCInfo { get; }
+        ulong HotStart { get; }
+        uint HotSize { get; }
+        ulong ColdStart { get; }
+        uint ColdSize { get; }
+    }
+
+    public interface IHeapBuilder
+    {
+        IDataReader DataReader { get; }
+        ITypeFactory TypeFactory { get; }
+
         bool ServerGC { get; }
-        IReadOnlyList<HeapSegment> Segments { get; }
         int LogicalHeapCount { get; }
         IEnumerable<Tuple<ulong, ulong>> EnumerateDependentHandleLinks();
 
@@ -28,24 +98,352 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         bool CanWalkHeap { get; }
 
-        IReadOnlyList<ClrSegment> CreateClrSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts, out List<FinalizerQueueSegment> fqSegments)
+        IReadOnlyList<ClrSegment> CreateSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts,
+                                                 out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects);
     }
 
-    internal unsafe sealed class ClrRuntimeBuilder : IHeapBuilder
+    public interface IRuntimeBuilder
+    {
+        IDataReader DataReader { get; }
+        IHeapBuilder HeapBuilder { get; }
+    }
+
+    unsafe sealed class RuntimeBuilder : IRuntimeBuilder, ITypeFactory, ITypeHelpers, ITypeData, IMethodHelpers, IMethodData
+    {
+        private readonly ClrDataProcess _dac;
+        private readonly SOSDac _sos;
+        private readonly SOSDac6 _sos6;
+        private readonly int _threads;
+        private readonly ulong _firstThread;
+        private List<AllocationContext> _threadAllocContexts;
+
+        private ulong _lastMethodTable;
+        private MethodTableData _mtData;
+        private MethodDescData _mdData;
+        private CodeHeaderData _codeHeaderData;
+
+        // TODO: Move to another class:
+        private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>(1024);
+
+        public IDataReader DataReader { get; }
+        public IHeapBuilder HeapBuilder
+        {
+            get
+            {
+                // HeapBuilder will consume these allocation and fill the List, don't reuse it here
+                var ctx = _threadAllocContexts;
+                _threadAllocContexts = null;
+                return new HeapBuilder(this, _sos, DataReader, ctx, _firstThread);
+            }
+        }
+        public RuntimeBuilder(DacLibrary library, IDataReader reader)
+        {
+            _dac = library.DacPrivateInterface;
+            _sos = library.SOSDacInterface;
+            _sos6 = library.GetSOSInterface6NoAddRef();
+            DataReader = reader;
+
+            int version = 0;
+            if (library.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
+                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.  Failed to request DacVersion.");
+
+            if (version != 9)
+                throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
+
+            if (!_sos.GetThreadStoreData(out ThreadStoreData data))
+                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request ThreadStoreData.");
+
+            _threads = data.ThreadCount;
+            _firstThread = data.FirstThread;
+        }
+
+        public ClrModule GetOrCreateModule(ClrRuntime runtime, ulong addr) => throw new NotImplementedException();
+        public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType) => throw new NotImplementedException();
+
+        public ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
+        {
+            if (_types.TryGetValue(mt, out ClrType found))
+                return found;
+
+            _lastMethodTable = mt;
+            if (!_sos.GetMethodTableData(mt, out _mtData))
+                return null;
+
+            ClrModule module = GetOrCreateModule(heap?.Runtime, _mtData.Module);
+            ClrmdType result = new ClrmdType(heap, module, this);
+            _types.Add(mt, result);
+
+            if (obj != 0 && result.ComponentType == null && result.IsArray)
+                result.ComponentType = TryGetComponentType(heap, obj);
+
+            return result;
+        }
+
+
+        private ClrType TryGetComponentType(ClrHeap heap, ulong obj)
+        {
+            ClrType result = null;
+            if (_sos.GetObjectData(obj, out V45ObjectData data))
+            {
+                if (data.ElementTypeHandle != 0)
+                    result = GetOrCreateType(heap, data.ElementTypeHandle, 0);
+
+                if (result == null && data.ElementType != 0)
+                    result = GetOrCreateBasicType(heap, (ClrElementType)data.ElementType);
+            }
+
+            return result;
+        }
+
+        CcwData ITypeFactory.CreateCCWForObject(ulong obj)
+        {
+            if (!_sos.GetObjectData(obj, out V45ObjectData data) || data.CCW == 0)
+                return null;
+
+            if (!_sos.GetCCWData(data.CCW, out CCWData ccw))
+                return null;
+
+            return new DesktopCCWData(data.CCW, ccw);
+        }
+
+        RcwData ITypeFactory.CreateRCWForObject(ulong obj)
+        {
+            if (!_sos.GetObjectData(obj, out V45ObjectData data) || data.RCW == 0)
+                return null;
+
+            if (!_sos.GetRCWData(data.RCW, out RCWData rcw))
+                return null;
+
+            return new DesktopRCWData(data.CCW, rcw);
+        }
+
+        void ITypeFactory.CreateFieldsForMethodTable(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] statics)
+        {
+            if (type.IsFree)
+            {
+                fields = Array.Empty<ClrInstanceField>();
+                statics = Array.Empty<ClrStaticField>();
+                return;
+            }
+
+            if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            {
+                // Fill fields so we don't repeatedly try to init these fields on error.
+                fields = Array.Empty<ClrInstanceField>();
+                statics = Array.Empty<ClrStaticField>();
+                return;
+            }
+
+            fields = new ClrInstanceField[fieldInfo.NumInstanceFields + type.BaseType.Fields.Count];
+            statics = new ClrStaticField[fieldInfo.NumStaticFields];
+            if (fieldInfo.NumStaticFields == 0)
+                statics = Array.Empty<ClrStaticField>();
+            int fieldNum = 0;
+            int staticNum = 0;
+
+            // Add base type's fields.
+            if (type.BaseType != null)
+            {
+                foreach (ClrInstanceField field in type.BaseType.Fields)
+                    fields[fieldNum++] = field;
+            }
+
+            ulong nextField = fieldInfo.FirstFieldAddress;
+            int i = 0;
+
+            MetaDataImport import = null;
+            if (nextField != 0 && type.Module != null)
+                import = type.Module.MetadataImport;
+
+            while (fieldNum + staticNum < fields.Length + statics.Length && nextField != 0)
+            {
+                if (!_sos.GetFieldData(nextField, out FieldData field))
+                    break;
+
+                // We don't handle context statics.
+                if (field.IsContextLocal != 0)
+                {
+                    nextField = field.NextField;
+                    continue;
+                }
+
+                // Get the name of the field.
+                string name = null;
+                FieldAttributes attr = FieldAttributes.PrivateScope;
+                int sigLen = 0;
+                IntPtr ppValue = IntPtr.Zero;
+                IntPtr fieldSig = IntPtr.Zero;
+
+                if (import != null)
+                    import.GetFieldProps((int)field.FieldToken, out name, out attr, out fieldSig, out sigLen, out int pdwCPlusTypeFlab, out ppValue);
+
+                // If we couldn't figure out the name, at least give the token.
+                if (import == null || name == null)
+                {
+                    name = $"<ERROR:{field.FieldToken:X}>";
+                }
+
+                //TODO: fix field init
+                if (field.IsStatic != 0)
+                {
+                    statics[staticNum++] = new DesktopStaticField((ClrHeapImpl)type.Heap, ref field, type, name, attr, null, fieldSig, sigLen);
+                }
+                else if (field.IsThreadLocal == 0)
+                {
+                    fields[fieldNum++] = new DesktopInstanceField((ClrHeapImpl)type.Heap, ref field, name, attr, fieldSig, sigLen);
+                }
+
+                i++;
+                nextField = field.NextField;
+            }
+
+            if (fieldNum != fields.Length)
+                Array.Resize(ref fields, fieldNum);
+
+            if (staticNum != statics.Length)
+                Array.Resize(ref statics, staticNum);
+
+            Array.Sort(fields, (a, b) => a.Offset.CompareTo(b.Offset));
+        }
+
+
+        string ITypeHelpers.GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
+
+        ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
+        {
+            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(mt, out MethodTableCollectibleData data) && data.Collectible != 0)
+                return data.LoaderAllocatorObjectHandle;
+
+            return 0;
+        }
+
+        ITypeFactory ITypeHelpers.Factory => this;
+
+        IObjectData ITypeHelpers.GetObjectData(ulong objRef)
+        {
+            // todo remove
+            _sos.GetObjectData(objRef, out V45ObjectData data);
+            return data;
+        }
+
+        IEnumerable<IMethodData> ITypeHelpers.EnumerateMethods(ulong mt)
+        {
+            _lastMethodTable = mt;
+            if (_sos.GetMethodTableData(mt, out MethodTableData data))
+            {
+                for (int i = 0; i < data.NumMethods; i++)
+                {
+                    ulong slot = _sos.GetMethodTableSlot(mt, i);
+
+                    if (_sos.GetCodeHeaderData(slot, out CodeHeaderData codeHeader))
+                    {
+                        ulong md = codeHeader.MethodDesc;
+                        if (_sos.GetMethodDescData(md, 0, out _mdData) && _sos.GetCodeHeaderData(_mdData.NativeCodeAddr, out _codeHeaderData))
+                            yield return this;
+                    }
+                }
+            }
+        }
+
+        ITypeHelpers ITypeData.Helpers => this;
+
+        bool ITypeData.IsShared => _mtData.Shared != 0;
+
+        uint ITypeData.Token => _mtData.Token;
+
+        ulong ITypeData.MethodTable => _lastMethodTable;
+
+        ulong ITypeData.ParentMethodTable => _mtData.ParentMethodTable;
+
+        int ITypeData.BaseSize => (int)_mtData.BaseSize;
+
+        int ITypeData.ComponentSize => (int)_mtData.ComponentSize;
+
+        int ITypeData.MethodCount => _mtData.NumMethods;
+        bool ITypeData.ContainsPointers => _mtData.ContainsPointers != 0;
+
+        IMethodHelpers IMethodData.Helpers => this;
+
+        uint IMethodData.Token => _mdData.MDToken;
+
+        MethodCompilationType IMethodData.CompilationType => (MethodCompilationType)_codeHeaderData.JITType;
+
+        ulong IMethodData.GCInfo => _codeHeaderData.GCInfo;
+
+        ulong IMethodData.HotStart => _mdData.NativeCodeAddr;
+
+        uint IMethodData.HotSize => _codeHeaderData.HotRegionSize;
+
+        ulong IMethodData.ColdStart => _codeHeaderData.ColdRegionStart;
+
+        uint IMethodData.ColdSize => _codeHeaderData.ColdRegionSize;
+
+        string IMethodHelpers.GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
+        ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
+
+        IReadOnlyList<ILToNativeMap> IMethodHelpers.GetILMap(ulong ip, in HotColdRegions hotColdInfo)
+        {
+            List<ILToNativeMap> list = new List<ILToNativeMap>();
+
+            foreach (ClrDataMethod method in _dac.EnumerateMethodInstancesByAddress(ip))
+            {
+                ILToNativeMap[] map = method.GetILToNativeMap();
+                if (map != null)
+                {
+                    for (int i = 0; i < map.Length; i++)
+                    {
+                        if (map[i].StartAddress > map[i].EndAddress)
+                        {
+                            if (i + 1 == map.Length)
+                                map[i].EndAddress = FindEnd(hotColdInfo, map[i].StartAddress);
+                            else
+                                map[i].EndAddress = map[i + 1].StartAddress - 1;
+                        }
+                    }
+
+                    list.AddRange(map);
+                }
+
+                method.Dispose();
+            }
+
+            return list.ToArray();
+        }
+
+        private static ulong FindEnd(HotColdRegions reg, ulong address)
+        {
+            ulong hotEnd = reg.HotStart + reg.HotSize;
+            if (reg.HotStart <= address && address < hotEnd)
+                return hotEnd;
+
+            ulong coldEnd = reg.ColdStart + reg.ColdSize;
+            if (reg.ColdStart <= address && address < coldEnd)
+                return coldEnd;
+
+            // Shouldn't reach here, but give a sensible answer if we do.
+            return address + 0x20;
+        }
+    }
+
+
+    internal unsafe sealed class HeapBuilder : IHeapBuilder, ISegmentBuilder
     {
         private readonly SOSDac _sos;
         private readonly CommonMethodTables _mts;
-        private readonly int _threads;
         private readonly ulong _firstThread;
+        private readonly HashSet<ulong> _seenSegments = new HashSet<ulong>() { 0 };
+        private HeapDetails _heap;
+        private SegmentData _segment;
+        private List<AllocationContext> _threadAllocContexts;
 
+        #region IHeapBuilder
+        public ITypeFactory TypeFactory { get; }
         public IDataReader DataReader { get; }
 
         public bool ServerGC { get; }
 
         public int LogicalHeapCount { get; }
-
-        public IReadOnlyList<HeapSegment> Segments => throw new NotImplementedException();
-
+        
         public ulong ArrayMethodTable => _mts.ArrayMethodTable;
 
         public ulong StringMethodTable => _mts.StringMethodTable;
@@ -57,23 +455,48 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ulong FreeMethodTable => _mts.FreeMethodTable;
 
         public bool CanWalkHeap { get; }
+        #endregion
+
+        #region ISegmentBuilder
+        public int LogicalHeap { get; private set; }
+
+        public ulong Start => _segment.Start;
+
+        public ulong End => IsEphemeralSegment ? _heap.Allocated : _segment.Allocated;
+
+        public ulong ReservedEnd => _segment.Reserved;
+
+        public ulong CommitedEnd => _segment.Committed;
+
+        public ulong Gen0Start => IsEphemeralSegment ? _heap.GenerationTable[0].AllocationStart : End;
+
+        public ulong Gen0Length => End - Gen0Start;
+
+        public ulong Gen1Start => IsEphemeralSegment ? _heap.GenerationTable[1].AllocationStart : End;
+
+        public ulong Gen1Length => Gen0Start - Gen1Start;
+
+        public ulong Gen2Start => Start;
+
+        public ulong Gen2Length => Gen1Start - Start;
+
+        public bool IsLargeObjectSegment { get; private set; }
+
+        public bool IsEphemeralSegment => _heap.EphemeralHeapSegment == _segment.Address;
+        #endregion
 
         public IEnumerable<Tuple<ulong, ulong>> EnumerateDependentHandleLinks()
         {
             throw new NotImplementedException();
         }
 
-        public ClrRuntimeBuilder(DacLibrary library, IDataReader reader)
+        public HeapBuilder(ITypeFactory factory, SOSDac sos, IDataReader reader, List<AllocationContext> allocationContexts, ulong firstThread)
         {
-            _sos = library.SOSDacInterface;
+            _sos = sos;
             DataReader = reader;
-
-            int version = 0;
-            if (library.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
-                throw new ClrDiagnosticsException("Failed to request dac version.", ClrDiagnosticsExceptionKind.DacError);
-
-            if (version != 9)
-                throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
+            TypeFactory = factory;
+            _firstThread = firstThread;
+            _threadAllocContexts = allocationContexts;
 
             if (_sos.GetCommonMethodTables(out _mts))
                 CanWalkHeap = ArrayMethodTable != 0 && StringMethodTable != 0 && ExceptionMethodTable != 0 && FreeMethodTable != 0 && ObjectMethodTable != 0;
@@ -91,53 +514,101 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 CanWalkHeap = false;
             }
-
-            if (_sos.GetThreadStoreData(out ThreadStoreData data))
-            {
-                _threads = data.ThreadCount;
-                _firstThread = data.FirstThread;
-            }
         }
 
-
-
-
-
-        public IReadOnlyList<ClrSegment> CreateClrSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts, out List<FinalizerQueueSegment> fqSegments)
+        public IReadOnlyList<ClrSegment> CreateSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts,
+                        out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects)
         {
             List<ClrSegment> result = new List<ClrSegment>();
-            List<AllocationContext> allocContexts = new List<AllocationContext>();
-            List<FinalizerQueueSegment> finalizerSegments = new List<FinalizerQueueSegment>();
+            List<AllocationContext> allocContexts = _threadAllocContexts ?? new List<AllocationContext>();
+            List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
+            List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
 
-            SegmentBuilder builder = new SegmentBuilder(_sos, clrHeap);
+            // This function won't be called twice, but just in case make sure we don't reuse this list
+            _threadAllocContexts = null;
+
+            if (allocContexts.Count == 0)
+            {
+                ulong next = _firstThread;
+                HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
+                while (_sos.GetThreadData(next, out ThreadData thread))
+                {
+                    if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
+                        allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
+
+                    next = thread.NextThread;
+                    if (next == 0 || seen.Add(next))
+                        break;
+                }
+            }
+
             if (ServerGC)
             {
                 ulong[] heapList = _sos.GetHeapList(LogicalHeapCount);
                 foreach (ulong addr in heapList)
-                    builder.AddHeap(addr, allocContexts, result, finalizerSegments);
+                    AddHeap(clrHeap, addr, allocContexts, result, finalizerRoots, finalizerObjects);
             }
             else
             {
-                builder.AddHeap(allocContexts, result, finalizerSegments);
+                AddHeap(clrHeap, allocContexts, result, finalizerRoots, finalizerObjects);
             }
 
-
-            ulong next = _firstThread;
-            HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
-
-            while (_sos.GetThreadData(next, out ThreadData thread))
-            {
-                if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
-                    allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
-
-                next = thread.NextThread;
-                if (next == 0 || seen.Add(next))
-                    break;
-            }
+            result.Sort((x, y) => x.Start.CompareTo(y.Start));
 
             allocationContexts = allocContexts;
-            fqSegments = finalizerSegments;
+            fqRoots = finalizerRoots;
+            fqObjects = finalizerObjects;
             return result;
+        }
+
+
+        public void AddHeap(ClrHeap clrHeap, ulong address, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+                            List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        {
+            _seenSegments.Clear();
+            LogicalHeap = 0;
+            if (_sos.GetServerHeapDetails(address, out _heap))
+            {
+                LogicalHeap++;
+                ProcessHeap(clrHeap, allocationContexts, segments, fqRoots, fqObjects);
+            }
+        }
+
+        public void AddHeap(ClrHeap clrHeap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+                            List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        {
+            _seenSegments.Clear();
+            LogicalHeap = 0;
+            if (_sos.GetWksHeapDetails(out _heap))
+                ProcessHeap(clrHeap, allocationContexts, segments, fqRoots, fqObjects);
+        }
+
+        private void ProcessHeap(ClrHeap clrHeap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+                                    List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        {
+            if (_heap.EphemeralAllocContextPtr != 0 && _heap.EphemeralAllocContextPtr != _heap.EphemeralAllocContextLimit)
+                allocationContexts.Add(new AllocationContext(_heap.EphemeralAllocContextPtr, _heap.EphemeralAllocContextLimit));
+
+            fqRoots.Add(new FinalizerQueueSegment(_heap.FQRootsStart, _heap.FQRootsStop));
+            fqObjects.Add(new FinalizerQueueSegment(_heap.FQAllObjectsStart, _heap.FQAllObjectsStop));
+
+            IsLargeObjectSegment = true;
+            AddSegments(clrHeap, segments, _heap.GenerationTable[3].StartSegment);
+            IsLargeObjectSegment = false;
+            AddSegments(clrHeap, segments, _heap.EphemeralHeapSegment);
+        }
+
+        private void AddSegments(ClrHeap clrHeap, List<ClrSegment> segments, ulong address)
+        {
+            if (_seenSegments.Add(address))
+                return;
+
+            while (_sos.GetSegmentData(address, out _segment))
+            {
+                segments.Add(new HeapSegment(clrHeap, this));
+                if (_seenSegments.Add(_segment.Next))
+                    break;
+            }
         }
     }
     
@@ -187,87 +658,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         bool IsLargeObjectSegment { get; }
         bool IsEphemeralSegment { get; }
-    }
-
-    internal sealed class SegmentBuilder : ISegmentBuilder
-    {
-        private HeapDetails _heap;
-        private SegmentData _segment;
-        private readonly SOSDac _sos;
-        private readonly HashSet<ulong> _seenSegments = new HashSet<ulong>() { 0 };
-        private readonly ClrHeap _clrHeap;
-
-        public int LogicalHeap { get; private set; }
-
-        public ulong Start => _segment.Start;
-
-        public ulong End => IsEphemeralSegment ? _heap.Allocated : _segment.Allocated;
-
-        public ulong ReservedEnd => _segment.Reserved;
-
-        public ulong CommitedEnd => _segment.Committed;
-
-        public ulong Gen0Start => IsEphemeralSegment ? _heap.GenerationTable[0].AllocationStart : End;
-
-        public ulong Gen0Length => End - Gen0Start;
-
-        public ulong Gen1Start => IsEphemeralSegment ? _heap.GenerationTable[1].AllocationStart : End;
-
-        public ulong Gen1Length => Gen0Start - Gen1Start;
-
-        public ulong Gen2Start => Start;
-
-        public ulong Gen2Length => Gen1Start - Start;
-
-        public bool IsLargeObjectSegment { get; private set; }
-
-        public bool IsEphemeralSegment => _heap.EphemeralHeapSegment == _segment.Address;
-
-        public SegmentBuilder(SOSDac sos, ClrHeap heap)
-        {
-            _sos = sos;
-            _clrHeap = heap;
-        }
-
-        public void AddHeap(ulong address, List<AllocationContext> allocationContexts, List<ClrSegment> segments, List<FinalizerQueueSegment> fqSegments)
-        {
-            LogicalHeap = 0;
-            if (_sos.GetServerHeapDetails(address, out _heap))
-            {
-                LogicalHeap++;
-                AddSegments(allocationContexts, segments);
-            }
-        }
-
-        public void AddHeap(List<AllocationContext> allocationContexts, List<ClrSegment> segments, List<FinalizerQueueSegment> fqSegments)
-        {
-            if (_sos.GetWksHeapDetails(out _heap))
-                AddSegments(allocationContexts, segments);
-        }
-
-        private void AddSegments(List<AllocationContext> allocationContexts, List<ClrSegment> segments)
-        {
-            if (_heap.EphemeralAllocContextPtr != 0 && _heap.EphemeralAllocContextPtr != _heap.EphemeralAllocContextLimit)
-                allocationContexts.Add(new AllocationContext(_heap.EphemeralAllocContextPtr, _heap.EphemeralAllocContextLimit));
-
-            IsLargeObjectSegment = true;
-            AddSegments(segments, _heap.GenerationTable[3].StartSegment);
-            IsLargeObjectSegment = false;
-            AddSegments(segments, _heap.EphemeralHeapSegment);
-        }
-
-        private void AddSegments(List<ClrSegment> segments, ulong address)
-        {
-            if (_seenSegments.Add(address))
-                return;
-
-            while (_sos.GetSegmentData(address, out _segment))
-            {
-                segments.Add(new HeapSegment(_clrHeap, this));
-                if (_seenSegments.Add(_segment.Next))
-                    break;
-            }
-        }
     }
 
     internal class V45Runtime : ClrRuntimeImpl
@@ -455,30 +845,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return null;
         }
 
-        internal override IMethodTableCollectibleData GetMethodTableCollectibleData(ulong addr)
-        {
-            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(addr, out MethodTableCollectibleData data))
-                return data;
-
-            return null;
-        }
-
         internal override ulong GetMethodTableByEEClass(ulong eeclass)
         {
             return _sos.GetMethodTableByEEClass(eeclass);
-        }
-
-        internal override IGCInfo GetGCInfoImpl()
-        {
-            if (_sos.GetGcHeapData(out GCInfo data))
-                return data;
-
-            return null;
-        }
-
-        internal override bool GetCommonMethodTables(ref CommonMethodTables mts)
-        {
-            return _sos.GetCommonMethodTables(out mts);
         }
 
         public override string GetMethodTableName(ulong mt)
@@ -497,14 +866,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return data;
 
             return null;
-        }
-
-        internal override ulong GetModuleForMT(ulong addr)
-        {
-            if (_sos.GetMethodTableData(addr, out MethodTableData data))
-                return data.Module;
-
-            return 0;
         }
 
         internal override ISegmentData GetSegmentData(ulong addr)
@@ -558,34 +919,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal override IFieldInfo GetFieldInfo(ulong mt)
-        {
-            if (_sos.GetFieldInfo(mt, out V4FieldInfo fieldInfo))
-                return fieldInfo;
-
-            return null;
-        }
-
-        internal override IFieldData GetFieldData(ulong fieldDesc)
-        {
-            if (_sos.GetFieldData(fieldDesc, out FieldData data))
-                return data;
-
-            return null;
-        }
-
         internal override MetaDataImport GetMetadataImport(ulong module)
         {
             return _sos.GetMetadataImport(module);
         }
 
-        internal override IObjectData GetObjectData(ulong objRef)
-        {
-            if (_sos.GetObjectData(objRef, out V45ObjectData data))
-                return data;
-
-            return null;
-        }
 
         internal override IList<MethodTableTokenPair> GetMethodTableList(ulong module)
         {
@@ -710,7 +1048,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     V45MethodDescDataWrapper mdData = new V45MethodDescDataWrapper();
                     if (mdData.Init(_sos, md))
-                        innerMethod = DesktopMethod.Create(this, mdData);
+                        innerMethod = ClrmdMethod.Create(this, mdData);
                 }
 
                 frame = new DesktopStackFrame(this, thread, context, framePtr, frameName, innerMethod);
@@ -874,7 +1212,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         protected override uint GetRWLockDataOffset()
         {
-            if (PointerSize == 8)
+            if (IntPtr.Size == 8)
                 return 0x30;
 
             return 0x18;
@@ -897,7 +1235,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetStringFirstCharOffset()
         {
-            if (PointerSize == 8)
+            if (IntPtr.Size == 8)
                 return 0xc;
 
             return 8;
@@ -905,7 +1243,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetStringLengthOffset()
         {
-            if (PointerSize == 8)
+            if (IntPtr.Size == 8)
                 return 0x8;
 
             return 0x4;
@@ -913,7 +1251,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override uint GetExceptionHROffset()
         {
-            return PointerSize == 8 ? 0x8cu : 0x40u;
+            return IntPtr.Size == 8 ? 0x8cu : 0x40u;
         }
 
         public override string GetJitHelperFunctionName(ulong addr)

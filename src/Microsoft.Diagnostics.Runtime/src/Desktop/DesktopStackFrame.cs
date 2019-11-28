@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else if (md != 0)
             {
                 IMethodDescData mdData = _runtime.GetMethodDescData(md);
-                _method = DesktopMethod.Create(_runtime, mdData);
+                _method = ClrmdMethod.Create(_runtime, mdData);
             }
         }
 

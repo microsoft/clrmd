@@ -20,7 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrModule[] _moduleList;
         private ClrHeapImpl _heap;
         private Lazy<DesktopThreadPool> _threadpool;
-        private ErrorModule _errorModule;
         private Lazy<DomainContainer> _appDomains;
         private readonly Lazy<Dictionary<ulong, uint>> _moduleSizes;
         private Dictionary<ulong, DesktopModule> _modules = new Dictionary<ulong, DesktopModule>();
@@ -137,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (objRef != 0)
                 {
                     // If the value isn't pointer aligned, it cannot be a managed pointer.
-                    if (heap.IsInHeap(objRef))
+                    if (heap.GetSegmentByAddress(objRef) != null)
                     {
                         if (heap.ReadPointer(objRef, out ulong mt))
                         {
@@ -184,32 +183,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return false;
         }
 
-        public bool ReadString(ulong addr, out string value)
-        {
-            value = ((ClrHeapImpl)Heap).GetStringContents(addr);
-            return value != null;
-        }
-
-
-
-
-
-
         internal ulong GetModuleSize(ulong address)
         {
             _moduleSizes.Value.TryGetValue(address, out uint size);
             return size;
-        }
-
-        public ErrorModule ErrorModule
-        {
-            get
-            {
-                if (_errorModule == null)
-                    _errorModule = new ErrorModule(this);
-
-                return _errorModule;
-            }
         }
 
         public override CcwData GetCcwDataByAddress(ulong addr)
@@ -468,7 +445,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mdData == null)
                 return null;
 
-            return DesktopMethod.Create(this, mdData);
+            return ClrmdMethod.Create(this, mdData);
         }
 
         protected ClrThread GetThreadByStackAddress(ulong address)
@@ -742,48 +719,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             } while (stackwalk.Next());
         }
 
-        internal ILToNativeMap[] GetILMap(ulong ip, HotColdRegions hotColdInfo)
-        {
-            List<ILToNativeMap> list = new List<ILToNativeMap>();
-
-            foreach (ClrDataMethod method in _dacInterface.EnumerateMethodInstancesByAddress(ip))
-            {
-                ILToNativeMap[] map = method.GetILToNativeMap();
-                if (map != null)
-                {
-                    for (int i = 0; i < map.Length; i++)
-                    {
-                        if (map[i].StartAddress > map[i].EndAddress)
-                        {
-                            if (i + 1 == map.Length)
-                                map[i].EndAddress = FindEnd(hotColdInfo, map[i].StartAddress);
-                            else
-                                map[i].EndAddress = map[i + 1].StartAddress - 1;
-                        }
-                    }
-
-                    list.AddRange(map);
-                }
-
-                method.Dispose();
-            }
-
-            return list.ToArray();
-        }
-
-        private static ulong FindEnd(HotColdRegions reg, ulong address)
-        {
-            ulong hotEnd = reg.HotStart + reg.HotSize;
-            if (reg.HotStart <= address && address < hotEnd)
-                return hotEnd;
-
-            ulong coldEnd = reg.ColdStart + reg.ColdSize;
-            if (reg.ColdStart <= address && address < coldEnd)
-                return coldEnd;
-
-            // Shouldn't reach here, but give a sensible answer if we do.
-            return address + 0x20;
-        }
 
 
         internal abstract ulong GetFirstThread();
@@ -791,7 +726,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract IThreadStoreData GetThreadStoreData();
         internal abstract ISegmentData GetSegmentData(ulong addr);
         internal abstract IMethodTableData GetMethodTableData(ulong addr);
-        internal abstract IMethodTableCollectibleData GetMethodTableCollectibleData(ulong addr);
         internal abstract uint GetTlsSlot();
         internal abstract uint GetThreadTypeIndex();
         internal abstract Dictionary<ulong, List<ulong>> GetDependentHandleMap(CancellationToken cancelToken);
@@ -801,7 +735,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract ulong[] GetModuleList(ulong assembly, int count);
         internal abstract IAssemblyData GetAssemblyData(ulong domain, ulong assembly);
         internal abstract IAppDomainStoreData GetAppDomainStoreData();
-        internal abstract bool GetCommonMethodTables(ref CommonMethodTables mCommonMTs);
         internal abstract string GetPEFileName(ulong addr);
         internal abstract IModuleData GetModuleData(ulong addr);
         internal abstract IAppDomainData GetAppDomainData(ulong addr);
@@ -809,11 +742,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         internal abstract bool TraverseHeap(ulong heap, SOSDac.LoaderHeapTraverse callback);
         internal abstract bool TraverseStubHeap(ulong appDomain, int type, SOSDac.LoaderHeapTraverse callback);
         internal abstract IEnumerable<ICodeHeap> EnumerateJitHeaps();
-        internal abstract ulong GetModuleForMT(ulong mt);
-        internal abstract IFieldInfo GetFieldInfo(ulong mt);
-        internal abstract IFieldData GetFieldData(ulong fieldDesc);
         internal abstract MetaDataImport GetMetadataImport(ulong module);
-        internal abstract IObjectData GetObjectData(ulong objRef);
         internal abstract ulong GetMethodTableByEEClass(ulong eeclass);
         internal abstract IList<MethodTableTokenPair> GetMethodTableList(ulong module);
         internal abstract IDomainLocalModuleData GetDomainLocalModuleById(ulong appDomain, ulong id);

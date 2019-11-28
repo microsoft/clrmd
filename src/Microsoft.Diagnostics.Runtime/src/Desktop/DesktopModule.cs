@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal ulong GetMTForDomain(ClrAppDomain domain, DesktopHeapType type)
+        internal ulong GetMTForDomain(ClrAppDomain domain, ClrmdType type)
         {
             ClrHeapImpl heap = null;
             IList<MethodTableTokenPair> mtList = _runtime.GetMethodTableList(_mapping[domain]);

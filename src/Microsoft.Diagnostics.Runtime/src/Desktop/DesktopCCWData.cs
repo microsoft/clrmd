@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopCCWData(ClrHeapImpl heap, ulong ccw, ICCWData data)
+        internal DesktopCCWData(ulong ccw, ICCWData data)
         {
             _addr = ccw;
             _ccw = data;

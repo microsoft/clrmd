@@ -72,20 +72,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             ptr = (uint)ptr;
         }
 
-        ulong IHeapDetails.FirstHeapSegment => GenerationTable[2].StartSegment;
-
-        ulong IHeapDetails.FirstLargeHeapSegment => GenerationTable[3].StartSegment;
-        ulong IHeapDetails.EphemeralSegment => EphemeralHeapSegment;
-        ulong IHeapDetails.EphemeralEnd => Allocated;
-        ulong IHeapDetails.FQAllObjectsStart => FinalizationFillPointers[0];
-        ulong IHeapDetails.FQAllObjectsStop => FinalizationFillPointers[3];
-        ulong IHeapDetails.FQRootsStart => FinalizationFillPointers[3];
-        ulong IHeapDetails.FQRootsStop => FinalizationFillPointers[5];
-        ulong IHeapDetails.Gen0Start => GenerationTable[0].AllocationStart;
-        ulong IHeapDetails.Gen0Stop => Allocated;
-        ulong IHeapDetails.Gen1Start => GenerationTable[1].AllocationStart;
-        ulong IHeapDetails.Gen1Stop => GenerationTable[0].AllocationStart;
-        ulong IHeapDetails.Gen2Start => GenerationTable[2].AllocationStart;
-        ulong IHeapDetails.Gen2Stop => GenerationTable[1].AllocationStart;
+        public ulong FQAllObjectsStart => FinalizationFillPointers[0];
+        public ulong FQAllObjectsStop => FinalizationFillPointers[3];
+        public ulong FQRootsStart => FinalizationFillPointers[3];
+        public ulong FQRootsStop => FinalizationFillPointers[5];
     }
 }

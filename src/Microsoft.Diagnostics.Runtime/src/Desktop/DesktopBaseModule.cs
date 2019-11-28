@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal virtual MetaDataImport GetMetadataImport()
         {
+            //todo: remove
             return null;
         }
 

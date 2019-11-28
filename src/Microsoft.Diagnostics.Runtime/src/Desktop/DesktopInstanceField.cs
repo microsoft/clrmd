@@ -5,6 +5,7 @@
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -17,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override bool IsInternal => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Assembly;
         public override bool IsProtected => (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Family;
 
-        public DesktopInstanceField(ClrHeapImpl heap, IFieldData data, string name, FieldAttributes attributes, IntPtr sig, int sigLen)
+        public DesktopInstanceField(ClrHeapImpl heap, ref FieldData data, string name, FieldAttributes attributes, IntPtr sig, int sigLen)
         {
             Name = name;
             _field = data;

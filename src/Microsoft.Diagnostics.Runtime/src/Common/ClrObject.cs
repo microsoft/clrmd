@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,6 +15,8 @@ namespace Microsoft.Diagnostics.Runtime
     [DebuggerDisplay("Address={HexAddress}, Type={Type.Name}")]
     public struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
+        private IDataReader DataReader => Type?.Heap?.Runtime?.DataTarget?.DataReader;
+
         internal static ClrObject Create(ulong address, ClrType type)
         {
             ClrObject obj = new ClrObject
@@ -46,6 +49,14 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrObject> EnumerateObjectReferences(bool carefully = false)
         {
             return Type.Heap.EnumerateObjectReferences(Address, Type, carefully);
+        }
+
+        public ClrException AsException()
+        {
+            if (Type == null || !Type.IsException)
+                return null;
+
+            return new Desktop.DesktopException(Address, Type);
         }
 
         /// <summary>
@@ -88,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!IsArray)
                     throw new InvalidOperationException();
 
-                return Type.GetArrayLength(Address);
+                return DataReader?.ReadUnsafe<int>(Address + (uint)IntPtr.Size) ?? 0;
             }
         }
 
@@ -115,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!obj.Type.IsString)
                 throw new InvalidOperationException("Object {obj} is not a string.");
 
-            return (string)obj.Type.GetValue(obj.Address);
+            return ValueReader.GetStringContents(obj.Type, obj.DataReader, obj.Address);
         }
 
         /// <summary>
@@ -146,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = Type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!heap.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
             ClrType type = heap.GetObjectType(obj);
@@ -207,18 +218,13 @@ namespace Microsoft.Diagnostics.Runtime
         public string GetStringField(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            RuntimeBase runtime = (RuntimeBase)Type.Heap.Runtime;
-
-            if (!runtime.ReadPointer(address, out ulong str))
+            if (!DataReader.ReadPointer(address, out ulong str))
                 throw new MemoryReadException(address);
 
             if (str == 0)
                 return null;
 
-            if (!runtime.ReadString(str, out string result))
-                throw new MemoryReadException(str);
-
-            return result;
+            return ValueReader.ReadString(DataReader, str, Length);
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)

@@ -44,6 +44,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// the middle of constructing the stackwalk.)  This returns an empty list if no stack trace is
         /// associated with this exception object.
         /// </summary>
-        public abstract IList<ClrStackFrame> StackTrace { get; }
+        public abstract IReadOnlyList<ClrStackFrame> StackTrace { get; }
     }
 }

@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(seg.Start < seg.CommittedEnd);
                 Assert.True(seg.CommittedEnd < seg.ReservedEnd);
 
-                if (!seg.IsEphemeral)
+                if (!seg.IsEphemeralSegment)
                 {
                     Assert.Equal(0ul, seg.Gen0Length);
                     Assert.Equal(0ul, seg.Gen1Length);

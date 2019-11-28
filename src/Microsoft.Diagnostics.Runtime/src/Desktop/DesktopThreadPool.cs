@@ -72,26 +72,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                             if (workQueue == 0 || workQueueType == null)
                                 continue;
 
-                            ulong queueHead;
-                            do
+                            ClrObject queueHead = new ClrObject(workQueue, workQueueType).GetObjectField("queueHead");
+                            while (!queueHead.IsNull)
                             {
-                                if (!GetFieldObject(workQueueType, workQueue, "queueHead", out ClrType queueHeadType, out queueHead))
-                                    break;
-
-                                if (GetFieldObject(queueHeadType, queueHead, "nodes", out ClrType nodesType, out ulong nodes) && nodesType.IsArray)
+                                ClrObject nodes = queueHead.GetObjectField("nodes");
+                                if (!nodes.IsNull)
                                 {
-                                    int len = nodesType.GetArrayLength(nodes);
-                                    for (int i = 0; i < len; ++i)
+                                    int len = nodes.Length;
+                                    for (int i = 0; i < len; i++)
                                     {
-                                        ulong addr = (ulong)nodesType.GetArrayElementValue(nodes, i);
+                                        ulong addr = (ulong)nodes.Type.GetArrayElementValue(nodes, i);
                                         if (addr != 0)
                                             yield return addr;
                                     }
+
                                 }
 
-                                if (!GetFieldObject(queueHeadType, queueHead, "Next", out _, out queueHead))
-                                    break;
-                            } while (queueHead != 0);
+                                queueHead = queueHead.GetObjectField("Next");
+                            }
                         }
                     }
                 }
@@ -104,21 +102,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         foreach (ClrAppDomain domain in _runtime.AppDomains)
                         {
-                            ulong? threadQueue = (ulong?)threadQueuesField.GetValue(domain);
-                            if (!threadQueue.HasValue || threadQueue.Value == 0)
+                            ulong? threadQueueAddress = (ulong?)threadQueuesField.GetValue(domain);
+                            if (!threadQueueAddress.HasValue || threadQueueAddress.Value == 0)
                                 continue;
 
-                            ClrType threadQueueType = _heap.GetObjectType(threadQueue.Value);
+                            ClrType threadQueueType = _heap.GetObjectType(threadQueueAddress.Value);
                             if (threadQueueType == null)
                                 continue;
 
-                            if (!GetFieldObject(threadQueueType, threadQueue.Value, "m_array", out ClrType outerArrayType, out ulong outerArray) || !outerArrayType.IsArray)
+                            ClrObject threadQueue = new ClrObject(threadQueueAddress.Value, threadQueueType);
+                            ClrObject outerArray = threadQueue.GetObjectField("m_array");
+
+                            if (outerArray.IsNull)
                                 continue;
 
-                            int outerLen = outerArrayType.GetArrayLength(outerArray);
+                            int outerLen = outerArray.Length;
                             for (int i = 0; i < outerLen; ++i)
                             {
-                                ulong entry = (ulong)outerArrayType.GetArrayElementValue(outerArray, i);
+                                ulong entry = (ulong)outerArray.Type.GetArrayElementValue(outerArray, i);
                                 if (entry == 0)
                                     continue;
 
@@ -126,13 +127,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                                 if (entryType == null)
                                     continue;
 
-                                if (!GetFieldObject(entryType, entry, "m_array", out ClrType arrayType, out ulong array) || !arrayType.IsArray)
+                                ClrObject array = outerArray.GetObjectField("m_array");
+                                if (array.IsNull)
                                     continue;
 
-                                int len = arrayType.GetArrayLength(array);
+                                int len = array.Length;
                                 for (int j = 0; j < len; ++j)
                                 {
-                                    ulong addr = (ulong)arrayType.GetArrayElementValue(array, i);
+                                    ulong addr = (ulong)array.Type.GetArrayElementValue(array, i);
                                     if (addr != 0)
                                         yield return addr;
                                 }
@@ -156,23 +158,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Ok...not sure why we couldn't find it.
             return null;
-        }
-
-        private bool GetFieldObject(ClrType type, ulong obj, string fieldName, out ClrType valueType, out ulong value)
-        {
-            value = 0;
-            valueType = null;
-
-            ClrInstanceField field = type.GetFieldByName(fieldName);
-            if (field == null)
-                return false;
-
-            value = (ulong)field.GetValue(obj);
-            if (value == 0)
-                return false;
-
-            valueType = _heap.GetObjectType(value);
-            return valueType != null;
         }
 
         public override int MinCompletionPorts { get; }

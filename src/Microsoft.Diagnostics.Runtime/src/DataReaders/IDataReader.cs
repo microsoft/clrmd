@@ -89,14 +89,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </returns>
         ulong ReadPointerUnsafe(ulong addr);
 
-        /// <summary>
-        /// Read an int out of the target process.
-        /// </summary>
-        /// <returns>
-        /// The int at the give address, or 0 if that pointer doesn't exist in
-        /// the data target.
-        /// </returns>
-        uint ReadDwordUnsafe(ulong addr);
+        bool Read<T>(ulong addr, out T value) where T : unmanaged;
+        T ReadUnsafe<T>(ulong addr) where T : unmanaged;
+        bool ReadPointer(ulong addr, out ulong value);
 
         /// <summary>
         /// Informs the data reader that the user has requested all data be flushed.

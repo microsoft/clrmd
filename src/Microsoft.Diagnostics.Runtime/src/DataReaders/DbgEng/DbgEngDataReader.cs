@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
@@ -284,15 +285,37 @@ namespace Microsoft.Diagnostics.Runtime
             return IntPtr.Size == 4 ? MemoryMarshal.Read<uint>(buffer) : MemoryMarshal.Read<ulong>(buffer);
         }
 
-        public uint ReadDwordUnsafe(ulong addr)
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
-            Span<byte> buffer = stackalloc byte[4];
-            if (_spaces.ReadVirtual(addr, buffer) != 4)
-                return 0;
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
 
-            return MemoryMarshal.Read<uint>(buffer);
+            value = default;
+            return false;
         }
 
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
+        }
 
         public void GetVersionInfo(ulong baseAddr, out VersionInfo version)
         {

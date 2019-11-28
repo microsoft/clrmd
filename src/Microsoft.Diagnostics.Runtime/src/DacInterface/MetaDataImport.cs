@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        public IEnumerable<int> EnumerateInterfaceImpls(int token)
+        public IEnumerable<int> EnumerateInterfaceImpls(uint token)
         {
             InitDelegate(ref _enumInterfaceImpls, EnumInterfaceImpls);
 
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             CloseEnum(handle);
         }
 
-        public MethodAttributes GetMethodAttributes(int token)
+        public MethodAttributes GetMethodAttributes(uint token)
         {
             InitDelegate(ref _getMethodProps, VTable->GetMethodProps);
 
@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int CloseEnumDelegate(IntPtr self, IntPtr e);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int EnumInterfaceImplsDelegate(IntPtr self, ref IntPtr phEnum, int td, [Out] int[] rImpls, int cMax, out int pCount);
+        private delegate int EnumInterfaceImplsDelegate(IntPtr self, ref IntPtr phEnum, uint td, [Out] int[] rImpls, int cMax, out int pCount);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetInterfaceImplPropsDelegate(IntPtr self, int mdImpl, out int mdClass, out int mdIFace);
@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodPropsDelegate(
             IntPtr self,
-            int md,
+            uint md,
             out int pClass,
             StringBuilder szMethod,
             int cchMethod,

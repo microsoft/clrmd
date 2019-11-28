@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
                 else
                 {
-                    ulong mt = heap.GetMethodTable(obj);
+                    ulong mt = dt.DataReader.ReadPointerUnsafe(obj);
 
                     Assert.NotEqual(0ul, mt);
                     ulong[] collection = type.EnumerateMethodTables().ToArray();
@@ -333,14 +333,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.False(collectibleType.ContainsPointers);
             Assert.True(collectibleType.IsCollectible);
-            Assert.NotEqual(default, collectibleType.LoaderAllocatorObject);
-            Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(collectibleType.LoaderAllocatorObject).Name);
+            Assert.NotEqual(default, collectibleType.LoaderAllocatorHandle);
+            ulong obj = dataTarget.DataReader.ReadPointerUnsafe(collectibleType.LoaderAllocatorHandle);
+            Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(obj).Name);
 
             ClrType uncollectibleType = types.Single(type => type?.Name == typeof(UncollectibleUnmanagedStruct).FullName);
 
             Assert.False(uncollectibleType.ContainsPointers);
             Assert.False(uncollectibleType.IsCollectible);
-            Assert.Equal(default, uncollectibleType.LoaderAllocatorObject);
+            Assert.Equal(default, uncollectibleType.LoaderAllocatorHandle);
 
             context.Unload();
         }

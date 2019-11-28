@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        internal DesktopRCWData(ClrHeapImpl heap, ulong rcw, IRCWData data)
+        internal DesktopRCWData(ulong rcw, IRCWData data)
         {
             _addr = rcw;
             _rcw = data;

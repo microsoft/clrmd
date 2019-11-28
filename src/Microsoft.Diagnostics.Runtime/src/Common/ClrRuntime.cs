@@ -152,6 +152,42 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public event RuntimeFlushedCallback RuntimeFlushed;
 
+
+        /// <summary>
+        /// Retrieves the given type by its MethodTable/ComponentMethodTable pair.  Note this is only valid if
+        /// the given type's component MethodTable is 0.
+        /// </summary>
+        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
+        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        public abstract ClrType GetTypeByMethodTable(ulong methodTable);
+
+
+        /// <summary>
+        /// Enumerates all finalizable objects on the heap.
+        /// </summary>
+        public abstract IEnumerable<ulong> EnumerateFinalizableObjectAddresses();
+
+
+
+        /// <summary>
+        /// Enumerate the roots of the process.  (That is, all objects which keep other objects alive.)
+        /// Equivalent to EnumerateRoots(true).
+        /// </summary>
+        public abstract IEnumerable<ClrRoot> EnumerateRoots();
+
+        /// <summary>
+        /// Enumerate the roots in the process.
+        /// </summary>
+        /// <param name="enumerateStatics">
+        /// True if we should enumerate static variables.  Enumerating with statics
+        /// can take much longer than enumerating without them.  Additionally these will be be "double reported",
+        /// since all static variables are pinned by handles on the HandleTable (which is also enumerated with
+        /// EnumerateRoots).  You would want to enumerate statics with roots if you care about what exact statics
+        /// root what objects, but not if you care about performance.
+        /// </param>
+        public abstract IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics);
+
+
         /// <summary>
         /// Call when flushing the runtime.
         /// </summary>

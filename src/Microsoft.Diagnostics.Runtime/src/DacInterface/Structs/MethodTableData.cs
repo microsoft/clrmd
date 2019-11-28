@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct MethodTableData : IMethodTableData
+    public readonly struct MethodTableData
     {
         public readonly uint IsFree; // everything else is NULL if this is true.
         public readonly ulong Module;
@@ -26,17 +26,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly uint Shared; // flags & enum_flag_DomainNeutral
         public readonly uint Dynamic;
         public readonly uint ContainsPointers;
-
-        uint IMethodTableData.Token => Token;
-        ulong IMethodTableData.Module => Module;
-        bool IMethodTableData.ContainsPointers => ContainsPointers != 0;
-        uint IMethodTableData.BaseSize => BaseSize;
-        uint IMethodTableData.ComponentSize => ComponentSize;
-        ulong IMethodTableData.EEClass => EEClass;
-        bool IMethodTableData.Free => IsFree != 0;
-        ulong IMethodTableData.Parent => ParentMethodTable;
-        bool IMethodTableData.Shared => Shared != 0;
-        uint IMethodTableData.NumMethods => NumMethods;
-        ulong IMethodTableData.ElementTypeHandle => throw new NotImplementedException();
     }
 }

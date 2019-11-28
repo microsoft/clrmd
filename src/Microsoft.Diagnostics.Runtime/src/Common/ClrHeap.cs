@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 
+#pragma warning disable CA1721 // Property names should not match get methods
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -14,6 +14,46 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrHeap
     {
+        /// <summary>
+        /// Returns the runtime associated with this heap.
+        /// </summary>
+        public abstract ClrRuntime Runtime { get; }
+
+        /// <summary>
+        /// Returns true if the GC heap is in a consistent state for heap enumeration.  This will return false
+        /// if the process was stopped in the middle of a GC, which can cause the GC heap to be unwalkable.
+        /// Note, you may still attempt to walk the heap if this function returns false, but you will likely
+        /// only be able to partially walk each segment.
+        /// </summary>
+        public abstract bool CanWalkHeap { get; }
+
+        /// <summary>
+        /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
+        /// of increasing object addresses.
+        /// </summary>
+        public abstract IReadOnlyList<ClrSegment> Segments { get; }
+        
+        /// <summary>
+        /// Returns the ClrType representing free space on the GC heap.
+        /// </summary>
+        public abstract ClrType FreeType { get; }
+
+
+        /// <summary>
+        /// Returns the ClrType representing System.String.
+        /// </summary>
+        public abstract ClrType StringType { get; }
+
+        /// <summary>
+        /// Returns the ClrType representing System.Object.
+        /// </summary>
+        public abstract ClrType ObjectType { get; }
+
+        /// <summary>
+        /// Returns the ClrType representing System.Exception.
+        /// </summary>
+        public abstract ClrType ExceptionType { get; }
+
         /// <summary>
         /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
         /// a valid managed object.
@@ -31,233 +71,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrObject GetObject(ulong objRef) => ClrObject.Create(objRef, GetObjectType(objRef));
 
-
-        /// <summary>
-        /// Attempts to retrieve the MethodTable and component MethodTable from the given object.
-        /// Note that this some ClrTypes cannot be uniquely determined by MethodTable alone.  In
-        /// Desktop CLR (prior to v4.6), arrays of reference types all use the same MethodTable but
-        /// also carry a second MethodTable (called the component MethodTable) to determine the
-        /// array element types. Note this function has undefined behavior if you do not pass a
-        /// valid object reference to it.
-        /// </summary>
-        /// <param name="obj">The object to get the MethodTable of.</param>
-        /// <param name="methodTable">The MethodTable for the given object.</param>
-        /// <param name="componentMethodTable">The component MethodTable of the given object.</param>
-        /// <returns>True if methodTable was filled, false if we failed to read memory.</returns>
-        public abstract bool TryGetMethodTable(ulong obj, out ulong methodTable, out ulong componentMethodTable);
-
-        /// <summary>
-        /// Attempts to retrieve the MethodTable from the given object.
-        /// Note that this some ClrTypes cannot be uniquely determined by MethodTable alone.  In
-        /// Desktop CLR, arrays of reference types all use the same MethodTable.  To uniquely
-        /// determine an array of references you must also have its component type.
-        /// Note this function has undefined behavior if you do not pass a valid object reference
-        /// to it.
-        /// </summary>
-        /// <param name="obj">The object to get the MethodTable of.</param>
-        /// <returns>The MethodTable of the object, or 0 if the address could not be read from.</returns>
-        public abstract ulong GetMethodTable(ulong obj);
-
-
-        /// <summary>
-        /// Returns a  wrapper around a System.Exception object (or one of its subclasses).
-        /// </summary>
-        public virtual ClrException GetExceptionObject(ulong objRef)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// Returns the runtime associated with this heap.
-        /// </summary>
-        public abstract ClrRuntime Runtime { get; }
-
-        /// <summary>
-        /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
-        /// of increasing object addresses.
-        /// </summary>
-        public abstract IList<ClrSegment> Segments { get; }
-
-        /// <summary>
-        /// Enumerate the roots of the process.  (That is, all objects which keep other objects alive.)
-        /// Equivalent to EnumerateRoots(true).
-        /// </summary>
-        public abstract IEnumerable<ClrRoot> EnumerateRoots();
-
-        /// <summary>
-        /// Sets the stackwalk policy for enumerating roots.  See <see cref="ClrRootStackwalkPolicy" /> for more information.
-        /// Setting this field can invalidate the root cache.
-        /// </summary>
-        public abstract ClrRootStackwalkPolicy StackwalkPolicy { get; set; }
-
-        /// <summary>
-        /// Caches all relevant heap information into memory so future heap operations run faster and
-        /// do not require touching the debuggee.
-        /// </summary>
-        /// <param name="cancelToken">A cancellation token to stop caching the heap.</param>
-        public virtual void CacheHeap(CancellationToken cancelToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Releases all cached object data to reclaim memory.
-        /// </summary>
-        public virtual void ClearHeapCache()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns true if the heap is cached, false otherwise.
-        /// </summary>
-        public virtual bool IsHeapCached => false;
-
-        /// <summary>
-        /// Returns whether the roots of the process are cached or not.
-        /// </summary>
-        public abstract bool AreRootsCached { get; }
-
-        /// <summary>
-        /// This method caches many roots so that subsequent calls to EnumerateRoots run faster.
-        /// </summary>
-        public abstract void CacheRoots(CancellationToken cancelToken);
-
-        protected internal virtual void BuildDependentHandleMap(CancellationToken cancelToken)
-        {
-        }
-
-        protected internal virtual IEnumerable<ClrRoot> EnumerateStackRoots()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected internal virtual IEnumerable<ClrHandle> EnumerateStrongHandles()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// This method clears any previously cached roots to reclaim memory.
-        /// </summary>
-        public abstract void ClearRootCache();
-
-        /// <summary>
-        /// Looks up a type by name.
-        /// </summary>
-        /// <param name="name">The name of the type.</param>
-        /// <returns>
-        /// The ClrType matching 'name', null if the type was not found, and undefined if more than one
-        /// type shares the same name.
-        /// </returns>
-        public abstract ClrType GetTypeByName(string name);
-
-        /// <summary>
-        /// Retrieves the given type by its MethodTable/ComponentMethodTable pair.
-        /// </summary>
-        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
-        /// <returns>A ClrType object, or null if no such type exists.</returns>
-        public abstract ClrType GetTypeByMethodTable(ulong methodTable, ulong componentMethodTable);
-
-        /// <summary>
-        /// Retrieves the given type by its MethodTable/ComponentMethodTable pair.  Note this is only valid if
-        /// the given type's component MethodTable is 0.
-        /// </summary>
-        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <returns>A ClrType object, or null if no such type exists.</returns>
-        public virtual ClrType GetTypeByMethodTable(ulong methodTable)
-        {
-            return GetTypeByMethodTable(methodTable, 0);
-        }
-
-        /// <summary>
-        /// Returns the ClrType representing free space on the GC heap.
-        /// </summary>
-        public abstract ClrType Free { get; }
-
-        /// <summary>
-        /// Enumerate the roots in the process.
-        /// </summary>
-        /// <param name="enumerateStatics">
-        /// True if we should enumerate static variables.  Enumerating with statics
-        /// can take much longer than enumerating without them.  Additionally these will be be "double reported",
-        /// since all static variables are pinned by handles on the HandleTable (which is also enumerated with
-        /// EnumerateRoots).  You would want to enumerate statics with roots if you care about what exact statics
-        /// root what objects, but not if you care about performance.
-        /// </param>
-        public abstract IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics);
-
-        /// <summary>
-        /// Enumerates all types in the runtime.
-        /// </summary>
-        /// <returns>
-        /// An enumeration of all types in the target process.  May return null if it's unsupported for
-        /// that version of CLR.
-        /// </returns>
-        public virtual IEnumerable<ClrType> EnumerateTypes()
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// Enumerates all finalizable objects on the heap.
-        /// </summary>
-        public virtual IEnumerable<ulong> EnumerateFinalizableObjectAddresses()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns true if the GC heap is in a consistent state for heap enumeration.  This will return false
-        /// if the process was stopped in the middle of a GC, which can cause the GC heap to be unwalkable.
-        /// Note, you may still attempt to walk the heap if this function returns false, but you will likely
-        /// only be able to partially walk each segment.
-        /// </summary>
-        public abstract bool CanWalkHeap { get; }
-
         /// <summary>
         /// Enumerates all objects on the heap.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
         public abstract IEnumerable<ClrObject> EnumerateObjects();
 
-        /// <summary>
-        /// TotalHeapSize is defined as the sum of the length of all segments.
-        /// </summary>
-        public abstract ulong TotalHeapSize { get; }
 
         /// <summary>
-        /// Get the size by generation 0, 1, 2, 3.  The large object heap is Gen 3 here.
-        /// The sum of all of these should add up to the TotalHeapSize.
+        /// Enumerates all objects that the given object references.
         /// </summary>
-        public abstract ulong GetSizeByGen(int gen);
-
-        /// <summary>
-        /// Returns the generation of an object.
-        /// </summary>
-        public int GetGeneration(ulong obj)
-        {
-            ClrSegment seg = GetSegmentByAddress(obj);
-            if (seg == null)
-                return -1;
-
-            return seg.GetGeneration(obj);
-        }
-
-        /// <summary>
-        /// Returns the object after this one on the segment.
-        /// </summary>
-        /// <param name="obj">The object to find the next for.</param>
-        /// <returns>The next object on the segment, or 0 if the object was the last one on the segment.</returns>
-        public virtual ulong NextObject(ulong obj)
-        {
-            ClrSegment seg = GetSegmentByAddress(obj);
-            if (seg == null)
-                return 0;
-
-            return seg.NextObject(obj);
-        }
+        /// <param name="obj">The object in question.</param>
+        /// <param name="carefully">
+        /// Whether to bounds check along the way (useful in cases where
+        /// the heap may be in an inconsistent state.)
+        /// </param>
+        public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully = false);
 
         /// <summary>
         /// Returns the GC segment for the given object.
@@ -265,12 +94,15 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrSegment GetSegmentByAddress(ulong objRef);
 
         /// <summary>
-        /// Returns true if the given address resides somewhere on the managed heap.
+        /// Enumerates all finalizable objects on the heap.
         /// </summary>
-        public bool IsInHeap(ulong address)
-        {
-            return GetSegmentByAddress(address) != null;
-        }
+        public abstract IEnumerable<ClrObject> EnumerateFinalizableObjects();
+
+
+        /// <summary>
+        /// Enumerates all finalizable objects on the heap.
+        /// </summary>
+        public abstract IEnumerable<ClrObject> EnumerateFinalizerRoots();
 
         /// <summary>
         /// Returns a string representation of this heap, including the size and number of segments.
@@ -278,25 +110,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The string representation of this heap.</returns>
         public override string ToString()
         {
-            double sizeMb = TotalHeapSize / 1000000.0;
+            double sizeMb = Segments.Sum(s => (long)s.Length) / 1000000.0;
             int segCount = Segments != null ? Segments.Count : 0;
             return $"ClrHeap {sizeMb}mb {segCount} segments";
         }
 
-
-        /// <summary>
-        /// Attempts to efficiently read a pointer from memory.  This acts exactly like ClrRuntime.ReadPointer, but
-        /// there is a greater chance you will hit a cache for a more efficient memory read.
-        /// </summary>
-        /// <param name="addr">The address to read.</param>
-        /// <param name="value">The pointer value.</param>
-        /// <returns>True if we successfully read the value, false if addr is not mapped into the process space.</returns>
-        public abstract bool ReadPointer(ulong addr, out ulong value);
-
-        protected internal abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully);
-
-        protected internal abstract IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, ClrType type, bool carefully);
-
-        protected internal abstract void EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, Action<ulong, int> callback);
+        public abstract ulong GetObjectSize(ulong objRef, ClrType desktopHeapType);
     }
 }

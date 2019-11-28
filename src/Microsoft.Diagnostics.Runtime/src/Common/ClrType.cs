@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrType
     {
-        protected internal abstract GCDesc GCDesc { get; }
+        public abstract GCDesc GCDesc { get; }
 
         /// <summary>
         /// Retrieves the first type handle in <see cref="EnumerateMethodTables"/>.
@@ -22,20 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// for a class.
         /// </summary>
         public abstract ulong MethodTable { get; }
-
-        /// <summary>
-        /// Enumerates all <see cref="MethodTable"/> for this type in the process. <see cref="MethodTable"/>
-        /// are unique to an AppDomain/Type pair, so when there are multiple domains
-        /// there may be multiple <see cref="MethodTable"/>.  Note that even if a type could be
-        /// used in an AppDomain, that does not mean we actually have a <see cref="MethodTable"/>
-        /// if the type hasn't been created yet.
-        /// </summary>
-        /// <returns>
-        /// An enumeration of MethodTable in the process for this given
-        /// type.
-        /// </returns>
-        public abstract IEnumerable<ulong> EnumerateMethodTables();
-
+        
         /// <summary>
         /// Returns the metadata token of this type.
         /// </summary>
@@ -52,41 +39,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong GetSize(ulong objRef);
 
         /// <summary>
-        /// Calls <paramref name="action"/> once for each object reference inside <paramref name="objRef"/>.
-        /// <paramref name="action"/> is passed the address of the outgoing reference as well as an integer that
-        /// represents the field offset.  While often this is the physical offset of the outgoing
-        /// reference, abstractly is simply something that can be given to <see cref="GetFieldForOffset"/> to
-        /// return the field information for that object reference
-        /// </summary>
-        public abstract void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action);
-
-        /// <summary>
-        /// Does the same as <see cref="EnumerateRefsOfObject"/>, but does additional bounds checking to ensure
-        /// we don't loop forever with inconsistent data.
-        /// </summary>
-        public abstract void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action);
-
-        /// <summary>
-        /// Enumerates all objects that the given object references.
-        /// </summary>
-        /// <param name="obj">The object in question.</param>
-        /// <param name="carefully">
-        /// Whether to bounds check along the way (useful in cases where
-        /// the heap may be in an inconsistent state.)
-        /// </param>
-        public virtual IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, bool carefully = false)
-        {
-            Debug.Assert(Heap.GetObjectType(obj) == this);
-            return Heap.EnumerateObjectReferences(obj, this, carefully);
-        }
-
-        public virtual IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, bool carefully = false)
-        {
-            Debug.Assert(Heap.GetObjectType(obj) == this);
-            return Heap.EnumerateObjectReferencesWithFields(obj, this, carefully);
-        }
-
-        /// <summary>
         /// Returns true if the type CAN contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.
         /// </summary>
@@ -94,12 +46,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual bool IsCollectible => false;
 
-        public virtual ulong LoaderAllocatorObject => 0;
+        public virtual ulong LoaderAllocatorHandle => 0;
 
         /// <summary>
         /// All types know the heap they belong to.
         /// </summary>
         public abstract ClrHeap Heap { get; }
+
+        // TODO: move these to clrobject
 
         /// <summary>
         /// Returns true if this object is a 'RuntimeType' (that is, the concrete System.RuntimeType class
@@ -169,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the list of interfaces this type implements.
         /// </summary>
-        public abstract IList<ClrInterface> Interfaces { get; }
+        public abstract IEnumerable<ClrInterface> EnumerateInterfaces();
 
         /// <summary>
         /// Returns true if the finalization is suppressed for an object (the user program called
@@ -228,22 +182,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns all possible fields in this type.   It does not return dynamically typed fields.
         /// Returns an empty list if there are no fields.
         /// </summary>
-        public virtual IList<ClrInstanceField> Fields => null;
+        public abstract IReadOnlyList<ClrInstanceField> Fields { get; }
 
         /// <summary>
         /// Returns a list of static fields on this type.  Returns an empty list if there are no fields.
         /// </summary>
-        public virtual IList<ClrStaticField> StaticFields => null;
-
-        /// <summary>
-        /// Returns a list of thread static fields on this type.  Returns an empty list if there are no fields.
-        /// </summary>
-        public virtual IList<ClrThreadStaticField> ThreadStaticFields => null;
+        public abstract IReadOnlyList<ClrStaticField> StaticFields { get; }
 
         /// <summary>
         /// Gets the list of methods this type implements.
         /// </summary>
-        public virtual IList<ClrMethod> Methods => null;
+        public abstract IReadOnlyList<ClrMethod> Methods { get; }
 
         /// <summary>
         /// When you enumerate a object, the offset within the object is returned.  This offset might represent
@@ -270,42 +219,16 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType BaseType { get; }
 
         /// <summary>
-        /// Returns true if the given object is a Com-Callable-Wrapper.  This is only supported in v4.5 and later.
+        /// Returns the CCWData for the given object.
         /// </summary>
-        /// <param name="obj">The object to check.</param>
-        /// <returns>True if this is a CCW.</returns>
-        public virtual bool IsCCW(ulong obj)
-        {
-            return false;
-        }
+        /// <returns>The CCWData associated with the object, null if obj is not a CCW.</returns>
+        public abstract CcwData GetCCWData(ulong obj);
 
         /// <summary>
-        /// Returns the CCWData for the given object.  Note you may only call this function if IsCCW returns true.
+        /// Returns the RCWData for the given object.
         /// </summary>
-        /// <returns>The CCWData associated with the object, undefined result of obj is not a CCW.</returns>
-        public virtual CcwData GetCCWData(ulong obj)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// Returns true if the given object is a Runtime-Callable-Wrapper.  This is only supported in v4.5 and later.
-        /// </summary>
-        /// <param name="obj">The object to check.</param>
-        /// <returns>True if this is an RCW.</returns>
-        public virtual bool IsRCW(ulong obj)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the RCWData for the given object.  Note you may only call this function if IsRCW returns true.
-        /// </summary>
-        /// <returns>The RCWData associated with the object, undefined result of obj is not a RCW.</returns>
-        public virtual RcwData GetRCWData(ulong obj)
-        {
-            return null;
-        }
+        /// <returns>The RCWData associated with the object, null if obj is not a RCW.</returns>
+        public abstract RcwData GetRCWData(ulong obj);
 
         /// <summary>
         /// Indicates if the type is in fact a pointer. If so, the pointer operators
@@ -322,13 +245,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// A type is an array if you can use the array operators below, Abstractly arrays are objects
         /// that whose children are not statically known by just knowing the type.
         /// </summary>
-        public virtual bool IsArray => false;
-
-        /// <summary>
-        /// If the type is an array, then GetArrayLength returns the number of elements in the array.  Undefined
-        /// behavior if this type is not an array.
-        /// </summary>
-        public abstract int GetArrayLength(ulong objRef);
+        public abstract bool IsArray { get; }
 
         /// <summary>
         /// Returns the absolute address to the given array element.  You may then make a direct memory read out
@@ -351,6 +268,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the base size of the object.
         /// </summary>
         public abstract int BaseSize { get; }
+
+        /// <summary>
+        /// Returns the size of elements of this object.
+        /// </summary>
+        public abstract int ComponentSize { get; }
 
         /// <summary>
         /// Returns true if this type is System.String.
@@ -437,27 +359,9 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns true if instances of this type have a simple value.
-        /// </summary>
-        public virtual bool HasSimpleValue => false;
-
-        /// <summary>
-        /// Returns the simple value of an instance of this type.  Undefined behavior if HasSimpleValue returns false.
-        /// For example ELEMENT_TYPE_I4 is an "int" and the return value of this function would be an int.
-        /// </summary>
-        /// <param name="address">The address of an instance of this type.</param>
-        public virtual object GetValue(ulong address)
-        {
-            return null;
-        }
-
-        /// <summary>
         /// Returns a string representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
-        public override string ToString()
-        {
-            return Name;
-        }
+        public override string ToString() => Name;
     }
 }

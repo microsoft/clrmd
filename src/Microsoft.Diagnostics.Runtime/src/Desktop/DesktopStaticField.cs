@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -14,8 +15,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         public DesktopStaticField(
             ClrHeapImpl heap,
-            IFieldData field,
-            BaseDesktopHeapType containingType,
+            ref FieldData field,
+            ClrType containingType,
             string name,
             FieldAttributes attributes,
             object defaultValue,
