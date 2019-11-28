@@ -14,16 +14,8 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader targets a Linux process, implemented by reading /proc/[pid]/maps
-    /// and /proc/[pid]/mem files. The process must have READ permission to the above 2
-    /// files.
-    ///   1. The current process can run as root.
-    ///   2. If executed from within a Docker container, the best way is to use "ptrace
-    ///      attach" to obtain the permission.
-    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent.
-    ///        - the process must call the following before constructing the data reader.
-    ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
-    ///             wait(NULL);
+    /// A data reader that targets a Linux process.
+    /// This process must have ptrace access to the target process.
     /// </summary>
     internal class LinuxLiveDataReader : IDataReader
     {
@@ -48,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not attach to pid {processId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
+                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
                 }
 
                 _suspended = true;
@@ -78,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from pid {ProcessId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
+                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
                 }
 
                 _suspended = false;
@@ -124,9 +116,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        public void GetVersionInfo(ulong addr, out VersionInfo version)
+        public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            version = default;
+            MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
+            ElfFile file = new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
 
         public bool ReadMemory(ulong address, Span<byte> span, out int bytesRead)
@@ -136,10 +130,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private unsafe bool ReadMemoryReadv(ulong address, Span<byte> buffer, out int bytesRead)
         {
-            bytesRead = 0;
             int readableBytesCount = GetReadableBytesCount(address, buffer.Length);
             if (readableBytesCount <= 0)
             {
+                bytesRead = 0;
                 return false;
             }
 
@@ -177,7 +171,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ReadPointer(address, out ulong value);
             return value;
         }
-
 
         public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {

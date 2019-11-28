@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong ImageBase { get; }
 
         /// <summary>
-        /// The filesize of the image.
+        /// The file size of the image.
         /// </summary>
         public uint FileSize { get; }
 

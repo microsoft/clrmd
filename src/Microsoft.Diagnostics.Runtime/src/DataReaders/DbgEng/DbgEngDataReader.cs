@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if ((uint)hr == 0xd00000bb)
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
-                throw new ClrDiagnosticsException($"Could not attach to pid {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
+                throw new ClrDiagnosticsException($"Could not attach to process {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
             }
         }
 
@@ -306,14 +306,14 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public void GetVersionInfo(ulong baseAddr, out VersionInfo version)
+        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             version = default;
 
-            if (!FindModuleIndex(baseAddr, out int index))
+            if (!FindModuleIndex(baseAddress, out int index))
                 return;
 
-            version = _symbols.GetModuleVersionInformation(index, baseAddr);
+            version = _symbols.GetModuleVersionInformation(index, baseAddress);
         }
 
         private bool FindModuleIndex(ulong baseAddr, out int index)

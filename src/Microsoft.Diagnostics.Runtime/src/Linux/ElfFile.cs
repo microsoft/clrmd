@@ -75,13 +75,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public ElfFile(Reader reader, long position = 0, bool virt = false)
+        public ElfFile(Reader reader, long position = 0, bool isVirtual = false)
         {
             _reader = reader;
             _position = position;
-            _virtual = virt;
+            _virtual = isVirtual;
 
-            if (virt)
+            if (isVirtual)
                 _virtualAddressReader = reader;
 
             ElfHeaderCommon common = reader.Read<ElfHeaderCommon>(position);
@@ -90,13 +90,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
-        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool virt = false)
+        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool isVirtual = false)
         {
             _reader = reader;
             _position = position;
-            _virtual = virt;
+            _virtual = isVirtual;
 
-            if (virt)
+            if (isVirtual)
                 _virtualAddressReader = reader;
 
             Header = header;

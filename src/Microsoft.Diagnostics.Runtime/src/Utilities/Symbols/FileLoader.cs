@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_pefileCache.TryGetValue(fileName, out PEImage result))
                 return result;
 
-            Stream stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            Stream stream = File.OpenRead(fileName);
             result = new PEImage(stream);
 
             if (!result.IsValid)

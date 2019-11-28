@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents the version of a DLL.
     /// </summary>
-    public struct VersionInfo : IEquatable<VersionInfo>, IComparable<VersionInfo>
+    public readonly struct VersionInfo : IEquatable<VersionInfo>, IComparable<VersionInfo>
     {
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'A'.
