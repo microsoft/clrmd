@@ -93,3 +93,5 @@ Here is a list of feedback I am tracking from the community (my summary):
 2. All method tables => type handle.
 3. Generics.
 4. Images report size.
+5. TypeSpec enumeration
+6. Change modulemaptraverse to fill an array
