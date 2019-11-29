@@ -19,7 +19,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             Length = segments.Max(s => s.VirtualAddress + s.VirtualSize);
             // FileSize == 0 means the segment isn't backed by any data
-            _segments = segments.Where((programHeader) => programHeader.FileSize > 0).ToArray();
+            _segments = segments
+                .Where(programHeader => programHeader.FileSize > 0)
+                .OrderBy(programHeader => programHeader.VirtualAddress)
+                .ToArray();
             _addressSpace = addressSpace;
         }
 
@@ -28,36 +31,28 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public int Read(long position, Span<byte> buffer)
         {
             int bytesRead = 0;
-            while (bytesRead != buffer.Length)
+            for (int i = 0; i < _segments.Length && bytesRead != buffer.Length; i++)
             {
-                int i = 0;
-                for (; i < _segments.Length; i++)
+                ElfProgramHeader segment = _segments[i];
+                long virtualAddress = segment.VirtualAddress;
+                long virtualSize = segment.VirtualSize;
+
+                long upperAddress = virtualAddress + virtualSize;
+                if (virtualAddress <= position && position < upperAddress)
                 {
-                    long virtualAddress = _segments[i].VirtualAddress;
-                    long virtualSize = _segments[i].VirtualSize;
+                    int bytesToReadRange = (int)Math.Min(buffer.Length - bytesRead, upperAddress - position);
+                    long segmentOffset = position - virtualAddress;
 
-                    long upperAddress = virtualAddress + virtualSize;
-                    if (virtualAddress <= position && position < upperAddress)
-                    {
-                        int bytesToReadRange = (int)Math.Min(buffer.Length - bytesRead, upperAddress - position);
-                        long segmentOffset = position - virtualAddress;
-
-                        Span<byte> slice = buffer.Slice(bytesRead, bytesToReadRange);
-                        int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, slice);
-                        if (bytesReadRange == 0)
-                            goto done;
-
-                        position += bytesReadRange;
-                        bytesRead += bytesReadRange;
+                    Span<byte> slice = buffer.Slice(bytesRead, bytesToReadRange);
+                    int bytesReadRange = segment.AddressSpace.Read(segmentOffset, slice);
+                    if (bytesReadRange == 0)
                         break;
-                    }
-                }
 
-                if (i == _segments.Length)
-                    break;
+                    position += bytesReadRange;
+                    bytesRead += bytesReadRange;
+                }
             }
 
-        done:
             buffer.Slice(bytesRead, bytesRead - buffer.Length).Clear();
             return bytesRead;
         }
