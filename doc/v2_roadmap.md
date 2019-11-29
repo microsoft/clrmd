@@ -86,6 +86,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 (Notes to myself about what I need to revisit.)
 
 1.  ThreadPool related code.
+2.  SymbolLocator related code.
 
 # .Net Core 5 Dac Wishlist
 
