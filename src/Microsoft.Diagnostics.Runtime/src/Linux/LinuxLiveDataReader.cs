@@ -28,8 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class LinuxLiveDataReader : IDataReader
     {
         private List<MemoryMapEntry> _memoryMapEntries;
-        private FileStream _memoryStream;
-        private bool _initializedMemFile;
         private readonly List<uint> _threadIDs = new List<uint>();
 
         private bool _suspended;
@@ -74,10 +72,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (_disposed)
                 return;
 
-            _memoryStream?.Dispose();
-            _memoryStream = null;
-            _initializedMemFile = false;
-
             if (_suspended)
             {
                 int status = (int)ptrace(PTRACE_DETACH, (int)ProcessId, IntPtr.Zero, IntPtr.Zero);
@@ -96,9 +90,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public void ClearCachedData()
         {
             _threadIDs.Clear();
-            _memoryStream?.Dispose();
-            _memoryStream = null;
-            _initializedMemFile = false;
             _memoryMapEntries = LoadMemoryMap();
         }
 
@@ -140,36 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool ReadMemory(ulong address, Span<byte> span, out int bytesRead)
         {
-            OpenMemFile();
-            if (_memoryStream != null)
-            {
-                return ReadMemoryProcMem(address, span, out bytesRead);
-            }
-            else
-            {
-                return ReadMemoryReadv(address, span, out bytesRead);
-            }
-        }
-
-        private bool ReadMemoryProcMem(ulong address, Span<byte> span, out int bytesRead)
-        {
-            int readableBytesCount = GetReadableBytesCount(address, span.Length);
-            if (readableBytesCount <= 0)
-            {
-                bytesRead = 0;
-                return false;
-            }
-            try
-            {
-                _memoryStream.Seek((long)address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(span);
-                return bytesRead > 0;
-            }
-            catch (IOException)
-            {
-                bytesRead = 0;
-                return false;
-            }
+            return ReadMemoryReadv(address, span, out bytesRead);
         }
 
         private unsafe bool ReadMemoryReadv(ulong address, Span<byte> buffer, out int bytesRead)
@@ -303,23 +265,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     }
                 }
             }
-        }
-
-        private void OpenMemFile()
-        {
-            if (_initializedMemFile)
-            {
-                return;
-            }
-            if (File.Exists("/proc/self/mem"))
-            {
-                _memoryStream = File.OpenRead($"/proc/{ProcessId}/mem");
-            }
-            else
-            {
-                // WSL 1 doesn't have /proc/<pid>/mem
-            }
-            _initializedMemFile = true;
         }
 
         private int GetReadableBytesCount(ulong address, int bytesRequested)
