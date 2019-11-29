@@ -3,15 +3,16 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class DesktopThreadPool : ClrThreadPool
     {
-        private readonly ClrRuntimeImpl _runtime;
+        private readonly ClrmdRuntime _runtime;
         private ClrHeap _heap;
 
-        public DesktopThreadPool(ClrRuntimeImpl runtime, IThreadPoolData data)
+        public DesktopThreadPool(ClrmdRuntime runtime, IThreadPoolData data)
         {
             _runtime = runtime;
             TotalThreads = data.TotalThreads;

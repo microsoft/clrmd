@@ -9,15 +9,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class PrimitiveType : ClrType
     {
-        public PrimitiveType(ClrHeapImpl heap, ClrElementType type)
+        public PrimitiveType(ClrmdHeap heap, ClrElementType type)
         {
             Heap = heap;
             ElementType = type;
         }
 
-        public override int BaseSize => DesktopInstanceField.GetSize(this, ElementType);
+        public override bool IsShared => false;
+        public override int BaseSize => ClrmdField.GetSize(this, ElementType);
         public override ClrType BaseType => null; // todo;
-        public override int ElementSize => 0;
         public override ClrHeap Heap { get; }
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Array.Empty<ClrInterface>();
         public override bool IsAbstract => false;
@@ -71,10 +71,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return false;
         }
 
-        // todo
-        public override ulong GetSize(ulong objRef) => 0;
-
         public override ClrStaticField GetStaticFieldByName(string name) => null;
+
+        public override CcwData GetCCWData(ulong obj) => null;
+
+        public override RcwData GetRCWData(ulong obj) => null;
+
         public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
+
+        public override GCDesc GCDesc => default;
+
+        public override IReadOnlyList<ClrStaticField> StaticFields => Array.Empty<ClrStaticField>();
+
+        public override IReadOnlyList<ClrMethod> Methods => throw new NotImplementedException();
+
+        public override ClrType ComponentType => null;
+
+        public override bool IsArray => false;
+
+        public override int ComponentSize => 0;
     }
 }

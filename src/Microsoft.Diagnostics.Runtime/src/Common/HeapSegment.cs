@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override ulong Gen2Start { get; }
         public override ulong Gen2Length { get; }
 
-        public override IEnumerable<ClrObject> EnumerateObjects() => ((ClrHeapImpl)Heap).EnumerateObjects(this);
+        public override IEnumerable<ClrObject> EnumerateObjects() => ((ClrmdHeap)Heap).EnumerateObjects(this);
 
 
         public override ulong FirstObject => Gen2Start < End ? Gen2Start : 0;

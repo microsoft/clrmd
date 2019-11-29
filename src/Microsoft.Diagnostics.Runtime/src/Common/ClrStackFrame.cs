@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -37,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets this stack frame context.
         /// </summary>
-        public abstract byte[] Context { get; }
+        public abstract ReadOnlySpan<byte> Context { get; }
 
         /// <summary>
         /// Returns the thread this stack frame came from.
@@ -58,11 +59,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The type of frame (managed or internal).
         /// </summary>
         public abstract ClrStackFrameType Kind { get; }
-
-        /// <summary>
-        /// The string to display in a stack trace.  Similar to !clrstack output.
-        /// </summary>
-        public abstract string DisplayString { get; }
 
         /// <summary>
         /// Returns the ClrMethod which corresponds to the current stack frame.  This may be null if the

@@ -14,21 +14,20 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class ClrmdType : ClrType
+    internal sealed class ClrmdType : ClrType
     {
         private string _name;
 
         private readonly ITypeHelpers _helpers;
+        private ClrType _componentType;
         private TypeAttributes _attributes;
         private ulong? _loaderAllocatorHandle;
-        private byte _finalizable;
 
         private ClrMethod[] _methods;
         private ClrInstanceField[] _fields;
         private ClrStaticField[] _statics;
 
         private int _baseArrayOffset;
-        private bool? _runtimeType;
         private EnumData _enumData;
         private ClrElementType _elementType;
         private GCDesc? _gcDesc;
@@ -49,12 +48,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrHeap Heap { get; }
 
         public override ClrType BaseType { get; }
+        public override ClrType ComponentType => _componentType;
 
         private IDataReader DataReader => _helpers.DataReader;
 
         public override bool ContainsPointers { get; }
+        public override bool IsShared { get; }
 
-        internal ClrmdType(ClrHeap heap, ClrModule module, ITypeData data)
+        public ClrmdType(ClrHeap heap, ClrModule module, ITypeData data)
         {
             _helpers = data.Helpers;
             MethodTable = data.MethodTable;
@@ -65,10 +66,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             BaseSize = data.BaseSize;
             ComponentSize = data.ComponentSize;
             ContainsPointers = data.ContainsPointers;
-            BaseType = _helpers?.Factory?.GetOrCreateType(heap, data.ParentMethodTable, 0);
+            IsShared = data.IsShared;
 
+            // If there are no methods, preempt the expensive work to create methods
             if (data.MethodCount == 0)
                 _methods = Array.Empty<ClrMethod>();
+
+            // GetOrCreateType will invalidate 'data'.  The default ITypeData painstakingly
+            // avoids allocating, which causes a bit of odd code here and there to ensure
+            // nothing breaks.  This won't usage of this class with a custom ITypeData.
+            // No uses of 'data' are allowed after these two lines:
+            ulong componentMT = data.ComponentMethodTable;
+            ulong parentMT = data.ParentMethodTable;
+
+            if (parentMT != 0)
+                BaseType = _helpers.Factory.GetOrCreateType(heap, parentMT, 0);
+
+            if (componentMT != 0)
+                _componentType = _helpers.Factory.GetOrCreateType(heap, componentMT, 0);
 
             DebugOnlyLoadLazyValues();
         }
@@ -80,6 +95,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _ = Fields;
             _ = Methods;
         }
+
+        public void SetComponentType(ClrType type) => _componentType = type;
 
 
         private GCDesc GetOrCreateGCDesc()
@@ -119,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
-            MetaDataImport import = Module.MetadataImport;
+            MetaDataImport import = Module?.MetadataImport;
             if (import != null)
             {
                 foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
@@ -166,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (this == Heap.StringType)
                 return _elementType = ClrElementType.String;
-            if (ElementSize > 0)
+            if (ComponentSize > 0)
                 return _elementType = ClrElementType.SZArray;
 
             ClrType baseType = BaseType;
@@ -218,8 +235,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return _elementType = ClrElementType.Struct;
         }
-
-        public override ulong GetSize(ulong objRef) => Heap.GetObjectSize(objRef, this);
 
         public override string ToString()
         {
@@ -314,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 throw new InvalidOperationException("Type is not an Enum.");
 
             _enumData = new EnumData();
-            MetaDataImport import = Module.MetadataImport;
+            MetaDataImport import = Module?.MetadataImport;
             if (import == null)
                 return;
 
@@ -363,30 +378,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
 
-        public override bool IsFinalizable
-        {
-            get
-            {
-                if (_finalizable == 0)
-                {
-                    foreach (ClrMethod method in Methods)
-                    {
-                        if (method.IsVirtual && method.Name == "Finalize")
-                        {
-                            _finalizable = 1;
-                            break;
-                        }
-                    }
+        public override bool IsFinalizable => Methods.Any(method => method.IsVirtual && method.Name == "Finalize");
 
-                    if (_finalizable == 0)
-                        _finalizable = 2;
-                }
-
-                return _finalizable == 1;
-            }
-        }
-
-        public override bool IsArray => ComponentSize != 0 && this != Heap.StringType && this != Heap.FreeType;
+        public override bool IsArray => ComponentSize != 0 && !IsString && !IsFree;
         public override bool IsCollectible => LoaderAllocatorHandle != 0;
 
         public override ulong LoaderAllocatorHandle
@@ -435,7 +429,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return false;
         }
 
-        public override int ElementSize => (int)ComponentSize;
         public override IReadOnlyList<ClrInstanceField> Fields
         {
             get
@@ -466,7 +459,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_fields != null)
                 return;
 
-            _helpers.Factory.CreateFieldsForMethodTable(this, out _fields, out _statics);
+            _helpers.Factory.CreateFieldsForType(this, out _fields, out _statics);
 
             if (_fields == null)
                 _fields = Array.Empty<ClrInstanceField>();
@@ -480,25 +473,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return Methods.FirstOrDefault(m => m.MetadataToken == token);
         }
 
-        public override IReadOnlyList<ClrMethod> Methods
-        {
-            get
-            {
-                if (_methods != null)
-                    return _methods;
+        public override IReadOnlyList<ClrMethod> Methods => _methods ?? (_methods = _helpers.Factory.CreateMethodsForType(this));
 
-                return _methods = _helpers?.EnumerateMethods(MethodTable).Select(data => new ClrmdMethod(this, data)).ToArray();
-            }
-        }
-
-        public override ClrStaticField GetStaticFieldByName(string name)
-        {
-            foreach (ClrStaticField field in StaticFields)
-                if (field.Name == name)
-                    return field;
-
-            return null;
-        }
+        //TODO: remove
+        public override ClrStaticField GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
 
         //TODO: remove
         public override ClrInstanceField GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
@@ -818,40 +796,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     InitFlags();
                 return (_attributes & TypeAttributes.Interface) == TypeAttributes.Interface;
             }
-        }
-
-        public override bool IsRuntimeType
-        {
-            get
-            {
-                if (_runtimeType == null)
-                    _runtimeType = Name == "System.RuntimeType";
-
-                return (bool)_runtimeType;
-            }
-        }
-
-        public override ClrType GetRuntimeType(ulong obj)
-        {
-            if (!IsRuntimeType)
-                return null;
-
-            ClrInstanceField field = GetFieldByName("m_handle");
-            if (field == null)
-                return null;
-
-            ulong methodTable = 0;
-            if (field.ElementType == ClrElementType.NativeInt)
-            {
-                methodTable = (ulong)(long)field.GetValue(obj);
-            }
-            else if (field.ElementType == ClrElementType.Struct)
-            {
-                ClrInstanceField ptrField = field.Type.GetFieldByName("m_ptr");
-                methodTable = (ulong)(long)ptrField.GetValue(field.GetAddress(obj, false), true);
-            }
-
-            return null;// Heap.GetTypeByMethodTable(methodTable, 0, obj);
         }
     }
 }

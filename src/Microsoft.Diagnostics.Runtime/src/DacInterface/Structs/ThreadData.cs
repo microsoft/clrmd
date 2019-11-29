@@ -9,41 +9,39 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct ThreadData : IThreadData
+    public struct ThreadData
     {
         public readonly uint ManagedThreadId;
         public readonly uint OSThreadId;
         public readonly int State;
         public readonly uint PreemptiveGCDisabled;
-        public readonly ulong AllocationContextPointer;
-        public readonly ulong AllocationContextLimit;
-        public readonly ulong Context;
-        public readonly ulong Domain;
-        public readonly ulong Frame;
+        public ulong AllocationContextPointer;
+        public ulong AllocationContextLimit;
+        public ulong Context;
+        public ulong Domain;
+        public ulong Frame;
         public readonly uint LockCount;
-        public readonly ulong FirstNestedException;
-        public readonly ulong Teb;
-        public readonly ulong FiberData;
-        public readonly ulong LastThrownObjectHandle;
-        public readonly ulong NextThread;
+        public ulong FirstNestedException;
+        public ulong Teb;
+        public ulong FiberData;
+        public ulong LastThrownObjectHandle;
+        public ulong NextThread;
 
-        internal ThreadData(ref ThreadData other)
+        public static void Fixup(ref ThreadData data)
         {
-            this = other;
-
             // Sign extension issues
             if (IntPtr.Size == 4)
             {
-                FixupPointer(ref AllocationContextPointer);
-                FixupPointer(ref AllocationContextLimit);
-                FixupPointer(ref Context);
-                FixupPointer(ref Domain);
-                FixupPointer(ref Frame);
-                FixupPointer(ref FirstNestedException);
-                FixupPointer(ref Teb);
-                FixupPointer(ref FiberData);
-                FixupPointer(ref LastThrownObjectHandle);
-                FixupPointer(ref NextThread);
+                FixupPointer(ref data.AllocationContextPointer);
+                FixupPointer(ref data.AllocationContextLimit);
+                FixupPointer(ref data.Context);
+                FixupPointer(ref data.Domain);
+                FixupPointer(ref data.Frame);
+                FixupPointer(ref data.FirstNestedException);
+                FixupPointer(ref data.Teb);
+                FixupPointer(ref data.FiberData);
+                FixupPointer(ref data.LastThrownObjectHandle);
+                FixupPointer(ref data.NextThread);
             }
         }
 
@@ -51,17 +49,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             ptr = (uint)ptr;
         }
-
-        ulong IThreadData.Next => NextThread;
-        ulong IThreadData.AllocPtr => AllocationContextPointer;
-        ulong IThreadData.AllocLimit => AllocationContextLimit;
-        uint IThreadData.OSThreadID => OSThreadId;
-        ulong IThreadData.Teb => Teb;
-        ulong IThreadData.AppDomain => Domain;
-        uint IThreadData.LockCount => LockCount;
-        int IThreadData.State => State;
-        ulong IThreadData.ExceptionPtr => LastThrownObjectHandle;
-        uint IThreadData.ManagedThreadID => ManagedThreadId;
-        bool IThreadData.Preemptive => PreemptiveGCDisabled == 0;
     }
 }

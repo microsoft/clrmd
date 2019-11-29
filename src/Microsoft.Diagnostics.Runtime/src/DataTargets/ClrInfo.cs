@@ -13,13 +13,13 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrInfo
     {
-        private readonly DataTarget _dataTarget;
+        public DataTarget DataTarget { get; }
 
         internal ClrRuntime Runtime { get; }
 
         internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
         {
-            _dataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
+            DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
             Flavor = flavor;
             DacInfo = dacInfo ?? throw new ArgumentNullException(nameof(dacInfo));
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
@@ -97,12 +97,12 @@ namespace Microsoft.Diagnostics.Runtime
                 dac = null;
 
             if (dac == null)
-                dac = _dataTarget.SymbolLocator.FindBinary(DacInfo);
+                dac = DataTarget.SymbolLocator.FindBinary(DacInfo);
 
             if (!File.Exists(dac))
                 throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.FileName);
 
-            if (IntPtr.Size != _dataTarget.DataReader.PointerSize)
+            if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
             return ConstructRuntime(dac);
@@ -117,18 +117,18 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRuntime ConstructRuntime(string dac)
         {
-            if (IntPtr.Size != _dataTarget.DataReader.PointerSize)
+            if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            DacLibrary lib = new DacLibrary(_dataTarget, dac);
+            DacLibrary lib = new DacLibrary(DataTarget, dac);
 
             if (Flavor == ClrFlavor.Core)
-                return new V45Runtime(this, _dataTarget, lib);
+                return new V45Runtime(this, DataTarget, lib);
 
             if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Patch < 10000))
                 throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
             
-            return new V45Runtime(this, _dataTarget, lib);
+            return new V45Runtime(this, DataTarget, lib);
         }
     }
 }

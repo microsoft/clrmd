@@ -51,19 +51,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="appDomain">The AppDomain in which to get the field's address.</param>
         /// <returns>The address of the field's value.</returns>
         public abstract ulong GetAddress(ClrAppDomain appDomain);
-
-        /// <summary>
-        /// Returns true if the static field has a default value (and if we can obtain it).
-        /// </summary>
-        public virtual bool HasDefaultValue => false;
-
-        /// <summary>
-        /// The default value of the field.
-        /// </summary>
-        /// <returns>The default value of the field.</returns>
-        public virtual object GetDefaultValue()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

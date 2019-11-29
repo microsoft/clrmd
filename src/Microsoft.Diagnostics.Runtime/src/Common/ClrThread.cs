@@ -53,18 +53,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The AppDomain the thread is running in.
         /// </summary>
-        public abstract ulong AppDomain { get; }
+        public abstract ClrAppDomain CurrentAppDomain { get; }
 
         /// <summary>
         /// The number of managed locks (Monitors) the thread has currently entered but not left.
         /// This will be highly inconsistent unless the process is stopped.
         /// </summary>
         public abstract uint LockCount { get; }
-
-        /// <summary>
-        /// The TEB (thread execution block) address in the process.
-        /// </summary>
-        public abstract ulong Teb { get; }
 
         /// <summary>
         /// The base of the stack for this thread, or 0 if the value could not be obtained.
@@ -82,31 +77,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
         public abstract IEnumerable<ClrRoot> EnumerateStackObjects();
-
-        /// <summary>
-        /// Enumerates the GC references (objects) on the stack.
-        /// </summary>
-        /// <param name="includePossiblyDead">
-        /// Include all objects found on the stack.  Passing
-        /// false attempts to replicate the behavior of the GC, reporting only live objects.
-        /// </param>
-        /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public abstract IEnumerable<ClrRoot> EnumerateStackObjects(bool includePossiblyDead);
-
-        /// <summary>
-        /// Returns the managed stack trace of the thread.  Note that this property may return incomplete
-        /// data in the case of a bad stack unwind or if there is a very large number of methods on the stack.
-        /// (This is usually caused by a stack overflow on the target thread, stack corruption which leads to
-        /// a bad stack unwind, or other inconsistent state in the target debuggee.)
-        /// Note: This property uses a heuristic to attempt to detect bad unwinds to stop enumerating
-        /// frames by inspecting the stack pointer and instruction pointer of each frame to ensure the stack
-        /// walk is "making progress".  Additionally we cap the number of frames returned by this method
-        /// as another safegaurd.  This means we may not have all frames even if the stack walk was making
-        /// progress.
-        /// If you want to ensure that you receive an un-clipped stack trace, you should use EnumerateStackTrace
-        /// instead of this property, and be sure to handle the case of repeating stack frames.
-        /// </summary>
-        public abstract IList<ClrStackFrame> StackTrace { get; }
 
         internal static bool GetExactPolicy(ClrRuntime runtime, ClrRootStackwalkPolicy stackwalkPolicy)
         {
@@ -136,54 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// be done processing the exception but a crash dump was taken before the current exception was
         /// cleared off the field.
         /// </summary>
-        public abstract ClrException CurrentException { get; }
-
-        /// <summary>
-        /// Returns if this thread is a GC thread.  If the runtime is using a server GC, then there will be
-        /// dedicated GC threads, which this will indicate.  For a runtime using the workstation GC, this flag
-        /// will only be true for a thread which is currently running a GC (and the background GC thread).
-        /// </summary>
-        public abstract bool IsGC { get; }
-
-        /// <summary>
-        /// Returns if this thread is the debugger helper thread.
-        /// </summary>
-        public abstract bool IsDebuggerHelper { get; }
-
-        /// <summary>
-        /// Returns true if this thread is a threadpool timer thread.
-        /// </summary>
-        public abstract bool IsThreadpoolTimer { get; }
-
-        /// <summary>
-        /// Returns true if this thread is a threadpool IO completion port.
-        /// </summary>
-        public abstract bool IsThreadpoolCompletionPort { get; }
-
-        /// <summary>
-        /// Returns true if this is a threadpool worker thread.
-        /// </summary>
-        public abstract bool IsThreadpoolWorker { get; }
-
-        /// <summary>
-        /// Returns true if this is a threadpool wait thread.
-        /// </summary>
-        public abstract bool IsThreadpoolWait { get; }
-
-        /// <summary>
-        /// Returns true if this is the threadpool gate thread.
-        /// </summary>
-        public abstract bool IsThreadpoolGate { get; }
-
-        /// <summary>
-        /// Returns if this thread currently suspending the runtime.
-        /// </summary>
-        public abstract bool IsSuspendingEE { get; }
-
-        /// <summary>
-        /// Returns true if this thread is currently the thread shutting down the runtime.
-        /// </summary>
-        public abstract bool IsShutdownHelper { get; }
+        public abstract ClrException? CurrentException { get; }
 
         /// <summary>
         /// Returns true if an abort was requested for this thread (such as Thread.Abort, or AppDomain unload).

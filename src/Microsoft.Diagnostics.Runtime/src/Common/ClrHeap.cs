@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </remarks>
         /// <param name="objRef"></param>
         /// <returns></returns>
-        public ClrObject GetObject(ulong objRef) => ClrObject.Create(objRef, GetObjectType(objRef));
+        public ClrObject GetObject(ulong objRef) => new ClrObject(objRef, GetObjectType(objRef));
 
         /// <summary>
         /// Enumerates all objects on the heap.
@@ -115,6 +115,6 @@ namespace Microsoft.Diagnostics.Runtime
             return $"ClrHeap {sizeMb}mb {segCount} segments";
         }
 
-        public abstract ulong GetObjectSize(ulong objRef, ClrType desktopHeapType);
+        public abstract ulong GetObjectSize(ulong objRef, ClrType type);
     }
 }

@@ -3,9 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -42,8 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _hotCold = new HotColdRegions(data.HotStart, data.HotSize, data.ColdStart, data.ColdSize);
             _attrs = type?.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
         }
-
-
 
 
         public override string Name

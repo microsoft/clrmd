@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ObjectSet(ClrHeap heap)
         {
             _heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            _minObjSize = heap.PointerSize * 3;
+            _minObjSize = IntPtr.Size * 3;
 
             List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Count);
             foreach (ClrSegment seg in _heap.Segments)

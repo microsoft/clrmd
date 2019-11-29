@@ -8,12 +8,12 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal sealed class ClrHeapImpl : ClrHeap
+    internal sealed class ClrmdHeap : ClrHeap
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IDataReader _reader;
         private readonly MemoryReader _memoryReader;
-        private readonly ITypeCreators _typeBuilder;
+        private readonly ITypeFactory _typeFactory;
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqRoots;
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqObjects;
         private readonly Dictionary<ulong, ulong> _allocationContext;
@@ -34,21 +34,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrType ExceptionType { get; }
 
 
-        public ClrHeapImpl(ClrRuntime runtime, IHeapBuilder heapBuilder)
+        public ClrmdHeap(ClrRuntime runtime, IHeapBuilder heapBuilder)
         {
             _reader = heapBuilder.DataReader;
             _memoryReader = new MemoryReader(heapBuilder.DataReader, 0x10000);
-            _typeBuilder = heapBuilder.TypeFactory;
+            _typeFactory = heapBuilder.TypeFactory;
 
             Runtime = runtime;
             CanWalkHeap = heapBuilder.CanWalkHeap;
 
             // Prepopulate a few important method tables.
 
-            StringType = _typeBuilder.CreateTypeFromMethodTable(this, heapBuilder.StringMethodTable, 0);
-            ObjectType = _typeBuilder.CreateTypeFromMethodTable(this, heapBuilder.ObjectMethodTable, 0);
-            FreeType = _typeBuilder.CreateTypeFromMethodTable(this, heapBuilder.FreeMethodTable, 0);
-            ExceptionType = _typeBuilder.CreateTypeFromMethodTable(this, heapBuilder.ExceptionMethodTable, 0);
+            StringType = _typeFactory.GetOrCreateType(this, heapBuilder.StringMethodTable, 0);
+            ObjectType = _typeFactory.GetOrCreateType(this, heapBuilder.ObjectMethodTable, 0);
+            FreeType = _typeFactory.GetOrCreateType(this, heapBuilder.FreeMethodTable, 0);
+            ExceptionType = _typeFactory.GetOrCreateType(this, heapBuilder.ExceptionMethodTable, 0);
 
             // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
             Segments = heapBuilder.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);
@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!_memoryReader.ReadPtr(obj, out ulong mt))
                     break;
 
-                ClrType type = _typeBuilder.CreateTypeFromMethodTable(this, mt, obj);
+                ClrType type = _typeFactory.GetOrCreateType(this, mt, obj);
                 if (type == null)
                     break;
 
@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mt == 0)
                 return null;
 
-            return _typeBuilder.CreateTypeFromMethodTable(this, mt, objRef);
+            return _typeFactory.GetOrCreateType(this, mt, objRef);
         }
 
         public override ClrSegment GetSegmentByAddress(ulong objRef)
@@ -252,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         continue;
 
                     ulong mt = _reader.ReadPointerUnsafe(ptr);
-                    ClrType type = _typeBuilder.CreateTypeFromMethodTable(this, mt, obj);
+                    ClrType type = _typeFactory.GetOrCreateType(this, mt, obj);
                     if (type != null)
                         yield return new ClrObject(obj, type);
                 }

@@ -34,11 +34,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string Name { get; }
 
         /// <summary>
-        /// GetSize returns the size in bytes for the total overhead of the object <paramref name="objRef"/>.
-        /// </summary>
-        public abstract ulong GetSize(ulong objRef);
-
-        /// <summary>
         /// Returns true if the type CAN contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.
         /// </summary>
@@ -52,32 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// All types know the heap they belong to.
         /// </summary>
         public abstract ClrHeap Heap { get; }
-
-        // TODO: move these to clrobject
-
-        /// <summary>
-        /// Returns true if this object is a 'RuntimeType' (that is, the concrete System.RuntimeType class
-        /// which is what you get when calling "typeof" in C#).
-        /// </summary>
-        public virtual bool IsRuntimeType => false;
-
-        /// <summary>
-        /// Returns the concrete type (in the target process) that this RuntimeType represents.
-        /// Note you may only call this function if IsRuntimeType returns true.
-        /// </summary>
-        /// <param name="obj">The RuntimeType object to get the concrete type for.</param>
-        /// <returns>
-        /// The underlying type that this RuntimeType actually represents.  May return null if the
-        /// underlying type has not been fully constructed by the runtime, or if the underlying type
-        /// is actually a typehandle (which unfortunately ClrMD cannot convert into a ClrType due to
-        /// limitations in the underlying APIs.  (So always null-check the return value of this
-        /// function.)
-        /// </returns>
-        public virtual ClrType GetRuntimeType(ulong obj)
-        {
-            throw new NotImplementedException();
-        }
-
+        
         /// <summary>
         /// Returns the module this type is defined in.
         /// </summary>
@@ -239,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the element referenced by the pointer.
         /// </summary>
-        public virtual ClrType ComponentType { get; internal set; }
+        public abstract ClrType ComponentType { get; }
 
         /// <summary>
         /// A type is an array if you can use the array operators below, Abstractly arrays are objects
@@ -258,11 +228,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// VALUE_CLASS.
         /// </summary>
         public abstract object GetArrayElementValue(ulong objRef, int index);
-
-        /// <summary>
-        /// Returns the size of individual elements of an array.
-        /// </summary>
-        public abstract int ElementSize { get; }
 
         /// <summary>
         /// Returns the base size of the object.
@@ -333,6 +298,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             throw new NotImplementedException();
         }
+
+        public abstract bool IsShared { get; }
 
         /// <summary>
         /// Attempts to get the integer value for a given enum entry.  Note you should only call this function if

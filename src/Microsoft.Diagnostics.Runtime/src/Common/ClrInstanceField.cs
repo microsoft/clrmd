@@ -4,6 +4,8 @@
 
 namespace Microsoft.Diagnostics.Runtime
 {
+    // TODO: remove this class.  ClrInstanceField should be ClrField.  GetValue/GetAddress should be folded elsewhere.
+
     /// <summary>
     /// Represents an instance field of a type.   Fundamentally it respresents a name and a type
     /// </summary>

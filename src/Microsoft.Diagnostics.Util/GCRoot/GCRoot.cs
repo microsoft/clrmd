@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime.Desktop;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A delegate for reporting GCRoot progress.
@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 Debug.Assert(Heap.GetObjectType(rootRef) == rootType);
 
-                var rootObject = ClrObject.Create(rootRef, rootType);
+                var rootObject = new ClrObject(rootRef, rootType);
 
                 GCRootPath? result = null;
 
@@ -474,7 +474,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
-            ulong size = type.GetSize(obj);
+            ulong size = type.Heap.GetObjectSize(obj, type);
             if (!seg.IsLargeObjectSegment && size >= 85000)
                 return true;
 

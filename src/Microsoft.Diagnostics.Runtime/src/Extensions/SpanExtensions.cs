@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    static class ExtensionMethods
+    internal static class SpanExtensions
     {
         public static int Read(this Stream stream, Span<byte> span)
         {

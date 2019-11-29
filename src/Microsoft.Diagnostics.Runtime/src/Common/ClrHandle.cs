@@ -147,13 +147,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        internal ClrHandle(V45Runtime clr, ClrHeap heap, HandleData handleData)
+        internal ClrHandle(in HandleData handleData, ulong obj, ClrType type, ClrAppDomain domain, ClrType dependentSecondary)
         {
+            //TODO: rewrite class
             Address = handleData.Handle;
-            clr.ReadPointer(Address, out ulong obj);
 
             Object = obj;
-            Type = heap.GetObjectType(obj);
+            Type = type;
 
             uint refCount = 0;
 
@@ -167,17 +167,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (Type != null)
                 {
-                    if (Type.IsCCW(obj))
+                    CcwData ccw = Type.GetCCWData(obj);
+                    if (ccw != null && refCount < ccw.RefCount)
+                        refCount = (uint)ccw.RefCount;
+                    else
                     {
-                        CcwData data = Type.GetCCWData(obj);
-                        if (data != null && refCount < data.RefCount)
-                            refCount = (uint)data.RefCount;
-                    }
-                    else if (Type.IsRCW(obj))
-                    {
-                        RcwData data = Type.GetRCWData(obj);
-                        if (data != null && refCount < data.RefCount)
-                            refCount = (uint)data.RefCount;
+                        RcwData rcw = Type.GetRCWData(obj);
+                        if (rcw != null && refCount < rcw.RefCount)
+                            refCount = (uint)rcw.RefCount;
                     }
                 }
 
@@ -185,12 +182,12 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             HandleType = (HandleType)handleData.Type;
-            AppDomain = clr.GetAppDomainByAddress(handleData.AppDomain);
+            AppDomain = domain;
 
             if (HandleType == HandleType.Dependent)
             {
                 DependentTarget = handleData.Secondary;
-                DependentType = heap.GetObjectType(handleData.Secondary);
+                DependentType = dependentSecondary;
             }
         }
 

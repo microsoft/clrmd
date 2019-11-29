@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private readonly ulong _addr;
         private readonly ICCWData _ccw;
-        private readonly ClrHeapImpl _heap;
+        private readonly ClrmdHeap _heap;
         private List<ComInterfaceData> _interfaces;
     }
 }

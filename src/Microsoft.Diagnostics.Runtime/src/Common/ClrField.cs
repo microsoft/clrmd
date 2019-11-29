@@ -9,6 +9,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrField
     {
+        public abstract ClrType Parent { get; }
+
         /// <summary>
         /// The name of the field.
         /// </summary>

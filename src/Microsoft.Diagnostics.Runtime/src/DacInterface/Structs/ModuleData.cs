@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ModuleData : IModuleData
+    public readonly struct ModuleData
     {
         public readonly ulong Address;
         public readonly ulong PEFile;
@@ -31,17 +31,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong LookupTableHeap;
         public readonly ulong ThunkHeap;
         public readonly ulong ModuleIndex;
-
-        ulong IModuleData.Assembly => Assembly;
-        ulong IModuleData.PEFile => IsPEFile == 0 ? ILBase : PEFile;
-        ulong IModuleData.LookupTableHeap => LookupTableHeap;
-        ulong IModuleData.ThunkHeap => ThunkHeap;
-        ulong IModuleData.ModuleId => ModuleID;
-        ulong IModuleData.ModuleIndex => ModuleIndex;
-        bool IModuleData.IsReflection => IsReflection != 0;
-        bool IModuleData.IsPEFile => IsPEFile != 0;
-        ulong IModuleData.ImageBase => ILBase;
-        ulong IModuleData.MetdataStart => MetadataStart;
-        ulong IModuleData.MetadataLength => MetadataSize;
     }
 }

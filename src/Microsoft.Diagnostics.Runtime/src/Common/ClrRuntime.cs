@@ -16,12 +16,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used for internal purposes.
         /// </summary>
-        public DacLibrary DacLibrary { get; protected set; }
+        public abstract DacLibrary DacLibrary { get; }
 
         /// <summary>
         /// The ClrInfo of the current runtime.
         /// </summary>
-        public ClrInfo ClrInfo { get; protected set; }
+        public abstract ClrInfo ClrInfo { get; }
 
         /// <summary>
         /// Returns the DataTarget associated with this runtime.
@@ -31,17 +31,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates the list of appdomains in the process.
         /// </summary>
-        public abstract IList<ClrAppDomain> AppDomains { get; }
+        public abstract IReadOnlyList<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
-        /// Give access to the System AppDomain
+        /// The System AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
         public abstract ClrAppDomain SystemDomain { get; }
 
         /// <summary>
-        /// Give access to the Shared AppDomain
+        /// The Shared AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
         public abstract ClrAppDomain SharedDomain { get; }
+
+        public abstract ClrModule BaseClassLibrary { get; }
 
         /// <summary>
         /// Enumerates all managed threads in the process.  Only threads which have previously run managed
@@ -50,36 +52,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IReadOnlyList<ClrThread> Threads { get; }
 
         /// <summary>
-        /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects
-        /// which have been collected and will be imminently finalized.)
-        /// </summary>
-        public abstract IEnumerable<ulong> EnumerateFinalizerQueueObjectAddresses();
-
-        /// <summary>
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
         /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
         public abstract ClrMethod GetMethodByHandle(ulong methodHandle);
-
-        /// <summary>
-        /// Returns the CCW data associated with the given address.  This is used when looking at stowed
-        /// exceptions in CLR.
-        /// </summary>
-        /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
-        /// <returns>The CcwData describing the given CCW, or null.</returns>
-        public abstract CcwData GetCcwDataByAddress(ulong addr);
-
-
-        /// <summary>
-        /// Reads a pointer value out of the target process.  This function reads only the target's pointer size,
-        /// so if this is used on an x86 target, only 4 bytes is read and written to val.
-        /// </summary>
-        /// <param name="address">The address to read from.</param>
-        /// <param name="value">The value at that address.</param>
-        /// <returns>True if the read was successful, false otherwise.</returns>
-        public abstract bool ReadPointer(ulong address, out ulong value);
-
+        
         /// <summary>
         /// Enumerates a list of GC handles currently in the process.  Note that this list may be incomplete
         /// depending on the state of the process when we attempt to walk the handle table.
@@ -95,26 +73,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns data on the CLR thread pool for this runtime.
         /// </summary>
-        public virtual ClrThreadPool ThreadPool => throw new NotImplementedException();
-
-        /// <summary>
-        /// Enumerates regions of memory which CLR has allocated with a description of what data
-        /// resides at that location.  Note that this does not return every chunk of address space
-        /// that CLR allocates.
-        /// </summary>
-        /// <returns>An enumeration of memory regions in the process.</returns>
-        public abstract IEnumerable<ClrMemoryRegion> EnumerateMemoryRegions();
-
+        public abstract ClrThreadPool ThreadPool { get; }
+        
         /// <summary>
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
         /// </summary>
-        public abstract ClrMethod GetMethodByAddress(ulong ip);
+        public abstract ClrMethod GetMethodByInstructionPointer(ulong ip);
 
         /// <summary>
-        /// A list of all modules loaded into the process.
+        /// Enumerate all managed modules in the runtime.
         /// </summary>
-        public abstract IList<ClrModule> Modules { get; }
+        public abstract IEnumerable<ClrModule> EnumerateModules();
 
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
@@ -124,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// (E.G. if you want to use the ClrHeap object after calling flush, you must call ClrRuntime.GetHeap
         /// again after Flush to get a new instance.)
         /// </summary>
-        public abstract void Flush();
+        public abstract void ClearCachedData();
 
         /// <summary>
         /// Gets the name of a JIT helper function
@@ -132,13 +102,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">Address of a possible JIT helper function</param>
         /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function</returns>
         public abstract string GetJitHelperFunctionName(ulong address);
-
-        /// <summary>
-        /// Gets the name of a method table
-        /// </summary>
-        /// <param name="address">Address of a possible method table</param>
-        /// <returns>The name of the method table or null if <paramref name="address"/> isn't a method table</returns>
-        public abstract string GetMethodTableName(ulong address);
 
         /// <summary>
         /// Delegate called when the RuntimeFlushed event is triggered.
@@ -152,53 +115,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public event RuntimeFlushedCallback RuntimeFlushed;
 
-
-        /// <summary>
-        /// Retrieves the given type by its MethodTable/ComponentMethodTable pair.  Note this is only valid if
-        /// the given type's component MethodTable is 0.
-        /// </summary>
-        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <returns>A ClrType object, or null if no such type exists.</returns>
-        public abstract ClrType GetTypeByMethodTable(ulong methodTable);
-
-
-        /// <summary>
-        /// Enumerates all finalizable objects on the heap.
-        /// </summary>
-        public abstract IEnumerable<ulong> EnumerateFinalizableObjectAddresses();
-
-
-
-        /// <summary>
-        /// Enumerate the roots of the process.  (That is, all objects which keep other objects alive.)
-        /// Equivalent to EnumerateRoots(true).
-        /// </summary>
-        public abstract IEnumerable<ClrRoot> EnumerateRoots();
-
-        /// <summary>
-        /// Enumerate the roots in the process.
-        /// </summary>
-        /// <param name="enumerateStatics">
-        /// True if we should enumerate static variables.  Enumerating with statics
-        /// can take much longer than enumerating without them.  Additionally these will be be "double reported",
-        /// since all static variables are pinned by handles on the HandleTable (which is also enumerated with
-        /// EnumerateRoots).  You would want to enumerate statics with roots if you care about what exact statics
-        /// root what objects, but not if you care about performance.
-        /// </param>
-        public abstract IEnumerable<ClrRoot> EnumerateRoots(bool enumerateStatics);
-
-
         /// <summary>
         /// Call when flushing the runtime.
         /// </summary>
-        protected void OnRuntimeFlushed()
-        {
-            RuntimeFlushed?.Invoke(this);
-        }
+        protected void OnRuntimeFlushed() => RuntimeFlushed?.Invoke(this);
 
         internal void Dispose()
         {
             DacLibrary?.Dispose();
+        }
+
+        internal ClrModule GetModuleByAddress(ulong addr)
+        {
+            throw new NotImplementedException();
         }
     }
 }

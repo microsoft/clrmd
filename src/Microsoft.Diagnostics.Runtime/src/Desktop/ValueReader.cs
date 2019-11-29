@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             switch (cet)
             {
                 case ClrElementType.String:
-                    return GetStringContents(heap, reader, reader, addr);
+                    return GetStringContents(heap.StringType, reader, addr);
 
                 case ClrElementType.Class:
                 case ClrElementType.Array:
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 case ClrElementType.Boolean:
                     {
-                        if (!reader.read(addr, out byte val))
+                        if (!reader.Read(addr, out byte val))
                             return null;
 
                         return val != 0;

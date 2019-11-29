@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct AppDomainData : IAppDomainData
+    public readonly struct AppDomainData
     {
         public readonly ulong Address;
         public readonly ulong SecurityDescriptor;
@@ -21,12 +21,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly int AssemblyCount;
         public readonly int FailedAssemblyCount;
         public readonly int Stage;
-
-        int IAppDomainData.Id => Id;
-        ulong IAppDomainData.Address => Address;
-        ulong IAppDomainData.LowFrequencyHeap => LowFrequencyHeap;
-        ulong IAppDomainData.HighFrequencyHeap => HighFrequencyHeap;
-        ulong IAppDomainData.StubHeap => StubHeap;
-        int IAppDomainData.AssemblyCount => AssemblyCount;
     }
 }

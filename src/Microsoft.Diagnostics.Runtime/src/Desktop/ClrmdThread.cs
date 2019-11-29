@@ -2,32 +2,87 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal abstract class ThreadBase : ClrThread
+    internal sealed class ClrmdThread : ClrThread
     {
-        public override ulong Address => _address;
-        public override bool IsFinalizer => _finalizer;
-        public override bool IsGC => (ThreadType & (int)TlsThreadType.ThreadType_GC) == (int)TlsThreadType.ThreadType_GC;
-        public override bool IsDebuggerHelper => (ThreadType & (int)TlsThreadType.ThreadType_DbgHelper) == (int)TlsThreadType.ThreadType_DbgHelper;
-        public override bool IsThreadpoolTimer => (ThreadType & (int)TlsThreadType.ThreadType_Timer) == (int)TlsThreadType.ThreadType_Timer;
+        private readonly IThreadHelpers _helpers;
+        private readonly int _threadState;
+        private readonly ulong _exceptionHandle;
 
-        public override bool IsThreadpoolCompletionPort =>
-            (ThreadType & (int)TlsThreadType.ThreadType_Threadpool_IOCompletion) == (int)TlsThreadType.ThreadType_Threadpool_IOCompletion
-            || (_threadState & (int)ThreadState.TS_CompletionPortThread) == (int)ThreadState.TS_CompletionPortThread;
 
-        public override bool IsThreadpoolWorker =>
-            (ThreadType & (int)TlsThreadType.ThreadType_Threadpool_Worker) == (int)TlsThreadType.ThreadType_Threadpool_Worker
-            || (_threadState & (int)ThreadState.TS_TPWorkerThread) == (int)ThreadState.TS_TPWorkerThread;
+        public override ulong Address { get; }
+        public override bool IsFinalizer { get; }
+        public override GcMode GcMode { get; }
 
-        public override bool IsThreadpoolWait => (ThreadType & (int)TlsThreadType.ThreadType_Wait) == (int)TlsThreadType.ThreadType_Wait;
-        public override bool IsThreadpoolGate => (ThreadType & (int)TlsThreadType.ThreadType_Gate) == (int)TlsThreadType.ThreadType_Gate;
-        public override bool IsSuspendingEE => (ThreadType & (int)TlsThreadType.ThreadType_DynamicSuspendEE) == (int)TlsThreadType.ThreadType_DynamicSuspendEE;
-        public override bool IsShutdownHelper => (ThreadType & (int)TlsThreadType.ThreadType_ShutdownHelper) == (int)TlsThreadType.ThreadType_ShutdownHelper;
+
+        public override uint OSThreadId { get; }
+        public override int ManagedThreadId { get; }
+        public override ClrAppDomain CurrentAppDomain { get; }
+        public override uint LockCount { get; }
+
+        public override ulong StackBase { get; }
+
+        public override ulong StackLimit { get; }
+
+
+        public ClrmdThread(IThreadData data, ClrAppDomain appDomain)
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+
+            Address = data.Address;
+            IsFinalizer = data.IsFinalizer;
+            OSThreadId = data.OSThreadID;
+            ManagedThreadId = data.ManagedThreadID;
+            CurrentAppDomain = appDomain;
+            LockCount = data.LockCount;
+            _threadState = data.State;
+            _exceptionHandle = data.ExceptionHandle;
+            StackBase = data.StackBase;
+            StackLimit = data.StackLimit;
+            GcMode = data.Preemptive == 0 ? GcMode.Cooperative : GcMode.Preemptive;
+        }
+
+
+        private const int c_maxStackDepth = 1024 * 1024 * 1024; // 1gb
+        internal ClrmdRuntime DesktopRuntime { get; }
+        public override ClrRuntime Runtime => DesktopRuntime;
+
+        public override ClrException? CurrentException
+        {
+            get
+            {
+                ulong ptr = _exceptionHandle;
+                if (ptr == 0)
+                    return null;
+
+                ulong obj = _helpers.DataReader.ReadPointerUnsafe(ptr);
+                ulong mt = 0;
+                if (obj != 0)
+                    mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+
+                if (mt != 0)
+                {
+                    // Ugly.  See todo on ITypeFactory.
+                    ClrType type = _helpers.Factory.GetOrCreateType(_helpers.Factory.GetOrCreateHeap(), mt, obj);
+                    if (type != null)
+                        return new ClrException(_helpers.ExceptionHelpers, new ClrObject(obj, type));
+                }
+
+                return null;
+            }
+        }
+
+        public override IEnumerable<ClrRoot> EnumerateStackObjects() => _helpers.EnumerateStackRoots(this);
+        public override IEnumerable<ClrStackFrame> EnumerateStackTrace() => _helpers.EnumerateStackTrace(this);
+
+
         public override bool IsAborted => (_threadState & (int)ThreadState.TS_Aborted) == (int)ThreadState.TS_Aborted;
         public override bool IsGCSuspendPending => (_threadState & (int)ThreadState.TS_GCSuspendPending) == (int)ThreadState.TS_GCSuspendPending;
         public override bool IsUserSuspended => (_threadState & (int)ThreadState.TS_UserSuspendPending) == (int)ThreadState.TS_UserSuspendPending;
@@ -35,7 +90,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool IsBackground => (_threadState & (int)ThreadState.TS_Background) == (int)ThreadState.TS_Background;
         public override bool IsUnstarted => (_threadState & (int)ThreadState.TS_Unstarted) == (int)ThreadState.TS_Unstarted;
         public override bool IsCoInitialized => (_threadState & (int)ThreadState.TS_CoInitialized) == (int)ThreadState.TS_CoInitialized;
-        public override GcMode GcMode => _preemptive ? GcMode.Preemptive : GcMode.Cooperative;
         public override bool IsSTA => (_threadState & (int)ThreadState.TS_InSTA) == (int)ThreadState.TS_InSTA;
         public override bool IsMTA => (_threadState & (int)ThreadState.TS_InMTA) == (int)ThreadState.TS_InMTA;
 
@@ -43,12 +97,9 @@ namespace Microsoft.Diagnostics.Runtime
             (_threadState & (int)ThreadState.TS_AbortRequested) == (int)ThreadState.TS_AbortRequested
             || (_threadState & (int)ThreadState.TS_AbortInitiated) == (int)ThreadState.TS_AbortInitiated;
 
-        public override bool IsAlive => _osThreadId != 0 && (_threadState & ((int)ThreadState.TS_Unstarted | (int)ThreadState.TS_Dead)) == 0;
-        public override uint OSThreadId => _osThreadId;
-        public override int ManagedThreadId => (int)_managedThreadId;
-        public override ulong AppDomain => _appDomain;
-        public override uint LockCount => _lockCount;
-        public override ulong Teb => _teb;
+        public override bool IsAlive => OSThreadId != 0 && (_threadState & ((int)ThreadState.TS_Unstarted | (int)ThreadState.TS_Dead)) == 0;
+
+
 
         internal enum TlsThreadType
         {
@@ -120,99 +171,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             //TS_FailStarted            = 0x40000000,    // The thread fails during startup.
             //TS_Detached               = 0x80000000,    // Thread was detached by DllMain
-        }
-
-        private void InitTls()
-        {
-            if (_tlsInit)
-                return;
-
-            _tlsInit = true;
-            _threadType = GetTlsSlotForThread((ClrRuntimeImpl)Runtime, Teb);
-        }
-
-        internal static int GetTlsSlotForThread(ClrRuntimeImpl runtime, ulong teb)
-        {
-            const int maxTlsSlot = 64;
-            const int tlsSlotOffset = 0x1480; // Same on x86 and amd64
-            const int tlsExpansionSlotsOffset = 0x1780;
-            uint ptrSize = (uint)runtime.PointerSize;
-
-            ulong lowerTlsSlots = teb + tlsSlotOffset;
-            uint clrTlsSlot = runtime.GetTlsSlot();
-            if (clrTlsSlot == uint.MaxValue)
-                return 0;
-
-            ulong tlsSlot;
-            if (clrTlsSlot < maxTlsSlot)
-            {
-                tlsSlot = lowerTlsSlots + ptrSize * clrTlsSlot;
-            }
-            else
-            {
-                if (!runtime.ReadPointer(teb + tlsExpansionSlotsOffset, out tlsSlot) || tlsSlot == 0)
-                    return 0;
-
-                tlsSlot += ptrSize * (clrTlsSlot - maxTlsSlot);
-            }
-
-            if (!runtime.ReadPointer(tlsSlot, out ulong clrTls))
-                return 0;
-
-            // Get thread data;
-
-            uint tlsThreadTypeIndex = runtime.GetThreadTypeIndex();
-            if (tlsThreadTypeIndex == uint.MaxValue)
-                return 0;
-
-            if (!runtime.ReadPointer(clrTls + ptrSize * tlsThreadTypeIndex, out ulong threadType))
-                return 0;
-
-            return (int)threadType;
-        }
-
-        internal ThreadBase(IThreadData thread, ulong address, bool finalizer)
-        {
-            _address = address;
-            _finalizer = finalizer;
-
-            Debug.Assert(thread != null);
-            if (thread != null)
-            {
-                _osThreadId = thread.OSThreadID;
-                _managedThreadId = thread.ManagedThreadID;
-                _appDomain = thread.AppDomain;
-                _lockCount = thread.LockCount;
-                _teb = thread.Teb;
-                _threadState = thread.State;
-                _exception = thread.ExceptionPtr;
-                _preemptive = thread.Preemptive;
-            }
-        }
-
-        protected uint _osThreadId;
-        protected IList<ClrStackFrame> _stackTrace;
-        protected bool _finalizer;
-
-        protected bool _tlsInit;
-        protected int _threadType;
-        protected int _threadState;
-        protected uint _managedThreadId;
-        protected uint _lockCount;
-        protected ulong _address;
-        protected ulong _appDomain;
-        protected ulong _teb;
-        protected ulong _exception;
-
-        protected bool _preemptive;
-
-        protected int ThreadType
-        {
-            get
-            {
-                InitTls();
-                return _threadType;
-            }
         }
     }
 }

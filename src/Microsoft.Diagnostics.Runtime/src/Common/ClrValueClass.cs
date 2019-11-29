@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Diagnostics;
 
@@ -12,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public struct ClrValueClass : IAddressableTypedEntity
     {
+        private IDataReader DataReader => Type?.Heap?.Runtime?.DataTarget.DataReader;
         private readonly bool _interior;
 
         /// <summary>
@@ -51,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = Type.Heap;
 
             ulong addr = field.GetAddress(Address, _interior);
-            if (!heap.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
             ClrType type = heap.GetObjectType(obj);
@@ -109,18 +111,14 @@ namespace Microsoft.Diagnostics.Runtime
         public string GetStringField(string fieldName)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            RuntimeBase runtime = (RuntimeBase)Type.Heap.Runtime;
-
-            if (!runtime.ReadPointer(address, out ulong str))
+            if (!DataReader.ReadPointer(address, out ulong str))
                 throw new MemoryReadException(address);
 
             if (str == 0)
                 return null;
 
-            if (!runtime.ReadString(str, out string result))
-                throw new MemoryReadException(str);
-
-            return result;
+            ClrObject obj = new ClrObject(str, Type.Heap.StringType);
+            return obj.AsString();
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
