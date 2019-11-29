@@ -576,7 +576,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int hr = _getThreadData(Self, address, out data);
 
             if (IntPtr.Size == 4)
-                data = new ThreadData(ref data);
+                ThreadData.Fixup(ref data);
 
             return SUCCEEDED(hr);
         }

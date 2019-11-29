@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Desktop;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct CCWData : ICCWData
+    public readonly struct CCWData
     {
         public readonly ulong OuterIUnknown;
         public readonly ulong ManagedObject;
@@ -26,13 +26,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly uint IsExtendsCOMObject;
         public readonly uint HasWeakReference;
         public readonly uint IsAggregated;
-
-        ulong ICCWData.IUnknown => OuterIUnknown;
-        ulong ICCWData.Object => ManagedObject;
-        ulong ICCWData.Handle => Handle;
-        ulong ICCWData.CCWAddress => CCWAddress;
-        int ICCWData.RefCount => RefCount;
-        int ICCWData.JupiterRefCount => JupiterRefCount;
-        int ICCWData.InterfaceCount => InterfaceCount;
     }
 }

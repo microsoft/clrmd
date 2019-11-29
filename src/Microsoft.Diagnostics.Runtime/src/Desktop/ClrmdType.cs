@@ -258,8 +258,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         // TODO:  Add ClrObject GetCcw/GetRcw
         // TODO:  Move out of ClrType.
-        public override CcwData GetCCWData(ulong obj) => _helpers.Factory.CreateCCWForObject(obj);
-        public override RcwData GetRCWData(ulong obj) => _helpers.Factory.CreateRCWForObject(obj);
+        public override ComCallWrapper GetCCWData(ulong obj) => _helpers.Factory.CreateCCWForObject(Heap?.Runtime, obj);
+        public override RuntimeCallableWrapper GetRCWData(ulong obj) => _helpers.Factory.CreateRCWForObject(Heap?.Runtime, obj);
 
         private class EnumData
         {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Desktop;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -10,31 +11,46 @@ namespace Microsoft.Diagnostics.Runtime
     /// Helper for Com Callable Wrapper objects.  (CCWs are CLR objects exposed to native code as COM
     /// objects).
     /// </summary>
-    public abstract class CcwData
+    public sealed class ComCallWrapper
     {
+        public ulong Address { get; }
+
         /// <summary>
         /// Returns the pointer to the IUnknown representing this CCW.
         /// </summary>
-        public abstract ulong IUnknown { get; }
+        public ulong IUnknown { get; }
 
         /// <summary>
         /// Returns the pointer to the managed object representing this CCW.
         /// </summary>
-        public abstract ulong Object { get; }
+        public ulong Object { get; }
 
         /// <summary>
         /// Returns the CLR handle associated with this CCW.
         /// </summary>
-        public abstract ulong Handle { get; }
+        public ulong Handle { get; }
 
         /// <summary>
         /// Returns the refcount of this CCW.
         /// </summary>
-        public abstract int RefCount { get; }
+        public int RefCount { get; }
 
         /// <summary>
         /// Returns the interfaces that this CCW implements.
         /// </summary>
-        public abstract IList<ComInterfaceData> Interfaces { get; }
+        public IReadOnlyList<ComInterfaceData> Interfaces { get; }
+
+        public ComCallWrapper(ClrRuntime runtime, ICCWData data)
+        {
+            if (data is null)
+                throw new System.ArgumentNullException(nameof(data));
+
+            Address = data.Address;
+            IUnknown = data.IUnknown;
+            Object = data.Object;
+            Handle = data.Handle;
+            RefCount = data.RefCount + data.JupiterRefCount;
+            Interfaces = data.GetInterfaces(runtime);
+        }
     }
 }

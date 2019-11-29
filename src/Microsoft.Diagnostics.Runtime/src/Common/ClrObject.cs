@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Address = address;
             Type = type;
+            Helpers = type?.ClrObjectHelpers;
 
             Debug.Assert(address == 0 || type != null);
             Debug.Assert(address == 0 || (type != null && type.Heap.GetObjectType(address) == type));

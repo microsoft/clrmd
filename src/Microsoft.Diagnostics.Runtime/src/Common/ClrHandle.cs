@@ -167,12 +167,12 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (Type != null)
                 {
-                    CcwData ccw = Type.GetCCWData(obj);
+                    ComCallWrapper ccw = Type.GetCCWData(obj);
                     if (ccw != null && refCount < ccw.RefCount)
                         refCount = (uint)ccw.RefCount;
                     else
                     {
-                        RcwData rcw = Type.GetRCWData(obj);
+                        RuntimeCallableWrapper rcw = Type.GetRCWData(obj);
                         if (rcw != null && refCount < rcw.RefCount)
                             refCount = (uint)rcw.RefCount;
                     }

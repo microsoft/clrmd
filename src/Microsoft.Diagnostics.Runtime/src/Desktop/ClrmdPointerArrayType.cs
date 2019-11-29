@@ -75,8 +75,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override uint MetadataToken => 0;
         public override bool IsArray => !IsPointer;
         public override int ComponentSize => IntPtr.Size;
-        public override CcwData GetCCWData(ulong obj) => null;
-        public override RcwData GetRCWData(ulong obj) => null;
+        public override ComCallWrapper GetCCWData(ulong obj) => null;
+        public override RuntimeCallableWrapper GetRCWData(ulong obj) => null;
         public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
         {
             childField = null;

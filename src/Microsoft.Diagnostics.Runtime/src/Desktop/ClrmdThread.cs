@@ -46,11 +46,9 @@ namespace Microsoft.Diagnostics.Runtime
             _exceptionHandle = data.ExceptionHandle;
             StackBase = data.StackBase;
             StackLimit = data.StackLimit;
-            GcMode = data.Preemptive == 0 ? GcMode.Cooperative : GcMode.Preemptive;
+            GcMode = data.Preemptive ? GcMode.Preemptive : GcMode.Cooperative;
         }
 
-
-        private const int c_maxStackDepth = 1024 * 1024 * 1024; // 1gb
         internal ClrmdRuntime DesktopRuntime { get; }
         public override ClrRuntime Runtime => DesktopRuntime;
 
@@ -69,8 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (mt != 0)
                 {
-                    // Ugly.  See todo on ITypeFactory.
-                    ClrType type = _helpers.Factory.GetOrCreateType(_helpers.Factory.GetOrCreateHeap(), mt, obj);
+                    ClrType type = _helpers.Factory.GetOrCreateType(_helpers.Factory.GetOrCreateHeap(Runtime), mt, obj);
                     if (type != null)
                         return new ClrException(_helpers.ExceptionHelpers, new ClrObject(obj, type));
                 }

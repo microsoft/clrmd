@@ -41,11 +41,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ReadOnlySpan<byte> Context { get; }
 
         /// <summary>
-        /// Returns the thread this stack frame came from.
-        /// </summary>
-        public abstract ClrThread Thread { get; }
-
-        /// <summary>
         /// The instruction pointer of this frame.
         /// </summary>
         public abstract ulong InstructionPointer { get; }
@@ -66,6 +61,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// stack marker does not have a managed method associated with it.
         /// </summary>
         public abstract ClrMethod Method { get; }
+
+        public abstract string FrameName { get; }
 
         /// <summary>
         /// Returns the module name to use for building the stack trace.

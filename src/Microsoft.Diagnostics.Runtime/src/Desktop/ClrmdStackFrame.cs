@@ -13,20 +13,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly byte[] _context;
 
         public override ReadOnlySpan<byte> Context => _context;
-        public override ClrThread Thread { get; }
         public override ulong InstructionPointer { get; }
         public override ulong StackPointer { get; }
         public override ClrStackFrameType Kind { get; }
         public override ClrMethod Method { get; }
-        
-        public ClrmdStackFrame(ClrThread thread, byte[] context, ulong ip, ulong sp, ClrStackFrameType kind, ClrMethod method)
+        public override string FrameName { get; }
+
+        public ClrmdStackFrame(byte[] context, ulong ip, ulong sp, ClrStackFrameType kind, ClrMethod method, string frameName)
         {
-            Thread = thread;
             _context = context;
             InstructionPointer = ip;
             StackPointer = sp;
             Kind = kind;
             Method = method;
+            FrameName = frameName;
         }
     }
 }

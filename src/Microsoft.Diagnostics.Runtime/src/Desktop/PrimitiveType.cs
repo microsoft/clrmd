@@ -73,9 +73,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrStaticField GetStaticFieldByName(string name) => null;
 
-        public override CcwData GetCCWData(ulong obj) => null;
+        public override ComCallWrapper GetCCWData(ulong obj) => null;
 
-        public override RcwData GetRCWData(ulong obj) => null;
+        public override RuntimeCallableWrapper GetRCWData(ulong obj) => null;
 
         public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
 

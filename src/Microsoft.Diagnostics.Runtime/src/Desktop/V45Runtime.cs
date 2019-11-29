@@ -14,16 +14,17 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    // TODO: reconsider whether we should carry ClrHeap here or stash it in a property.
-    public interface ITypeFactory
+    // TODO: reconsider whether we should carry ClrHeap here some other solution.
+    public interface ITypeFactory : IDisposable
     {
-        ClrHeap GetOrCreateHeap();
+        ClrRuntime CreateRuntime();
+        ClrHeap GetOrCreateHeap(ClrRuntime runtime);
         ClrAppDomain GetOrCreateAppDomain(ClrRuntime runtime, ulong domain);
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
         ClrMethod[] CreateMethodsForType(ClrType type);
         void CreateFieldsForType(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] staticFields);
-        CcwData CreateCCWForObject(ulong obj);
-        RcwData CreateRCWForObject(ulong obj);
+        ComCallWrapper CreateCCWForObject(ClrRuntime runtime, ulong obj);
+        RuntimeCallableWrapper CreateRCWForObject(ClrRuntime runtime, ulong obj);
         ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType);
         ClrType GetOrCreateArrayType(ClrHeap heap, ClrType inner, int ranks);
@@ -56,8 +57,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ITypeFactory Factory { get; }
         IExceptionHelpers ExceptionHelpers { get; }
 
-        IEnumerable<ClrRoot> EnumerateStackRoots(ClrThread clrmdThread);
-        IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread clrmdThread);
+        IEnumerable<ClrRoot> EnumerateStackRoots(ClrThread thread);
+        IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread);
     }
 
     public interface IThreadData
@@ -70,16 +71,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         uint LockCount { get; }
         int State { get; }
         ulong ExceptionHandle { get; }
-        int Preemptive { get; }
+        bool Preemptive { get; }
         ulong StackBase { get; }
         ulong StackLimit { get; }
     }
 
-    public interface IRuntimeHelpers : IDisposable
+    public interface IRuntimeHelpers
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
-        IHeapBuilder HeapBuilder { get; }
         IReadOnlyList<ClrThread> GetThreads(ClrRuntime runtime);
         IReadOnlyList<ClrAppDomain> GetAppDomains(ClrRuntime runtime, out ClrAppDomain system, out ClrAppDomain shared);
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime);
@@ -179,6 +179,32 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         IObjectData GetObjectData(ulong objRef);
     }
 
+    public interface IRCWData
+    {
+        ulong Address { get; }
+        ulong IUnknown { get; }
+        ulong VTablePointer { get; }
+        int RefCount { get; }
+        ulong ManagedObject { get; }
+        bool Disconnected { get; }
+        ulong CreatorThread { get; }
+
+        IReadOnlyList<ComInterfaceData> GetInterfaces(ClrRuntime runtime);
+    }
+
+    public interface ICCWData
+    {
+        ulong Address { get; }
+        ulong IUnknown { get; }
+        ulong Object { get; }
+        ulong Handle { get; }
+        int RefCount { get; }
+        int JupiterRefCount { get; }
+
+        IReadOnlyList<ComInterfaceData> GetInterfaces(ClrRuntime runtime);
+    }
+
+
     public interface IMethodHelpers
     {
         IDataReader DataReader { get; }
@@ -208,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         bool ServerGC { get; }
         int LogicalHeapCount { get; }
-        IEnumerable<Tuple<ulong, ulong>> EnumerateDependentHandleLinks();
+        IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks();
 
         ulong ArrayMethodTable { get; }
         ulong StringMethodTable { get; }
@@ -235,6 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         string ReportOrInternString(ulong key, string str);
         void ReportMemory(ulong key, long bytes);
+        void Clear();
     }
 
     sealed class TypeCache : ITypeCache
@@ -243,6 +270,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>(32);
         public long TotalBytes { get; private set; }
         public long MaxSize { get; } = IntPtr.Size == 4 ? 500 * 1024 * 1024 : long.MaxValue;
+
+        public void Clear()
+        {
+            TotalBytes = 0;
+            _types.Clear();
+            _modules.Clear();
+        }
 
         public bool Store(ulong key, ClrType type)
         {
@@ -285,9 +319,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     // expect, it must stay internal only.
     unsafe sealed class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, ITypeData, IModuleData, IModuleHelpers,
                                          IMethodHelpers, IMethodData, IClrObjectHelpers, IFieldData, IFieldHelpers, IAppDomainData,
-                                         IAppDomainHelpers, IThreadData, IThreadHelpers
+                                         IAppDomainHelpers, IThreadData, IThreadHelpers, ICCWData, IRCWData, IExceptionHelpers
 
     {
+        private readonly ClrInfo _clrinfo;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
@@ -295,9 +330,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly int _threads;
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
-        private List<(ulong, ulong)> _dependentTable;
         private readonly Dictionary<ulong, ulong> _moduleSizes = new Dictionary<ulong, ulong>();
         private List<AllocationContext> _threadAllocContexts;
+
+        private ClrHeap _heap;
 
         private readonly ITypeCache _cache = new TypeCache();
         private readonly int _typeSize = Marshal.SizeOf<ClrmdType>();
@@ -314,6 +350,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private CodeHeaderData _codeHeaderData;
         private FieldData _fieldData;
         private ThreadData _threadData;
+        private CCWData _ccwData;
+        private RCWData _rcwData;
 
         public IDataReader DataReader { get; }
         public IHeapBuilder HeapBuilder
@@ -329,13 +367,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ITypeFactory Factory => this;
 
-        public RuntimeBuilder(DataTarget dt, DacLibrary library, IDataReader reader)
+        public RuntimeBuilder(ClrInfo clr, DacLibrary library)
         {
+            _clrinfo = clr;
             _library = library;
             _dac = _library.DacPrivateInterface;
             _sos = _library.SOSDacInterface;
             _sos6 = _library.GetSOSInterface6NoAddRef();
-            DataReader = reader;
+            DataReader = _clrinfo.DataTarget.DataReader;
 
             int version = 0;
             if (library.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
@@ -351,8 +390,13 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _firstThread = data.FirstThread;
             _finalizer = data.FinalizerThread;
 
-            foreach (ModuleInfo mi in dt.EnumerateModules())
+            foreach (ModuleInfo mi in _clrinfo.DataTarget.EnumerateModules())
                 _moduleSizes[mi.ImageBase] = mi.FileSize;
+        }
+
+        public void Dispose()
+        {
+            _library.Dispose();
         }
 
         public ClrModule GetOrCreateModule(ClrAppDomain domain, ulong addr)
@@ -372,6 +416,148 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
+        IThreadHelpers IThreadData.Helpers => this;
+        ulong IThreadData.Address => _ptr;
+        bool IThreadData.IsFinalizer => _finalizer == _ptr;
+        uint IThreadData.OSThreadID => _threadData.OSThreadId;
+        int IThreadData.ManagedThreadID => (int)_threadData.ManagedThreadId;
+        uint IThreadData.LockCount => _threadData.LockCount;
+        int IThreadData.State => _threadData.State;
+        ulong IThreadData.ExceptionHandle => _threadData.LastThrownObjectHandle;
+        bool IThreadData.Preemptive => _threadData.PreemptiveGCDisabled == 0;
+        ulong IThreadData.StackBase
+        {
+            get
+            {
+                if (_threadData.Teb == 0)
+                    return 0;
+
+                ulong ptr = _threadData.Teb + (ulong)IntPtr.Size;
+                if (!DataReader.ReadPointer(ptr, out ptr))
+                    return 0;
+
+                return ptr;
+            }
+        }
+        ulong IThreadData.StackLimit
+        {
+            get
+            {
+                if (_threadData.Teb == 0)
+                    return 0;
+
+                ulong ptr = _threadData.Teb + (ulong)IntPtr.Size * 2;
+                if (!DataReader.ReadPointer(ptr, out ptr))
+                    return 0;
+
+                return ptr;
+            }
+        }
+
+        IEnumerable<ClrRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
+        {
+            // TODO: rethink stack roots and this code
+            using SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
+            if (stackRefEnum == null)
+                yield break;
+
+            ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(1024).ToArray();
+
+            ClrAppDomain domain = thread.CurrentAppDomain;
+            ClrHeap heap = thread.Runtime?.Heap;
+            StackRefData[] refs = new StackRefData[1024];
+
+            const int GCInteriorFlag = 1;
+            const int GCPinnedFlag = 2;
+            int fetched = 0;
+            while ((fetched = stackRefEnum.ReadStackReferences(refs)) != 0)
+            {
+                for (uint i = 0; i < fetched && i < refs.Length; ++i)
+                {
+                    if (refs[i].Object == 0)
+                        continue;
+
+                    bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
+                    bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
+
+                    ClrType type = null;
+
+                    if (!interior)
+                        type = heap.GetObjectType(refs[i].Object);
+
+                    ClrStackFrame frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
+
+                    if (interior || type != null)
+                        yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior, frame);
+                }
+            }
+        }
+
+        IEnumerable<ClrStackFrame> IThreadHelpers.EnumerateStackTrace(ClrThread thread)
+        {
+            using ClrStackWalk stackwalk = _dac.CreateStackWalk(thread.OSThreadId, 0xf);
+            if (stackwalk == null)
+                yield break;
+
+            byte[] context = ContextHelper.Context;
+            do
+            {
+                if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out _, context))
+                    break;
+
+                ulong ip, sp;
+
+                if (IntPtr.Size == 4)
+                {
+                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
+                }
+                else
+                {
+                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
+                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
+                }
+
+                ulong frameVtbl = stackwalk.GetFrameVtable();
+                if (frameVtbl != 0)
+                {
+                    sp = frameVtbl;
+                    frameVtbl = DataReader.ReadPointerUnsafe(sp);
+                }
+
+                byte[] contextCopy = new byte[context.Length];
+                Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
+
+                ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
+                yield return frame;
+            } while (stackwalk.Next());
+        }
+
+
+        private ClrStackFrame GetStackFrame(ClrThread thread, byte[] context, ulong ip, ulong sp, ulong frameVtbl)
+        {
+            // todo: pull Method from enclosing type, don't generate methods without a parent
+            if (frameVtbl != 0)
+            {
+                ClrMethod innerMethod = null;
+                string frameName = _sos.GetFrameName(frameVtbl);
+
+                ulong md = _sos.GetMethodDescPtrFromFrame(sp);
+                if (md != 0)
+                {
+                    V45MethodDescDataWrapper mdData = new V45MethodDescDataWrapper();
+                    if (mdData.Init(_sos, md))
+                        innerMethod = CreateMethodFromHandle(thread?.Runtime?.Heap, md);
+                }
+
+                return new ClrmdStackFrame(context, ip, sp, ClrStackFrameType.Runtime, innerMethod, frameName);
+            }
+            else
+            {
+                ClrMethod method = thread?.Runtime?.GetMethodByInstructionPointer(ip);
+                return new ClrmdStackFrame(context, ip, sp, ClrStackFrameType.ManagedMethod, method, null);
+            }
+        }
 
         IReadOnlyList<ClrThread> IRuntimeHelpers.GetThreads(ClrRuntime runtime)
         {
@@ -399,6 +585,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             return threads;
         }
+
         IReadOnlyList<ClrAppDomain> IRuntimeHelpers.GetAppDomains(ClrRuntime runtime, out ClrAppDomain system, out ClrAppDomain shared)
         {
             system = null;
@@ -443,35 +630,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
-        {
-            if (_dependentTable != null)
-                return _dependentTable;
-
-            List<(ulong, ulong)> dependentTable = new List<(ulong, ulong)>();
-            
-            // TODO use smarter sos enum for only dependent handles
-            using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
-
-            Span<HandleData> handles = stackalloc HandleData[16];
-            int fetched = 0;
-            while ((fetched = handleEnum.ReadHandles(handles, 16)) != 0)
-            {
-                for (int i = 0; i < fetched; i++)
-                {
-                    if (handles[i].Type == (int)HandleType.Dependent)
-                    {
-                        ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
-                        if (obj != 0)
-                            dependentTable.Add(ValueTuple.Create(obj, handles[i].Secondary));
-                    }
-                }
-            }
-
-            return _dependentTable = dependentTable;
-        }
-
-
         IEnumerable<ClrHandle> IRuntimeHelpers.EnumerateHandleTable(ClrRuntime runtime)
         {
             Span<HandleData> handles = stackalloc HandleData[16];
@@ -482,7 +640,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             // TODO: Use smarter handle enum overload in _sos
 
-            List<(ulong, ulong)> dependentTable = _dependentTable == null ? new List<(ulong, ulong)>() : null;
             Dictionary<ulong, ClrAppDomain> domains = new Dictionary<ulong, ClrAppDomain>();
             foreach (ClrAppDomain domain in runtime.AppDomains)
             {
@@ -512,8 +669,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                             if (dmt != 0)
                                 dependent = GetOrCreateType(runtime.Heap, dmt, handles[i].Secondary);
-
-                            dependentTable?.Add(ValueTuple.Create(obj, handles[i].Secondary));
                         }
 
                         domains.TryGetValue(handles[i].AppDomain, out ClrAppDomain domain);
@@ -527,16 +682,53 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     }
                 }
             }
-
-            if (dependentTable != null)
-                _dependentTable = dependentTable;
         }
-        
-        void IRuntimeHelpers.ClearCachedData() => _dac.Flush();
+
+        void IRuntimeHelpers.ClearCachedData()
+        {
+            _heap = null;
+            _dac.Flush();
+            _cache.Clear();
+        }
+
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
         string IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
 
+        public IExceptionHelpers ExceptionHelpers => this;
 
+        IReadOnlyList<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrObject obj)
+        {
+            ClrObject _stackTrace = obj.GetObjectField("_stackTrace");
+            if (_stackTrace.IsNull)
+                return Array.Empty<ClrStackFrame>();
+            
+            int len = _stackTrace.Length;
+            if (len == 0)
+                return Array.Empty<ClrStackFrame>();
+
+            int elementSize = IntPtr.Size * 4;
+            ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
+            if (!DataReader.ReadPointer(dataPtr, out ulong count))
+                return Array.Empty<ClrStackFrame>();
+
+            ClrStackFrame[] result = new ClrStackFrame[count];
+
+            // Skip size and header
+            dataPtr += (ulong)(IntPtr.Size * 2);
+
+            for (int i = 0; i < (int)count; ++i)
+            {
+                ulong ip = DataReader.ReadPointerUnsafe(dataPtr);
+                ulong sp = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size);
+                ulong md = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
+
+                ClrMethod method = CreateMethodFromHandle(obj.Type?.Heap, md);
+                result[i] = new ClrmdStackFrame(null, ip, sp, ClrStackFrameType.ManagedMethod, method, frameName: null);
+                dataPtr += (ulong)elementSize;
+            }
+
+            return result;
+        }
 
 
         IAppDomainHelpers IAppDomainData.Helpers => this;
@@ -617,6 +809,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
+        public ClrRuntime CreateRuntime() => new ClrmdRuntime(_clrinfo, _library, this);
+        public ClrHeap GetOrCreateHeap(ClrRuntime runtime) => _heap ?? (_heap = new ClrmdHeap(runtime, HeapBuilder));
+
         public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType) => throw new NotImplementedException();
 
         public ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
@@ -676,26 +871,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        CcwData ITypeFactory.CreateCCWForObject(ulong obj)
+        ComCallWrapper ITypeFactory.CreateCCWForObject(ClrRuntime runtime, ulong obj)
         {
             if (!_sos.GetObjectData(obj, out V45ObjectData data) || data.CCW == 0)
                 return null;
 
-            if (!_sos.GetCCWData(data.CCW, out CCWData ccw))
+            if (!_sos.GetCCWData(data.CCW, out _ccwData))
                 return null;
 
-            return new DesktopCCWData(data.CCW, ccw);
+            _ptr = data.CCW;
+            return new ComCallWrapper(runtime,  this);
         }
 
-        RcwData ITypeFactory.CreateRCWForObject(ulong obj)
+        RuntimeCallableWrapper ITypeFactory.CreateRCWForObject(ClrRuntime runtime, ulong obj)
         {
             if (!_sos.GetObjectData(obj, out V45ObjectData data) || data.RCW == 0)
                 return null;
 
-            if (!_sos.GetRCWData(data.RCW, out RCWData rcw))
+            if (!_sos.GetRCWData(data.RCW, out _rcwData))
                 return null;
 
-            return new DesktopRCWData(data.CCW, rcw);
+            _ptr = data.RCW;
+            return new RuntimeCallableWrapper(runtime, this);
         }
 
         ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
@@ -723,7 +920,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return methods.ToArray();
         }
 
-        ClrMethod ITypeFactory.CreateMethodFromHandle(ClrHeap heap, ulong methodDesc)
+        public ClrMethod CreateMethodFromHandle(ClrHeap heap, ulong methodDesc)
         {
             if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
                 return null;
@@ -798,6 +995,42 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public MetaDataImport GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
+
+        ulong IRCWData.Address => _ptr;
+        ulong IRCWData.IUnknown => _rcwData.IUnknownPointer;
+        ulong IRCWData.VTablePointer => _rcwData.VTablePointer;
+        int IRCWData.RefCount => _rcwData.RefCount;
+        ulong IRCWData.ManagedObject => _rcwData.ManagedObject;
+        bool IRCWData.Disconnected => _rcwData.IsDisconnected != 0;
+        ulong IRCWData.CreatorThread => _rcwData.CreatorThread;
+
+        IReadOnlyList<ComInterfaceData> IRCWData.GetInterfaces(ClrRuntime runtime)
+        {
+            COMInterfacePointerData[] ifs = _sos.GetRCWInterfaces(_ptr, _rcwData.InterfaceCount);
+            return CreateComInterfaces(runtime, ifs);
+        }
+
+        ulong ICCWData.Address => _ccwData.CCWAddress;
+        ulong ICCWData.IUnknown => _ccwData.OuterIUnknown;
+        ulong ICCWData.Object => _ccwData.ManagedObject;
+        ulong ICCWData.Handle => _ccwData.Handle;
+        int ICCWData.RefCount => _ccwData.RefCount + _ccwData.JupiterRefCount;
+        int ICCWData.JupiterRefCount => _ccwData.JupiterRefCount;
+
+        IReadOnlyList<ComInterfaceData> ICCWData.GetInterfaces(ClrRuntime runtime)
+        {
+            COMInterfacePointerData[] ifs = _sos.GetCCWInterfaces(_ptr, _ccwData.InterfaceCount);
+            return CreateComInterfaces(runtime, ifs);
+        }
+
+        private ComInterfaceData[] CreateComInterfaces(ClrRuntime runtime, COMInterfacePointerData[] ifs)
+        {
+            ComInterfaceData[] result = new ComInterfaceData[ifs.Length];
+
+            for (int i = 0; i < ifs.Length; i++)
+                result[i] = new ComInterfaceData(GetOrCreateType(GetOrCreateHeap(runtime), ifs[0].MethodTable, 0), ifs[0].InterfacePointer);
+            return result;
+        }
 
         bool IFieldHelpers.ReadProperties(ClrType type, out string name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
         {
@@ -1098,7 +1331,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-
         public void AddHeap(ClrHeap clrHeap, ulong address, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
                             List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
         {
@@ -1145,6 +1377,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 segments.Add(new HeapSegment(clrHeap, this));
                 if (_seenSegments.Add(_segment.Next))
                     break;
+            }
+        }
+
+        public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
+        {
+            // TODO use smarter sos enum for only dependent handles
+            using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
+
+            Span<HandleData> handles = stackalloc HandleData[16];
+            int fetched = 0;
+            while ((fetched = handleEnum.ReadHandles(handles, 16)) != 0)
+            {
+                for (int i = 0; i < fetched; i++)
+                {
+                    if (handles[i].Type == (int)HandleType.Dependent)
+                    {
+                        ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
+                        if (obj != 0)
+                            yield return (obj, handles[i].Secondary);
+                    }
+                }
             }
         }
     }

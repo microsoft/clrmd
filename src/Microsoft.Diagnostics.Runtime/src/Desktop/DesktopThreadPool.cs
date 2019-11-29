@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Linq;
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
@@ -27,16 +27,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             MaxFreeCompletionPorts = data.MaxFreeCP;
         }
 
+
+        public override int MinCompletionPorts { get; }
+        public override int MaxCompletionPorts { get; }
+        public override int CpuUtilization { get; }
+        public override int FreeCompletionPortCount { get; }
+        public override int MaxFreeCompletionPorts { get; }
         public override int TotalThreads { get; }
         public override int RunningThreads { get; }
         public override int IdleThreads { get; }
         public override int MinThreads { get; }
         public override int MaxThreads { get; }
 
-        public override IEnumerable<NativeWorkItem> EnumerateNativeWorkItems()
-        {
-            return _runtime.EnumerateWorkItems();
-        }
+        //TODO
+        public override IEnumerable<NativeWorkItem> EnumerateNativeWorkItems() => throw new NotImplementedException();
 
         public override IEnumerable<ManagedWorkItem> EnumerateManagedWorkItems()
         {
@@ -55,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _heap = _runtime.Heap;
 
-            ClrModule mscorlib = GetMscorlib();
+            ClrModule mscorlib = _runtime.BaseClassLibrary;
             if (mscorlib != null)
             {
                 ClrType queueType = mscorlib.GetTypeByName("System.Threading.ThreadPoolGlobals");
@@ -145,26 +149,5 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
         }
-
-        private ClrModule GetMscorlib()
-        {
-            foreach (ClrModule module in _runtime.Modules)
-                if (module.AssemblyName.Contains("mscorlib.dll"))
-                    return module;
-
-            // Uh oh, this shouldn't have happened.  Let's look more carefully (slowly).
-            foreach (ClrModule module in _runtime.Modules)
-                if (module.AssemblyName.ToUpperInvariant().Contains("MSCORLIB"))
-                    return module;
-
-            // Ok...not sure why we couldn't find it.
-            return null;
-        }
-
-        public override int MinCompletionPorts { get; }
-        public override int MaxCompletionPorts { get; }
-        public override int CpuUtilization { get; }
-        public override int FreeCompletionPortCount { get; }
-        public override int MaxFreeCompletionPorts { get; }
     }
 }

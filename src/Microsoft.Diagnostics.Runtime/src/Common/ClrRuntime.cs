@@ -57,7 +57,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
         /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
         public abstract ClrMethod GetMethodByHandle(ulong methodHandle);
-        
+
+        /// <summary>
+        /// Gets the ClrType corresponding to the given MethodTable.
+        /// </summary>
+        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
+        /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
+        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        public abstract ClrType GetTypeByMethodTable(ulong methodTable);
+
         /// <summary>
         /// Enumerates a list of GC handles currently in the process.  Note that this list may be incomplete
         /// depending on the state of the process when we attempt to walk the handle table.

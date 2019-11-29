@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -192,13 +193,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the CCWData for the given object.
         /// </summary>
         /// <returns>The CCWData associated with the object, null if obj is not a CCW.</returns>
-        public abstract CcwData GetCCWData(ulong obj);
+        public abstract ComCallWrapper GetCCWData(ulong obj);
 
         /// <summary>
         /// Returns the RCWData for the given object.
         /// </summary>
         /// <returns>The RCWData associated with the object, null if obj is not a RCW.</returns>
-        public abstract RcwData GetRCWData(ulong obj);
+        public abstract RuntimeCallableWrapper GetRCWData(ulong obj);
 
         /// <summary>
         /// Indicates if the type is in fact a pointer. If so, the pointer operators
@@ -330,5 +331,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override string ToString() => Name;
+
+        /// <summary>
+        /// Used to provide functionality to ClrObject.
+        /// </summary>
+        public IClrObjectHelpers ClrObjectHelpers { get; }
     }
 }

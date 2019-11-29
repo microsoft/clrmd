@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public DataTarget DataTarget { get; }
 
-        internal ClrRuntime Runtime { get; }
+        internal ITypeFactory RuntimeFactory { get; private set; }
 
         internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
         {
@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal void Dispose()
         {
             // Intentionally internal and not IDisposable.
-            Runtime?.Dispose();
+            RuntimeFactory?.Dispose();
         }
 
         /// <summary>
@@ -110,25 +110,25 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void ThrowIfRuntimeCreated()
         {
-            if (Runtime != null)
+            if (RuntimeFactory != null)
                 throw new InvalidOperationException($"ClrRuntime for version {Version} has already been created.");
         }
 
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
         private ClrRuntime ConstructRuntime(string dac)
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            DacLibrary lib = new DacLibrary(DataTarget, dac);
-
+            RuntimeFactory = new RuntimeBuilder(this, new DacLibrary(DataTarget, dac));
             if (Flavor == ClrFlavor.Core)
-                return new V45Runtime(this, DataTarget, lib);
+                return RuntimeFactory.CreateRuntime();
 
             if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Patch < 10000))
                 throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
-            
-            return new V45Runtime(this, DataTarget, lib);
+
+            return RuntimeFactory.CreateRuntime();
         }
     }
 }
