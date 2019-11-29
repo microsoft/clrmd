@@ -86,3 +86,10 @@ Here is a list of feedback I am tracking from the community (my summary):
 (Notes to myself about what I need to revisit.)
 
 1.  ThreadPool related code.
+
+# .Net Core 5 Dac Wishlist
+
+1. Get ElementType for method table data.
+2. All method tables => type handle.
+3. Generics.
+4. Images report size.
