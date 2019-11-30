@@ -132,10 +132,5 @@ namespace Microsoft.Diagnostics.Runtime
         {
             DacLibrary?.Dispose();
         }
-
-        internal ClrModule GetModuleByAddress(ulong addr)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

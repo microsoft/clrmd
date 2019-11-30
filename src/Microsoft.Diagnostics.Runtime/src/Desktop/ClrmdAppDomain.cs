@@ -10,13 +10,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     internal class ClrmdAppDomain : ClrAppDomain
     {
         private readonly IAppDomainHelpers _helpers;
-        private IReadOnlyList<ClrModule> _modules;
 
         public override ClrRuntime Runtime { get; }
         public override ulong Address { get; }
         public override int Id { get; }
         public override string Name { get; }
-        public override IReadOnlyList<ClrModule> Modules => _modules ?? (_modules = _helpers.EnumerateModules(this).ToArray());
+        public override IReadOnlyList<ClrModule> Modules { get; }
 
         public override string ConfigurationFile => _helpers.GetConfigFile(this);
         public override string ApplicationBase => _helpers.GetApplicationBase(this);
@@ -29,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Address = data.Address;
             Name = data.Name;
             Runtime = runtime;
+            Modules = _helpers.EnumerateModules(this).ToArray();
         }
     }
 }

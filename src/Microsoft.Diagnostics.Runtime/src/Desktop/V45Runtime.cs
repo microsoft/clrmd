@@ -8,9 +8,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -18,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     // TODO: reconsider whether we should carry ClrHeap here some other solution.
     public interface ITypeFactory : IDisposable
     {
-        ClrRuntime CreateRuntime();
+        ClrRuntime GetOrCreateRuntime();
         ClrHeap GetOrCreateHeap(ClrRuntime runtime);
         ClrAppDomain GetOrCreateAppDomain(ClrRuntime runtime, ulong domain);
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
@@ -255,9 +252,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public long MaxSize { get; }
 
         ClrType GetStoredType(ulong key);
-        ClrModule GetStoredModule(ulong key);
-
-        bool Store(ulong key, ClrModule module);
         bool Store(ulong key, ClrType type);
 
         string ReportOrInternString(ulong key, string str);
@@ -268,7 +262,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     sealed class TypeCache : ITypeCache
     {
         private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>(1024);
-        private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>(32);
         public long TotalBytes { get; private set; }
         public long MaxSize { get; } = IntPtr.Size == 4 ? 500 * 1024 * 1024 : long.MaxValue;
 
@@ -276,7 +269,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             TotalBytes = 0;
             _types.Clear();
-            _modules.Clear();
         }
 
         public bool Store(ulong key, ClrType type)
@@ -290,17 +282,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ClrType GetStoredType(ulong key) => _types.GetOrDefault(key);
 
-        public bool Store(ulong key, ClrModule module)
-        {
-            if (TotalBytes >= MaxSize)
-                return false;
-
-            _modules[key] = module;
-            return true;
-        }
-
-        public ClrModule GetStoredModule(ulong key) => _modules.GetOrDefault(key);
-
         public void ReportMemory(ulong key, long bytes)
         {
             TotalBytes += bytes;
@@ -308,7 +289,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public string ReportOrInternString(ulong key, string str)
         {
-            ReportMemory(key, 2 * IntPtr.Size + 2 * str.Length);
+            if (str != null)
+                ReportMemory(key, 2 * IntPtr.Size + 2 * str.Length);
             return str;
         }
     }
@@ -331,9 +313,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly int _threads;
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
+
+        readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
         private readonly Dictionary<ulong, ulong> _moduleSizes = new Dictionary<ulong, ulong>();
         private List<AllocationContext> _threadAllocContexts;
 
+        private ClrRuntime _runtime;
         private ClrHeap _heap;
 
         private readonly ITypeCache _cache = new TypeCache();
@@ -341,7 +326,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly int _methodSize = 8;
         private readonly int _instFieldSize = 8;
         private readonly int _staticFieldSize = 8;
-        private readonly int _moduleSize = 8;
 
         private ulong _ptr;
         private AppDomainData _appDomainData;
@@ -400,11 +384,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _library.Dispose();
         }
 
-
         public ClrModule GetOrCreateModule(ClrAppDomain domain, ulong addr)
         {
-            ClrModule result = _cache.GetStoredModule(addr);
-            if (result != null)
+            if (_modules.TryGetValue(addr, out ClrModule result))
                 return result;
 
             _ptr = addr;
@@ -412,9 +394,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             result = new ClrmdModule(domain, this);
-            if (_cache.Store(addr, result))
-                _cache.ReportMemory(addr, _moduleSize);
-
             return result;
         }
 
@@ -816,8 +795,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        public ClrRuntime CreateRuntime() => new ClrmdRuntime(_clrinfo, _library, this);
-        public ClrHeap GetOrCreateHeap(ClrRuntime runtime) => _heap ?? (_heap = new ClrmdHeap(runtime, HeapBuilder));
+        public ClrRuntime GetOrCreateRuntime() => _runtime ?? (_runtime = new ClrmdRuntime(_clrinfo, _library, this));
+        public ClrHeap GetOrCreateHeap(ClrRuntime runtime) => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
 
         public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType) => throw new NotImplementedException();
 
@@ -842,7 +821,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!_sos.GetMethodTableData(mt, out _mtData))
                     return null;
 
-                ClrModule module = heap.Runtime?.GetModuleByAddress(_mtData.Module);
+                ClrModule module = GetOrCreateModule(null, _mtData.Module);
                 ClrmdType result = new ClrmdType(heap, module, this);
 
                 if (_cache.Store(mt, result))

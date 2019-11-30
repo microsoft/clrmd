@@ -18,7 +18,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrModule _bcl;
         private ClrAppDomain _shared;
         private ClrAppDomain _system;
-        private IReadOnlyList<ClrAppDomain> _domains;
         private IReadOnlyList<ClrThread> _threads;
 
         public override DataTarget DataTarget => ClrInfo?.DataTarget;
@@ -28,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrThreadPool ThreadPool => throw new NotImplementedException(); // todo
         public override IReadOnlyList<ClrThread> Threads => _threads ?? (_threads = _helpers.GetThreads(this));
         public override ClrHeap Heap => _heap ?? (_heap = _helpers.Factory.GetOrCreateHeap(this));
-        public override IReadOnlyList<ClrAppDomain> AppDomains => _domains ?? (_domains = _helpers.GetAppDomains(this, out _system, out _shared));
+        public override IReadOnlyList<ClrAppDomain> AppDomains { get; }
 
         public override ClrAppDomain SharedDomain
         {
@@ -53,6 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ClrInfo = info;
             DacLibrary = dac;
             _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+            AppDomains = _helpers.GetAppDomains(this, out _system, out _shared);
 
             DebugOnlyLoadLazyValues();
         } 
@@ -60,7 +60,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         [Conditional("DEBUG")]
         private void DebugOnlyLoadLazyValues()
         {
-            _ = AppDomains;
             _ = Threads;
         }
 
@@ -85,7 +84,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _helpers.ClearCachedData();
             _heap = null;
             _bcl = null;
-            _domains = null;
             _threads = null;
         }
 

@@ -22,11 +22,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSDac(DacLibrary library, IntPtr ptr)
             : base(library?.OwningLibrary, ref IID_ISOSDac, ptr)
         {
-            _library = library;
+            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
-        public SOSDac(CallableCOMWrapper toClone) : base(toClone)
+        public SOSDac(DacLibrary lib, CallableCOMWrapper toClone) : base(toClone)
         {
+            _library = lib;
         }
 
         private DacGetIntPtr _getHandleEnum;

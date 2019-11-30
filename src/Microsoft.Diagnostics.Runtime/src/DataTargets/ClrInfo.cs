@@ -123,12 +123,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             RuntimeFactory = new RuntimeBuilder(this, new DacLibrary(DataTarget, dac));
             if (Flavor == ClrFlavor.Core)
-                return RuntimeFactory.CreateRuntime();
+                return RuntimeFactory.GetOrCreateRuntime();
 
             if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Patch < 10000))
                 throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
 
-            return RuntimeFactory.CreateRuntime();
+            return RuntimeFactory.GetOrCreateRuntime();
         }
     }
 }

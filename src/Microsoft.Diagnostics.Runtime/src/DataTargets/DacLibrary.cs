@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 SOSDac sos = GetSOSInterfaceNoAddRef();
-                return sos != null ? new SOSDac(sos) : null;
+                return sos != null ? new SOSDac(this, sos) : null;
             }
         }
 
