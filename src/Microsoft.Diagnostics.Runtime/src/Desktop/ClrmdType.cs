@@ -92,8 +92,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private void DebugOnlyLoadLazyValues()
         {
             _ = Name;
-            _ = Fields;
             _ = Methods;
+            // Cannot pre-init fields because a type could contain a field of it's own type
         }
 
         public void SetComponentType(ClrType type) => _componentType = type;

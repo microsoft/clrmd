@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed class DbgEngDataReader : IDisposable, IDataReader
     {
         private static int s_totalInstanceCount;
-        private static bool s_needRelease = true;
+        private static bool s_needRelease = true; //todo
 
 
         private DebugClient _client;

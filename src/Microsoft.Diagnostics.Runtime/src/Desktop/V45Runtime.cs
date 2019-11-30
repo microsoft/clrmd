@@ -337,11 +337,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrHeap _heap;
 
         private readonly ITypeCache _cache = new TypeCache();
-        private readonly int _typeSize = Unsafe.SizeOf<ClrmdType>();
-        private readonly int _methodSize = Unsafe.SizeOf<ClrmdMethod>();
-        private readonly int _instFieldSize = Unsafe.SizeOf<ClrmdField>();
-        private readonly int _staticFieldSize = Unsafe.SizeOf<ClrmdStaticField>();
-        private readonly int _moduleSize = Unsafe.SizeOf<ClrmdModule>();
+        private readonly int _typeSize = 8; // todo
+        private readonly int _methodSize = 8;
+        private readonly int _instFieldSize = 8;
+        private readonly int _staticFieldSize = 8;
+        private readonly int _moduleSize = 8;
 
         private ulong _ptr;
         private AppDomainData _appDomainData;
@@ -399,6 +399,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _library.Dispose();
         }
+
 
         public ClrModule GetOrCreateModule(ClrAppDomain domain, ulong addr)
         {
@@ -1421,7 +1422,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Start = start;
             End = end;
 
-            Debug.Assert(Start < End);
+            Debug.Assert(Start <= End);
             Debug.Assert(End != 0);
         }
     }
