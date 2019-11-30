@@ -155,12 +155,19 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     iov_base = (void*)address,
                     iov_len = (IntPtr)readableBytesCount
                 };
-                bytesRead = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
-                if (bytesRead < 0 && Marshal.GetLastWin32Error() == EPERM)
-                    throw new UnauthorizedAccessException();
-            }
+                int read = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
+                if (read < 0)
+                {
+                    bytesRead = 0;
+                    if (Marshal.GetLastWin32Error() == EPERM)
+                        throw new UnauthorizedAccessException();
 
-            return bytesRead > 0;
+                    return false;
+                }
+
+                bytesRead = read;
+                return true;
+            }
         }
 
         public unsafe ulong ReadPointerUnsafe(ulong address)
