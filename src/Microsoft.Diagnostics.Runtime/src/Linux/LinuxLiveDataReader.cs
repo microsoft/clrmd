@@ -420,14 +420,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private static int ParsePermission(string permission)
         {
-            // parse something like rwxp or r-xp. more info see
-            // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
             Debug.Assert(permission.Length == 4);
 
-            int r = permission[0] != '-' ? 8 : 0;   // 8: can read
-            int w = permission[1] != '-' ? 4 : 0;   // 4: can write
-            int x = permission[2] != '-' ? 2 : 0;   // 2: can execute
-            int p = permission[3] != '-' ? 1 : 0;   // 1: private
+            // r = read
+            // w = write
+            // x = execute
+            // s = shared
+            // p = private (copy on write)
+            int r = permission[0] == 'r' ? 8 : 0;
+            int w = permission[1] == 'w' ? 4 : 0;
+            int x = permission[2] == 'x' ? 2 : 0;
+            int p = permission[3] == 'p' ? 1 : 0;
             return r | w | x | p;
         }
 
