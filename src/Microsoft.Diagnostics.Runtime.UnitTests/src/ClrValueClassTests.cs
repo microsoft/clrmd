@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             structReferenceField.IsObjectReference.Returns(true);
             structReferenceField.GetAddress(someStruct.Address, Arg.Any<bool>()).Returns(fieldAddress);
 
-            heap.ReadPointer(fieldAddress, out var whatever)
+            heap.Runtime.DataTarget.DataReader.ReadPointer(fieldAddress, out var whatever)
                 .Returns(call =>
                {
                    call[1] = target.Address;

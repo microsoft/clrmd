@@ -42,6 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
             return Type.Heap.EnumerateObjectReferences(Address, Type, carefully);
         }
 
+        public T ReadBoxed<T>() where T : unmanaged => Helpers.DataReader.ReadUnsafe<T>(Address + (ulong)IntPtr.Size);
+
         public bool IsException => Type != null && Type.IsException;
 
         public ClrException AsException()

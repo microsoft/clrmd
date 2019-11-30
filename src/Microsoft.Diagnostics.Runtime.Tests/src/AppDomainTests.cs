@@ -42,20 +42,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void AssertModuleDoesntContainDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
-            IList<ClrAppDomain> moduleDomains = module.AppDomains;
-
             foreach (ClrAppDomain domain in domainList)
-                Assert.False(moduleDomains.Contains(domain));
+                Assert.DoesNotContain(domain.Modules, m => m.FileName == module.FileName);
         }
 
         private void AssertModuleContainsDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
-            IList<ClrAppDomain> moduleDomains = module.AppDomains;
-
             foreach (ClrAppDomain domain in domainList)
-                Assert.True(moduleDomains.Contains(domain));
-
-            Assert.Equal(domainList.Length, moduleDomains.Count);
+                Assert.Contains(domain.Modules, m => m.FileName == module.FileName);
         }
 
         [FrameworkFact]
@@ -136,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Ensure that we use the same ClrModule in each AppDomain.
             Assert.Equal(appDomainsModules["mscorlib.dll"], nestedExceptionModules["mscorlib.dll"]);
-            Assert.Equal(appDomainsModules["sharedlibrary.dll"], nestedExceptionModules["sharedlibrary.dll"]);
+            Assert.NotEqual(appDomainsModules["sharedlibrary.dll"], nestedExceptionModules["sharedlibrary.dll"]);
         }
 
         private static Dictionary<string, ClrModule> GetDomainModuleDictionary(ClrAppDomain domain)

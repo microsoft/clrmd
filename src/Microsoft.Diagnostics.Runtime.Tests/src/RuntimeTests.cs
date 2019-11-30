@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             HashSet<string> expected = new HashSet<string>(new[] { "mscorlib.dll", "system.dll", "system.core.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
             HashSet<ClrModule> modules = new HashSet<ClrModule>();
 
-            foreach (ClrModule module in runtime.Modules)
+            foreach (ClrModule module in runtime.EnumerateModules())
             {
                 if (Path.GetExtension(module.FileName) == ".nlp")
                     continue;

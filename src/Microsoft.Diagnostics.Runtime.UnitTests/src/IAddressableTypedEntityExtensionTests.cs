@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             clrField.IsObjectReference.Returns(true);
             clrField.GetAddress(entity.Address).Returns(fieldAddress);
 
-            heap.ReadPointer(fieldAddress, out var whatever)
+            heap.Runtime.DataTarget.DataReader.ReadPointer(fieldAddress, out var whatever)
                 .Returns(call =>
                 {
                     call[1] = target.Address;
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             structReferenceField.IsObjectReference.Returns(true);
             structReferenceField.GetAddress(entity.Address, Arg.Any<bool>()).Returns(fieldAddress);
 
-            heap.ReadPointer(fieldAddress, out var whatever)
+            heap.Runtime.DataTarget.DataReader.ReadPointer(fieldAddress, out var whatever)
                 .Returns(call =>
                 {
                     call[1] = target.Address;

@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             clrField.IsObjectReference.Returns(true);
             clrField.GetAddress(source.Address).Returns(fieldAddress);
 
-            heap.ReadPointer(fieldAddress, out var whatever)
+            heap.Runtime.DataTarget.DataReader.ReadPointer(fieldAddress, out var whatever)
                 .Returns(call =>
             {
                 call[1] = target.Address;
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             clrField.IsObjectReference.Returns(true);
             clrField.GetAddress(clrObject.Address).Returns(corruptedFieldPointer);
 
-            heap.ReadPointer(corruptedFieldPointer, out var whatever).Returns(false);
+            heap.Runtime.DataTarget.DataReader.ReadPointer(corruptedFieldPointer, out var whatever).Returns(false);
 
             // Act
             Action locateObjectFromValueTypeField = () => clrObject.GetObjectField(clrField.Name);

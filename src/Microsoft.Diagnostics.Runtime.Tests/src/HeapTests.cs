@@ -37,40 +37,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
         [Fact]
-        public void HeapCachedEnumerationMatches()
-        {
-            // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-
-            List<ClrObject> expectedList = new List<ClrObject>(heap.EnumerateObjects());
-
-            heap.CacheHeap(CancellationToken.None);
-            Assert.True(heap.IsHeapCached);
-            List<ClrObject> actualList = new List<ClrObject>(heap.EnumerateObjects());
-
-            Assert.True(actualList.Count > 0);
-            Assert.Equal(expectedList.Count, actualList.Count);
-
-            for (int i = 0; i < actualList.Count; i++)
-            {
-                ClrObject expected = expectedList[i];
-                ClrObject actual = actualList[i];
-
-                Assert.True(expected == actual);
-                Assert.Equal(expected, actual);
-            }
-        }
-
-        [Fact]
         public void ServerSegmentTests()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server);
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            Assert.True(runtime.ServerGC);
+            Assert.True(heap.IsServer);
 
             CheckSegments(heap);
         }
@@ -82,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            Assert.False(runtime.ServerGC);
+            Assert.False(heap.IsServer);
 
             CheckSegments(heap);
         }
@@ -104,11 +77,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.Equal(0ul, seg.Gen1Length);
                 }
 
-                foreach (ulong obj in seg.EnumerateObjectAddresses())
+                int count = 0;
+                foreach (ulong obj in seg.EnumerateObjects())
                 {
                     ClrSegment curr = heap.GetSegmentByAddress(obj);
                     Assert.Same(seg, curr);
+                    count++;
                 }
+
+                Assert.True(count >= 1);
             }
         }
     }

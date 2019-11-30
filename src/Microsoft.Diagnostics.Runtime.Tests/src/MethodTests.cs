@@ -17,10 +17,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                ClrModule module = runtime.GetModule("sharedlibrary.dll");
-                ClrType type = module.GetTypeByName("Foo");
-                ClrMethod method = type.GetMethod("Bar");
-                methodDescs = method.EnumerateMethodDescs().ToArray();
+                ClrType[] types = runtime.EnumerateModules().Where(m => m.FileName.EndsWith("sharedlibrary.dll", System.StringComparison.OrdinalIgnoreCase)).Select(m => m.GetTypeByName("Foo")).Where(t => t != null).ToArray();
+
+                Assert.Equal(2, types.Length);
+                methodDescs = types.Select(t => t.Methods.Single(m => m.Name == "Bar")).Select(m => m.MethodDesc).ToArray();
 
                 Assert.Equal(2, methodDescs.Length);
             }
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
-                methodDesc = method.EnumerateMethodDescs().Single();
+                methodDesc = method.MethodDesc;
 
                 Assert.NotEqual(0ul, methodDesc);
             }
@@ -79,7 +79,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
-                Assert.Equal(methodDesc, method.EnumerateMethodDescs().Single());
+                Assert.Equal(methodDesc, method.MethodDesc);
+                Assert.Same(method, runtime.GetMethodByHandle(methodDesc));
             }
         }
 
@@ -98,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrMethod genericMethod = type.GetMethod("GenericBar");
 
-            string methodName = genericMethod.Signature();
+            string methodName = genericMethod.Signature;
 
             Assert.Equal(')', methodName.Last());
         }

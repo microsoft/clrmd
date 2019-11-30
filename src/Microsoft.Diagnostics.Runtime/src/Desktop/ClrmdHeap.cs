@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
@@ -33,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrType ExceptionType { get; }
 
+        public override bool IsServer { get; }
 
         public ClrmdHeap(ClrRuntime runtime, IHeapBuilder heapBuilder)
         {
@@ -42,6 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             Runtime = runtime;
             CanWalkHeap = heapBuilder.CanWalkHeap;
+            IsServer = heapBuilder.IsServer;
 
             // Prepopulate a few important method tables.
 
@@ -232,6 +235,163 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return value;
 
             return _reader.ReadPointerUnsafe(ptr);
+        }
+
+        public override IEnumerable<ClrRoot> EnumerateRoots()
+        {
+            //todo:cleanup
+
+            // Handles
+            foreach (ClrHandle handle in EnumerateStrongHandles())
+            {
+                ulong objAddr = handle.Object;
+                GCRootKind kind = GCRootKind.Strong;
+                if (objAddr != 0)
+                {
+                    ClrType type = GetObjectType(objAddr);
+                    if (type != null)
+                    {
+                        switch (handle.HandleType)
+                        {
+                            case HandleType.WeakShort:
+                            case HandleType.WeakLong:
+                                break;
+                            case HandleType.RefCount:
+                                if (handle.RefCount <= 0)
+                                    break;
+
+                                goto case HandleType.Strong;
+                            case HandleType.Pinned:
+                                kind = GCRootKind.Pinning;
+                                goto case HandleType.Strong;
+                            case HandleType.AsyncPinned:
+                                kind = GCRootKind.AsyncPinning;
+                                goto case HandleType.Strong;
+                            case HandleType.Strong:
+                            case HandleType.SizedRef:
+                                yield return new HandleRoot(handle.Address, objAddr, type, handle.HandleType, kind, handle.AppDomain);
+
+                                // Async pinned handles keep 1 or more "sub objects" alive.  I will report them here as their own pinned handle.
+                                if (handle.HandleType == HandleType.AsyncPinned)
+                                {
+                                    ClrInstanceField userObjectField = type.GetFieldByName("m_userObject");
+                                    if (userObjectField != null)
+                                    {
+                                        ulong _userObjAddr = userObjectField.GetAddress(objAddr);
+                                        ulong _userObj = (ulong)userObjectField.GetValue(objAddr);
+                                        ClrType _userObjType = GetObjectType(_userObj);
+                                        if (_userObjType != null)
+                                        {
+                                            if (_userObjType.IsArray)
+                                            {
+                                                if (_userObjType.ComponentType != null)
+                                                {
+                                                    if (_userObjType.ComponentType.ElementType == ClrElementType.Object)
+                                                    {
+                                                        // report elements
+                                                        int len = new ClrObject(_userObj, _userObjType).Length;
+                                                        for (int i = 0; i < len; ++i)
+                                                        {
+                                                            ulong indexAddr = _userObjType.GetArrayElementAddress(_userObj, i);
+                                                            ulong indexObj = (ulong)_userObjType.GetArrayElementValue(_userObj, i);
+                                                            ClrType indexObjType = GetObjectType(indexObj);
+
+                                                            if (indexObj != 0 && indexObjType != null)
+                                                                yield return new HandleRoot(
+                                                                    indexAddr,
+                                                                    indexObj,
+                                                                    indexObjType,
+                                                                    HandleType.AsyncPinned,
+                                                                    GCRootKind.AsyncPinning,
+                                                                    handle.AppDomain);
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        yield return new HandleRoot(
+                                                            _userObjAddr,
+                                                            _userObj,
+                                                            _userObjType,
+                                                            HandleType.AsyncPinned,
+                                                            GCRootKind.AsyncPinning,
+                                                            handle.AppDomain);
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                yield return new HandleRoot(
+                                                    _userObjAddr,
+                                                    _userObj,
+                                                    _userObjType,
+                                                    HandleType.AsyncPinned,
+                                                    GCRootKind.AsyncPinning,
+                                                    handle.AppDomain);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                break;
+                            default:
+                                Debug.WriteLine("Warning, unknown handle type {0} ignored", Enum.GetName(typeof(HandleType), handle.HandleType));
+                                break;
+                        }
+                    }
+                }
+            }
+
+            // Finalization Queue
+            foreach (ulong objAddr in EnumerateFinalizerRoots())
+            {
+                if (objAddr != 0)
+                {
+                    ClrType type = GetObjectType(objAddr);
+                    if (type != null)
+                        yield return new FinalizerRoot(objAddr, type);
+                }
+            }
+
+            // Threads
+            foreach (ClrRoot root in EnumerateStackRoots())
+                yield return root;
+        }
+        private IEnumerable<ClrHandle> EnumerateStrongHandles()
+        {
+            foreach (ClrHandle handle in Runtime.EnumerateHandles())
+            {
+                if (handle.Object != 0)
+                {
+                    switch (handle.HandleType)
+                    {
+                        case HandleType.RefCount:
+                            if (handle.RefCount > 0)
+                                yield return handle;
+
+                            break;
+
+                        case HandleType.AsyncPinned:
+                        case HandleType.Pinned:
+                        case HandleType.SizedRef:
+                        case HandleType.Strong:
+                            yield return handle;
+
+                            break;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<ClrRoot> EnumerateStackRoots()
+        {
+            foreach (ClrThread thread in Runtime.Threads)
+            {
+                if (thread.IsAlive)
+                {
+                    foreach (ClrRoot root in thread.EnumerateStackObjects())
+                        yield return root;
+                }
+            }
         }
 
         public override IEnumerable<ClrObject> EnumerateFinalizableObjects() => EnumerateFQ(_fqObjects);

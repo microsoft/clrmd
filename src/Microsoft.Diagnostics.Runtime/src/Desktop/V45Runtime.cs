@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -232,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         IDataReader DataReader { get; }
         ITypeFactory TypeFactory { get; }
 
-        bool ServerGC { get; }
+        public bool IsServer { get; }
         int LogicalHeapCount { get; }
         IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks();
 
@@ -336,11 +337,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrHeap _heap;
 
         private readonly ITypeCache _cache = new TypeCache();
-        private readonly int _typeSize = Marshal.SizeOf<ClrmdType>();
-        private readonly int _methodSize = Marshal.SizeOf<ClrmdMethod>();
-        private readonly int _instFieldSize = Marshal.SizeOf<ClrmdField>();
-        private readonly int _staticFieldSize = Marshal.SizeOf<ClrmdStaticField>();
-        private readonly int _moduleSize = Marshal.SizeOf<ClrmdModule>();
+        private readonly int _typeSize = Unsafe.SizeOf<ClrmdType>();
+        private readonly int _methodSize = Unsafe.SizeOf<ClrmdMethod>();
+        private readonly int _instFieldSize = Unsafe.SizeOf<ClrmdField>();
+        private readonly int _staticFieldSize = Unsafe.SizeOf<ClrmdStaticField>();
+        private readonly int _moduleSize = Unsafe.SizeOf<ClrmdModule>();
 
         private ulong _ptr;
         private AppDomainData _appDomainData;
@@ -639,6 +640,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, Span<HandleData> handles, int count)
         {
             // TODO: Use smarter handle enum overload in _sos
+            // TODO: actually enumerate instead of building giant list
+
+            List<ClrHandle> result = new List<ClrHandle>();
 
             Dictionary<ulong, ClrAppDomain> domains = new Dictionary<ulong, ClrAppDomain>();
             foreach (ClrAppDomain domain in runtime.AppDomains)
@@ -674,14 +678,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         domains.TryGetValue(handles[i].AppDomain, out ClrAppDomain domain);
 
                         ClrHandle handle = new ClrHandle(in handles[i], obj, type, domain, dependent);
-                        yield return handle;
+                        result.Add(handle);
 
                         handle = handle.GetInteriorHandle();
                         if (handle != null)
-                            yield return handle;
+                            result.Add(handle);
                     }
                 }
             }
+
+            return result;
         }
 
         void IRuntimeHelpers.ClearCachedData()
@@ -1215,7 +1221,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ITypeFactory TypeFactory { get; }
         public IDataReader DataReader { get; }
 
-        public bool ServerGC { get; }
+        public bool IsServer { get; }
 
         public int LogicalHeapCount { get; }
         
@@ -1273,10 +1279,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_sos.GetGcHeapData(out GCInfo gcdata))
             {
-                if (gcdata.MaxGeneration != 3)
+                if (gcdata.MaxGeneration != 2)
                     throw new NotSupportedException($"The GC reported a max generation of {gcdata.MaxGeneration} which this build of ClrMD does not support.");
 
-                ServerGC = gcdata.ServerMode != 0;
+                IsServer = gcdata.ServerMode != 0;
                 LogicalHeapCount = gcdata.HeapCount;
                 CanWalkHeap &= gcdata.GCStructuresValid != 0;
             }
@@ -1312,7 +1318,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 }
             }
 
-            if (ServerGC)
+            if (IsServer)
             {
                 ulong[] heapList = _sos.GetHeapList(LogicalHeapCount);
                 foreach (ulong addr in heapList)
@@ -1382,6 +1388,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
         {
+            List<(ulong, ulong)> result = new List<(ulong, ulong)>();
             // TODO use smarter sos enum for only dependent handles
             using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
 
@@ -1395,10 +1402,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
                         if (obj != 0)
-                            yield return (obj, handles[i].Secondary);
+                            result.Add((obj, handles[i].Secondary));
                     }
                 }
             }
+
+            return result;
         }
     }
     

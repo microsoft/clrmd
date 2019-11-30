@@ -55,6 +55,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType ExceptionType { get; }
 
         /// <summary>
+        /// Returns whether the GC heap is in Server mode or not.
+        /// </summary>
+        public abstract bool IsServer { get; }
+
+        /// <summary>
         /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
         /// a valid managed object.
         /// </summary>
@@ -77,6 +82,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumerator for all objects on the heap.</returns>
         public abstract IEnumerable<ClrObject> EnumerateObjects();
 
+
+        /// <summary>
+        /// Enumerate the roots in the process.
+        /// </summary>
+        public abstract IEnumerable<ClrRoot> EnumerateRoots();
 
         /// <summary>
         /// Enumerates all objects that the given object references.

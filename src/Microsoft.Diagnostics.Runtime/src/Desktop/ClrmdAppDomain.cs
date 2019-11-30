@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ClrmdAppDomain(ClrRuntime runtime, IAppDomainData data)
         {
+            _helpers = data.Helpers;
             Runtime = runtime;
             Id = data.Id;
             Address = data.Address;

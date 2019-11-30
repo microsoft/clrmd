@@ -24,6 +24,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="src\GCRootTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\GCRootTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.6.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.6.0" />
   </ItemGroup>

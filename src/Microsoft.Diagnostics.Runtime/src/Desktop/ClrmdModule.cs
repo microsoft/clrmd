@@ -39,6 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
+            _helpers = data.Helpers;
             AppDomain = parent;
             Name = data.Name;
             AssemblyName = data.AssemblyName;

@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             int i = 0;
 
-            foreach (ClrStackFrame frame in thread.StackTrace)
+            foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
             {
                 if (frame.Kind == ClrStackFrameType.Runtime)
                 {
