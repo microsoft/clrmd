@@ -10,7 +10,13 @@ Using ClrMD to inspect its own process is not supported and not recommended.  Th
 
 The fundamental problem here is data consistency.  The CLR runtime uses locks and other mechanisms to ensure that it sees a consistent view of the world (like any software project, really) and the CLR debugging layer (mscordaccore.dll) ignores those locks by design.  This means that if you are inspecting an unsuspended process you can get all kinds of weird behavior.  Exceptions, infinite loops, etc.
 
-We only support inspecting suspended processes, which obviously won't work with You are always required to suspend a live process before inspecting it, which obviously doens't work for your own process.  (Note that passing AttachFlags.Invasive and AttachFlags.NonInvasive suspend the process on your behalf, only AttachFlags.Passive does not.)
+We only support inspecting suspended processes. You are always required to suspend a live process before inspecting it, which obviously doens't work for your own process.  (Note that passing AttachFlags.Invasive and AttachFlags.NonInvasive suspend the process on your behalf, only AttachFlags.Passive does not.)
+
+Options for inspecting yourself are:
+- `CreateSnapshotAndAttach` on Windows.
+- Use [`dotnet-dump`](https://github.com/dotnet/diagnostics/blob/master/documentation/dotnet-dump-instructions.md) and inspect the dump.
+- Fork and `SuspendAndAttachToProcess` then kill the fork on Linux.
+- Start a new inspecting process and `SuspendAndAttachToProcess`.
 
 
 ## Does this work with any architecture? (x86/x64?)
@@ -37,10 +43,8 @@ anything to the API to do this automatically though.
 
 ## I am receiving `UnauthorizedAccessException` when attaching to a Linux process
 
-You need `PTRACE` capabilities (see `CAP_SYS_PTRACE`) and various associated
-security checks passing in order to attach to a Linux process. One option to
-pass the checks is running as root. If however you are just trying to avoid the
-problems mentioned above regarding inspecting your own process then you may want
-to start the inspecting process from the process to be inspected. In this case
-you can use the ability to explicitely grant another process access by doing a
-P/Invoke call for `prctl` with the `PR_SET_PTRACER` option.
+You need `ptrace` capabilities to attach to the target process. The following are different ways to grant access to the inspecting process:
+- Run the inspecting process as root.
+- Run the target process from the inspecting process.
+- If you are trying to [inspect your own process](#can-i-use-this-api-to-inspect-my-own-process), you may perform a P/Invoke call to `prctl` with the inspecting process ID and the `PR_SET_PTRACER` option.
+
