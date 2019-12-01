@@ -13,7 +13,6 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
-    [DebuggerDisplay("Address={HexAddress}, Type={Type.Name}")]
     public struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
         private IClrObjectHelpers Helpers { get; }
