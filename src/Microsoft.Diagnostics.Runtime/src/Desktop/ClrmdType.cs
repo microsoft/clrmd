@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return _elementType = ClrElementType.Object;
 
 
-            if (Name != "System.ValueType")
+            if (baseType.Name != "System.ValueType")
             {
                 ClrElementType et = baseType.ElementType;
                 return _elementType = et;
