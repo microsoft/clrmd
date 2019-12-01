@@ -334,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return;
 
             List<string> names = new List<string>();
-            foreach (int token in import.EnumerateFields((int)MetadataToken))
+            foreach (uint token in import.EnumerateFields((int)MetadataToken))
             {
                 if (import.GetFieldProps(token, out string name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
                 {

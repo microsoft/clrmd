@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_attributes != FieldAttributes.ReservedMask)
                 return;
 
-            if (!_helpers.ReadProperties(Parent, out _name, out _attributes, out SigParser sigParser))
+            if (!_helpers.ReadProperties(Parent, Token, out _name, out _attributes, out SigParser sigParser))
                 return;
 
             // We may have to try to construct a type from the sigParser if the method table was a bust in the constructor

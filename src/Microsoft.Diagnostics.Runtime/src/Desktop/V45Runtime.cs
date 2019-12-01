@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
-        bool ReadProperties(ClrType parentType, out string name, out FieldAttributes attributes, out Utilities.SigParser sigParser);
+        bool ReadProperties(ClrType parentType, uint token, out string name, out FieldAttributes attributes, out Utilities.SigParser sigParser);
         ulong GetStaticFieldAddress(ClrStaticField field, ClrAppDomain appDomain);
     }
 
@@ -1057,10 +1057,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        bool IFieldHelpers.ReadProperties(ClrType type, out string name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
+        bool IFieldHelpers.ReadProperties(ClrType type, uint fieldToken, out string name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
         {
             MetaDataImport import = type?.Module?.MetadataImport;
-            if (import == null || !import.GetFieldProps((int)_fieldData.FieldToken, out name, out attributes, out IntPtr fieldSig, out int sigLen, out _, out _))
+            if (import == null || !import.GetFieldProps(fieldToken, out name, out attributes, out IntPtr fieldSig, out int sigLen, out _, out _))
             {
                 name = null;
                 attributes = default;
