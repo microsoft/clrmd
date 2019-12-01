@@ -16,14 +16,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void CreationSpecificDacNegativeTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
-            string badDac = dt.SymbolLocator.FindBinary(
-                            SymbolLocatorTests.WellKnownDac,
-                            SymbolLocatorTests.WellKnownDacTimeStamp,
-                            SymbolLocatorTests.WellKnownDacImageSize,
-                            false);
+            string badDac = dt.EnumerateModules().Single(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase)).FileName;
 
-            Assert.NotNull(badDac);
-            Assert.Throws<InvalidOperationException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
+            Assert.Throws<ClrDiagnosticsException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
         }
 
         [Fact]
