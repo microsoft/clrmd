@@ -159,10 +159,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (read < 0)
                 {
                     bytesRead = 0;
-                    if (Marshal.GetLastWin32Error() == EPERM)
-                        throw new UnauthorizedAccessException();
-
-                    return false;
+                    return (Marshal.GetLastWin32Error()) switch
+                    {
+                        EPERM => throw new UnauthorizedAccessException(),
+                        ESRCH => throw new InvalidOperationException("The process has exited"),
+                        _ => false
+                    };
                 }
 
                 bytesRead = read;
@@ -386,6 +388,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         }
 
         private const int EPERM = 1;
+        private const int ESRCH = 3;
 
         private const string LibC = "libc";
 
