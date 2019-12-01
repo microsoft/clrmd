@@ -26,7 +26,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ClrStaticField field = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_i");
+            ClrModule module = runtime.GetModule(ModuleName);
+            ClrType typesType = module.GetTypeByName("Types");
+            ClrStaticField field = typesType.GetStaticFieldByName("s_i");
 
             ulong addr = (ulong)field.GetValue(runtime.AppDomains.Single());
             ClrType type = heap.GetObjectType(addr);
@@ -38,6 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(type.IsPrimitive);
             Assert.False(type.IsObjectReference);
             Assert.False(type.IsValueClass);
+
+            var fds = obj.Type.Fields;
 
             int value = obj.ReadBoxed<int>();
             Assert.Equal(42, value);
@@ -344,7 +348,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
-            ClrType type = heap.GetTypeByName("Types");
+            ClrType type = typesModule.GetTypeByName("Types");
 
             ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
             ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
@@ -377,7 +381,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
-            ClrType type = heap.GetTypeByName("Types");
+            ClrType type = typesModule.GetTypeByName("Types");
 
             ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
             ClrType arrayType = heap.GetObjectType(s_array);
@@ -396,7 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
-            ClrType type = heap.GetTypeByName("Types");
+            ClrType type = typesModule.GetTypeByName("Types");
 
             ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
             ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);

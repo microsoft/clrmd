@@ -31,11 +31,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         }
 
-        public static ClrType GetTypeByName(this ClrHeap heap, string name)
-        {
-            return heap.Runtime.EnumerateModules().SelectMany(m => m.EnumerateTypes()).FirstOrDefault(t => t.Name == name);
-        }
-
         public static IEnumerable<ClrModule> EnumerateModules(this ClrRuntime runtime) => runtime.AppDomains.SelectMany(ad => ad.Modules);
 
         public static ClrType GetTypeByName(this ClrModule module, string typeName)
