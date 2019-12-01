@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_domains == null)
                     _ = AppDomains;
 
-                return _sharedDomain;
+                return _systemDomain;
             }
         }
 
