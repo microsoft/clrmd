@@ -87,6 +87,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 
 1.  ThreadPool related code.
 2.  SymbolLocator related code.
+3.  Get BCL from System.Object's module instead of a heuristic.
 
 # .Net Core 5 Dac Wishlist
 
