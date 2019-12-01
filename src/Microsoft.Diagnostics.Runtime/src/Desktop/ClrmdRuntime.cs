@@ -16,8 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly IRuntimeHelpers _helpers;
         private ClrHeap _heap;
         private ClrModule _bcl;
-        private ClrAppDomain _shared;
-        private ClrAppDomain _system;
         private IReadOnlyList<ClrThread> _threads;
 
         public override DataTarget DataTarget => ClrInfo?.DataTarget;
@@ -29,30 +27,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ClrHeap Heap => _heap ?? (_heap = _helpers.Factory.GetOrCreateHeap(this));
         public override IReadOnlyList<ClrAppDomain> AppDomains { get; }
 
-        public override ClrAppDomain SharedDomain
-        {
-            get
-            {
-                _ = AppDomains;
-                return _shared;
-            }
-        }
+        public override ClrAppDomain SharedDomain { get; }
 
-        public override ClrAppDomain SystemDomain
-        {
-            get
-            {
-                _ = AppDomains;
-                return _system;
-            }
-        }
+        public override ClrAppDomain SystemDomain { get; }
 
         public ClrmdRuntime(ClrInfo info, DacLibrary dac, IRuntimeHelpers helpers)
         {
             ClrInfo = info;
             DacLibrary = dac;
             _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
-            AppDomains = _helpers.GetAppDomains(this, out _system, out _shared);
+            AppDomains = _helpers.GetAppDomains(this, out ClrAppDomain system, out ClrAppDomain shared);
+            SystemDomain = system;
+            SharedDomain = shared;
 
             DebugOnlyLoadLazyValues();
         } 
