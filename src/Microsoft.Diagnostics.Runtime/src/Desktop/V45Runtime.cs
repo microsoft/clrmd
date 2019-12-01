@@ -398,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!_sos.GetModuleData(addr, out _moduleData))
                 return null;
 
-            result = new ClrmdModule(domain, this);
+            _modules[addr] = result = new ClrmdModule(domain, this);
             return result;
         }
 
@@ -816,7 +816,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return result;
         }
 
-        public ClrRuntime GetOrCreateRuntime() => _runtime ?? (_runtime = new ClrmdRuntime(_clrinfo, _library, this));
+        public ClrRuntime GetOrCreateRuntime()
+        {
+            if (_runtime != null)
+                return _runtime;
+
+            _runtime = new ClrmdRuntime(_clrinfo, _library, this);
+            _ = _runtime.AppDomains; // TODO: need to solve AppDomain ordering problem
+            return _runtime;
+         
+        }
         public ClrHeap GetOrCreateHeap() => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
 
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
