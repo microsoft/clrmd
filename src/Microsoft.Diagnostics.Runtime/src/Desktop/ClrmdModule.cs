@@ -5,14 +5,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class ClrmdModule : ClrModule
+    internal sealed class ClrmdModule : ClrModule
     {
         private readonly IModuleHelpers _helpers;
         private int _debugMode = int.MaxValue;
@@ -114,6 +113,41 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override IEnumerable<(ulong, uint)> EnumerateMethodTables() => _helpers.GetSortedTypeDefMap(this);
 
+        public override ClrType GetTypeByName(string name)
+        {
+            if (name is null)
+                throw new ArgumentNullException(nameof(name));
+
+            if (name.Length == 0)
+                throw new ArgumentException($"{nameof(name)} cannot be empty");
+
+            IReadOnlyList<(ulong, uint)> typeDefMap = _helpers.GetSortedTypeDefMap(this);
+
+            List<ulong> lookup = new List<ulong>(Math.Min(256, typeDefMap.Count));
+
+            foreach ((ulong mt, uint _) in EnumerateMethodTables())
+            {
+                ClrType type = _helpers.TryGetType(mt);
+                if (type == null)
+                {
+                    lookup.Add(mt);
+                }
+                else if (type.Name == name)
+                {
+                    return type;
+                }
+            }
+
+            foreach (ulong mt in lookup)
+            {
+                string typeName = _helpers.GetTypeName(mt);
+                if (typeName == name)
+                    return _helpers.Factory.GetOrCreateType(AppDomain.Runtime.Heap, mt, 0);
+            }
+
+            return null;
+        }
+
         public override ClrType ResolveToken(uint typeDefOrRefToken)
         {
             ClrHeap heap = AppDomain?.Runtime?.Heap;
@@ -128,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
 
-            if (!map.Search<(ulong, uint), uint>(typeDefOrRefToken, CompareTo, out (ulong, uint) found))
+            if (!map.Search(typeDefOrRefToken, CompareTo, out (ulong, uint) found))
                 return null;
 
             ClrType type = _helpers.Factory.GetOrCreateType(heap, found.Item2, 0);

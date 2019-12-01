@@ -114,6 +114,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         MetaDataImport GetMetaDataImport(ClrModule module);
         IReadOnlyList<(ulong, uint)> GetSortedTypeDefMap(ClrModule module);
         IReadOnlyList<(ulong, uint)> GetSortedTypeRefMap(ClrModule module);
+        ClrType TryGetType(ulong mt);
+        string GetTypeName(ulong mt);
     }
 
     public interface IModuleData
@@ -774,6 +776,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         ulong IModuleData.AssemblyAddress => _moduleData.Assembly;
 
+
+        ClrType IModuleHelpers.TryGetType(ulong mt) => _cache.GetStoredType(mt);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -799,6 +803,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ClrHeap GetOrCreateHeap(ClrRuntime runtime) => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
 
         public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType) => throw new NotImplementedException();
+
 
         public ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
         {
@@ -1083,7 +1088,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return (flags & 1) != 0;
         }
 
-        string ITypeHelpers.GetTypeName(ulong mt) => _cache.ReportOrInternString(mt, _sos.GetMethodTableName(mt));
+        public string GetTypeName(ulong mt) => _cache.ReportOrInternString(mt, _sos.GetMethodTableName(mt));
 
         ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
         {

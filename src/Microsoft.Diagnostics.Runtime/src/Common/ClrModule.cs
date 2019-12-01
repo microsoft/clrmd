@@ -95,6 +95,16 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType ResolveToken(uint typeDefOrRefToken);
 
         /// <summary>
+        /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
+        /// the way that the dac handles types.  This function will fail for Generics, and types which have
+        /// never been constructed in the target process.  Please be sure to null-check the return value of
+        /// this function.
+        /// </summary>
+        /// <param name="name">The name of the type.  (This would be the EXACT value returned by ClrType.Name.)</param>
+        /// <returns>The requested ClrType, or null if the type doesn't exist or if the runtime hasn't constructed it.</returns>
+        public abstract ClrType GetTypeByName(string name);
+
+        /// <summary>
         /// Returns a name for the assembly.
         /// </summary>
         /// <returns>A name for the assembly.</returns>
