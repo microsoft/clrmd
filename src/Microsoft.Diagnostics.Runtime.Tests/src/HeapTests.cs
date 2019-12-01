@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -31,8 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 count++;
             }
 
-            Assert.True(encounteredFoo);
             Assert.True(count > 0);
+            Assert.True(encounteredFoo);
         }
 
 
@@ -57,7 +58,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.False(heap.IsServer);
 
+            Assert.True(heap.Segments.Count > 0);
+
+            CheckSorted(heap.Segments);
             CheckSegments(heap);
+        }
+
+        private void CheckSorted(IReadOnlyList<ClrSegment> segments)
+        {
+            ClrSegment last = null;
+            foreach (ClrSegment seg in segments)
+            {
+                if (last != null)
+                    Assert.True(last.Start < seg.Start);
+
+                last = seg;
+            }
         }
 
         private static void CheckSegments(ClrHeap heap)

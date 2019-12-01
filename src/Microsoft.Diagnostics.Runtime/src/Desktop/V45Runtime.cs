@@ -1355,14 +1355,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         private void AddSegments(ClrHeap clrHeap, List<ClrSegment> segments, ulong address)
         {
-            if (_seenSegments.Add(address))
-                return;
-
-            while (_sos.GetSegmentData(address, out _segment))
+            while (_seenSegments.Add(address) && _sos.GetSegmentData(address, out _segment))
             {
                 segments.Add(new HeapSegment(clrHeap, this));
-                if (_seenSegments.Add(_segment.Next))
-                    break;
+                address = _segment.Next;
             }
         }
 
