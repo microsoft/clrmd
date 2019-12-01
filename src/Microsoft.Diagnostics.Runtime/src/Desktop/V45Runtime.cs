@@ -330,6 +330,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly int _staticFieldSize = 8;
 
         private ulong _ptr;
+        private AppDomainStoreData _adStore;
         private AppDomainData _appDomainData;
         private ModuleData _moduleData;
         private MethodTableData _mtData;
@@ -574,16 +575,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             system = null;
             shared = null;
 
-            if (!_sos.GetAppDomainStoreData(out AppDomainStoreData adstore))
+            if (!_sos.GetAppDomainStoreData(out _adStore))
                 return Array.Empty<ClrAppDomain>();
 
-            if (adstore.SystemDomain != 0)
-                system = GetOrCreateAppDomain(runtime, adstore.SystemDomain);
+            if (_adStore.SystemDomain != 0)
+                system = GetOrCreateAppDomain(runtime, _adStore.SystemDomain);
 
-            if (adstore.SharedDomain != 0)
-                shared = GetOrCreateAppDomain(runtime, adstore.SharedDomain);
+            if (_adStore.SharedDomain != 0)
+                shared = GetOrCreateAppDomain(runtime, _adStore.SharedDomain);
 
-            ulong[] domainList = _sos.GetAppDomainList(adstore.AppDomainCount);
+            ulong[] domainList = _sos.GetAppDomainList(_adStore.AppDomainCount);
             ClrAppDomain[] result = new ClrAppDomain[domainList.Length];
             int i = 0;
             foreach (ulong domain in domainList)
@@ -720,7 +721,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
         IAppDomainHelpers IAppDomainData.Helpers => this;
-        string IAppDomainData.Name => _cache.ReportOrInternString(_ptr, _sos.GetAppDomainName(_ptr));
+        string IAppDomainData.Name
+        {
+            get
+            {
+                if (_adStore.SharedDomain == _ptr)
+                    return "Shared Domain";
+
+                if (_adStore.SystemDomain == _ptr)
+                    return "System Domain";
+
+                string name = _sos.GetAppDomainName(_ptr);
+                _cache.ReportOrInternString(_ptr, name);
+                return name;
+            }
+        }
         int IAppDomainData.Id => _appDomainData.Id;
         ulong IAppDomainData.Address => _appDomainData.Address;
 
