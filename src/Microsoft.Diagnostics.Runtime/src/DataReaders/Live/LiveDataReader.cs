@@ -174,7 +174,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 fixed (byte* ptr = buffer)
                 {
-                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out bytesRead);
+                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out IntPtr read);
+                    bytesRead = (int)read;
                     return res != 0;
                 }
             }
@@ -306,14 +307,13 @@ namespace Microsoft.Diagnostics.Runtime
         [PreserveSig]
         public static extern uint GetModuleFileNameExA([In] IntPtr hProcess, [In] IntPtr hModule, [Out] StringBuilder lpFilename, [In][MarshalAs(UnmanagedType.U4)] int nSize);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
-            [Out]
             byte* lpBuffer,
             int dwSize,
-            out int lpNumberOfBytesRead);
+            out IntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, ref MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
