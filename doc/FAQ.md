@@ -35,3 +35,13 @@ example, you can wrap your calls to the API into a seperate process, then use
 interprocess communication to relay the information. I do not plan on adding
 anything to the API to do this automatically though.
 
+## I am receiving UnauthorizedAccessException when attaching to a Linux process
+
+You need `PTRACE` capabilities (see `CAP_SYS_PTRACE`) and various associated
+security checks passing in order to attach to a Linux process. One option to
+pass the checks is running as root. If however you are just trying to avoid the
+problems mentioned above regarding inspecting your own process then you may want
+to start the inspecting process from the process to be inspected. In this case
+you can use the ability to explicitely grant another process access by doing a
+P/Invoke call for `prctl` with the `PR_SET_PTRACER` option.
+
