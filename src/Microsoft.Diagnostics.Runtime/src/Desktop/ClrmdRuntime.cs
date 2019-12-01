@@ -17,6 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ClrHeap _heap;
         private ClrModule _bcl;
         private IReadOnlyList<ClrThread> _threads;
+        private IReadOnlyList<ClrAppDomain> _domains;
+        private ClrAppDomain _systemDomain;
+        private ClrAppDomain _sharedDomain;
 
         public override DataTarget DataTarget => ClrInfo?.DataTarget;
         public override DacLibrary DacLibrary { get; }
@@ -24,29 +27,45 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrThreadPool ThreadPool => throw new NotImplementedException(); // todo
         public override IReadOnlyList<ClrThread> Threads => _threads ?? (_threads = _helpers.GetThreads(this));
-        public override ClrHeap Heap => _heap ?? (_heap = _helpers.Factory.GetOrCreateHeap(this));
-        public override IReadOnlyList<ClrAppDomain> AppDomains { get; }
+        public override ClrHeap Heap => _heap ?? (_heap = _helpers.Factory.GetOrCreateHeap());
+        public override IReadOnlyList<ClrAppDomain> AppDomains
+        {
+            get
+            {
+                if (_domains == null)
+                    _domains = _helpers.GetAppDomains(this, out _systemDomain, out _sharedDomain);
 
-        public override ClrAppDomain SharedDomain { get; }
+                return _domains;
+            }
+        }
 
-        public override ClrAppDomain SystemDomain { get; }
+        public override ClrAppDomain SharedDomain
+        {
+            get
+            {
+                if (_domains == null)
+                    _ = AppDomains;
+
+                return _sharedDomain;
+            }
+        }
+
+        public override ClrAppDomain SystemDomain
+        {
+            get
+            {
+                if (_domains == null)
+                    _ = AppDomains;
+
+                return _sharedDomain;
+            }
+        }
 
         public ClrmdRuntime(ClrInfo info, DacLibrary dac, IRuntimeHelpers helpers)
         {
             ClrInfo = info;
             DacLibrary = dac;
             _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
-            AppDomains = _helpers.GetAppDomains(this, out ClrAppDomain system, out ClrAppDomain shared);
-            SystemDomain = system;
-            SharedDomain = shared;
-
-            DebugOnlyLoadLazyValues();
-        } 
-
-        [Conditional("DEBUG")]
-        private void DebugOnlyLoadLazyValues()
-        {
-            _ = Threads;
         }
 
 
@@ -56,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
-        public override ClrType GetTypeByMethodTable(ulong methodTable) => _helpers.Factory.GetOrCreateType(Heap, methodTable, 0);
+        public override ClrType GetTypeByMethodTable(ulong methodTable) => _helpers.Factory.GetOrCreateType(methodTable, 0);
 
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
@@ -90,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override string GetJitHelperFunctionName(ulong ip) => _helpers.GetJitHelperFunctionName(ip);
 
-        public override ClrMethod GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(Heap, methodHandle);
+        public override ClrMethod GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
 
         /// <summary>
         /// Converts an address into an AppDomain.

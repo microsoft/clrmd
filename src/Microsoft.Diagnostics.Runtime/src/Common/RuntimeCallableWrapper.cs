@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
             Object = data.ManagedObject;
             IsDisconnected = data.Disconnected;
             CreatorThread = runtime?.Threads.FirstOrDefault(t => t.Address == data.CreatorThread);
-            Interfaces = data.GetInterfaces(runtime);
+            Interfaces = data.GetInterfaces();
         }
     }
 }

@@ -16,19 +16,20 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     public interface ITypeFactory : IDisposable
     {
         ClrRuntime GetOrCreateRuntime();
-        ClrHeap GetOrCreateHeap(ClrRuntime runtime);
-        ClrAppDomain GetOrCreateAppDomain(ClrRuntime runtime, ulong domain);
+        ClrHeap GetOrCreateHeap();
+        ClrAppDomain GetOrCreateAppDomain(ulong domain);
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
         ClrMethod[] CreateMethodsForType(ClrType type);
         void CreateFieldsForType(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] staticFields);
-        ComCallWrapper CreateCCWForObject(ClrRuntime runtime, ulong obj);
-        RuntimeCallableWrapper CreateRCWForObject(ClrRuntime runtime, ulong obj);
+        ComCallWrapper CreateCCWForObject(ulong obj);
+        RuntimeCallableWrapper CreateRCWForObject(ulong obj);
         ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
-        ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType);
-        ClrType GetOrCreateArrayType(ClrHeap heap, ClrType inner, int ranks);
-        ClrType GetOrCreateTypeFromToken(ClrHeap heap, ClrModule module, int token);
-        ClrType GetOrCreatePointerType(ClrHeap heap, ClrType innerType, int depth);
-        ClrMethod CreateMethodFromHandle(ClrHeap heap, ulong methodHandle);
+        ClrType GetOrCreateType(ulong mt, ulong obj);
+        ClrType GetOrCreateBasicType(ClrElementType basicType);
+        ClrType GetOrCreateArrayType(ClrType inner, int ranks);
+        ClrType GetOrCreateTypeFromToken(ClrModule module, int token);
+        ClrType GetOrCreatePointerType(ClrType innerType, int depth);
+        ClrMethod CreateMethodFromHandle(ulong methodHandle);
     }
 
     public interface IFieldHelpers
@@ -189,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         bool Disconnected { get; }
         ulong CreatorThread { get; }
 
-        IReadOnlyList<ComInterfaceData> GetInterfaces(ClrRuntime runtime);
+        IReadOnlyList<ComInterfaceData> GetInterfaces();
     }
 
     public interface ICCWData
@@ -201,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         int RefCount { get; }
         int JupiterRefCount { get; }
 
-        IReadOnlyList<ComInterfaceData> GetInterfaces(ClrRuntime runtime);
+        IReadOnlyList<ComInterfaceData> GetInterfaces();
     }
 
 
@@ -532,7 +533,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     V45MethodDescDataWrapper mdData = new V45MethodDescDataWrapper();
                     if (mdData.Init(_sos, md))
-                        innerMethod = CreateMethodFromHandle(thread?.Runtime?.Heap, md);
+                        innerMethod = CreateMethodFromHandle(md);
                 }
 
                 return new ClrmdStackFrame(context, ip, sp, ClrStackFrameType.Runtime, innerMethod, frameName);
@@ -560,8 +561,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 _ptr = addr;
                 addr = _threadData.NextThread;
 
-                ClrAppDomain domain = GetOrCreateAppDomain(runtime, _threadData.Domain);
-                threads[i] = new ClrmdThread(this, domain);
+                ClrAppDomain domain = GetOrCreateAppDomain(_threadData.Domain);
+                threads[i] = new ClrmdThread(this, runtime, domain);
             }
 
             // Shouldn't happen unless we caught the runtime at a really bad place
@@ -580,17 +581,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return Array.Empty<ClrAppDomain>();
 
             if (_adStore.SystemDomain != 0)
-                system = GetOrCreateAppDomain(runtime, _adStore.SystemDomain);
+                system = GetOrCreateAppDomain(_adStore.SystemDomain);
 
             if (_adStore.SharedDomain != 0)
-                shared = GetOrCreateAppDomain(runtime, _adStore.SharedDomain);
+                shared = GetOrCreateAppDomain(_adStore.SharedDomain);
 
             ulong[] domainList = _sos.GetAppDomainList(_adStore.AppDomainCount);
             ClrAppDomain[] result = new ClrAppDomain[domainList.Length];
             int i = 0;
             foreach (ulong domain in domainList)
             {
-                ClrAppDomain ad = GetOrCreateAppDomain(runtime, domain);
+                ClrAppDomain ad = GetOrCreateAppDomain(domain);
                 if (ad != null)
                     result[i++] = ad;
             }
@@ -602,7 +603,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
-        public ClrAppDomain GetOrCreateAppDomain(ClrRuntime runtime, ulong domain)
+        public ClrAppDomain GetOrCreateAppDomain(ulong domain)
         {
             if (_domains.TryGetValue(domain, out ClrAppDomain result))
                 return result;
@@ -611,7 +612,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             _ptr = domain;
-            return _domains[domain] = new ClrmdAppDomain(runtime, this);
+            return _domains[domain] = new ClrmdAppDomain(GetOrCreateRuntime(), this);
         }
 
 
@@ -649,14 +650,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     if (mt != 0)
                     {
-                        ClrType type = GetOrCreateType(runtime.Heap, mt, obj);
+                        ClrType type = GetOrCreateType(mt, obj);
                         ClrType dependent = null;
                         if (handles[i].Type == (int)HandleType.Dependent && handles[i].Secondary != 0)
                         {
                             ulong dmt = DataReader.ReadPointerUnsafe(handles[i].Secondary);
 
                             if (dmt != 0)
-                                dependent = GetOrCreateType(runtime.Heap, dmt, handles[i].Secondary);
+                                dependent = GetOrCreateType(dmt, handles[i].Secondary);
                         }
 
                         domains.TryGetValue(handles[i].AppDomain, out ClrAppDomain domain);
@@ -712,7 +713,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 ulong sp = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size);
                 ulong md = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
-                ClrMethod method = CreateMethodFromHandle(obj.Type?.Heap, md);
+                ClrMethod method = CreateMethodFromHandle(md);
                 result[i] = new ClrmdStackFrame(null, ip, sp, ClrStackFrameType.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }
@@ -816,9 +817,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         public ClrRuntime GetOrCreateRuntime() => _runtime ?? (_runtime = new ClrmdRuntime(_clrinfo, _library, this));
-        public ClrHeap GetOrCreateHeap(ClrRuntime runtime) => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
+        public ClrHeap GetOrCreateHeap() => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
 
-        public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType)
+        public ClrType GetOrCreateBasicType(ClrElementType basicType)
         {
             int index = (int)basicType - 1;
             if (index < 0 || index > _basicTypes.Length)
@@ -827,21 +828,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_basicTypes[index] != null)
                 return _basicTypes[index];
 
-            return _basicTypes[index] = new PrimitiveType(GetOrCreateHeap(GetOrCreateRuntime()), basicType);
+            return _basicTypes[index] = new PrimitiveType(GetOrCreateHeap(), basicType);
         }
 
+        public ClrType GetOrCreateType(ulong mt, ulong obj) => GetOrCreateType(GetOrCreateHeap(), mt, obj);
 
         public ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
         {
-            if (heap is null)
-                throw new ArgumentNullException(nameof(heap));
-
             {
                 ClrType result = _cache.GetStoredType(mt);
                 if (result != null)
                 {
                     if (obj != 0  && result.ComponentType == null && result.IsArray && result is ClrmdType type)
-                        TryGetComponentType(type, heap, obj);
+                        TryGetComponentType(type, obj);
 
                     return result;
                 }
@@ -861,34 +860,34 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (obj != 0 && result.IsArray)
                 {
                     Debug.Assert(result.ComponentType == null);
-                    TryGetComponentType(result, heap, obj);
+                    TryGetComponentType(result, obj);
                 }
 
                 return result;
             }
         }
 
-        public ClrType GetOrCreateTypeFromToken(ClrHeap heap, ClrModule module, int token) => throw new NotImplementedException();
-        public ClrType GetOrCreateArrayType(ClrHeap heap, ClrType innerType, int ranks) => innerType != null ? new ClrmdPointerArrayType(innerType, ranks, pointer: false) : null;
-        public ClrType GetOrCreatePointerType(ClrHeap heap, ClrType innerType, int depth) => innerType != null ? new ClrmdPointerArrayType(innerType, depth, pointer: true) : null;
+        public ClrType GetOrCreateTypeFromToken(ClrModule module, int token) => throw new NotImplementedException();
+        public ClrType GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdPointerArrayType(innerType, ranks, pointer: false) : null;
+        public ClrType GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdPointerArrayType(innerType, depth, pointer: true) : null;
 
 
-        private void TryGetComponentType(ClrmdType type, ClrHeap heap, ulong obj)
+        private void TryGetComponentType(ClrmdType type, ulong obj)
         {
             ClrType result = null;
             if (_sos.GetObjectData(obj, out V45ObjectData data))
             {
                 if (data.ElementTypeHandle != 0)
-                    result = GetOrCreateType(heap, data.ElementTypeHandle, 0);
+                    result = GetOrCreateType(data.ElementTypeHandle, 0);
 
                 if (result == null && data.ElementType != 0)
-                    result = GetOrCreateBasicType(heap, (ClrElementType)data.ElementType);
+                    result = GetOrCreateBasicType((ClrElementType)data.ElementType);
 
                 type.SetComponentType(result);
             }
         }
 
-        ComCallWrapper ITypeFactory.CreateCCWForObject(ClrRuntime runtime, ulong obj)
+        ComCallWrapper ITypeFactory.CreateCCWForObject(ulong obj)
         {
             if (!_sos.GetObjectData(obj, out V45ObjectData data) || data.CCW == 0)
                 return null;
@@ -897,10 +896,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             _ptr = data.CCW;
-            return new ComCallWrapper(runtime,  this);
+            return new ComCallWrapper(this);
         }
 
-        RuntimeCallableWrapper ITypeFactory.CreateRCWForObject(ClrRuntime runtime, ulong obj)
+        RuntimeCallableWrapper ITypeFactory.CreateRCWForObject(ulong obj)
         {
             if (!_sos.GetObjectData(obj, out V45ObjectData data) || data.RCW == 0)
                 return null;
@@ -909,7 +908,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             _ptr = data.RCW;
-            return new RuntimeCallableWrapper(runtime, this);
+            return new RuntimeCallableWrapper(GetOrCreateRuntime(), this);
         }
 
         ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
@@ -937,12 +936,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return methods.ToArray();
         }
 
-        public ClrMethod CreateMethodFromHandle(ClrHeap heap, ulong methodDesc)
+        public ClrMethod CreateMethodFromHandle(ulong methodDesc)
         {
             if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
                 return null;
 
-            ClrType type = GetOrCreateType(heap, mdData.MethodTable, 0);
+            ClrType type = GetOrCreateType(mdData.MethodTable, 0);
 
             _ptr = methodDesc;
             _mdData = mdData;
@@ -1021,10 +1020,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         bool IRCWData.Disconnected => _rcwData.IsDisconnected != 0;
         ulong IRCWData.CreatorThread => _rcwData.CreatorThread;
 
-        IReadOnlyList<ComInterfaceData> IRCWData.GetInterfaces(ClrRuntime runtime)
+        IReadOnlyList<ComInterfaceData> IRCWData.GetInterfaces()
         {
             COMInterfacePointerData[] ifs = _sos.GetRCWInterfaces(_ptr, _rcwData.InterfaceCount);
-            return CreateComInterfaces(runtime, ifs);
+            return CreateComInterfaces(ifs);
         }
 
         ulong ICCWData.Address => _ccwData.CCWAddress;
@@ -1034,18 +1033,18 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         int ICCWData.RefCount => _ccwData.RefCount + _ccwData.JupiterRefCount;
         int ICCWData.JupiterRefCount => _ccwData.JupiterRefCount;
 
-        IReadOnlyList<ComInterfaceData> ICCWData.GetInterfaces(ClrRuntime runtime)
+        IReadOnlyList<ComInterfaceData> ICCWData.GetInterfaces()
         {
             COMInterfacePointerData[] ifs = _sos.GetCCWInterfaces(_ptr, _ccwData.InterfaceCount);
-            return CreateComInterfaces(runtime, ifs);
+            return CreateComInterfaces(ifs);
         }
 
-        private ComInterfaceData[] CreateComInterfaces(ClrRuntime runtime, COMInterfacePointerData[] ifs)
+        private ComInterfaceData[] CreateComInterfaces(COMInterfacePointerData[] ifs)
         {
             ComInterfaceData[] result = new ComInterfaceData[ifs.Length];
 
             for (int i = 0; i < ifs.Length; i++)
-                result[i] = new ComInterfaceData(GetOrCreateType(GetOrCreateHeap(runtime), ifs[0].MethodTable, 0), ifs[0].InterfacePointer);
+                result[i] = new ComInterfaceData(GetOrCreateType(ifs[0].MethodTable, 0), ifs[0].InterfacePointer);
             return result;
         }
 
@@ -1279,9 +1278,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public HeapBuilder(ITypeFactory factory, SOSDac sos, IDataReader reader, List<AllocationContext> allocationContexts, ulong firstThread)
         {
+            TypeFactory = factory;
             _sos = sos;
             DataReader = reader;
-            TypeFactory = factory;
             _firstThread = firstThread;
             _threadAllocContexts = allocationContexts;
 

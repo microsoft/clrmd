@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (!_memoryReader.ReadPtr(obj, out ulong mt))
                     break;
 
-                ClrType type = _typeFactory.GetOrCreateType(this, mt, obj);
+                ClrType type = _typeFactory.GetOrCreateType(mt, obj);
                 if (type == null)
                     break;
 
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (mt == 0)
                 return null;
 
-            return _typeFactory.GetOrCreateType(this, mt, objRef);
+            return _typeFactory.GetOrCreateType(mt, objRef);
         }
 
         public override ClrSegment GetSegmentByAddress(ulong objRef)
@@ -415,7 +415,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         continue;
 
                     ulong mt = _reader.ReadPointerUnsafe(ptr);
-                    ClrType type = _typeFactory.GetOrCreateType(this, mt, obj);
+                    ClrType type = _typeFactory.GetOrCreateType(mt, obj);
                     if (type != null)
                         yield return new ClrObject(obj, type);
                 }

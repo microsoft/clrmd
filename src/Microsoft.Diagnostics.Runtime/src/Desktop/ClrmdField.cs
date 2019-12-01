@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _helpers = data.Helpers;
 
             // Must be the last use of 'data' in this constructor. 
-            _type = _helpers.Factory.GetOrCreateType(parent.Heap, data.TypeMethodTable, 0);
+            _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
 
             DebugOnlyLoadLazyValues();
         }
@@ -165,8 +165,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     if (res)
                     {
-                        ClrType inner = factory.GetOrCreateBasicType(heap, (ClrElementType)etype);
-                        result = factory.GetOrCreateArrayType(heap, inner, ranks);
+                        ClrType inner = factory.GetOrCreateBasicType((ClrElementType)etype);
+                        result = factory.GetOrCreateArrayType(inner, ranks);
                     }
                 }
                 else if (type == ClrElementType.SZArray)
@@ -176,12 +176,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     if (type.IsObjectReference())
                     {
-                        result = factory.GetOrCreateBasicType(heap, ClrElementType.SZArray);
+                        result = factory.GetOrCreateBasicType(ClrElementType.SZArray);
                     }
                     else
                     {
-                        ClrType inner = factory.GetOrCreateBasicType(heap, (ClrElementType)etype);
-                        result = factory.GetOrCreateArrayType(heap, inner, 1);
+                        ClrType inner = factory.GetOrCreateBasicType((ClrElementType)etype);
+                        result = factory.GetOrCreateArrayType(inner, 1);
                     }
                 }
                 else if (type == ClrElementType.Pointer)
@@ -192,11 +192,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     sigParser.GetToken(out int token);
 
-                    ClrType innerType = factory.GetOrCreateTypeFromToken(heap, module, token);
+                    ClrType innerType = factory.GetOrCreateTypeFromToken(module, token);
                     if (innerType == null)
-                        innerType = factory.GetOrCreateBasicType(heap, type);
+                        innerType = factory.GetOrCreateBasicType(type);
 
-                    result = factory.GetOrCreatePointerType(heap, innerType, 1);
+                    result = factory.GetOrCreatePointerType(innerType, 1);
                 }
                 else if (type == ClrElementType.Object || type == ClrElementType.Class)
                 {
@@ -210,10 +210,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         sigParser.GetToken(out token);
 
                     if (token != 0)
-                        result = factory.GetOrCreateTypeFromToken(heap, module, token);
+                        result = factory.GetOrCreateTypeFromToken(module, token);
 
                     if (result == null)
-                        result = factory.GetOrCreateBasicType(heap, (ClrElementType)etype);
+                        result = factory.GetOrCreateBasicType((ClrElementType)etype);
                 }
             }
 
@@ -239,10 +239,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     sigParser.GetToken(out token);
 
                 if (token != 0)
-                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(heap, module, token));
+                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, token));
 
                 else
-                    clrmdType.SetComponentType(factory.GetOrCreateBasicType(heap, (ClrElementType)etype));
+                    clrmdType.SetComponentType(factory.GetOrCreateBasicType((ClrElementType)etype));
             }
 
             return result;

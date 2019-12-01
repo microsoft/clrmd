@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 mt = (ulong)GetValueClassField("m_handle").GetField<IntPtr>("m_ptr");
 
-            return Helpers.Factory.GetOrCreateType(Type.Heap, mt, 0);
+            return Helpers.Factory.GetOrCreateType(mt, 0);
         }
 
         /// <summary>

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IReadOnlyList<ComInterfaceData> Interfaces { get; }
 
-        public ComCallWrapper(ClrRuntime runtime, ICCWData data)
+        public ComCallWrapper(ICCWData data)
         {
             if (data is null)
                 throw new System.ArgumentNullException(nameof(data));
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
             Object = data.Object;
             Handle = data.Handle;
             RefCount = data.RefCount + data.JupiterRefCount;
-            Interfaces = data.GetInterfaces(runtime);
+            Interfaces = data.GetInterfaces();
         }
     }
 }

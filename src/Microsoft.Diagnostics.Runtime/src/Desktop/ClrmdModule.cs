@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 string typeName = _helpers.GetTypeName(mt);
                 if (typeName == name)
-                    return _helpers.Factory.GetOrCreateType(AppDomain.Runtime.Heap, mt, 0);
+                    return _helpers.Factory.GetOrCreateType(mt, 0);
             }
 
             return null;
@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (!map.Search(typeDefOrRefToken, CompareTo, out (ulong, uint) found))
                 return null;
 
-            ClrType type = _helpers.Factory.GetOrCreateType(heap, found.Item2, 0);
+            ClrType type = _helpers.Factory.GetOrCreateType(found.Item2, 0);
             return type;
         }
 

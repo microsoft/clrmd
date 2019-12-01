@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             _helpers = data.Helpers;
 
             // Must be the last use of 'data' in this constructor. 
-            _type = _helpers.Factory.GetOrCreateType(parent.Heap, data.TypeMethodTable, 0);
+            _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
         }
 
 
