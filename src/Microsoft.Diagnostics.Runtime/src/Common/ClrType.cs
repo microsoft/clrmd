@@ -331,6 +331,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        public IClrObjectHelpers ClrObjectHelpers { get; }
+        public abstract IClrObjectHelpers ClrObjectHelpers { get; }
     }
 }

@@ -9,12 +9,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class PrimitiveType : ClrType
     {
-        public PrimitiveType(ClrHeap heap, ClrElementType type)
+        public PrimitiveType(ITypeHelpers helpers, ClrHeap heap, ClrElementType type)
         {
+            ClrObjectHelpers = helpers.ClrObjectHelpers;
             Heap = heap;
             ElementType = type;
         }
 
+        public override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
         public override bool IsShared => false;
         public override int BaseSize => ClrmdField.GetSize(this, ElementType);

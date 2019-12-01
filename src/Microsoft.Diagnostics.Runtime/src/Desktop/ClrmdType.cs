@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override ClrElementType ElementType => GetElementType();
         public bool Shared { get; }
-
+        public override IClrObjectHelpers ClrObjectHelpers => _helpers.ClrObjectHelpers;
 
         public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }

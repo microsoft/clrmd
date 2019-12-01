@@ -172,6 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }
+        IClrObjectHelpers ClrObjectHelpers { get; }
 
         string GetTypeName(ulong mt);
         ulong GetLoaderAllocatorHandle(ulong mt);
@@ -837,7 +838,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_basicTypes[index] != null)
                 return _basicTypes[index];
 
-            return _basicTypes[index] = new PrimitiveType(GetOrCreateHeap(), basicType);
+            return _basicTypes[index] = new PrimitiveType(this, GetOrCreateHeap(), basicType);
         }
 
         public ClrType GetOrCreateType(ulong mt, ulong obj) => GetOrCreateType(GetOrCreateHeap(), mt, obj);
@@ -1124,6 +1125,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public string GetTypeName(ulong mt) => _cache.ReportOrInternString(mt, _sos.GetMethodTableName(mt));
 
+
+        IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
         ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
         {
             if (_sos6 != null && _sos6.GetMethodTableCollectibleData(mt, out MethodTableCollectibleData data) && data.Collectible != 0)

@@ -48,6 +48,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 throw new ArgumentException($"{nameof(ranks)} must be 1 or greater.");
         }
 
+        public override IClrObjectHelpers ClrObjectHelpers => ComponentType.ClrObjectHelpers;
+
         // We have no good way of finding this value, unfortunately
         public override ClrElementType ElementType { get; }
         public override ulong MethodTable => 0;
