@@ -67,11 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
         /// </summary>
-        public virtual ClrElementType ElementType
-        {
-            get => ClrElementType.Unknown;
-            internal set => throw new NotImplementedException();
-        }
+        public abstract ClrElementType ElementType { get; }
 
         /// <summary>
         /// Returns true if this type is a primitive (int, float, etc), false otherwise.

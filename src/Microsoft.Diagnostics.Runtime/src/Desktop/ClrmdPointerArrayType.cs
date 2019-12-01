@@ -49,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
         // We have no good way of finding this value, unfortunately
+        public override ClrElementType ElementType { get; }
         public override ulong MethodTable => 0;
         public override bool IsFinalizeSuppressed(ulong obj) => false;
         public override bool IsPointer => true;

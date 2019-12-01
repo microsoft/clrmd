@@ -316,7 +316,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
 
-        readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
+        private readonly ClrType[] _basicTypes = new ClrType[(int)ClrElementType.SZArray];
+        private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
         private readonly Dictionary<ulong, ulong> _moduleSizes = new Dictionary<ulong, ulong>();
         private List<AllocationContext> _threadAllocContexts;
 
@@ -817,7 +818,17 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ClrRuntime GetOrCreateRuntime() => _runtime ?? (_runtime = new ClrmdRuntime(_clrinfo, _library, this));
         public ClrHeap GetOrCreateHeap(ClrRuntime runtime) => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
 
-        public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType) => throw new NotImplementedException();
+        public ClrType GetOrCreateBasicType(ClrHeap heap, ClrElementType basicType)
+        {
+            int index = (int)basicType - 1;
+            if (index < 0 || index > _basicTypes.Length)
+                throw new ArgumentException($"Cannot create type for ClrElementType {basicType}");
+
+            if (_basicTypes[index] != null)
+                return _basicTypes[index];
+
+            return _basicTypes[index] = new PrimitiveType(GetOrCreateHeap(GetOrCreateRuntime()), basicType);
+        }
 
 
         public ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
