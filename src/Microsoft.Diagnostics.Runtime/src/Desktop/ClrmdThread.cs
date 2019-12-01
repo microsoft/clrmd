@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly int _threadState;
         private readonly ulong _exceptionHandle;
 
+        public override ClrRuntime Runtime { get; }
         public override ulong Address { get; }
         public override bool IsFinalizer { get; }
         public override GcMode GcMode { get; }
@@ -25,17 +26,18 @@ namespace Microsoft.Diagnostics.Runtime
         public override ulong StackBase { get; }
         public override ulong StackLimit { get; }
 
-        public ClrmdThread(IThreadData data, ClrAppDomain appDomain)
+        public ClrmdThread(IThreadData data, ClrRuntime runtime, ClrAppDomain currentDomain)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
             _helpers = data.Helpers;
+            Runtime = runtime;
             Address = data.Address;
             IsFinalizer = data.IsFinalizer;
             OSThreadId = data.OSThreadID;
             ManagedThreadId = data.ManagedThreadID;
-            CurrentAppDomain = appDomain;
+            CurrentAppDomain = currentDomain;
             LockCount = data.LockCount;
             _threadState = data.State;
             _exceptionHandle = data.ExceptionHandle;
@@ -44,8 +46,6 @@ namespace Microsoft.Diagnostics.Runtime
             GcMode = data.Preemptive ? GcMode.Preemptive : GcMode.Cooperative;
         }
 
-        internal ClrmdRuntime DesktopRuntime { get; }
-        public override ClrRuntime Runtime => DesktopRuntime;
 
         public override ClrException? CurrentException
         {
