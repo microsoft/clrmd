@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(nestedExceptionModules.ContainsKey("appdomains.exe"));
 
             // Ensure that we use the same ClrModule in each AppDomain.
-            Assert.Equal(appDomainsModules["mscorlib.dll"], nestedExceptionModules["mscorlib.dll"]);
+            Assert.Equal(appDomainsModules["mscorlib.dll"].FileName, nestedExceptionModules["mscorlib.dll"].FileName);
             Assert.NotEqual(appDomainsModules["sharedlibrary.dll"], nestedExceptionModules["sharedlibrary.dll"]);
         }
 

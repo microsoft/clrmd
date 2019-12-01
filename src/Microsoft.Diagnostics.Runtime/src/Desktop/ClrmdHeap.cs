@@ -94,6 +94,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (obj >= nextObj)
                         yield break;
 
+                    if (obj >= seg.End)
+                        yield break;
+
                     obj = nextObj;
                 }
             }

@@ -26,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrType type = heap.GetObjectType(obj);
                 Assert.NotNull(type);
+                string name = type.Name;
                 if (type.Name == "Foo")
                     encounteredFoo = true;
 

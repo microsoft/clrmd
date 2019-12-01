@@ -817,11 +817,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             {
-                _ptr = mt;
                 if (!_sos.GetMethodTableData(mt, out _mtData))
                     return null;
 
                 ClrModule module = GetOrCreateModule(null, _mtData.Module);
+                _ptr = mt;
                 ClrmdType result = new ClrmdType(heap, module, this);
 
                 if (_cache.Store(mt, result))
