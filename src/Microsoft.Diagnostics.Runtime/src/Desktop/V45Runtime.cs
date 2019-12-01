@@ -552,7 +552,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             HashSet<ulong> seen = new HashSet<ulong>() { 0 };
             ulong addr = _firstThread;
             int i;
-            for (i = 0; i < threads.Length && !seen.Contains(addr); i++)
+            for (i = 0; i < threads.Length && seen.Add(addr); i++)
             {
                 if (!_sos.GetThreadData(addr, out _threadData))
                     break;
@@ -1324,7 +1324,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
 
                     next = thread.NextThread;
-                    if (next == 0 || seen.Add(next))
+                    if (next == 0 || !seen.Add(next))
                         break;
                 }
             }
