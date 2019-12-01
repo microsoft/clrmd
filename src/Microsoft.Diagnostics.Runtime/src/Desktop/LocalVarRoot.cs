@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override bool IsPossibleFalsePositive { get; }
         public override string Name => "local var";
         public override bool IsPinned { get; }
-        public override GCRootKind Kind => GCRootKind.LocalVar;
+        public override GCRootKind Kind => GCRootKind.Stack;
         public override bool IsInterior { get; }
         public override ClrType Type { get; }
     }

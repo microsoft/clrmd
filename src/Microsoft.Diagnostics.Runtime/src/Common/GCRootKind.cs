@@ -10,19 +10,9 @@ namespace Microsoft.Diagnostics.Runtime
     public enum GCRootKind
     {
         /// <summary>
-        /// The root is a static variable.
-        /// </summary>
-        StaticVar,
-
-        /// <summary>
-        /// The root is a thread static.
-        /// </summary>
-        ThreadStaticVar,
-
-        /// <summary>
         /// The root is a local variable (or compiler generated temporary variable).
         /// </summary>
-        LocalVar,
+        Stack,
 
         /// <summary>
         /// The root is a strong handle.

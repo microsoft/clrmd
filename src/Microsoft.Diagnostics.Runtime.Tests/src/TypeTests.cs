@@ -134,11 +134,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             IEnumerable<ClrRoot> fooRoots = from root in heap.EnumerateRoots()
                                             where root.Type.Name == "Foo"
                                             select root;
-
-            ClrRoot staticRoot = fooRoots.Single(r => r.Kind == GCRootKind.StaticVar);
-            Assert.Contains("s_foo", staticRoot.Name);
-
-            ClrRoot[] localVarRoots = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
+            
+            ClrRoot[] localVarRoots = fooRoots.Where(r => r.Kind == GCRootKind.Stack).ToArray();
 
             ClrThread thread = runtime.GetMainThread();
             ClrStackFrame main = thread.GetFrame("Main");
@@ -218,9 +215,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ulong[] fooObjects = (from obj in heap.EnumerateObjects()
-                                  where obj.Type.Name == "Foo"
-                                  select obj.Address).ToArray();
+            ClrObject[] fooObjects = (from obj in heap.EnumerateObjects()
+                                      where obj.Type.Name == "Foo"
+                                      select obj).ToArray();
 
             // There are exactly two Foo objects in the process, one in each app domain.
             // They will have different method tables.
@@ -230,17 +227,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType fooType2 = heap.GetObjectType(fooObjects[1]);
             Assert.NotSame(fooType, fooType2);
 
-            ClrRoot appDomainsFoo = (from root in heap.EnumerateRoots()
-                                     where root.Kind == GCRootKind.StaticVar && root.Type == fooType
-                                     select root).Single();
+            ClrObject appDomainsFoo = fooObjects.Where(o => o.Type.Module.AppDomain.Name.Contains("AppDomains")).Single();
+            ClrObject nestedFoo = fooObjects.Where(o => o.Type.Module.AppDomain.Name.Contains("Second")).Single();
 
-            ulong nestedExceptionFoo = fooObjects.Single(obj => obj != appDomainsFoo.Object);
-            ClrType nestedExceptionFooType = heap.GetObjectType(nestedExceptionFoo);
+            Assert.NotSame(appDomainsFoo.Type, nestedFoo.Type);
 
-            Assert.NotSame(nestedExceptionFooType, appDomainsFoo.Type);
-
-            ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedExceptionFoo);
-            ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Object);
+            ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedFoo.Address);
+            ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Address);
 
             // These are in different domains and should have different type handles:
             Assert.NotEqual(nestedExceptionFooMethodTable, appDomainsFooMethodTable);
