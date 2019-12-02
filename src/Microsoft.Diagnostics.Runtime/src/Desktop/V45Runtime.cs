@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ClrAppDomain GetOrCreateAppDomain(ulong domain);
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
         ClrMethod[] CreateMethodsForType(ClrType type);
-        void CreateFieldsForType(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] staticFields);
+        void CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> staticFields);
         ComCallWrapper CreateCCWForObject(ulong obj);
         RuntimeCallableWrapper CreateRCWForObject(ulong obj);
         ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
@@ -972,7 +972,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
 
 
-        void ITypeFactory.CreateFieldsForType(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] statics)
+        void ITypeFactory.CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
         {
             CreateFieldsForMethodTableWorker(type, out fields, out statics);
             if (fields == null)
@@ -983,7 +983,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         }
 
 
-        void CreateFieldsForMethodTableWorker(ClrType type, out ClrInstanceField[] fields, out ClrStaticField[] statics)
+        void CreateFieldsForMethodTableWorker(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
         {
             fields = null;
             statics = null;
@@ -992,11 +992,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return;
 
             if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            {
+                if (type.BaseType != null)
+                    fields = type.BaseType.Fields;
                 return;
+            }
 
             _cache.ReportMemory(type.MethodTable, fieldInfo.NumInstanceFields * _instFieldSize + fieldInfo.NumStaticFields * _staticFieldSize);
-            fields = new ClrInstanceField[fieldInfo.NumInstanceFields + type.BaseType.Fields.Count];
-            statics = new ClrStaticField[fieldInfo.NumStaticFields];
+            ClrInstanceField[] fieldOut = new ClrInstanceField[fieldInfo.NumInstanceFields + type.BaseType.Fields.Count];
+            ClrStaticField[] staticOut = new ClrStaticField[fieldInfo.NumStaticFields];
             if (fieldInfo.NumStaticFields == 0)
                 statics = Array.Empty<ClrStaticField>();
             int fieldNum = 0;
@@ -1006,30 +1010,33 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (type.BaseType != null)
             {
                 foreach (ClrInstanceField field in type.BaseType.Fields)
-                    fields[fieldNum++] = field;
+                    fieldOut[fieldNum++] = field;
             }
 
             ulong nextField = fieldInfo.FirstFieldAddress;
-            while (fieldNum + staticNum < fields.Length + statics.Length && nextField != 0)
+            while (fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
             {
                 if (!_sos.GetFieldData(nextField, out _fieldData))
                     break;
 
                 if (_fieldData.IsStatic != 0)
-                    statics[staticNum++] = new ClrmdStaticField(type, this);
+                    staticOut[staticNum++] = new ClrmdStaticField(type, this);
                 else if (_fieldData.IsContextLocal == 0 && _fieldData.IsThreadLocal == 0)
-                    fields[fieldNum++] = new ClrmdField(type, this);
+                    fieldOut[fieldNum++] = new ClrmdField(type, this);
 
                 nextField = _fieldData.NextField;
             }
 
-            if (fieldNum != fields.Length)
-                Array.Resize(ref fields, fieldNum);
+            if (fieldNum != fieldOut.Length)
+                Array.Resize(ref fieldOut, fieldNum);
 
-            if (staticNum != statics.Length)
-                Array.Resize(ref statics, staticNum);
+            if (staticNum != staticOut.Length)
+                Array.Resize(ref staticOut, staticNum);
 
-            Array.Sort(fields, (a, b) => a.Offset.CompareTo(b.Offset));
+            Array.Sort(fieldOut, (a, b) => a.Offset.CompareTo(b.Offset));
+
+            fields = fieldOut;
+            statics = staticOut;
         }
 
         public MetaDataImport GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);

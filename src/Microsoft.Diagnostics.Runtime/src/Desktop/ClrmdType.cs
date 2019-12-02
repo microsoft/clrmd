@@ -24,8 +24,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private ulong? _loaderAllocatorHandle;
 
         private ClrMethod[] _methods;
-        private ClrInstanceField[] _fields;
-        private ClrStaticField[] _statics;
+        private IReadOnlyList<ClrInstanceField> _fields;
+        private IReadOnlyList<ClrStaticField> _statics;
 
         private int _baseArrayOffset;
         private EnumData _enumData;
