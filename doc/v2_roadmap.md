@@ -89,6 +89,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 2.  SymbolLocator related code.
 3.  Get BCL from System.Object's module instead of a heuristic.
 4.  Investigating using BCL's typedef table for primitive types instead of creating our own.
+5.  Ensure ClrmdType equality when they come from the same MT.
 
 # .Net Core 5 Dac Wishlist
 
