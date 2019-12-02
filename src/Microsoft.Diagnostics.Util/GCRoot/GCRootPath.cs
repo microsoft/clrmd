@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The location that roots the object.
         /// </summary>
-        public ClrRoot Root { get; set; }
+        public IClrRoot Root { get; set; }
 
         /// <summary>
         /// The path from Root to a given target object.

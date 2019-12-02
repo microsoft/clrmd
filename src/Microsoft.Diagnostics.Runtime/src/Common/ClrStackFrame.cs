@@ -63,32 +63,5 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrMethod Method { get; }
 
         public abstract string FrameName { get; }
-
-        /// <summary>
-        /// Returns the module name to use for building the stack trace.
-        /// </summary>
-        public virtual string ModuleName
-        {
-            get
-            {
-                if (Method == null || Method.Type == null || Method.Type.Module == null)
-                    return UnknownModuleName;
-
-                string result = Method.Type.Module.Name;
-                try
-                {
-                    return Path.GetFileNameWithoutExtension(result);
-                }
-                catch
-                {
-                    return result;
-                }
-            }
-        }
-
-        /// <summary>
-        /// The default name used when a module name cannot be calculated.
-        /// </summary>
-        public const string UnknownModuleName = "UNKNOWN";
     }
 }

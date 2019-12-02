@@ -3,109 +3,28 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Types of Clr handles.
-    /// </summary>
-    public enum HandleType
-    {
-        /// <summary>
-        /// Weak, short lived handle.
-        /// </summary>
-        WeakShort = 0,
-
-        /// <summary>
-        /// Weak, long lived handle.
-        /// </summary>
-        WeakLong = 1,
-
-        /// <summary>
-        /// Strong handle.
-        /// </summary>
-        Strong = 2,
-
-        /// <summary>
-        /// Strong handle, prevents relocation of target object.
-        /// </summary>
-        Pinned = 3,
-
-        /// <summary>
-        /// RefCounted handle (strong when the reference count is greater than 0).
-        /// </summary>
-        RefCount = 5,
-
-        /// <summary>
-        /// A weak handle which may keep its "secondary" object alive if the "target" object is also alive.
-        /// </summary>
-        Dependent = 6,
-
-        /// <summary>
-        /// A strong, pinned handle (keeps the target object from being relocated), used for async IO operations.
-        /// </summary>
-        AsyncPinned = 7,
-
-        /// <summary>
-        /// Strong handle used internally for book keeping.
-        /// </summary>
-        SizedRef = 8
-    }
-
-    /// <summary>
     /// Represents a Clr handle in the target process.
     /// </summary>
-    public class ClrHandle
+    public sealed class ClrHandle : IClrRoot
     {
         /// <summary>
         /// The address of the handle itself.  That is, *ulong == Object.
         /// </summary>
-        public ulong Address { get; set; }
+        public ulong Address { get; }
 
         /// <summary>
         /// The Object the handle roots.
         /// </summary>
-        public ulong Object { get; set; }
-
-        /// <summary>
-        /// The the type of the Object.
-        /// </summary>
-        public ClrType Type { get; set; }
-
-        /// <summary>
-        /// Whether the handle is strong (roots the object) or not.
-        /// </summary>
-        public virtual bool IsStrong
-        {
-            get
-            {
-                switch (HandleType)
-                {
-                    case HandleType.RefCount:
-                        return RefCount > 0;
-
-                    case HandleType.WeakLong:
-                    case HandleType.WeakShort:
-                    case HandleType.Dependent:
-                        return false;
-
-                    default:
-                        return true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Whether or not the handle pins the object (doesn't allow the GC to
-        /// relocate it) or not.
-        /// </summary>
-        public virtual bool IsPinned => HandleType == HandleType.AsyncPinned || HandleType == HandleType.Pinned;
+        public ClrObject Object { get; }
 
         /// <summary>
         /// Gets the type of handle.
         /// </summary>
-        public HandleType HandleType { get; set; }
+        public ClrHandleKind HandleKind { get; }
 
         /// <summary>
         /// If this handle is a RefCount handle, this returns the reference count.
@@ -113,26 +32,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// NOTE: v2 CLR CANNOT determine the RefCount.  We always set the RefCount
         /// to 1 in a v2 query since a strong RefCount handle is the common case.
         /// </summary>
-        public uint RefCount { get; set; }
+        public uint RefCount { get; }
 
-        /// <summary>
-        /// Set only if the handle type is a DependentHandle.  Dependent handles add
-        /// an extra edge to the object graph.  Meaning, this.Object now roots the
-        /// dependent target, but only if this.Object is alive itself.
-        /// NOTE: CLRs prior to v4.5 cannot obtain the dependent target.  This field will
-        /// be 0 for any CLR prior to v4.5.
-        /// </summary>
-        public ulong DependentTarget { get; set; }
+        public ClrObject Dependent { get; }
 
-        /// <summary>
-        /// The type of the dependent target, if non 0.
-        /// </summary>
-        public ClrType DependentType { get; set; }
-
-        /// <summary>
         /// The AppDomain the handle resides in.
         /// </summary>
-        public ClrAppDomain AppDomain { get; set; }
+        public ClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// ToString override.
@@ -140,24 +46,28 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return HandleType + " " + (Type != null ? Type.Name : "");
+            return HandleKind + " " + (Object.Type?.Name ?? "");
         }
 
-        internal ClrHandle()
+        public ClrHandle(ulong address, ClrObject obj, ClrHandleKind handleKind, uint refCount, ClrObject dependent, ClrAppDomain domain)
         {
+            Address = address;
+            Object = obj;
+            AppDomain = domain;
+            HandleKind = handleKind;
+            RefCount = refCount;
+            Dependent = dependent;
         }
 
-        internal ClrHandle(in HandleData handleData, ulong obj, ClrType type, ClrAppDomain domain, ClrType dependentSecondary)
+        public ClrHandle(in HandleData handleData, ClrObject obj, ClrAppDomain domain, ClrType dependentSecondary)
         {
-            //TODO: rewrite class
             Address = handleData.Handle;
 
             Object = obj;
-            Type = type;
 
             uint refCount = 0;
 
-            if (handleData.Type == (int)HandleType.RefCount)
+            if (handleData.Type == (int)ClrHandleKind.RefCount)
             {
                 if (handleData.IsPegged != 0)
                     refCount = handleData.JupiterRefCount;
@@ -165,14 +75,16 @@ namespace Microsoft.Diagnostics.Runtime
                 if (refCount < handleData.RefCount)
                     refCount = handleData.RefCount;
 
-                if (Type != null)
+                if (!obj.IsNull)
                 {
-                    ComCallWrapper ccw = Type.GetCCWData(obj);
+                    ComCallWrapper ccw = obj.Type.GetCCWData(obj);
                     if (ccw != null && refCount < ccw.RefCount)
+                    {
                         refCount = (uint)ccw.RefCount;
+                    }
                     else
                     {
-                        RuntimeCallableWrapper rcw = Type.GetRCWData(obj);
+                        RuntimeCallableWrapper rcw = obj.Type.GetRCWData(obj);
                         if (rcw != null && refCount < rcw.RefCount)
                             refCount = (uint)rcw.RefCount;
                     }
@@ -181,46 +93,45 @@ namespace Microsoft.Diagnostics.Runtime
                 RefCount = refCount;
             }
 
-            HandleType = (HandleType)handleData.Type;
+            HandleKind = (ClrHandleKind)handleData.Type;
             AppDomain = domain;
 
-            if (HandleType == HandleType.Dependent)
+            if (HandleKind == ClrHandleKind.Dependent)
+                Dependent = new ClrObject( handleData.Secondary, dependentSecondary);
+        }
+
+
+        /// <summary>
+        /// Whether the handle is strong (roots the object) or not.
+        /// </summary>
+        public bool IsStrong
+        {
+            get
             {
-                DependentTarget = handleData.Secondary;
-                DependentType = dependentSecondary;
+                switch (HandleKind)
+                {
+                    case ClrHandleKind.RefCount:
+                        return RefCount > 0;
+
+                    case ClrHandleKind.WeakLong:
+                    case ClrHandleKind.WeakShort:
+                    case ClrHandleKind.Dependent:
+                        return false;
+
+                    default:
+                        return true;
+                }
             }
         }
 
-        internal ClrHandle GetInteriorHandle()
-        {
-            if (HandleType != HandleType.AsyncPinned)
-                return null;
+        public ClrRootKind RootKind => IsStrong ? (ClrRootKind)HandleKind : ClrRootKind.None;
 
-            if (Type == null)
-                return null;
+        public bool IsInterior => false;
 
-            var field = Type.GetFieldByName("m_userObject");
-            if (field == null)
-                return null;
-
-            ulong obj;
-            object tmp = field.GetValue(Object);
-            if (!(tmp is ulong) || (obj = (ulong)tmp) == 0)
-                return null;
-
-            ClrType type = Type.Heap.GetObjectType(obj);
-            if (type == null)
-                return null;
-
-            ClrHandle result = new ClrHandle
-            {
-                Object = obj,
-                Type = type,
-                Address = Address,
-                AppDomain = AppDomain,
-                HandleType = HandleType
-            };
-            return result;
-        }
+        /// <summary>
+        /// Whether or not the handle pins the object (doesn't allow the GC to
+        /// relocate it) or not.
+        /// </summary>
+        public bool IsPinned => HandleKind == ClrHandleKind.AsyncPinned || HandleKind == ClrHandleKind.Pinned;
     }
 }

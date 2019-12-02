@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizerRoots());
+            Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizerRoots().Select(r => r.Object));
 
             Assert.Equal(42, stats.A);
             Assert.Equal(0, stats.B);

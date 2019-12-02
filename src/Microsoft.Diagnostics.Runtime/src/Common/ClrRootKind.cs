@@ -7,41 +7,49 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// The type of GCRoot that a ClrRoot represnts.
     /// </summary>
-    public enum GCRootKind
+    public enum ClrRootKind
     {
         /// <summary>
-        /// The root is a local variable (or compiler generated temporary variable).
+        /// This is not a gc root.  This will not be enumerated out of ClrHeap.EnumerateRoots, but
+        /// could be seen when using ClrRuntime.EnumerateHandles.
         /// </summary>
-        Stack,
-
-        /// <summary>
-        /// The root is a strong handle.
-        /// </summary>
-        Strong,
-
-        /// <summary>
-        /// The root is a weak handle.
-        /// </summary>
-        Weak,
-
-        /// <summary>
-        /// The root is a strong pinning handle.
-        /// </summary>
-        Pinning,
+        None = 0,
 
         /// <summary>
         /// The root comes from the finalizer queue.
         /// </summary>
-        Finalizer,
+        FinalizerQueue = 1,
+
+        /// <summary>
+        /// The root is a strong handle.
+        /// </summary>
+        StrongHandle = 2,
+
+        /// <summary>
+        /// The root is a strong pinning handle.
+        /// </summary>
+        PinningHandle = 3,
+
+        /// <summary>
+        /// The root is on the stack of a thread.  This is usually a is a local variable
+        /// (or compiler generated temporary variable).
+        /// </summary>
+        Stack = 4,
+
+        /// <summary>
+        /// The root is a refcount handle.
+        /// </summary>
+        RefCountHandle = 5,
 
         /// <summary>
         /// The root is an async IO (strong) pinning handle.
         /// </summary>
-        AsyncPinning,
+        AsyncPinningHandle = 7,
 
         /// <summary>
-        /// The max value of this enum.
+        /// The root is a SizedRef handle.
         /// </summary>
-        Max = AsyncPinning
+        SizedRefHandle = 8,
+
     }
 }

@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -64,14 +63,14 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
                     if (type != null)
-                        return new ClrException(_helpers.ExceptionHelpers, new ClrObject(obj, type));
+                        return new ClrException(_helpers.ExceptionHelpers, this, new ClrObject(obj, type));
                 }
 
                 return null;
             }
         }
 
-        public override IEnumerable<ClrRoot> EnumerateStackObjects() => _helpers.EnumerateStackRoots(this);
+        public override IEnumerable<ClrStackRoot> EnumerateStackObjects() => _helpers.EnumerateStackRoots(this);
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext) => _helpers.EnumerateStackTrace(this, includeContext);
 
 

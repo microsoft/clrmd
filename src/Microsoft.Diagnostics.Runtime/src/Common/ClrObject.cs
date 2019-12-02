@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type == null || !Type.IsException)
                 return default;
 
-            return new ClrException(Helpers.ExceptionHelpers, this);
+            return new ClrException(Helpers.ExceptionHelpers, null, this);
         }
 
         /// <summary>

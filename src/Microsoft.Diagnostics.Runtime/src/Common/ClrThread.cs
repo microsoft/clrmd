@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// EnumerateStackObjects(true).
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public abstract IEnumerable<ClrRoot> EnumerateStackObjects();
+        public abstract IEnumerable<ClrStackRoot> EnumerateStackObjects();
 
         internal static bool GetExactPolicy(ClrRuntime runtime, ClrRootStackwalkPolicy stackwalkPolicy)
         {

@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerate the roots in the process.
         /// </summary>
-        public abstract IEnumerable<ClrRoot> EnumerateRoots();
+        public abstract IEnumerable<IClrRoot> EnumerateRoots();
 
         /// <summary>
         /// Enumerates all objects that the given object references.
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
-        public abstract IEnumerable<ClrObject> EnumerateFinalizerRoots();
+        public abstract IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots();
 
         /// <summary>
         /// Returns a string representation of this heap, including the size and number of segments.

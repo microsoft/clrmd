@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _next, vtable->Next);
         }
 
-        public int ReadHandles(Span<HandleData> handles, int count)
+        public int ReadHandles(HandleData[] handles, int count)
         {
             if (handles == null)
                 throw new ArgumentNullException(nameof(handles));

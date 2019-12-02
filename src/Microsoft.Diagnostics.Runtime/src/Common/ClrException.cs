@@ -19,15 +19,19 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IExceptionHelpers _helpers;
         private readonly ClrObject _object;
 
-        public ClrException(IExceptionHelpers helpers, ClrObject obj)
-        {
-            _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+        public ClrThread Thread { get; }
 
-            _object = obj;
+        public ClrException(IExceptionHelpers helpers, ClrThread thread, ClrObject obj)
+        {
             if (obj.IsNull)
                 throw new InvalidOperationException($"Cannot construct a ClrException from a null object.");
 
+            _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+            _object = obj;
+            Thread = thread;
+
             Debug.Assert(obj.IsException);
+
         }
 
         /// <summary>
@@ -72,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// the middle of constructing the stackwalk.)  This returns an empty list if no stack trace is
         /// associated with this exception object.
         /// </summary>
-        public IReadOnlyList<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(_object);
+        public IReadOnlyList<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(Thread, _object);
 
     }
 }

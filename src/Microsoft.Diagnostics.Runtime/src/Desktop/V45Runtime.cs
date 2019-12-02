@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ITypeFactory Factory { get; }
         IExceptionHelpers ExceptionHelpers { get; }
 
-        IEnumerable<ClrRoot> EnumerateStackRoots(ClrThread thread);
+        IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread);
         IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext);
     }
 
@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
     public interface IExceptionHelpers
     {
-        IReadOnlyList<ClrStackFrame> GetExceptionStackTrace(ClrObject obj);
+        IReadOnlyList<ClrStackFrame> GetExceptionStackTrace(ClrThread thread, ClrObject obj);
     }
 
     public interface IAppDomainHelpers
@@ -443,14 +443,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        IEnumerable<ClrRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
+        IEnumerable<ClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
         {
             // TODO: rethink stack roots and this code
             using SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
             if (stackRefEnum == null)
                 yield break;
 
-            ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(1024).ToArray();
+            ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(2048).ToArray();
 
             ClrAppDomain domain = thread.CurrentAppDomain;
             ClrHeap heap = thread.Runtime?.Heap;
@@ -466,18 +466,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (refs[i].Object == 0)
                         continue;
 
-                    bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
                     bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
+                    bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
 
-                    ClrType type = null;
+                    ClrObject obj;
+                    ClrType type = heap.GetObjectType(refs[i].Object); // Will fail in the interior case
 
-                    if (!interior)
-                        type = heap.GetObjectType(refs[i].Object);
+                    if (type != null)
+                        obj = new ClrObject(refs[i].Object, type);
+                    else
+                        obj = new ClrObject();
 
                     ClrStackFrame frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
+                    if (frame == null)
+                        frame = new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameType.Unknown, null, null);
 
                     if (interior || type != null)
-                        yield return new LocalVarRoot(refs[i].Address, refs[i].Object, type, domain, thread, pinned, false, interior, frame);
+                        yield return new ClrStackRoot(refs[i].Address, obj, frame, interior, pinned);
                 }
             }
         }
@@ -569,12 +574,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         innerMethod = CreateMethodFromHandle(md);
                 }
 
-                return new ClrmdStackFrame(context, ip, sp, ClrStackFrameType.Runtime, innerMethod, frameName);
+                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameType.Runtime, innerMethod, frameName);
             }
             else
             {
                 ClrMethod method = thread?.Runtime?.GetMethodByInstructionPointer(ip);
-                return new ClrmdStackFrame(context, ip, sp, ClrStackFrameType.ManagedMethod, method, null);
+                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameType.ManagedMethod, method, null);
             }
         }
 
@@ -651,21 +656,24 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         IEnumerable<ClrHandle> IRuntimeHelpers.EnumerateHandleTable(ClrRuntime runtime)
         {
-            Span<HandleData> handles = stackalloc HandleData[16];
+            // Enumerating handles should be sufficiently rare as to not need to use ArrayPool
+            HandleData[] handles = new HandleData[128];
             return EnumerateHandleTable(runtime, handles, 16);
         }
 
-        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, Span<HandleData> handles, int count)
+        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles, int count)
         {
             // TODO: Use smarter handle enum overload in _sos
-            // TODO: actually enumerate instead of building giant list
-
-            List<ClrHandle> result = new List<ClrHandle>();
-
             Dictionary<ulong, ClrAppDomain> domains = new Dictionary<ulong, ClrAppDomain>();
+            if (runtime.SharedDomain != null)
+                domains[runtime.SharedDomain.Address] = runtime.SharedDomain;
+
+            if (runtime.SystemDomain != null)
+                domains[runtime.SystemDomain.Address] = runtime.SystemDomain;
+
             foreach (ClrAppDomain domain in runtime.AppDomains)
             {
-                // Don't use .ToDictionary in case we have bad data;
+                // Don't use .ToDictionary in case we have bad data
                 domains[domain.Address] = domain;
             }
 
@@ -685,7 +693,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     {
                         ClrType type = GetOrCreateType(mt, obj);
                         ClrType dependent = null;
-                        if (handles[i].Type == (int)HandleType.Dependent && handles[i].Secondary != 0)
+                        if (handles[i].Type == (int)ClrHandleKind.Dependent && handles[i].Secondary != 0)
                         {
                             ulong dmt = DataReader.ReadPointerUnsafe(handles[i].Secondary);
 
@@ -695,17 +703,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                         domains.TryGetValue(handles[i].AppDomain, out ClrAppDomain domain);
 
-                        ClrHandle handle = new ClrHandle(in handles[i], obj, type, domain, dependent);
-                        result.Add(handle);
-
-                        handle = handle.GetInteriorHandle();
-                        if (handle != null)
-                            result.Add(handle);
+                        ClrObject clrObj = type != null ? new ClrObject(obj, type) : default;
+                        ClrHandle handle = new ClrHandle(in handles[i], clrObj, domain, dependent);
+                        yield return handle;
                     }
                 }
             }
-
-            return result;
         }
 
         void IRuntimeHelpers.ClearCachedData()
@@ -720,7 +723,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public IExceptionHelpers ExceptionHelpers => this;
 
-        IReadOnlyList<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrObject obj)
+        IReadOnlyList<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread thread, ClrObject obj)
         {
             ClrObject _stackTrace = obj.GetObjectField("_stackTrace");
             if (_stackTrace.IsNull)
@@ -747,7 +750,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 ulong md = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
                 ClrMethod method = CreateMethodFromHandle(md);
-                result[i] = new ClrmdStackFrame(null, ip, sp, ClrStackFrameType.ManagedMethod, method, frameName: null);
+                result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameType.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }
 
@@ -1468,26 +1471,23 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
         {
-            List<(ulong, ulong)> result = new List<(ulong, ulong)>();
             // TODO use smarter sos enum for only dependent handles
             using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
 
-            Span<HandleData> handles = stackalloc HandleData[16];
+            HandleData[] handles = new HandleData[32];
             int fetched = 0;
             while ((fetched = handleEnum.ReadHandles(handles, 16)) != 0)
             {
                 for (int i = 0; i < fetched; i++)
                 {
-                    if (handles[i].Type == (int)HandleType.Dependent)
+                    if (handles[i].Type == (int)ClrHandleKind.Dependent)
                     {
                         ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
                         if (obj != 0)
-                            result.Add((obj, handles[i].Secondary));
+                            yield return (obj, handles[i].Secondary);
                     }
                 }
             }
-
-            return result;
         }
     }
     
