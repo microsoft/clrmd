@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         IExceptionHelpers ExceptionHelpers { get; }
 
         IEnumerable<ClrRoot> EnumerateStackRoots(ClrThread thread);
-        IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread);
+        IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext);
     }
 
     public interface IThreadData
@@ -480,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        IEnumerable<ClrStackFrame> IThreadHelpers.EnumerateStackTrace(ClrThread thread)
+        IEnumerable<ClrStackFrame> IThreadHelpers.EnumerateStackTrace(ClrThread thread, bool includeContext)
         {
             using ClrStackWalk stackwalk = _dac.CreateStackWalk(thread.OSThreadId, 0xf);
             if (stackwalk == null)
@@ -512,8 +512,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     frameVtbl = DataReader.ReadPointerUnsafe(sp);
                 }
 
-                byte[] contextCopy = new byte[context.Length];
-                Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
+                byte[] contextCopy = null;
+                if (includeContext)
+                {
+                    contextCopy = new byte[context.Length];
+                    Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
+                }
 
                 ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
                 yield return frame;

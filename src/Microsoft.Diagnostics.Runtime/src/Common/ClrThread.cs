@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// is expected that sometimes two frames may return the same StackPointer in some corner cases).
         /// </summary>
         /// <returns>An enumeration of stack frames.</returns>
-        public abstract IEnumerable<ClrStackFrame> EnumerateStackTrace();
+        public abstract IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false);
 
         /// <summary>
         /// Returns the exception currently on the thread.  Note that this field may be null.  Also note
