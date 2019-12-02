@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -17,6 +19,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The path from Root to a given target object.
         /// </summary>
-        public ClrObject[] Path { get; set; }
+        public IReadOnlyList<ClrObject> Path { get; set; }
     }
 }

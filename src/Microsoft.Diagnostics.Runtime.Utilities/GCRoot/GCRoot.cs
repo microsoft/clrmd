@@ -64,11 +64,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Returns true if all relevant heap and root data is locally cached in this process for fast GCRoot processing.
-        /// </summary>
-        public bool IsFullyCached => false;
-
-        /// <summary>
         /// Creates a GCRoot helper object for the given heap.
         /// </summary>
         /// <param name="heap">The heap the object in question is on.</param>
@@ -100,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             long lastObjectReported = 0;
 
-            bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
+            bool parallel = AllowParallelSearch && _maxTasks > 0;
 
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>()
             {

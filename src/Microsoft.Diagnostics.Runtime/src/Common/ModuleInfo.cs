@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -53,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
         /// </summary>
-        public byte[] BuildId { get; internal set; }
+        public IReadOnlyList<byte> BuildId { get; internal set; }
 
         /// <summary>
         /// Whether the module is managed or not.

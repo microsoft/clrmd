@@ -174,7 +174,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             GCRoot gcroot = new GCRoot(runtime.Heap);
 
-            Assert.False(gcroot.IsFullyCached);
             GCRootsImpl(gcroot);
         }
 
@@ -287,15 +286,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             target = heap.GetObjectsOfType("TargetType").Single();
         }
 
-        private void AssertPathIsCorrect(ClrHeap heap, ClrObject[] path, ulong source, ulong target)
+        private void AssertPathIsCorrect(ClrHeap heap, IReadOnlyList<ClrObject> path, ulong source, ulong target)
         {
             Assert.NotNull(path);
-            Assert.True(path.Length > 0);
+            Assert.True(path.Count > 0);
 
             ClrObject first = path.First();
             Assert.Equal(source, first.Address);
 
-            for (int i = 0; i < path.Length - 1; i++)
+            for (int i = 0; i < path.Count - 1; i++)
             {
                 ClrObject curr = path[i];
                 Assert.Equal(curr.Type, heap.GetObjectType(curr.Address));

@@ -57,6 +57,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ClrmdType(ClrHeap heap, ClrModule module, ITypeData data)
         {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+
             _helpers = data.Helpers;
             TypeHandle = data.MethodTable;
             Heap = heap;
