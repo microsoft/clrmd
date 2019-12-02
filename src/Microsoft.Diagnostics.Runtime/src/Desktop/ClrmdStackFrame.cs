@@ -28,5 +28,44 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Method = method;
             FrameName = frameName;
         }
+
+
+        public override string ToString()
+        {
+            if (Kind == ClrStackFrameType.ManagedMethod)
+                return FrameName;
+
+            int methodLen = 0;
+            int methodTypeLen = 0;
+
+            if (Method != null)
+            {
+                methodLen = Method.Name.Length;
+                if (Method.Type != null)
+                    methodTypeLen = Method.Type.Name.Length;
+            }
+
+            StringBuilder sb = new StringBuilder(FrameName.Length + methodLen + methodTypeLen + 10);
+
+            sb.Append('[');
+            sb.Append(FrameName);
+            sb.Append(']');
+
+            if (Method != null)
+            {
+                sb.Append(" (");
+
+                if (Method.Type != null)
+                {
+                    sb.Append(Method.Type.Name);
+                    sb.Append('.');
+                }
+
+                sb.Append(Method.Name);
+                sb.Append(')');
+            }
+
+            return sb.ToString();
+        }
     }
 }
