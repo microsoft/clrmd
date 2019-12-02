@@ -928,27 +928,31 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
         {
-            List<ClrMethod> methods = new List<ClrMethod>(32);
-
             ulong mt = type.MethodTable;
             _ptr = mt;
-            if (_sos.GetMethodTableData(mt, out MethodTableData data))
-            {
-                for (int i = 0; i < data.NumMethods; i++)
-                {
-                    ulong slot = _sos.GetMethodTableSlot(mt, i);
+            if (!_sos.GetMethodTableData(mt, out MethodTableData data))
+                return Array.Empty<ClrMethod>();
 
-                    if (_sos.GetCodeHeaderData(slot, out _codeHeaderData))
-                    {
-                        _ptr = _codeHeaderData.MethodDesc;
-                        if (_sos.GetMethodDescData(_ptr, 0, out _mdData))
-                            methods.Add(new ClrmdMethod(type, this));
-                    }
+            ClrMethod[] result = new ClrMethod[data.NumMethods];
+
+            int curr = 0;
+            for (int i = 0; i < data.NumMethods; i++)
+            {
+                ulong slot = _sos.GetMethodTableSlot(mt, i);
+
+                if (_sos.GetCodeHeaderData(slot, out _codeHeaderData))
+                {
+                    _ptr = _codeHeaderData.MethodDesc;
+                    if (_sos.GetMethodDescData(_ptr, 0, out _mdData))
+                        result[curr++] = new ClrmdMethod(type, this);
                 }
             }
 
-            _cache.ReportMemory(type.MethodTable, methods.Count * _methodSize);
-            return methods.ToArray();
+            if (curr < result.Length)
+                Array.Resize(ref result, curr);
+
+            _cache.ReportMemory(type.MethodTable, result.Length * _methodSize);
+            return result;
         }
 
         public ClrMethod CreateMethodFromHandle(ulong methodDesc)
