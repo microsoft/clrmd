@@ -233,14 +233,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value of the given field.</returns>
         public string GetStringField(string fieldName)
         {
-            ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            if (!Helpers.DataReader.ReadPointer(address, out ulong str))
+            ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
+            if (!Helpers.DataReader.ReadPointer(address, out ulong strPtr))
                 throw new MemoryReadException(address);
 
-            if (str == 0)
+            if (strPtr == 0)
                 return null;
 
-            return ValueReader.ReadString(Helpers.DataReader, str, Length);
+            return ValueReader.GetStringContents(stringType, Helpers.DataReader, strPtr);
         }
 
         public string AsString()
@@ -251,7 +251,7 @@ namespace Microsoft.Diagnostics.Runtime
             return ValueReader.GetStringContents(Type, Helpers.DataReader, Address);
         }
 
-        private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
+        private ulong GetFieldAddress(string fieldName, ClrElementType element, out ClrType fieldType, string typeName)
         {
             if (IsNull)
                 throw new NullReferenceException();
@@ -264,6 +264,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"Field '{Type.Name}.{fieldName}' is not of type '{typeName}'.");
 
             ulong address = field.GetAddress(Address);
+            fieldType = field.Type;
             return address;
         }
 
