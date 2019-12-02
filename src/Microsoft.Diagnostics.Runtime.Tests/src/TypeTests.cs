@@ -114,16 +114,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType[] types = (from obj in heap.EnumerateObjects()
                                let t = heap.GetObjectType(obj.Address)
                                where t.Name == TypeName
+                               orderby t.MethodTable
                                select t).ToArray();
 
             Assert.Equal(2, types.Length);
             Assert.NotSame(types[0], types[1]);
 
-            ClrModule module = runtime.EnumerateModules().Single(m => Path.GetFileName(m.FileName).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase));
-            ClrType typeFromModule = module.GetTypeByName(TypeName);
 
-            Assert.Equal(TypeName, typeFromModule.Name);
-            Assert.Equal(types[0], typeFromModule);
+
+            ClrType[] typesFromModule = (from module in runtime.EnumerateModules()
+                                         let name = Path.GetFileNameWithoutExtension(module.FileName)
+                                         where name.Equals("sharedlibrary", StringComparison.OrdinalIgnoreCase)
+                                         let type = module.GetTypeByName(TypeName)
+                                         select type).ToArray();
+
+            Assert.Equal(2, typesFromModule.Length);
+            Assert.NotSame(types[0], types[1]);
+
+            Assert.Same(types[0], typesFromModule[0]);
+            Assert.Same(types[1], typesFromModule[1]);
         }
 
         [WindowsFact]

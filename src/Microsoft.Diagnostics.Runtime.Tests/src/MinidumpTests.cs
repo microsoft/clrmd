@@ -30,12 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
             {
-                if (frame.Kind == ClrStackFrameType.Runtime)
-                {
-                    Assert.Equal(0ul, frame.InstructionPointer);
-                    Assert.NotEqual(0ul, frame.StackPointer);
-                }
-                else
+                if (frame.Kind == ClrStackFrameType.ManagedMethod)
                 {
                     Assert.NotEqual(0ul, frame.InstructionPointer);
                     Assert.NotEqual(0ul, frame.StackPointer);

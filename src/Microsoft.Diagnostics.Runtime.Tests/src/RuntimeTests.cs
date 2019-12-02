@@ -53,16 +53,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             HashSet<string> expected = new HashSet<string>(new[] { "mscorlib.dll", "system.dll", "system.core.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
-            HashSet<ClrModule> modules = new HashSet<ClrModule>();
-
-            foreach (ClrModule module in runtime.EnumerateModules())
+            foreach (ClrAppDomain domain in runtime.AppDomains)
             {
-                if (Path.GetExtension(module.FileName) == ".nlp")
-                    continue;
+                HashSet<ClrModule> modules = new HashSet<ClrModule>();
+                foreach (ClrModule module in domain.Modules)
+                {
+                    if (Path.GetExtension(module.FileName) == ".nlp")
+                        continue;
 
-                Assert.Contains(Path.GetFileName(module.FileName), expected);
-                Assert.DoesNotContain(module, modules);
-                modules.Add(module);
+                    Assert.Contains(Path.GetFileName(module.FileName), expected);
+                    Assert.DoesNotContain(module, modules);
+                    modules.Add(module);
+                }
             }
         }
     }
