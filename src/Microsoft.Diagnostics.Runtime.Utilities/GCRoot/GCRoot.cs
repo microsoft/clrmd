@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// and if the entire heap was cached.  Note that ClrMD and underlying APIs do NOT support multithreading, so this
         /// is only used when we can ensure all relevant data is local memory and we do not need to touch the debuggee.
         /// </summary>
-        public bool AllowParallelSearch { get; set; } = true;
+        public bool AllowParallelSearch { get; set; } = false;
 
         /// <summary>
         /// The maximum number of tasks allowed to run in parallel, if GCRoot does a parallel search.
