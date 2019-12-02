@@ -16,16 +16,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            PdbInfo[] allPdbs = runtime.EnumerateModules().Where(m => m.Pdb != null).Select(m => m.Pdb).ToArray();
+            PdbInfo[] allPdbs = runtime.EnumerateModules().Select(m => m.Pdb).ToArray();
             Assert.True(allPdbs.Length > 1);
 
             for (int i = 0; i < allPdbs.Length; i++)
             {
+                Assert.NotNull(allPdbs[i]);
                 Assert.True(allPdbs[i].Equals(allPdbs[i]));
                 for (int j = i + 1; j < allPdbs.Length; j++)
                 {
-                    Assert.False(allPdbs[i].Equals(allPdbs[j]));
-                    Assert.False(allPdbs[j].Equals(allPdbs[i]));
+                    if (allPdbs[i].FileName != allPdbs[j].FileName)
+                    {
+                        Assert.False(allPdbs[i].Equals(allPdbs[j]));
+                        Assert.False(allPdbs[j].Equals(allPdbs[i]));
+                    }
                 }
             }
         }

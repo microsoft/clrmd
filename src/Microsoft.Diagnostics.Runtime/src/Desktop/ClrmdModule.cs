@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             AssemblyAddress = data.AssemblyAddress;
             Address = data.Address;
             IsPEFile = data.IsPEFile;
-            ImageBase = IsPEFile ? data.PEImageBase : data.ILImageBase;
+            ImageBase = data.ILImageBase;
             Size = data.Size;
             MetadataAddress = data.MetadataStart;
             MetadataLength = data.MetadataLength;
