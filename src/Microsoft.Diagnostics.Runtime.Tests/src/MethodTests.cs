@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrType type = module.GetTypeByName("Foo");
                 ClrMethod method = type.GetMethod("Bar");
                 Assert.Equal(methodDesc, method.MethodDesc);
-                Assert.Same(method, runtime.GetMethodByHandle(methodDesc));
+                Assert.Equal(method, runtime.GetMethodByHandle(methodDesc));
             }
         }
 

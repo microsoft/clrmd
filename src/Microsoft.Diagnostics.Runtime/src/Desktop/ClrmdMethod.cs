@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             _helpers = data.Helpers;
 
+            Type = type;
             MethodDesc = data.MethodDesc;
             CompilationType = data.CompilationType;
             MetadataToken = data.Token;

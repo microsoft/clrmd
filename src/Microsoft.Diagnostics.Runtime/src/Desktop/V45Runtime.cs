@@ -961,6 +961,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return null;
 
             ClrType type = GetOrCreateType(mdData.MethodTable, 0);
+            ClrMethod method = type.Methods.FirstOrDefault(m => m.MethodDesc == methodDesc);
+            if (method != null)
+                return method;
 
             _ptr = methodDesc;
             _mdData = mdData;
