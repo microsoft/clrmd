@@ -75,6 +75,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             // Must be the last use of 'data' in this constructor. 
             _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
+            if (ElementType == ClrElementType.Class)
+                ElementType = _type.ElementType;
 
             DebugOnlyLoadLazyValues();
         }
