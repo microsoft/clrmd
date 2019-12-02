@@ -4,12 +4,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+
+#pragma warning disable CA1721 // Property names should not match get methods
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal sealed class ClrmdHeap : ClrHeap
+    public sealed class ClrmdHeap : ClrHeap
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IDataReader _reader;
@@ -38,6 +39,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ClrmdHeap(ClrRuntime runtime, IHeapBuilder heapBuilder)
         {
+            if (heapBuilder is null)
+                throw new NullReferenceException(nameof(heapBuilder));
+
             _reader = heapBuilder.DataReader;
             _memoryReader = new MemoryReader(heapBuilder.DataReader, 0x10000);
             _typeFactory = heapBuilder.TypeFactory;

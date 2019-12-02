@@ -2,12 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class ClrmdAppDomain : ClrAppDomain
+    public class ClrmdAppDomain : ClrAppDomain
     {
         private readonly IAppDomainHelpers _helpers;
 
@@ -22,6 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public ClrmdAppDomain(ClrRuntime runtime, IAppDomainData data)
         {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+
             _helpers = data.Helpers;
             Runtime = runtime;
             Id = data.Id;

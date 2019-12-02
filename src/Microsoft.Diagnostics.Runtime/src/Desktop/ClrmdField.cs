@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class ClrmdField : ClrInstanceField
+    public class ClrmdField : ClrInstanceField
     {
         private readonly IFieldHelpers _helpers;
         private string _name;

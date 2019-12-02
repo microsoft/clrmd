@@ -4,14 +4,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 #pragma warning disable 649
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal sealed class ClrmdRuntime : ClrRuntime
+    public sealed class ClrmdRuntime : ClrRuntime
     {
         private readonly IRuntimeHelpers _helpers;
         private ClrHeap _heap;

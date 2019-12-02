@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class ClrmdPointerArrayType : ClrType
+    public class ClrmdPointerArrayType : ClrType
     {
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;

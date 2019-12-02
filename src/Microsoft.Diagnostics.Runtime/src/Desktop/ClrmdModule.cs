@@ -11,7 +11,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal sealed class ClrmdModule : ClrModule
+    public sealed class ClrmdModule : ClrModule
     {
         private readonly IModuleHelpers _helpers;
         private int _debugMode = int.MaxValue;
