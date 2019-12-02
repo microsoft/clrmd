@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {

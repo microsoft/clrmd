@@ -4,7 +4,7 @@
 
 using System;
 using System.IO;
-using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
