@@ -938,10 +938,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 {
                     ulong slot = _sos.GetMethodTableSlot(mt, i);
 
-                    if (_sos.GetCodeHeaderData(slot, out CodeHeaderData codeHeader))
+                    if (_sos.GetCodeHeaderData(slot, out _codeHeaderData))
                     {
-                        _ptr = codeHeader.MethodDesc;
-                        if (_sos.GetMethodDescData(_ptr, 0, out _mdData) && _sos.GetCodeHeaderData(_mdData.NativeCodeAddr, out _codeHeaderData))
+                        _ptr = _codeHeaderData.MethodDesc;
+                        if (_sos.GetMethodDescData(_ptr, 0, out _mdData))
                             methods.Add(new ClrmdMethod(type, this));
                     }
                 }

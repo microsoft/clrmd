@@ -97,6 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule module = runtime.GetModule("sharedlibrary.dll");
             ClrType type = module.GetTypeByName("Foo");
 
+            ClrMethod[] methods = type.Methods.ToArray();
             ClrMethod genericMethod = type.GetMethod("GenericBar");
 
             string methodName = genericMethod.Signature;
