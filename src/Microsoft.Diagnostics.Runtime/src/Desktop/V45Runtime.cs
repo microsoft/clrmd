@@ -479,7 +479,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     ClrStackFrame frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     if (frame == null)
-                        frame = new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameType.Unknown, null, null);
+                        frame = new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
 
                     if (interior || type != null)
                         yield return new ClrStackRoot(refs[i].Address, obj, frame, interior, pinned);
@@ -574,12 +574,12 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         innerMethod = CreateMethodFromHandle(md);
                 }
 
-                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameType.Runtime, innerMethod, frameName);
+                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameKind.Runtime, innerMethod, frameName);
             }
             else
             {
                 ClrMethod method = thread?.Runtime?.GetMethodByInstructionPointer(ip);
-                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameType.ManagedMethod, method, null);
+                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameKind.ManagedMethod, method, null);
             }
         }
 
@@ -750,7 +750,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 ulong md = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
                 ClrMethod method = CreateMethodFromHandle(md);
-                result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameType.ManagedMethod, method, frameName: null);
+                result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }
 
@@ -873,7 +873,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (_basicTypes[index] != null)
                 return _basicTypes[index];
 
-            return _basicTypes[index] = new PrimitiveType(this, GetOrCreateHeap(), basicType);
+            return _basicTypes[index] = new PrimitiveType(this, GetOrCreateRuntime().BaseClassLibrary, GetOrCreateHeap(), basicType);
         }
 
         public ClrType GetOrCreateType(ulong mt, ulong obj) => GetOrCreateType(GetOrCreateHeap(), mt, obj);
@@ -959,7 +959,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
         {
-            ulong mt = type.MethodTable;
+            ulong mt = type.TypeHandle;
             _ptr = mt;
             if (!_sos.GetMethodTableData(mt, out MethodTableData data))
                 return Array.Empty<ClrMethod>();
@@ -982,7 +982,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (curr < result.Length)
                 Array.Resize(ref result, curr);
 
-            _cache.ReportMemory(type.MethodTable, result.Length * _methodSize);
+            _cache.ReportMemory(type.TypeHandle, result.Length * _methodSize);
             return result;
         }
 
@@ -1022,14 +1022,14 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (type.IsFree)
                 return;
 
-            if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            if (!_sos.GetFieldInfo(type.TypeHandle, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
             {
                 if (type.BaseType != null)
                     fields = type.BaseType.Fields;
                 return;
             }
 
-            _cache.ReportMemory(type.MethodTable, fieldInfo.NumInstanceFields * _instFieldSize + fieldInfo.NumStaticFields * _staticFieldSize);
+            _cache.ReportMemory(type.TypeHandle, fieldInfo.NumInstanceFields * _instFieldSize + fieldInfo.NumStaticFields * _staticFieldSize);
             ClrInstanceField[] fieldOut = new ClrInstanceField[fieldInfo.NumInstanceFields + type.BaseType.Fields.Count];
             ClrStaticField[] staticOut = new ClrStaticField[fieldInfo.NumStaticFields];
             if (fieldInfo.NumStaticFields == 0)
@@ -1133,7 +1133,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 return false;
             }
 
-            name = _cache.ReportOrInternString(type.MethodTable, name);
+            name = _cache.ReportOrInternString(type.TypeHandle, name);
             sigParser = new Utilities.SigParser(fieldSig, sigLen);
             return true;
         }
@@ -1464,7 +1464,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         {
             while (_seenSegments.Add(address) && _sos.GetSegmentData(address, out _segment))
             {
-                segments.Add(new HeapSegment(clrHeap, this));
+                segments.Add(new ClrmdSegment(clrHeap, this));
                 address = _segment.Next;
             }
         }

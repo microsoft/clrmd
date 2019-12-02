@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects that this object references.
         /// </summary>
         /// <returns>An enumeration of object references.</returns>
-        public IEnumerable<ClrObject> EnumerateObjectReferences(bool carefully = false)
+        public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false)
         {
             return Type.Heap.EnumerateObjectReferences(Address, Type, carefully);
         }

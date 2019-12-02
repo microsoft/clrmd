@@ -50,6 +50,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// The root is a SizedRef handle.
         /// </summary>
         SizedRefHandle = 8,
-
     }
 }

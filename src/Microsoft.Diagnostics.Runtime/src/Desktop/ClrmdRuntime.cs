@@ -147,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         return module;
 
             foreach (ClrAppDomain domain in AppDomains)
-                foreach (ClrModule module in SharedDomain.Modules)
+                foreach (ClrModule module in domain.Modules)
                     if (module.Name.ToUpperInvariant().Contains(moduleName))
                         return module;
 

@@ -3,13 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using Microsoft.Diagnostics.Runtime.Desktop;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Desktop
 {
-    internal class HeapSegment : ClrSegment
+    internal class ClrmdSegment : ClrSegment
     {
-        internal HeapSegment(ClrHeap clrHeap, ISegmentBuilder builder)
+        internal ClrmdSegment(ClrHeap clrHeap, ISegmentBuilder builder)
         {
             Heap = clrHeap;
 

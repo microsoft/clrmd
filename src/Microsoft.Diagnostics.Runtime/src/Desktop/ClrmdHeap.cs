@@ -262,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             {
                 if (thread.IsAlive)
                 {
-                    foreach (IClrRoot root in thread.EnumerateStackObjects())
+                    foreach (IClrRoot root in thread.EnumerateStackRoots())
                         yield return root;
                 }
             }

@@ -76,19 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// EnumerateStackObjects(true).
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public abstract IEnumerable<ClrStackRoot> EnumerateStackObjects();
-
-        internal static bool GetExactPolicy(ClrRuntime runtime, ClrRootStackwalkPolicy stackwalkPolicy)
-        {
-            Debug.Assert(stackwalkPolicy != ClrRootStackwalkPolicy.SkipStack);
-
-            return stackwalkPolicy switch
-            {
-                ClrRootStackwalkPolicy.Automatic => runtime.Threads.Count < 512 ? true : false,
-                ClrRootStackwalkPolicy.Exact => true,
-                _ => false,
-            };
-        }
+        public abstract IEnumerable<ClrStackRoot> EnumerateStackRoots();
 
         /// <summary>
         /// Enumerates a stack trace for a given thread.  Note this method may loop infinitely in the case of

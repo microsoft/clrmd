@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     internal class StackTraceEntry
     {
-        public ClrStackFrameType Kind { get; set; }
+        public ClrStackFrameKind Kind { get; set; }
         public string ModuleString { get; set; }
         public string MethodName { get; set; }
     }
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
             {
-                if (frame.Kind == ClrStackFrameType.ManagedMethod)
+                if (frame.Kind == ClrStackFrameKind.ManagedMethod)
                 {
                     Assert.NotEqual(0ul, frame.InstructionPointer);
                     Assert.NotEqual(0ul, frame.StackPointer);

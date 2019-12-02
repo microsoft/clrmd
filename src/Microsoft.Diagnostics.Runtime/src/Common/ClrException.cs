@@ -19,6 +19,9 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IExceptionHelpers _helpers;
         private readonly ClrObject _object;
 
+        /// <summary>
+        /// The original thread this exception was thrown from.  This may be null if we do not know.
+        /// </summary>
         public ClrThread Thread { get; }
 
         public ClrException(IExceptionHelpers helpers, ClrThread thread, ClrObject obj)

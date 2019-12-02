@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return (int)DebuggableAttribute.DebuggingModes.None;
         }
 
-        public override IEnumerable<(ulong, uint)> EnumerateMethodTables() => _helpers.GetSortedTypeDefMap(this);
+        public override IEnumerable<(ulong, uint)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
 
         public override ClrType GetTypeByName(string name)
         {
@@ -127,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             List<ulong> lookup = new List<ulong>(Math.Min(256, typeDefMap.Count));
 
-            foreach ((ulong mt, uint _) in EnumerateMethodTables())
+            foreach ((ulong mt, uint _) in EnumerateTypeDefToMethodTableMap())
             {
                 ClrType type = _helpers.TryGetType(mt);
                 if (type == null)

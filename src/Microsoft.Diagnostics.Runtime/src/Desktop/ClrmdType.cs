@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private GCDesc? _gcDesc;
 
 
-        public override string Name => _name ?? (_name = _helpers.GetTypeName(MethodTable));
+        public override string Name => _name ?? (_name = _helpers.GetTypeName(TypeHandle));
 
         public override int BaseSize { get; }
         public override int ComponentSize { get; }
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public bool Shared { get; }
         public override IClrObjectHelpers ClrObjectHelpers => _helpers.ClrObjectHelpers;
 
-        public override ulong MethodTable { get; }
+        public override ulong TypeHandle { get; }
         public override ClrHeap Heap { get; }
 
         public override ClrType BaseType { get; }
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ClrmdType(ClrHeap heap, ClrModule module, ITypeData data)
         {
             _helpers = data.Helpers;
-            MethodTable = data.MethodTable;
+            TypeHandle = data.MethodTable;
             Heap = heap;
             Module = module;
             MetadataToken = data.Token;
@@ -108,8 +108,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (reader == null)
                 return default;
 
-            Debug.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
-            if (!reader.Read(MethodTable - (ulong)IntPtr.Size, out int entries))
+            Debug.Assert(TypeHandle != 0, "Attempted to fill GC desc with a constructed (not real) type.");
+            if (!reader.Read(TypeHandle - (ulong)IntPtr.Size, out int entries))
             {
                 _gcDesc = default;
                 return default;
@@ -121,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!reader.ReadMemory(MethodTable - (ulong)(slots * IntPtr.Size), buffer, out int read) || read != buffer.Length)
+            if (!reader.ReadMemory(TypeHandle - (ulong)(slots * IntPtr.Size), buffer, out int read) || read != buffer.Length)
             {
                 _gcDesc = default;
                 return default;
@@ -390,7 +390,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (_loaderAllocatorHandle.HasValue)
                     return _loaderAllocatorHandle.Value;
 
-                ulong handle = _helpers.GetLoaderAllocatorHandle(MethodTable);
+                ulong handle = _helpers.GetLoaderAllocatorHandle(TypeHandle);
                 _loaderAllocatorHandle = handle;
                 return handle;
             }
@@ -466,11 +466,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             if (_statics == null)
                 _statics = Array.Empty<ClrStaticField>();
-        }
-
-        internal override ClrMethod GetMethod(uint token)
-        {
-            return Methods.FirstOrDefault(m => m.MetadataToken == token);
         }
 
         public override IReadOnlyList<ClrMethod> Methods => _methods ?? (_methods = _helpers.Factory.CreateMethodsForType(this));

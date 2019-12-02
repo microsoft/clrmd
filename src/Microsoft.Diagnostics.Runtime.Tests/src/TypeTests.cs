@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType[] types = (from obj in heap.EnumerateObjects()
                                let t = heap.GetObjectType(obj.Address)
                                where t.Name == TypeName
-                               orderby t.MethodTable
+                               orderby t.TypeHandle
                                select t).ToArray();
 
             Assert.Equal(2, types.Length);
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj.Address)).Unique())
             {
-                Assert.NotEqual(0ul, type.MethodTable);
+                Assert.NotEqual(0ul, type.TypeHandle);
 
                 ClrType typeFromHeap;
 
@@ -187,14 +187,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     ClrType componentType = type.ComponentType;
                     Assert.NotNull(componentType);
 
-                    typeFromHeap = runtime.GetTypeByMethodTable(type.MethodTable);
+                    typeFromHeap = runtime.GetTypeByMethodTable(type.TypeHandle);
                 }
                 else
                 {
-                    typeFromHeap = runtime.GetTypeByMethodTable(type.MethodTable);
+                    typeFromHeap = runtime.GetTypeByMethodTable(type.TypeHandle);
                 }
 
-                Assert.Equal(type.MethodTable, typeFromHeap.MethodTable);
+                Assert.Equal(type.TypeHandle, typeFromHeap.TypeHandle);
                 Assert.Same(type, typeFromHeap);
             }
         }
@@ -217,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotEqual(0ul, mt);
 
                 Assert.Same(type, runtime.GetTypeByMethodTable(mt));
-                Assert.Equal(mt, type.MethodTable);
+                Assert.Equal(mt, type.TypeHandle);
             }
         }
 
@@ -253,8 +253,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // The MethodTable returned by ClrType should always be the method table that lives in the "first"
             // AppDomain (in order of ClrAppDomain.Id).
-            Assert.Equal(appDomainsFooMethodTable, fooType.MethodTable);
-            Assert.Equal(nestedExceptionFooMethodTable, fooType2.MethodTable);
+            Assert.Equal(appDomainsFooMethodTable, fooType.TypeHandle);
+            Assert.Equal(nestedExceptionFooMethodTable, fooType2.TypeHandle);
         }
 
         [Fact]
@@ -420,7 +420,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             List<ulong> objs = new List<ulong>();
             ClrObject obj = heap.GetObject(s_array);
-            objs.AddRange(obj.EnumerateObjectReferences().Select(o => o.Address));
+            objs.AddRange(obj.EnumerateReferences().Select(o => o.Address));
 
             // We do not guarantee the order in which these are enumerated.
             Assert.Equal(3, objs.Count);

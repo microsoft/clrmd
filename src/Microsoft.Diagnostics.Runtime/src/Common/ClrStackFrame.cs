@@ -8,28 +8,6 @@ using System.IO;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// The type of frame the ClrStackFrame represents.
-    /// </summary>
-    public enum ClrStackFrameType
-    {
-        /// <summary>
-        /// Indicates this stack frame is unknown
-        /// </summary>
-        Unknown = -1,
-
-        /// <summary>
-        /// Indicates this stack frame is a standard managed method.
-        /// </summary>
-        ManagedMethod = 0,
-
-        /// <summary>
-        /// Indicates this stack frame is a special stack marker that the Clr runtime leaves on the stack.
-        /// Note that the ClrStackFrame may still have a ClrMethod associated with the marker.
-        /// </summary>
-        Runtime = 1
-    }
-
-    /// <summary>
     /// A frame in a managed stack trace.  Note you can call ToString on an instance of this object to get the
     /// function name (or clr!Frame name) similar to SOS's !clrstack output.
     /// </summary>
@@ -53,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The type of frame (managed or internal).
         /// </summary>
-        public abstract ClrStackFrameType Kind { get; }
+        public abstract ClrStackFrameKind Kind { get; }
 
         /// <summary>
         /// Returns the ClrMethod which corresponds to the current stack frame.  This may be null if the
@@ -62,6 +40,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract ClrMethod Method { get; }
 
+        /// <summary>
+        /// The helper method frame name if Kind == Runtime, null otherwise.
+        /// </summary>
         public abstract string FrameName { get; }
     }
 }

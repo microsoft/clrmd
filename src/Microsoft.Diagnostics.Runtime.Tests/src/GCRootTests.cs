@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject obj = heap.GetObjectsOfType("DoubleRef").Single();
             Assert.False(obj.IsNull);
 
-            ValidateRefs(obj.EnumerateObjectReferences().ToArray());
+            ValidateRefs(obj.EnumerateReferences().ToArray());
         }
 
         private void ValidateRefs(ClrObject[] refs)
@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal("System.Object[]", obj.Type.Name);
 
-            ClrObject[] refs = obj.EnumerateObjectReferences(false).ToArray();
+            ClrObject[] refs = obj.EnumerateReferences(false).ToArray();
             Assert.Single(refs);
             Assert.Equal("DoubleRef", refs[0].Type.Name);
         }
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrObject curr = path[i];
                 Assert.Equal(curr.Type, heap.GetObjectType(curr.Address));
 
-                IEnumerable<ClrObject> refs = curr.EnumerateObjectReferences();
+                IEnumerable<ClrObject> refs = curr.EnumerateReferences();
 
                 ClrObject next = path[i + 1];
                 Assert.Contains(next, refs);

@@ -16,11 +16,11 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ReadOnlySpan<byte> Context => _context;
         public override ulong InstructionPointer { get; }
         public override ulong StackPointer { get; }
-        public override ClrStackFrameType Kind { get; }
+        public override ClrStackFrameKind Kind { get; }
         public override ClrMethod Method { get; }
         public override string FrameName { get; }
 
-        public ClrmdStackFrame(ClrThread thread, byte[] context, ulong ip, ulong sp, ClrStackFrameType kind, ClrMethod method, string frameName)
+        public ClrmdStackFrame(ClrThread thread, byte[] context, ulong ip, ulong sp, ClrStackFrameKind kind, ClrMethod method, string frameName)
         {
             _context = context;
             Thread = thread;
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override string ToString()
         {
-            if (Kind == ClrStackFrameType.ManagedMethod)
+            if (Kind == ClrStackFrameKind.ManagedMethod)
                 return Method.Signature;
 
             int methodLen = 0;

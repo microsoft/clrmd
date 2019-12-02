@@ -9,8 +9,7 @@ using System.Linq;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// A ClrHeap is a abstraction for the whole GC Heap.   Subclasses allow you to implement this for
-    /// a particular kind of heap (whether live,
+    /// A representation of the CLR heap.
     /// </summary>
     public abstract class ClrHeap
     {
@@ -37,8 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the ClrType representing free space on the GC heap.
         /// </summary>
         public abstract ClrType FreeType { get; }
-
-
+        
         /// <summary>
         /// Returns the ClrType representing System.String.
         /// </summary>
@@ -60,12 +58,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsServer { get; }
 
         /// <summary>
-        /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
-        /// a valid managed object.
-        /// </summary>
-        public abstract ClrType GetObjectType(ulong objRef);
-
-        /// <summary>
         /// Gets a <see cref="ClrObject"/> for the given address on this heap.
         /// </summary>
         /// <remarks>
@@ -76,27 +68,26 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrObject GetObject(ulong objRef) => new ClrObject(objRef, GetObjectType(objRef));
 
+
+        /// <summary>
+        /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
+        /// a valid managed object.
+        /// </summary>
+        public abstract ClrType GetObjectType(ulong objRef);
+
         /// <summary>
         /// Enumerates all objects on the heap.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
         public abstract IEnumerable<ClrObject> EnumerateObjects();
 
-
         /// <summary>
-        /// Enumerate the roots in the process.
+        /// Enumerates all roots in the process.  Equivalent to the combination of:
+        ///     ClrRuntime.EnumerateHandles().Where(handle => handle.IsStrong)
+        ///     ClrRuntime.EnumerateThreads().SelectMany(thread => thread.EnumerateStackRoots())
+        ///     ClrHeap.EnumerateFinalizerRoots()
         /// </summary>
         public abstract IEnumerable<IClrRoot> EnumerateRoots();
-
-        /// <summary>
-        /// Enumerates all objects that the given object references.
-        /// </summary>
-        /// <param name="obj">The object in question.</param>
-        /// <param name="carefully">
-        /// Whether to bounds check along the way (useful in cases where
-        /// the heap may be in an inconsistent state.)
-        /// </param>
-        public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully = false);
 
         /// <summary>
         /// Returns the GC segment for the given object.
@@ -107,7 +98,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
         public abstract IEnumerable<ClrObject> EnumerateFinalizableObjects();
-
 
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
@@ -125,6 +115,24 @@ namespace Microsoft.Diagnostics.Runtime
             return $"ClrHeap {sizeMb}mb {segCount} segments";
         }
 
+        /// <summary>
+        /// Use ClrObject.Size instead.
+        /// </summary>
+        /// <param name="objRef"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public abstract ulong GetObjectSize(ulong objRef, ClrType type);
+
+
+        /// <summary>
+        /// Enumerates all objects that the given object references.  Use ClrObject.EnumerateReferences instead.
+        /// </summary>
+        /// <param name="obj">The object in question.</param>
+        /// <param name="carefully">
+        /// Whether to bounds check along the way (useful in cases where
+        /// the heap may be in an inconsistent state.)
+        /// </param>
+        public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully = false);
+
     }
 }

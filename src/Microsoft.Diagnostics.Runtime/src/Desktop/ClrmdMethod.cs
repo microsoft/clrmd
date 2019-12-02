@@ -140,29 +140,27 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             ulong il = _helpers.GetILForModule(module.Address, rva);
             if (il != 0)
             {
-                ILInfo result = new ILInfo();
 
                 if (dataReader.Read(il, out byte b))
                 {
                     bool isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
                     if (isTinyHeader)
                     {
-                        result.Address = il + 1;
-                        result.Length = b >> (int)(IMAGE_COR_ILMETHOD.FormatShift - 1);
-                        result.LocalVarSignatureToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
+                        ulong address = il + 1;
+                        int len = b >> (int)(IMAGE_COR_ILMETHOD.FormatShift - 1);
+                        uint localToken = IMAGE_COR_ILMETHOD.mdSignatureNil;
+
+                        return new ILInfo(address, len, 0, localToken);
                     }
-                    else if (dataReader.Read(il, out uint tmp))
+                    else if (dataReader.Read(il, out uint flags))
                     {
-                        result.Flags = tmp;
-                        result.Length = dataReader.ReadUnsafe<int>(il + 4);
+                        int len = dataReader.ReadUnsafe<int>(il + 4);
+                        uint localToken = dataReader.ReadUnsafe<uint>(il + 8);
+                        ulong address = il + 12;
 
-                        result.LocalVarSignatureToken = dataReader.ReadUnsafe<uint>(il + 8);
-
-                        result.Address = il + 12;
+                        return new ILInfo(address, len, flags, localToken);
                     }
                 }
-
-                return result;
             }
 
             return null;

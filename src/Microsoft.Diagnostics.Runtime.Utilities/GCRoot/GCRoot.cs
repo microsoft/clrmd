@@ -360,7 +360,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 end = null;
                 if (obj.Type.ContainsPointers || obj.Type.IsCollectible)
                 {
-                    foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
+                    foreach (ClrObject reference in obj.EnumerateReferences(true))
                     {
                         cancelToken.ThrowIfCancellationRequested();
                         if (!unique && end == null && knownEndPoints != null)

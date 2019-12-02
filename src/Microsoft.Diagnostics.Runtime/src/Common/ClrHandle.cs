@@ -34,6 +34,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public uint RefCount { get; }
 
+        /// <summary>
+        /// The dependent handle target if this is a dependent handle.
+        /// </summary>
         public ClrObject Dependent { get; }
 
         /// The AppDomain the handle resides in.

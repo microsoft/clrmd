@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static IEnumerable<ClrType> EnumerateTypes(this ClrModule module)
         {
             ClrRuntime runtime = module.AppDomain.Runtime;
-            foreach ((ulong mt, uint _) in module.EnumerateMethodTables())
+            foreach ((ulong mt, uint _) in module.EnumerateTypeDefToMethodTableMap())
             {
                 ClrType type = runtime.GetTypeByMethodTable(mt);
                 if (type != null)
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static ClrType GetTypeByName(this ClrModule module, string typeName)
         {
             ClrRuntime runtime = module.AppDomain.Runtime;
-            foreach ((ulong mt, uint _) in module.EnumerateMethodTables())
+            foreach ((ulong mt, uint _) in module.EnumerateTypeDefToMethodTableMap())
             {
                 ClrType type = runtime.GetTypeByMethodTable(mt);
                 if (type.Name == typeName)

@@ -14,15 +14,15 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrType
     {
+        /// <summary>
+        /// Gets the GCDesc associated with this type.  Only valid if ContainsPointers returns true.
+        /// </summary>
         public abstract GCDesc GCDesc { get; }
 
         /// <summary>
-        /// Retrieves the first type handle in <see cref="EnumerateMethodTables"/>.
-        /// <see cref="MethodTable"/> instances are unique to an AppDomain/Type pair,
-        /// so when there are multiple domains there will be multiple <see cref="MethodTable"/>
-        /// for a class.
+        /// The type handle of this type (e.g. MethodTable).
         /// </summary>
-        public abstract ulong MethodTable { get; }
+        public abstract ulong TypeHandle { get; }
         
         /// <summary>
         /// Returns the metadata token of this type.
@@ -40,8 +40,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual bool ContainsPointers => true;
 
+        /// <summary>
+        /// Whether this is a collectible type or not.
+        /// </summary>
         public virtual bool IsCollectible => false;
 
+        /// <summary>
+        /// The handle to the LoaderAllocator object for collectible types.
+        /// </summary>
         public virtual ulong LoaderAllocatorHandle => 0;
 
         /// <summary>
@@ -52,17 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the module this type is defined in.
         /// </summary>
-        public virtual ClrModule Module => null;
-
-        /// <summary>
-        /// Returns a method based on its token.
-        /// </summary>
-        /// <param name="token">The token of the method to return.</param>
-        /// <returns>A ClrMethod for the given token, null if no such methodDesc exists.</returns>
-        internal virtual ClrMethod GetMethod(uint token)
-        {
-            return null;
-        }
+        public abstract ClrModule Module { get; }
 
         /// <summary>
         /// Returns the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
@@ -97,10 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <see cref="GC.SuppressFinalize"/>). The behavior of this function is undefined if the object itself
         /// is not finalizable.
         /// </summary>
-        public virtual bool IsFinalizeSuppressed(ulong obj)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract bool IsFinalizeSuppressed(ulong obj);
 
         /// <summary>
         /// Returns whether objects of this type are finalizable.

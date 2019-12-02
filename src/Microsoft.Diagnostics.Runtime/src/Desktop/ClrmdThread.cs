@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public override IEnumerable<ClrStackRoot> EnumerateStackObjects() => _helpers.EnumerateStackRoots(this);
+        public override IEnumerable<ClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext) => _helpers.EnumerateStackTrace(this, includeContext);
 
 

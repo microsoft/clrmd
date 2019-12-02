@@ -9,13 +9,15 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 {
     internal class PrimitiveType : ClrType
     {
-        public PrimitiveType(ITypeHelpers helpers, ClrHeap heap, ClrElementType type)
+        public PrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {
+            Module = module;
             ClrObjectHelpers = helpers.ClrObjectHelpers;
             Heap = heap;
             ElementType = type;
         }
 
+        public override ClrModule Module { get; }
         public override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
         public override bool IsShared => false;
@@ -32,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override bool IsPublic => false;
         public override bool IsSealed => false;
         public override uint MetadataToken => 0;
-        public override ulong MethodTable => 0;
+        public override ulong TypeHandle => 0;
         public override string Name
         {
             get
@@ -79,6 +81,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override ComCallWrapper GetCCWData(ulong obj) => null;
 
         public override RuntimeCallableWrapper GetRCWData(ulong obj) => null;
+
+        public override bool IsFinalizeSuppressed(ulong obj) => false;
 
         public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
 
