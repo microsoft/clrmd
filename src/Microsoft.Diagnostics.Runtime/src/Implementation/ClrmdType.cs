@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (extends != 0 && extends != 0x01000000)
                     type = GetInterface(import, extends);
 
-                result = new DesktopHeapInterface(name, type);
+                result = new ClrInterface(name, type);
             }
 
             return result;

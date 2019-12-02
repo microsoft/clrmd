@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SegmentData : ISegmentData
+    public readonly struct SegmentData
     {
         public readonly ulong Address;
         public readonly ulong Allocated;
@@ -47,12 +47,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             ptr = (uint)ptr;
         }
-
-        ulong ISegmentData.Address => Address;
-        ulong ISegmentData.Next => Next;
-        ulong ISegmentData.Start => Start;
-        ulong ISegmentData.End => Allocated;
-        ulong ISegmentData.Reserved => Reserved;
-        ulong ISegmentData.Committed => Committed;
     }
 }

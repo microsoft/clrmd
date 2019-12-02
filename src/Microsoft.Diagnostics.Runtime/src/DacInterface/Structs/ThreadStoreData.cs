@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ThreadStoreData : IThreadStoreData
+    public readonly struct ThreadStoreData
     {
         public readonly int ThreadCount;
         public readonly int UnstartedThreadCount;
@@ -19,9 +19,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong FinalizerThread;
         public readonly ulong GCThread;
         public readonly uint HostConfig;
-
-        ulong IThreadStoreData.Finalizer => FinalizerThread;
-        int IThreadStoreData.Count => ThreadCount;
-        ulong IThreadStoreData.FirstThread => FirstThread;
     }
 }

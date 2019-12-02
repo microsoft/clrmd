@@ -568,11 +568,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ulong md = _sos.GetMethodDescPtrFromFrame(sp);
                 if (md != 0)
-                {
-                    V45MethodDescDataWrapper mdData = new V45MethodDescDataWrapper();
-                    if (mdData.Init(_sos, md))
-                        innerMethod = CreateMethodFromHandle(md);
-                }
+                    innerMethod = CreateMethodFromHandle(md);
 
                 return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameKind.Runtime, innerMethod, frameName);
             }
@@ -873,7 +869,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_basicTypes[index] != null)
                 return _basicTypes[index];
 
-            return _basicTypes[index] = new PrimitiveType(this, GetOrCreateRuntime().BaseClassLibrary, GetOrCreateHeap(), basicType);
+            return _basicTypes[index] = new ClrmdPrimitiveType(this, GetOrCreateRuntime().BaseClassLibrary, GetOrCreateHeap(), basicType);
         }
 
         public ClrType GetOrCreateType(ulong mt, ulong obj) => GetOrCreateType(GetOrCreateHeap(), mt, obj);

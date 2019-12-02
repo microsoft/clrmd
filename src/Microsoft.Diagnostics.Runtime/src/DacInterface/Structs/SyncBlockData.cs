@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SyncBlockData : ISyncBlkData
+    public readonly struct SyncBlockData
     {
         public readonly ulong Object;
         public readonly uint Free;
@@ -20,13 +20,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly uint AdditionalThreadCount;
         public readonly ulong AppDomain;
         public readonly uint TotalSyncBlockCount;
-
-        bool ISyncBlkData.Free => Free != 0;
-        ulong ISyncBlkData.Object => Object;
-        bool ISyncBlkData.MonitorHeld => MonitorHeld != 0;
-        uint ISyncBlkData.Recursion => Recursion;
-        uint ISyncBlkData.TotalCount => TotalSyncBlockCount;
-        ulong ISyncBlkData.OwningThread => HoldingThread;
-        ulong ISyncBlkData.Address => Address;
     }
 }

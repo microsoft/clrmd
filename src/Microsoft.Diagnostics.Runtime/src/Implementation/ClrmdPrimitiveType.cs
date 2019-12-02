@@ -7,9 +7,9 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class PrimitiveType : ClrType
+    internal class ClrmdPrimitiveType : ClrType
     {
-        public PrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
+        public ClrmdPrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {
             Module = module;
             ClrObjectHelpers = helpers.ClrObjectHelpers;

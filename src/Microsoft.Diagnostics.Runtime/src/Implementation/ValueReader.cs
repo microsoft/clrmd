@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    // TODO: REmove this code
+    // TODO: Factor this into the appropriate place
     static class ValueReader
     {
         private static bool _initializedStringFields;
