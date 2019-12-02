@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetNumberThreadsDelegate _getNumberThreads;
         private GetThreadIdsByIndexDelegate _getThreadIdsByIndex;
         private GetThreadIdBySystemIdDelegate _getThreadIdBySystemId;
-        private int _systemId;
+        private int _systemId = -1;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetCurrentProcessSystemIdDelegate(IntPtr self, out uint pid);
@@ -127,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             public SystemHolder(DebugSystemObjects sysObjs, int id)
             {
                 Monitor.Enter(_sync);
-                if (_current != id)
+                if (id != -1 && _current != id)
                 {
                     _current = id;
                     sysObjs.SetCurrentSystemId(id);
