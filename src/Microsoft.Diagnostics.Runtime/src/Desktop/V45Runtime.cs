@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -487,42 +488,68 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             if (stackwalk == null)
                 yield break;
 
-            byte[] context = ContextHelper.Context;
-            do
+            int ipOffset;
+            int spOffset;
+            int contextSize;
+            uint contextFlags;
+            if (IntPtr.Size == 4)
             {
-                if (!stackwalk.GetContext(ContextHelper.ContextFlags, ContextHelper.Length, out _, context))
-                    break;
+                ipOffset = 184;
+                spOffset = 196;
+                contextSize = 716;
+                contextFlags = 0x1003f;
+            }
+            else
+            {
+                ipOffset = 248;
+                spOffset = 152;
+                contextSize = 1232;
+                contextFlags = 0x10003f;
+            }
 
-                ulong ip, sp;
-
-                if (IntPtr.Size == 4)
+            byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
+            try
+            {
+                do
                 {
-                    ip = BitConverter.ToUInt32(context, ContextHelper.InstructionPointerOffset);
-                    sp = BitConverter.ToUInt32(context, ContextHelper.StackPointerOffset);
-                }
-                else
-                {
-                    ip = BitConverter.ToUInt64(context, ContextHelper.InstructionPointerOffset);
-                    sp = BitConverter.ToUInt64(context, ContextHelper.StackPointerOffset);
-                }
+                    if (!stackwalk.GetContext(contextFlags, contextSize, out _, context))
+                        break;
 
-                ulong frameVtbl = stackwalk.GetFrameVtable();
-                if (frameVtbl != 0)
-                {
-                    sp = frameVtbl;
-                    frameVtbl = DataReader.ReadPointerUnsafe(sp);
-                }
+                    ulong ip, sp;
 
-                byte[] contextCopy = null;
-                if (includeContext)
-                {
-                    contextCopy = new byte[context.Length];
-                    Buffer.BlockCopy(context, 0, contextCopy, 0, context.Length);
-                }
+                    if (IntPtr.Size == 4)
+                    {
+                        ip = BitConverter.ToUInt32(context, ipOffset);
+                        sp = BitConverter.ToUInt32(context, spOffset);
+                    }
+                    else
+                    {
+                        ip = BitConverter.ToUInt64(context, ipOffset);
+                        sp = BitConverter.ToUInt64(context, spOffset);
+                    }
 
-                ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
-                yield return frame;
-            } while (stackwalk.Next());
+                    ulong frameVtbl = stackwalk.GetFrameVtable();
+                    if (frameVtbl != 0)
+                    {
+                        sp = frameVtbl;
+                        frameVtbl = DataReader.ReadPointerUnsafe(sp);
+                    }
+
+                    byte[] contextCopy = null;
+                    if (includeContext)
+                    {
+                        contextCopy = new byte[contextSize];
+                        Buffer.BlockCopy(context, 0, contextCopy, 0, contextSize);
+                    }
+
+                    ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
+                    yield return frame;
+                } while (stackwalk.Next());
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(context);
+            }
         }
 
 
