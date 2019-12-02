@@ -2,14 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrmdSegment : ClrSegment
+    public class ClrmdSegment : ClrSegment
     {
-        internal ClrmdSegment(ClrHeap clrHeap, ISegmentBuilder builder)
+        public ClrmdSegment(ClrHeap clrHeap, ISegmentBuilder builder)
         {
+            if (builder is null)
+                throw new ArgumentNullException(nameof(builder));
+
             Heap = clrHeap;
 
             LogicalHeap = builder.LogicalHeap;

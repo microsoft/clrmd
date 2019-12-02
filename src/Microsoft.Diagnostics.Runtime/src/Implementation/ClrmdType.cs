@@ -14,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrmdType : ClrType
+    public sealed class ClrmdType : ClrType
     {
         private string _name;
 

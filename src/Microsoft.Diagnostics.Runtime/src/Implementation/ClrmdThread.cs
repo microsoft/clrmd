@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class ClrmdThread : ClrThread
+    public sealed class ClrmdThread : ClrThread
     {
         private readonly IThreadHelpers _helpers;
         private readonly int _threadState;
