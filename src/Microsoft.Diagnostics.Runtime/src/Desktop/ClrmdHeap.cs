@@ -414,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (obj == 0)
                         continue;
 
-                    ulong mt = _reader.ReadPointerUnsafe(ptr);
+                    ulong mt = _reader.ReadPointerUnsafe(obj);
                     ClrType type = _typeFactory.GetOrCreateType(mt, obj);
                     if (type != null)
                         yield return new ClrObject(obj, type);
