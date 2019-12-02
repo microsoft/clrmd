@@ -91,6 +91,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 4.  Investigating using BCL's typedef table for primitive types instead of creating our own.
 5.  Ensure ClrmdType equality when they come from the same MT.
 6.  Offsets for string and exception fields when we have no metadata.
+7.  Ensure DependentHandles work properly.
 
 # .Net Core 5 Dac Wishlist
 
