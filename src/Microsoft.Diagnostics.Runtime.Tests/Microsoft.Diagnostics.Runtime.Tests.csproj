@@ -16,18 +16,13 @@
     <NoWarn>1701;1702;1705;1591;436</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TestTargets\*\*.cs">
       <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="src\GCRootTests.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\GCRootTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.6.0" />

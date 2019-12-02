@@ -13,11 +13,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public static class Helpers
     {
-        public static IEnumerable<ulong> GetObjectsOfType(this ClrHeap heap, string name)
+        public static IEnumerable<ClrObject> GetObjectsOfType(this ClrHeap heap, string name)
         {
             return from obj in heap.EnumerateObjects()
                    where obj.Type?.Name == name
-                   select obj.Address;
+                   select obj;
         }
 
         public static IEnumerable<ClrType> EnumerateTypes(this ClrModule module)
