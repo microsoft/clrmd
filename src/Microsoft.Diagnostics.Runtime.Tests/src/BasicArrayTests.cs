@@ -301,28 +301,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Assert
             Assert.Equal(originalArray[index].ReferenceLoad, actual: text);
         }
-
-        [Theory, AutoData]
-        public void GetArrayElementAddress_WhenCustomStructArray_ReadsIntData(int seed)
-        {
-            // Arrange
-            var originalArray = _prototype.StructArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
-
-            var index = seed % originalArray.Length;
-            var structType = structArray.Type.ComponentType;
-            var primitiveField = structType.GetFieldByName(nameof(ArrayConnection.SampleStruct.Number));
-
-            // Act
-            //ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
-            //int number = (int)primitiveField.Type.GetValue(structStart);
-
-            //// Assert
-            //Assert.Equal(originalArray[index].Number, number);
-
-            //todo
-        }
-
+        
         [Theory, AutoData]
         public void GetArrayElementAddress_WhenDateTimeArray_GetsStructStartPos(int seed)
         {
