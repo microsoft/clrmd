@@ -23,8 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override DataTarget DataTarget => ClrInfo?.DataTarget;
         public override DacLibrary DacLibrary { get; }
         public override ClrInfo ClrInfo { get; }
-
-        public override ClrThreadPool ThreadPool => throw new NotImplementedException(); // todo
         public override IReadOnlyList<ClrThread> Threads => _threads ?? (_threads = _helpers.GetThreads(this));
         public override ClrHeap Heap => _heap ?? (_heap = _helpers.Factory.GetOrCreateHeap());
         public override IReadOnlyList<ClrAppDomain> AppDomains
