@@ -155,20 +155,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GCRoot gcroot = new GCRoot(runtime.Heap);
 
             GCStaticRootsImpl(gcroot);
-
-            gcroot.AllowParallelSearch = false;
-            Assert.True(gcroot.IsFullyCached);
-            GCStaticRootsImpl(gcroot);
-
-            gcroot.AllowParallelSearch = true;
-            Assert.True(gcroot.IsFullyCached);
-            GCStaticRootsImpl(gcroot);
         }
 
         private void GCStaticRootsImpl(GCRoot gcroot)
         {
             ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] paths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
+            GCRootPath[] paths = gcroot.EnumerateGCRoots(target, true, CancellationToken.None).ToArray();
             Assert.Single(paths);
             GCRootPath rootPath = paths[0];
 
