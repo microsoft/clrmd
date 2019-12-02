@@ -87,10 +87,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        private static DataTarget LoadDump(string path) =>
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? DataTarget.LoadCrashDump(path)
-                : DataTarget.LoadCoreDump(path);
+        private static DataTarget LoadDump(string path)
+        {
+            DataTarget dt = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? DataTarget.LoadCrashDump(path) : DataTarget.LoadCoreDump(path);
+            dt.SymbolLocator.SymbolPath = "";
+            return dt;
+        }
+
 
         private string BuildDumpName(GCMode gcmode, bool full)
         {
