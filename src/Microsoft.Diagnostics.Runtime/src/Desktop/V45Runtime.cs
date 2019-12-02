@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         ClrType GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType GetOrCreateArrayType(ClrType inner, int ranks);
-        ClrType GetOrCreateTypeFromToken(ClrModule module, int token);
+        ClrType GetOrCreateTypeFromToken(ClrModule module, uint token);
         ClrType GetOrCreatePointerType(ClrType innerType, int depth);
         ClrMethod CreateMethodFromHandle(ulong methodHandle);
     }
@@ -882,7 +882,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
         }
 
-        public ClrType GetOrCreateTypeFromToken(ClrModule module, int token) => throw new NotImplementedException();
+        public ClrType GetOrCreateTypeFromToken(ClrModule module, uint token) => module.ResolveToken(token);
+
         public ClrType GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdPointerArrayType(innerType, ranks, pointer: false) : null;
         public ClrType GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdPointerArrayType(innerType, depth, pointer: true) : null;
 

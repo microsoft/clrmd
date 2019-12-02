@@ -26,7 +26,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach ((ulong mt, uint _) in module.EnumerateMethodTables())
             {
                 ClrType type = runtime.GetTypeByMethodTable(mt);
-                yield return type;
+                if (type != null)
+                    yield return type;
             }
 
         }

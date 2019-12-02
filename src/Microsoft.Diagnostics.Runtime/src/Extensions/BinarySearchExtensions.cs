@@ -14,12 +14,13 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 int mid = (lower + upper) >> 1;
 
-                int comparison = compareTo(list[mid], key);
-                if (comparison < 0)
+                Kind entry = list[mid];
+                int comparison = compareTo(entry, key);
+                if (comparison > 0)
                 {
                     upper = mid - 1;
                 }
-                else if (comparison > 0)
+                else if (comparison < 0)
                 {
                     lower = mid + 1;
                 }

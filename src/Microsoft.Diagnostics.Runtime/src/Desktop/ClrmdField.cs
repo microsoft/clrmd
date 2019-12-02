@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     sigParser.GetToken(out int token);
 
-                    ClrType innerType = factory.GetOrCreateTypeFromToken(module, token);
+                    ClrType innerType = factory.GetOrCreateTypeFromToken(module, (uint)token);
                     if (innerType == null)
                         innerType = factory.GetOrCreateBasicType(type);
 
@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                         sigParser.GetToken(out token);
 
                     if (token != 0)
-                        result = factory.GetOrCreateTypeFromToken(module, token);
+                        result = factory.GetOrCreateTypeFromToken(module, (uint)token);
 
                     if (result == null)
                         result = factory.GetOrCreateBasicType((ClrElementType)etype);
@@ -241,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     sigParser.GetToken(out token);
 
                 if (token != 0)
-                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, token));
+                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, (uint)token));
 
                 else
                     clrmdType.SetComponentType(factory.GetOrCreateBasicType((ClrElementType)etype));

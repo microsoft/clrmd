@@ -17,6 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private int _debugMode = int.MaxValue;
         private MetaDataImport _metadata;
         private PdbInfo _pdb;
+        private IReadOnlyList<(ulong, uint)> _typeDefMap;
+        private IReadOnlyList<(ulong, uint)> _typeRefMap;
 
         public override ClrAppDomain AppDomain { get; }
         public override string Name { get; }
@@ -156,16 +158,16 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
             IReadOnlyList<(ulong, uint)> map;
             if ((typeDefOrRefToken & 0x02000000) != 0)
-                map = _helpers.GetSortedTypeDefMap(this);
+                map = _typeDefMap ?? (_typeDefMap = _helpers.GetSortedTypeDefMap(this));
             else if ((typeDefOrRefToken & 0x01000000) != 0)
-                map = _helpers.GetSortedTypeRefMap(this);
+                map = _typeRefMap ?? (_typeRefMap = _helpers.GetSortedTypeRefMap(this));
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
 
-            if (!map.Search(typeDefOrRefToken, CompareTo, out (ulong, uint) found))
+            if (!map.Search(typeDefOrRefToken & ~0xff000000, CompareTo, out (ulong, uint) found))
                 return null;
 
-            ClrType type = _helpers.Factory.GetOrCreateType(found.Item2, 0);
+            ClrType type = _helpers.Factory.GetOrCreateType(found.Item1, 0);
             return type;
         }
 
