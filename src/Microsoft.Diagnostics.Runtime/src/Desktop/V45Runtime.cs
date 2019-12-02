@@ -1014,15 +1014,29 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             }
 
             ulong nextField = fieldInfo.FirstFieldAddress;
-            while (fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
+            int overflow = 0;
+            while (overflow + fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
             {
                 if (!_sos.GetFieldData(nextField, out _fieldData))
                     break;
 
-                if (_fieldData.IsStatic != 0)
-                    staticOut[staticNum++] = new ClrmdStaticField(type, this);
-                else if (_fieldData.IsContextLocal == 0 && _fieldData.IsThreadLocal == 0)
-                    fieldOut[fieldNum++] = new ClrmdField(type, this);
+                if (_fieldData.IsContextLocal == 0 && _fieldData.IsThreadLocal == 0)
+                {
+                    if (_fieldData.IsStatic != 0)
+                    {
+                        if (staticNum < staticOut.Length)
+                            staticOut[staticNum++] = new ClrmdStaticField(type, this);
+                        else
+                            overflow++;
+                    }
+                    else
+                    {
+                        if (fieldNum < fieldOut.Length)
+                            fieldOut[fieldNum++] = new ClrmdField(type, this);
+                        else
+                            overflow++;
+                    }
+                }
 
                 nextField = _fieldData.NextField;
             }
