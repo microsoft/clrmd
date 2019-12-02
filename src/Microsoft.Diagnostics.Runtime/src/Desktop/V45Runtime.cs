@@ -220,6 +220,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
     {
         IMethodHelpers Helpers { get; }
 
+        ulong MethodDesc { get; }
         uint Token { get; }
         MethodCompilationType CompilationType { get; }
         ulong GCInfo { get; }
@@ -939,8 +940,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                     if (_sos.GetCodeHeaderData(slot, out CodeHeaderData codeHeader))
                     {
-                        ulong md = codeHeader.MethodDesc;
-                        if (_sos.GetMethodDescData(md, 0, out _mdData) && _sos.GetCodeHeaderData(_mdData.NativeCodeAddr, out _codeHeaderData))
+                        _ptr = codeHeader.MethodDesc;
+                        if (_sos.GetMethodDescData(_ptr, 0, out _mdData) && _sos.GetCodeHeaderData(_mdData.NativeCodeAddr, out _codeHeaderData))
                             methods.Add(new ClrmdMethod(type, this));
                     }
                 }
@@ -1162,6 +1163,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         uint IMethodData.Token => _mdData.MDToken;
 
+        ulong IMethodData.MethodDesc => _ptr;
         MethodCompilationType IMethodData.CompilationType => (MethodCompilationType)_codeHeaderData.JITType;
 
         ulong IMethodData.GCInfo => _codeHeaderData.GCInfo;

@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public override string ToString()
         {
             if (Kind == ClrStackFrameType.ManagedMethod)
-                return FrameName;
+                return Method.Signature;
 
             int methodLen = 0;
             int methodTypeLen = 0;

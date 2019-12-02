@@ -33,7 +33,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         public ClrmdMethod(ClrType type, IMethodData data)
         {
             _helpers = data.Helpers;
-            
+
+            MethodDesc = data.MethodDesc;
             CompilationType = data.CompilationType;
             MetadataToken = data.Token;
             GCInfo = data.GCInfo;
