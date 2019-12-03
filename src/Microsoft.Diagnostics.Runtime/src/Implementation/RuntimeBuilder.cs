@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             // Enumerating handles should be sufficiently rare as to not need to use ArrayPool
             HandleData[] handles = new HandleData[128];
-            return EnumerateHandleTable(runtime, handles, 16);
+            return EnumerateHandleTable(runtime, handles);
         }
 
         public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
@@ -392,7 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles, int count)
+        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles)
         {
             // TODO: Use smarter handle enum overload in _sos
             Dictionary<ulong, ClrAppDomain> domains = new Dictionary<ulong, ClrAppDomain>();
