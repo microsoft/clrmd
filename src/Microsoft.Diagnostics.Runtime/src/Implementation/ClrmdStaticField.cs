@@ -10,6 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public class ClrmdStaticField : ClrStaticField
     {
+        private ulong _address = ulong.MaxValue - 1;
         private readonly IFieldHelpers _helpers;
         private string _name;
         private ClrType _type;
@@ -129,33 +130,50 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+        public override ulong Address => _address != ulong.MaxValue - 1 ? _address : _address = _helpers.GetStaticFieldAddress(this, Type?.Module?.AppDomain);
 
-        public override object GetValue(ClrAppDomain appDomain, bool convertStrings = true)
+        public override bool IsInitialized(ClrAppDomain appDomain) => Address != 0;
+
+        public override T Read<T>()
         {
-            // TODO:  Move to IFieldHelpers?
-            if (!HasSimpleValue)
-                return null;
+            ulong address = Address;
+            if (address == 0)
+                return default;
 
-            ulong addr = GetAddress(appDomain);
+            if (!_helpers.DataReader.Read<T>(address, out T value))
+                return default;
 
-            if (ElementType == ClrElementType.String)
-            {
-                return ValueReader.GetValueAtAddress(Parent.Heap, _helpers.DataReader, ClrElementType.String, addr);
-            }
-
-            // Structs are stored as objects.
-            ClrElementType elementType = ElementType;
-            if (elementType == ClrElementType.Struct)
-                elementType = ClrElementType.Object;
-
-            if (elementType == ClrElementType.Object && addr == 0)
-                return (ulong)0;
-
-            return ValueReader.GetValueAtAddress(Parent.Heap, _helpers.DataReader, ElementType, addr);
+            return value;
         }
 
-        public override ulong GetAddress(ClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(this, appDomain);
+        public override ClrObject ReadObject()
+        {
+            if (Address == 0 || !_helpers.DataReader.ReadPointer(Address, out ulong obj) || obj == 0)
+                return default;
 
-        public override bool IsInitialized(ClrAppDomain appDomain) => GetAddress(appDomain) != 0;
+            ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+            ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
+            if (type == null)
+                return default;
+
+            return new ClrObject(obj, type);
+        }
+
+        public override ClrValueClass ReadStruct()
+        {
+            if (Address == 0)
+                return default;
+
+            return new ClrValueClass(Address, Type, interior: true);
+        }
+
+        public override string ReadString()
+        {
+            ClrObject obj = ReadObject();
+            if (obj.IsNull)
+                return null;
+
+            return obj.AsString();
+        }
     }
 }

@@ -50,8 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
             ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
-            ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
-            return new ClrObject(obj, mainType.Heap.GetObjectType(obj));
+            return field.ReadObject();
         }
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)

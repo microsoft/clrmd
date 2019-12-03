@@ -949,9 +949,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         ulong IFieldHelpers.GetStaticFieldAddress(ClrStaticField field, ClrAppDomain appDomain)
         {
+            if (appDomain is null)
+                return 0;
+
             ClrType type = field.Parent;
             ClrModule module = type?.Module;
-            if (module == null)
+            if (module is null)
                 return 0;
 
             bool shared = type.IsShared;

@@ -30,12 +30,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType typesType = module.GetTypeByName("Types");
             ClrStaticField field = typesType.GetStaticFieldByName("s_i");
 
-            ulong addr = (ulong)field.GetValue(runtime.AppDomains.Single());
-            ClrType type = heap.GetObjectType(addr);
-            Assert.NotNull(type);
-
-            ClrObject obj = new ClrObject(addr, type);
+            ClrObject obj = field.ReadObject();
             Assert.False(obj.IsNull);
+
+            ClrType type = obj.Type;
+            Assert.NotNull(type);
 
             Assert.True(type.IsPrimitive);
             Assert.False(type.IsObjectReference);
@@ -46,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             int value = obj.ReadBoxed<int>();
             Assert.Equal(42, value);
 
-            Assert.Contains(addr, heap.EnumerateObjects().Select(a => a.Address));
+            Assert.Contains(obj.Address, heap.EnumerateObjects().Select(a => a.Address));
         }
 
         [FrameworkFact]
@@ -267,9 +266,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrType fooType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
-            ulong obj = (ulong)runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").GetValue(runtime.AppDomains.Single());
+            ClrObject obj = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").ReadObject();
 
-            Assert.Same(fooType, heap.GetObjectType(obj));
+            Assert.Same(fooType, obj.Type);
+            Assert.Same(fooType, heap.GetObjectType(obj.Address));
 
             TestFieldNameAndValue(fooType, obj, "i", 42);
             TestFieldNameAndValue(fooType, obj, "s", "string");
@@ -359,10 +359,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
-            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
-            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").GetValue(domain);
-            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").GetValue(domain);
+            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").ReadObject();
+            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").ReadObject();
+            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").ReadObject();
+            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").ReadObject();
 
             ulong[] expected = { s_one, s_two, s_three };
 
@@ -392,10 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
-            ClrType arrayType = heap.GetObjectType(s_array);
-
-            ClrObject obj = new ClrObject(s_array, arrayType);
+            ClrObject obj = type.GetStaticFieldByName("s_array").ReadObject();
             Assert.Equal(3, obj.Length);
         }
 
@@ -411,10 +408,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
-            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
-            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").GetValue(domain);
-            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").GetValue(domain);
+            ulong s_array = type.GetStaticFieldByName("s_array").ReadObject();
+            ulong s_one = type.GetStaticFieldByName("s_one").ReadObject();
+            ulong s_two = type.GetStaticFieldByName("s_two").ReadObject();
+            ulong s_three = type.GetStaticFieldByName("s_three").ReadObject();
 
             ClrType arrayType = heap.GetObjectType(s_array);
 
