@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IsLargeObjectSegment = true;
             AddSegments(clrHeap, segments, _heap.GenerationTable[3].StartSegment);
             IsLargeObjectSegment = false;
-            AddSegments(clrHeap, segments, _heap.EphemeralHeapSegment);
+            AddSegments(clrHeap, segments, _heap.GenerationTable[2].StartSegment);
         }
 
         private void AddSegments(ClrHeap clrHeap, List<ClrSegment> segments, ulong address)

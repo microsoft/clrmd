@@ -839,7 +839,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             _cache.ReportMemory(type.TypeHandle, fieldInfo.NumInstanceFields * _instFieldSize + fieldInfo.NumStaticFields * _staticFieldSize);
-            ClrInstanceField[] fieldOut = new ClrInstanceField[fieldInfo.NumInstanceFields + type.BaseType.Fields.Count];
+            ClrInstanceField[] fieldOut = new ClrInstanceField[fieldInfo.NumInstanceFields];
             ClrStaticField[] staticOut = new ClrStaticField[fieldInfo.NumStaticFields];
             if (fieldInfo.NumStaticFields == 0)
                 statics = Array.Empty<ClrStaticField>();
@@ -854,8 +854,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             ulong nextField = fieldInfo.FirstFieldAddress;
-            int overflow = 0;
-            while (overflow + fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
+            int other = 0;
+            while (other + fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
             {
                 if (!_sos.GetFieldData(nextField, out _fieldData))
                     break;
@@ -864,18 +864,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     if (_fieldData.IsStatic != 0)
                     {
-                        if (staticNum < staticOut.Length)
-                            staticOut[staticNum++] = new ClrmdStaticField(type, this);
-                        else
-                            overflow++;
+                        staticOut[staticNum++] = new ClrmdStaticField(type, this);
                     }
                     else
                     {
-                        if (fieldNum < fieldOut.Length)
-                            fieldOut[fieldNum++] = new ClrmdField(type, this);
-                        else
-                            overflow++;
+                        fieldOut[fieldNum++] = new ClrmdField(type, this);
                     }
+                }
+                else
+                {
+                    other++;
                 }
 
                 nextField = _fieldData.NextField;
