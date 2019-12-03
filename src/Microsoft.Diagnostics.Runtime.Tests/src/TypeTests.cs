@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
 
-            ClrHeap heap = dataTarget.ClrVersions.Single().CreateRuntime().Heap;
+            ClrHeap heap = dataTarget.ClrVersions.Single(v => v.ModuleInfo.FileName.EndsWith("coreclr.dll", true, null)).CreateRuntime().Heap;
 
             ClrType[] types = heap.EnumerateObjects().Select(obj => obj.Type).ToArray();
 
