@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 
 class Types
 {
@@ -9,6 +10,7 @@ class Types
     static object[] s_array = new object[] { s_one, s_two, s_three };
 
     static Foo s_foo = new Foo();
+    static ConcurrentQueue<int> s_cq = new ConcurrentQueue<int>();
 
     static object s_i = 42;
 
