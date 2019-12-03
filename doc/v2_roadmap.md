@@ -87,16 +87,13 @@ Here is a list of feedback I am tracking from the community (my summary):
 
 1.  ThreadPool related code.
 2.  SymbolLocator related code.
-3.  Get BCL from System.Object's module instead of a heuristic.
-4.  Investigating using BCL's typedef table for primitive types instead of creating our own.
-5.  Ensure ClrmdType equality when they come from the same MT.
-6.  Offsets for string and exception fields when we have no metadata.
-7.  Ensure DependentHandles work properly.
-8. moduleinfo, pdbinfo, versioninfo, VirtualQueryData
-9. remove appdomain from staticvarinstance
-10. remove ClrField.GetValue
-11. Enum related code in ClrType
-12. clean up exception usage
+3.  Ensure ClrmdType equality when they come from the same MT.
+4.  Offsets for string and exception fields when we have no metadata.
+5. moduleinfo, pdbinfo, versioninfo, VirtualQueryData
+6. remove appdomain from staticvarinstance
+7. remove ClrField.GetValue
+8. Enum related code in ClrType
+9. clean up exception usage
 
 
 
