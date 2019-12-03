@@ -257,6 +257,41 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void ComponentTypeEventuallyFilledTest()
+        {
+            // https://github.com/microsoft/clrmd/issues/108
+            // Ensure that a previously created type with a erronous null ComponentType eventually
+            // gets its ComponentType set.
+
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            
+            ClrType fooType = runtime.GetModule(ModuleName).GetTypeByName("Types");
+            ClrStaticField cq = fooType.GetStaticFieldByName("s_cq");
+            Assert.NotNull(cq);
+
+            ClrInstanceField m_head = cq.Type.GetFieldByName("m_head");
+            ClrInstanceField m_array = m_head.Type.GetFieldByName("m_array");
+            bool hasSimpleValue = m_array.HasSimpleValue;
+            ClrElementType elementType = m_array.ElementType;
+            ClrType componentType = m_array.Type.ComponentType;
+
+            // If this assert fails, remove the test.  This value is null because currently CLR's
+            // debugging layer doesn't tell us the component type of an array.  If we eventually
+            // fix that issue, we would return a non-null m_array.Type.ComponentType, causing
+            // this test to fail but the underlying issue would be fixed.
+            Assert.Null(componentType);
+
+            ClrObject m_arrayObj = cq.ReadObject().GetObjectField("m_head").GetObjectField("m_array");
+            
+            // Ensure we are looking at the same ClrType
+            Assert.Same(m_array.Type, m_arrayObj.Type);
+
+            // Assert that we eventually filled in ComponentType after we got a real object for the type
+            Assert.NotNull(m_arrayObj.Type.ComponentType);
+        }
+
+        [Fact]
         public void FieldNameAndValueTests()
         {
             // TODO: test reading structs from instance/static fields
