@@ -69,27 +69,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenTypeHasFieldWithName_FindsField([Frozen]ClrHeap heap, [Frozen]ClrType objectType, ClrObject source, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
-        {
-            // Arrange
-            clrField.IsObjectReference.Returns(true);
-            clrField.GetAddress(source.Address).Returns(fieldAddress);
-
-            heap.Runtime.DataTarget.DataReader.ReadPointer(fieldAddress, out var whatever)
-                .Returns(call =>
-            {
-                call[1] = target.Address;
-                return true;
-            });
-
-            // Act
-            var fieldFoundByName = source.GetObjectField(clrField.Name);
-
-            // Assert
-            fieldFoundByName.Address.Should().Be(target);
-        }
-
-        [Theory, AutoNSubstituteData]
         public void GetObjectField_WhenNullObject_ThrowsNullReference(string fieldName)
         {
             // Arrange
@@ -123,22 +102,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
             // Assert
             locateObjectFromValueTypeField.Should().Throw<ArgumentException>();
-        }
-
-        [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenHeapWasUnableToReadPointer_ThrowsMemoryReadException([Frozen] ClrHeap heap, [Frozen]ClrType objectType, ClrObject clrObject, ClrInstanceField clrField, ulong corruptedFieldPointer)
-        {
-            // Arrange
-            clrField.IsObjectReference.Returns(true);
-            clrField.GetAddress(clrObject.Address).Returns(corruptedFieldPointer);
-
-            heap.Runtime.DataTarget.DataReader.ReadPointer(corruptedFieldPointer, out var whatever).Returns(false);
-
-            // Act
-            Action locateObjectFromValueTypeField = () => clrObject.GetObjectField(clrField.Name);
-
-            // Assert
-            locateObjectFromValueTypeField.Should().Throw<MemoryReadException>();
         }
 
         [Theory, AutoNSubstituteData]
