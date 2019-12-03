@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private string _name;
         private TypeAttributes _attributes;
-        private ulong? _loaderAllocatorHandle;
+        private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
 
         private ClrMethod[] _methods;
         private IReadOnlyList<ClrInstanceField> _fields;
@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private EnumData _enumData;
         private ClrElementType _elementType;
-        private GCDesc? _gcDesc;
+        private GCDesc _gcDesc;
 
 
         public override string Name => _name ?? (_name = Helpers.GetTypeName(TypeHandle));
@@ -84,8 +84,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private GCDesc GetOrCreateGCDesc()
         {
-            if (_gcDesc.HasValue)
-                return _gcDesc.Value;
+            if (!ContainsPointers || !_gcDesc.IsEmpty)
+                return _gcDesc;
 
             IDataReader reader = Helpers.DataReader;
             if (reader == null)
@@ -111,8 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             // Construct the gc desc
-            _gcDesc = new GCDesc(buffer);
-            return _gcDesc.Value;
+            return _gcDesc = new GCDesc(buffer);
         }
 
         public override uint MetadataToken { get; }
@@ -370,8 +369,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_loaderAllocatorHandle.HasValue)
-                    return _loaderAllocatorHandle.Value;
+                if (_loaderAllocatorHandle != ulong.MaxValue - 1)
+                    return _loaderAllocatorHandle;
 
                 ulong handle = Helpers.GetLoaderAllocatorHandle(TypeHandle);
                 _loaderAllocatorHandle = handle;
