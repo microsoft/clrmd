@@ -3,12 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct DomainLocalModuleData : IDomainLocalModuleData
+    public readonly struct DomainLocalModuleData
     {
         public readonly ulong AppDomainAddress;
         public readonly ulong ModuleID;
@@ -17,12 +17,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong DynamicClassTable;
         public readonly ulong GCStaticDataStart;
         public readonly ulong NonGCStaticDataStart;
-
-        ulong IDomainLocalModuleData.AppDomainAddr => AppDomainAddress;
-        ulong IDomainLocalModuleData.ModuleID => ModuleID;
-        ulong IDomainLocalModuleData.ClassData => ClassData;
-        ulong IDomainLocalModuleData.DynamicClassTable => DynamicClassTable;
-        ulong IDomainLocalModuleData.GCStaticDataStart => GCStaticDataStart;
-        ulong IDomainLocalModuleData.NonGCStaticDataStart => NonGCStaticDataStart;
     }
 }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -26,7 +27,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        ~NoFailContext() => throw new InvalidOperationException();
+        // todo:  This on the finalizer thread tears down the process
+        //~NoFailContext() => throw new InvalidOperationException();
 
         public void Dispose()
         {
@@ -43,6 +45,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             public override void Fail(string message, string detailMessage)
             {
+                Assert.True(false, detailMessage);
+
                 if (s_hookedThreads.Contains(Thread.CurrentThread.ManagedThreadId))
                     s_defaultListener.Fail(message, detailMessage);
 

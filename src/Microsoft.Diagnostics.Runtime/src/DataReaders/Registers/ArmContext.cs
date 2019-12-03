@@ -174,25 +174,21 @@ namespace Microsoft.Diagnostics.Runtime
         #endregion
 
         #region Debug registers
-
-        const int ARM_MAX_BREAKPOINTS = 8;
-        const int ARM_MAX_WATCHPOINTS = 1;
-
         [Register(RegisterType.Debug)]
         [FieldOffset(0x150)]
-        public unsafe fixed uint Bvr[ARM_MAX_BREAKPOINTS];
+        public unsafe fixed uint Bvr[8];
 
         [Register(RegisterType.Debug)]
         [FieldOffset(0x170)]
-        public unsafe fixed uint Bcr[ARM_MAX_BREAKPOINTS];
+        public unsafe fixed uint Bcr[8];
 
         [Register(RegisterType.Debug)]
         [FieldOffset(0x190)]
-        public unsafe fixed uint Wvr[ARM_MAX_WATCHPOINTS];
+        public unsafe fixed uint Wvr[1];
 
         [Register(RegisterType.Debug)]
         [FieldOffset(0x194)]
-        public unsafe fixed uint Wcr[ARM_MAX_WATCHPOINTS];
+        public unsafe fixed uint Wcr[1];
 
         #endregion
 

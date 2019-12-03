@@ -2,28 +2,20 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
-    [DebuggerDisplay("Address={HexAddress}, Type={Type.Name}")]
     public struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
-        internal static ClrObject Create(ulong address, ClrType type)
-        {
-            ClrObject obj = new ClrObject
-            {
-                Address = address,
-                Type = type
-            };
-
-            return obj;
-        }
+        private IClrObjectHelpers Helpers { get; }
 
         /// <summary>
         /// Constructor.
@@ -34,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Address = address;
             Type = type;
+            Helpers = type?.ClrObjectHelpers;
 
             Debug.Assert(address == 0 || type != null);
             Debug.Assert(address == 0 || (type != null && type.Heap.GetObjectType(address) == type));
@@ -43,20 +36,35 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects that this object references.
         /// </summary>
         /// <returns>An enumeration of object references.</returns>
-        public IEnumerable<ClrObject> EnumerateObjectReferences(bool carefully = false)
+        public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false, bool considerDependantHandles = true)
         {
-            return Type.Heap.EnumerateObjectReferences(Address, Type, carefully);
+            return Type.Heap.EnumerateObjectReferences(Address, Type, carefully, considerDependantHandles);
+        }
+
+        public T ReadBoxed<T>() where T : unmanaged => Helpers.DataReader.ReadUnsafe<T>(Address + (ulong)IntPtr.Size);
+
+        public bool IsException => Type != null && Type.IsException;
+
+        public ClrException AsException()
+        {
+            if (!IsException)
+                throw new InvalidOperationException($"Object {Address:x} is not an Exception.");
+
+            if (Type == null || !Type.IsException)
+                return default;
+
+            return new ClrException(Helpers.ExceptionHelpers, null, this);
         }
 
         /// <summary>
         /// The address of the object.
         /// </summary>
-        public ulong Address { get; private set; }
+        public ulong Address { get; }
 
         /// <summary>
         /// The type of the object.
         /// </summary>
-        public ClrType Type { get; private set; }
+        public ClrType Type { get; }
 
         /// <summary>
         /// Returns if the object value is null.
@@ -66,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the size of the object.
         /// </summary>
-        public ulong Size => Type.GetSize(Address);
+        public ulong Size => Type.Heap.GetObjectSize(Address, Type);
 
         /// <summary>
         /// Returns whether this object is actually a boxed primitive or struct.
@@ -88,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!IsArray)
                     throw new InvalidOperationException();
 
-                return Type.GetArrayLength(Address);
+                return Helpers.DataReader?.ReadUnsafe<int>(Address + (uint)IntPtr.Size) ?? 0;
             }
         }
 
@@ -115,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!obj.Type.IsString)
                 throw new InvalidOperationException("Object {obj} is not a string.");
 
-            return (string)obj.Type.GetValue(obj.Address);
+            return ValueReader.GetStringContents(obj.Type, obj.Helpers.DataReader, obj.Address);
         }
 
         /// <summary>
@@ -146,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = Type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!heap.ReadPointer(addr, out ulong obj))
+            if (!Helpers.DataReader.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
             ClrType type = heap.GetObjectType(obj);
@@ -194,6 +202,25 @@ namespace Microsoft.Diagnostics.Runtime
             return (T)value;
         }
 
+        public bool IsRuntimeType => Type?.Name == "System.RuntimeType";
+        public ClrType AsRuntimeType()
+        {
+            if (!IsRuntimeType)
+                throw new InvalidOperationException();
+
+            ClrInstanceField field = Type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
+            if (field == null)
+                return null;
+
+            ulong mt;
+            if (field.ElementType == ClrElementType.NativeInt)
+                mt = (ulong)GetField<IntPtr>("m_handle");
+            else
+                mt = (ulong)GetValueClassField("m_handle").GetField<IntPtr>("m_ptr");
+
+            return Helpers.Factory.GetOrCreateType(mt, 0);
+        }
+
         /// <summary>
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
         /// will not do type coercion.  This method will throw an ArgumentException if no field matches
@@ -206,22 +233,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value of the given field.</returns>
         public string GetStringField(string fieldName)
         {
-            ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            RuntimeBase runtime = (RuntimeBase)Type.Heap.Runtime;
-
-            if (!runtime.ReadPointer(address, out ulong str))
+            ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
+            if (!Helpers.DataReader.ReadPointer(address, out ulong strPtr))
                 throw new MemoryReadException(address);
 
-            if (str == 0)
+            if (strPtr == 0)
                 return null;
 
-            if (!runtime.ReadString(str, out string result))
-                throw new MemoryReadException(str);
-
-            return result;
+            return ValueReader.GetStringContents(stringType, Helpers.DataReader, strPtr);
         }
 
-        private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
+        public string AsString()
+        {
+            if (!Type.IsString)
+                throw new InvalidOperationException();
+
+            return ValueReader.GetStringContents(Type, Helpers.DataReader, Address);
+        }
+
+        private ulong GetFieldAddress(string fieldName, ClrElementType element, out ClrType fieldType, string typeName)
         {
             if (IsNull)
                 throw new NullReferenceException();
@@ -234,6 +264,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"Field '{Type.Name}.{fieldName}' is not of type '{typeName}'.");
 
             ulong address = field.GetAddress(Address);
+            fieldType = field.Type;
             return address;
         }
 

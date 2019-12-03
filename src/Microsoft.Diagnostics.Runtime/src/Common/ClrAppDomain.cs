@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns a list of modules loaded into this AppDomain.
         /// </summary>
-        public abstract IList<ClrModule> Modules { get; }
+        public abstract IReadOnlyList<ClrModule> Modules { get; }
 
         /// <summary>
         /// Returns the config file used for the AppDomain.  This may be null if there was no config file
@@ -52,9 +52,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// To string override.
         /// </summary>
         /// <returns>The name of this AppDomain.</returns>
-        public override string ToString()
-        {
-            return Name;
-        }
+        public override string ToString() => Name;
     }
 }

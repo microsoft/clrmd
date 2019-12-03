@@ -22,14 +22,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSDac(DacLibrary library, IntPtr ptr)
             : base(library?.OwningLibrary, ref IID_ISOSDac, ptr)
         {
-            _library = library;
+            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
-        public SOSDac(CallableCOMWrapper toClone) : base(toClone)
+        public SOSDac(DacLibrary lib, CallableCOMWrapper toClone) : base(toClone)
         {
+            _library = lib;
         }
 
         private DacGetIntPtr _getHandleEnum;
+        private GetHandleEnumForTypesDelegate _getHandleEnumForTypes;
         private DacGetIntPtrWithArg _getStackRefEnum;
         private DacGetThreadData _getThreadData;
         private DacGetHeapDetailsWithArg _getGCHeapDetails;
@@ -576,7 +578,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int hr = _getThreadData(Self, address, out data);
 
             if (IntPtr.Size == 4)
-                data = new ThreadData(ref data);
+                ThreadData.Fixup(ref data);
 
             return SUCCEEDED(hr);
         }
@@ -603,7 +605,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             ulong[] refs = new ulong[heapCount];
             int hr = _getGCHeapList(Self, heapCount, refs, out int needed);
-            return hr == S_OK ? refs : null;
+            return hr == S_OK ? refs : Array.Empty<ulong>();
         }
 
         public bool GetServerHeapDetails(ulong addr, out HeapDetails data)
@@ -692,6 +694,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
+        public SOSHandleEnum EnumerateHandles(params ClrHandleKind[] types)
+        {
+            InitDelegate(ref _getHandleEnumForTypes, VTable->GetHandleEnumForTypes);
+
+            int hr = _getHandleEnumForTypes(Self, types, types.Length, out IntPtr ptrEnum);
+            return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
+        }
+
         public SOSHandleEnum EnumerateHandles()
         {
             InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
@@ -715,6 +725,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int hr = _getMethodDescFromToken(Self, module, token, out ulong md);
             return hr == S_OK ? md : 0;
         }
+
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types,  int count, out IntPtr handleEnum);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);
@@ -955,7 +969,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Handles
         public readonly IntPtr GetHandleEnum;
-        private readonly IntPtr GetHandleEnumForTypes;
+        public readonly IntPtr GetHandleEnumForTypes;
         private readonly IntPtr GetHandleEnumForGC;
 
         // EH

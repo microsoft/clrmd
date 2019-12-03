@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public bool GetContext(uint contextFlags, uint contextBufSize, out uint contextSize, byte[] buffer)
+        public bool GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
             InitDelegate(ref _getContext, VTable->GetContext);
 
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetContextDelegate(IntPtr self, uint contextFlags, uint contextBufSize, out uint contextSize, byte[] buffer);
+        private delegate int GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int NextDelegate(IntPtr self);

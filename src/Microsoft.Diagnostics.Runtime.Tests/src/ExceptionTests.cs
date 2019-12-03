@@ -20,8 +20,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         internal static void TestProperties(ClrRuntime runtime)
         {
             ClrThread thread = runtime.GetMainThread();
-            ClrException ex = thread.CurrentException;
-            Assert.NotNull(ex);
+            ClrException? exNullable = thread.CurrentException;
+            Assert.NotNull(exNullable);
+
+            ClrException ex = exNullable.Value;
 
             ExceptionTestData testData = TestTargets.NestedExceptionData;
             Assert.Equal(testData.OuterExceptionMessage, ex.Message);

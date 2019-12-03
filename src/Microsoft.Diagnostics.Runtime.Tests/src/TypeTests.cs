@@ -26,20 +26,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ClrStaticField field = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_i");
+            ClrModule module = runtime.GetModule(ModuleName);
+            ClrType typesType = module.GetTypeByName("Types");
+            ClrStaticField field = typesType.GetStaticFieldByName("s_i");
 
-            ulong addr = (ulong)field.GetValue(runtime.AppDomains.Single());
-            ClrType type = heap.GetObjectType(addr);
+            ClrObject obj = field.ReadObject();
+            Assert.False(obj.IsNull);
+
+            ClrType type = obj.Type;
+            Assert.NotNull(type);
+
             Assert.True(type.IsPrimitive);
             Assert.False(type.IsObjectReference);
             Assert.False(type.IsValueClass);
 
-            object value = type.GetValue(addr);
-            Assert.Equal("42", value.ToString());
-            Assert.IsType<int>(value);
-            Assert.Equal(42, (int)value);
+            var fds = obj.Type.Fields;
 
-            Assert.Contains(addr, heap.EnumerateObjects().Select(a => a.Address));
+            int value = obj.ReadBoxed<int>();
+            Assert.Equal(42, value);
+
+            Assert.Contains(obj.Address, heap.EnumerateObjects().Select(a => a.Address));
         }
 
         [FrameworkFact]
@@ -62,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
 
-            foreach (ClrModule module in runtime.Modules)
+            foreach (ClrModule module in runtime.AppDomains.SelectMany(ad => ad.Modules))
             {
                 foreach (ClrType type in module.EnumerateTypes())
                 {
@@ -107,16 +113,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType[] types = (from obj in heap.EnumerateObjects()
                                let t = heap.GetObjectType(obj.Address)
                                where t.Name == TypeName
+                               orderby t.TypeHandle
                                select t).ToArray();
 
             Assert.Equal(2, types.Length);
             Assert.NotSame(types[0], types[1]);
 
-            ClrModule module = runtime.Modules.Single(m => Path.GetFileName(m.FileName).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase));
-            ClrType typeFromModule = module.GetTypeByName(TypeName);
 
-            Assert.Equal(TypeName, typeFromModule.Name);
-            Assert.Equal(types[0], typeFromModule);
+
+            ClrType[] typesFromModule = (from module in runtime.EnumerateModules()
+                                         let name = Path.GetFileNameWithoutExtension(module.FileName)
+                                         where name.Equals("sharedlibrary", StringComparison.OrdinalIgnoreCase)
+                                         let type = module.GetTypeByName(TypeName)
+                                         select type).ToArray();
+
+            Assert.Equal(2, typesFromModule.Length);
+            Assert.NotSame(types[0], types[1]);
+
+            Assert.Same(types[0], typesFromModule[0]);
+            Assert.Same(types[1], typesFromModule[1]);
         }
 
         [WindowsFact]
@@ -127,16 +142,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            heap.StackwalkPolicy = ClrRootStackwalkPolicy.Exact;
 
-            IEnumerable<ClrRoot> fooRoots = from root in heap.EnumerateRoots()
-                                            where root.Type.Name == "Foo"
+            IEnumerable<IClrRoot> fooRoots = from root in heap.EnumerateRoots()
+                                            where root.Object.Type.Name == "Foo"
                                             select root;
 
-            ClrRoot staticRoot = fooRoots.Single(r => r.Kind == GCRootKind.StaticVar);
-            Assert.Contains("s_foo", staticRoot.Name);
-
-            ClrRoot[] localVarRoots = fooRoots.Where(r => r.Kind == GCRootKind.LocalVar).ToArray();
+            IClrRoot[] localVarRoots = fooRoots.Where(r => r.RootKind == ClrRootKind.Stack).ToArray();
 
             ClrThread thread = runtime.GetMainThread();
             ClrStackFrame main = thread.GetFrame("Main");
@@ -153,31 +164,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 high = tmp;
             }
 
-            foreach (ClrRoot localVarRoot in localVarRoots)
+            foreach (IClrRoot localVarRoot in localVarRoots)
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
-        }
-
-        [FrameworkFact]
-        public void EETypeTest()
-        {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-
-            HashSet<ulong> methodTables = (from obj in heap.EnumerateObjects()
-                                           where !obj.Type.IsFree
-                                           select heap.GetMethodTable(obj)).Unique();
-
-            Assert.DoesNotContain(0ul, methodTables);
-
-            foreach (ulong mt in methodTables)
-            {
-                ClrType type = heap.GetTypeByMethodTable(mt);
-                ulong eeclass = heap.GetEEClassByMethodTable(mt);
-                Assert.NotEqual(0ul, eeclass);
-
-                Assert.NotEqual(0ul, heap.GetMethodTableByEEClass(eeclass));
-            }
         }
 
         [Fact]
@@ -189,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj.Address)).Unique())
             {
-                Assert.NotEqual(0ul, type.MethodTable);
+                Assert.NotEqual(0ul, type.TypeHandle);
 
                 ClrType typeFromHeap;
 
@@ -198,14 +186,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     ClrType componentType = type.ComponentType;
                     Assert.NotNull(componentType);
 
-                    typeFromHeap = heap.GetTypeByMethodTable(type.MethodTable, componentType.MethodTable);
+                    typeFromHeap = runtime.GetTypeByMethodTable(type.TypeHandle);
                 }
                 else
                 {
-                    typeFromHeap = heap.GetTypeByMethodTable(type.MethodTable);
+                    typeFromHeap = runtime.GetTypeByMethodTable(type.TypeHandle);
                 }
 
-                Assert.Equal(type.MethodTable, typeFromHeap.MethodTable);
+                Assert.Equal(type.TypeHandle, typeFromHeap.TypeHandle);
                 Assert.Same(type, typeFromHeap);
             }
         }
@@ -222,34 +210,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 i++;
                 ClrType type = obj.Type;
+                Assert.NotNull(type);
 
-                if (type.IsArray)
-                {
-                    bool result = heap.TryGetMethodTable(obj, out ulong mt, out ulong cmt);
+                ulong mt = dt.DataReader.ReadPointerUnsafe(obj);
+                Assert.NotEqual(0ul, mt);
 
-                    Assert.True(result);
-                    Assert.NotEqual(0ul, mt);
-                    Assert.Equal(type.MethodTable, mt);
-
-                    Assert.Same(type, heap.GetTypeByMethodTable(mt, cmt));
-                }
-                else
-                {
-                    ulong mt = heap.GetMethodTable(obj);
-
-                    Assert.NotEqual(0ul, mt);
-                    ulong[] collection = type.EnumerateMethodTables().ToArray();
-                    Assert.Contains(type.MethodTable, collection);
-
-                    Assert.Same(type, heap.GetTypeByMethodTable(mt));
-                    Assert.Same(type, heap.GetTypeByMethodTable(mt, 0));
-
-                    bool res = heap.TryGetMethodTable(obj, out ulong mt2, out ulong cmt);
-
-                    Assert.True(res);
-                    Assert.Equal(mt, mt2);
-                    Assert.Equal(0ul, cmt);
-                }
+                Assert.Same(type, runtime.GetTypeByMethodTable(mt));
+                Assert.Equal(mt, type.TypeHandle);
             }
         }
 
@@ -260,43 +227,33 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ulong[] fooObjects = (from obj in heap.EnumerateObjects()
-                                  where obj.Type.Name == "Foo"
-                                  select obj.Address).ToArray();
+            ClrObject[] fooObjects = (from obj in heap.EnumerateObjects()
+                                      where obj.Type.Name == "Foo"
+                                      select obj).ToArray();
 
             // There are exactly two Foo objects in the process, one in each app domain.
             // They will have different method tables.
             Assert.Equal(2, fooObjects.Length);
 
             ClrType fooType = heap.GetObjectType(fooObjects[0]);
-            Assert.NotSame(fooType, heap.GetObjectType(fooObjects[1]));
+            ClrType fooType2 = heap.GetObjectType(fooObjects[1]);
+            Assert.NotSame(fooType, fooType2);
 
-            ClrRoot appDomainsFoo = (from root in heap.EnumerateRoots(true)
-                                     where root.Kind == GCRootKind.StaticVar && root.Type == fooType
-                                     select root).Single();
+            ClrObject appDomainsFoo = fooObjects.Where(o => o.Type.Module.AppDomain.Name.Contains("AppDomains")).Single();
+            ClrObject nestedFoo = fooObjects.Where(o => o.Type.Module.AppDomain.Name.Contains("Second")).Single();
 
-            ulong nestedExceptionFoo = fooObjects.Single(obj => obj != appDomainsFoo.Object);
-            ClrType nestedExceptionFooType = heap.GetObjectType(nestedExceptionFoo);
+            Assert.NotSame(appDomainsFoo.Type, nestedFoo.Type);
 
-            Assert.NotSame(nestedExceptionFooType, appDomainsFoo.Type);
-
-            ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedExceptionFoo);
-            ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Object);
+            ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedFoo.Address);
+            ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Address);
 
             // These are in different domains and should have different type handles:
             Assert.NotEqual(nestedExceptionFooMethodTable, appDomainsFooMethodTable);
 
             // The MethodTable returned by ClrType should always be the method table that lives in the "first"
             // AppDomain (in order of ClrAppDomain.Id).
-            Assert.Equal(appDomainsFooMethodTable, fooType.MethodTable);
-
-            // Ensure that we enumerate two type handles and that they match the method tables we have above.
-            ulong[] methodTableEnumeration = fooType.EnumerateMethodTables().ToArray();
-            Assert.Equal(2, methodTableEnumeration.Length);
-
-            // These also need to be enumerated in ClrAppDomain.Id order
-            Assert.Equal(appDomainsFooMethodTable, methodTableEnumeration[0]);
-            Assert.Equal(nestedExceptionFooMethodTable, methodTableEnumeration[1]);
+            Assert.Equal(appDomainsFooMethodTable, fooType.TypeHandle);
+            Assert.Equal(nestedExceptionFooMethodTable, fooType2.TypeHandle);
         }
 
         [Fact]
@@ -309,9 +266,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrType fooType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
-            ulong obj = (ulong)runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").GetValue(runtime.AppDomains.Single());
+            ClrObject obj = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").ReadObject();
 
-            Assert.Same(fooType, heap.GetObjectType(obj));
+            Assert.Same(fooType, obj.Type);
+            Assert.Same(fooType, heap.GetObjectType(obj.Address));
 
             TestFieldNameAndValue(fooType, obj, "i", 42);
             TestFieldNameAndValue(fooType, obj, "s", "string");
@@ -348,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
 
-            ClrHeap heap = dataTarget.ClrVersions.Single().CreateRuntime().Heap;
+            ClrHeap heap = dataTarget.ClrVersions.Single(v => v.ModuleInfo.FileName.EndsWith("coreclr.dll", true, null)).CreateRuntime().Heap;
 
             ClrType[] types = heap.EnumerateObjects().Select(obj => obj.Type).ToArray();
 
@@ -356,14 +314,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.False(collectibleType.ContainsPointers);
             Assert.True(collectibleType.IsCollectible);
-            Assert.NotEqual(default, collectibleType.LoaderAllocatorObject);
-            Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(collectibleType.LoaderAllocatorObject).Name);
+            Assert.NotEqual(default, collectibleType.LoaderAllocatorHandle);
+            ulong obj = dataTarget.DataReader.ReadPointerUnsafe(collectibleType.LoaderAllocatorHandle);
+            Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(obj).Name);
 
             ClrType uncollectibleType = types.Single(type => type?.Name == typeof(UncollectibleUnmanagedStruct).FullName);
 
             Assert.False(uncollectibleType.ContainsPointers);
             Assert.False(uncollectibleType.IsCollectible);
-            Assert.Equal(default, uncollectibleType.LoaderAllocatorObject);
+            Assert.Equal(default, uncollectibleType.LoaderAllocatorHandle);
 
             context.Unload();
         }
@@ -398,12 +357,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
-            ClrType type = heap.GetTypeByName("Types");
+            ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
-            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
-            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").GetValue(domain);
-            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").GetValue(domain);
+            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").ReadObject();
+            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").ReadObject();
+            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").ReadObject();
+            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").ReadObject();
 
             ulong[] expected = { s_one, s_two, s_three };
 
@@ -431,12 +390,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
-            ClrType type = heap.GetTypeByName("Types");
+            ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
-            ClrType arrayType = heap.GetObjectType(s_array);
-
-            Assert.Equal(3, arrayType.GetArrayLength(s_array));
+            ClrObject obj = type.GetStaticFieldByName("s_array").ReadObject();
+            Assert.Equal(3, obj.Length);
         }
 
         [Fact]
@@ -449,17 +406,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
-            ClrType type = heap.GetTypeByName("Types");
+            ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").GetValue(domain);
-            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").GetValue(domain);
-            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").GetValue(domain);
-            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").GetValue(domain);
+            ulong s_array = type.GetStaticFieldByName("s_array").ReadObject();
+            ulong s_one = type.GetStaticFieldByName("s_one").ReadObject();
+            ulong s_two = type.GetStaticFieldByName("s_two").ReadObject();
+            ulong s_three = type.GetStaticFieldByName("s_three").ReadObject();
 
             ClrType arrayType = heap.GetObjectType(s_array);
 
             List<ulong> objs = new List<ulong>();
-            arrayType.EnumerateRefsOfObject(s_array, (obj, offs) => objs.Add(obj));
+            ClrObject obj = heap.GetObject(s_array);
+            objs.AddRange(obj.EnumerateReferences().Select(o => o.Address));
 
             // We do not guarantee the order in which these are enumerated.
             Assert.Equal(3, objs.Count);

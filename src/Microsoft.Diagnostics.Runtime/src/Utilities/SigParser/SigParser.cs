@@ -4,24 +4,13 @@
 
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-
-#pragma warning disable IDE0051 // Remove unused private members
-
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal struct SigParser
+    public unsafe struct SigParser
     {
-        private byte[] _sig;
+        private byte* _sig;
         private int _len;
         private int _offs;
-
-        public SigParser(byte[] sig, int len)
-        {
-            _sig = sig;
-            _len = len;
-            _offs = 0;
-        }
 
         public SigParser(SigParser rhs)
         {
@@ -34,8 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (len != 0)
             {
-                _sig = new byte[len];
-                Marshal.Copy(sig, _sig, 0, _sig.Length);
+                _sig = (byte*)sig.ToPointer();
             }
             else
             {
@@ -63,7 +51,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Debug.Assert(bytes <= _len);
             _offs += bytes;
             _len -= bytes;
-            Debug.Assert(_len <= 0 || _offs < _sig.Length);
         }
 
         private bool SkipInt()

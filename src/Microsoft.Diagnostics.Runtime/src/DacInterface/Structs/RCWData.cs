@@ -3,12 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct RCWData : IRCWData
+    public readonly struct RCWData
     {
         public readonly ulong IdentityPointer;
         public readonly ulong IUnknownPointer;
@@ -27,16 +27,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly uint IsContained;
         public readonly uint IsFreeThreaded;
         public readonly uint IsDisconnected;
-
-        ulong IRCWData.IdentityPointer => IdentityPointer;
-        ulong IRCWData.UnknownPointer => IUnknownPointer;
-        ulong IRCWData.ManagedObject => ManagedObject;
-        ulong IRCWData.JupiterObject => JupiterObject;
-        ulong IRCWData.VTablePtr => VTablePointer;
-        ulong IRCWData.CreatorThread => CreatorThread;
-        int IRCWData.RefCount => RefCount;
-        int IRCWData.InterfaceCount => InterfaceCount;
-        bool IRCWData.IsJupiterObject => IsJupiterObject != 0;
-        bool IRCWData.IsDisconnected => IsDisconnected != 0;
     }
 }

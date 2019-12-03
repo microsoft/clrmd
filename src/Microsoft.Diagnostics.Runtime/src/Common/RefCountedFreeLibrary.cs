@@ -18,9 +18,9 @@ namespace Microsoft.Diagnostics.Runtime
             _refCount = 1;
         }
 
-        public void AddRef()
+        public int AddRef()
         {
-            Interlocked.Increment(ref _refCount);
+            return Interlocked.Increment(ref _refCount);
         }
 
         public int Release()

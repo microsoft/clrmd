@@ -16,18 +16,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// This is the address of the clr!Module object.
         /// </summary>
-        public virtual ulong Address => 0;
+        public abstract ulong Address { get; }
 
         /// <summary>
-        /// Gets the runtime which contains this module.
+        /// Returns the AppDomain parent of this module.
         /// </summary>
-        public abstract ClrRuntime Runtime { get; }
-
-        /// <summary>
-        /// Returns a list of all AppDomains this module is loaded into.  Please note that unlike
-        /// ClrRuntime.AppDomains, this list may include the shared AppDomain.
-        /// </summary>
-        public abstract IList<ClrAppDomain> AppDomains { get; }
+        public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// Returns the name of the assembly that this module is defined in.
@@ -40,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// for this, as reflection and other special assemblies can share the same name, but actually be
         /// different.)
         /// </summary>
-        public abstract ulong AssemblyId { get; }
+        public abstract ulong AssemblyAddress { get; }
 
         /// <summary>
         /// Returns the name of the module.
@@ -56,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if this module is an actual PEFile on disk.
         /// </summary>
-        public abstract bool IsFile { get; }
+        public abstract bool IsPEFile { get; }
 
         /// <summary>
         /// Returns the filename of where the module was loaded from on disk.  Undefined results if
@@ -74,11 +68,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the size of the image in memory.
         /// </summary>
         public abstract ulong Size { get; }
-
-        /// <summary>
-        /// Enumerate all types defined by this module.
-        /// </summary>
-        public abstract IEnumerable<ClrType> EnumerateTypes();
 
         /// <summary>
         /// The location of metadata for this module in the process's memory.  This is useful if you
@@ -101,6 +90,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// The debugging attributes for this module.
         /// </summary>
         public abstract DebuggableAttribute.DebuggingModes DebuggingMode { get; }
+        
+        /// <summary>
+        /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
+        /// </summary>
+        /// <returns>An enumeration of (ulong methodTable, uint typeDef).</returns>
+        public abstract IEnumerable<(ulong, uint)> EnumerateTypeDefToMethodTableMap();
+
+        /// <summary>
+        /// Resolves the give metdata token for this module.
+        /// </summary>
+        /// <param name="typeDefOrRefToken">A typedef or typeref token.</param>
+        /// <returns>The ClrType of the resolved token, null if not found or if a type for the token hasn't been constructed by the runtime.</returns>
+        public abstract ClrType ResolveToken(uint typeDefOrRefToken);
 
         /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
@@ -108,8 +110,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// never been constructed in the target process.  Please be sure to null-check the return value of
         /// this function.
         /// </summary>
-        /// <param name="name">The name of the type.  (This would be the EXACT value returned by ClrType.Name.</param>
-        /// <returns>The requested ClrType, or null if the type doesn't exist or couldn't be constructed.</returns>
+        /// <param name="name">The name of the type.  (This would be the EXACT value returned by ClrType.Name.)</param>
+        /// <returns>The requested ClrType, or null if the type doesn't exist or if the runtime hasn't constructed it.</returns>
         public abstract ClrType GetTypeByName(string name);
 
         /// <summary>

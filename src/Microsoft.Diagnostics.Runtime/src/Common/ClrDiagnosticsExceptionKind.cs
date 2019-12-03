@@ -9,7 +9,6 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Exception kind
     /// </summary>
-    [Serializable]
     public enum ClrDiagnosticsExceptionKind
     {
         /// <summary>

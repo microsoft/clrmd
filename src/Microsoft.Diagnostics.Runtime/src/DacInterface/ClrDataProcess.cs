@@ -33,8 +33,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
-        public ClrDataProcess(CallableCOMWrapper toClone) : base(toClone)
+        public ClrDataProcess(DacLibrary library, CallableCOMWrapper toClone) : base(toClone)
         {
+            _library = library;
         }
 
         public SOSDac GetSOSDacInterface()

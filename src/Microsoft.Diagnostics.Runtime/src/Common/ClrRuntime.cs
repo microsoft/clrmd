@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -14,19 +13,14 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrRuntime
     {
         /// <summary>
-        /// In .NET native crash dumps, we have a list of serialized exceptions objects. This property expose them as ClrException objects.
-        /// </summary>
-        public abstract IEnumerable<ClrException> EnumerateSerializedExceptions();
-
-        /// <summary>
         /// Used for internal purposes.
         /// </summary>
-        public DacLibrary DacLibrary { get; protected set; }
+        public abstract DacLibrary DacLibrary { get; }
 
         /// <summary>
         /// The ClrInfo of the current runtime.
         /// </summary>
-        public ClrInfo ClrInfo { get; protected set; }
+        public abstract ClrInfo ClrInfo { get; }
 
         /// <summary>
         /// Returns the DataTarget associated with this runtime.
@@ -34,47 +28,27 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract DataTarget DataTarget { get; }
 
         /// <summary>
-        /// Whether or not the process is running in server GC mode or not.
-        /// </summary>
-        public bool ServerGC { get; protected set; }
-
-        /// <summary>
-        /// The number of logical GC heaps in the process.  This is always 1 for a workstation
-        /// GC, and usually it's the number of logical processors in a server GC application.
-        /// </summary>
-        public int HeapCount { get; protected set; }
-
-        /// <summary>
-        /// Returns the pointer size of the target process.
-        /// </summary>
-        public abstract int PointerSize { get; }
-
-        /// <summary>
         /// Enumerates the list of appdomains in the process.
         /// </summary>
-        public abstract IList<ClrAppDomain> AppDomains { get; }
+        public abstract IReadOnlyList<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
-        /// Give access to the System AppDomain
+        /// The System AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
         public abstract ClrAppDomain SystemDomain { get; }
 
         /// <summary>
-        /// Give access to the Shared AppDomain
+        /// The Shared AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
         public abstract ClrAppDomain SharedDomain { get; }
+
+        public abstract ClrModule BaseClassLibrary { get; }
 
         /// <summary>
         /// Enumerates all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>
-        public abstract IList<ClrThread> Threads { get; }
-
-        /// <summary>
-        /// Enumerates all objects currently on the finalizer queue.  (Not finalizable objects, but objects
-        /// which have been collected and will be imminently finalized.)
-        /// </summary>
-        public abstract IEnumerable<ulong> EnumerateFinalizerQueueObjectAddresses();
+        public abstract IReadOnlyList<ClrThread> Threads { get; }
 
         /// <summary>
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
@@ -84,22 +58,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrMethod GetMethodByHandle(ulong methodHandle);
 
         /// <summary>
-        /// Returns the CCW data associated with the given address.  This is used when looking at stowed
-        /// exceptions in CLR.
+        /// Gets the ClrType corresponding to the given MethodTable.
         /// </summary>
-        /// <param name="addr">The address of the CCW obtained from stowed exception data.</param>
-        /// <returns>The CcwData describing the given CCW, or null.</returns>
-        public abstract CcwData GetCcwDataByAddress(ulong addr);
-
-
-        /// <summary>
-        /// Reads a pointer value out of the target process.  This function reads only the target's pointer size,
-        /// so if this is used on an x86 target, only 4 bytes is read and written to val.
-        /// </summary>
-        /// <param name="address">The address to read from.</param>
-        /// <param name="value">The value at that address.</param>
-        /// <returns>True if the read was successful, false otherwise.</returns>
-        public abstract bool ReadPointer(ulong address, out ulong value);
+        /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
+        /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
+        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        public abstract ClrType GetTypeByMethodTable(ulong methodTable);
 
         /// <summary>
         /// Enumerates a list of GC handles currently in the process.  Note that this list may be incomplete
@@ -112,30 +76,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the GC heap of the process.
         /// </summary>
         public abstract ClrHeap Heap { get; }
-
-        /// <summary>
-        /// Returns data on the CLR thread pool for this runtime.
-        /// </summary>
-        public virtual ClrThreadPool ThreadPool => throw new NotImplementedException();
-
-        /// <summary>
-        /// Enumerates regions of memory which CLR has allocated with a description of what data
-        /// resides at that location.  Note that this does not return every chunk of address space
-        /// that CLR allocates.
-        /// </summary>
-        /// <returns>An enumeration of memory regions in the process.</returns>
-        public abstract IEnumerable<ClrMemoryRegion> EnumerateMemoryRegions();
-
+        
         /// <summary>
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
         /// </summary>
-        public abstract ClrMethod GetMethodByAddress(ulong ip);
+        public abstract ClrMethod GetMethodByInstructionPointer(ulong ip);
 
         /// <summary>
-        /// A list of all modules loaded into the process.
+        /// Enumerate all managed modules in the runtime.
         /// </summary>
-        public abstract IList<ClrModule> Modules { get; }
+        public abstract IEnumerable<ClrModule> EnumerateModules();
 
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
@@ -145,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// (E.G. if you want to use the ClrHeap object after calling flush, you must call ClrRuntime.GetHeap
         /// again after Flush to get a new instance.)
         /// </summary>
-        public abstract void Flush();
+        public abstract void ClearCachedData();
 
         /// <summary>
         /// Gets the name of a JIT helper function
@@ -153,13 +104,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">Address of a possible JIT helper function</param>
         /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function</returns>
         public abstract string GetJitHelperFunctionName(ulong address);
-
-        /// <summary>
-        /// Gets the name of a method table
-        /// </summary>
-        /// <param name="address">Address of a possible method table</param>
-        /// <returns>The name of the method table or null if <paramref name="address"/> isn't a method table</returns>
-        public abstract string GetMethodTableName(ulong address);
 
         /// <summary>
         /// Delegate called when the RuntimeFlushed event is triggered.
@@ -176,10 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Call when flushing the runtime.
         /// </summary>
-        protected void OnRuntimeFlushed()
-        {
-            RuntimeFlushed?.Invoke(this);
-        }
+        protected void OnRuntimeFlushed() => RuntimeFlushed?.Invoke(this);
 
         internal void Dispose()
         {

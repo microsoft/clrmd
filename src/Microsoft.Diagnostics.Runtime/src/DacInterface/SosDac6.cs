@@ -27,10 +27,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private DacGetMethodTableCollectibleData _getMethodTableCollectibleData;
 
-        public bool GetMethodTableCollectibleData(ulong addr, out MethodTableCollectibleData data)
+        public bool GetMethodTableCollectibleData(ulong mt, out MethodTableCollectibleData data)
         {
             InitDelegate(ref _getMethodTableCollectibleData, VTable->GetMethodTableCollectibleData);
-            int hr = _getMethodTableCollectibleData(Self, addr, out data);
+            int hr = _getMethodTableCollectibleData(Self, mt, out data);
             return SUCCEEDED(hr);
         }
 

@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Xunit;
@@ -19,11 +21,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ulong obj = heap.GetObjectsOfType("DoubleRef").Single();
-            ClrType type = heap.GetObjectType(obj);
+            ClrObject obj = heap.GetObjectsOfType("DoubleRef").Single();
+            Assert.False(obj.IsNull);
 
-            ClrObject[] refs = type.EnumerateObjectReferences(obj).ToArray();
-            ValidateRefs(refs);
+            ValidateRefs(obj.EnumerateReferences().ToArray());
         }
 
         private void ValidateRefs(ClrObject[] refs)
@@ -56,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal("System.Object[]", obj.Type.Name);
 
-            ClrObject[] refs = obj.EnumerateObjectReferences(false).ToArray();
+            ClrObject[] refs = obj.EnumerateReferences(false).ToArray();
             Assert.Single(refs);
             Assert.Equal("DoubleRef", refs[0].Type.Name);
         }
@@ -103,60 +104,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void BuildCacheCancel()
-        {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
-            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-            heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
-
-            GCRoot gcroot = new GCRoot(heap);
-            ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-
-            CancellationTokenSource source = new CancellationTokenSource();
-            source.Cancel();
-
-            try
-            {
-                gcroot.BuildCache(source.Token);
-                Assert.True(false, "Should have been cancelled!");
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        [Fact]
-        public void EnumerateGCRootsCancel()
-        {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
-            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-            heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
-            GCRoot gcroot = new GCRoot(runtime.Heap);
-
-            ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-
-            CancellationTokenSource source = new CancellationTokenSource();
-            source.Cancel();
-
-            try
-            {
-                gcroot.EnumerateGCRoots(target, false, source.Token).ToArray();
-                Assert.True(false, "Should have been cancelled!");
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        [Fact]
         public void FindSinglePathCancel()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
             GCRoot gcroot = new GCRoot(runtime.Heap);
 
             CancellationTokenSource cancelSource = new CancellationTokenSource();
@@ -179,7 +131,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
             GCRoot gcroot = new GCRoot(runtime.Heap);
 
             CancellationTokenSource cancelSource = new CancellationTokenSource();
@@ -197,58 +148,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void GCStaticRoots()
-        {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
-            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-            heap.StackwalkPolicy = ClrRootStackwalkPolicy.SkipStack;
-            GCRoot gcroot = new GCRoot(runtime.Heap);
-
-            gcroot.ClearCache();
-            Assert.False(gcroot.IsFullyCached);
-            GCStaticRootsImpl(gcroot);
-
-            gcroot.BuildCache(CancellationToken.None);
-
-            gcroot.AllowParallelSearch = false;
-            Assert.True(gcroot.IsFullyCached);
-            GCStaticRootsImpl(gcroot);
-
-            gcroot.AllowParallelSearch = true;
-            Assert.True(gcroot.IsFullyCached);
-            GCStaticRootsImpl(gcroot);
-        }
-
-        private void GCStaticRootsImpl(GCRoot gcroot)
-        {
-            ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] paths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
-            Assert.Single(paths);
-            GCRootPath rootPath = paths[0];
-
-            AssertPathIsCorrect(gcroot.Heap, rootPath.Path, rootPath.Path.First().Address, target);
-        }
-
-        [Fact]
         public void GCRoots()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            GCRoot gcroot = new GCRoot(runtime.Heap);
+            ClrHeap heap = runtime.Heap;
 
-            gcroot.ClearCache();
-            Assert.False(gcroot.IsFullyCached);
-            GCRootsImpl(gcroot);
-
-            gcroot.BuildCache(CancellationToken.None);
-
-            gcroot.AllowParallelSearch = false;
-            Assert.True(gcroot.IsFullyCached);
-            GCRootsImpl(gcroot);
-
-            gcroot.AllowParallelSearch = true;
-            Assert.True(gcroot.IsFullyCached);
+            GCRoot gcroot = new GCRoot(heap);
             GCRootsImpl(gcroot);
         }
 
@@ -256,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, true, CancellationToken.None).ToArray();
 
             Assert.True(rootPaths.Length >= 2);
 
@@ -266,9 +172,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             bool hasThread = false, hasStatic = false;
             foreach (GCRootPath rootPath in rootPaths)
             {
-                if (rootPath.Root.Kind == GCRootKind.Pinning)
+                if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
                     hasStatic = true;
-                else if (rootPath.Root.Kind == GCRootKind.LocalVar)
+                else if (rootPath.Root.RootKind == ClrRootKind.Stack)
                     hasThread = true;
             }
 
@@ -315,12 +221,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             GCRoot gcroot = new GCRoot(runtime.Heap);
 
-            gcroot.ClearCache();
-            Assert.False(gcroot.IsFullyCached);
-            FindSinglePathImpl(gcroot);
-
-            gcroot.BuildCache(CancellationToken.None);
-            Assert.True(gcroot.IsFullyCached);
             FindSinglePathImpl(gcroot);
         }
 
@@ -341,12 +241,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             GCRoot gcroot = new GCRoot(runtime.Heap);
 
-            gcroot.ClearCache();
-            Assert.False(gcroot.IsFullyCached);
-            FindAllPathsImpl(gcroot);
-
-            gcroot.BuildCache(CancellationToken.None);
-            Assert.True(gcroot.IsFullyCached);
             FindAllPathsImpl(gcroot);
         }
 
@@ -373,20 +267,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             target = heap.GetObjectsOfType("TargetType").Single();
         }
 
-        private void AssertPathIsCorrect(ClrHeap heap, ClrObject[] path, ulong source, ulong target)
+        private void AssertPathIsCorrect(ClrHeap heap, IReadOnlyList<ClrObject> path, ulong source, ulong target)
         {
             Assert.NotNull(path);
-            Assert.True(path.Length > 0);
+            Assert.True(path.Count > 0);
 
             ClrObject first = path.First();
             Assert.Equal(source, first.Address);
 
-            for (int i = 0; i < path.Length - 1; i++)
+            for (int i = 0; i < path.Count - 1; i++)
             {
                 ClrObject curr = path[i];
                 Assert.Equal(curr.Type, heap.GetObjectType(curr.Address));
 
-                IEnumerable<ClrObject> refs = curr.EnumerateObjectReferences();
+                IEnumerable<ClrObject> refs = curr.EnumerateReferences();
 
                 ClrObject next = path[i + 1];
                 Assert.Contains(next, refs);

@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 Assert.Equal(handles[i].Address, hnd.Address);
                 Assert.Equal(handles[i].Object, hnd.Object);
-                Assert.Equal(handles[i].HandleType, hnd.HandleType);
+                Assert.Equal(handles[i].HandleKind, hnd.HandleKind);
 
                 i++;
             }
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(handles.Add(handle));
 
             // Make sure we had at least one AsyncPinned handle
-            Assert.Contains(handles, h => h.HandleType == HandleType.AsyncPinned);
+            Assert.Contains(handles, h => h.HandleKind == ClrHandleKind.AsyncPinned);
         }
     }
 }

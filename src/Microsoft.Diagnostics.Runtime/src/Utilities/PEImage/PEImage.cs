@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -112,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Returns true if this image is managed.  (.Net image)
         /// </summary>
-        public bool IsManaged => GetDirectory(14).VirtualAddress != 0;
+        public bool IsManaged => OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 
         /// <summary>
         /// Returns the timestamp that this PE image is indexed under.
@@ -313,24 +317,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             t = default;
             int size = Unsafe.SizeOf<T>();
-
-            // .Net Core only.  This isn't compiled into Desktop CLR because Stream.Read(Span<byte>) doesn't
-            // exist, and so our stackalloc + copy will be more inefficent than just renting our own byte array.
-#if !NET45
-            if (size < Configuration.MaxStackAlloc)
-            {
-                Span<byte> span = stackalloc byte[size];
-                SeekTo(offset);
-
-                int read = Stream.Read(span);
-                _offset = offset + read;
-                if (read != size)
-                    return false;
-
-                t = Unsafe.As<byte, T>(ref span[0]);
-                return true;
-            }
-#endif
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
             try

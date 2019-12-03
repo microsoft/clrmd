@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ClrDataProcess InternalDacPrivateInterface { get; }
 
-        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(InternalDacPrivateInterface);
+        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(this, InternalDacPrivateInterface);
 
         internal SOSDac GetSOSInterfaceNoAddRef()
         {
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 SOSDac sos = GetSOSInterfaceNoAddRef();
-                return sos != null ? new SOSDac(sos) : null;
+                return sos != null ? new SOSDac(this, sos) : null;
             }
         }
 

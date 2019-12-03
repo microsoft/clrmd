@@ -9,18 +9,17 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// The result of a VirtualQuery.
     /// </summary>
-    [Serializable]
     public struct VirtualQueryData
     {
         /// <summary>
         /// The base address of the allocation.
         /// </summary>
-        public ulong BaseAddress;
+        public ulong BaseAddress { get; }
 
         /// <summary>
         /// The size of the allocation.
         /// </summary>
-        public ulong Size;
+        public ulong Size { get; }
 
         /// <summary>
         /// Constructor.

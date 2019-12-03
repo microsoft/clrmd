@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// stop the thread until it synchronizes.
         /// </summary>
         Cooperative,
+
         /// <summary>
         /// In Preemptive mode the runtime is free to suspend the thread at any time for a GC to occur.
         /// </summary>

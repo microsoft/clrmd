@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -141,14 +142,7 @@ namespace Microsoft.Diagnostics.Runtime
                 GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
 
                 string filename = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this)
-                {
-                    ImageBase = baseAddr,
-                    FileName = filename,
-                    FileSize = filesize,
-                    TimeStamp = timestamp
-                };
-
+                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, filename);
                 result.Add(module);
             }
 
@@ -173,7 +167,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 fixed (byte* ptr = buffer)
                 {
-                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out bytesRead);
+                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out IntPtr read);
+                    bytesRead = (int)read;
                     return res != 0;
                 }
             }
@@ -194,14 +189,36 @@ namespace Microsoft.Diagnostics.Runtime
             return buffer.AsPointer();
         }
 
-        public uint ReadDwordUnsafe(ulong addr)
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
-            Span<byte> buffer = stackalloc byte[4];
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
 
-            if (!ReadMemory(addr, buffer, out int read))
-                return 0;
+            value = default;
+            return false;
+        }
 
-            return buffer.AsUInt32();
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()
@@ -213,17 +230,17 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
         {
-            vq = new VirtualQueryData();
-
             MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
             IntPtr ptr = addr.AsIntPtr();
 
             int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
             if (res == 0)
+            {
+                vq = default;
                 return false;
+            }
 
-            vq.BaseAddress = mem.BaseAddress;
-            vq.Size = mem.Size;
+            vq = new VirtualQueryData(mem.BaseAddress, mem.Size);
             return true;
         }
 
@@ -283,14 +300,13 @@ namespace Microsoft.Diagnostics.Runtime
         [PreserveSig]
         public static extern uint GetModuleFileNameExA([In] IntPtr hProcess, [In] IntPtr hModule, [Out] StringBuilder lpFilename, [In][MarshalAs(UnmanagedType.U4)] int nSize);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
-            [Out]
             byte* lpBuffer,
             int dwSize,
-            out int lpNumberOfBytesRead);
+            out IntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, ref MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);

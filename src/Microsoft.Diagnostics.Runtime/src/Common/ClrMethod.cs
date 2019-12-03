@@ -20,17 +20,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong MethodDesc { get; }
 
         /// <summary>
-        /// Enumerates all method descs for this method in the process.  MethodDescs
-        /// are unique to an Method/AppDomain pair, so when there are multiple domains
-        /// there will be multiple MethodDescs for a method.
-        /// </summary>
-        /// <returns>
-        /// An enumeration of method handles in the process for this given
-        /// method.
-        /// </returns>
-        public abstract IEnumerable<ulong> EnumerateMethodDescs();
-
-        /// <summary>
         /// The name of the method.  For example, "void System.Foo.Bar(object o, int i)" would return "Bar".
         /// </summary>
         public abstract string Name { get; }
@@ -39,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the full signature of the function.  For example, "void System.Foo.Bar(object o, int i)"
         /// would return "System.Foo.Bar(System.Object, System.Int32)"
         /// </summary>
-        public abstract string GetFullSignature();
+        public abstract string Signature { get; }
 
         /// <summary>
         /// Returns the instruction pointer in the target process for the start of the method's assembly.
@@ -71,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the IL to native offset mapping.
         /// </summary>
-        public abstract ILToNativeMap[] ILOffsetMap { get; }
+        public abstract IReadOnlyList<ILToNativeMap> ILOffsetMap { get; }
 
         /// <summary>
         /// Returns the metadata token of the current method.

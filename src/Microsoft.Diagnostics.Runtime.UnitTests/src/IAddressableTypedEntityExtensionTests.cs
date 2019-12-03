@@ -28,51 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
                 .And.ParamName.Should().Be(nameof(entity));
         }
 
-        [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenClrObjectHasReferenceField_ReturnsField([Frozen]ClrHeap heap, [Frozen]ClrType objectType, ClrObject rawClrObject, ClrInstanceField clrField, ulong fieldAddress, ClrObject target)
-        {
-            // Arrange
-            IAddressableTypedEntity entity = rawClrObject;
-
-            clrField.IsObjectReference.Returns(true);
-            clrField.GetAddress(entity.Address).Returns(fieldAddress);
-
-            heap.ReadPointer(fieldAddress, out var whatever)
-                .Returns(call =>
-                {
-                    call[1] = target.Address;
-                    return true;
-                });
-
-            // Act
-            var fieldFoundByName = entity.GetFieldFrom(clrField.Name);
-
-            // Assert
-            fieldFoundByName.Address.Should().Be(target.Address);
-        }
-
-        [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenStructureHasReferenceField_ReturnsField([Frozen] ClrHeap heap, ClrObject target, [Frozen]ClrType structType, ClrValueClass rawStruct, ClrInstanceField structReferenceField, ulong fieldAddress)
-        {
-            // Arrange
-            IAddressableTypedEntity entity = rawStruct;
-
-            structReferenceField.IsObjectReference.Returns(true);
-            structReferenceField.GetAddress(entity.Address, Arg.Any<bool>()).Returns(fieldAddress);
-
-            heap.ReadPointer(fieldAddress, out var whatever)
-                .Returns(call =>
-                {
-                    call[1] = target.Address;
-                    return true;
-                });
-
-            // Act
-            var fieldByName = entity.GetFieldFrom(structReferenceField.Name);
-
-            // Assert
-            fieldByName.Address.Should().Be(target.Address);
-        }
 
         [Theory, AutoNSubstituteData]
         public void GetFieldFrom_WhenStructureHasStructureField_ReturnsField(ClrValueClass target, [Frozen]ClrType structType, ClrValueClass rawStruct, ClrInstanceField structValueField)
