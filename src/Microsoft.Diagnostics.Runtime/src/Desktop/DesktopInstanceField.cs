@@ -256,7 +256,21 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (type == null)
                         return 1;
 
-                    return type.BaseSize;
+                    ClrField last = null;
+                    foreach (ClrField field in type.Fields)
+                    {
+                        if (last == null)
+                            last = field;
+                        else if (field.Offset > last.Offset)
+                            last = field;
+                        else if (field.Offset == last.Offset && field.Size > last.Size)
+                            last = field;
+                    }
+
+                    if (last == null)
+                        return 0;
+
+                    return last.Offset + last.Size;
 
                 case ClrElementType.Int8:
                 case ClrElementType.UInt8:
