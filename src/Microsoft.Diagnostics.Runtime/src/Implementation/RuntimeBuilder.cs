@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
 
-        private readonly ClrType[] _basicTypes = new ClrType[(int)ClrElementType.SZArray];
+        private ClrType[] _basicTypes;
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
         private readonly Dictionary<ulong, ulong> _moduleSizes = new Dictionary<ulong, ulong>();
         private List<AllocationContext> _threadAllocContexts;
@@ -597,6 +597,49 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
         {
+            if (_basicTypes == null)
+            {
+                _basicTypes = new ClrType[(int)ClrElementType.SZArray];
+                int count = 0;
+                ClrModule bcl = GetOrCreateRuntime().BaseClassLibrary;
+                if (bcl != null && bcl.MetadataImport != null)
+                {
+                    foreach ((ulong mt, uint token) in bcl.EnumerateTypeDefToMethodTableMap())
+                    {
+                        string name = _sos.GetMethodTableName(mt);
+                        ClrElementType type = name switch
+                        {
+                            "System.Boolean" => ClrElementType.Boolean,
+                            "System.Char" => ClrElementType.Char,
+                            "System.SByte" => ClrElementType.Int8,
+                            "System.Byte" => ClrElementType.UInt8,
+                            "System.Int16" => ClrElementType.Int16,
+                            "System.UInt16" => ClrElementType.UInt16,
+                            "System.Int32" => ClrElementType.Int32,
+                            "System.UInt32" => ClrElementType.UInt32,
+                            "System.Int64" => ClrElementType.Int64,
+                            "System.UInt64" => ClrElementType.UInt64,
+                            "System.Single" => ClrElementType.Float,
+                            "System.Double" => ClrElementType.Double,
+                            "System.IntPtr" => ClrElementType.NativeInt,
+                            "System.UIntPtr" => ClrElementType.NativeUInt,
+                            "System.ValueType" => ClrElementType.Struct,
+                            "System.Array" => ClrElementType.SZArray,
+                            _ => ClrElementType.Unknown,
+                        };
+
+                        if (type != ClrElementType.Unknown)
+                        {
+                            _basicTypes[(int)type - 1] = GetOrCreateType(mt, 0);
+                            count++;
+
+                            if (count == 16)
+                                break;
+                        }
+                    }
+                }
+            }
+
             int index = (int)basicType - 1;
             if (index < 0 || index > _basicTypes.Length)
                 throw new ArgumentException($"Cannot create type for ClrElementType {basicType}");
