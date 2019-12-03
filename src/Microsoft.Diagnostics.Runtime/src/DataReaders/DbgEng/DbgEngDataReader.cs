@@ -208,14 +208,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
-                    ModuleInfo info = new ModuleInfo(this)
-                    {
-                        TimeStamp = mods[i].TimeDateStamp,
-                        FileSize = mods[i].Size,
-                        ImageBase = bases[i],
-                        FileName = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i])
-                    };
-
+                    string fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
+                    ModuleInfo info = new ModuleInfo(this, bases[i], mods[i].Size, mods[i].TimeDateStamp, fn);
                     modules.Add(info);
                 }
             }
@@ -257,12 +251,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (_spaces.QueryVirtual(addr, out MEMORY_BASIC_INFORMATION64 mem))
             {
-                vq = new VirtualQueryData()
-                {
-                    BaseAddress = mem.BaseAddress,
-                    Size = mem.RegionSize
-                };
-
+                vq = new VirtualQueryData(mem.BaseAddress, mem.RegionSize);
                 return true;
             }
 

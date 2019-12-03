@@ -12,30 +12,22 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Information about a specific PDB instance obtained from a PE image.
     /// </summary>
-    [Serializable]
-    public class PdbInfo
+    public sealed class PdbInfo
     {
         /// <summary>
         /// The Guid of the PDB.
         /// </summary>
-        public Guid Guid { get; set; }
+        public Guid Guid { get; }
 
         /// <summary>
         /// The pdb revision.
         /// </summary>
-        public int Revision { get; set; }
+        public int Revision { get; }
 
         /// <summary>
         /// The filename of the pdb.
         /// </summary>
-        public string FileName { get; set; }
-
-        /// <summary>
-        /// Creates an instance of the PdbInfo class
-        /// </summary>
-        public PdbInfo()
-        {
-        }
+        public string FileName { get; }
 
         /// <summary>
         /// Creates an instance of the PdbInfo class with the corresponding properties initialized

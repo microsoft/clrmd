@@ -142,14 +142,7 @@ namespace Microsoft.Diagnostics.Runtime
                 GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
 
                 string filename = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this)
-                {
-                    ImageBase = baseAddr,
-                    FileName = filename,
-                    FileSize = filesize,
-                    TimeStamp = timestamp
-                };
-
+                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, filename);
                 result.Add(module);
             }
 
@@ -237,17 +230,17 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
         {
-            vq = new VirtualQueryData();
-
             MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
             IntPtr ptr = addr.AsIntPtr();
 
             int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
             if (res == 0)
+            {
+                vq = default;
                 return false;
+            }
 
-            vq.BaseAddress = mem.BaseAddress;
-            vq.Size = mem.Size;
+            vq = new VirtualQueryData(mem.BaseAddress, mem.Size);
             return true;
         }
 

@@ -100,23 +100,17 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ElfFile file = img.Open();
 
-            ModuleInfo result = new ModuleInfo
-            {
-                FileName = img.Path,
-                FileSize = (uint)img.Size,
-                ImageBase = (ulong)img.BaseAddress,
-                BuildId = file?.BuildId,
-                IsManaged = file == null
-            };
+            uint filesize = (uint)img.Size;
+            uint timestamp = 0;
 
-            if (result.IsManaged)
+            if (file == null)
             {
                 PEImage pe = img.OpenAsPEImage();
-                result.FileSize = (uint)pe.IndexFileSize;
-                result.TimeStamp = (uint)pe.IndexTimeStamp;
+                filesize = (uint)pe.IndexFileSize;
+                timestamp = (uint)pe.IndexTimeStamp;
             }
 
-            return result;
+            return new ModuleInfo(this, (ulong)img.BaseAddress, filesize, timestamp, img.Path, file?.BuildId);
         }
 
         public void ClearCachedData()
