@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Whether to bounds check along the way (useful in cases where
         /// the heap may be in an inconsistent state.)
         /// </param>
-        public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully = false);
+        public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles);
 
     }
 }

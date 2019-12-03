@@ -5,6 +5,7 @@
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Xunit;
@@ -147,33 +148,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void GCStaticRoots()
-        {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
-            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(runtime.Heap);
-
-            GCStaticRootsImpl(gcroot);
-        }
-
-        private void GCStaticRootsImpl(GCRoot gcroot)
-        {
-            ulong target = gcroot.Heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] paths = gcroot.EnumerateGCRoots(target, true, CancellationToken.None).ToArray();
-            Assert.Single(paths);
-            GCRootPath rootPath = paths[0];
-
-            AssertPathIsCorrect(gcroot.Heap, rootPath.Path, rootPath.Path.First().Address, target);
-        }
-
-        [Fact]
         public void GCRoots()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            GCRoot gcroot = new GCRoot(runtime.Heap);
+            ClrHeap heap = runtime.Heap;
 
+            GCRoot gcroot = new GCRoot(heap);
             GCRootsImpl(gcroot);
         }
 
@@ -181,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, false, CancellationToken.None).ToArray();
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, true, CancellationToken.None).ToArray();
 
             Assert.True(rootPaths.Length >= 2);
 

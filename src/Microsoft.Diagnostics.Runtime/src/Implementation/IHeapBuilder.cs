@@ -8,12 +8,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public interface IHeapBuilder
     {
-        IDataReader DataReader { get; }
-        ITypeFactory TypeFactory { get; }
-
+        IHeapHelpers HeapHelpers { get; }
         public bool IsServer { get; }
         int LogicalHeapCount { get; }
-        IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks();
 
         ulong ArrayMethodTable { get; }
         ulong StringMethodTable { get; }

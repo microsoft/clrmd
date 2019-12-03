@@ -21,7 +21,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     // expect, it must stay internal only.
     unsafe sealed class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, ITypeData, IModuleData, IModuleHelpers,
                                          IMethodHelpers, IMethodData, IClrObjectHelpers, IFieldData, IFieldHelpers, IAppDomainData,
-                                         IAppDomainHelpers, IThreadData, IThreadHelpers, ICCWData, IRCWData, IExceptionHelpers
+                                         IAppDomainHelpers, IThreadData, IThreadHelpers, ICCWData, IRCWData, IExceptionHelpers,
+                                         IHeapHelpers
 
     {
         private readonly ClrInfo _clrinfo;
@@ -370,6 +371,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return EnumerateHandleTable(runtime, handles, 16);
         }
 
+        public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
+        {
+            // TODO use smarter sos enum for only dependent handles
+            using SOSHandleEnum handleEnum = _sos.EnumerateHandles(ClrHandleKind.Dependent);
+
+            HandleData[] handles = new HandleData[32];
+            int fetched = 0;
+            while ((fetched = handleEnum.ReadHandles(handles)) != 0)
+            {
+                for (int i = 0; i < fetched; i++)
+                {
+                    if (handles[i].Type == (int)ClrHandleKind.Dependent)
+                    {
+                        ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
+                        if (obj != 0)
+                            yield return (obj, handles[i].Secondary);
+                    }
+                }
+            }
+        }
+
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles, int count)
         {
             // TODO: Use smarter handle enum overload in _sos
@@ -389,7 +411,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
 
             int fetched = 0;
-            while ((fetched = handleEnum.ReadHandles(handles, count)) != 0)
+            while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {
                 for (int i = 0; i < fetched; i++)
                 {

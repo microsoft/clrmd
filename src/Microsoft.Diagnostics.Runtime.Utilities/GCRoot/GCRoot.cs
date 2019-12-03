@@ -133,7 +133,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             GCRootPath? ProcessRoot(IClrRoot root)
             {
                 var rootObject = root.Object;
-
                 GCRootPath? result = null;
 
                 if (parallel)

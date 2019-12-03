@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private List<AllocationContext> _threadAllocContexts;
 
         #region IHeapBuilder
-        public ITypeFactory TypeFactory { get; }
+        public IHeapHelpers HeapHelpers { get; }
         public IDataReader DataReader { get; }
 
         public bool IsServer { get; }
@@ -67,9 +67,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public bool IsEphemeralSegment => _heap.EphemeralHeapSegment == _segment.Address;
         #endregion
 
-        public HeapBuilder(ITypeFactory factory, SOSDac sos, IDataReader reader, List<AllocationContext> allocationContexts, ulong firstThread)
+        public HeapBuilder(IHeapHelpers helper, SOSDac sos, IDataReader reader, List<AllocationContext> allocationContexts, ulong firstThread)
         {
-            TypeFactory = factory;
+            HeapHelpers = helper;
             _sos = sos;
             DataReader = reader;
             _firstThread = firstThread;
@@ -180,27 +180,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 segments.Add(new ClrmdSegment(clrHeap, this));
                 address = _segment.Next;
-            }
-        }
-
-        public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
-        {
-            // TODO use smarter sos enum for only dependent handles
-            using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
-
-            HandleData[] handles = new HandleData[32];
-            int fetched = 0;
-            while ((fetched = handleEnum.ReadHandles(handles, 16)) != 0)
-            {
-                for (int i = 0; i < fetched; i++)
-                {
-                    if (handles[i].Type == (int)ClrHandleKind.Dependent)
-                    {
-                        ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
-                        if (obj != 0)
-                            yield return (obj, handles[i].Secondary);
-                    }
-                }
             }
         }
     }

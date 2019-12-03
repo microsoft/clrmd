@@ -21,14 +21,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _next, vtable->Next);
         }
 
-        public int ReadHandles(HandleData[] handles, int count)
+        public int ReadHandles(HandleData[] handles)
         {
             if (handles == null)
                 throw new ArgumentNullException(nameof(handles));
 
             fixed (HandleData* ptr = handles)
             {
-                int hr = _next(Self, count, ptr, out int read);
+                int hr = _next(Self, handles.Length, ptr, out int read);
                 return hr >= S_OK ? read : 0;
             }
         }

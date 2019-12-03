@@ -13,13 +13,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     public sealed class ClrmdHeap : ClrHeap
     {
         private const int MaxGen2ObjectSize = 85000;
-        private readonly IDataReader _reader;
+        private readonly IHeapHelpers _helpers;
         private readonly MemoryReader _memoryReader;
-        private readonly ITypeFactory _typeFactory;
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqRoots;
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqObjects;
         private readonly Dictionary<ulong, ulong> _allocationContext;
         private int _lastSegmentIndex;
+        private (ulong, ulong)[] _dependants;
 
         public override ClrRuntime Runtime { get; }
 
@@ -42,9 +42,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (heapBuilder is null)
                 throw new NullReferenceException(nameof(heapBuilder));
 
-            _reader = heapBuilder.DataReader;
-            _memoryReader = new MemoryReader(heapBuilder.DataReader, 0x10000);
-            _typeFactory = heapBuilder.TypeFactory;
+            _helpers = heapBuilder.HeapHelpers;
+            _memoryReader = new MemoryReader(_helpers.DataReader, 0x10000);
 
             Runtime = runtime;
             CanWalkHeap = heapBuilder.CanWalkHeap;
@@ -52,10 +51,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // Prepopulate a few important method tables.
 
-            StringType = _typeFactory.GetOrCreateType(this, heapBuilder.StringMethodTable, 0);
-            ObjectType = _typeFactory.GetOrCreateType(this, heapBuilder.ObjectMethodTable, 0);
-            FreeType = _typeFactory.GetOrCreateType(this, heapBuilder.FreeMethodTable, 0);
-            ExceptionType = _typeFactory.GetOrCreateType(this, heapBuilder.ExceptionMethodTable, 0);
+            StringType = _helpers.Factory.GetOrCreateType(this, heapBuilder.StringMethodTable, 0);
+            ObjectType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ObjectMethodTable, 0);
+            FreeType = _helpers.Factory.GetOrCreateType(this, heapBuilder.FreeMethodTable, 0);
+            ExceptionType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ExceptionMethodTable, 0);
 
             // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
             Segments = heapBuilder.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);
@@ -77,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!_memoryReader.ReadPtr(obj, out ulong mt))
                     break;
 
-                ClrType type = _typeFactory.GetOrCreateType(mt, obj);
+                ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
                 if (type == null)
                     break;
 
@@ -128,12 +127,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrType GetObjectType(ulong objRef)
         {
             if (!_memoryReader.Contains(objRef) || !_memoryReader.TryReadPtr(objRef, out ulong mt))
-                mt = _reader.ReadPointerUnsafe(objRef);
+                mt = _helpers.DataReader.ReadPointerUnsafe(objRef);
 
             if (mt == 0)
                 return null;
 
-            return _typeFactory.GetOrCreateType(mt, objRef);
+            return _helpers.Factory.GetOrCreateType(mt, objRef);
         }
 
         public override ClrSegment GetSegmentByAddress(ulong objRef)
@@ -204,15 +203,39 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return size;
         }
 
-        public override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully = false)
+        public override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
+            if (considerDependantHandles)
+            {
+                if (_dependants == null)
+                {
+                    _dependants = _helpers.EnumerateDependentHandleLinks().ToArray();
+                    Array.Sort(_dependants, (x, y) => x.Item1.CompareTo(y.Item1));
+                }
+
+                if (_dependants.Length > 0)
+                {
+                    int index = _dependants.Search(obj, (x, y) => x.Item1.CompareTo(y));
+                    if (index != -1)
+                    {
+                        while (index >= 1 && _dependants[index - 1].Item1 == obj)
+                            index--;
+
+                        while (index < _dependants.Length && _dependants[index].Item1 == obj)
+                        {
+                            ulong dependantObj = _dependants[index++].Item2;
+                            yield return new ClrObject(dependantObj, GetObjectType(dependantObj));
+                        }
+                    }
+                }
+            }
 
             if (type.IsCollectible)
             {
-                ulong la = _reader.ReadPointerUnsafe(type.LoaderAllocatorHandle);
+                ulong la = _helpers.DataReader.ReadPointerUnsafe(type.LoaderAllocatorHandle);
                 if (la != 0)
                     yield return new ClrObject(la, GetObjectType(la));
             }
@@ -241,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_memoryReader.Contains(ptr) && _memoryReader.ReadPtr(ptr, out ulong value))
                 return value;
 
-            return _reader.ReadPointerUnsafe(ptr);
+            return _helpers.DataReader.ReadPointerUnsafe(ptr);
         }
 
         public override IEnumerable<IClrRoot> EnumerateRoots()
@@ -285,12 +308,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 for (ulong ptr = seg.Start; ptr < seg.End; ptr += (uint)IntPtr.Size)
                 {
-                    ulong obj = _reader.ReadPointerUnsafe(ptr);
+                    ulong obj = _helpers.DataReader.ReadPointerUnsafe(ptr);
                     if (obj == 0)
                         continue;
 
-                    ulong mt = _reader.ReadPointerUnsafe(obj);
-                    ClrType type = _typeFactory.GetOrCreateType(mt, obj);
+                    ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+                    ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
                     if (type != null)
                         yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));
                 }

@@ -36,9 +36,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects that this object references.
         /// </summary>
         /// <returns>An enumeration of object references.</returns>
-        public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false)
+        public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false, bool considerDependantHandles = true)
         {
-            return Type.Heap.EnumerateObjectReferences(Address, Type, carefully);
+            return Type.Heap.EnumerateObjectReferences(Address, Type, carefully, considerDependantHandles);
         }
 
         public T ReadBoxed<T>() where T : unmanaged => Helpers.DataReader.ReadUnsafe<T>(Address + (ulong)IntPtr.Size);

@@ -5,7 +5,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal static class BinarySearchExtensions
     {
-        public static bool Search<Kind, Key>(this IReadOnlyList<Kind> list, Key key, Func<Kind, Key, int> compareTo, out Kind found)
+        public static int Search<Kind, Key>(this IReadOnlyList<Kind> list, Key key, Func<Kind, Key, int> compareTo)
         {
             int lower = 0;
             int upper = list.Count - 1;
@@ -26,13 +26,13 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    found = list[mid];
-                    return true;
+                    return mid;
                 }
             }
 
-            found = default;
-            return false;
+            return -1;
         }
+
+        public static int Search<Kind, Key>(this Kind[] list, Key key, Func<Kind, Key, int> compareTo) => Search((IReadOnlyList<Kind>)list, key, compareTo);
     }
 }

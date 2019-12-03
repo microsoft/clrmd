@@ -164,10 +164,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
 
-            if (!map.Search(typeDefOrRefToken & ~0xff000000, CompareTo, out (ulong, uint) found))
+            int index = map.Search(typeDefOrRefToken & ~0xff000000, CompareTo);
+            if (index == -1)
                 return null;
 
-            ClrType type = _helpers.Factory.GetOrCreateType(found.Item1, 0);
+            ClrType type = _helpers.Factory.GetOrCreateType(map[index].Item1, 0);
             return type;
         }
 
