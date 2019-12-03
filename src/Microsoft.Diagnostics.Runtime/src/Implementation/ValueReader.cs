@@ -162,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_firstChar == null || _stringLength == null)
                 return string.Empty;
 
-            int length = (int)_stringLength.GetValue(strAddr);
+            int length = _stringLength.Read<int>(strAddr, interior: false);
             ulong data = _firstChar.GetAddress(strAddr);
 
             return ReadString(reader, data, length);

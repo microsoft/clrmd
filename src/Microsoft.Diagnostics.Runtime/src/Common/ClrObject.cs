@@ -192,13 +192,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of this field.</returns>
         public T GetField<T>(string fieldName)
-            where T : struct
+            where T : unmanaged
         {
             ClrInstanceField field = Type.GetFieldByName(fieldName);
             if (field == null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
-            object value = field.GetValue(Address);
+            object value = field.Read<T>(Address, interior:false);
             return (T)value;
         }
 
