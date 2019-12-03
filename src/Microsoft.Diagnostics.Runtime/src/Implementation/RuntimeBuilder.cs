@@ -293,6 +293,39 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+
+        ClrModule IRuntimeHelpers.GetBaseClassLibrary(ClrRuntime runtime)
+        {
+            if (_sos.GetCommonMethodTables(out CommonMethodTables mts))
+            {
+                if (_sos.GetMethodTableData(mts.ObjectMethodTable, out MethodTableData mtData))
+                {
+                    ClrModule result = GetOrCreateModule(null, mtData.Module);
+                    if (result != null)
+                        return result;
+                }
+            }
+
+
+            ClrModule mscorlib = null;
+            string moduleName = runtime.ClrInfo.Flavor == ClrFlavor.Core
+                ? "SYSTEM.PRIVATE.CORELIB"
+                : "MSCORLIB";
+
+            if (runtime.SharedDomain != null)
+                foreach (ClrModule module in runtime.SharedDomain.Modules)
+                    if (module.Name.ToUpperInvariant().Contains(moduleName))
+                        return module;
+
+            foreach (ClrAppDomain domain in runtime.AppDomains)
+                foreach (ClrModule module in domain.Modules)
+                    if (module.Name.ToUpperInvariant().Contains(moduleName))
+                        return module;
+
+            return mscorlib;
+        }
+    
+
         IReadOnlyList<ClrThread> IRuntimeHelpers.GetThreads(ClrRuntime runtime)
         {
             ClrThread[] threads = new ClrThread[_threads];
@@ -368,7 +401,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             // Enumerating handles should be sufficiently rare as to not need to use ArrayPool
             HandleData[] handles = new HandleData[128];
-            return EnumerateHandleTable(runtime, handles, 16);
+            return EnumerateHandleTable(runtime, handles);
         }
 
         public IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks()
@@ -392,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles, int count)
+        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles)
         {
             // TODO: Use smarter handle enum overload in _sos
             Dictionary<ulong, ClrAppDomain> domains = new Dictionary<ulong, ClrAppDomain>();
@@ -588,8 +621,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_runtime != null)
                 return _runtime;
 
-            _runtime = new ClrmdRuntime(_clrinfo, _library, this);
-            _ = _runtime.AppDomains; // TODO: need to solve AppDomain ordering problem
+            ClrmdRuntime runtime = new ClrmdRuntime(_clrinfo, _library, this);
+            _runtime = runtime;
+
+            runtime.Initialize();
             return _runtime;
          
         }

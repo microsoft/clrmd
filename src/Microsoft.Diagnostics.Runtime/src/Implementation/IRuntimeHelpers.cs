@@ -16,5 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         void ClearCachedData();
         ulong GetMethodDesc(ulong ip);
         string GetJitHelperFunctionName(ulong ip);
+        ClrModule GetBaseClassLibrary(ClrRuntime runtime);
     }
 }
