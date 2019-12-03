@@ -29,3 +29,7 @@ public class GenericClass<T1, T2, T3, T4, T5>
 {
     public T5 Invoke(T1 a, T2 b, T3 te, T4 t4) { return default(T5); }
 }
+
+struct EmptyStruct { }
+struct NestedEmptyStruct { EmptyStruct es; }
+public class StructTestClass { Struct s; NestedEmptyStruct nes; }
