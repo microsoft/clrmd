@@ -85,15 +85,15 @@ Here is a list of feedback I am tracking from the community (my summary):
 
 (Notes to myself about what I need to revisit.)
 
-1.  ThreadPool related code.
-2.  SymbolLocator related code.
-3.  Ensure ClrmdType equality when they come from the same MT.
-4.  Offsets for string and exception fields when we have no metadata.
-5. moduleinfo, pdbinfo, versioninfo, VirtualQueryData
-6. remove appdomain from staticvarinstance
-7. remove ClrField.GetValue
-8. Enum related code in ClrType
-9. clean up exception usage
+1.  SymbolLocator related code.
+2.  Ensure ClrmdType equality when they come from the same MT.
+3.  Offsets for string and exception fields when we have no metadata.
+4. remove appdomain from staticvarinstance
+5. remove ClrField.GetValue
+6. Enum related code in ClrType
+7. clean up exception usage
+8. Add more tests now that we can easily mock up objects.
+9. Investigate multithreaded implementation.
 
 
 
