@@ -13,7 +13,6 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-
     // This class will not be marked public.
     // This implementation takes a lot of shortcuts to avoid allocations, and as a result the interfaces
     // it implements have very odd constraints around how they can be used.  All Clrmd* types understand
@@ -693,7 +692,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ClrType result = _cache.GetStoredType(mt);
                 if (result != null)
                 {
-                    if (obj != 0  && result.ComponentType == null && result.IsArray && result is ClrmdType type)
+                    if (obj != 0  && result.ComponentType == null && result.IsArray && result is ClrmdArrayType type)
                         TryGetComponentType(type, obj);
 
                     return result;
@@ -704,30 +703,45 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!_sos.GetMethodTableData(mt, out _mtData))
                     return null;
 
+                ClrType baseType = _mtData.ParentMethodTable != 0 ? GetOrCreateType(heap, _mtData.ParentMethodTable, 0) : null;
+
                 ClrModule module = GetOrCreateModule(null, _mtData.Module);
                 _ptr = mt;
-                ClrmdType result = new ClrmdType(heap, module, this);
-
-                if (_cache.Store(mt, result))
-                    _cache.ReportMemory(mt, _typeSize);
-
-                if (obj != 0 && result.IsArray)
+                if (!_sos.GetMethodTableData(mt, out _mtData))
+                    return null;
+                if (_mtData.ComponentSize == 0)
                 {
-                    Debug.Assert(result.ComponentType == null);
-                    TryGetComponentType(result, obj);
-                }
+                    ClrmdType result = new ClrmdType(heap, baseType, module, this);
 
-                return result;
+                    if (_cache.Store(mt, result))
+                        _cache.ReportMemory(mt, _typeSize);
+
+                    return result;
+                }
+                else
+                {
+                    ClrmdArrayType result = new ClrmdArrayType(heap, baseType, module, this);
+
+                    if (_cache.Store(mt, result))
+                        _cache.ReportMemory(mt, _typeSize);
+
+                    if (obj != 0 && result.IsArray)
+                    {
+                        Debug.Assert(result.ComponentType == null);
+                        TryGetComponentType(result, obj);
+                    }
+                    return result;
+                }
             }
         }
 
         public ClrType GetOrCreateTypeFromToken(ClrModule module, uint token) => module.ResolveToken(token);
 
-        public ClrType GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdPointerArrayType(innerType, ranks, pointer: false) : null;
-        public ClrType GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdPointerArrayType(innerType, depth, pointer: true) : null;
+        public ClrType GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdConstructedType(innerType, ranks, pointer: false) : null;
+        public ClrType GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdConstructedType(innerType, depth, pointer: true) : null;
 
 
-        private void TryGetComponentType(ClrmdType type, ulong obj)
+        private void TryGetComponentType(ClrmdArrayType type, ulong obj)
         {
             ClrType result = null;
             if (_sos.GetObjectData(obj, out V45ObjectData data))
@@ -1022,7 +1036,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         bool ITypeData.IsShared => _mtData.Shared != 0;
         uint ITypeData.Token => _mtData.Token;
         ulong ITypeData.MethodTable => _ptr;
-        ulong ITypeData.ParentMethodTable => _mtData.ParentMethodTable;
         ulong ITypeData.ComponentMethodTable => 0;
         int ITypeData.BaseSize => (int)_mtData.BaseSize;
         int ITypeData.ComponentSize => (int)_mtData.ComponentSize;
@@ -1035,7 +1048,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong IMethodData.MethodDesc => _ptr;
         MethodCompilationType IMethodData.CompilationType => (MethodCompilationType)_codeHeaderData.JITType;
 
-        ulong IMethodData.GCInfo => _codeHeaderData.GCInfo;
 
         ulong IMethodData.HotStart => _mdData.NativeCodeAddr;
 

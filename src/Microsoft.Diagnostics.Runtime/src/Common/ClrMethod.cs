@@ -125,11 +125,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsAbstract { get; }
 
         /// <summary>
-        /// Returns the location of the GCInfo for this method.
-        /// </summary>
-        public abstract ulong GCInfo { get; }
-
-        /// <summary>
         /// Returns whether this method is an instance constructor.
         /// </summary>
         public virtual bool IsConstructor => Name == ".ctor";
