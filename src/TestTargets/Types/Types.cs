@@ -20,6 +20,7 @@ class Types
 
     public static void Main()
     {
+        new StructTestClass(); // Ensure type is constructed
         Foo f = new Foo();
         Foo[] foos = new Foo[] { f };
 

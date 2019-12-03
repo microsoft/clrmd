@@ -257,6 +257,29 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void InnerStructSizeTest()
+        {
+            // https://github.com/microsoft/clrmd/issues/101
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule sharedLibrary = runtime.GetModule("sharedlibrary.dll");
+            ClrType structTestClass = sharedLibrary.GetTypeByName("StructTestClass");
+            ClrType structTest = sharedLibrary.GetTypeByName("Struct");
+            Assert.NotNull(structTest);
+
+            ClrInstanceField field = structTestClass.GetFieldByName("s");
+            Assert.Same(structTest, field.Type);
+            Assert.Equal(sizeof(int), field.Size);
+
+            ClrInstanceField nes = structTestClass.GetFieldByName("nes");
+            Assert.Equal(0, nes.Size);
+
+            ClrInstanceField es = nes.Type.GetFieldByName("es");
+            Assert.Equal(0, es.Size);
+        }
+
+        [Fact]
         public void ComponentTypeEventuallyFilledTest()
         {
             // https://github.com/microsoft/clrmd/issues/108
