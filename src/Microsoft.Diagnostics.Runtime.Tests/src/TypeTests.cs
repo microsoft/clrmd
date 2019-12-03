@@ -259,6 +259,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void FieldNameAndValueTests()
         {
+            // TODO: test reading structs from instance/static fields
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -278,17 +279,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestFieldNameAndValue(fooType, obj, "d", 8.4);
         }
 
-        public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
+        public ClrInstanceField TestFieldNameAndValue(ClrType type, ulong obj, string name, string value)
         {
             ClrInstanceField field = type.GetFieldByName(name);
             Assert.NotNull(field);
             Assert.Equal(name, field.Name);
 
-            object v = field.GetValue(obj);
-            Assert.NotNull(v);
-            Assert.IsType<T>(v);
+            string str = field.ReadString(obj, interior: false);
+            Assert.Equal(value, str);
 
-            Assert.Equal(value, (T)v);
+            return field;
+        }
+
+        public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
+            where T: unmanaged
+        {
+            ClrInstanceField field = type.GetFieldByName(name);
+            Assert.NotNull(field);
+            Assert.Equal(name, field.Name);
+
+            T t = field.Read<T>(obj, interior: false);
+            Assert.Equal(value, t);
 
             return field;
         }

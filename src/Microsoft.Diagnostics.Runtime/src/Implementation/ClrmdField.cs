@@ -250,28 +250,49 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return result;
         }
 
-        public override object GetValue(ulong objRef, bool interior = false, bool convertStrings = true)
+
+        public override T Read<T>(ulong objRef, bool interior)
         {
-            // TODO:  Move to IFieldHelpers?
-            if (!HasSimpleValue)
+            ulong address = GetAddress(objRef, interior);
+            if (address == 0)
+                return default;
+
+            if (!_helpers.DataReader.Read<T>(address, out T value))
+                return default;
+
+            return value;
+        }
+
+        public override ClrObject ReadObject(ulong objRef, bool interior)
+        {
+            ulong address = GetAddress(objRef, interior);
+            if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+                return default;
+
+            ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+            ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
+            if (type == null)
+                return default;
+
+            return new ClrObject(obj, type);
+        }
+
+        public override ClrValueClass ReadStruct(ulong objRef, bool interior)
+        {
+            ulong address = GetAddress(objRef, interior);
+            if (address == 0)
+                return default;
+
+            return new ClrValueClass(address, Type, interior: true);
+        }
+
+        public override string ReadString(ulong objRef, bool interior)
+        {
+            ClrObject obj = ReadObject(objRef, interior);
+            if (obj.IsNull)
                 return null;
 
-            ulong addr = GetAddress(objRef, interior);
-
-            if (ElementType == ClrElementType.String)
-            {
-                object val = ValueReader.GetValueAtAddress(Parent?.Heap, _helpers.DataReader, ClrElementType.Object, addr);
-
-                Debug.Assert(val == null || val is ulong);
-                if (val == null || !(val is ulong))
-                    return convertStrings ? null : (object)(ulong)0;
-
-                addr = (ulong)val;
-                if (!convertStrings)
-                    return addr;
-            }
-
-            return ValueReader.GetValueAtAddress(Parent?.Heap, _helpers.DataReader, ElementType, addr);
+            return obj.AsString();
         }
 
         public override ulong GetAddress(ulong objRef, bool interior = false)

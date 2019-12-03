@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field to read value from.</param>
         /// <returns>The value of the field.</returns>
         /// <exception cref="ArgumentException">Thrown when field was not found by name.</exception>
-        T GetField<T>(string fieldName) where T : struct;
+        T GetField<T>(string fieldName) where T : unmanaged;
 
         /// <summary>
         /// Gets the <see cref="string"/> value from the entity field.
