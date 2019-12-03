@@ -88,12 +88,12 @@ Here is a list of feedback I am tracking from the community (my summary):
 1.  SymbolLocator related code.
 2.  Ensure ClrmdType equality when they come from the same MT.
 3.  Offsets for string and exception fields when we have no metadata.
-4. remove appdomain from staticvarinstance
-5. remove ClrField.GetValue
-6. Enum related code in ClrType
-7. clean up exception usage
-8. Add more tests now that we can easily mock up objects.
-9. Investigate multithreaded implementation.
+4.  Document all functions
+5.  consider reworking ClrField.GetValue
+6.  Enum related code in ClrType
+7.  clean up exception usage
+8.  Add more tests now that we can easily mock up objects.
+9.  Investigate multithreaded implementation.
 
 
 
