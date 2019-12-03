@@ -66,6 +66,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
 
+        public void Initialize()
+        {
+            _ = AppDomains;
+            _bcl = _helpers.GetBaseClassLibrary(this);
+        }
+
         /// <summary>
         /// Gets the ClrType corresponding to the given MethodTable.
         /// </summary>
@@ -129,26 +135,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByHandle(md);
         }
 
-        public override ClrModule BaseClassLibrary => _bcl ?? (_bcl = GetBCL());
-
-        private ClrModule GetBCL()
-        {
-            ClrModule mscorlib = null;
-            string moduleName = ClrInfo.Flavor == ClrFlavor.Core
-                ? "SYSTEM.PRIVATE.CORELIB"
-                : "MSCORLIB";
-
-            if (SharedDomain != null)
-                foreach (ClrModule module in SharedDomain.Modules)
-                    if (module.Name.ToUpperInvariant().Contains(moduleName))
-                        return module;
-
-            foreach (ClrAppDomain domain in AppDomains)
-                foreach (ClrModule module in domain.Modules)
-                    if (module.Name.ToUpperInvariant().Contains(moduleName))
-                        return module;
-
-            return mscorlib;
-        }
+        public override ClrModule BaseClassLibrary => _bcl;
     }
 }

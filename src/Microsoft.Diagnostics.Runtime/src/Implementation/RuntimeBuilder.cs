@@ -293,6 +293,39 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+
+        ClrModule IRuntimeHelpers.GetBaseClassLibrary(ClrRuntime runtime)
+        {
+            if (_sos.GetCommonMethodTables(out CommonMethodTables mts))
+            {
+                if (_sos.GetMethodTableData(mts.ObjectMethodTable, out MethodTableData mtData))
+                {
+                    ClrModule result = GetOrCreateModule(null, mtData.Module);
+                    if (result != null)
+                        return result;
+                }
+            }
+
+
+            ClrModule mscorlib = null;
+            string moduleName = runtime.ClrInfo.Flavor == ClrFlavor.Core
+                ? "SYSTEM.PRIVATE.CORELIB"
+                : "MSCORLIB";
+
+            if (runtime.SharedDomain != null)
+                foreach (ClrModule module in runtime.SharedDomain.Modules)
+                    if (module.Name.ToUpperInvariant().Contains(moduleName))
+                        return module;
+
+            foreach (ClrAppDomain domain in runtime.AppDomains)
+                foreach (ClrModule module in domain.Modules)
+                    if (module.Name.ToUpperInvariant().Contains(moduleName))
+                        return module;
+
+            return mscorlib;
+        }
+    
+
         IReadOnlyList<ClrThread> IRuntimeHelpers.GetThreads(ClrRuntime runtime)
         {
             ClrThread[] threads = new ClrThread[_threads];
@@ -588,8 +621,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_runtime != null)
                 return _runtime;
 
-            _runtime = new ClrmdRuntime(_clrinfo, _library, this);
-            _ = _runtime.AppDomains; // TODO: need to solve AppDomain ordering problem
+            ClrmdRuntime runtime = new ClrmdRuntime(_clrinfo, _library, this);
+            _runtime = runtime;
+
+            runtime.Initialize();
             return _runtime;
          
         }
