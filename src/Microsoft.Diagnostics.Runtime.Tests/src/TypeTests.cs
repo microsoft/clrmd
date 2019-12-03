@@ -279,6 +279,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(0, es.Size);
         }
 
+        [Fact(Skip ="This looks like a bug in mscordac and not ClrMD.")]
+        public void StringEmptyIsObtainableTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ClrType stringType = heap.StringType;
+            Assert.NotNull(stringType);
+
+            ClrStaticField empty = stringType.GetStaticFieldByName("Empty");
+            Assert.NotNull(empty);
+
+            string value = empty.ReadString();
+            Assert.Equal("", value);
+        }
+
         [Fact]
         public void ComponentTypeEventuallyFilledTest()
         {

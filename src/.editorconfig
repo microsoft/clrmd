@@ -282,3 +282,6 @@ dotnet_diagnostic.CA1717.severity = none
 
 # CA1060: Move pinvokes to native methods class
 dotnet_diagnostic.CA1060.severity = none
+
+# xUnit1004: Test methods should not be skipped
+dotnet_diagnostic.xUnit1004.severity = none
