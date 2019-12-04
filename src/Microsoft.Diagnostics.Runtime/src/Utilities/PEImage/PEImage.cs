@@ -111,12 +111,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Returns true if this image is for a 64bit processor.
         /// </summary>
-        public bool IsPE64 => OptionalHeader != null ? OptionalHeader.Magic != 0x010b : false;
+        public bool IsPE64 => OptionalHeader != null && OptionalHeader.Magic != 0x010b;
 
         /// <summary>
-        /// Returns true if this image is managed.  (.Net image)
+        /// Returns true if this image is managed. (.NET image)
         /// </summary>
-        public bool IsManaged => OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
+        public bool IsManaged => OptionalHeader != null && OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 
         /// <summary>
         /// Returns the timestamp that this PE image is indexed under.
@@ -294,14 +294,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (Stream.Read(buffer, 0, len) != len)
                     return null;
 
-                for (int i = 0; i < len; i++)
-                {
-                    if (buffer[i] == 0)
-                    {
-                        len = i;
-                        break;
-                    }
-                }
+                int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
+                if (index >= 0)
+                    len = index;
 
                 return Encoding.ASCII.GetString(buffer, 0, len);
             }
