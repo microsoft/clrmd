@@ -149,7 +149,7 @@
     Inputs="@(TargetExes)"
     Outputs="@(TargetExes->'%(HeapDumpPath)')">
 
-    <Exec Command='"$(MSBuildThisFileDirectory)%(TargetExes.Identity)"' WorkingDirectory="%(TargetExes.WorkingDir)" ContinueOnError="true" />
+    <Exec Command='"$(MSBuildThisFileDirectory)%(TargetExes.Identity)" || true' WorkingDirectory="%(TargetExes.WorkingDir)" />
     <Move SourceFiles="%(TargetExes.WorkingDir)coredump" DestinationFiles="%(TargetExes.HeapDumpPath)" />
 
   </Target>
@@ -162,7 +162,7 @@
     Outputs="@(TargetExes->'%(MiniDumpPath)')">
 
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" Value="1" />
-    <Exec Command='"$(MSBuildThisFileDirectory)%(TargetExes.Identity)"' WorkingDirectory="%(TargetExes.WorkingDir)" ContinueOnError="true" />
+    <Exec Command='"$(MSBuildThisFileDirectory)%(TargetExes.Identity)" || true' WorkingDirectory="%(TargetExes.WorkingDir)" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" />
     <Move SourceFiles="%(TargetExes.WorkingDir)coredump" DestinationFiles="%(TargetExes.MiniDumpPath)" />
 
@@ -176,7 +176,7 @@
     Outputs="$(BinDir64)Types_svr.dmp">
 
     <SetEnvironmentVariable Variable="COMPlus_gcServer" Value="1" />
-    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)Types"' WorkingDirectory="Types\" ContinueOnError="true" />
+    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)Types" || true' WorkingDirectory="Types\" />
     <SetEnvironmentVariable Variable="COMPlus_gcServer" />
     <Move SourceFiles="Types\coredump" DestinationFiles="$(BinDir64)Types_svr.dmp" />
 
