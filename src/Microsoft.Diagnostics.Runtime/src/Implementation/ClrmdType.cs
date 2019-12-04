@@ -31,7 +31,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
 
-
         public override string Name => _name ??= Helpers.GetTypeName(MethodTable);
 
         public override int BaseSize { get; }
@@ -80,7 +79,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             _ = Name;
         }
-
 
         private GCDesc GetOrCreateGCDesc()
         {
@@ -159,7 +157,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_elementType != ClrElementType.Unknown)
                 return _elementType;
 
-
             if (this == Heap.ObjectType)
                 return _elementType = ClrElementType.Object;
 
@@ -171,7 +168,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrType baseType = BaseType;
             if (baseType == null || baseType == Heap.ObjectType)
                 return _elementType = ClrElementType.Object;
-
 
             if (baseType.Name != "System.ValueType")
             {
@@ -249,7 +245,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             internal readonly Dictionary<string, object> NameToValue = new Dictionary<string, object>();
             internal readonly Dictionary<object, string> ValueToName = new Dictionary<object, string>();
         }
-
 
         public override bool TryGetEnumValue(string name, out int value)
         {

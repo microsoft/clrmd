@@ -96,7 +96,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                 int patch = (ushort)Marshal.ReadInt16(buffer, 12);
                 int revision = (ushort)Marshal.ReadInt16(buffer, 14);
 
-
                 return new VersionInfo(major, minor, revision, patch);
             }
             finally
@@ -113,7 +112,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             int hr = _getModuleByOffset(Self, address, index, out outIndex, out imgBase);
             return hr == S_OK;
         }
-
 
         private GetModuleByOffsetDelegate _getModuleByOffset;
         private GetModuleVersionInformationDelegate _getModuleVersionInformation;

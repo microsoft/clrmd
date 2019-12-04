@@ -53,11 +53,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-
         public bool IsReflection => _moduleData.IsReflection != 0;
 
         public ulong AssemblyAddress => _moduleData.Assembly;
-
 
         public bool Init(ulong address)
         {

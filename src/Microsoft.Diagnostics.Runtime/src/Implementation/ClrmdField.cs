@@ -250,7 +250,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return result;
         }
 
-
         public override T Read<T>(ulong objRef, bool interior)
         {
             ulong address = GetAddress(objRef, interior);

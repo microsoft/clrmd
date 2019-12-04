@@ -123,7 +123,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (size + AlignConst) & ~AlignConst;
         }
 
-
         public override ClrType GetObjectType(ulong objRef)
         {
             if (!_memoryReader.Contains(objRef) || !_memoryReader.TryReadPtr(objRef, out ulong mt))

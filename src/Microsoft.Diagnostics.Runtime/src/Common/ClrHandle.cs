@@ -103,7 +103,6 @@ namespace Microsoft.Diagnostics.Runtime
                 Dependent = new ClrObject(handleData.Secondary, dependentSecondary);
         }
 
-
         /// <summary>
         /// Whether the handle is strong (roots the object) or not.
         /// </summary>

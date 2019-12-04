@@ -103,8 +103,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool IsMinidump => false;
 
-
-
         public void FlushCachedData()
         {
         }

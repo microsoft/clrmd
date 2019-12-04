@@ -66,7 +66,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
-
             Parent = parent;
             Token = data.Token;
             ElementType = data.ElementType;
@@ -77,7 +76,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Must be the last use of 'data' in this constructor. 
             _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
         }
-
 
         private void InitData()
         {
@@ -93,7 +91,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _type = ClrmdField.GetTypeForFieldSig(_helpers.Factory, sigParser, Parent.Heap, Parent.Module);
         }
-
 
         public override bool IsPublic
         {

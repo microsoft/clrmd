@@ -11,7 +11,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
 
-
 #pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace Microsoft.Diagnostics.Runtime
@@ -20,7 +19,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true; //todo
-
 
         private DebugClient _client;
         private DebugControl _control;
@@ -151,8 +149,6 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport("dbgeng.dll")]
         public static extern int DebugCreate(ref Guid InterfaceId, out IntPtr Interface);
 
-
-
         public int PointerSize
         {
             get
@@ -177,7 +173,6 @@ namespace Microsoft.Diagnostics.Runtime
             _systemObjects.SetCurrentThread(id);
             return _advanced.GetThreadContext(context);
         }
-
 
         private ulong[] GetImageBases()
         {
@@ -217,7 +212,6 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = modules;
             return modules;
         }
-
 
         private IntPtr CreateIDebugClient()
         {
@@ -341,7 +335,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-
         public IEnumerable<uint> EnumerateAllThreads() => _systemObjects.GetThreadIds();
 
         public void Dispose()
@@ -356,7 +349,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return;
 
             _disposed = true;
-
 
             int count = Interlocked.Decrement(ref s_totalInstanceCount);
             if (count == 0 && s_needRelease && disposing)

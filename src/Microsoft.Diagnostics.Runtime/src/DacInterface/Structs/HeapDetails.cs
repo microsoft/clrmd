@@ -30,7 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong HighestAddress;
         public readonly ulong CardTable;
 
-
         public ulong EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
         public ulong EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
 

@@ -115,7 +115,6 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"ClrRuntime for version {Version} has already been created.");
         }
 
-
 #pragma warning disable CA2000 // Dispose objects before losing scope
         private ClrRuntime ConstructRuntime(string dac)
         {

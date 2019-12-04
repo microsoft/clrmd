@@ -97,7 +97,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return result;
         }
 
-
         private GetCurrentProcessSystemIdDelegate _getProcessId;
         private GetCurrentSystemIdDelegate _getSystemId;
         private SetCurrentSystemIdDelegate _setSystemId;
@@ -122,7 +121,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetThreadIdBySystemIdDelegate(IntPtr self, uint sysId, out uint id);
 
-
         private class SystemHolder : IDisposable
         {
             private static readonly object _sync = new object();
@@ -144,7 +142,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             }
         }
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649

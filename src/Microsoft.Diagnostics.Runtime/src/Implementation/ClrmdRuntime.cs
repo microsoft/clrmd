@@ -66,7 +66,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
         }
 
-
         public void Initialize()
         {
             _ = AppDomains;

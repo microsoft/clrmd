@@ -29,7 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public void SetComponentType(ClrType type) => _componentType = type;
 
-
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             //todo: remove?

@@ -726,7 +726,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? md : 0;
         }
 
-
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
 

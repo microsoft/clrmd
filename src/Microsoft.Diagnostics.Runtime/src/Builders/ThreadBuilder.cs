@@ -30,7 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _sos.GetThreadData(Address, out _threadData);
         }
 
-
         bool IThreadData.IsFinalizer => _finalizer == Address;
         uint IThreadData.OSThreadID => _threadData.OSThreadId;
         int IThreadData.ManagedThreadID => (int)_threadData.ManagedThreadId;

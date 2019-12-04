@@ -34,7 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override string FileName => IsPEFile ? Name : null;
         public override MetaDataImport MetadataImport => _metadata ??= _helpers.GetMetaDataImport(this);
 
-
         public ClrmdModule(ClrAppDomain parent, IModuleData data)
         {
             if (data is null)
@@ -171,7 +170,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrType type = _helpers.Factory.GetOrCreateType(map[index].Item1, 0);
             return type;
         }
-
 
         private static int CompareTo((ulong, uint) entry, uint token) => entry.Item2.CompareTo(token);
     }

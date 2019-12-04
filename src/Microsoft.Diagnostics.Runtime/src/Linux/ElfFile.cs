@@ -146,6 +146,5 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (int i = 0; i < _programHeaders.Length; i++)
                 _programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
-
     }
 }

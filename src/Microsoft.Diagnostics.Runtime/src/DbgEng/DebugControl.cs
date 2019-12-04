@@ -83,7 +83,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return result;
         }
 
-
         private GetEffectiveProcessorTypeDelegate _getEffectiveProcessorType;
         private IsPointer64BitDelegate _isPointer64Bit;
         private WaitForEventDelegate _waitForEvent;
@@ -104,7 +103,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
@@ -214,7 +212,5 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr SetTextReplacement;
         public readonly IntPtr RemoveTextReplacements;
         public readonly IntPtr OutputTextReplacements;
-
-
     }
 }

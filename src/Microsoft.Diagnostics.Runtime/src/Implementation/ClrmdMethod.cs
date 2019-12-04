@@ -40,7 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _attrs = type?.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
         }
 
-
         public override string Name
         {
             get
@@ -114,7 +113,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsSpecialName => (_attrs & MethodAttributes.SpecialName) == MethodAttributes.SpecialName;
 
         public override bool IsRTSpecialName => (_attrs & MethodAttributes.RTSpecialName) == MethodAttributes.RTSpecialName;
-
 
         public override ILInfo IL => GetILInfo();
 

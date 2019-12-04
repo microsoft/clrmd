@@ -166,7 +166,6 @@ namespace Microsoft.Diagnostics.Runtime
             return _clrs;
         }
 
-
         /// <summary>
         /// Enumerates information about the loaded modules in the process (both managed and unmanaged).
         /// </summary>
@@ -183,7 +182,6 @@ namespace Microsoft.Diagnostics.Runtime
             Array.Sort(_modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
             return _modules;
         }
-
 
         #region Statics
         /// <summary>

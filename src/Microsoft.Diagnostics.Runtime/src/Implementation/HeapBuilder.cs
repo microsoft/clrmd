@@ -99,7 +99,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
             List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
 
-
             if (allocContexts.Count == 0)
             {
                 ulong next = _firstThread;

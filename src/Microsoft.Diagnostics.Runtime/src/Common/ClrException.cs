@@ -34,7 +34,6 @@ namespace Microsoft.Diagnostics.Runtime
             Thread = thread;
 
             Debug.Assert(obj.IsException);
-
         }
 
         /// <summary>
@@ -51,7 +50,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the exception message.
         /// </summary>
         public string Message => _object.GetStringField("_message");
-
 
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.
@@ -80,6 +78,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// associated with this exception object.
         /// </summary>
         public IReadOnlyList<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(Thread, _object);
-
     }
 }
