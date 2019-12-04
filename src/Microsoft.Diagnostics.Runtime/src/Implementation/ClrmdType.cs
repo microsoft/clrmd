@@ -455,6 +455,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
         public override object GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
+
         /// <summary>
         /// A messy version with better performance that doesn't use regular expression.
         /// </summary>

@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IDataReader DataReader { get; }
 
         private SymbolLocator _symbolLocator;
+
         /// <summary>
         /// Instance to manage the symbol path(s)
         /// </summary>

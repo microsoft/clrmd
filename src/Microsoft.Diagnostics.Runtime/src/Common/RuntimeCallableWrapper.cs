@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class RuntimeCallableWrapper
     {
         public ulong Address { get; }
+
         /// <summary>
         /// Returns the pointer to the IUnknown representing this CCW.
         /// </summary>

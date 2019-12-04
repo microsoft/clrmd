@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// The raw symbol path.  You should probably use the SymbolPath property instead.
         /// </summary>
         protected volatile string _symbolPath;
+
         /// <summary>
         /// The raw symbol cache.  You should probably use the SymbolCache property instead.
         /// </summary>
