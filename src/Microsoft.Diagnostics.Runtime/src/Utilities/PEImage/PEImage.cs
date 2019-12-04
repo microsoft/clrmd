@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool IsPE64 => OptionalHeader != null && OptionalHeader.Magic != 0x010b;
 
         /// <summary>
-        /// Returns true if this image is managed.  (.Net image)
+        /// Returns true if this image is managed. (.NET image)
         /// </summary>
         public bool IsManaged => OptionalHeader != null && OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 
