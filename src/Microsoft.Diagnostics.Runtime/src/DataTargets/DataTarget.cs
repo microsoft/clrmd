@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
         private SymbolLocator _symbolLocator;
 
         /// <summary>
-        /// Instance to manage the symbol path(s)
+        /// Instance to manage the symbol path(s).
         /// </summary>
         public SymbolLocator SymbolLocator
         {

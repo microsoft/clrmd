@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// and 'remaining' offset with the type of Field1 (which must be a struct type).   Calling
         /// GetFieldForOffset repeatedly until the childFieldOffset is 0 will retrieve the whole chain.
         /// </summary>
-        /// <returns>true if successful.  Will fail if it 'this' is an array type</returns>
+        /// <returns>true if successful.  Will fail if it 'this' is an array type.</returns>
         public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset);
 
         /// <summary>
@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrStaticField GetStaticFieldByName(string name);
 
         /// <summary>
-        /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown)
+        /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown).
         /// </summary>
         public abstract ClrType BaseType { get; }
 

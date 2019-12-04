@@ -9,22 +9,22 @@ using System.Collections.Generic;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the dac dll
+    /// Represents the dac dll.
     /// </summary>
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// The platform-agnostic filename of the dac dll
+        /// The platform-agnostic filename of the dac dll.
         /// </summary>
         public string PlatformAgnosticFileName { get; }
 
         /// <summary>
-        /// The architecture (x86 or amd64) being targeted
+        /// The architecture (x86 or amd64) being targeted.
         /// </summary>
         public Architecture TargetArchitecture { get; }
 
         /// <summary>
-        /// Constructs a DacInfo object with the appropriate properties initialized
+        /// Constructs a DacInfo object with the appropriate properties initialized.
         /// </summary>
         public DacInfo(IDataReader reader, string agnosticName, Architecture targetArch, ulong imgBase,
                         uint filesize, uint timestamp, string filename, VersionInfo version, IReadOnlyList<byte> buildId = null)

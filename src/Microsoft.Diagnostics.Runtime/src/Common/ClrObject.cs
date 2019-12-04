@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="address">The address of the object</param>
+        /// <param name="address">The address of the object.</param>
         /// <param name="type">The concrete type of the object.</param>
         public ClrObject(ulong address, ClrType type)
         {

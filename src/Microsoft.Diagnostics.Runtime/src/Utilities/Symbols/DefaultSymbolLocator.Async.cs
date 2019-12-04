@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Clear missing file/pdb cache
+        /// Clear missing file/pdb cache.
         /// </summary>
         protected override void SymbolPathOrCacheChanged()
         {

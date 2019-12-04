@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ushort SizeOfOptionalHeader => _header.SizeOfOptionalHeader;
 
         /// <summary>
-        /// The characteristics of the image
+        /// The characteristics of the image.
         /// </summary>
         public IMAGE_FILE Characteristics => (IMAGE_FILE)_header.Characteristics;
     }

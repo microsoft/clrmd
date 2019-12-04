@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an instance of a type which inherits from System.ValueClass
+    /// Represents an instance of a type which inherits from System.ValueClass.
     /// </summary>
     public struct ClrValueClass : IAddressableTypedEntity
     {

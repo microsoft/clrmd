@@ -5,7 +5,7 @@
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the platform
+    /// Represents the platform.
     /// </summary>
     public enum Platform
     {
