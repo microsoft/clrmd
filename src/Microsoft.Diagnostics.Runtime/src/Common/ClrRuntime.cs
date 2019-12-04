@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -10,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents a single runtime in a target process or crash dump.  This serves as the primary
     /// entry point for getting diagnostic information.
     /// </summary>
-    public abstract class ClrRuntime
+    public abstract class ClrRuntime : IDisposable
     {
         /// <summary>
         /// Used for internal purposes.
@@ -122,9 +123,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         protected void OnRuntimeFlushed() => RuntimeFlushed?.Invoke(this);
 
-        internal void Dispose()
+        /// <summary>
+        /// Cleans up all resources and releases them.  You may not use this ClrRuntime or any object it transitively
+        /// created after calling this method.
+        /// </summary>
+        public void Dispose()
         {
-            DacLibrary?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
+
+        /// <summary>
+        /// Called when disposing ClrRuntime.
+        /// </summary>
+        /// <param name="disposing">Whether Dispose() was called or not.</param>
+        protected abstract void Dispose(bool disposing);
     }
 }

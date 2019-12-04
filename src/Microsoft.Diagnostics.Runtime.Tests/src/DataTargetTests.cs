@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -69,6 +70,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             uint mainThreadId = runtime.GetMainThread().OSThreadId;
             return process.Threads.Cast<ProcessThread>().Single(thread => thread.Id == mainThreadId);
+        }
+
+        [Fact]
+        public void EnsureFinalReleaseOfInterfaces()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+
+            RefCountedFreeLibrary library;
+            SOSDac sosDac;
+
+            using (ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime())
+            {
+                library = runtime.DacLibrary.OwningLibrary;
+                sosDac = runtime.DacLibrary.SOSDacInterface;
+
+                // Keep library alive
+                library.AddRef();
+            }
+
+            sosDac.Dispose();
+            Assert.Equal(0, library.Release());
         }
     }
 }

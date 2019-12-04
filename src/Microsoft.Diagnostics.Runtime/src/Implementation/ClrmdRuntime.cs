@@ -19,6 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private IReadOnlyList<ClrAppDomain> _domains;
         private ClrAppDomain _systemDomain;
         private ClrAppDomain _sharedDomain;
+        private bool _disposed;
 
         public override DataTarget DataTarget => ClrInfo?.DataTarget;
         public override DacLibrary DacLibrary { get; }
@@ -70,6 +71,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             _ = AppDomains;
             _bcl = _helpers.GetBaseClassLibrary(this);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                _helpers?.Dispose();
+            }
         }
 
         /// <summary>

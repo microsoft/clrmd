@@ -19,6 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                                          IAppDomainHelpers, IThreadHelpers, IExceptionHelpers, IHeapHelpers
 
     {
+        private bool _disposed;
         private readonly ClrInfo _clrinfo;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
@@ -53,11 +54,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _library = library;
             _dac = _library.DacPrivateInterface;
             _sos = _library.SOSDacInterface;
-            _sos6 = _library.GetSOSInterface6NoAddRef();
+            _sos6 = _library.SOSDacInterface6;
             DataReader = _clrinfo.DataTarget.DataReader;
 
             int version = 0;
-            if (library.DacPrivateInterface.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
+            if (_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.  Failed to request DacVersion.");
 
             if (version != 9)
@@ -82,7 +83,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public void Dispose()
         {
-            _library.Dispose();
+            if (!_disposed)
+            {
+                _disposed = true;
+                _runtime.Dispose();
+                _dac.Dispose();
+                _sos.Dispose();
+                _sos6?.Dispose();
+                _library.Dispose();
+            }
         }
 
         private TypeBuilder CreateTypeBuilder() => new TypeBuilder(_sos, this);
