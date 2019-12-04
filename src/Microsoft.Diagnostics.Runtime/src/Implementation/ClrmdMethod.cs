@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MethodDesc { get; }
         public override uint MetadataToken { get; }
         public override ClrType Type { get; }
-        public override string Signature => _signature ?? (_signature = _helpers?.GetSignature(MethodDesc));
+        public override string Signature => _signature ??= _helpers?.GetSignature(MethodDesc);
         public override IReadOnlyList<ILToNativeMap> ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold);
 
         public override HotColdRegions HotColdInfo => _hotCold;

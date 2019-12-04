@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private GCDesc _gcDesc;
 
 
-        public override string Name => _name ?? (_name = Helpers.GetTypeName(MethodTable));
+        public override string Name => _name ??= Helpers.GetTypeName(MethodTable);
 
         public override int BaseSize { get; }
         public override int ComponentSize => 0;
@@ -450,7 +450,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _statics = Array.Empty<ClrStaticField>();
         }
 
-        public override IReadOnlyList<ClrMethod> Methods => _methods ?? (_methods = Helpers.Factory.CreateMethodsForType(this));
+        public override IReadOnlyList<ClrMethod> Methods => _methods ??= Helpers.Factory.CreateMethodsForType(this);
 
         //TODO: remove
         public override ClrStaticField GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);

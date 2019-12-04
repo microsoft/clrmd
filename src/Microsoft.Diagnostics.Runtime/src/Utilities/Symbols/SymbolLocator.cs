@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             set
             {
-                _symbolPath = (value ?? string.Empty).Trim();
+                _symbolPath = value?.Trim() ?? string.Empty;
 
                 SymbolPathOrCacheChanged();
             }

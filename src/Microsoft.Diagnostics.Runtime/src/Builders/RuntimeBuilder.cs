@@ -587,7 +587,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _runtime;
          
         }
-        public ClrHeap GetOrCreateHeap() => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
+        public ClrHeap GetOrCreateHeap() => _heap ??= new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder);
 
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
         {

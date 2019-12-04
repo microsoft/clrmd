@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MetadataLength { get; }
         public override bool IsDynamic { get; }
         public override string FileName => IsPEFile ? Name : null;
-        public override MetaDataImport MetadataImport => _metadata ?? (_metadata = _helpers.GetMetaDataImport(this));
+        public override MetaDataImport MetadataImport => _metadata ??= _helpers.GetMetaDataImport(this);
 
 
         public ClrmdModule(ClrAppDomain parent, IModuleData data)
@@ -158,9 +158,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             IReadOnlyList<(ulong, uint)> map;
             if ((typeDefOrRefToken & 0x02000000) != 0)
-                map = _typeDefMap ?? (_typeDefMap = _helpers.GetSortedTypeDefMap(this));
+                map = (_typeDefMap ??= _helpers.GetSortedTypeDefMap(this));
             else if ((typeDefOrRefToken & 0x01000000) != 0)
-                map = _typeRefMap ?? (_typeRefMap = _helpers.GetSortedTypeRefMap(this));
+                map = (_typeRefMap ??= _helpers.GetSortedTypeRefMap(this));
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
 

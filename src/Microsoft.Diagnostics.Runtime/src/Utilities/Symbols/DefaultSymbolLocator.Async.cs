@@ -223,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Handle redirection case.
-            string filePtrData = (await filePtrDownload.ConfigureAwait(false) ?? string.Empty).Trim();
+            string filePtrData = (await filePtrDownload.ConfigureAwait(false))?.Trim() ?? string.Empty;
             if (filePtrData.StartsWith("PATH:"))
                 filePtrData = filePtrData.Substring(5);
 
