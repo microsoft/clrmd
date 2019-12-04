@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             switch (cet)
             {
                 case ClrElementType.String:
-                    return GetStringContents(heap.StringType, reader, addr);
+                    return GetStringContents(heap.StringType, reader, addr, 4096);
 
                 case ClrElementType.Class:
                 case ClrElementType.Array:
@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             throw new Exception("Unexpected element type.");
         }
 
-        internal static string GetStringContents(ClrType stringType, IDataReader reader, ulong strAddr)
+        internal static string GetStringContents(ClrType stringType, IDataReader reader, ulong strAddr, int maxLen)
         {
             if (strAddr == 0)
                 return null;
@@ -165,6 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             int length = _stringLength.Read<int>(strAddr, interior: false);
             ulong data = _firstChar.GetAddress(strAddr);
 
+            length = Math.Min(length, maxLen);
             return ReadString(reader, data, length);
         }
 

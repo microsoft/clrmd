@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
-        public string GetStringField(string fieldName)
+        public string GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             if (!DataReader.ReadPointer(address, out ulong str))
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
 
             ClrObject obj = new ClrObject(str, Type.Heap.StringType);
-            return obj.AsString();
+            return obj.AsString(maxLength);
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
