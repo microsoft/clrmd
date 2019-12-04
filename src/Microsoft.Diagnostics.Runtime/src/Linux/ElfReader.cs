@@ -133,5 +133,36 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        internal unsafe string ReadNullTerminatedAscii(long position)
+        {
+            byte[] bytes = new byte[1];
+            char[] chars = new char[1];
+            StringBuilder builder = new StringBuilder();
+            for (; ; )
+            {
+                int read = DataSource.Read(position, bytes, 0, bytes.Length);
+                if (read < bytes.Length)
+                {
+                    break;
+                }
+
+                if (bytes[0] == '\0')
+                {
+                    break;
+                }
+
+                fixed (byte* bytesPtr = bytes)
+                fixed (char* charsPtr = chars)
+                {
+                    _ = Encoding.ASCII.GetChars(bytesPtr, bytes.Length, charsPtr, chars.Length);
+                }
+
+                _ = builder.Append(chars[0]);
+                position++;
+            }
+
+            return builder.ToString();
+        }
     }
 }

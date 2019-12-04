@@ -4,8 +4,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         public CoreDumpReader(string filename)
         {
             _source = filename;
-            _stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            _stream = File.OpenRead(filename);
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
@@ -171,9 +171,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            // TODO
-            Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
-            version = new VersionInfo();
+            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
+            ElfFile file = image.Open();
+            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
 
         public uint ReadDwordUnsafe(ulong addr)
