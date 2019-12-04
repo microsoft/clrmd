@@ -188,8 +188,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         #region Debug Registers
 
-        const int ARM64_MAX_BREAKPOINTS = 8;
-        const int ARM64_MAX_WATCHPOINTS = 2;
+        private const int ARM64_MAX_BREAKPOINTS = 8;
+        private const int ARM64_MAX_WATCHPOINTS = 2;
 
         [Register(RegisterType.Debug)]
         [FieldOffset(0x318)]

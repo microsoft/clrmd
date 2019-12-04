@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    static class Helpers
+    internal static class Helpers
     {
         public static ClrType GetTypeByName(this ClrModule module, string name)
         {

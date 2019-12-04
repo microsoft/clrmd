@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
         [StructLayout(LayoutKind.Sequential)]
-        struct ClrDebugResource
+        private struct ClrDebugResource
         {
             public int dwVersion;
             public Guid signature;

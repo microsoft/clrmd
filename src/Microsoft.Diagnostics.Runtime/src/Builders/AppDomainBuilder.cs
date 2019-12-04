@@ -7,7 +7,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    class AppDomainBuilder : IAppDomainData
+    internal class AppDomainBuilder : IAppDomainData
     {
         private readonly SOSDac _sos;
         private readonly AppDomainStoreData _appDomainStore;

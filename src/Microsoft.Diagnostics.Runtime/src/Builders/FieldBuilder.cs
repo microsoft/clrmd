@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    class FieldBuilder : IFieldData, IDisposable
+    internal class FieldBuilder : IFieldData, IDisposable
     {
         private readonly SOSDac _sos;
         private FieldData _fieldData;

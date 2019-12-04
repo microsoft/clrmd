@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    class ThreadBuilder : IThreadData
+    internal class ThreadBuilder : IThreadData
     {
         private readonly SOSDac _sos;
         private readonly ulong _finalizer;

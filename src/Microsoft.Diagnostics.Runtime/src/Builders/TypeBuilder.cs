@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    class TypeBuilder : ITypeData, IDisposable
+    internal class TypeBuilder : ITypeData, IDisposable
     {
         private MethodTableData _mtData;
         private readonly SOSDac _sos;

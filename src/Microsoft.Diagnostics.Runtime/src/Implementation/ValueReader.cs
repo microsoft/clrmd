@@ -9,7 +9,7 @@ using System.Text;
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     // TODO: Factor this into the appropriate place
-    static class ValueReader
+    internal static class ValueReader
     {
         private static bool _initializedStringFields;
         private static ClrInstanceField _firstChar;

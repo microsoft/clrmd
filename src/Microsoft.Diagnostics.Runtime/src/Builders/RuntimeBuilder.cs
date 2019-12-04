@@ -15,7 +15,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    unsafe sealed class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, IModuleHelpers, IMethodHelpers, IClrObjectHelpers, IFieldHelpers,
+    internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, IModuleHelpers, IMethodHelpers, IClrObjectHelpers, IFieldHelpers,
                                          IAppDomainHelpers, IThreadHelpers, IExceptionHelpers, IHeapHelpers
 
     {
@@ -411,7 +411,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles)
+        private IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles)
         {
             CheckDisposed();
 
@@ -810,8 +810,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 statics = Array.Empty<ClrStaticField>();
         }
 
-
-        void CreateFieldsForMethodTableWorker(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
+        private void CreateFieldsForMethodTableWorker(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
         {
             CheckDisposed();
 
