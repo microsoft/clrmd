@@ -4,8 +4,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         public CoreDumpReader(string filename)
         {
             _source = filename;
-            _stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            _stream = File.OpenRead(filename);
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
@@ -88,29 +88,29 @@ namespace Microsoft.Diagnostics.Runtime
                 ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 
                 _modules = new List<ModuleInfo>(_core.LoadedImages.Count);
-                foreach (ElfLoadedImage img in _core.LoadedImages)
-                    if ((ulong)img.BaseAddress != interpreter && !img.Path.StartsWith("/dev"))
-                        _modules.Add(CreateModuleInfo(img));
+                foreach (ElfLoadedImage image in _core.LoadedImages)
+                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev"))
+                        _modules.Add(CreateModuleInfo(image));
             }
 
             return _modules;
         }
 
-        private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
+        private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
-            ElfFile file = img.Open();
+            ElfFile file = image.Open();
 
-            uint filesize = (uint)img.Size;
+            uint filesize = (uint)image.Size;
             uint timestamp = 0;
 
             if (file == null)
             {
-                PEImage pe = img.OpenAsPEImage();
+                PEImage pe = image.OpenAsPEImage();
                 filesize = (uint)pe.IndexFileSize;
                 timestamp = (uint)pe.IndexTimeStamp;
             }
 
-            return new ModuleInfo(this, (ulong)img.BaseAddress, filesize, timestamp, img.Path, file?.BuildId);
+            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId);
         }
 
         public void ClearCachedData()
@@ -133,13 +133,13 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            // TODO
-            Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
-            version = new VersionInfo();
+            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
+            ElfFile file = image.Open();
+            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
-        
+
         public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
         {
             bytesRead = _core.ReadMemory((long)address, buffer);

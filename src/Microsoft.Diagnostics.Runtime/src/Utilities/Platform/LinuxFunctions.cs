@@ -3,7 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using Microsoft.Diagnostics.Runtime.Linux;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -11,6 +15,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const string LibDlGlibc = "libdl.so.2";
         private const string LibDl = "libdl.so";
+
+        private static readonly byte[] s_versionString = Encoding.ASCII.GetBytes("@(#)Version ");
+        private static readonly int s_versionLength = s_versionString.Length;
 
         private readonly Func<string, IntPtr> _loadLibrary;
         private readonly Func<IntPtr, bool> _freeLibrary;
@@ -80,12 +87,194 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
+        internal static void GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
         {
-            //TODO
+            foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
+            {
+                if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
+                {
+                    long loadAddress = programHeader.VirtualAddress;
+                    long loadSize = programHeader.VirtualSize;
+                    GetVersionInfo(dataReader, baseAddress + (ulong)loadAddress, (ulong)loadSize, out version);
+                    return;
+                }
+            }
+
+            version = default;
+        }
+
+        internal static unsafe void GetVersionInfo(IDataReader dataReader, ulong address, ulong size, out VersionInfo version)
+        {
+            Span<byte> buffer = stackalloc byte[s_versionLength];
+            ulong endAddress = address + size;
+
+            while (address < endAddress)
+            {
+                bool result = dataReader.ReadMemory(address, buffer, out int read);
+                if (!result || read < s_versionLength)
+                {
+                    address += (uint)s_versionLength;
+                    continue;
+                }
+
+                if (!buffer.SequenceEqual(s_versionString))
+                {
+                    address++;
+                    continue;
+                }
+
+                address += (uint)s_versionLength;
+
+                StringBuilder builder = new StringBuilder();
+                while (address < endAddress)
+                {
+                    Span<byte> bytes = stackalloc byte[1];
+                    result = dataReader.ReadMemory(address, bytes, out read);
+                    if (!result || read < bytes.Length)
+                    {
+                        break;
+                    }
+
+                    if (bytes[0] == '\0')
+                    {
+                        break;
+                    }
+
+                    if (bytes[0] == ' ')
+                    {
+                        try
+                        {
+                            Version v = Version.Parse(builder.ToString());
+                            version = new VersionInfo(v.Major, v.Minor, v.Build, v.Revision);
+                            return;
+                        }
+                        catch (FormatException)
+                        {
+                            break;
+                        }
+                    }
+
+                    Span<char> chars = stackalloc char[1];
+                    fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
+                    fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
+                    {
+                        _ = Encoding.ASCII.GetChars(bytesPtr, bytes.Length, charsPtr, chars.Length);
+                    }
+
+                    _ = builder.Append(chars[0]);
+                    address++;
+                }
+
+                break;
+            }
+
+            version = default;
+        }
+
+        internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
+        {
+            using FileStream stream = File.OpenRead(dll);
+            StreamAddressSpace streamAddressSpace = new StreamAddressSpace(stream);
+            Reader streamReader = new Reader(streamAddressSpace);
+            ElfFile file = new ElfFile(streamReader);
+            IElfHeader header = file.Header;
+
+            ElfSectionHeader headerStringHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + header.SectionHeaderStringIndex * header.SectionHeaderEntrySize);
+            long headerStringOffset = (long)headerStringHeader.FileOffset;
+
+            long dataOffset = 0;
+            long dataSize = 0;
+            for (int i = 0; i < header.SectionHeaderCount; i++)
+            {
+                if (i == header.SectionHeaderStringIndex)
+                {
+                    continue;
+                }
+
+                ElfSectionHeader sectionHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + i * header.SectionHeaderEntrySize);
+                if (sectionHeader.Type == ElfSectionHeaderType.ProgBits)
+                {
+                    string sectionName = streamReader.ReadNullTerminatedAscii(headerStringOffset + sectionHeader.NameIndex * sizeof(byte));
+                    if (sectionName == ".data")
+                    {
+                        dataOffset = (long)sectionHeader.FileOffset;
+                        dataSize = (long)sectionHeader.FileSize;
+                        break;
+                    }
+                }
+            }
+
+            Debug.Assert(dataOffset != 0);
+            Debug.Assert(dataSize != 0);
+
+            Span<byte> buffer = stackalloc byte[s_versionLength];
+            long address = dataOffset;
+            long endAddress = address + dataSize;
+
+            while (address < endAddress)
+            {
+                int read = streamAddressSpace.Read(address, buffer);
+                if (read < s_versionLength)
+                {
+                    break;
+                }
+
+                if (!buffer.SequenceEqual(s_versionString))
+                {
+                    address++;
+                    continue;
+                }
+
+                address += s_versionLength;
+
+                StringBuilder builder = new StringBuilder();
+                while (address < endAddress)
+                {
+                    Span<byte> bytes = stackalloc byte[1];
+                    read = streamAddressSpace.Read(address, bytes);
+                    if (read < bytes.Length)
+                    {
+                        break;
+                    }
+
+                    if (bytes[0] == '\0')
+                    {
+                        break;
+                    }
+
+                    if (bytes[0] == ' ')
+                    {
+                        try
+                        {
+                            Version v = Version.Parse(builder.ToString());
+                            major = v.Major;
+                            minor = v.Minor;
+                            revision = v.Build;
+                            patch = v.Revision;
+                            return true;
+                        }
+                        catch (FormatException)
+                        {
+                            break;
+                        }
+                    }
+
+                    Span<char> chars = stackalloc char[1];
+                    fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
+                    fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
+                    {
+                        _ = Encoding.ASCII.GetChars(bytesPtr, bytes.Length, charsPtr, chars.Length);
+                    }
+
+                    _ = builder.Append(chars[0]);
+                    address++;
+                }
+
+                break;
+            }
 
             major = minor = revision = patch = 0;
-            return true;
+            return false;
         }
 
         public override bool TryGetWow64(IntPtr proc, out bool result)
