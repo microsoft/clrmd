@@ -35,11 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private ClrRuntime _runtime;
         private ClrHeap _heap;
 
-        private readonly ITypeCache _cache = new DefaultTypeCache();
-        private readonly int _typeSize = 8; // todo
-        private readonly int _methodSize = 8;
-        private readonly int _instFieldSize = 8;
-        private readonly int _staticFieldSize = 8;
+        private readonly Dictionary<ulong, ClrType> _cache = new Dictionary<ulong, ClrType>();
 
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ObjectPool<MethodBuilder> _methodBuilders;
@@ -111,7 +107,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         IEnumerable<ClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
         {
-            // TODO: rethink stack roots and this code
             using SOSStackRefEnum stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
             if (stackRefEnum == null)
                 yield break;
@@ -489,7 +484,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         }
 
 
-        ClrType IModuleHelpers.TryGetType(ulong mt) => _cache.GetStoredType(mt);
+        public ClrType TryGetType(ulong mt)
+        {
+            lock (_cache)
+            {
+                _cache.TryGetValue(mt, out ClrType result);
+                return result;
+            }
+        }
+
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -590,7 +593,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return null;
 
             {
-                ClrType result = _cache.GetStoredType(mt);
+                ClrType result = TryGetType(mt);
                 if (result != null)
                 {
                     if (obj != 0  && result.ComponentType == null && result.IsArray && result is ClrmdArrayType type)
@@ -612,8 +615,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
 
-                    if (_cache.Store(mt, result))
-                        _cache.ReportMemory(mt, _typeSize);
+                    lock (_cache)
+                        _cache[mt] = result;
 
                     return result;
                 }
@@ -621,8 +624,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     ClrmdArrayType result = new ClrmdArrayType(heap, baseType, module, typeData);
 
-                    if (_cache.Store(mt, result))
-                        _cache.ReportMemory(mt, _typeSize);
+                    lock (_cache)
+                        _cache[mt] = result;
 
                     if (obj != 0 && result.IsArray)
                     {
@@ -697,7 +700,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (curr < result.Length)
                 Array.Resize(ref result, curr);
 
-            _cache.ReportMemory(type.TypeHandle, result.Length * _methodSize);
             return result;
         }
 
@@ -749,7 +751,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return;
             }
 
-            _cache.ReportMemory(type.TypeHandle, fieldInfo.NumInstanceFields * _instFieldSize + fieldInfo.NumStaticFields * _staticFieldSize);
             ClrInstanceField[] fieldOut = new ClrInstanceField[fieldInfo.NumInstanceFields];
             ClrStaticField[] staticOut = new ClrStaticField[fieldInfo.NumStaticFields];
             if (fieldInfo.NumStaticFields == 0)
@@ -824,7 +825,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return false;
             }
 
-            name = _cache.ReportOrInternString(type.TypeHandle, name);
             sigParser = new Utilities.SigParser(fieldSig, sigLen);
             return true;
         }
@@ -881,7 +881,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return (flags & 1) != 0;
         }
 
-        public string GetTypeName(ulong mt) => _cache.ReportOrInternString(mt, _sos.GetMethodTableName(mt));
+        public string GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
 
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
@@ -902,7 +902,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         }
 
 
-        string IMethodHelpers.GetSignature(ulong methodDesc) => _cache.ReportOrInternString(methodDesc, _sos.GetMethodDescName(methodDesc));
+        string IMethodHelpers.GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
 
         ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 
