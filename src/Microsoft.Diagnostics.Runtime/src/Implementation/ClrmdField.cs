@@ -220,7 +220,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
             }
 
-            if (result.IsArray && result.ComponentType == null && result is ClrmdType clrmdType)
+            if (result.IsArray && result.ComponentType == null && result is ClrmdArrayType clrmdType)
             {
                 etype = 0;
 

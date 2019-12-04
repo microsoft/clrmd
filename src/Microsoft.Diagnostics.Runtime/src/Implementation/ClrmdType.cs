@@ -14,79 +14,63 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdType : ClrType
+    public class ClrmdType : ClrType
     {
-        private string _name;
+        protected ITypeHelpers Helpers { get; }
+        protected IDataReader DataReader => Helpers.DataReader;
 
-        private readonly ITypeHelpers _helpers;
-        private ClrType _componentType;
+        private string _name;
         private TypeAttributes _attributes;
-        private ulong? _loaderAllocatorHandle;
+        private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
 
         private ClrMethod[] _methods;
         private IReadOnlyList<ClrInstanceField> _fields;
         private IReadOnlyList<ClrStaticField> _statics;
 
-        private int _baseArrayOffset;
         private EnumData _enumData;
         private ClrElementType _elementType;
-        private GCDesc? _gcDesc;
+        private GCDesc _gcDesc;
 
 
-        public override string Name => _name ?? (_name = _helpers.GetTypeName(TypeHandle));
+        public override string Name => _name ?? (_name = Helpers.GetTypeName(TypeHandle));
 
         public override int BaseSize { get; }
-        public override int ComponentSize { get; }
+        public override int ComponentSize => 0;
+        public override ClrType ComponentType => null;
         public override ClrModule Module { get; }
         public override GCDesc GCDesc => GetOrCreateGCDesc();
 
         public override ClrElementType ElementType => GetElementType();
         public bool Shared { get; }
-        public override IClrObjectHelpers ClrObjectHelpers => _helpers.ClrObjectHelpers;
+        public override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
 
         public override ulong TypeHandle { get; }
         public override ClrHeap Heap { get; }
 
         public override ClrType BaseType { get; }
-        public override ClrType ComponentType => _componentType;
-
-        private IDataReader DataReader => _helpers.DataReader;
 
         public override bool ContainsPointers { get; }
         public override bool IsShared { get; }
 
-        public ClrmdType(ClrHeap heap, ClrModule module, ITypeData data)
+        public ClrmdType(ClrHeap heap, ClrType baseType, ClrModule module, ITypeData data)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
-            _helpers = data.Helpers;
+            Helpers = data.Helpers;
             TypeHandle = data.MethodTable;
             Heap = heap;
+            BaseType = baseType;
             Module = module;
             MetadataToken = data.Token;
             Shared = data.IsShared;
             BaseSize = data.BaseSize;
-            ComponentSize = data.ComponentSize;
             ContainsPointers = data.ContainsPointers;
             IsShared = data.IsShared;
 
             // If there are no methods, preempt the expensive work to create methods
             if (data.MethodCount == 0)
                 _methods = Array.Empty<ClrMethod>();
-
-            // GetOrCreateType will invalidate 'data'.  The default ITypeData painstakingly
-            // avoids allocating, which causes a bit of odd code here and there to ensure
-            // nothing breaks.  This won't usage of this class with a custom ITypeData.
-            // No uses of 'data' are allowed after these two lines:
-            ulong componentMT = data.ComponentMethodTable;
-            ulong parentMT = data.ParentMethodTable;
-
-            if (parentMT != 0)
-                BaseType = _helpers.Factory.GetOrCreateType(heap, parentMT, 0);
-
-            if (componentMT != 0)
-                _componentType = _helpers.Factory.GetOrCreateType(heap, componentMT, 0);
 
             DebugOnlyLoadLazyValues();
         }
@@ -95,19 +79,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private void DebugOnlyLoadLazyValues()
         {
             _ = Name;
-            _ = Methods;
-            // Cannot pre-init fields because a type could contain a field of it's own type
         }
-
-        public void SetComponentType(ClrType type) => _componentType = type;
 
 
         private GCDesc GetOrCreateGCDesc()
         {
-            if (_gcDesc.HasValue)
-                return _gcDesc.Value;
+            if (!ContainsPointers || !_gcDesc.IsEmpty)
+                return _gcDesc;
 
-            IDataReader reader = _helpers.DataReader;
+            IDataReader reader = Helpers.DataReader;
             if (reader == null)
                 return default;
 
@@ -131,8 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             // Construct the gc desc
-            _gcDesc = new GCDesc(buffer);
-            return _gcDesc.Value;
+            return _gcDesc = new GCDesc(buffer);
         }
 
         public override uint MetadataToken { get; }
@@ -261,8 +240,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         // TODO:  Add ClrObject GetCcw/GetRcw
         // TODO:  Move out of ClrType.
-        public override ComCallWrapper GetCCWData(ulong obj) => _helpers.Factory.CreateCCWForObject(obj);
-        public override RuntimeCallableWrapper GetRCWData(ulong obj) => _helpers.Factory.CreateRCWForObject(obj);
+        public override ComCallWrapper GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
+        public override RuntimeCallableWrapper GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
 
         private class EnumData
         {
@@ -376,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsFinalizeSuppressed(ulong obj)
         {
             // TODO move to ClrObject?
-            uint value = _helpers.DataReader.ReadUnsafe<uint>(obj - 4);
+            uint value = Helpers.DataReader.ReadUnsafe<uint>(obj - 4);
 
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
@@ -390,10 +369,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_loaderAllocatorHandle.HasValue)
-                    return _loaderAllocatorHandle.Value;
+                if (_loaderAllocatorHandle != ulong.MaxValue - 1)
+                    return _loaderAllocatorHandle;
 
-                ulong handle = _helpers.GetLoaderAllocatorHandle(TypeHandle);
+                ulong handle = Helpers.GetLoaderAllocatorHandle(TypeHandle);
                 _loaderAllocatorHandle = handle;
                 return handle;
             }
@@ -462,7 +441,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_fields != null)
                 return;
 
-            _helpers.Factory.CreateFieldsForType(this, out _fields, out _statics);
+            Helpers.Factory.CreateFieldsForType(this, out _fields, out _statics);
 
             if (_fields == null)
                 _fields = Array.Empty<ClrInstanceField>();
@@ -471,7 +450,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _statics = Array.Empty<ClrStaticField>();
         }
 
-        public override IReadOnlyList<ClrMethod> Methods => _methods ?? (_methods = _helpers.Factory.CreateMethodsForType(this));
+        public override IReadOnlyList<ClrMethod> Methods => _methods ?? (_methods = Helpers.Factory.CreateMethodsForType(this));
 
         //TODO: remove
         public override ClrStaticField GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
@@ -479,67 +458,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         //TODO: remove
         public override ClrInstanceField GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
 
-
-        public override ulong GetArrayElementAddress(ulong objRef, int index)
-        {
-            //todo: remove
-            if (_baseArrayOffset == 0)
-            {
-                ClrType componentType = ComponentType;
-
-                IObjectData data = _helpers.GetObjectData(objRef);
-                if (data != null)
-                {
-                    _baseArrayOffset = (int)(data.DataPointer - objRef);
-                    Debug.Assert(_baseArrayOffset >= 0);
-                }
-                else if (componentType != null)
-                {
-                    if (!componentType.IsObjectReference)
-                        _baseArrayOffset = IntPtr.Size * 2;
-                }
-                else
-                {
-                    return 0;
-                }
-            }
-
-            return objRef + (ulong)(_baseArrayOffset + index * ComponentSize);
-        }
-
-        //todo: move to clrobject
-        public override object GetArrayElementValue(ulong objRef, int index)
-        {
-            ulong addr = GetArrayElementAddress(objRef, index);
-            if (addr == 0)
-                return null;
-
-            ClrType componentType = ComponentType;
-            ClrElementType cet;
-            if (componentType != null)
-            {
-                cet = componentType.ElementType;
-            }
-            else
-            {
-                // Slow path, we need to get the element type of the array.
-                IObjectData data = _helpers.GetObjectData(objRef);
-                if (data == null)
-                    return null;
-
-                cet = data.ElementType;
-            }
-
-            if (cet == ClrElementType.Unknown)
-                return null;
-
-            if (cet == ClrElementType.String)
-                addr = DataReader.ReadPointerUnsafe(addr);
-
-            return ValueReader.GetValueAtAddress(Heap, DataReader, cet, addr);
-        }
-
-
+        public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
+        public override object GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
         /// <summary>
         /// A messy version with better performance that doesn't use regular expression.
         /// </summary>

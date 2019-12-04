@@ -12,7 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong MethodTable { get; }
         // Currently no runtime emits this, but opportunistically I'd like to see it work.
         ulong ComponentMethodTable { get; }
-        ulong ParentMethodTable { get; }
         int BaseSize { get; }
         int ComponentSize { get; }
         int MethodCount { get; }

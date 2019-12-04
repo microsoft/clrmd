@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdPointerArrayType : ClrType
+    public class ClrmdConstructedType : ClrType
     {
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ClrmdPointerArrayType(ClrType componentType, int ranks, bool pointer)
+        public ClrmdConstructedType(ClrType componentType, int ranks, bool pointer)
         {
             ComponentType = componentType ?? throw new ArgumentNullException(nameof(componentType));
             ElementType = pointer ? ClrElementType.Pointer : ClrElementType.SZArray;

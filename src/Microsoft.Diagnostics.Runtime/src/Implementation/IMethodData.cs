@@ -11,7 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong MethodDesc { get; }
         uint Token { get; }
         MethodCompilationType CompilationType { get; }
-        ulong GCInfo { get; }
         ulong HotStart { get; }
         uint HotSize { get; }
         ulong ColdStart { get; }
