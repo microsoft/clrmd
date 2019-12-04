@@ -30,16 +30,16 @@
   <ItemGroup Condition="'$(OS)' == 'Unix'">
     <TargetSources Include="*\*.cs" Exclude="Shared\*;AppDomains\*">
       <ProjectPath>%(RelativeDir)%(Filename).csproj</ProjectPath>
-      <ExePath>$(BinDir64)%(Filename)</ExePath>
+      <DllPath>$(BinDir64)%(Filename).dll</DllPath>
     </TargetSources>
     <TargetProjects Include="@(TargetSources->'%(ProjectPath)')">
-      <ExePath>$(BinDir64)%(Filename)</ExePath>
+      <DllPath>$(BinDir64)%(Filename).dll</DllPath>
     </TargetProjects>
-    <TargetExes Include="@(TargetSources->'%(ExePath)')">
+    <TargetDlls Include="@(TargetSources->'%(DllPath)')">
       <WorkingDir>%(Filename)\</WorkingDir>
       <HeapDumpPath>$(BinDir64)%(Filename)_wks.dmp</HeapDumpPath>
       <MiniDumpPath>$(BinDir64)%(Filename)_wks_mini.dmp</MiniDumpPath>
-    </TargetExes>
+    </TargetDlls>
   </ItemGroup>
 
   <Target Name="BeforeBuildCommon">
@@ -122,7 +122,7 @@
     Name="BuildLinux"
     AfterTargets="BeforeBuildCommon"
     Inputs="@(TargetSources);@(TargetProjects)"
-    Outputs="@(TargetSources->'%(ExePath)');@(TargetProjects->'%(ExePath)')">
+    Outputs="@(TargetSources->'%(DllPath)');@(TargetProjects->'%(DllPath)')">
 
     <ItemGroup>
       <TargetProjects Include="@(TargetSources->'%(ProjectPath)')" />
@@ -146,11 +146,11 @@
     Condition="'$(OS)' == 'Unix'"
     Name="HeapDumpLinux"
     AfterTargets="BeforeDumpLinux"
-    Inputs="@(TargetExes)"
-    Outputs="@(TargetExes->'%(HeapDumpPath)')">
+    Inputs="@(TargetDlls)"
+    Outputs="@(TargetDlls->'%(HeapDumpPath)')">
 
-    <Exec Command='"$(MSBuildThisFileDirectory)%(TargetExes.Identity)" || true' WorkingDirectory="%(TargetExes.WorkingDir)" />
-    <Move SourceFiles="%(TargetExes.WorkingDir)coredump" DestinationFiles="%(TargetExes.HeapDumpPath)" />
+    <Exec Command='dotnet "$(MSBuildThisFileDirectory)%(TargetDlls.Identity)" || true' WorkingDirectory="%(TargetDlls.WorkingDir)" />
+    <Move SourceFiles="%(TargetDlls.WorkingDir)coredump" DestinationFiles="%(TargetDlls.HeapDumpPath)" />
 
   </Target>
 
@@ -158,13 +158,13 @@
     Condition="'$(OS)' == 'Unix'"
     Name="MiniDumpLinux"
     AfterTargets="HeapDumpLinux"
-    Inputs="@(TargetExes)"
-    Outputs="@(TargetExes->'%(MiniDumpPath)')">
+    Inputs="@(TargetDlls)"
+    Outputs="@(TargetDlls->'%(MiniDumpPath)')">
 
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" Value="1" />
-    <Exec Command='"$(MSBuildThisFileDirectory)%(TargetExes.Identity)" || true' WorkingDirectory="%(TargetExes.WorkingDir)" />
+    <Exec Command='dotnet "$(MSBuildThisFileDirectory)%(TargetDlls.Identity)" || true' WorkingDirectory="%(TargetDlls.WorkingDir)" />
     <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" />
-    <Move SourceFiles="%(TargetExes.WorkingDir)coredump" DestinationFiles="%(TargetExes.MiniDumpPath)" />
+    <Move SourceFiles="%(TargetDlls.WorkingDir)coredump" DestinationFiles="%(TargetDlls.MiniDumpPath)" />
 
   </Target>
 
@@ -176,7 +176,7 @@
     Outputs="$(BinDir64)Types_svr.dmp">
 
     <SetEnvironmentVariable Variable="COMPlus_gcServer" Value="1" />
-    <Exec Command='"$(MSBuildThisFileDirectory)$(BinDir64)Types" || true' WorkingDirectory="Types\" />
+    <Exec Command='dotnet "$(MSBuildThisFileDirectory)$(BinDir64)Types.dll" || true' WorkingDirectory="Types\" />
     <SetEnvironmentVariable Variable="COMPlus_gcServer" />
     <Move SourceFiles="Types\coredump" DestinationFiles="$(BinDir64)Types_svr.dmp" />
 
