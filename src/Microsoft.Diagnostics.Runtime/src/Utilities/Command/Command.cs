@@ -157,7 +157,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             string varName = m.Groups[1].Value;
                             string varValue;
                             if (startInfo.EnvironmentVariables.ContainsKey(varName))
+                            {
                                 varValue = startInfo.EnvironmentVariables[varName];
+                            }
                             else
                             {
                                 varValue = Environment.GetEnvironmentVariable(varName);

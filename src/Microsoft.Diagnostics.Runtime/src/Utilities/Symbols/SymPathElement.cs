@@ -183,7 +183,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Cache = m.Groups[1].Value;
             }
             else
+            {
                 Target = strElem.Trim();
+            }
         }
     }
 }
