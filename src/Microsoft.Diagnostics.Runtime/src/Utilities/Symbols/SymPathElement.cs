@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static List<SymPathElement> GetElements(string symbolPath)
         {
-            string[] entries = (symbolPath ?? "").Split(';');
+            string[] entries = (symbolPath ?? string.Empty).Split(';');
             List<SymPathElement> result = new List<SymPathElement>(entries.Length);
 
             foreach (string element in entries)

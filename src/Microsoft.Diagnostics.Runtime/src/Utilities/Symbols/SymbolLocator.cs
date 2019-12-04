@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 string ret = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
-                return ret ?? "";
+                return ret ?? string.Empty;
             }
             set => Environment.SetEnvironmentVariable("_NT_SYMBOL_PATH", value);
         }
@@ -135,11 +135,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public string SymbolPath
         {
-            get => _symbolPath ?? "";
+            get => _symbolPath ?? string.Empty;
 
             set
             {
-                _symbolPath = (value ?? "").Trim();
+                _symbolPath = (value ?? string.Empty).Trim();
 
                 SymbolPathOrCacheChanged();
             }

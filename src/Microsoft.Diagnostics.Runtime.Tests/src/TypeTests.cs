@@ -315,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(empty);
 
             string value = empty.ReadString();
-            Assert.Equal("", value);
+            Assert.Equal(string.Empty, value);
         }
 
         [Fact]

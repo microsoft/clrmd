@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return HandleKind + " " + (Object.Type?.Name ?? "");
+            return HandleKind + " " + (Object.Type?.Name ?? string.Empty);
         }
 
         public ClrHandle(ulong address, ClrObject obj, ClrHandleKind handleKind, uint refCount, ClrObject dependent, ClrAppDomain domain)

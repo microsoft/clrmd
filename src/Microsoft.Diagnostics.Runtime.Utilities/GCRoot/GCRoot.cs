@@ -433,7 +433,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!string.IsNullOrWhiteSpace(prefix))
                 prefix += ": ";
             else
-                prefix = "";
+                prefix = string.Empty;
 
             Debug.WriteLine(prefix + string.Join(" ", path.Select(p => p.Object.ToString())));
         }

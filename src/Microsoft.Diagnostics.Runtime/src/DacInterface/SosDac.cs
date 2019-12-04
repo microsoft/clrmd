@@ -452,7 +452,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
             try
@@ -480,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
             try
