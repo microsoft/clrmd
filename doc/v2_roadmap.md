@@ -95,6 +95,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 8.  Add more tests now that we can easily mock up objects.
 9.  Investigate multithreaded implementation.
 10.  All caching and parallel support was stripped out of GCRoot.  Need to add it back.
+11.  SafeWin32Handle -> SafeAccessTokenHandle 
 
 
 # .Net Core 5 Dac Wishlist
