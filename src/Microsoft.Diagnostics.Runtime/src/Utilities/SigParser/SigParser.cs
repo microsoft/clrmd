@@ -281,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
-            while (ELEMENT_TYPE_CMOD_REQD == bElementType || ELEMENT_TYPE_CMOD_OPT == bElementType)
+            while (bElementType == ELEMENT_TYPE_CMOD_REQD || bElementType == ELEMENT_TYPE_CMOD_OPT)
             {
                 sigTemp.SkipBytes(1);
                 if (!sigTemp.GetToken(out _))
@@ -317,10 +317,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
-            while (ELEMENT_TYPE_CMOD_REQD == bElementType ||
-                ELEMENT_TYPE_CMOD_OPT == bElementType ||
-                ELEMENT_TYPE_MODIFIER == bElementType ||
-                ELEMENT_TYPE_PINNED == bElementType)
+            while (bElementType == ELEMENT_TYPE_CMOD_REQD ||
+                bElementType == ELEMENT_TYPE_CMOD_OPT ||
+                bElementType == ELEMENT_TYPE_MODIFIER ||
+                bElementType == ELEMENT_TYPE_PINNED)
             {
                 sigTemp.SkipBytes(1);
 

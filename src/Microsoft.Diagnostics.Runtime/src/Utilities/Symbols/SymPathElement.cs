@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return true;
 
                     // We assume drive letters from the back of the alphabet are remote.
-                    if (2 <= Target.Length && Target[1] == ':')
+                    if (Target.Length >= 2 && Target[1] == ':')
                     {
                         char driveLetter = char.ToUpperInvariant(Target[0]);
                         if ('T' <= driveLetter && driveLetter <= 'Z')

@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     unchecked
                     {
                         long offsetInSegment = (long)(objRef - segment.Start);
-                        if (0 <= offsetInSegment)
+                        if (offsetInSegment >= 0)
                         {
                             long intOffsetInSegment = offsetInSegment;
                             if (intOffsetInSegment < (long)segment.Length)
