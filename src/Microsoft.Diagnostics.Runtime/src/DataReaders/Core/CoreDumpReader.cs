@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
             return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId);
         }
 
-        public void ClearCachedData()
+        public void FlushCachedData()
         {
             _threads = null;
             _modules = null;

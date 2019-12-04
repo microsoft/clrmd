@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// (E.G. if you want to use the ClrHeap object after calling flush, you must call ClrRuntime.GetHeap
         /// again after Flush to get a new instance.)
         /// </summary>
-        public abstract void ClearCachedData();
+        public abstract void FlushCachedData();
 
         /// <summary>
         /// Gets the name of a JIT helper function
@@ -105,23 +105,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">Address of a possible JIT helper function</param>
         /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function</returns>
         public abstract string GetJitHelperFunctionName(ulong address);
-
-        /// <summary>
-        /// Delegate called when the RuntimeFlushed event is triggered.
-        /// </summary>
-        /// <param name="runtime">Which runtime was flushed.</param>
-        public delegate void RuntimeFlushedCallback(ClrRuntime runtime);
-
-        /// <summary>
-        /// Called whenever the runtime is being flushed.  All references to ClrMD objects need to be released
-        /// and not used for the given runtime after this call.
-        /// </summary>
-        public event RuntimeFlushedCallback RuntimeFlushed;
-
-        /// <summary>
-        /// Call when flushing the runtime.
-        /// </summary>
-        protected void OnRuntimeFlushed() => RuntimeFlushed?.Invoke(this);
 
         /// <summary>
         /// Cleans up all resources and releases them.  You may not use this ClrRuntime or any object it transitively

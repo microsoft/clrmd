@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IReadOnlyList<ClrThread> GetThreads(ClrRuntime runtime);
         IReadOnlyList<ClrAppDomain> GetAppDomains(ClrRuntime runtime, out ClrAppDomain system, out ClrAppDomain shared);
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime);
-        void ClearCachedData();
+        void FlushCachedData();
         ulong GetMethodDesc(ulong ip);
         string GetJitHelperFunctionName(ulong ip);
         ClrModule GetBaseClassLibrary(ClrRuntime runtime);

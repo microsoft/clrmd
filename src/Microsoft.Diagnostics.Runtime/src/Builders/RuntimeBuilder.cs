@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ObjectPool<MethodBuilder> _methodBuilders;
         private readonly ObjectPool<FieldBuilder> _fieldBuilders;
-        private readonly ModuleBuilder _moduleBuilder;
+        private ModuleBuilder _moduleBuilder;
 
         public IDataReader DataReader { get; }
         public IHeapBuilder HeapBuilder => new HeapBuilder(this, _sos, DataReader, _firstThread);
@@ -78,6 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             Dictionary<ulong, ulong> moduleSizes = new Dictionary<ulong, ulong>();
             foreach (ModuleInfo mi in _clrinfo.DataTarget.EnumerateModules())
                 moduleSizes[mi.ImageBase] = mi.FileSize;
+
             _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
         }
 
@@ -118,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             // We will blame the runtime for being disposed if it's there because that will be more meaningful to the user.
             if (_disposed)
-                throw new ObjectDisposedException(_runtime?.GetType().Name ?? nameof(RuntimeBuilder));
+                throw new ObjectDisposedException(nameof(ClrRuntime));
         }
 
         IEnumerable<ClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
@@ -462,11 +463,26 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        void IRuntimeHelpers.ClearCachedData()
+        void IRuntimeHelpers.FlushCachedData()
         {
             _heap = null;
             _dac.Flush();
             _cache.Clear();
+
+            lock (_domains)
+                _domains.Clear();
+
+            _basicTypes = null;
+
+            lock (_modules)
+            {
+                _modules.Clear();
+                Dictionary<ulong, ulong> moduleSizes = new Dictionary<ulong, ulong>();
+                foreach (ModuleInfo mi in _clrinfo.DataTarget.EnumerateModules())
+                    moduleSizes[mi.ImageBase] = mi.FileSize;
+
+                _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
+            }
         }
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);

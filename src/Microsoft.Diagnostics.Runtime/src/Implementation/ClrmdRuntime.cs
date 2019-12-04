@@ -95,14 +95,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// but expect different results.  For example, after walking the heap, you need to call Flush before
         /// attempting to walk the heap again.
         /// </summary>
-        public override void ClearCachedData()
+        public override void FlushCachedData()
         {
-            OnRuntimeFlushed();
-            _helpers.DataReader.ClearCachedData();
-            _helpers.ClearCachedData();
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(ClrRuntime));
+
             _heap = null;
             _bcl = null;
             _threads = null;
+            _domains = null;
+            _systemDomain = null;
+            _sharedDomain = null;
+
+            _helpers.DataReader.FlushCachedData();
+            _helpers.FlushCachedData();
         }
 
         public override IEnumerable<ClrModule> EnumerateModules()
@@ -123,18 +129,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override string GetJitHelperFunctionName(ulong ip) => _helpers.GetJitHelperFunctionName(ip);
 
         public override ClrMethod GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
-
-        /// <summary>
-        /// Converts an address into an AppDomain.
-        /// </summary>
-        internal ClrAppDomain GetAppDomainByAddress(ulong address)
-        {
-            foreach (ClrAppDomain ad in AppDomains)
-                if (ad.Address == address)
-                    return ad;
-
-            return null;
-        }
 
         public override ClrMethod GetMethodByInstructionPointer(ulong ip)
         {

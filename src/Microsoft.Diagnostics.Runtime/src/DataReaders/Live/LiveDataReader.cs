@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
 
 
 
-        public void ClearCachedData()
+        public void FlushCachedData()
         {
         }
 

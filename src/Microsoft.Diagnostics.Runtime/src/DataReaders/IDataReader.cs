@@ -96,6 +96,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Informs the data reader that the user has requested all data be flushed.
         /// </summary>
-        void ClearCachedData();
+        void FlushCachedData();
     }
 }
