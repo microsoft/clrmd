@@ -83,6 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var oldFields = oldObjects.SelectMany(o => o.Type.Fields).ToArray();
             var oldStaticFields = oldObjects.SelectMany(o => o.Type.StaticFields).ToArray();
             var oldMethods = oldObjects.SelectMany(o => o.Type.Methods).ToArray();
+            var oldThreads = runtime.Threads;
 
             // Ensure names are read and cached
             foreach (var obj in oldObjects)
@@ -107,6 +108,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEmpty(oldDomains);
             Assert.NotEmpty(oldModules);
             Assert.NotEmpty(oldObjects);
+            Assert.NotEmpty(oldThreads);
+            Assert.NotEmpty(oldFields);
+            Assert.NotEmpty(oldStaticFields);
+            Assert.NotEmpty(oldMethods);
 
             // Make sure we aren't regenerating this list every time.
             Assert.Same(oldDomains, runtime.AppDomains);
@@ -133,10 +138,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             CheckTypeNotSame(oldHeap.StringType, newHeap.StringType);
 
             var newObjs = newHeap.EnumerateObjects().Take(20).ToArray();
+            Assert.Equal(oldObjects.Length, newObjs.Length);
             for (int i = 0; i < oldObjects.Length; i++)
             {
                 Assert.Equal(oldObjects[i].Address, newObjs[i].Address);
                 CheckTypeNotSame(oldObjects[i].Type, newObjs[i].Type);
+            }
+
+            var newThreads = runtime.Threads;
+            Assert.Same(newThreads, runtime.Threads);
+            Assert.Equal(oldThreads.Count, newThreads.Count);
+            for (int i = 0; i < oldThreads.Count; i++)
+            {
+                Assert.Equal(oldThreads[i].OSThreadId, newThreads[i].OSThreadId);
+                Assert.NotSame(oldThreads[i], newThreads[i]);
             }
         }
 
