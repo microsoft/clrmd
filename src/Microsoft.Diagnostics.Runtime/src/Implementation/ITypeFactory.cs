@@ -11,7 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         ClrRuntime GetOrCreateRuntime();
         ClrHeap GetOrCreateHeap();
-        ClrAppDomain GetOrCreateAppDomain(ulong domain);
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
         ClrMethod[] CreateMethodsForType(ClrType type);
         void CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> staticFields);

@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
