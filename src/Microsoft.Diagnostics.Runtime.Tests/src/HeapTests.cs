@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Simply test that we can enumerate the heap.
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             bool encounteredFoo = false;
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ServerSegmentTests()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server);
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             Assert.True(heap.IsServer);
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void WorkstationSegmentTests()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation);
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             Assert.False(heap.IsServer);

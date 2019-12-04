@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static ProcessThread GetMainThread(Process process, DataTarget dataTarget)
         {
-            ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             uint mainThreadId = runtime.GetMainThread().OSThreadId;
             return process.Threads.Cast<ProcessThread>().Single(thread => thread.Id == mainThreadId);
         }

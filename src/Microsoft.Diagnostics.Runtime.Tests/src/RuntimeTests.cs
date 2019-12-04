@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.NotNull(dac);
 
-            ClrRuntime runtime = info.CreateRuntime(dac);
+            using ClrRuntime runtime = info.CreateRuntime(dac);
             Assert.NotNull(runtime);
         }
 
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             ClrInfo info = dt.ClrVersions.Single();
-            ClrRuntime runtime = info.CreateRuntime();
+            using ClrRuntime runtime = info.CreateRuntime();
 
             Assert.Equal(info, runtime.ClrInfo);
         }
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // This test ensures that we enumerate all modules in the process exactly once.
 
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             HashSet<string> expected = new HashSet<string>(new[] { "mscorlib.dll", "system.dll", "system.core.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
             foreach (ClrAppDomain domain in runtime.AppDomains)

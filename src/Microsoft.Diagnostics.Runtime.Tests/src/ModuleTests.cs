@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestGetTypeByName()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrModule shared = runtime.GetModule("sharedlibrary.dll");

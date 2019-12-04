@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ModuleDomainTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain appDomainExe = runtime.GetDomainByName("AppDomains.exe");
             ClrAppDomain nestedDomain = runtime.GetDomainByName("Second AppDomain");
@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void AppDomainPropertyTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain systemDomain = runtime.SystemDomain;
             Assert.Equal("System Domain", systemDomain.Name);
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void SystemAndSharedLibraryModulesTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain systemDomain = runtime.SystemDomain;
             Assert.Equal(0, systemDomain.Modules.Count);
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ModuleAppDomainEqualityTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain appDomainsExe = runtime.GetDomainByName("AppDomains.exe");
             ClrAppDomain nestedExceptionExe = runtime.GetDomainByName("Second AppDomain");
