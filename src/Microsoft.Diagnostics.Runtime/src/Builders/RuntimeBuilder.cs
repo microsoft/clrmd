@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
@@ -27,9 +28,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
 
-        private ClrType[] _basicTypes;
+        private volatile ClrType[] _basicTypes;
+        private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
-        private List<AllocationContext> _threadAllocContexts;
 
         private ClrRuntime _runtime;
         private ClrHeap _heap;
@@ -46,16 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ModuleBuilder _moduleBuilder;
 
         public IDataReader DataReader { get; }
-        public IHeapBuilder HeapBuilder
-        {
-            get
-            {
-                // HeapBuilder will consume these allocation and fill the List, don't reuse it here
-                var ctx = _threadAllocContexts;
-                _threadAllocContexts = null;
-                return new HeapBuilder(this, _sos, DataReader, ctx, _firstThread);
-            }
-        }
+        public IHeapBuilder HeapBuilder => new HeapBuilder(this, _sos, DataReader, _firstThread);
 
         public ITypeFactory Factory => this;
 
@@ -344,20 +336,21 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
         public ClrAppDomain GetOrCreateAppDomain(AppDomainBuilder builder, ulong domain)
         {
-            if (_domains.TryGetValue(domain, out ClrAppDomain result))
-                return result;
+            lock (_domains)
+            {
+                if (_domains.TryGetValue(domain, out ClrAppDomain result))
+                    return result;
 
-            if (builder == null)
-                builder = new AppDomainBuilder(_sos, this);
+                if (builder == null)
+                    builder = new AppDomainBuilder(_sos, this);
 
-            if (!builder.Init(domain))
-                return null;
+                if (!builder.Init(domain))
+                    return null;
 
-            _ptr = domain;
-            return _domains[domain] = new ClrmdAppDomain(GetOrCreateRuntime(), builder);
+                return _domains[domain] = new ClrmdAppDomain(GetOrCreateRuntime(), builder);
+            }
         }
 
 
@@ -536,8 +529,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             if (_basicTypes == null)
             {
-                
-                _basicTypes = new ClrType[(int)ClrElementType.SZArray];
+                ClrType[] basicTypes = new ClrType[(int)ClrElementType.SZArray];
                 int count = 0;
                 ClrModule bcl = GetOrCreateRuntime().BaseClassLibrary;
                 if (bcl != null && bcl.MetadataImport != null)
@@ -568,7 +560,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                         if (type != ClrElementType.Unknown)
                         {
-                            _basicTypes[(int)type - 1] = GetOrCreateType(mt, 0);
+                            basicTypes[(int)type - 1] = GetOrCreateType(mt, 0);
                             count++;
 
                             if (count == 16)
@@ -576,6 +568,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         }
                     }
                 }
+
+                Interlocked.CompareExchange(ref _basicTypes, basicTypes, null);
             }
 
             int index = (int)basicType - 1;
@@ -682,7 +676,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
         {
             ulong mt = type.TypeHandle;
-            _ptr = mt;
             if (!_sos.GetMethodTableData(mt, out MethodTableData data))
                 return Array.Empty<ClrMethod>();
 

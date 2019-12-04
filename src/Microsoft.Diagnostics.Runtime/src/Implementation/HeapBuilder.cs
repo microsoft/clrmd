@@ -16,7 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly HashSet<ulong> _seenSegments = new HashSet<ulong>() { 0 };
         private HeapDetails _heap;
         private SegmentData _segment;
-        private List<AllocationContext> _threadAllocContexts;
 
         #region IHeapBuilder
         public IHeapHelpers HeapHelpers { get; }
@@ -67,13 +66,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public bool IsEphemeralSegment => _heap.EphemeralHeapSegment == _segment.Address;
         #endregion
 
-        public HeapBuilder(IHeapHelpers helper, SOSDac sos, IDataReader reader, List<AllocationContext> allocationContexts, ulong firstThread)
+        public HeapBuilder(IHeapHelpers helper, SOSDac sos, IDataReader reader, ulong firstThread)
         {
             HeapHelpers = helper;
             _sos = sos;
             DataReader = reader;
             _firstThread = firstThread;
-            _threadAllocContexts = allocationContexts;
 
             if (_sos.GetCommonMethodTables(out _mts))
                 CanWalkHeap = ArrayMethodTable != 0 && StringMethodTable != 0 && ExceptionMethodTable != 0 && FreeMethodTable != 0 && ObjectMethodTable != 0;
@@ -97,12 +95,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects)
         {
             List<ClrSegment> result = new List<ClrSegment>();
-            List<AllocationContext> allocContexts = _threadAllocContexts ?? new List<AllocationContext>();
+            List<AllocationContext> allocContexts = new List<AllocationContext>();
             List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
             List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
 
-            // This function won't be called twice, but just in case make sure we don't reuse this list
-            _threadAllocContexts = null;
 
             if (allocContexts.Count == 0)
             {
