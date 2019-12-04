@@ -294,14 +294,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (Stream.Read(buffer, 0, len) != len)
                     return null;
 
-                for (int i = 0; i < len; i++)
-                {
-                    if (buffer[i] == 0)
-                    {
-                        len = i;
-                        break;
-                    }
-                }
+                int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
+                if (index >= 0)
+                    len = index;
 
                 return Encoding.ASCII.GetString(buffer, 0, len);
             }
