@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.
         /// </summary>
-        public ClrException? Inner 
+        public ClrException? Inner
         {
             get
             {

@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The debugging attributes for this module.
         /// </summary>
         public abstract DebuggableAttribute.DebuggingModes DebuggingMode { get; }
-        
+
         /// <summary>
         /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
         /// </summary>

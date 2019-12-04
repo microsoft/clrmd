@@ -728,7 +728,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types,  int count, out IntPtr handleEnum);
+        private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);

@@ -6,6 +6,6 @@
         ActiveTerminate,
         ActiveDetatch,
         EndReentrant,
-        EndDisconnect            
+        EndDisconnect
     }
 }

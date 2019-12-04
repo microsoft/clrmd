@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public bool IsServer { get; }
 
         public int LogicalHeapCount { get; }
-        
+
         public ulong ArrayMethodTable => _mts.ArrayMethodTable;
 
         public ulong StringMethodTable => _mts.StringMethodTable;

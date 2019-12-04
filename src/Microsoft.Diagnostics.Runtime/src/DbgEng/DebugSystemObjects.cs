@@ -1,8 +1,8 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {

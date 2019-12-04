@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime
             AppDomain = domain;
 
             if (HandleKind == ClrHandleKind.Dependent)
-                Dependent = new ClrObject( handleData.Secondary, dependentSecondary);
+                Dependent = new ClrObject(handleData.Secondary, dependentSecondary);
         }
 
 

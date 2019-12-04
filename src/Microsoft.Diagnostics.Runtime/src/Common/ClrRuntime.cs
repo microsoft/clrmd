@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the GC heap of the process.
         /// </summary>
         public abstract ClrHeap Heap { get; }
-        
+
         /// <summary>
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.

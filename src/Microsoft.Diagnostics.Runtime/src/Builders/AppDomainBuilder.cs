@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return _sos.GetAppDomainName(Address);
             }
         }
-        
+
         public int Id => _appDomainData.Id;
         public ulong Address { get; private set; }
 

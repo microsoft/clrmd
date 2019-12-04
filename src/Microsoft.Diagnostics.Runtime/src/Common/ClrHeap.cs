@@ -31,12 +31,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// of increasing object addresses.
         /// </summary>
         public abstract IReadOnlyList<ClrSegment> Segments { get; }
-        
+
         /// <summary>
         /// Returns the ClrType representing free space on the GC heap.
         /// </summary>
         public abstract ClrType FreeType { get; }
-        
+
         /// <summary>
         /// Returns the ClrType representing System.String.
         /// </summary>

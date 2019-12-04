@@ -296,7 +296,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             return mscorlib;
         }
-    
+
 
         IReadOnlyList<ClrThread> IRuntimeHelpers.GetThreads(ClrRuntime runtime)
         {
@@ -499,7 +499,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             ClrObject _stackTrace = obj.GetObjectField("_stackTrace");
             if (_stackTrace.IsNull)
                 return Array.Empty<ClrStackFrame>();
-            
+
             int len = _stackTrace.Length;
             if (len == 0)
                 return Array.Empty<ClrStackFrame>();
@@ -585,7 +585,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             runtime.Initialize();
             return _runtime;
-         
+
         }
         public ClrHeap GetOrCreateHeap() => _heap ??= new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder);
 
@@ -661,7 +661,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 ClrType result = TryGetType(mt);
                 if (result != null)
                 {
-                    if (obj != 0  && result.ComponentType == null && result.IsArray && result is ClrmdArrayType type)
+                    if (obj != 0 && result.ComponentType == null && result.IsArray && result is ClrmdArrayType type)
                         TryGetComponentType(type, obj);
 
                     return result;

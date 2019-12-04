@@ -1,6 +1,6 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int ReadVirtualDelegate(IntPtr self, ulong address, byte *buffer, int size, out int read);
+        private delegate int ReadVirtualDelegate(IntPtr self, ulong address, byte* buffer, int size, out int read);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }

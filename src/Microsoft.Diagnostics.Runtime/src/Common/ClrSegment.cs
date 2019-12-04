@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
         public abstract ulong FirstObject { get; }
-        
+
         /// <summary>
         /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
         /// Large objects (greater than 85,000 bytes in size), are stored in their own segments and

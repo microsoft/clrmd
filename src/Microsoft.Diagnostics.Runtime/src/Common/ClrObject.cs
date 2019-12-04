@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (field == null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
-            object value = field.Read<T>(Address, interior:false);
+            object value = field.Read<T>(Address, interior: false);
             return (T)value;
         }
 

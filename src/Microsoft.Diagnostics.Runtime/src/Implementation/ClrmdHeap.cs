@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Segments == null || Segments.Count == 0)
                 return null;
 
-            if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count-1].End)
+            if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count - 1].End)
             {
                 // Start the segment search where you where last
                 int curIdx = _lastSegmentIndex;

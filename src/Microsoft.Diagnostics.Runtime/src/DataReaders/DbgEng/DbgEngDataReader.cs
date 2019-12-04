@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
                 var kind = (uint)hr == 0x80004005 ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
                 throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: 0x{hr:x8}", kind, hr).AddData("DumpFile", dumpFile);
             }
-            
+
             // This actually "attaches" to the crash dump.
             bool result = _control.WaitForEvent(0xffffffff);
             Debug.Assert(result);
