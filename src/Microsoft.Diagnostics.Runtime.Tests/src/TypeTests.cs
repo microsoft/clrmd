@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void IntegerObjectClrType()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrModule module = runtime.GetModule(ModuleName);
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ArrayComponentTypeTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             // Ensure that we always have a component for every array type.
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Simply test that we can enumerate the heap.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             foreach (ClrObject obj in heap.EnumerateObjects())
@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             const string TypeName = "Foo";
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrType[] types = (from obj in heap.EnumerateObjects()
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Test to make sure that a specific static and local variable exist.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             IEnumerable<IClrRoot> fooRoots = from root in heap.EnumerateRoots()
@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void MethodTableHeapEnumeration()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             foreach (ClrType type in heap.EnumerateObjects().Select(obj => heap.GetObjectType(obj.Address)).Unique())
@@ -202,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetObjectMethodTableTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             int i = 0;
@@ -224,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void EnumerateMethodTableTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrObject[] fooObjects = (from obj in heap.EnumerateObjects()
@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // https://github.com/microsoft/clrmd/issues/101
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule sharedLibrary = runtime.GetModule("sharedlibrary.dll");
             ClrType structTestClass = sharedLibrary.GetTypeByName("StructTestClass");
@@ -283,7 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void StringEmptyIsObtainableTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrType stringType = heap.StringType;
@@ -304,7 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // gets its ComponentType set.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             
             ClrType fooType = runtime.GetModule(ModuleName).GetTypeByName("Types");
             ClrStaticField cq = fooType.GetStaticFieldByName("s_cq");
@@ -336,7 +336,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // TODO: test reading structs from instance/static fields
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrAppDomain domain = runtime.AppDomains.Single();
@@ -437,7 +437,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ArrayOffsetsTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrAppDomain domain = runtime.AppDomains.Single();
@@ -470,7 +470,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ArrayLengthTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrAppDomain domain = runtime.AppDomains.Single();
@@ -486,7 +486,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ArrayReferenceEnumeration()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrAppDomain domain = runtime.AppDomains.Single();

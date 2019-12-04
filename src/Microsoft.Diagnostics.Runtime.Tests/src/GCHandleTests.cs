@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // I made some changes to v4.5 handle enumeration to enumerate handles out faster.
             // This test makes sure I have a stable enumeration.
             using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             List<ClrHandle> handles = new List<ClrHandle>(runtime.EnumerateHandles());
 
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             HashSet<ClrHandle> handles = new HashSet<ClrHandle>();
 
             using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrHandle handle in runtime.EnumerateHandles())
                 Assert.True(handles.Add(handle));

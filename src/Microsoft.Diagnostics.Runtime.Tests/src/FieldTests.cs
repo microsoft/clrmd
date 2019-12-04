@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void InstanceFieldProperties()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrType foo = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");

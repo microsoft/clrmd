@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong[] methodDescs;
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 ClrType[] types = runtime.EnumerateModules().Where(m => m.FileName.EndsWith("sharedlibrary.dll", System.StringComparison.OrdinalIgnoreCase)).Select(m => m.GetTypeByName("Foo")).Where(t => t != null).ToArray();
 
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDescs[0]);
 
                 Assert.NotNull(method);
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (DataTarget dt = TestTargets.AppDomains.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDescs[1]);
 
                 Assert.NotNull(method);
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong methodDesc;
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDesc);
 
                 Assert.NotNull(method);
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
                 ClrModule module = runtime.GetModule("sharedlibrary.dll");
                 ClrType type = module.GetTypeByName("Foo");
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void CompleteSignatureIsRetrievedForMethodsWithGenericParameters()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule("sharedlibrary.dll");
             ClrType type = module.GetTypeByName("Foo");

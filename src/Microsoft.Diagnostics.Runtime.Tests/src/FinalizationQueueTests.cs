@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestAllFinalizableObjects()
         {
             using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             Stats stats = GetStats(runtime.Heap.EnumerateFinalizableObjects());
 
             Assert.Equal(0, stats.A);
@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestFinalizerQueueObjects()
         {
             using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             Stats stats = GetStats(runtime.Heap.EnumerateFinalizerRoots().Select(r => r.Object));
 
             Assert.Equal(42, stats.A);

@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ExceptionPropertyTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             TestProperties(runtime);
         }
 

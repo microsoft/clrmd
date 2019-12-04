@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void MinidumpCallstackTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadMiniDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrThread thread = runtime.GetMainThread();
 
             string[] frames = IntPtr.Size == 8 ? new[] { "Inner", "Inner", "Middle", "Outer", "Main" } : new[] { "Inner", "Middle", "Outer", "Main" };
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void MinidumpExceptionPropertiesTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadMiniDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);
         }
     }

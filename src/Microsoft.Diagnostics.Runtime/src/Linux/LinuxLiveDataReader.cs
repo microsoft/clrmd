@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _disposed = true;
         }
 
-        public void ClearCachedData()
+        public void FlushCachedData()
         {
             _threadIDs.Clear();
             _memoryMapEntries = LoadMemoryMap();

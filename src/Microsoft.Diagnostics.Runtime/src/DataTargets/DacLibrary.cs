@@ -13,30 +13,21 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private bool _disposed;
         private SOSDac _sos;
-        private SOSDac6 _sos6;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
-        internal RefCountedFreeLibrary OwningLibrary { get; }
+        public RefCountedFreeLibrary OwningLibrary { get; }
 
         internal ClrDataProcess InternalDacPrivateInterface { get; }
 
         public ClrDataProcess DacPrivateInterface => new ClrDataProcess(this, InternalDacPrivateInterface);
 
-        internal SOSDac GetSOSInterfaceNoAddRef()
+        private SOSDac GetSOSInterfaceNoAddRef()
         {
             if (_sos == null)
                 _sos = InternalDacPrivateInterface.GetSOSDacInterface();
 
             return _sos;
-        }
-
-        internal SOSDac6 GetSOSInterface6NoAddRef()
-        {
-            if (_sos6 == null)
-                _sos6 = InternalDacPrivateInterface.GetSOSDacInterface6();
-
-            return _sos6;
         }
 
         public SOSDac SOSDacInterface
@@ -47,6 +38,8 @@ namespace Microsoft.Diagnostics.Runtime
                 return sos != null ? new SOSDac(this, sos) : null;
             }
         }
+
+        public SOSDac6 SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
 
         public T GetInterface<T>(ref Guid riid)
             where T : CallableCOMWrapper
@@ -141,7 +134,6 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 InternalDacPrivateInterface?.Dispose();
                 _sos?.Dispose();
-                _sos6?.Dispose();
                 OwningLibrary?.Release();
 
                 _disposed = true;

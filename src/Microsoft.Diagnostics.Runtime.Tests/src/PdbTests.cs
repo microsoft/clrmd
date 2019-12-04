@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Ensure all methods in our source file is in the pdb.
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             PdbInfo[] allPdbs = runtime.EnumerateModules().Select(m => m.Pdb).ToArray();
             Assert.True(allPdbs.Length > 1);

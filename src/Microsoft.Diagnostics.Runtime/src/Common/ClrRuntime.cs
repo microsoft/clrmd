@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -10,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents a single runtime in a target process or crash dump.  This serves as the primary
     /// entry point for getting diagnostic information.
     /// </summary>
-    public abstract class ClrRuntime
+    public abstract class ClrRuntime : IDisposable
     {
         /// <summary>
         /// Used for internal purposes.
@@ -96,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// (E.G. if you want to use the ClrHeap object after calling flush, you must call ClrRuntime.GetHeap
         /// again after Flush to get a new instance.)
         /// </summary>
-        public abstract void ClearCachedData();
+        public abstract void FlushCachedData();
 
         /// <summary>
         /// Gets the name of a JIT helper function
@@ -106,25 +107,19 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string GetJitHelperFunctionName(ulong address);
 
         /// <summary>
-        /// Delegate called when the RuntimeFlushed event is triggered.
+        /// Cleans up all resources and releases them.  You may not use this ClrRuntime or any object it transitively
+        /// created after calling this method.
         /// </summary>
-        /// <param name="runtime">Which runtime was flushed.</param>
-        public delegate void RuntimeFlushedCallback(ClrRuntime runtime);
-
-        /// <summary>
-        /// Called whenever the runtime is being flushed.  All references to ClrMD objects need to be released
-        /// and not used for the given runtime after this call.
-        /// </summary>
-        public event RuntimeFlushedCallback RuntimeFlushed;
-
-        /// <summary>
-        /// Call when flushing the runtime.
-        /// </summary>
-        protected void OnRuntimeFlushed() => RuntimeFlushed?.Invoke(this);
-
-        internal void Dispose()
+        public void Dispose()
         {
-            DacLibrary?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
+
+        /// <summary>
+        /// Called when disposing ClrRuntime.
+        /// </summary>
+        /// <param name="disposing">Whether Dispose() was called or not.</param>
+        protected abstract void Dispose(bool disposing);
     }
 }
