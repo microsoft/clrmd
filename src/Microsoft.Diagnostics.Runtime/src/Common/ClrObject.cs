@@ -118,13 +118,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Converts a ClrObject into its string value.
         /// </summary>
         /// <param name="obj">A string object.</param>
-        public static explicit operator string(ClrObject obj)
-        {
-            if (!obj.Type.IsString)
-                throw new InvalidOperationException("Object {obj} is not a string.");
+        public static explicit operator string(ClrObject obj) => obj.AsString();
 
-            return ValueReader.GetStringContents(obj.Type, obj.Helpers.DataReader, obj.Address);
-        }
 
         /// <summary>
         /// Returns <see cref="Address"/> sweetening obj to pointer move.
@@ -231,7 +226,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
-        public string GetStringField(string fieldName)
+        public string GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
             if (!Helpers.DataReader.ReadPointer(address, out ulong strPtr))
@@ -240,15 +235,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (strPtr == 0)
                 return null;
 
-            return ValueReader.GetStringContents(stringType, Helpers.DataReader, strPtr);
+            return ValueReader.GetStringContents(stringType, Helpers.DataReader, strPtr, maxLength);
         }
 
-        public string AsString()
+        public string AsString(int maxLength = 4096)
         {
             if (!Type.IsString)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException($"Object {Address:x} is not a string, actual type: {Type?.Name ?? "null"}.");
 
-            return ValueReader.GetStringContents(Type, Helpers.DataReader, Address);
+
+            return ValueReader.GetStringContents(Type, Helpers.DataReader, Address, maxLength);
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, out ClrType fieldType, string typeName)

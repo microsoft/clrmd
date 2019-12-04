@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="ArgumentException">Thrown when field was not found by name.</exception>
         /// <exception cref="InvalidOperationException">Thrown when found field has other type than <see cref="string"/>.</exception>
         /// <exception cref="MemoryReadException">Thrown when object reference could not be followed, or <see cref="string"/> could not be read.</exception>
-        string GetStringField(string fieldName);
+        string GetStringField(string fieldName, int maxLength = 4096);
 
         /// <summary>
         /// Gets the struct field value from the entity field.
