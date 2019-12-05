@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
 
         private ClrmdRuntime _runtime;
-        private ClrHeap _heap;
+        private volatile ClrHeap _heap;
 
         private readonly Dictionary<ulong, ClrType> _cache = new Dictionary<ulong, ClrType>();
 
@@ -587,7 +587,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _runtime;
          
         }
-        public ClrHeap GetOrCreateHeap() => _heap ?? (_heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder));
+        public ClrHeap GetOrCreateHeap()
+        {
+            if (_heap != null)
+                return _heap;
+
+            ClrHeap heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder);
+            Interlocked.CompareExchange(ref _heap, heap, null);
+            return _heap;
+        }
 
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
         {
@@ -692,9 +700,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     lock (_cache)
                         _cache[mt] = result;
 
-                    if (obj != 0 && result.IsArray)
+                    if (obj != 0 && result.IsArray && result.ComponentType == null)
                     {
-                        Debug.Assert(result.ComponentType == null);
                         TryGetComponentType(result, obj);
                     }
                     return result;
