@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract GCDesc GCDesc { get; }
 
         /// <summary>
-        /// The type handle of this type (e.g. MethodTable).
+        /// The MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
         /// </summary>
-        public abstract ulong TypeHandle { get; }
+        public abstract ulong MethodTable { get; }
         
         /// <summary>
         /// Returns the metadata token of this type.
@@ -325,5 +325,50 @@ namespace Microsoft.Diagnostics.Runtime
         /// Used to provide functionality to ClrObject.
         /// </summary>
         public abstract IClrObjectHelpers ClrObjectHelpers { get; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ClrType type)
+            {
+                if (MethodTable != 0 && type.MethodTable != 0)
+                    return MethodTable == type.MethodTable;
+
+                if (type.IsPointer)
+                {
+                    if (type.ComponentType == null)
+                        return base.Equals(obj);
+
+                    return ComponentType == type.ComponentType;
+                }
+
+                if (IsPrimitive && type.IsPrimitive && ElementType != ClrElementType.Unknown)
+                    return ElementType == type.ElementType;
+
+                // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
+                // check if we resolved from the same token out of the same module.
+                if (Module != null && MetadataToken != 0)
+                    return Module == type.Module && MetadataToken == type.MetadataToken;
+
+                // Fall back to reference equality
+                return base.Equals(obj);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode() => MethodTable.GetHashCode();
+
+        public static bool operator ==(ClrType t1, ClrType t2)
+        {
+            if (t1 is null)
+                return t2 is null;
+
+            return t1.Equals(t2);
+        }
+
+        public static bool operator !=(ClrType item1, ClrType item2)
+        {
+            return !(item1 == item2);
+        }
     }
 }

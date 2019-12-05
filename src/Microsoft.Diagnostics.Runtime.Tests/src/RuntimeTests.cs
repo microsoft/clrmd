@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void CheckTypeNotSame(ClrType oldType, ClrType newType)
         {
-            Assert.Equal(oldType.TypeHandle, newType.TypeHandle);
+            Assert.Equal(oldType.MethodTable, newType.MethodTable);
 
             AssertEqualNotSame(oldType.Name, newType.Name);
 

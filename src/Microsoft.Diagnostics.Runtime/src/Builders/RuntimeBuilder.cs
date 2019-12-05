@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
 
-        private ClrRuntime _runtime;
+        private ClrmdRuntime _runtime;
         private ClrHeap _heap;
 
         private readonly Dictionary<ulong, ClrType> _cache = new Dictionary<ulong, ClrType>();
@@ -483,6 +483,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
             }
+
+            _runtime.Initialize();
         }
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
@@ -747,7 +749,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            ulong mt = type.TypeHandle;
+            ulong mt = type.MethodTable;
             if (!_sos.GetMethodTableData(mt, out MethodTableData data))
                 return Array.Empty<ClrMethod>();
 
@@ -819,7 +821,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (type.IsFree)
                 return;
 
-            if (!_sos.GetFieldInfo(type.TypeHandle, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
             {
                 if (type.BaseType != null)
                     fields = type.BaseType.Fields;
