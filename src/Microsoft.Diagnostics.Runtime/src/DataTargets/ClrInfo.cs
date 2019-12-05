@@ -16,8 +16,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public DataTarget DataTarget { get; }
 
-        internal ITypeFactory RuntimeFactory { get; private set; }
-
         internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
         {
             DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
@@ -25,12 +23,6 @@ namespace Microsoft.Diagnostics.Runtime
             DacInfo = dacInfo ?? throw new ArgumentNullException(nameof(dacInfo));
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
             LocalMatchingDac = dacLocation;
-        }
-
-        internal void Dispose()
-        {
-            // Intentionally internal and not IDisposable.
-            RuntimeFactory?.Dispose();
         }
 
         /// <summary>
@@ -74,7 +66,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrRuntime CreateRuntime(string dacFilename, bool ignoreMismatch = false)
         {
-            ThrowIfRuntimeCreated();
             if (string.IsNullOrEmpty(dacFilename)) throw new ArgumentNullException(nameof(dacFilename));
 
             if (!File.Exists(dacFilename))
@@ -92,7 +83,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrRuntime CreateRuntime()
         {
-            ThrowIfRuntimeCreated();
             string dac = LocalMatchingDac;
             if (dac != null && !File.Exists(dac))
                 dac = null;
@@ -109,26 +99,20 @@ namespace Microsoft.Diagnostics.Runtime
             return ConstructRuntime(dac);
         }
 
-        private void ThrowIfRuntimeCreated()
-        {
-            if (RuntimeFactory != null)
-                throw new InvalidOperationException($"ClrRuntime for version {Version} has already been created.");
-        }
-
 #pragma warning disable CA2000 // Dispose objects before losing scope
         private ClrRuntime ConstructRuntime(string dac)
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            RuntimeFactory = new RuntimeBuilder(this, new DacLibrary(DataTarget, dac));
+            var factory = new RuntimeBuilder(this, new DacLibrary(DataTarget, dac));
             if (Flavor == ClrFlavor.Core)
-                return RuntimeFactory.GetOrCreateRuntime();
+                return factory.GetOrCreateRuntime();
 
             if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Patch < 10000))
                 throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
 
-            return RuntimeFactory.GetOrCreateRuntime();
+            return factory.GetOrCreateRuntime();
         }
     }
 }

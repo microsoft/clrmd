@@ -29,6 +29,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract DataTarget DataTarget { get; }
 
         /// <summary>
+        /// Returns whether you are allowed to call into the transitive closure of ClrMD objects created from
+        /// this runtime on multiple threads.
+        /// </summary>
+        public abstract bool IsThreadSafe { get; }
+
+        /// <summary>
         /// Enumerates the list of appdomains in the process.
         /// </summary>
         public abstract IReadOnlyList<ClrAppDomain> AppDomains { get; }

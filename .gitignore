@@ -13,6 +13,7 @@ artifacts/
 *.userosscache
 *.sln.docstates
 *.lock.json
+*.xml
 
 # Build results
 [Dd]ebug/
