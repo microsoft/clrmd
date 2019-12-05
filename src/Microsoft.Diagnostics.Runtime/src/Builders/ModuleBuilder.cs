@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ulong Size => _moduleSizes.GetOrDefault(Address);
         public ulong MetadataStart => _moduleData.MetadataStart;
         public ulong MetadataLength => _moduleData.MetadataSize;
-        public string Name
+        public string? Name
         {
             get
             {
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        public string AssemblyName
+        public string? AssemblyName
         {
             get
             {

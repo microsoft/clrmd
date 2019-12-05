@@ -13,14 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private static Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
         private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
-        private GetILAddressMapDelegate _getILAddressMap;
+        private GetILAddressMapDelegate? _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, ref IID_IXCLRDataMethodInstance, pUnk)
         {
         }
 
-        public ILToNativeMap[] GetILToNativeMap()
+        public ILToNativeMap[]? GetILToNativeMap()
         {
             InitDelegate(ref _getILAddressMap, VTable->GetILAddressMap);
 
@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             uint mapLen,
             out uint mapNeeded,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-            ILToNativeMap[] map);
+            ILToNativeMap[]? map);
     }
 
 #pragma warning disable CS0169

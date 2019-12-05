@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong ILImageBase { get; }
         ulong Size { get; }
         ulong MetadataStart { get; }
-        string Name { get; }
-        string AssemblyName { get; }
+        string? Name { get; }
+        string? AssemblyName { get; }
         ulong MetadataLength { get; }
         bool IsReflection { get; }
         ulong AssemblyAddress { get; }

@@ -38,8 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return _queryVirtual(Self, address, out info) >= 0;
         }
 
-        private ReadVirtualDelegate _readVirtual;
-        private QueryVirtualDelegate _queryVirtual;
+        private ReadVirtualDelegate? _readVirtual;
+        private QueryVirtualDelegate? _queryVirtual;
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

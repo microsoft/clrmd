@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Constructs a DacInfo object with the appropriate properties initialized.
         /// </summary>
         public DacInfo(IDataReader reader, string agnosticName, Architecture targetArch, ulong imgBase,
-                        uint filesize, uint timestamp, string filename, VersionInfo version, IReadOnlyList<byte> buildId = null)
+                        uint filesize, uint timestamp, string filename, VersionInfo version, IReadOnlyList<byte>? buildId = null)
             : base(reader, imgBase, filesize, timestamp, filename, buildId, version)
         {
             PlatformAgnosticFileName = agnosticName;

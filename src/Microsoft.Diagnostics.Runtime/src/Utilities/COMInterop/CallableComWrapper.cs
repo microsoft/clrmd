@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -19,12 +20,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected void* _vtable => _unknownVTable + 1;
 
-        private ReleaseDelegate _release;
-        private AddRefDelegate _addRef;
+        private ReleaseDelegate? _release;
+        private AddRefDelegate? _addRef;
 
         protected CallableCOMWrapper(CallableCOMWrapper toClone)
         {
-            if (toClone == null)
+            if (toClone is null)
                 throw new ArgumentNullException(nameof(toClone));
 
             if (toClone._disposed)
@@ -40,8 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int AddRef()
         {
-            if (_addRef == null)
-                _addRef = (AddRefDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->AddRef, typeof(AddRefDelegate));
+            _addRef ??= (AddRefDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->AddRef, typeof(AddRefDelegate));
 
             int count = _addRef(Self);
             return count;
@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             GC.SuppressFinalize(this);
         }
 
-        protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
+        protected CallableCOMWrapper(RefCountedFreeLibrary? library, ref Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library ?? throw new ArgumentNullException(nameof(library));
             _library.AddRef();
@@ -76,8 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int Release()
         {
-            if (_release == null)
-                _release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
+            _release ??= (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
 
             int count = _release(Self);
             return count;
@@ -96,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return hresult >= 0;
         }
 
-        protected static void InitDelegate<T>(ref T t, IntPtr entry)
+        protected static void InitDelegate<T>([NotNull] ref T? t, IntPtr entry)
             where T : Delegate
         {
             if (t != null)

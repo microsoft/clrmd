@@ -13,10 +13,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly long _position;
         private readonly bool _virtual;
 
-        private Reader _virtualAddressReader;
-        private ElfNote[] _notes;
-        private ElfProgramHeader[] _programHeaders;
-        private byte[] _buildId;
+        private Reader? _virtualAddressReader;
+        private ElfNote[]? _notes;
+        private ElfProgramHeader[]? _programHeaders;
+        private byte[]? _buildId;
 
         public IElfHeader Header { get; }
 
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 LoadNotes();
-                return _notes;
+                return _notes!;
             }
         }
         public IReadOnlyList<ElfProgramHeader> ProgramHeaders
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 LoadProgramHeaders();
-                return _programHeaders;
+                return _programHeaders!;
             }
         }
 
@@ -42,11 +42,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 CreateVirtualAddressReader();
-                return _virtualAddressReader;
+                return _virtualAddressReader!;
             }
         }
 
-        public byte[] BuildId
+        public byte[]? BuildId
         {
             get
             {
@@ -71,6 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     {
                     }
                 }
+
                 return null;
             }
         }
@@ -85,8 +86,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _virtualAddressReader = reader;
 
             ElfHeaderCommon common = reader.Read<ElfHeaderCommon>(position);
-            Header = common.GetHeader(reader, position);
-            if (Header == null)
+            Header = common.GetHeader(reader, position)!;
+            if (Header is null)
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
@@ -104,10 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void CreateVirtualAddressReader()
         {
-            if (_virtualAddressReader != null)
-                return;
-
-            _virtualAddressReader = new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
+            _virtualAddressReader ??= new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
         }
 
         private void LoadNotes()
@@ -118,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             LoadProgramHeaders();
 
             List<ElfNote> notes = new List<ElfNote>();
-            foreach (ElfProgramHeader programHeader in _programHeaders)
+            foreach (ElfProgramHeader programHeader in _programHeaders!)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Note)
                 {

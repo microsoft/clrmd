@@ -245,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!seen.Add(source.Address))
                 yield return null;
 
-            if (source.Type == null)
+            if (source.Type is null)
                 yield break;
 
             if (source.Address == target)

@@ -22,13 +22,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The name of the method.  For example, "void System.Foo.Bar(object o, int i)" would return "Bar".
         /// </summary>
-        public abstract string Name { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
         /// Returns the full signature of the function.  For example, "void System.Foo.Bar(object o, int i)"
         /// would return "System.Foo.Bar(System.Object, System.Int32)"
         /// </summary>
-        public abstract string Signature { get; }
+        public abstract string? Signature { get; }
 
         /// <summary>
         /// Returns the instruction pointer in the target process for the start of the method's assembly.
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the location in memory of the IL for this method.
         /// </summary>
-        public abstract ILInfo IL { get; }
+        public abstract ILInfo? IL { get; }
 
         /// <summary>
         /// Returns the regions of memory that
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the IL to native offset mapping.
         /// </summary>
-        public abstract IReadOnlyList<ILToNativeMap> ILOffsetMap { get; }
+        public abstract IReadOnlyList<ILToNativeMap>? ILOffsetMap { get; }
 
         /// <summary>
         /// Returns the metadata token of the current method.

@@ -42,8 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A ClrObject of the given field.</returns>
         public ClrObject GetObjectField(string fieldName)
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsObjectReference)
@@ -69,8 +69,8 @@ namespace Microsoft.Diagnostics.Runtime
         public T GetField<T>(string fieldName)
             where T : unmanaged
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             object value = field.Read<T>(Address, _interior);
@@ -83,14 +83,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrValueClass GetValueClassField(string fieldName)
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueClass)
                 throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
-            if (field.Type == null)
+            if (field.Type is null)
                 throw new Exception("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address, _interior);
@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
-        public string GetStringField(string fieldName, int maxLength = 4096)
+        public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             if (!DataReader.ReadPointer(address, out ulong str))
@@ -122,8 +122,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (field.ElementType != element)

@@ -53,9 +53,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return false;
 
             if (ReferenceEquals(this, obj))

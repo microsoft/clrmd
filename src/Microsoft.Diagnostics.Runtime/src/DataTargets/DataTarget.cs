@@ -24,16 +24,16 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class DataTarget : IDisposable
     {
         private bool _disposed;
-        private ClrInfo[] _clrs;
-        private ModuleInfo[] _modules;
-        private readonly Dictionary<string, PEImage> _pefileCache = new Dictionary<string, PEImage>(StringComparer.OrdinalIgnoreCase);
+        private ClrInfo[]? _clrs;
+        private ModuleInfo[]? _modules;
+        private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// The data reader for this instance.
         /// </summary>
         public IDataReader DataReader { get; }
 
-        private SymbolLocator _symbolLocator;
+        private SymbolLocator? _symbolLocator;
 
         /// <summary>
         /// Instance to manage the symbol path(s).
@@ -42,11 +42,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_symbolLocator == null)
-                    _symbolLocator = new DefaultSymbolLocator();
-
+                _symbolLocator ??= new DefaultSymbolLocator();
                 return _symbolLocator;
             }
+
             set => _symbolLocator = value;
         }
 
@@ -75,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal PEImage LoadPEImage(string fileName)
+        internal PEImage? LoadPEImage(string fileName)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
@@ -83,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out PEImage result))
+            if (_pefileCache.TryGetValue(fileName, out PEImage? result))
                 return result;
 
             Stream stream = File.OpenRead(fileName);
@@ -128,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
 
                 string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
+                string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
 
                 if (platform == Platform.Linux)
                 {

@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the module this type is defined in.
         /// </summary>
-        public abstract ClrModule Module { get; }
+        public abstract ClrModule? Module { get; }
 
         /// <summary>
         /// Returns the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
@@ -165,29 +165,29 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
-        public abstract ClrInstanceField GetFieldByName(string name);
+        public abstract ClrInstanceField? GetFieldByName(string name);
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
-        public abstract ClrStaticField GetStaticFieldByName(string name);
+        public abstract ClrStaticField? GetStaticFieldByName(string name);
 
         /// <summary>
         /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown).
         /// </summary>
-        public abstract ClrType BaseType { get; }
+        public abstract ClrType? BaseType { get; }
 
         /// <summary>
         /// Returns the CCWData for the given object.
         /// </summary>
         /// <returns>The CCWData associated with the object, null if obj is not a CCW.</returns>
-        public abstract ComCallWrapper GetCCWData(ulong obj);
+        public abstract ComCallWrapper? GetCCWData(ulong obj);
 
         /// <summary>
         /// Returns the RCWData for the given object.
         /// </summary>
         /// <returns>The RCWData associated with the object, null if obj is not a RCW.</returns>
-        public abstract RuntimeCallableWrapper GetRCWData(ulong obj);
+        public abstract RuntimeCallableWrapper? GetRCWData(ulong obj);
 
         /// <summary>
         /// Indicates if the type is in fact a pointer. If so, the pointer operators
@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the element referenced by the pointer.
         /// </summary>
-        public abstract ClrType ComponentType { get; }
+        public abstract ClrType? ComponentType { get; }
 
         /// <summary>
         /// A type is an array if you can use the array operators below, Abstractly arrays are objects
@@ -216,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the array element value at the given index.  Returns 'null' if the array element is of type
         /// VALUE_CLASS.
         /// </summary>
-        public abstract object GetArrayElementValue(ulong objRef, int index);
+        public abstract object? GetArrayElementValue(ulong objRef, int index);
 
         /// <summary>
         /// Returns the base size of the object.
@@ -325,7 +325,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract IClrObjectHelpers ClrObjectHelpers { get; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is ClrType type)
             {
@@ -334,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (type.IsPointer)
                 {
-                    if (type.ComponentType == null)
+                    if (type.ComponentType is null)
                         return base.Equals(obj);
 
                     return ComponentType == type.ComponentType;
@@ -357,17 +357,17 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override int GetHashCode() => MethodTable.GetHashCode();
 
-        public static bool operator ==(ClrType t1, ClrType t2)
+        public static bool operator ==(ClrType? left, ClrType? right)
         {
-            if (t1 is null)
-                return t2 is null;
+            if (left is null)
+                return right is null;
 
-            return t1.Equals(t2);
+            return left.Equals(right);
         }
 
-        public static bool operator !=(ClrType item1, ClrType item2)
+        public static bool operator !=(ClrType? left, ClrType? right)
         {
-            return !(item1 == item2);
+            return !(left == right);
         }
     }
 }

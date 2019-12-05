@@ -10,7 +10,8 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public static Exception AddData(this Exception exception, string name, object value)
         {
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            if (exception is null)
+                throw new ArgumentNullException(nameof(exception));
 
             exception.Data[name] = value;
             return exception;

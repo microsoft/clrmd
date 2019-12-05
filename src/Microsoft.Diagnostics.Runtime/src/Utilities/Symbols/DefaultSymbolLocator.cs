@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public override string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
+        public override string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
 #pragma warning disable CA1304 // Specify CultureInfo
             fileName = Path.GetFileName(fileName).ToLower();
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string fullPath = fileName;
             // First see if we already have the result cached.
             FileEntry entry = new FileEntry(fileName, buildTimeStamp, imageSize);
-            string result = GetFileEntry(entry);
+            string? result = GetFileEntry(entry);
             if (result != null)
                 return result;
 
@@ -49,17 +49,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Finally, check the symbol paths.
-            string exeIndexPath = null;
+            string? exeIndexPath = null;
             string activeSymbolCache = SymbolCache;
             foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
                 {
-                    if (exeIndexPath == null)
+                    if (exeIndexPath is null)
                         exeIndexPath = GetIndexPath(fileName, buildTimeStamp, imageSize);
 
-                    string target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? activeSymbolCache);
-                    if (target == null)
+                    string? target = TryGetFileFromServer(element.Target, exeIndexPath, element.Cache ?? activeSymbolCache);
+                    if (target is null)
                     {
                         Trace($"Server '{element.Target}' did not have file '{Path.GetFileName(fileName)}' with timestamp={buildTimeStamp:x} and filesize={imageSize:x}.");
                     }
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private static string GetIndexPath(string fileName, int buildTimeStamp, int imageSize) => $"{fileName}\\{buildTimeStamp:x}{imageSize:x}\\{fileName}";
 
-        private string TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
+        private string? TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
         {
             Debug.Assert(!string.IsNullOrEmpty(cache));
             if (string.IsNullOrEmpty(urlForServer))
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // See if it is a compressed file by replacing the last character of the name with an _
             string compressedSigPath = fileIndexPath.Substring(0, fileIndexPath.Length - 1) + "_";
-            string compressedFilePath = GetPhysicalFileFromServer(urlForServer, compressedSigPath, cache);
+            string? compressedFilePath = GetPhysicalFileFromServer(urlForServer, compressedSigPath, cache);
             if (compressedFilePath != null)
             {
                 try
@@ -126,14 +126,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Just try to fetch the file directly
-            string ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
+            string? ret = GetPhysicalFileFromServer(urlForServer, fileIndexPath, cache);
             if (ret != null)
                 return ret;
 
             // See if we have a file that tells us to redirect elsewhere.
             string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
-            string filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
-            if (filePtrData == null)
+            string? filePtrData = GetPhysicalFileFromServer(urlForServer, filePtrSigPath, cache, true);
+            if (filePtrData is null)
             {
                 return null;
             }
@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private string GetPhysicalFileFromServer(string serverPath, string indexPath, string symbolCacheDir, bool returnContents = false)
+        private string? GetPhysicalFileFromServer(string serverPath, string indexPath, string symbolCacheDir, bool returnContents = false)
         {
             if (string.IsNullOrEmpty(serverPath))
                 return null;

@@ -50,10 +50,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Equals
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj is null) return false;
-
             return obj is VersionInfo other && Equals(other);
         }
 
@@ -99,12 +97,15 @@ namespace Microsoft.Diagnostics.Runtime
             return $"v{Major}.{Minor}.{Revision}.{Patch:D2}";
         }
 
-        public static bool operator ==(VersionInfo left, VersionInfo right)
+        public static bool operator ==(VersionInfo? left, VersionInfo? right)
         {
+            if (left is null)
+                return right is null;
+
             return left.Equals(right);
         }
 
-        public static bool operator !=(VersionInfo left, VersionInfo right)
+        public static bool operator !=(VersionInfo? left, VersionInfo? right)
         {
             return !(left == right);
         }

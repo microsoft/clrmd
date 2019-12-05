@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract T Read<T>(ulong objRef, bool interior) where T : unmanaged;
         public abstract ClrObject ReadObject(ulong objRef, bool interior);
         public abstract ClrValueClass ReadStruct(ulong objRef, bool interior);
-        public abstract string ReadString(ulong objRef, bool interior);
+        public abstract string? ReadString(ulong objRef, bool interior);
 
         /// <summary>
         /// Returns the address of the value of this field.  Equivalent to GetFieldAddress(objRef, false).

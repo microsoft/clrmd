@@ -15,12 +15,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly IModuleHelpers _helpers;
         private int _debugMode = int.MaxValue;
-        private MetaDataImport _metadata;
-        private PdbInfo _pdb;
-        private IReadOnlyList<(ulong, uint)> _typeDefMap;
-        private IReadOnlyList<(ulong, uint)> _typeRefMap;
+        private MetaDataImport? _metadata;
+        private PdbInfo? _pdb;
+        private IReadOnlyList<(ulong, uint)>? _typeDefMap;
+        private IReadOnlyList<(ulong, uint)>? _typeRefMap;
 
-        public override ClrAppDomain AppDomain { get; }
+        public override ClrAppDomain? AppDomain { get; }
         public override string Name { get; }
         public override string AssemblyName { get; }
         public override ulong AssemblyAddress { get; }
@@ -31,10 +31,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MetadataAddress { get; }
         public override ulong MetadataLength { get; }
         public override bool IsDynamic { get; }
-        public override string FileName => IsPEFile ? Name : null;
+        public override string? FileName => IsPEFile ? Name : null;
         public override MetaDataImport MetadataImport => _metadata ??= _helpers.GetMetaDataImport(this);
 
-        public ClrmdModule(ClrAppDomain parent, IModuleData data)
+        public ClrmdModule(ClrAppDomain? parent, IModuleData data)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_pdb == null)
+                if (_pdb is null)
                 {
                     try
                     {
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         ushort opt = b[2];
                         ushort dbg = b[3];
 
-                        return ((dbg << 8) | opt);
+                        return (dbg << 8) | opt;
                     }
                 }
                 catch (SEHException)
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<(ulong, uint)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
 
-        public override ClrType GetTypeByName(string name)
+        public override ClrType? GetTypeByName(string name)
         {
             if (name is null)
                 throw new ArgumentNullException(nameof(name));
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             foreach ((ulong mt, uint _) in EnumerateTypeDefToMethodTableMap())
             {
                 ClrType type = _helpers.TryGetType(mt);
-                if (type == null)
+                if (type is null)
                 {
                     lookup.Add(mt);
                 }
@@ -149,10 +149,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override ClrType ResolveToken(uint typeDefOrRefToken)
+        public override ClrType? ResolveToken(uint typeDefOrRefToken)
         {
-            ClrHeap heap = AppDomain?.Runtime?.Heap;
-            if (heap == null)
+            ClrHeap? heap = AppDomain?.Runtime?.Heap;
+            if (heap is null)
                 return null;
 
             IReadOnlyList<(ulong, uint)> map;

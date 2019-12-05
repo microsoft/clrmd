@@ -24,9 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return FileName.ToUpperInvariant().GetHashCode() ^ Guid.GetHashCode() ^ Revision;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return obj is PdbEntry && Equals((PdbEntry)obj);
+            return obj is PdbEntry other && Equals(other);
         }
 
         public bool Equals(PdbEntry other)

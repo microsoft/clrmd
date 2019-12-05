@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class ElfCoreFile
     {
         private readonly Reader _reader;
-        private ElfLoadedImage[] _loadedImages;
-        private Dictionary<ulong, ulong> _auxvEntries;
-        private ELFVirtualAddressSpace _virtualAddressSpace;
+        private ElfLoadedImage[]? _loadedImages;
+        private Dictionary<ulong, ulong>? _auxvEntries;
+        private ELFVirtualAddressSpace? _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
 
@@ -67,9 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int ReadMemory(long address, Span<byte> buffer)
         {
-            if (_virtualAddressSpace == null)
-                _virtualAddressSpace = new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
-
+            _virtualAddressSpace ??= new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
             return _virtualAddressSpace.Read(address, buffer);
         }
 
@@ -85,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             _auxvEntries = new Dictionary<ulong, ulong>();
             ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
-            if (auxvNote == null)
+            if (auxvNote is null)
                 throw new BadImageFormatException($"No auxv entries in coredump");
 
             long position = 0;

@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ulong TypeMethodTable => _fieldData.TypeMethodTable;
 
-        public ObjectPool<FieldBuilder> Owner { get; set; }
+        public ObjectPool<FieldBuilder>? Owner { get; set; }
 
         public ulong NextField => _fieldData.NextField;
 

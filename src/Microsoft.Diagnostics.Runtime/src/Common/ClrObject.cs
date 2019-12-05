@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">The address of the object.</param>
         /// <param name="type">The concrete type of the object.</param>
-        public ClrObject(ulong address, ClrType type)
+        public ClrObject(ulong address, ClrType? type)
         {
             Address = address;
             Type = type;
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!IsException)
                 throw new InvalidOperationException($"Object {Address:x} is not an Exception.");
 
-            if (Type == null || !Type.IsException)
+            if (Type is null || !Type.IsException)
                 return default;
 
             return new ClrException(Helpers.ExceptionHelpers, null, this);
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The type of the object.
         /// </summary>
-        public ClrType Type { get; }
+        public ClrType? Type { get; }
 
         /// <summary>
         /// Returns if the object value is null.
@@ -139,8 +139,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new NullReferenceException();
 
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsObjectReference)
@@ -165,14 +165,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new NullReferenceException();
 
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueClass)
                 throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
-            if (field.Type == null)
+            if (field.Type is null)
                 throw new Exception("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address);
@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : unmanaged
         {
             ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             object value = field.Read<T>(Address, interior: false);
@@ -198,13 +198,13 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsRuntimeType => Type?.Name == "System.RuntimeType";
-        public ClrType AsRuntimeType()
+        public ClrType? AsRuntimeType()
         {
             if (!IsRuntimeType)
                 throw new InvalidOperationException();
 
             ClrInstanceField field = Type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
-            if (field == null)
+            if (field is null)
                 return null;
 
             ulong mt;
@@ -226,7 +226,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
-        public string GetStringField(string fieldName, int maxLength = 4096)
+        public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
             if (!Helpers.DataReader.ReadPointer(address, out ulong strPtr))
@@ -252,8 +252,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new NullReferenceException();
 
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (field.ElementType != element)
@@ -283,12 +283,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <c>true</c> if <paramref name="other" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
         /// otherwise.
         /// </returns>
-        public override bool Equals(object other)
+        public override bool Equals(object? obj)
         {
-            if (other == null)
-                return false;
-
-            return other is ClrObject && Equals((ClrObject)other);
+            return obj is ClrObject other && Equals(other);
         }
 
         /// <summary>
@@ -309,8 +306,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
         /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
         /// <returns><c>true</c> if <paramref name="left" /> <see cref="Equals(ClrObject)" /> <paramref name="right" />; <c>false</c> otherwise.</returns>
-        public static bool operator ==(ClrObject left, ClrObject right)
+        public static bool operator ==(ClrObject? left, ClrObject? right)
         {
+            if (left is null)
+                return right is null;
+
             return left.Equals(right);
         }
 
@@ -320,9 +320,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
         /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
         /// <returns><c>true</c> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <c>false</c> otherwise.</returns>
-        public static bool operator !=(ClrObject left, ClrObject right)
+        public static bool operator !=(ClrObject? left, ClrObject? right)
         {
-            return !left.Equals(right);
+            return !(left == right);
         }
     }
 }

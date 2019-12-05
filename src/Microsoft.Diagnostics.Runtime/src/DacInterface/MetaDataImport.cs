@@ -19,17 +19,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private IntPtr EnumInterfaceImpls => VTable->EnumInterfaceImpls;
         private IntPtr EnumFieldPtr => VTable->EnumFields;
 
-        private EnumInterfaceImplsDelegate _enumInterfaceImpls;
-        private CloseEnumDelegate _closeEnum;
-        private GetInterfaceImplPropsDelegate _getInterfaceImplProps;
-        private GetTypeRefPropsDelegate _getTypeRefProps;
-        private GetTypeDefPropsDelegate _getTypeDefProps;
-        private EnumFieldsDelegate _enumFields;
-        private GetRVADelegate _getRVA;
-        private GetMethodPropsDelegate _getMethodProps;
-        private GetNestedClassPropsDelegate _getNestedClassProps;
-        private GetFieldPropsDelegate _getFieldProps;
-        private GetCustomAttributeByNameDelegate _getCustomAttributeByName;
+        private EnumInterfaceImplsDelegate? _enumInterfaceImpls;
+        private CloseEnumDelegate? _closeEnum;
+        private GetInterfaceImplPropsDelegate? _getInterfaceImplProps;
+        private GetTypeRefPropsDelegate? _getTypeRefProps;
+        private GetTypeDefPropsDelegate? _getTypeDefProps;
+        private EnumFieldsDelegate? _enumFields;
+        private GetRVADelegate? _getRVA;
+        private GetMethodPropsDelegate? _getMethodProps;
+        private GetNestedClassPropsDelegate? _getNestedClassProps;
+        private GetFieldPropsDelegate? _getFieldProps;
+        private GetCustomAttributeByNameDelegate? _getCustomAttributeByName;
 
         public MetaDataImport(DacLibrary library, IntPtr pUnknown)
             : base(library?.OwningLibrary, ref IID_IMetaDataImport, pUnknown)
@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public string GetTypeRefName(int token)
+        public string? GetTypeRefName(int token)
         {
             InitDelegate(ref _getTypeRefProps, VTable->GetTypeRefProps);
 
@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             int token,
             out int resolutionScopeToken,
-            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szName,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szName,
             int bufferSize,
             out int needed);
 
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetTypeDefPropsDelegate(
             IntPtr self,
             int token,
-            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szTypeDef,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szTypeDef,
             int cchTypeDef,
             out int pchTypeDef,
             out TypeAttributes pdwTypeDefFlags,
@@ -238,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             uint md,
             out int pClass,
-            StringBuilder szMethod,
+            StringBuilder? szMethod,
             int cchMethod,
             out int pchMethod,
             out MethodAttributes pdwAttr,
@@ -255,7 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             uint mb,
             out int mdTypeDef,
-            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder szField,
+            [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szField,
             int cchField,
             out int pchField,
             out FieldAttributes pdwAttr,

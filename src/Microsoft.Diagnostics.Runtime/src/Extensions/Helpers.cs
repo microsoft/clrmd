@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal static class Helpers
     {
-        public static ClrType GetTypeByName(this ClrModule module, string name)
+        public static ClrType? GetTypeByName(this ClrModule module, string name)
         {
             foreach ((ulong mt, uint _) in module.EnumerateTypeDefToMethodTableMap())
             {

@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                 return _getThreadContext(Self, ptr, context.Length) >= 0;
         }
 
-        private GetThreadContextDelegate _getThreadContext;
+        private GetThreadContextDelegate? _getThreadContext;
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

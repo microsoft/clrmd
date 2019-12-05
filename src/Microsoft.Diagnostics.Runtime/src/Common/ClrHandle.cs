@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dependent = dependent;
         }
 
-        public ClrHandle(in HandleData handleData, ClrObject obj, ClrAppDomain domain, ClrType dependentSecondary)
+        public ClrHandle(in HandleData handleData, ClrObject obj, ClrAppDomain domain, ClrType? dependentSecondary)
         {
             Address = handleData.Handle;
 
@@ -80,14 +80,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (!obj.IsNull)
                 {
-                    ComCallWrapper ccw = obj.Type.GetCCWData(obj);
+                    ComCallWrapper? ccw = obj.Type.GetCCWData(obj);
                     if (ccw != null && refCount < ccw.RefCount)
                     {
                         refCount = (uint)ccw.RefCount;
                     }
                     else
                     {
-                        RuntimeCallableWrapper rcw = obj.Type.GetRCWData(obj);
+                        RuntimeCallableWrapper? rcw = obj.Type.GetRCWData(obj);
                         if (rcw != null && refCount < rcw.RefCount)
                             refCount = (uint)rcw.RefCount;
                     }

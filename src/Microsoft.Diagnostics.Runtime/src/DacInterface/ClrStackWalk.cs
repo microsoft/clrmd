@@ -15,9 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
 
-        private RequestDelegate _request;
-        private NextDelegate _next;
-        private GetContextDelegate _getContext;
+        private RequestDelegate? _request;
+        private NextDelegate? _next;
+        private GetContextDelegate? _getContext;
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)

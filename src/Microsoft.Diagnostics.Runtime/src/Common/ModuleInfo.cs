@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ModuleInfo
     {
-        private PEImage _image;
+        private PEImage? _image;
         private readonly IDataReader _dataReader;
         private VersionInfo? _version;
 
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// If the PEImage cannot be constructed, null is returned.
         /// </summary>
         /// <returns></returns>
-        public PEImage GetPEImage()
+        public PEImage? GetPEImage()
         {
             if (_image != null)
                 return _image;
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
         /// </summary>
-        public IReadOnlyList<byte> BuildId { get; }
+        public IReadOnlyList<byte>? BuildId { get; }
 
         /// <summary>
         /// Whether the module is managed or not.
@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="reader"></param>
         public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string filename,
-            IReadOnlyList<byte> buildId = null, VersionInfo? version = null)
+            IReadOnlyList<byte>? buildId = null, VersionInfo? version = null)
         {
             _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
             ImageBase = imgBase;

@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly byte[] _data;
 
-        public bool IsEmpty => _data == null;
+        public bool IsEmpty => _data is null;
 
         public GCDesc(byte[] data)
         {

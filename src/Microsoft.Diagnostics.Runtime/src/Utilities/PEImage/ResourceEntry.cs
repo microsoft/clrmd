@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public class ResourceEntry
     {
         private static readonly ResourceEntry[] s_emptyChildren = Array.Empty<ResourceEntry>();
-        private ResourceEntry[] _children;
+        private ResourceEntry[]? _children;
         private readonly int _offset;
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The parent resource of this ResourceEntry.  Null if and only if this is the root node.
         /// </summary>
-        public ResourceEntry Parent { get; }
+        public ResourceEntry? Parent { get; }
 
         /// <summary>
         /// Resource Name.  May be null if this is the root node.
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public IReadOnlyList<ResourceEntry> Children => GetChildren();
 
-        internal ResourceEntry(PEImage image, ResourceEntry parent, string name, bool leaf, int offset)
+        internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {
             Image = image;
             Parent = parent;

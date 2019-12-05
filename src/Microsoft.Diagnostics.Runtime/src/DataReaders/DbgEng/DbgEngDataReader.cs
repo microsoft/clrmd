@@ -20,16 +20,16 @@ namespace Microsoft.Diagnostics.Runtime
         private static int s_totalInstanceCount;
         private static bool s_needRelease = true; //todo
 
-        private DebugClient _client;
-        private DebugControl _control;
-        private DebugDataSpaces _spaces;
-        private DebugAdvanced _advanced;
-        private DebugSymbols _symbols;
-        private DebugSystemObjects _systemObjects;
+        private DebugClient _client = null!;
+        private DebugControl _control = null!;
+        private DebugDataSpaces _spaces = null!;
+        private DebugAdvanced _advanced = null!;
+        private DebugSymbols _symbols = null!;
+        private DebugSystemObjects _systemObjects = null!;
 
         private bool _disposed;
 
-        private List<ModuleInfo> _modules;
+        private List<ModuleInfo>? _modules;
         private int? _pointerSize;
         private bool? _minidump;
         private Architecture? _architecture;

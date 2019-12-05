@@ -10,18 +10,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class FileLoader
     {
-        private readonly Dictionary<string, PEImage> _pefileCache = new Dictionary<string, PEImage>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         public FileLoader()
         {
         }
 
-        public PEImage LoadPEImage(string fileName)
+        public PEImage? LoadPEImage(string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out PEImage result))
+            if (_pefileCache.TryGetValue(fileName, out PEImage? result))
                 return result;
 
             Stream stream = File.OpenRead(fileName);

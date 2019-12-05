@@ -132,8 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 options.useShellExecute = true;
                 startInfo.Verb = "runas";
-                if (options.currentDirectory == null)
-                    options.currentDirectory = Environment.CurrentDirectory;
+                options.currentDirectory ??= Environment.CurrentDirectory;
             }
 
             Process.OutputDataReceived += OnProcessOutput;
@@ -277,12 +276,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Command.Run failure was the appropriate action.
         /// </summary>
         /// <param name="message">An additional message to print in the throw (can be null)</param>
-        public void ThrowCommandFailure(string message)
+        public void ThrowCommandFailure(string? message)
         {
             if (Process.ExitCode != 0)
             {
                 string outSpec = string.Empty;
-                if (_outputStream == null)
+                if (_outputStream is null)
                 {
                     string outStr = _output.ToString();
                     // Only show the first lineNumber the last two lines if there are a lot of output.
@@ -296,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     outSpec = "\r\n  Output: {\r\n    " + outStr + "\r\n  }";
                 }
 
-                if (message == null)
+                if (message is null)
                     message = string.Empty;
                 else if (message.Length > 0)
                     message += "\r\n";
@@ -366,9 +365,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Given a string 'commandExe' look for it on the path the way cmd.exe would.
         /// Returns null if it was not found.
         /// </summary>
-        public static string FindOnPath(string commandExe)
+        public static string? FindOnPath(string commandExe)
         {
-            string ret = ProbeForExe(commandExe);
+            string? ret = ProbeForExe(commandExe);
             if (ret != null)
                 return ret;
 
@@ -386,7 +385,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private static string ProbeForExe(string path)
+        private static string? ProbeForExe(string path)
         {
             if (File.Exists(path))
                 return path;
@@ -405,22 +404,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (s_pathExts == null)
-                    s_pathExts = Environment.GetEnvironmentVariable("PATHEXT").Split(';');
+                s_pathExts ??= Environment.GetEnvironmentVariable("PATHEXT").Split(';');
                 return s_pathExts;
             }
         }
-        private static string[] s_pathExts;
+        private static string[]? s_pathExts;
         private static string[] Paths
         {
             get
             {
-                if (s_paths == null)
-                    s_paths = Environment.GetEnvironmentVariable("PATH").Split(';');
+                s_paths ??= Environment.GetEnvironmentVariable("PATH").Split(';');
                 return s_paths;
             }
         }
-        private static string[] s_paths;
+        private static string[]? s_paths;
 
         /* called data comes to either StdErr or Stdout */
         private void OnProcessOutput(object sender, DataReceivedEventArgs e)
@@ -434,6 +431,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /* private state */
         private readonly string _commandLine;
         private readonly StringBuilder _output;
-        private TextWriter _outputStream;
+        private TextWriter? _outputStream;
     }
 }

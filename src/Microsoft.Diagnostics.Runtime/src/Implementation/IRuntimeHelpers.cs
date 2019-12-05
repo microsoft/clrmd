@@ -12,11 +12,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
         IReadOnlyList<ClrThread> GetThreads(ClrRuntime runtime);
-        IReadOnlyList<ClrAppDomain> GetAppDomains(ClrRuntime runtime, out ClrAppDomain system, out ClrAppDomain shared);
+        IReadOnlyList<ClrAppDomain> GetAppDomains(ClrRuntime runtime, out ClrAppDomain? system, out ClrAppDomain? shared);
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime);
         void FlushCachedData();
         ulong GetMethodDesc(ulong ip);
         string GetJitHelperFunctionName(ulong ip);
-        ClrModule GetBaseClassLibrary(ClrRuntime runtime);
+        ClrModule? GetBaseClassLibrary(ClrRuntime runtime);
     }
 }

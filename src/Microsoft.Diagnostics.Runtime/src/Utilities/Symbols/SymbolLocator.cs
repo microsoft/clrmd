@@ -22,12 +22,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The raw symbol path.  You should probably use the SymbolPath property instead.
         /// </summary>
-        protected volatile string _symbolPath;
+        protected volatile string? _symbolPath;
 
         /// <summary>
         /// The raw symbol cache.  You should probably use the SymbolCache property instead.
         /// </summary>
-        protected volatile string _symbolCache;
+        protected volatile string? _symbolCache;
 
         /// <summary>
         /// The timeout (in milliseconds) used when contacting each individual server.  This is not a total timeout for the entire
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                string cache = _symbolCache;
+                string? cache = _symbolCache;
                 if (!string.IsNullOrEmpty(cache))
                     return cache;
 
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public string FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true)
+        public string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true)
         {
             return FindBinary(fileName, (int)buildTimeStamp, (int)imageSize, checkProperties);
         }
@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public abstract string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true);
+        public abstract string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true);
 
         /// <summary>
         /// Attempts to locate a binary via the symbol server.  This function will then copy the file
@@ -178,10 +178,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="module">The module to locate.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public string FindBinary(ModuleInfo module, bool checkProperties = true)
+        public string? FindBinary(ModuleInfo module, bool checkProperties = true)
         {
-            if (module == null)
+            if (module is null)
                 throw new ArgumentNullException(nameof(module));
+
             return FindBinary(module.FileName, module.TimeStamp, module.FileSize, checkProperties);
         }
 
@@ -192,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="dac">The dac to locate.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public string FindBinary(DacInfo dac)
+        public string? FindBinary(DacInfo dac)
         {
             return FindBinary(dac, false);
         }
@@ -262,8 +263,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (input is null)
                 throw new ArgumentNullException(nameof(input));
 
-            Debug.Assert(input != null);
-
             try
             {
                 FileInfo fi = new FileInfo(fullDestPath);
@@ -274,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Directory.CreateDirectory(folder);
 
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
-                FileStream file = null;
+                FileStream? file = null;
                 try
                 {
                     file = new FileStream(fullDestPath, FileMode.OpenOrCreate);
@@ -342,7 +341,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public async Task<string> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true)
+        public async Task<string?> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true)
         {
             return await FindBinaryAsync(fileName, (int)buildTimeStamp, (int)imageSize, checkProperties).ConfigureAwait(false);
         }
@@ -356,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public abstract Task<string> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true);
+        public abstract Task<string?> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true);
 
         /// <summary>
         /// Attempts to locate a binary via the symbol server.  This function will then copy the file
@@ -365,10 +364,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="module">The module to locate.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public async Task<string> FindBinaryAsync(ModuleInfo module, bool checkProperties = true)
+        public async Task<string?> FindBinaryAsync(ModuleInfo module, bool checkProperties = true)
         {
-            if (module == null)
+            if (module is null)
                 throw new ArgumentNullException(nameof(module));
+
             return await FindBinaryAsync(module.FileName, module.TimeStamp, module.FileSize, checkProperties).ConfigureAwait(false);
         }
 
@@ -379,7 +379,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="dac">The dac to locate.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public async Task<string> FindBinaryAsync(DacInfo dac)
+        public async Task<string?> FindBinaryAsync(DacInfo dac)
         {
             return await FindBinaryAsync(dac, false).ConfigureAwait(false);
         }

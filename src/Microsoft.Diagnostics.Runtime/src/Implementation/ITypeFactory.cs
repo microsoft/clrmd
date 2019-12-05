@@ -13,17 +13,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         ClrRuntime GetOrCreateRuntime();
         ClrHeap GetOrCreateHeap();
-        ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
+        ClrModule? GetOrCreateModule(ClrAppDomain domain, ulong address);
         ClrMethod[] CreateMethodsForType(ClrType type);
         void CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> staticFields);
-        ComCallWrapper CreateCCWForObject(ulong obj);
-        RuntimeCallableWrapper CreateRCWForObject(ulong obj);
-        ClrType GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
-        ClrType GetOrCreateType(ulong mt, ulong obj);
+        ComCallWrapper? CreateCCWForObject(ulong obj);
+        RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
+        ClrType? GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
+        ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);
-        ClrType GetOrCreateArrayType(ClrType inner, int ranks);
-        ClrType GetOrCreateTypeFromToken(ClrModule module, uint token);
-        ClrType GetOrCreatePointerType(ClrType innerType, int depth);
-        ClrMethod CreateMethodFromHandle(ulong methodHandle);
+        ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
+        ClrType? GetOrCreateTypeFromToken(ClrModule module, uint token);
+        ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
+        ClrMethod? CreateMethodFromHandle(ulong methodHandle);
     }
 }

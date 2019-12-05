@@ -68,18 +68,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsSealed => false;
         public override bool IsShared => false;
         public override bool IsInterface => false;
-        public override ClrInstanceField GetFieldByName(string name) => null;
-        public override ClrStaticField GetStaticFieldByName(string name) => null;
-        public override ClrType BaseType => null;
+        public override ClrInstanceField? GetFieldByName(string name) => null;
+        public override ClrStaticField? GetStaticFieldByName(string name) => null;
+        public override ClrType? BaseType => null;
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
-        public override object GetArrayElementValue(ulong objRef, int index) => null;
+        public override object? GetArrayElementValue(ulong objRef, int index) => null;
         public override int BaseSize => IntPtr.Size;
         public override GCDesc GCDesc => default;
         public override uint MetadataToken => 0;
         public override bool IsArray => !IsPointer;
         public override int ComponentSize => IntPtr.Size;
-        public override ComCallWrapper GetCCWData(ulong obj) => null;
-        public override RuntimeCallableWrapper GetRCWData(ulong obj) => null;
+        public override ComCallWrapper? GetCCWData(ulong obj) => null;
+        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => null;
         public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
         {
             childField = null;

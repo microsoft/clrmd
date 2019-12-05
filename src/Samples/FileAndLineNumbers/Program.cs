@@ -49,7 +49,7 @@ static class Extensions
     public static FileAndLineNumber GetSourceLocation(this ClrStackFrame frame)
     {
         PdbReader reader = GetReaderForFrame(frame);
-        if (reader == null)
+        if (reader is null)
             return new FileAndLineNumber();
 
         PdbFunction function = reader.GetFunctionFromToken(frame.Method.MetadataToken);

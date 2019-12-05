@@ -44,12 +44,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// returns the local cache for a symbol server specifcation.  returns null if not specified
         /// </summary>
-        public string Cache { get; set; }
+        public string? Cache { get; set; }
 
         /// <summary>
         /// returns location to look for symbols.  This is either a directory specification or an URL (for symbol servers)
         /// </summary>
-        public string Target { get; }
+        public string? Target { get; }
 
         /// <summary>
         /// IsRemote returns true if it looks like the target is not on the local machine.
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return false;
                 if (Cache != null)
                     return true;
-                if (Target == null)
+                if (Target is null)
                     return false;
 
                 if (Target.StartsWith("http:/", StringComparison.OrdinalIgnoreCase))
@@ -107,15 +107,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Implements object interface
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (!(obj is SymPathElement asSymPathElem))
+            if (!(obj is SymPathElement other))
                 return false;
 
             return
-                Target == asSymPathElem.Target &&
-                Cache == asSymPathElem.Cache &&
-                IsSymServer == asSymPathElem.IsSymServer;
+                Target == other.Target &&
+                Cache == other.Cache &&
+                IsSymServer == other.IsSymServer;
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return new SymPathElement(true, defaultCachePath, Target);
         }
 
-        internal SymPathElement LocalOnly()
+        internal SymPathElement? LocalOnly()
         {
             if (!IsRemote)
                 return this;
@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// returns a new SymPathElement with the corresponding properties initialized
         /// </summary>
-        public SymPathElement(bool isSymServer, string cache, string target)
+        public SymPathElement(bool isSymServer, string? cache, string target)
         {
             IsSymServer = isSymServer;
             Cache = cache;

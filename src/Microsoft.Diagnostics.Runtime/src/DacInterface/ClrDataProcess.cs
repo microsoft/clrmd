@@ -18,12 +18,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private IXCLRDataProcessVtable* VTable => (IXCLRDataProcessVtable*)_vtable;
 
-        private FlushDelegate _flush;
-        private GetTaskByOSThreadIDDelegate _getTask;
-        private RequestDelegate _request;
-        private StartEnumMethodInstancesByAddressDelegate _startEnum;
-        private EnumMethodInstanceByAddressDelegate _enum;
-        private EndEnumMethodInstancesByAddressDelegate _endEnum;
+        private FlushDelegate? _flush;
+        private GetTaskByOSThreadIDDelegate? _getTask;
+        private RequestDelegate? _request;
+        private StartEnumMethodInstancesByAddressDelegate? _startEnum;
+        private EnumMethodInstanceByAddressDelegate? _enum;
+        private EndEnumMethodInstancesByAddressDelegate? _endEnum;
 
         private readonly DacLibrary _library;
 
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
-        public SOSDac GetSOSDacInterface()
+        public SOSDac? GetSOSDacInterface()
         {
             IntPtr result = QueryInterface(ref SOSDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SOSDac6 GetSOSDacInterface6()
+        public SOSDac6? GetSOSDacInterface6()
         {
             IntPtr result = QueryInterface(ref SOSDac6.IID_ISOSDac6);
             if (result == IntPtr.Zero)
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return _request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
         }
 
-        public ClrStackWalk CreateStackWalk(uint id, uint flags)
+        public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
             InitDelegate(ref _getTask, VTable->GetTaskByOSThreadID);
 
@@ -99,9 +99,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             // for the largest of the leaks caused by this issue.
             //     https://github.com/Microsoft/clrmd/issues/47
             int count = AddRef();
-            ClrStackWalk res = dataTask.CreateStackWalk(_library, flags);
+            ClrStackWalk? res = dataTask.CreateStackWalk(_library, flags);
             int released = Release();
-            if (released == count && res == null)
+            if (released == count && res is null)
                 Release();
             return res;
         }

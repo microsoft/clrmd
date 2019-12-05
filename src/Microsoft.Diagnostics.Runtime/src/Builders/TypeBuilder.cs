@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return true;
         }
 
-        public ObjectPool<TypeBuilder> Owner { get; set; }
+        public ObjectPool<TypeBuilder>? Owner { get; set; }
 
         public ITypeHelpers Helpers { get; }
         public bool IsShared => _mtData.Shared != 0;

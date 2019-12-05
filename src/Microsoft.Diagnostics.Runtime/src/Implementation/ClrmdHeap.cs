@@ -19,13 +19,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqObjects;
         private readonly Dictionary<ulong, ulong> _allocationContext;
         private int _lastSegmentIndex;
-        private (ulong, ulong)[] _dependants;
+        private (ulong, ulong)[]? _dependants;
 
         [ThreadStatic]
-        private static MemoryReader _memoryReader;
+        private static MemoryReader? _memoryReader;
 
         [ThreadStatic]
-        private static HeapWalkStep[] _steps;
+        private static HeapWalkStep[]? _steps;
 
         [ThreadStatic]
         private static int _step = -1;
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// <summary>
         /// This is a circular buffer of steps.
         /// </summary>
-        public static IReadOnlyList<HeapWalkStep> Steps => _steps;
+        public static IReadOnlyList<HeapWalkStep>? Steps => _steps;
 
         /// <summary>
         /// The current index into the Steps circular buffer.
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public static void LogHeapWalkSteps(int bufferSize)
         {
             _step = bufferSize - 1;
-            if (_steps == null || _steps.Length != bufferSize)
+            if (_steps is null || _steps.Length != bufferSize)
                 _steps = new HeapWalkStep[bufferSize];
         }
 
@@ -106,8 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IDataReader dataReader = _helpers.DataReader;
             byte[] buffer = new byte[IntPtr.Size * 2 + sizeof(uint)];
 
-            if (_memoryReader == null)
-                _memoryReader = new MemoryReader(_helpers.DataReader, 0x10000);
+            _memoryReader ??= new MemoryReader(_helpers.DataReader, 0x10000);
 
             // The large object heap
             if (!large)
@@ -132,8 +131,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         break;
                 }
 
-                ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
-                if (type == null)
+                ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
+                if (type is null)
                 {
                     if (logging)
                         WriteHeapStep(obj, mt, int.MinValue + 1, -1, 0);
@@ -228,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (size + AlignConst) & ~AlignConst;
         }
 
-        public override ClrType GetObjectType(ulong objRef)
+        public override ClrType? GetObjectType(ulong objRef)
         {
             if (_memoryReader != null && _memoryReader.Contains(objRef) && _memoryReader.TryReadPtr(objRef, out ulong mt))
             {
@@ -244,9 +243,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return _helpers.Factory.GetOrCreateType(mt, objRef);
         }
 
-        public override ClrSegment GetSegmentByAddress(ulong objRef)
+        public override ClrSegment? GetSegmentByAddress(ulong objRef)
         {
-            if (Segments == null || Segments.Count == 0)
+            if (Segments is null || Segments.Count == 0)
                 return null;
 
             if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count - 1].End)
@@ -317,12 +316,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
 
             if (considerDependantHandles)
             {
-                if (_dependants == null)
+                if (_dependants is null)
                 {
                     _dependants = _helpers.EnumerateDependentHandleLinks().ToArray();
                     Array.Sort(_dependants, (x, y) => x.Item1.CompareTo(y.Item1));
@@ -360,8 +359,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     ulong size = GetObjectSize(obj, type);
                     if (carefully)
                     {
-                        ClrSegment seg = GetSegmentByAddress(obj);
-                        if (seg == null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
+                        ClrSegment? seg = GetSegmentByAddress(obj);
+                        if (seg is null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
                             yield break;
                     }
 
@@ -413,7 +412,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private IEnumerable<ClrFinalizerRoot> EnumerateFQ(IEnumerable<FinalizerQueueSegment> fqList)
         {
-            if (fqList == null)
+            if (fqList is null)
                 yield break;
 
             foreach (FinalizerQueueSegment seg in fqList)
@@ -425,7 +424,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         continue;
 
                     ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
-                    ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
+                    ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
                     if (type != null)
                         yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));
                 }

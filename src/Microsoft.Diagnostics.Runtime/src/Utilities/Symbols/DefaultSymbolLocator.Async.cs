@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public partial class DefaultSymbolLocator : SymbolLocator
     {
-        private static readonly Dictionary<FileEntry, Task<string>> s_files = new Dictionary<FileEntry, Task<string>>();
+        private static readonly Dictionary<FileEntry, Task<string?>> s_files = new Dictionary<FileEntry, Task<string?>>();
         private static readonly Dictionary<string, Task> s_copy = new Dictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public override async Task<string> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
+        public override async Task<string?> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
             if (string.IsNullOrWhiteSpace(fileName))
                 throw new ArgumentNullException(nameof(fileName));
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             HashSet<FileEntry> missingFiles = _missingFiles;
 
-            Task<string> task = null;
+            Task<string?> task;
             lock (s_files)
             {
                 if (IsMissing(missingFiles, fileEntry))
@@ -50,18 +50,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // If we failed to find the file, we need to clear out the empty task, since the user could
             // change symbol paths and we need s_files to only contain positive results.
-            string result = await task.ConfigureAwait(false);
-            if (result == null)
+            string? result = await task.ConfigureAwait(false);
+            if (result is null)
                 ClearFailedTask(s_files, task, missingFiles, fileEntry);
 
             return result;
         }
 
-        private static void ClearFailedTask<T>(Dictionary<T, Task<string>> tasks, Task<string> task, HashSet<T> missingFiles, T fileEntry)
+        private static void ClearFailedTask<T>(Dictionary<T, Task<string?>> tasks, Task<string?> task, HashSet<T> missingFiles, T fileEntry)
         {
             lock (tasks)
             {
-                if (tasks.TryGetValue(fileEntry, out Task<string> tmp) && tmp == task)
+                if (tasks.TryGetValue(fileEntry, out Task<string?> tmp) && tmp == task)
                     tasks.Remove(fileEntry);
 
                 lock (missingFiles)
@@ -69,13 +69,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private async Task<string> DownloadFileWorker(string fileFullPath, string fileSimpleName, int buildTimeStamp, int imageSize, bool checkProperties)
+        private async Task<string?> DownloadFileWorker(string fileFullPath, string fileSimpleName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string fileIndexPath = GetIndexPath(fileSimpleName, buildTimeStamp, imageSize);
             string cachePath = Path.Combine(SymbolCache, fileIndexPath);
 
             bool match(string file) => ValidateBinary(file, buildTimeStamp, imageSize, checkProperties);
-            string result = CheckLocalPaths(fileFullPath, fileSimpleName, cachePath, match);
+            string? result = CheckLocalPaths(fileFullPath, fileSimpleName, cachePath, match);
             if (result != null)
             {
                 Trace("Found '{0}' locally on path '{1}'.", fileSimpleName, result);
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        private static string CheckLocalPaths(string fullName, string simpleName, string fullDestPath, Func<string, bool> matches)
+        private static string? CheckLocalPaths(string fullName, string simpleName, string fullDestPath, Func<string, bool> matches)
         {
             // We were given a full path instead of simply "foo.bar".
             if (fullName != simpleName)
@@ -108,9 +108,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private async Task<string> SearchSymbolServerForFile(string fileSimpleName, string fileIndexPath, Func<string, bool> match)
+        private async Task<string?> SearchSymbolServerForFile(string fileSimpleName, string fileIndexPath, Func<string, bool> match)
         {
-            List<Task<string>> tasks = new List<Task<string>>();
+            List<Task<string?>> tasks = new List<Task<string?>>();
             foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
@@ -125,12 +125,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            string result = await GetFirstNonNullResult(tasks).ConfigureAwait(false);
+            string? result = await GetFirstNonNullResult(tasks).ConfigureAwait(false);
             return result;
         }
 
         private static async Task<T> GetFirstNonNullResult<T>(List<Task<T>> tasks)
-            where T : class
+            where T : class?
         {
             while (tasks.Count > 0)
             {
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private async Task<string> CheckAndCopyRemoteFile(string sourcePath, string fullDestPath, Func<string, bool> matches)
+        private async Task<string?> CheckAndCopyRemoteFile(string sourcePath, string fullDestPath, Func<string, bool> matches)
         {
             if (!matches(sourcePath))
                 return null;
@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private async Task<string> TryGetFileFromServerAsync(string urlForServer, string fileIndexPath, string cache)
+        private async Task<string?> TryGetFileFromServerAsync(string urlForServer, string fileIndexPath, string cache)
         {
             string fullDestPath = Path.Combine(cache, fileIndexPath);
             Debug.Assert(!string.IsNullOrWhiteSpace(cache));
@@ -183,17 +183,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             string compressedFileTarget = Path.Combine(cache, compressedFilePath);
 
             TryDeleteFile(compressedFileTarget);
-            Task<string> compressedFilePathDownload = GetPhysicalFileFromServerAsync(urlForServer, compressedFilePath, compressedFileTarget);
+            Task<string?> compressedFilePathDownload = GetPhysicalFileFromServerAsync(urlForServer, compressedFilePath, compressedFileTarget);
 
             // Second, check if the raw file itself is indexed, uncompressed.
-            Task<string> rawFileDownload = GetPhysicalFileFromServerAsync(urlForServer, fileIndexPath, fullDestPath);
+            Task<string?> rawFileDownload = GetPhysicalFileFromServerAsync(urlForServer, fileIndexPath, fullDestPath);
 
             // Last, check for a redirection link.
             string filePtrSigPath = Path.Combine(Path.GetDirectoryName(fileIndexPath), "file.ptr");
-            Task<string> filePtrDownload = GetPhysicalFileFromServerAsync(urlForServer, filePtrSigPath, fullDestPath, true);
+            Task<string?> filePtrDownload = GetPhysicalFileFromServerAsync(urlForServer, filePtrSigPath, fullDestPath, true);
 
             // Handle compressed download.
-            string result = await compressedFilePathDownload.ConfigureAwait(false);
+            string? result = await compressedFilePathDownload.ConfigureAwait(false);
             if (result != null)
             {
                 try
@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private async Task<string> GetPhysicalFileFromServerAsync(string serverPath, string fileIndexPath, string fullDestPath, bool returnContents = false)
+        private async Task<string?> GetPhysicalFileFromServerAsync(string serverPath, string fileIndexPath, string fullDestPath, bool returnContents = false)
         {
             if (string.IsNullOrEmpty(serverPath))
                 return null;
@@ -378,13 +378,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A task indicating when the copy is completed.</returns>
         protected override async Task CopyStreamToFileAsync(Stream input, string fullSrcPath, string fullDestPath, long size)
         {
-            if (input == null)
+            if (input is null)
                 throw new ArgumentNullException(nameof(input));
 
             Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
 
             Task result;
-            FileStream output = null;
+            FileStream? output = null;
             try
             {
                 lock (s_copy)
@@ -417,18 +417,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private string GetFileEntry(FileEntry entry)
+        private string? GetFileEntry(FileEntry entry)
         {
             lock (s_files)
             {
-                if (s_files.TryGetValue(entry, out Task<string> task))
+                if (s_files.TryGetValue(entry, out Task<string?> task))
                     return task.Result;
             }
 
             return null;
         }
 
-        private void SetFileEntry(HashSet<FileEntry> missingFiles, FileEntry entry, string value)
+        private void SetFileEntry(HashSet<FileEntry> missingFiles, FileEntry entry, string? value)
         {
             if (value != null)
             {
@@ -436,7 +436,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (!s_files.ContainsKey(entry))
                     {
-                        Task<string> task = new Task<string>(() => value);
+                        Task<string?> task = new Task<string?>(() => value);
                         s_files[entry] = task;
                         task.Start();
                     }

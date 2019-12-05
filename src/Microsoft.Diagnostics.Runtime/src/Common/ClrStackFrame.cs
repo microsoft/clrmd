@@ -37,11 +37,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// current frame is actually a CLR "Internal Frame" representing a marker on the stack, and that
         /// stack marker does not have a managed method associated with it.
         /// </summary>
-        public abstract ClrMethod Method { get; }
+        public abstract ClrMethod? Method { get; }
 
         /// <summary>
         /// The helper method frame name if Kind == Runtime, null otherwise.
         /// </summary>
-        public abstract string FrameName { get; }
+        public abstract string? FrameName { get; }
     }
 }
