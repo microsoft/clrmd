@@ -5,7 +5,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -42,6 +41,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ObjectPool<MethodBuilder> _methodBuilders;
         private readonly ObjectPool<FieldBuilder> _fieldBuilders;
         private ModuleBuilder _moduleBuilder;
+
+        public bool IsThreadSafe => true;
 
         public IDataReader DataReader { get; }
         public IHeapBuilder HeapBuilder => new HeapBuilder(this, _sos, DataReader, _firstThread);

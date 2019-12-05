@@ -9,6 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public interface ITypeFactory : IDisposable
     {
+        bool IsThreadSafe { get; }
+
         ClrRuntime GetOrCreateRuntime();
         ClrHeap GetOrCreateHeap();
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
