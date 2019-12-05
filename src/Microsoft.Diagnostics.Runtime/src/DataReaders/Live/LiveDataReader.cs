@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ProcessId => (uint)_pid;
 
-        public bool IsMinidump => false;
+        public bool IsFullMemoryAvailable => true;
 
         public void FlushCachedData()
         {

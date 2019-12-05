@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if the data target is a minidump which might not contain full heap data.
         /// </summary>
-        bool IsMinidump { get; }
+        bool IsFullMemoryAvailable { get; }
 
         /// <summary>
         /// Enumerates the OS thread ID of all threads in the process.

@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public bool IsMinidump => false; // TODO
+        public bool IsFullMemoryAvailable => true; // TODO
 
         public void Dispose()
         {

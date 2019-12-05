@@ -88,23 +88,23 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ProcessId => _systemObjects.GetProcessId();
 
-        public bool IsMinidump
+        public bool IsFullMemoryAvailable
         {
             get
             {
                 if (_minidump.HasValue)
-                    return _minidump.Value;
+                    return !_minidump.Value;
 
                 DEBUG_CLASS_QUALIFIER qual = _control.GetDebuggeeClassQualifier();
                 if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
                 {
                     DEBUG_FORMAT flags = _control.GetDumpFormat();
                     _minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
-                    return _minidump.Value;
+                    return !_minidump.Value;
                 }
 
                 _minidump = false;
-                return false;
+                return true;
             }
         }
 
