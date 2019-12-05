@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract GCDesc GCDesc { get; }
 
         /// <summary>
-        /// The type handle of this type (e.g. MethodTable).
+        /// The MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
         /// </summary>
-        public abstract ulong TypeHandle { get; }
+        public abstract ulong MethodTable { get; }
         
         /// <summary>
         /// Returns the metadata token of this type.
@@ -330,8 +330,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (obj is ClrType type)
             {
-                if (TypeHandle != 0 && type.TypeHandle != 0)
-                    return TypeHandle == type.TypeHandle;
+                if (MethodTable != 0 && type.MethodTable != 0)
+                    return MethodTable == type.MethodTable;
 
                 if (type.IsPointer)
                 {
@@ -356,7 +356,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public override int GetHashCode() => TypeHandle.GetHashCode();
+        public override int GetHashCode() => MethodTable.GetHashCode();
 
         public static bool operator ==(ClrType t1, ClrType t2)
         {

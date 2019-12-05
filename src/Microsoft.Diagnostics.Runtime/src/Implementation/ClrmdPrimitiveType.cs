@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsPublic => false;
         public override bool IsSealed => false;
         public override uint MetadataToken => 0;
-        public override ulong TypeHandle => 0;
+        public override ulong MethodTable => 0;
         public override string Name
         {
             get

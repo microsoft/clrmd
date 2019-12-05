@@ -747,7 +747,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            ulong mt = type.TypeHandle;
+            ulong mt = type.MethodTable;
             if (!_sos.GetMethodTableData(mt, out MethodTableData data))
                 return Array.Empty<ClrMethod>();
 
@@ -819,7 +819,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (type.IsFree)
                 return;
 
-            if (!_sos.GetFieldInfo(type.TypeHandle, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
             {
                 if (type.BaseType != null)
                     fields = type.BaseType.Fields;
