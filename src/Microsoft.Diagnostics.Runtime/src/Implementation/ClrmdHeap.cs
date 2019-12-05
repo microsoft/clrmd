@@ -88,7 +88,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ClrObject result = new ClrObject(obj, type);
                 yield return result;
 
-                ulong size = result.Size;
+                ulong size;
+                if (type.ComponentSize == 0)
+                {
+                    size = (uint)type.BaseSize;
+                }
+                else
+                {
+                    _memoryReader.ReadDword(obj + (uint)IntPtr.Size, out uint count);
+                    
+                    // Strings in v4+ contain a trailing null terminator not accounted for.
+                    if (StringType == type)
+                        count++;
+
+                    size = count * (ulong)type.ComponentSize + (ulong)type.BaseSize;
+                }
+
                 size = Align(size, large);
                 if (size < minObjSize)
                     size = minObjSize;
