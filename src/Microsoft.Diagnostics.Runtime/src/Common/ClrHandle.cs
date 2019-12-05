@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return HandleKind + " " + (Object.Type?.Name ?? "");
+            return HandleKind + " " + (Object.Type?.Name ?? string.Empty);
         }
 
         public ClrHandle(ulong address, ClrObject obj, ClrHandleKind handleKind, uint refCount, ClrObject dependent, ClrAppDomain domain)
@@ -100,9 +100,8 @@ namespace Microsoft.Diagnostics.Runtime
             AppDomain = domain;
 
             if (HandleKind == ClrHandleKind.Dependent)
-                Dependent = new ClrObject( handleData.Secondary, dependentSecondary);
+                Dependent = new ClrObject(handleData.Secondary, dependentSecondary);
         }
-
 
         /// <summary>
         /// Whether the handle is strong (roots the object) or not.

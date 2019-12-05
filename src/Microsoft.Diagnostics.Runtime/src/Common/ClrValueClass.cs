@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an instance of a type which inherits from System.ValueClass
+    /// Represents an instance of a type which inherits from System.ValueClass.
     /// </summary>
     public struct ClrValueClass : IAddressableTypedEntity
     {

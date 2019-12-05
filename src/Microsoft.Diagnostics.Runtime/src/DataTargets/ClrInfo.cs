@@ -60,9 +60,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Creates a runtime from the given Dac file on disk.
         /// </summary>
-        /// <param name="clrInfo">CLR info</param>
+        /// <param name="clrInfo">CLR info.</param>
         /// <param name="dacFilename">A full path to the matching mscordacwks for this process.</param>
-        /// <param name="ignoreMismatch">Whether or not to ignore mismatches between </param>
+        /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
         /// <returns></returns>
         public ClrRuntime CreateRuntime(string dacFilename, bool ignoreMismatch = false)
         {
@@ -98,7 +98,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             return ConstructRuntime(dac);
         }
-
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
         private ClrRuntime ConstructRuntime(string dac)

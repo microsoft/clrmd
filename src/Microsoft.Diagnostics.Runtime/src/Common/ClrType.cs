@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -23,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
         /// </summary>
         public abstract ulong MethodTable { get; }
-        
+
         /// <summary>
         /// Returns the metadata token of this type.
         /// </summary>
@@ -54,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// All types know the heap they belong to.
         /// </summary>
         public abstract ClrHeap Heap { get; }
-        
+
         /// <summary>
         /// Returns the module this type is defined in.
         /// </summary>
@@ -160,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// and 'remaining' offset with the type of Field1 (which must be a struct type).   Calling
         /// GetFieldForOffset repeatedly until the childFieldOffset is 0 will retrieve the whole chain.
         /// </summary>
-        /// <returns>true if successful.  Will fail if it 'this' is an array type</returns>
+        /// <returns>true if successful.  Will fail if it 'this' is an array type.</returns>
         public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset);
 
         /// <summary>
@@ -174,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrStaticField GetStaticFieldByName(string name);
 
         /// <summary>
-        /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown)
+        /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown).
         /// </summary>
         public abstract ClrType BaseType { get; }
 

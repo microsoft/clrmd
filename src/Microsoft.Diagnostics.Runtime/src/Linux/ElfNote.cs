@@ -40,7 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _reader.ReadBytes(position + contentsoffset, buffer);
         }
 
-
         public T ReadContents<T>(ref long position)
             where T : unmanaged
         {

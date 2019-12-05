@@ -280,7 +280,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private string ReadString(int len) => ReadString(_offset, len);
 
-
         private string ReadString(int offset, int len)
         {
             if (len > 4096)
@@ -349,7 +348,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return default;
             return t;
         }
-
 
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
 

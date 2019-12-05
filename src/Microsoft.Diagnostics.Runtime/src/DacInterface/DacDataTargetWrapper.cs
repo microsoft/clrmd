@@ -206,7 +206,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-
         public int Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
         {
             outBuffer = IntPtr.Zero;

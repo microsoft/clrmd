@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using System;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    class FieldBuilder : IFieldData, IDisposable
+    internal class FieldBuilder : IFieldData, IDisposable
     {
         private readonly SOSDac _sos;
         private FieldData _fieldData;

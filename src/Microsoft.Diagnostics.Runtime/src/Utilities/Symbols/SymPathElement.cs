@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public static List<SymPathElement> GetElements(string symbolPath)
         {
-            string[] entries = (symbolPath ?? "").Split(';');
+            string[] entries = (symbolPath ?? string.Empty).Split(';');
             List<SymPathElement> result = new List<SymPathElement>(entries.Length);
 
             foreach (string element in entries)
@@ -35,14 +35,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// returns true if this element of the symbol server path a symbol server specification
         /// </summary>
         public bool IsSymServer { get; }
+
         /// <summary>
         /// returns true if this element of the symbol server path is a local cache specification
         /// </summary>
         public bool IsCache { get; }
+
         /// <summary>
         /// returns the local cache for a symbol server specifcation.  returns null if not specified
         /// </summary>
         public string Cache { get; set; }
+
         /// <summary>
         /// returns location to look for symbols.  This is either a directory specification or an URL (for symbol servers)
         /// </summary>
@@ -61,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return true;
 
                     // We assume drive letters from the back of the alphabet are remote.
-                    if (2 <= Target.Length && Target[1] == ':')
+                    if (Target.Length >= 2 && Target[1] == ':')
                     {
                         char driveLetter = char.ToUpperInvariant(Target[0]);
                         if ('T' <= driveLetter && driveLetter <= 'Z')
@@ -180,7 +183,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Cache = m.Groups[1].Value;
             }
             else
+            {
                 Target = strElem.Trim();
+            }
         }
     }
 }

@@ -1,7 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
@@ -21,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getThreadContext, VTable->GetThreadContext);
 
             using IDisposable holder = _sys.Enter();
-            fixed (byte *ptr = context)
+            fixed (byte* ptr = context)
                 return _getThreadContext(Self, ptr, context.Length) >= 0;
         }
 
@@ -29,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetThreadContextDelegate(IntPtr self, byte *context, int contextSize);
+        private delegate int GetThreadContextDelegate(IntPtr self, byte* context, int contextSize);
     }
 
 #pragma warning disable CS0169

@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -433,7 +432,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!string.IsNullOrWhiteSpace(prefix))
                 prefix += ": ";
             else
-                prefix = "";
+                prefix = string.Empty;
 
             Debug.WriteLine(prefix + string.Join(" ", path.Select(p => p.Object.ToString())));
         }

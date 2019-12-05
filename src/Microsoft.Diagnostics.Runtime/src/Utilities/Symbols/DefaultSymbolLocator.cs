@@ -206,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 catch
                 {
-                    return "";
+                    return string.Empty;
                 }
             }
 

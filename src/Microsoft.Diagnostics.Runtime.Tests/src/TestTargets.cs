@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static DataTarget LoadDump(string path)
         {
             DataTarget dt = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? DataTarget.LoadCrashDump(path) : DataTarget.LoadCoreDump(path);
-            dt.SymbolLocator.SymbolPath = "";
+            dt.SymbolLocator.SymbolPath = string.Empty;
             return dt;
         }
 
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
-            string dumpType = full ? "" : "_mini";
+            string dumpType = full ? string.Empty : "_mini";
             filename = $"{filename}_{gc}{dumpType}.dmp";
             return filename;
         }

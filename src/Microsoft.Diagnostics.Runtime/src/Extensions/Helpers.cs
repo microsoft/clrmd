@@ -1,6 +1,10 @@
-﻿namespace Microsoft.Diagnostics.Runtime
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace Microsoft.Diagnostics.Runtime
 {
-    static class Helpers
+    internal static class Helpers
     {
         public static ClrType GetTypeByName(this ClrModule module, string name)
         {

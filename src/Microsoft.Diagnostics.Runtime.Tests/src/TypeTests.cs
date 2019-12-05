@@ -166,8 +166,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             IEnumerable<IClrRoot> fooRoots = from root in heap.EnumerateRoots()
-                                            where root.Object.Type.Name == "Foo"
-                                            select root;
+                                             where root.Object.Type.Name == "Foo"
+                                             select root;
 
             IClrRoot[] localVarRoots = fooRoots.Where(r => r.RootKind == ClrRootKind.Stack).ToArray();
 
@@ -301,7 +301,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(0, es.Size);
         }
 
-        [Fact(Skip ="This looks like a bug in mscordac and not ClrMD.")]
+        [Fact(Skip = "This looks like a bug in mscordac and not ClrMD.")]
         public void StringEmptyIsObtainableTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
@@ -315,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(empty);
 
             string value = empty.ReadString();
-            Assert.Equal("", value);
+            Assert.Equal(string.Empty, value);
         }
 
         [Fact]
@@ -327,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            
+
             ClrType fooType = runtime.GetModule(ModuleName).GetTypeByName("Types");
             ClrStaticField cq = fooType.GetStaticFieldByName("s_cq");
             Assert.NotNull(cq);
@@ -345,7 +345,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(componentType);
 
             ClrObject m_arrayObj = cq.ReadObject().GetObjectField("m_head").GetObjectField("m_array");
-            
+
             // Ensure we are looking at the same ClrType
             Assert.Same(m_array.Type, m_arrayObj.Type);
 
@@ -389,7 +389,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
-            where T: unmanaged
+            where T : unmanaged
         {
             ClrInstanceField field = type.GetFieldByName(name);
             Assert.NotNull(field);
@@ -467,10 +467,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = (ulong)type.GetStaticFieldByName("s_array").ReadObject();
-            ulong s_one = (ulong)type.GetStaticFieldByName("s_one").ReadObject();
-            ulong s_two = (ulong)type.GetStaticFieldByName("s_two").ReadObject();
-            ulong s_three = (ulong)type.GetStaticFieldByName("s_three").ReadObject();
+            ulong s_array = type.GetStaticFieldByName("s_array").ReadObject();
+            ulong s_one = type.GetStaticFieldByName("s_one").ReadObject();
+            ulong s_two = type.GetStaticFieldByName("s_two").ReadObject();
+            ulong s_three = type.GetStaticFieldByName("s_three").ReadObject();
 
             ulong[] expected = { s_one, s_two, s_three };
 

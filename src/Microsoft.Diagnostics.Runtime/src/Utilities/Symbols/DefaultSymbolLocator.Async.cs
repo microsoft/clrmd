@@ -223,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             // Handle redirection case.
-            string filePtrData = (await filePtrDownload.ConfigureAwait(false) ?? "").Trim();
+            string filePtrData = (await filePtrDownload.ConfigureAwait(false))?.Trim() ?? string.Empty;
             if (filePtrData.StartsWith("PATH:"))
                 filePtrData = filePtrData.Substring(5);
 
@@ -324,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 catch
                 {
-                    return "";
+                    return string.Empty;
                 }
             }
 
@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Clear missing file/pdb cache
+        /// Clear missing file/pdb cache.
         /// </summary>
         protected override void SymbolPathOrCacheChanged()
         {

@@ -4,7 +4,6 @@
 
 using System;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -30,7 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong LowestAddress;
         public readonly ulong HighestAddress;
         public readonly ulong CardTable;
-
 
         public ulong EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
         public ulong EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;

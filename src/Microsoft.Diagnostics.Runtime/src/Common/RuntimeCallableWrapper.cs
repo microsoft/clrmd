@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class RuntimeCallableWrapper
     {
         public ulong Address { get; }
+
         /// <summary>
         /// Returns the pointer to the IUnknown representing this CCW.
         /// </summary>

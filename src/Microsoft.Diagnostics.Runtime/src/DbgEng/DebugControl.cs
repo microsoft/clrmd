@@ -1,7 +1,11 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
@@ -79,7 +83,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return result;
         }
 
-
         private GetEffectiveProcessorTypeDelegate _getEffectiveProcessorType;
         private IsPointer64BitDelegate _isPointer64Bit;
         private WaitForEventDelegate _waitForEvent;
@@ -100,7 +103,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
-
 
 #pragma warning disable CS0169
 #pragma warning disable CS0649
@@ -210,7 +212,5 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr SetTextReplacement;
         public readonly IntPtr RemoveTextReplacements;
         public readonly IntPtr OutputTextReplacements;
-
-
     }
 }

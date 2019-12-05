@@ -4,7 +4,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -250,7 +249,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return result;
         }
-
 
         public override T Read<T>(ulong objRef, bool interior)
         {

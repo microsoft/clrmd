@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         public string FileName { get; }
 
         /// <summary>
-        /// Creates an instance of the PdbInfo class with the corresponding properties initialized
+        /// Creates an instance of the PdbInfo class with the corresponding properties initialized.
         /// </summary>
         public PdbInfo(string fileName, Guid guid, int rev)
         {
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the
+        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
