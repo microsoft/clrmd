@@ -136,5 +136,32 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the pdb information for this module.
         /// </summary>
         public abstract PdbInfo Pdb { get; }
+
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null)
+                return false;
+
+            if (obj is ClrModule module)
+                return Address == module.Address;
+
+            return false;
+        }
+
+        public override int GetHashCode() => Address.GetHashCode();
+
+        public static bool operator ==(ClrModule t1, ClrModule t2)
+        {
+            if (t1 == null)
+                return t2 == null;
+
+            return t1.Equals(t2);
+        }
+
+        public static bool operator !=(ClrModule item1, ClrModule item2)
+        {
+            return !(item1 == item2);
+        }
     }
 }

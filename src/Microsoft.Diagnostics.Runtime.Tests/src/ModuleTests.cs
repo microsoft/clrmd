@@ -24,5 +24,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(types.GetTypeByName("Types"));
             Assert.Null(types.GetTypeByName("Foo"));
         }
+
+        [Fact]
+        public void ModuleEqualityTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule[] oldModules = runtime.EnumerateModules().ToArray();
+            Assert.NotEmpty(oldModules);
+
+            runtime.FlushCachedData();
+
+            ClrModule[] newModules = runtime.EnumerateModules().ToArray();
+            Assert.Equal(oldModules.Length, newModules.Length);
+
+            for (int i = 0; i < newModules.Length; i++)
+            {
+                Assert.Equal(oldModules[i], newModules[i]);
+                Assert.NotSame(oldModules[i], newModules[i]);
+            }
+        }
     }
 }
