@@ -86,16 +86,14 @@ Here is a list of feedback I am tracking from the community (my summary):
 (Notes to myself about what I need to revisit.)
 
 1.  SymbolLocator related code.
-2.  Ensure ClrmdType equality when they come from the same MT.
-3.  Offsets for string and exception fields when we have no metadata.
-4.  Document all functions
-5.  consider reworking ClrField.GetValue
-6.  Enum related code in ClrType
-7.  clean up exception usage
-8.  Add more tests now that we can easily mock up objects.
-9.  Investigate multithreaded implementation.
-10.  All caching and parallel support was stripped out of GCRoot.  Need to add it back.
-11.  SafeWin32Handle -> SafeAccessTokenHandle 
+2.  Offsets for string and exception fields when we have no metadata.
+3.  Document all functions
+4.  consider reworking ClrField.GetValue
+5.  Enum related code in ClrType
+6.  clean up exception usage
+7.  Add more tests now that we can easily mock up objects.
+8.  All caching and parallel support was stripped out of GCRoot.  Need to add it back.
+9.  SafeWin32Handle -> SafeAccessTokenHandle 
 
 
 # .Net Core 5 Dac Wishlist
