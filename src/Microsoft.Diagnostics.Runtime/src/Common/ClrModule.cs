@@ -153,8 +153,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public static bool operator ==(ClrModule t1, ClrModule t2)
         {
-            if (t1 == null)
-                return t2 == null;
+            if (t1 is null)
+                return t2 is null;
 
             return t1.Equals(t2);
         }
