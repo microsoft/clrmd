@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 #pragma warning disable CA1721 // Property names should not match get methods
 
@@ -98,32 +99,44 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             bool large = seg.IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
 
+            bool logging = _steps != null;
+
             ulong obj = seg.FirstObject;
+
+            IDataReader dataReader = _helpers.DataReader;
+            byte[] buffer = new byte[IntPtr.Size * 2 + sizeof(uint)];
 
             if (_memoryReader == null)
                 _memoryReader = new MemoryReader(_helpers.DataReader, 0x10000);
 
-            _memoryReader.EnsureRangeInCache(obj);
+            // The large object heap
+            if (!large)
+                _memoryReader.EnsureRangeInCache(obj);
+
             while (obj < seg.CommittedEnd)
             {
-                if (!_memoryReader.ReadPtr(obj, out ulong mt))
-                    break;
+                ulong mt;
+                if (large)
+                {
+                    if (!dataReader.ReadMemory(obj, buffer, out int read) || read != buffer.Length)
+                        break;
+
+                    if (IntPtr.Size == 4)
+                        mt = Unsafe.As<byte, uint>(ref buffer[0]);
+                    else
+                        mt = Unsafe.As<byte, ulong>(ref buffer[0]);
+                }
+                else
+                {
+                    if (!_memoryReader.ReadPtr(obj, out mt))
+                        break;
+                }
 
                 ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
                 if (type == null)
                 {
-                    if (_steps != null)
-                    {
-                        _step = (_step + 1) % _steps.Length;
-                        _steps[_step] = new HeapWalkStep
-                        {
-                            Address = obj,
-                            MethodTable = mt,
-                            BaseSize = int.MinValue + 1,
-                            ComponentSize = -1,
-                            Count = 0
-                        };
-                    }
+                    if (logging)
+                        WriteHeapStep(obj, mt, int.MinValue + 1, -1, 0);
 
                     break;
                 }
@@ -136,22 +149,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     size = (uint)type.BaseSize;
 
-                    if (_steps != null)
-                    {
-                        _step = (_step + 1) % _steps.Length;
-                        _steps[_step] = new HeapWalkStep
-                        {
-                            Address = obj,
-                            MethodTable = mt,
-                            BaseSize = type.BaseSize,
-                            ComponentSize = -1,
-                            Count = 0
-                        };
-                    }
+                    if (logging)
+                        WriteHeapStep(obj, mt, type.BaseSize, -1, 0);
                 }
                 else
                 {
-                    _memoryReader.ReadDword(obj + (uint)IntPtr.Size, out uint count);
+                    uint count;
+                    if (large)
+                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size * 2]);
+                    else
+                        _memoryReader.ReadDword(obj + (uint)IntPtr.Size, out count);
                     
                     // Strings in v4+ contain a trailing null terminator not accounted for.
                     if (StringType == type)
@@ -159,19 +166,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     size = count * (ulong)type.ComponentSize + (ulong)type.BaseSize;
 
-
-                    if (_steps != null)
-                    {
-                        _step = (_step + 1) % _steps.Length;
-                        _steps[_step] = new HeapWalkStep
-                        {
-                            Address = obj,
-                            MethodTable = mt,
-                            BaseSize = type.BaseSize,
-                            ComponentSize = type.ComponentSize,
-                            Count = count
-                        };
-                    }
+                    if (logging)
+                        WriteHeapStep(obj, mt, type.BaseSize, type.ComponentSize, count);
                 }
 
                 size = Align(size, large);
@@ -188,18 +184,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     // Only if there's data corruption:
                     if (obj >= nextObj || obj >= seg.End)
                     {
-                        if (_steps != null)
-                        {
-                            _step = (_step + 1) % _steps.Length;
-                            _steps[_step] = new HeapWalkStep
-                            {
-                                Address = obj,
-                                MethodTable = mt,
-                                BaseSize = int.MinValue + 2,
-                                ComponentSize = -1,
-                                Count = 0
-                            };
-                        }
+                        if (logging)
+                            WriteHeapStep(obj, mt, int.MinValue + 2, -1, count: 0);
 
                         yield break;
                     }
@@ -209,6 +195,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             _memoryReader = null;
+        }
+
+        private static void WriteHeapStep(ulong obj, ulong mt, int baseSize, int componentSize, uint count)
+        {
+            _step = (_step + 1) % _steps.Length;
+            _steps[_step] = new HeapWalkStep
+            {
+                Address = obj,
+                MethodTable = mt,
+                BaseSize = baseSize,
+                ComponentSize = componentSize,
+                Count = count
+            };
         }
 
         public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => EnumerateObjects(s));
