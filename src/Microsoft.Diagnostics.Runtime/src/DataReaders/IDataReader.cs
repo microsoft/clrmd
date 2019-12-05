@@ -13,6 +13,11 @@ namespace Microsoft.Diagnostics.Runtime
     public interface IDataReader : IDisposable
     {
         /// <summary>
+        /// Returns whether this data reader is safe to use in parallel from multiple threads.
+        /// </summary>
+        bool IsThreadSafe { get; }
+
+        /// <summary>
         /// Gets the architecture of the target.
         /// </summary>
         /// <returns>The architecture of the target.</returns>

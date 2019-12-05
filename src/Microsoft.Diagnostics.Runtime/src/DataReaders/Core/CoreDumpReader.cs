@@ -54,6 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public bool IsThreadSafe => false;
         public bool IsFullMemoryAvailable => true; // TODO
 
         public void Dispose()

@@ -51,6 +51,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public uint ProcessId { get; private set; }
 
+        public bool IsThreadSafe => false;
+
         public bool IsFullMemoryAvailable => true;
 
         public void Dispose()
