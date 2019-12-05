@@ -325,5 +325,50 @@ namespace Microsoft.Diagnostics.Runtime
         /// Used to provide functionality to ClrObject.
         /// </summary>
         public abstract IClrObjectHelpers ClrObjectHelpers { get; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ClrType type)
+            {
+                if (TypeHandle != 0 && type.TypeHandle != 0)
+                    return TypeHandle == type.TypeHandle;
+
+                if (type.IsPointer)
+                {
+                    if (type.ComponentType == null)
+                        return base.Equals(obj);
+
+                    return ComponentType == type.ComponentType;
+                }
+
+                if (IsPrimitive && type.IsPrimitive && ElementType != ClrElementType.Unknown)
+                    return ElementType == type.ElementType;
+
+                // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
+                // check if we resolved from the same token out of the same module.
+                if (Module != null && MetadataToken != 0)
+                    return Module == type.Module && MetadataToken == type.MetadataToken;
+
+                // Fall back to reference equality
+                return base.Equals(obj);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode() => TypeHandle.GetHashCode();
+
+        public static bool operator ==(ClrType t1, ClrType t2)
+        {
+            if (t1 == null)
+                return t2 == null;
+
+            return t1.Equals(t2);
+        }
+
+        public static bool operator !=(ClrType item1, ClrType item2)
+        {
+            return !(item1 == item2);
+        }
     }
 }

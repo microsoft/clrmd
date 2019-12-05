@@ -132,6 +132,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Same(types[0], typesFromModule[0]);
             Assert.Same(types[1], typesFromModule[1]);
+
+            // Get new types
+            runtime.FlushCachedData();
+
+
+            ClrType[] newTypes = (from module in runtime.EnumerateModules()
+                                  let name = Path.GetFileNameWithoutExtension(module.FileName)
+                                  where name.Equals("sharedlibrary", StringComparison.OrdinalIgnoreCase)
+                                  let type = module.GetTypeByName(TypeName)
+                                  select type).ToArray();
+
+            Assert.Equal(2, newTypes.Length);
+            for (int i = 0; i < newTypes.Length; i++)
+            {
+                Assert.NotSame(typesFromModule[i], newTypes[i]);
+                Assert.Equal(typesFromModule[i], newTypes[i]);
+            }
+
+            // Even though these are the same underlying type defined in sharedlibrary's metadata,
+            // they have different MethodTables, Parent modules, and parent domains.  These do not
+            // compare as equal.
+            Assert.NotEqual(typesFromModule[0], typesFromModule[1]);
         }
 
         [WindowsFact]
