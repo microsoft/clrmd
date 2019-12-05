@@ -23,6 +23,34 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         [ThreadStatic]
         private static MemoryReader _memoryReader;
 
+        [ThreadStatic]
+        private static HeapWalkStep[] _steps;
+
+        [ThreadStatic]
+        private static int _step = -1;
+
+        /// <summary>
+        /// This is a circular buffer of steps.
+        /// </summary>
+        public static IReadOnlyList<HeapWalkStep> Steps => _steps;
+
+        /// <summary>
+        /// The current index into the Steps circular buffer.
+        /// </summary>
+        public static int Step => _step;
+
+        /// <summary>
+        /// Turns on heap walk logging.
+        /// </summary>
+        /// <param name="bufferSize">The number of entries in the heap walk buffer.</param>
+        public static void LogHeapWalkSteps(int bufferSize)
+        {
+            _step = bufferSize - 1;
+            if (_steps == null || _steps.Length != bufferSize)
+                _steps = new HeapWalkStep[bufferSize];
+        }
+
+
         public override ClrRuntime Runtime { get; }
 
         public override bool CanWalkHeap { get; }
@@ -83,7 +111,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
                 if (type == null)
+                {
+                    if (_steps != null)
+                    {
+                        _step = (_step + 1) % _steps.Length;
+                        _steps[_step] = new HeapWalkStep
+                        {
+                            Address = obj,
+                            MethodTable = mt,
+                            BaseSize = int.MinValue + 1,
+                            ComponentSize = -1,
+                            Count = 0
+                        };
+                    }
+
                     break;
+                }
 
                 ClrObject result = new ClrObject(obj, type);
                 yield return result;
@@ -92,6 +135,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (type.ComponentSize == 0)
                 {
                     size = (uint)type.BaseSize;
+
+                    if (_steps != null)
+                    {
+                        _step = (_step + 1) % _steps.Length;
+                        _steps[_step] = new HeapWalkStep
+                        {
+                            Address = obj,
+                            MethodTable = mt,
+                            BaseSize = type.BaseSize,
+                            ComponentSize = -1,
+                            Count = 0
+                        };
+                    }
                 }
                 else
                 {
@@ -102,11 +158,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         count++;
 
                     size = count * (ulong)type.ComponentSize + (ulong)type.BaseSize;
+
+
+                    if (_steps != null)
+                    {
+                        _step = (_step + 1) % _steps.Length;
+                        _steps[_step] = new HeapWalkStep
+                        {
+                            Address = obj,
+                            MethodTable = mt,
+                            BaseSize = type.BaseSize,
+                            ComponentSize = type.ComponentSize,
+                            Count = count
+                        };
+                    }
                 }
 
                 size = Align(size, large);
                 if (size < minObjSize)
                     size = minObjSize;
+
+
 
                 obj += size;
                 while (!large && _allocationContext.TryGetValue(obj, out ulong nextObj))
@@ -114,11 +186,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     nextObj += Align(minObjSize, large);
 
                     // Only if there's data corruption:
-                    if (obj >= nextObj)
-                        yield break;
+                    if (obj >= nextObj || obj >= seg.End)
+                    {
+                        if (_steps != null)
+                        {
+                            _step = (_step + 1) % _steps.Length;
+                            _steps[_step] = new HeapWalkStep
+                            {
+                                Address = obj,
+                                MethodTable = mt,
+                                BaseSize = int.MinValue + 2,
+                                ComponentSize = -1,
+                                Count = 0
+                            };
+                        }
 
-                    if (obj >= seg.End)
                         yield break;
+                    }
 
                     obj = nextObj;
                 }

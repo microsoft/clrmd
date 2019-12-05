@@ -1,4 +1,5 @@
 ﻿using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,8 +10,9 @@ namespace ParallelStressTest
 {
     static class Program
     {
-        const int Iterations = 500;
+        const int Iterations = int.MaxValue;
         const int Threads = 8;
+        static object _sync = new object();
         private static ClrObject[] _expectedObjects;
         private static ClrSegment[] _segments;
         private static readonly ManualResetEvent _event = new ManualResetEvent(initialState: false);
@@ -67,15 +69,18 @@ namespace ParallelStressTest
 
         private static void WorkerThread(ClrRuntime runtime)
         {
+            ClrmdHeap.LogHeapWalkSteps(32);
+
             _event.WaitOne();
 
             if (_segments.Length != runtime.Heap.Segments.Count)
-                throw new InvalidOperationException($"Segment count mismatch.  Expected {_segments.Length} segments, found {runtime.Heap.Segments.Count}.");
+            {
+                Fail(false, $"Segment count mismatch.  Expected {_segments.Length} segments, found {runtime.Heap.Segments.Count}.");
+            }
 
             for (int i = 0; i < _segments.Length; i++)
                 if (runtime.Heap.Segments[i].FirstObject != _segments[i].FirstObject || runtime.Heap.Segments[i].CommittedEnd != _segments[i].CommittedEnd)
-                    throw new InvalidOperationException($"Segment[{i}] range [{runtime.Heap.Segments[i].FirstObject:x12}-{runtime.Heap.Segments[i].CommittedEnd:x12}], expected [{_segments[i].FirstObject:x12}-{_segments[i].CommittedEnd:x12}]");
-
+                    Fail(false, $"Segment[{i}] range [{runtime.Heap.Segments[i].FirstObject:x12}-{runtime.Heap.Segments[i].CommittedEnd:x12}], expected [{_segments[i].FirstObject:x12}-{_segments[i].CommittedEnd:x12}]");
 
             int count = 0;
             IEnumerator<ClrObject> enumerator = runtime.Heap.EnumerateObjects().GetEnumerator();
@@ -83,16 +88,49 @@ namespace ParallelStressTest
             {
                 ClrObject curr = enumerator.Current;
                 if (curr.Address != _expectedObjects[count].Address)
-                    throw new InvalidOperationException($"Object {count} was incorrect address: Expected {_expectedObjects[count].Address:x12}, got {curr.Address:x12}");
+                    Fail(true, $"Object {count} was incorrect address: Expected {_expectedObjects[count].Address:x12}, got {curr.Address:x12}");
 
                 if (curr.Type != _expectedObjects[count].Type)
-                    throw new InvalidOperationException($"Object {count} was incorrect type: Expected {_expectedObjects[count].Type.Name}, got {curr.Type?.Name ?? ""}");
+                    Fail(true, $"Object {count} was incorrect type: Expected {_expectedObjects[count].Type.Name}, got {curr.Type?.Name ?? ""}");
 
                 count++;
             }
 
             if (count != _expectedObjects.Count())
-                throw new InvalidOperationException($"Expected {_expectedObjects.Length:n0} objects, found {count:n0}.");
+                Fail(true, $"Expected {_expectedObjects.Length:n0} objects, found {count:n0}.");
+        }
+
+        private static void Fail(bool printHeapSteps, string reason)
+        {
+            lock (_sync)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId:x}");
+                Console.WriteLine(reason);
+
+                if (printHeapSteps)
+                {
+                    int i = ClrmdHeap.Step;
+                    do
+                    {
+                        i = (i + 1) % ClrmdHeap.Steps.Count;
+                        HeapWalkStep step = ClrmdHeap.Steps[i];
+                        Console.WriteLine($"obj:{step.Address:x12} mt:{step.MethodTable:x12} base:{step.BaseSize:x8} comp:{step.ComponentSize:x8} count:{step.Count:x8}");
+                    } while (i != ClrmdHeap.Step);
+                }
+            }
+
+            Break();
+        }
+
+
+        private static void Break()
+        {
+            if (Debugger.IsAttached)
+                Debugger.Break();
+
+            while (!Debugger.IsAttached)
+                Thread.Sleep(1000);
         }
     }
 }
