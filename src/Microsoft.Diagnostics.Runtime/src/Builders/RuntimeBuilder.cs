@@ -463,7 +463,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             _heap = null;
             _dac.Flush();
-            _cache.Clear();
+
+            lock (_cache)
+                _cache.Clear();
 
             lock (_domains)
                 _domains.Clear();
