@@ -14,12 +14,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IHeapHelpers _helpers;
-        private readonly MemoryReader _memoryReader;
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqRoots;
         private readonly IReadOnlyList<FinalizerQueueSegment> _fqObjects;
         private readonly Dictionary<ulong, ulong> _allocationContext;
         private int _lastSegmentIndex;
         private (ulong, ulong)[] _dependants;
+
+        [ThreadStatic]
+        private static MemoryReader _memoryReader;
 
         public override ClrRuntime Runtime { get; }
 
@@ -43,7 +45,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 throw new NullReferenceException(nameof(heapBuilder));
 
             _helpers = heapBuilder.HeapHelpers;
-            _memoryReader = new MemoryReader(_helpers.DataReader, 0x10000);
 
             Runtime = runtime;
             CanWalkHeap = heapBuilder.CanWalkHeap;
@@ -70,6 +71,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             uint minObjSize = (uint)IntPtr.Size * 3;
 
             ulong obj = seg.FirstObject;
+
+            if (_memoryReader == null)
+                _memoryReader = new MemoryReader(_helpers.DataReader, 0x10000);
+
             _memoryReader.EnsureRangeInCache(obj);
             while (obj < seg.CommittedEnd)
             {
@@ -103,6 +108,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     obj = nextObj;
                 }
             }
+
+            _memoryReader = null;
         }
 
         public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => EnumerateObjects(s));
@@ -126,8 +133,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrType GetObjectType(ulong objRef)
         {
-            if (!_memoryReader.Contains(objRef) || !_memoryReader.TryReadPtr(objRef, out ulong mt))
+            if (_memoryReader != null && _memoryReader.Contains(objRef) && _memoryReader.TryReadPtr(objRef, out ulong mt))
+            {
+            }
+            else
+            {
                 mt = _helpers.DataReader.ReadPointerUnsafe(objRef);
+            }
 
             if (mt == 0)
                 return null;
@@ -185,10 +197,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 uint countOffset = (uint)IntPtr.Size;
                 ulong loc = objRef + countOffset;
 
-                MemoryReader cache = _memoryReader;
+                uint count;
 
-                if (!cache.ReadDword(loc, out uint count))
-                    throw new MemoryReadException(objRef);
+
+                if (_memoryReader != null)
+                    _memoryReader.ReadDword(loc, out count);
+                else
+                    count = _helpers.DataReader.ReadUnsafe<uint>(loc);
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
                 if (StringType == type)
@@ -261,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private ulong ReadPointerForGCDesc(ulong ptr)
         {
-            if (_memoryReader.Contains(ptr) && _memoryReader.ReadPtr(ptr, out ulong value))
+            if (_memoryReader != null && _memoryReader.Contains(ptr) && _memoryReader.ReadPtr(ptr, out ulong value))
                 return value;
 
             return _helpers.DataReader.ReadPointerUnsafe(ptr);
