@@ -55,7 +55,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrObject> EnumerateObjects() => ((ClrmdHeap)Heap).EnumerateObjects(this);
 
-
         public override ulong FirstObject => Gen2Start < End ? Gen2Start : 0;
     }
 }

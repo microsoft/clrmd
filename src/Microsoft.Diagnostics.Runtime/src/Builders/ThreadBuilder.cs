@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using System;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    class ThreadBuilder  : IThreadData
+    internal class ThreadBuilder : IThreadData
     {
         private readonly SOSDac _sos;
         private readonly ulong _finalizer;
@@ -29,7 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             Address = address;
             return _sos.GetThreadData(Address, out _threadData);
         }
-
 
         bool IThreadData.IsFinalizer => _finalizer == Address;
         uint IThreadData.OSThreadID => _threadData.OSThreadId;

@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
@@ -53,11 +53,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-
         public bool IsReflection => _moduleData.IsReflection != 0;
 
         public ulong AssemblyAddress => _moduleData.Assembly;
-
 
         public bool Init(ulong address)
         {

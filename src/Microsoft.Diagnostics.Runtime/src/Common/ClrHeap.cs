@@ -31,12 +31,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// of increasing object addresses.
         /// </summary>
         public abstract IReadOnlyList<ClrSegment> Segments { get; }
-        
+
         /// <summary>
         /// Returns the ClrType representing free space on the GC heap.
         /// </summary>
         public abstract ClrType FreeType { get; }
-        
+
         /// <summary>
         /// Returns the ClrType representing System.String.
         /// </summary>
@@ -67,7 +67,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="objRef"></param>
         /// <returns></returns>
         public ClrObject GetObject(ulong objRef) => new ClrObject(objRef, GetObjectType(objRef));
-
 
         /// <summary>
         /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
@@ -123,7 +122,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public abstract ulong GetObjectSize(ulong objRef, ClrType type);
 
-
         /// <summary>
         /// Enumerates all objects that the given object references.  Use ClrObject.EnumerateReferences instead.
         /// </summary>
@@ -133,6 +131,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// the heap may be in an inconsistent state.)
         /// </param>
         public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles);
-
     }
 }

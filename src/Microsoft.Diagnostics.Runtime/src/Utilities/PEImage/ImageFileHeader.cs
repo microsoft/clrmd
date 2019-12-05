@@ -1,4 +1,8 @@
-﻿using Microsoft.Diagnostics.Runtime.DbgEng;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using Microsoft.Diagnostics.Runtime.DbgEng;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -45,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ushort SizeOfOptionalHeader => _header.SizeOfOptionalHeader;
 
         /// <summary>
-        /// The characteristics of the image
+        /// The characteristics of the image.
         /// </summary>
         public IMAGE_FILE Characteristics => (IMAGE_FILE)_header.Characteristics;
     }

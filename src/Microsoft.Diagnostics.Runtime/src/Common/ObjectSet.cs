@@ -137,8 +137,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Calculates the offset of an object within a segment.
         /// </summary>
-        /// <param name="obj">The object</param>
-        /// <param name="seg">The segment</param>
+        /// <param name="obj">The object.</param>
+        /// <param name="seg">The segment.</param>
         /// <returns>The index into seg.Objects.</returns>
         protected int GetOffset(ulong obj, HeapHashSegment seg)
         {

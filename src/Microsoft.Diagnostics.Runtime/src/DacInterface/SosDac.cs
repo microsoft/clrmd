@@ -452,7 +452,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
             try
@@ -480,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
             try
@@ -726,9 +726,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? md : 0;
         }
 
-
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types,  int count, out IntPtr handleEnum);
+        private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);

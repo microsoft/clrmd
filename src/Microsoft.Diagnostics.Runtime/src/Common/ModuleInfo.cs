@@ -4,13 +4,12 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Provides information about loaded modules in a DataTarget
+    /// Provides information about loaded modules in a DataTarget.
     /// </summary>
     public class ModuleInfo
     {

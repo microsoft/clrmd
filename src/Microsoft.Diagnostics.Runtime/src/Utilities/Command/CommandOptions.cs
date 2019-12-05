@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// CommanOptions holds a set of options that can be passed to the constructor
-        /// to the Command Class as well as Command.Run*
+        /// to the Command Class as well as Command.Run*.
         /// </summary>
         public CommandOptions()
         {
@@ -45,9 +45,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Return a copy an existing set of command options
+        /// Return a copy an existing set of command options.
         /// </summary>
-        /// <returns>The copy of the command options</returns>
+        /// <returns>The copy of the command options.</returns>
         public CommandOptions Clone()
         {
             return (CommandOptions)MemberwiseClone();
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// ShortHand for UseShellExecute and NoWait
+        /// ShortHand for UseShellExecute and NoWait.
         /// </summary>
         public bool Start
         {
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Normally commands are launched with CreateProcess.  However it is
         /// also possible use the Shell Start API.  This causes Command to look
-        /// up the executable differently
+        /// up the executable differently.
         /// </summary>
         public bool UseShellExecute
         {
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Indicates that the command must run at elevated Windows privledges (causes a new command window)
+        /// Indicates that the command must run at elevated Windows privledges (causes a new command window).
         /// </summary>
         public bool Elevate
         {
@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Updates the Timeout propery and returns the updated commandOptions.
-        /// CommandOptions.Infinite can be used for infinite
+        /// CommandOptions.Infinite can be used for infinite.
         /// </summary>
         public CommandOptions AddTimeout(int milliseconds)
         {
@@ -287,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// of the form %VAR% is found in a value of a environment variable it is
         /// replaced with the value of the environment variable at the time the
         /// command is launched.  This is useful for example to update the PATH
-        /// environment variable eg. "%PATH%;someNewPath"
+        /// environment variable eg. "%PATH%;someNewPath".
         /// </summary>
         public Dictionary<string, string> EnvironmentVariables
         {
@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// of the form %VAR% is found in a value of a environment variable it is
         /// replaced with the value of the environment variable at the time the
         /// command is launched.  This is useful for example to update the PATH
-        /// environment variable eg. "%PATH%;someNewPath"
+        /// environment variable eg. "%PATH%;someNewPath".
         /// </summary>
         public CommandOptions AddEnvironmentVariable(string variable, string value)
         {

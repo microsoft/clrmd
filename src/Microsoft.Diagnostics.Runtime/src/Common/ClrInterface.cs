@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The interface that this interface inherits from.
         /// </summary>
-        public  ClrInterface BaseInterface { get; }
+        public ClrInterface BaseInterface { get; }
 
         /// <summary>
         /// Display string for this interface.

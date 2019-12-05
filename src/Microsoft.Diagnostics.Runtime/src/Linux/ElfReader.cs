@@ -30,7 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return result;
 
             return null;
-
         }
 
         public T Read<T>(long position)

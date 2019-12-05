@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MethodDesc { get; }
         public override uint MetadataToken { get; }
         public override ClrType Type { get; }
-        public override string Signature => _signature ?? (_signature = _helpers?.GetSignature(MethodDesc));
+        public override string Signature => _signature ??= _helpers?.GetSignature(MethodDesc);
         public override IReadOnlyList<ILToNativeMap> ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold);
 
         public override HotColdRegions HotColdInfo => _hotCold;
@@ -39,7 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _hotCold = new HotColdRegions(data.HotStart, data.HotSize, data.ColdStart, data.ColdSize);
             _attrs = type?.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
         }
-
 
         public override string Name
         {
@@ -114,7 +113,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsSpecialName => (_attrs & MethodAttributes.SpecialName) == MethodAttributes.SpecialName;
 
         public override bool IsRTSpecialName => (_attrs & MethodAttributes.RTSpecialName) == MethodAttributes.RTSpecialName;
-
 
         public override ILInfo IL => GetILInfo();
 

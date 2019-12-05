@@ -157,12 +157,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             string varName = m.Groups[1].Value;
                             string varValue;
                             if (startInfo.EnvironmentVariables.ContainsKey(varName))
+                            {
                                 varValue = startInfo.EnvironmentVariables[varName];
+                            }
                             else
                             {
                                 varValue = Environment.GetEnvironmentVariable(varName);
-                                if (varValue == null)
-                                    varValue = "";
+                                varValue ??= string.Empty;
                             }
 
                             // replace this instance of the variable with its definition.
@@ -280,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (Process.ExitCode != 0)
             {
-                string outSpec = "";
+                string outSpec = string.Empty;
                 if (_outputStream == null)
                 {
                     string outStr = _output.ToString();
@@ -296,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
 
                 if (message == null)
-                    message = "";
+                    message = string.Empty;
                 else if (message.Length > 0)
                     message += "\r\n";
                 throw new Exception($"{message} Process returned exit code 0x{Process.ExitCode:x} Cmd: {_commandLine}{outSpec}");

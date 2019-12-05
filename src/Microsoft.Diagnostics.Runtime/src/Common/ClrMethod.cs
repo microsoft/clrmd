@@ -98,18 +98,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns if this method is static.
         /// </summary>
         public abstract bool IsStatic { get; }
+
         /// <summary>
         /// Returns if this method is final.
         /// </summary>
         public abstract bool IsFinal { get; }
+
         /// <summary>
         /// Returns if this method is a PInvoke.
         /// </summary>
         public abstract bool IsPInvoke { get; }
+
         /// <summary>
         /// Returns if this method is a special method.
         /// </summary>
         public abstract bool IsSpecialName { get; }
+
         /// <summary>
         /// Returns if this method is runtime special method.
         /// </summary>
@@ -119,6 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns if this method is virtual.
         /// </summary>
         public abstract bool IsVirtual { get; }
+
         /// <summary>
         /// Returns if this method is abstract.
         /// </summary>

@@ -14,10 +14,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Not one of the other types.
         /// </summary>
         Unknown = 0x0,
+
         /// <summary>
         /// ELEMENT_TYPE_BOOLEAN
         /// </summary>
         Boolean = 0x2,
+
         /// <summary>
         /// ELEMENT_TYPE_CHAR
         /// </summary>

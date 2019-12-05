@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -34,7 +34,6 @@ namespace Microsoft.Diagnostics.Runtime
             Thread = thread;
 
             Debug.Assert(obj.IsException);
-
         }
 
         /// <summary>
@@ -52,11 +51,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public string Message => _object.GetStringField("_message");
 
-
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.
         /// </summary>
-        public ClrException? Inner 
+        public ClrException? Inner
         {
             get
             {
@@ -80,6 +78,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// associated with this exception object.
         /// </summary>
         public IReadOnlyList<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(Thread, _object);
-
     }
 }

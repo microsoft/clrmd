@@ -8,7 +8,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    class ReaderStream : Stream
+    internal class ReaderStream : Stream
     {
         private readonly Reader _reader;
         private readonly long _baseAddress;

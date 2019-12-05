@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the GC heap of the process.
         /// </summary>
         public abstract ClrHeap Heap { get; }
-        
+
         /// <summary>
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
@@ -100,10 +100,10 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract void FlushCachedData();
 
         /// <summary>
-        /// Gets the name of a JIT helper function
+        /// Gets the name of a JIT helper function.
         /// </summary>
-        /// <param name="address">Address of a possible JIT helper function</param>
-        /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function</returns>
+        /// <param name="address">Address of a possible JIT helper function.</param>
+        /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function.</returns>
         public abstract string GetJitHelperFunctionName(ulong address);
 
         /// <summary>

@@ -123,7 +123,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (size + AlignConst) & ~AlignConst;
         }
 
-
         public override ClrType GetObjectType(ulong objRef)
         {
             if (!_memoryReader.Contains(objRef) || !_memoryReader.TryReadPtr(objRef, out ulong mt))
@@ -140,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Segments == null || Segments.Count == 0)
                 return null;
 
-            if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count-1].End)
+            if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count - 1].End)
             {
                 // Start the segment search where you where last
                 int curIdx = _lastSegmentIndex;
@@ -150,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     unchecked
                     {
                         long offsetInSegment = (long)(objRef - segment.Start);
-                        if (0 <= offsetInSegment)
+                        if (offsetInSegment >= 0)
                         {
                             long intOffsetInSegment = offsetInSegment;
                             if (intOffsetInSegment < (long)segment.Length)

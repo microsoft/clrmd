@@ -1,6 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
@@ -34,13 +38,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return _queryVirtual(Self, address, out info) >= 0;
         }
 
-
         private ReadVirtualDelegate _readVirtual;
         private QueryVirtualDelegate _queryVirtual;
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int ReadVirtualDelegate(IntPtr self, ulong address, byte *buffer, int size, out int read);
+        private delegate int ReadVirtualDelegate(IntPtr self, ulong address, byte* buffer, int size, out int read);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }

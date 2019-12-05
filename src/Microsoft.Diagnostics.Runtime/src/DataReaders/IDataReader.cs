@@ -79,7 +79,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="context">A span to write the context to.</param>
         bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context);
 
-
         /// <summary>
         /// Read a pointer out of the target process.
         /// </summary>

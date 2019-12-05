@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public bool IsServer { get; }
 
         public int LogicalHeapCount { get; }
-        
+
         public ulong ArrayMethodTable => _mts.ArrayMethodTable;
 
         public ulong StringMethodTable => _mts.StringMethodTable;
@@ -98,7 +98,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             List<AllocationContext> allocContexts = new List<AllocationContext>();
             List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
             List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
-
 
             if (allocContexts.Count == 0)
             {

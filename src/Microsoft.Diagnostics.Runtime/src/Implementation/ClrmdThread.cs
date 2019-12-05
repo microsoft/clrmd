@@ -45,7 +45,6 @@ namespace Microsoft.Diagnostics.Runtime
             GcMode = data.Preemptive ? GcMode.Preemptive : GcMode.Cooperative;
         }
 
-
         public override ClrException? CurrentException
         {
             get
@@ -73,7 +72,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override IEnumerable<ClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
         public override IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext) => _helpers.EnumerateStackTrace(this, includeContext);
 
-
         public override bool IsAborted => (_threadState & (int)ThreadState.TS_Aborted) == (int)ThreadState.TS_Aborted;
         public override bool IsGCSuspendPending => (_threadState & (int)ThreadState.TS_GCSuspendPending) == (int)ThreadState.TS_GCSuspendPending;
         public override bool IsUserSuspended => (_threadState & (int)ThreadState.TS_UserSuspendPending) == (int)ThreadState.TS_UserSuspendPending;
@@ -89,8 +87,6 @@ namespace Microsoft.Diagnostics.Runtime
             || (_threadState & (int)ThreadState.TS_AbortInitiated) == (int)ThreadState.TS_AbortInitiated;
 
         public override bool IsAlive => OSThreadId != 0 && (_threadState & ((int)ThreadState.TS_Unstarted | (int)ThreadState.TS_Dead)) == 0;
-
-
 
         internal enum TlsThreadType
         {

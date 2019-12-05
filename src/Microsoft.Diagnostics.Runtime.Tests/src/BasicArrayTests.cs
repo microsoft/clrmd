@@ -301,7 +301,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Assert
             Assert.Equal(originalArray[index].ReferenceLoad, actual: text);
         }
-        
+
         [Theory, AutoData]
         public void GetArrayElementAddress_WhenDateTimeArray_GetsStructStartPos(int seed)
         {

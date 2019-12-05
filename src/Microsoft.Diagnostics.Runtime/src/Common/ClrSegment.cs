@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
         public abstract ulong FirstObject { get; }
-        
+
         /// <summary>
         /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
         /// Large objects (greater than 85,000 bytes in size), are stored in their own segments and
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Ephemeral heap sements have geneation 0 and 1 in them.  Gen 1 is always above Gen 2 and
         /// Gen 0 is above Gen 1.  This property tell where Gen 0 start in memory.   Note that
         /// if this is not an Ephemeral segment, then this will return End (which makes Gen 0 empty
-        /// for this segment)
+        /// for this segment).
         /// </summary>
         public abstract ulong Gen0Start { get; }
 

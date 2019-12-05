@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The length (in bytes) of the IL method body.
         /// </summary>
-        public int Length { get;  }
+        public int Length { get; }
 
         /// <summary>
         /// The flags associated with the IL code.
