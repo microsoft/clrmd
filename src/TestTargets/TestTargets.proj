@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-    <CscPath>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath>
+    <CscPath32>C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe</CscPath32>
+    <CscPath64>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath64>
     <CdbPath32>C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</CdbPath32>
     <CdbPath64>C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</CdbPath64>
   </PropertyGroup>
@@ -55,7 +56,8 @@
 
     <MakeDir Directories="$(BinDir32)" />
 
-    <Error Condition="!Exists('$(CscPath)')" Text="csc.exe ($(CscPath)) not found." />
+    <Error Condition="!Exists('$(CscPath32)')" Text="csc.exe (x86) ($(CscPath32)) not found." />
+    <Error Condition="!Exists('$(CscPath64)')" Text="csc.exe (x64) ($(CscPath64)) not found." />
     <Error Condition="!Exists('$(CdbPath32)')" Text="cdb.exe (x86) ($(CdbPath32)) not found. Please install Debugging Tools for Windows, see https://docs.microsoft.com/windows-hardware/drivers/debugger/." />
     <Error Condition="!Exists('$(CdbPath64)')" Text="cdb.exe (x64) ($(CdbPath64)) not found. Please install Debugging Tools for Windows, see https://docs.microsoft.com/windows-hardware/drivers/debugger/." />
 
@@ -68,8 +70,8 @@
     Inputs="Shared\SharedLibrary.cs"
     Outputs="$(BinDir32)SharedLibrary.dll;$(BinDir64)SharedLibrary.dll">
 
-    <Exec Command='"$(CscPath)" /debug /target:library /out:$(BinDir32)SharedLibrary.dll Shared\SharedLibrary.cs' />
-    <Exec Command='"$(CscPath)" /debug /target:library /out:$(BinDir64)SharedLibrary.dll Shared\SharedLibrary.cs' />
+    <Exec Command='"$(CscPath32)" /debug /target:library /out:$(BinDir32)SharedLibrary.dll Shared\SharedLibrary.cs' />
+    <Exec Command='"$(CscPath64)" /debug /target:library /out:$(BinDir64)SharedLibrary.dll Shared\SharedLibrary.cs' />
 
   </Target>
 
@@ -80,8 +82,8 @@
     Inputs="@(TargetSources)"
     Outputs="@(TargetSources->'%(ExePath32)');@(TargetSources->'%(ExePath64)')">
 
-    <Exec Command='"$(CscPath)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /platform:x86 /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
-    <Exec Command='"$(CscPath)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /platform:x64 /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath32)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath64)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
 
   </Target>
 
