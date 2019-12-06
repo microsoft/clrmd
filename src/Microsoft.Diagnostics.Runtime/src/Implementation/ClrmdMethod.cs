@@ -12,15 +12,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     public class ClrmdMethod : ClrMethod
     {
         private readonly IMethodHelpers _helpers;
-        private string _signature;
+        private string? _signature;
         private readonly HotColdRegions _hotCold;
         private readonly MethodAttributes _attrs;
 
         public override ulong MethodDesc { get; }
         public override uint MetadataToken { get; }
         public override ClrType Type { get; }
-        public override string Signature => _signature ??= _helpers?.GetSignature(MethodDesc);
-        public override IReadOnlyList<ILToNativeMap> ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold);
+        public override string? Signature => _signature ??= _helpers?.GetSignature(MethodDesc);
+        public override IReadOnlyList<ILToNativeMap>? ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold);
 
         public override HotColdRegions HotColdInfo => _hotCold;
 
@@ -40,11 +40,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _attrs = type?.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
         }
 
-        public override string Name
+        public override string? Name
         {
             get
             {
-                if (Signature == null)
+                if (Signature is null)
                     return null;
 
                 int last = Signature.LastIndexOf('(');
@@ -66,7 +66,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override int GetILOffset(ulong addr)
         {
-            IReadOnlyList<ILToNativeMap> map = ILOffsetMap;
+            IReadOnlyList<ILToNativeMap>? map = ILOffsetMap;
+            if (map is null)
+                return 0;
+
             int ilOffset = 0;
             if (map.Count > 1)
                 ilOffset = map[1].ILOffset;
@@ -114,20 +117,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsRTSpecialName => (_attrs & MethodAttributes.RTSpecialName) == MethodAttributes.RTSpecialName;
 
-        public override ILInfo IL => GetILInfo();
+        public override ILInfo? IL => GetILInfo();
 
-        private ILInfo GetILInfo()
+        private ILInfo? GetILInfo()
         {
-            IDataReader dataReader = _helpers.DataReader;
-            if (dataReader == null)
+            IDataReader? dataReader = _helpers.DataReader;
+            if (dataReader is null)
                 return null;
 
-            ClrModule module = Type?.Module;
-            if (module == null)
+            ClrModule? module = Type?.Module;
+            if (module is null)
                 return null;
 
-            MetaDataImport mdImport = module.MetadataImport;
-            if (mdImport == null)
+            MetaDataImport? mdImport = module.MetadataImport;
+            if (mdImport is null)
                 return null;
 
             uint rva = mdImport.GetRva((int)MetadataToken);
@@ -161,6 +164,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override string ToString() => Signature;
+        public override string? ToString() => Signature;
     }
 }

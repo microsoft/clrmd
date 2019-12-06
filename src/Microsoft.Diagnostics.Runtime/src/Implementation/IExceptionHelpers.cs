@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public interface IExceptionHelpers
     {
-        IReadOnlyList<ClrStackFrame> GetExceptionStackTrace(ClrThread thread, ClrObject obj);
+        IReadOnlyList<ClrStackFrame> GetExceptionStackTrace(ClrThread? thread, ClrObject obj);
     }
 }

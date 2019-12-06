@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        public ClrStackWalk CreateStackWalk(DacLibrary library, uint flags)
+        public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
         {
             CreateStackWalkDelegate create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable->CreateStackWalk, typeof(CreateStackWalkDelegate));
             int hr = create(Self, flags, out IntPtr pUnk);

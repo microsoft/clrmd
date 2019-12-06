@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     public sealed class ClrmdArrayType : ClrmdType
     {
         private int _baseArrayOffset;
-        private ClrType _componentType;
+        private ClrType? _componentType;
 
         public override int ComponentSize { get; }
-        public override ClrType ComponentType => _componentType;
+        public override ClrType? ComponentType => _componentType;
 
-        public ClrmdArrayType(ClrHeap heap, ClrType baseType, ClrModule module, ITypeData data)
+        public ClrmdArrayType(ClrHeap heap, ClrType? baseType, ClrModule module, ITypeData data)
             : base(heap, baseType, module, data)
         {
             if (data is null)
@@ -27,14 +27,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _componentType = Helpers.Factory.GetOrCreateType(heap, componentMT, 0);
         }
 
-        public void SetComponentType(ClrType type) => _componentType = type;
+        public void SetComponentType(ClrType? type) => _componentType = type;
 
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             //todo: remove?
             if (_baseArrayOffset == 0)
             {
-                ClrType componentType = ComponentType;
+                ClrType? componentType = ComponentType;
 
                 IObjectData data = Helpers.GetObjectData(objRef);
                 if (data != null)
@@ -56,13 +56,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return objRef + (ulong)(_baseArrayOffset + index * ComponentSize);
         }
 
-        public override object GetArrayElementValue(ulong objRef, int index)
+        public override object? GetArrayElementValue(ulong objRef, int index)
         {
             ulong addr = GetArrayElementAddress(objRef, index);
             if (addr == 0)
                 return null;
 
-            ClrType componentType = ComponentType;
+            ClrType? componentType = ComponentType;
             ClrElementType cet;
             if (componentType != null)
             {
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 // Slow path, we need to get the element type of the array.
                 IObjectData data = Helpers.GetObjectData(objRef);
-                if (data == null)
+                if (data is null)
                     return null;
 
                 cet = data.ElementType;

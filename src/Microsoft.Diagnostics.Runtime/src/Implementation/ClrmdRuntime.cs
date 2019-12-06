@@ -13,16 +13,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     public sealed class ClrmdRuntime : ClrRuntime
     {
         private readonly IRuntimeHelpers _helpers;
-        private ClrHeap _heap;
-        private ClrModule _bcl;
-        private IReadOnlyList<ClrThread> _threads;
-        private IReadOnlyList<ClrAppDomain> _domains;
-        private ClrAppDomain _systemDomain;
-        private ClrAppDomain _sharedDomain;
+        private ClrHeap? _heap;
+        private ClrModule? _bcl;
+        private IReadOnlyList<ClrThread>? _threads;
+        private IReadOnlyList<ClrAppDomain>? _domains;
+        private ClrAppDomain? _systemDomain;
+        private ClrAppDomain? _sharedDomain;
         private bool _disposed;
 
         public override bool IsThreadSafe => _helpers.Factory.IsThreadSafe && _helpers.DataReader.IsThreadSafe;
-        public override DataTarget DataTarget => ClrInfo?.DataTarget;
+        public override DataTarget? DataTarget => ClrInfo?.DataTarget;
         public override DacLibrary DacLibrary { get; }
         public override ClrInfo ClrInfo { get; }
         public override IReadOnlyList<ClrThread> Threads => _threads ??= _helpers.GetThreads(this);
@@ -31,29 +31,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_domains == null)
-                    _domains = _helpers.GetAppDomains(this, out _systemDomain, out _sharedDomain);
-
+                _domains ??= _helpers.GetAppDomains(this, out _systemDomain, out _sharedDomain);
                 return _domains;
             }
         }
 
-        public override ClrAppDomain SharedDomain
+        public override ClrAppDomain? SharedDomain
         {
             get
             {
-                if (_domains == null)
+                if (_domains is null)
                     _ = AppDomains;
 
                 return _sharedDomain;
             }
         }
 
-        public override ClrAppDomain SystemDomain
+        public override ClrAppDomain? SystemDomain
         {
             get
             {
-                if (_domains == null)
+                if (_domains is null)
                     _ = AppDomains;
 
                 return _systemDomain;
@@ -88,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
-        public override ClrType GetTypeByMethodTable(ulong methodTable) => _helpers.Factory.GetOrCreateType(methodTable, 0);
+        public override ClrType? GetTypeByMethodTable(ulong methodTable) => _helpers.Factory.GetOrCreateType(methodTable, 0);
 
         /// <summary>
         /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
@@ -126,11 +124,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrHandle> EnumerateHandles() => _helpers.EnumerateHandleTable(this);
 
-        public override string GetJitHelperFunctionName(ulong ip) => _helpers.GetJitHelperFunctionName(ip);
+        public override string? GetJitHelperFunctionName(ulong ip) => _helpers.GetJitHelperFunctionName(ip);
 
-        public override ClrMethod GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
+        public override ClrMethod? GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
 
-        public override ClrMethod GetMethodByInstructionPointer(ulong ip)
+        public override ClrMethod? GetMethodByInstructionPointer(ulong ip)
         {
             ulong md = _helpers.GetMethodDesc(ip);
             if (md == 0)
@@ -139,6 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByHandle(md);
         }
 
-        public override ClrModule BaseClassLibrary => _bcl;
+        // _bcl will not be null by the time we reach this
+        public override ClrModule BaseClassLibrary => _bcl!;
     }
 }

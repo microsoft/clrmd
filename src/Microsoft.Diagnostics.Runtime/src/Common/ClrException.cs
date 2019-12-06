@@ -22,9 +22,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The original thread this exception was thrown from.  This may be null if we do not know.
         /// </summary>
-        public ClrThread Thread { get; }
+        public ClrThread? Thread { get; }
 
-        public ClrException(IExceptionHelpers helpers, ClrThread thread, ClrObject obj)
+        public ClrException(IExceptionHelpers helpers, ClrThread? thread, ClrObject obj)
         {
             if (obj.IsNull)
                 throw new InvalidOperationException($"Cannot construct a ClrException from a null object.");
@@ -44,12 +44,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the ClrType for this exception object.
         /// </summary>
-        public ClrType Type => _object.Type;
+        public ClrType Type => _object.Type!;
 
         /// <summary>
         /// Returns the exception message.
         /// </summary>
-        public string Message => _object.GetStringField("_message");
+        public string? Message => _object.GetStringField("_message");
 
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.

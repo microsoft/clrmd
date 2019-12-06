@@ -26,16 +26,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             Path = path;
         }
 
-        public ElfFile Open()
+        public ElfFile? Open()
         {
-            IElfHeader header;
+            IElfHeader? header;
 
             if (_is64bit)
                 header = _vaReader.TryRead<ElfHeader64>(BaseAddress);
             else
                 header = _vaReader.TryRead<ElfHeader32>(BaseAddress);
 
-            if (header == null || !header.IsValid)
+            if (header is null || !header.IsValid)
                 return null;
 
             return new ElfFile(header, _vaReader, BaseAddress, true);

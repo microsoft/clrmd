@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _sos.GetCodeHeaderData(slot, out _codeHeaderData);
         }
 
-        public ObjectPool<MethodBuilder> Owner { get; set; }
+        public ObjectPool<MethodBuilder>? Owner { get; set; }
         public IMethodHelpers Helpers { get; }
 
         public uint Token => _mdData.MDToken;

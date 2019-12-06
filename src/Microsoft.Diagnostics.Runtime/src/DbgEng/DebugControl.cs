@@ -83,12 +83,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return result;
         }
 
-        private GetEffectiveProcessorTypeDelegate _getEffectiveProcessorType;
-        private IsPointer64BitDelegate _isPointer64Bit;
-        private WaitForEventDelegate _waitForEvent;
-        private AddEngineOptionsDelegate _addEngineOptions;
-        private GetDebuggeeTypeDelegate _getDebuggeeType;
-        private GetDumpFormatFlagsDelegate _getDumpFormat;
+        private GetEffectiveProcessorTypeDelegate? _getEffectiveProcessorType;
+        private IsPointer64BitDelegate? _isPointer64Bit;
+        private WaitForEventDelegate? _waitForEvent;
+        private AddEngineOptionsDelegate? _addEngineOptions;
+        private GetDebuggeeTypeDelegate? _getDebuggeeType;
+        private GetDumpFormatFlagsDelegate? _getDumpFormat;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetEffectiveProcessorTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE Type);

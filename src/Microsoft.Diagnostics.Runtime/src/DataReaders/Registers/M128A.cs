@@ -29,15 +29,9 @@ namespace Microsoft.Diagnostics.Runtime
             return lhs.Low != rhs.Low || lhs.High != rhs.High;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj == null)
-                return false;
-
-            if (obj.GetType() != typeof(M128A))
-                return false;
-
-            return this == (M128A)obj;
+            return obj is M128A other && this == other;
         }
 
         public override int GetHashCode()

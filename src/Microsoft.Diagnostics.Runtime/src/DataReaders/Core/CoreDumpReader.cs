@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly string _source;
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
-        private Dictionary<uint, IElfPRStatus> _threads;
-        private List<ModuleInfo> _modules;
+        private Dictionary<uint, IElfPRStatus>? _threads;
+        private List<ModuleInfo>? _modules;
 
         public CoreDumpReader(string filename)
         {
@@ -76,12 +76,12 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<uint> EnumerateAllThreads()
         {
             InitThreads();
-            return _threads.Keys;
+            return _threads!.Keys;
         }
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            if (_modules == null)
+            if (_modules is null)
             {
                 // Need to filter out non-modules like the interpreter (named something
                 // like "ld-2.23") and anything that starts with /dev/ because their
@@ -99,12 +99,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
-            ElfFile file = image.Open();
+            ElfFile? file = image.Open();
 
             uint filesize = (uint)image.Size;
             uint timestamp = 0;
 
-            if (file == null)
+            if (file is null)
             {
                 PEImage pe = image.OpenAsPEImage();
                 filesize = (uint)pe.IndexFileSize;
@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             InitThreads();
 
-            if (_threads.TryGetValue(threadID, out IElfPRStatus status))
+            if (_threads!.TryGetValue(threadID, out IElfPRStatus status))
                 return status.CopyContext(contextFlags, context);
 
             return false;
@@ -137,8 +137,11 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
-            ElfFile file = image.Open();
-            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            ElfFile? file = image.Open();
+            if (file is null)
+                version = default;
+            else
+                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
 
         public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)

@@ -12,10 +12,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
 
-        MetaDataImport GetMetaDataImport(ClrModule module);
+        MetaDataImport? GetMetaDataImport(ClrModule module);
         IReadOnlyList<(ulong, uint)> GetSortedTypeDefMap(ClrModule module);
         IReadOnlyList<(ulong, uint)> GetSortedTypeRefMap(ClrModule module);
         ClrType TryGetType(ulong mt);
-        string GetTypeName(ulong mt);
+        string? GetTypeName(ulong mt);
     }
 }

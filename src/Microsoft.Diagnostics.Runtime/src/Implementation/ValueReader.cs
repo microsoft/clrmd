@@ -12,10 +12,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal static class ValueReader
     {
         private static bool _initializedStringFields;
-        private static ClrInstanceField _firstChar;
-        private static ClrInstanceField _stringLength;
+        private static ClrInstanceField? _firstChar;
+        private static ClrInstanceField? _stringLength;
 
-        internal static object GetValueAtAddress(ClrHeap heap, IDataReader reader, ClrElementType cet, ulong addr)
+        internal static object? GetValueAtAddress(ClrHeap heap, IDataReader reader, ClrElementType cet, ulong addr)
         {
             switch (cet)
             {
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             throw new Exception("Unexpected element type.");
         }
 
-        internal static string GetStringContents(ClrType stringType, IDataReader reader, ulong strAddr, int maxLen)
+        internal static string? GetStringContents(ClrType stringType, IDataReader reader, ulong strAddr, int maxLen)
         {
             if (strAddr == 0)
                 return null;
@@ -154,16 +154,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
-                if (_firstChar?.Type == null)
+                if (_firstChar?.Type is null)
                     _firstChar = null;
 
-                if (_stringLength?.Type == null)
+                if (_stringLength?.Type is null)
                     _stringLength = null;
 
                 _initializedStringFields = true;
             }
 
-            if (_firstChar == null || _stringLength == null)
+            if (_firstChar is null || _stringLength is null)
                 return string.Empty;
 
             int length = _stringLength.Read<int>(strAddr, interior: false);
@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return ReadString(reader, data, length);
         }
 
-        internal static string ReadString(IDataReader reader, ulong dataAddress, int length)
+        internal static string? ReadString(IDataReader reader, ulong dataAddress, int length)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(length * 2);
             try

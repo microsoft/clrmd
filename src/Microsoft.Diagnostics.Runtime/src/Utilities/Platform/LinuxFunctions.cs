@@ -25,21 +25,27 @@ namespace Microsoft.Diagnostics.Runtime
 
         private delegate bool TryGetExport(IntPtr handle, string name, out IntPtr address);
 
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public LinuxFunctions()
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         {
             Type nativeLibraryType = Type.GetType("System.Runtime.InteropServices.NativeLibrary, System.Runtime.InteropServices", throwOnError: false);
             if (nativeLibraryType != null)
             {
                 // .NET Core 3.0+
-                _loadLibrary = (Func<string, IntPtr>)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
+                 var loadLibrary = (Func<string, IntPtr>?)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
+                if (loadLibrary != null)
+                {
+                    _loadLibrary = loadLibrary;
+                }
 
-                var freeLibrary = (Action<IntPtr>)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
+                var freeLibrary = (Action<IntPtr>?)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
                 if (freeLibrary != null)
                 {
                     _freeLibrary = ptr => { freeLibrary(ptr); return true; };
                 }
 
-                var tryGetExport = (TryGetExport)nativeLibraryType.GetMethod("TryGetExport", new Type[] { typeof(IntPtr), typeof(string), typeof(IntPtr).MakeByRefType() })
+                var tryGetExport = (TryGetExport?)nativeLibraryType.GetMethod("TryGetExport", new Type[] { typeof(IntPtr), typeof(string), typeof(IntPtr).MakeByRefType() })
                     ?.CreateDelegate(typeof(TryGetExport));
                 if (tryGetExport != null)
                 {
@@ -50,9 +56,10 @@ namespace Microsoft.Diagnostics.Runtime
                     };
                 }
             }
-            if (_loadLibrary == null ||
-                _freeLibrary == null ||
-                _getExport == null)
+
+            if (_loadLibrary is null ||
+                _freeLibrary is null ||
+                _getExport is null)
             {
                 // On glibc based Linux distributions, 'libdl.so' is a symlink provided by development packages.
                 // To work on production machines, we fall back to 'libdl.so.2' which is the actual library name.

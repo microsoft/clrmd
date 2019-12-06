@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     public class ClrmdField : ClrInstanceField
     {
         private readonly IFieldHelpers _helpers;
-        private string _name;
-        private ClrType _type;
+        private string? _name;
+        private ClrType? _type;
         private FieldAttributes _attributes = FieldAttributes.ReservedMask;
 
         public override ClrElementType ElementType { get; }
@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsValueClass => ElementType.IsValueClass();
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
-        public override string Name
+        public override string? Name
         {
             get
             {
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     return _type;
 
                 InitData();
-                return _type;
+                return _type!;
             }
         }
 
@@ -134,12 +134,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_type != null)
                 return;
 
-            _type = GetTypeForFieldSig(_helpers.Factory, sigParser, Parent?.Heap, Parent?.Module);
+            _type = GetTypeForFieldSig(_helpers.Factory, sigParser, Parent.Heap, Parent.Module);
         }
 
-        internal static ClrType GetTypeForFieldSig(ITypeFactory factory, SigParser sigParser, ClrHeap heap, ClrModule module)
+        internal static ClrType? GetTypeForFieldSig(ITypeFactory factory, SigParser sigParser, ClrHeap heap, ClrModule? module)
         {
-            ClrType result = null;
+            ClrType? result = null;
             bool res;
             int etype = 0;
 
@@ -194,11 +194,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     sigParser.GetToken(out int token);
 
-                    ClrType innerType = factory.GetOrCreateTypeFromToken(module, (uint)token);
-                    if (innerType == null)
-                        innerType = factory.GetOrCreateBasicType(type);
+                    if (module != null)
+                    {
+                        ClrType? innerType = factory.GetOrCreateTypeFromToken(module, (uint)token);
+                        if (innerType is null)
+                            innerType = factory.GetOrCreateBasicType(type);
 
-                    result = factory.GetOrCreatePointerType(innerType, 1);
+                        result = factory.GetOrCreatePointerType(innerType, 1);
+                    }
                 }
                 else if (type == ClrElementType.Object || type == ClrElementType.Class)
                 {
@@ -211,15 +214,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (etype == 0x11 || etype == 0x12)
                         sigParser.GetToken(out token);
 
-                    if (token != 0)
+                    if (token != 0 && module != null)
                         result = factory.GetOrCreateTypeFromToken(module, (uint)token);
 
-                    if (result == null)
+                    if (result is null)
                         result = factory.GetOrCreateBasicType((ClrElementType)etype);
                 }
             }
 
-            if (result.IsArray && result.ComponentType == null && result is ClrmdArrayType clrmdType)
+            if (result is null)
+                return result;
+
+            if (result.IsArray && result.ComponentType is null && result is ClrmdArrayType clrmdType)
             {
                 etype = 0;
 
@@ -240,9 +246,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (etype == 0x11 || etype == 0x12)
                     sigParser.GetToken(out token);
 
-                if (token != 0)
+                if (token != 0 && module != null)
                     clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, (uint)token));
-
                 else
                     clrmdType.SetComponentType(factory.GetOrCreateBasicType((ClrElementType)etype));
             }
@@ -256,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0)
                 return default;
 
-            if (!_helpers.DataReader.Read<T>(address, out T value))
+            if (!_helpers.DataReader.Read(address, out T value))
                 return default;
 
             return value;
@@ -269,8 +274,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return default;
 
             ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
-            ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
-            if (type == null)
+            ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
+            if (type is null)
                 return default;
 
             return new ClrObject(obj, type);
@@ -285,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new ClrValueClass(address, Type, interior: true);
         }
 
-        public override string ReadString(ulong objRef, bool interior)
+        public override string? ReadString(ulong objRef, bool interior)
         {
             ClrObject obj = ReadObject(objRef, interior);
             if (obj.IsNull)
@@ -309,13 +314,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             switch (cet)
             {
                 case ClrElementType.Struct:
-                    if (type == null)
+                    if (type is null)
                         return 1;
 
-                    ClrField last = null;
+                    ClrField? last = null;
                     foreach (ClrField field in type.Fields)
                     {
-                        if (last == null)
+                        if (last is null)
                             last = field;
                         else if (field.Offset > last.Offset)
                             last = field;
@@ -323,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             last = field;
                     }
 
-                    if (last == null)
+                    if (last is null)
                         return 0;
 
                     return last.Offset + last.Size;

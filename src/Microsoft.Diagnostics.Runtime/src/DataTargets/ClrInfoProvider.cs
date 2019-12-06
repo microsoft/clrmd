@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         private static bool TryGetModuleName(ModuleInfo moduleInfo, out string moduleName)
         {
             moduleName = Path.GetFileNameWithoutExtension(moduleInfo.FileName);
-            if (moduleName == null)
+            if (moduleName is null)
                 return false;
 
 #pragma warning disable CA1304 // Specify CultureInfo
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>true if module corresponds to a supported runtime.</returns>
         public static bool IsSupportedRuntime(ModuleInfo moduleInfo, out ClrFlavor flavor, out Platform platform)
         {
-            if (moduleInfo == null)
+            if (moduleInfo is null)
                 throw new ArgumentNullException(nameof(moduleInfo));
 
             flavor = default;

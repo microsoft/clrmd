@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadHandles(HandleData[] handles)
         {
-            if (handles == null)
+            if (handles is null)
                 throw new ArgumentNullException(nameof(handles));
 
             fixed (HandleData* ptr = handles)

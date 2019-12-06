@@ -24,9 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return FileName.ToUpperInvariant().GetHashCode() ^ TimeStamp ^ FileSize;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return obj is FileEntry && Equals((FileEntry)obj);
+            return obj is FileEntry other && Equals(other);
         }
 
         public bool Equals(FileEntry other)

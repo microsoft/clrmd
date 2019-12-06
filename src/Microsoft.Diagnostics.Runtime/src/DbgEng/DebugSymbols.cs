@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             SuppressRelease();
         }
 
-        public string GetModuleNameStringWide(DebugModuleName which, int index, ulong imageBase)
+        public string? GetModuleNameStringWide(DebugModuleName which, int index, ulong imageBase)
         {
             InitDelegate(ref _getModuleNameStringWide, VTable->GetModuleNameStringWide);
 
@@ -113,17 +113,17 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return hr == S_OK;
         }
 
-        private GetModuleByOffsetDelegate _getModuleByOffset;
-        private GetModuleVersionInformationDelegate _getModuleVersionInformation;
-        private GetModuleParametersDelegate _getModuleParameters;
-        private GetModuleByIndexDelegate _getModuleByIndex;
-        private GetNumberModulesDelegate _getNumberModules;
-        private GetModuleNameStringWideDelegate _getModuleNameStringWide;
+        private GetModuleByOffsetDelegate? _getModuleByOffset;
+        private GetModuleVersionInformationDelegate? _getModuleVersionInformation;
+        private GetModuleParametersDelegate? _getModuleParameters;
+        private GetModuleByIndexDelegate? _getModuleByIndex;
+        private GetNumberModulesDelegate? _getNumberModules;
+        private GetModuleNameStringWideDelegate? _getModuleNameStringWide;
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base,
-                                    [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer, int BufferSize, out int NameSize);
+                                    [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? Buffer, int BufferSize, out int NameSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetNumberModulesDelegate(IntPtr self, out int count, out int unloaded);

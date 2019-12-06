@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        private DacGetMethodTableCollectibleData _getMethodTableCollectibleData;
+        private DacGetMethodTableCollectibleData? _getMethodTableCollectibleData;
 
         public bool GetMethodTableCollectibleData(ulong mt, out MethodTableCollectibleData data)
         {

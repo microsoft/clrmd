@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return S_OK;
         }
 
-        private ModuleInfo GetModule(ulong address)
+        private ModuleInfo? GetModule(ulong address)
         {
             int min = 0, max = _modules.Length - 1;
 
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
 
             bytesRead = 0;
-            ModuleInfo info = GetModule(address);
+            ModuleInfo? info = GetModule(address);
             if (info != null)
             {
                 if (Path.GetExtension(info.FileName).Equals(".so", StringComparison.OrdinalIgnoreCase))
@@ -130,15 +130,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return E_NOTIMPL;
                 }
 
-                string filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);
-                if (filePath == null)
+
+                string? filePath;
+                if (!string.IsNullOrEmpty(info.FileName))
+                    filePath = null;
+                else
+                    filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+
+                if (filePath is null)
                 {
                     bytesRead = 0;
                     return E_FAIL;
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEImage peimage = _dataTarget.LoadPEImage(filePath);
+                PEImage? peimage = _dataTarget.LoadPEImage(filePath);
                 if (peimage != null)
                 {
                     Debug.Assert(peimage.IsValid);
@@ -227,13 +233,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (buffer == IntPtr.Zero)
                 return E_INVALIDARG;
 
-            string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
-            if (filePath == null)
+            string? filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
+            if (filePath is null)
                 return E_FAIL;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEImage peimage = _dataTarget.LoadPEImage(filePath);
-            if (peimage == null)
+            PEImage? peimage = _dataTarget.LoadPEImage(filePath);
+            if (peimage is null || peimage.OptionalHeader is null)
                 return E_FAIL;
 
             Debug.Assert(peimage.IsValid);

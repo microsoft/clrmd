@@ -5,7 +5,6 @@
 using System;
 using System.IO;
 using Microsoft.Diagnostics.Runtime.Builders;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -16,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public DataTarget DataTarget { get; }
 
-        internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string dacLocation)
+        internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string? dacLocation)
         {
             DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
             Flavor = flavor;
@@ -49,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the location of the local dac on your machine which matches this version of Clr, or null
         /// if one could not be found.
         /// </summary>
-        public string LocalMatchingDac { get; }
+        public string? LocalMatchingDac { get; }
 
         /// <summary>
         /// To string.
@@ -83,12 +82,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrRuntime CreateRuntime()
         {
-            string dac = LocalMatchingDac;
+            string? dac = LocalMatchingDac;
             if (dac != null && !File.Exists(dac))
                 dac = null;
 
-            if (dac == null)
-                dac = DataTarget.SymbolLocator.FindBinary(DacInfo);
+            dac ??= DataTarget.SymbolLocator.FindBinary(DacInfo);
 
             if (!File.Exists(dac))
                 throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.FileName);
@@ -96,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            return ConstructRuntime(dac);
+            return ConstructRuntime(dac!);
         }
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -105,7 +103,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            var factory = new RuntimeBuilder(this, new DacLibrary(DataTarget, dac));
+            DacLibrary dacLibrary = new DacLibrary(DataTarget, dac);
+            DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface;
+            if (sos is null)
+                throw new InvalidOperationException($"Could not create a ISOSDac pointer from this dac library: {dac}");
+
+            var factory = new RuntimeBuilder(this, dacLibrary, sos);
             if (Flavor == ClrFlavor.Core)
                 return factory.GetOrCreateRuntime();
 

@@ -19,24 +19,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         protected ITypeHelpers Helpers { get; }
         protected IDataReader DataReader => Helpers.DataReader;
 
-        private string _name;
+        private string? _name;
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
 
-        private ClrMethod[] _methods;
-        private IReadOnlyList<ClrInstanceField> _fields;
-        private IReadOnlyList<ClrStaticField> _statics;
+        private ClrMethod[]? _methods;
+        private IReadOnlyList<ClrInstanceField>? _fields;
+        private IReadOnlyList<ClrStaticField>? _statics;
 
-        private EnumData _enumData;
+        private EnumData? _enumData;
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
 
-        public override string Name => _name ??= Helpers.GetTypeName(MethodTable);
+        public override string? Name => _name ??= Helpers.GetTypeName(MethodTable);
 
         public override int BaseSize { get; }
         public override int ComponentSize => 0;
-        public override ClrType ComponentType => null;
-        public override ClrModule Module { get; }
+        public override ClrType? ComponentType => null;
+        public override ClrModule? Module { get; }
         public override GCDesc GCDesc => GetOrCreateGCDesc();
 
         public override ClrElementType ElementType => GetElementType();
@@ -46,12 +46,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }
 
-        public override ClrType BaseType { get; }
+        public override ClrType? BaseType { get; }
 
         public override bool ContainsPointers { get; }
         public override bool IsShared { get; }
 
-        public ClrmdType(ClrHeap heap, ClrType baseType, ClrModule module, ITypeData data)
+        public ClrmdType(ClrHeap heap, ClrType? baseType, ClrModule? module, ITypeData data)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return _gcDesc;
 
             IDataReader reader = Helpers.DataReader;
-            if (reader == null)
+            if (reader is null)
                 return default;
 
             Debug.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
@@ -116,14 +116,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
-            MetaDataImport import = Module?.MetadataImport;
+            MetaDataImport? import = Module?.MetadataImport;
             if (import != null)
             {
                 foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
                 {
                     if (import.GetInterfaceImplProps(token, out _, out int mdIFace))
                     {
-                        ClrInterface result = GetInterface(import, mdIFace);
+                        ClrInterface? result = GetInterface(import, mdIFace);
                         if (result != null)
                             yield return result;
                     }
@@ -131,10 +131,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        private ClrInterface GetInterface(MetaDataImport import, int mdIFace)
+        private ClrInterface? GetInterface(MetaDataImport import, int mdIFace)
         {
-            ClrInterface result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out string name, out _, out int extends))
+            ClrInterface? result = null;
+            if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends))
             {
                 name = import.GetTypeRefName(mdIFace);
             }
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // TODO:  Handle typespec case.
             if (name != null)
             {
-                ClrInterface type = null;
+                ClrInterface? type = null;
                 if (extends != 0 && extends != 0x01000000)
                     type = GetInterface(import, extends);
 
@@ -165,8 +165,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (ComponentSize > 0)
                 return _elementType = ClrElementType.SZArray;
 
-            ClrType baseType = BaseType;
-            if (baseType == null || baseType == Heap.ObjectType)
+            ClrType? baseType = BaseType;
+            if (baseType is null || baseType == Heap.ObjectType)
                 return _elementType = ClrElementType.Object;
 
             if (baseType.Name != "System.ValueType")
@@ -214,16 +214,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return _elementType = ClrElementType.Struct;
         }
 
-        public override string ToString()
-        {
-            return Name;
-        }
-
         public override bool IsException
         {
             get
             {
-                ClrType type = this;
+                ClrType? type = this;
                 while (type != null)
                     if (type == Heap.ExceptionType)
                         return true;
@@ -236,8 +231,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         // TODO:  Add ClrObject GetCcw/GetRcw
         // TODO:  Move out of ClrType.
-        public override ComCallWrapper GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
-        public override RuntimeCallableWrapper GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
+        public override ComCallWrapper? GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
+        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
 
         private class EnumData
         {
@@ -260,17 +255,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool TryGetEnumValue(string name, out object value)
         {
-            if (_enumData == null)
+            if (_enumData is null)
                 InitEnumData();
 
-            return _enumData.NameToValue.TryGetValue(name, out value);
+            return _enumData!.NameToValue.TryGetValue(name, out value);
         }
 
         public override bool IsEnum
         {
             get
             {
-                for (ClrType type = this; type != null; type = type.BaseType)
+                for (ClrType? type = this; type != null; type = type.BaseType)
                     if (type.Name == "System.Enum")
                         return true;
 
@@ -280,10 +275,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override string GetEnumName(object value)
         {
-            if (_enumData == null)
+            if (_enumData is null)
                 InitEnumData();
 
-            _enumData.ValueToName.TryGetValue(value, out string result);
+            _enumData!.ValueToName.TryGetValue(value, out string result);
             return result;
         }
 
@@ -294,10 +289,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<string> GetEnumNames()
         {
-            if (_enumData == null)
+            if (_enumData is null)
                 InitEnumData();
 
-            return _enumData.NameToValue.Keys;
+            return _enumData!.NameToValue.Keys;
         }
 
         private void InitEnumData()
@@ -306,14 +301,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 throw new InvalidOperationException("Type is not an Enum.");
 
             _enumData = new EnumData();
-            MetaDataImport import = Module?.MetadataImport;
-            if (import == null)
+            MetaDataImport? import = Module?.MetadataImport;
+            if (import is null)
                 return;
 
-            List<string> names = new List<string>();
+            List<string?> names = new List<string?>();
             foreach (uint token in import.EnumerateFields((int)MetadataToken))
             {
-                if (import.GetFieldProps(token, out string name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
+                if (import.GetFieldProps(token, out string? name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
                 {
                     if ((int)attr == 0x606 && name == "value__")
                     {
@@ -331,12 +326,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         parser.GetCallingConvInfo(out _);
                         parser.GetElemType(out _);
 
-                        Type type = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
+                        Type? type = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
                         if (type != null)
                         {
                             object o = Marshal.PtrToStructure(ppValue, type);
-                            _enumData.NameToValue[name] = o;
-                            _enumData.ValueToName[o] = name;
+                            if (name != null)
+                            {
+                                _enumData.NameToValue[name] = o;
+                                _enumData.ValueToName[o] = name;
+                            }
                         }
                     }
                 }
@@ -375,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
+        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
         {
             if (!IsArray)
             {
@@ -410,10 +408,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fields == null)
+                if (_fields is null)
                     InitFields();
 
-                return _fields;
+                return _fields!;
             }
         }
 
@@ -421,10 +419,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fields == null)
+                if (_fields is null)
                     InitFields();
 
-                if (_statics == null)
+                if (_statics is null)
                     return Array.Empty<ClrStaticField>();
 
                 return _statics;
@@ -438,23 +436,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             Helpers.Factory.CreateFieldsForType(this, out _fields, out _statics);
 
-            if (_fields == null)
-                _fields = Array.Empty<ClrInstanceField>();
-
-            if (_statics == null)
-                _statics = Array.Empty<ClrStaticField>();
+            _fields ??= Array.Empty<ClrInstanceField>();
+            _statics ??= Array.Empty<ClrStaticField>();
         }
 
         public override IReadOnlyList<ClrMethod> Methods => _methods ??= Helpers.Factory.CreateMethodsForType(this);
 
         //TODO: remove
-        public override ClrStaticField GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
+        public override ClrStaticField? GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
 
         //TODO: remove
-        public override ClrInstanceField GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
+        public override ClrInstanceField? GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
-        public override object GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
+        public override object? GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
 
         /// <summary>
         /// A messy version with better performance that doesn't use regular expression.
@@ -618,11 +613,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private void InitFlags()
         {
-            if (_attributes != 0 || Module == null)
+            if (_attributes != 0 || Module is null)
                 return;
 
-            MetaDataImport import = Module?.MetadataImport;
-            if (import == null)
+            MetaDataImport? import = Module?.MetadataImport;
+            if (import is null)
             {
                 _attributes = (TypeAttributes)0x70000000;
                 return;

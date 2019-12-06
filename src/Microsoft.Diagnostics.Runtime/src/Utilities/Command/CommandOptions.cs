@@ -24,11 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal bool noWait;
         internal bool elevate;
         internal int timeoutMSec;
-        internal string input;
-        internal string outputFile;
-        internal TextWriter outputStream;
-        internal string currentDirectory;
-        internal Dictionary<string, string> environmentVariables;
+        internal string? input;
+        internal string? outputFile;
+        internal TextWriter? outputStream;
+        internal string? currentDirectory;
+        internal Dictionary<string, string>? environmentVariables;
 
         /// <summary>
         /// Can be assigned to the Timeout Property to indicate infinite timeout.
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Indicates the string will be sent to Console.In for the subprocess.
         /// </summary>
-        public string Input
+        public string? Input
         {
             get => input;
             set => input = value;
@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Indicates the current directory the subProcess will have.
         /// </summary>
-        public string CurrentDirectory
+        public string? CurrentDirectory
         {
             get => currentDirectory;
             set => currentDirectory = value;
@@ -234,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// to a archiveFile rather than being stored in Memory in the 'Output' property of the
         /// command.
         /// </summary>
-        public string OutputFile
+        public string? OutputFile
         {
             get => outputFile;
             set
@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// to a a TextWriter rather than being stored in Memory in the 'Output' property
         /// of the command.
         /// </summary>
-        public TextWriter OutputStream
+        public TextWriter? OutputStream
         {
             get => outputStream;
             set
@@ -293,8 +293,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (environmentVariables == null)
-                    environmentVariables = new Dictionary<string, string>();
+                environmentVariables ??= new Dictionary<string, string>();
                 return environmentVariables;
             }
         }

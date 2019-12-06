@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
         private readonly long _position;
-        private string _name;
+        private string? _name;
 
         public ElfNoteHeader Header { get; }
 

@@ -29,9 +29,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private int _offset = 0;
         private readonly int _peHeaderOffset;
 
-        private readonly Lazy<ImageFileHeader> _imageFileHeader;
-        private readonly Lazy<ImageOptionalHeader> _imageOptionalHeader;
-        private readonly Lazy<CorHeader> _corHeader;
+        private readonly Lazy<ImageFileHeader?> _imageFileHeader;
+        private readonly Lazy<ImageOptionalHeader?> _imageOptionalHeader;
+        private readonly Lazy<CorHeader?> _corHeader;
         private readonly Lazy<List<SectionHeader>> _sections;
         private readonly Lazy<List<PdbInfo>> _pdbs;
         private readonly Lazy<IMAGE_DATA_DIRECTORY[]> _directories;
@@ -82,9 +82,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 IsValid = peSignature == ExpectedPESignature;
             }
 
-            _imageFileHeader = new Lazy<ImageFileHeader>(ReadImageFileHeader);
-            _imageOptionalHeader = new Lazy<ImageOptionalHeader>(ReadImageOptionalHeader);
-            _corHeader = new Lazy<CorHeader>(ReadCorHeader);
+            _imageFileHeader = new Lazy<ImageFileHeader?>(ReadImageFileHeader);
+            _imageOptionalHeader = new Lazy<ImageOptionalHeader?>(ReadImageOptionalHeader);
+            _corHeader = new Lazy<CorHeader?>(ReadCorHeader);
             _directories = new Lazy<IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
             _sections = new Lazy<List<SectionHeader>>(ReadSections);
             _pdbs = new Lazy<List<PdbInfo>>(ReadPdbs);
@@ -131,17 +131,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Returns the managed header information for this image.  Undefined behavior if IsValid is false.
         /// </summary>
-        public CorHeader CorHeader => _corHeader.Value;
+        public CorHeader? CorHeader => _corHeader.Value;
 
         /// <summary>
         /// Returns a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is false.
         /// </summary>
-        public ImageFileHeader Header => _imageFileHeader.Value;
+        public ImageFileHeader? Header => _imageFileHeader.Value;
 
         /// <summary>
         /// Returns a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is false.
         /// </summary>
-        public ImageOptionalHeader OptionalHeader => _imageOptionalHeader.Value;
+        public ImageOptionalHeader? OptionalHeader => _imageOptionalHeader.Value;
 
         /// <summary>
         /// Returns a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is false.
@@ -209,8 +209,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!IsValid)
                 return sections;
 
-            ImageFileHeader header = Header;
-            if (header == null)
+            ImageFileHeader? header = Header;
+            if (header is null)
                 return sections;
 
             SeekTo(ImageDataDirectoryOffset);
@@ -267,10 +267,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
-                        string filename = ReadString(nameLen);
+                        string? filename = ReadString(nameLen);
 
-                        PdbInfo pdb = new PdbInfo(filename, guid, age);
-                        result.Add(pdb);
+                        if (filename != null)
+                        {
+                            PdbInfo pdb = new PdbInfo(filename, guid, age);
+                            result.Add(pdb);
+                        }
                     }
                 }
             }
@@ -278,9 +281,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        private string ReadString(int len) => ReadString(_offset, len);
+        private string? ReadString(int len) => ReadString(_offset, len);
 
-        private string ReadString(int offset, int len)
+        private string? ReadString(int offset, int len)
         {
             if (len > 4096)
                 len = 4096;
@@ -360,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private ImageFileHeader ReadImageFileHeader()
+        private ImageFileHeader? ReadImageFileHeader()
         {
             if (!IsValid)
                 return null;
@@ -385,7 +388,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return directories;
         }
 
-        private ImageOptionalHeader ReadImageOptionalHeader()
+        private ImageOptionalHeader? ReadImageOptionalHeader()
         {
             if (!IsValid)
                 return null;
@@ -411,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return new ImageOptionalHeader(ref optional, specific, _directories, is32Bit);
         }
 
-        private CorHeader ReadCorHeader()
+        private CorHeader? ReadCorHeader()
         {
             var clrDataDirectory = GetDirectory(ComDataDirectory);
 

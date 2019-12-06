@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ModuleInfo
     {
-        private PEImage _image;
+        private PEImage? _image;
         private readonly IDataReader _dataReader;
         private VersionInfo? _version;
 
@@ -35,14 +35,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The filename of the module on disk.
         /// </summary>
-        public string FileName { get; }
+        public string? FileName { get; }
 
         /// <summary>
         /// Returns a PEImage from a stream constructed using instance fields of this object.
         /// If the PEImage cannot be constructed, null is returned.
         /// </summary>
         /// <returns></returns>
-        public PEImage GetPEImage()
+        public PEImage? GetPEImage()
         {
             if (_image != null)
                 return _image;
@@ -60,19 +60,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
         /// </summary>
-        public IReadOnlyList<byte> BuildId { get; }
+        public IReadOnlyList<byte>? BuildId { get; }
 
         /// <summary>
         /// Whether the module is managed or not.
         /// </summary>
-        public bool IsManaged => GetPEImage().IsManaged;
+        public bool IsManaged => GetPEImage()?.IsManaged ?? false;
 
-        public override string ToString() => FileName;
+        public override string? ToString() => FileName;
 
         /// <summary>
         /// The PDB associated with this module.
         /// </summary>
-        public PdbInfo Pdb => GetPEImage().DefaultPdb;
+        public PdbInfo? Pdb => GetPEImage()?.DefaultPdb;
 
         /// <summary>
         /// The version information for this file.
@@ -96,8 +96,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// lazily evaluating VersionInfo.
         /// </summary>
         /// <param name="reader"></param>
-        public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string filename,
-            IReadOnlyList<byte> buildId = null, VersionInfo? version = null)
+        public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string? filename,
+            IReadOnlyList<byte>? buildId = null, VersionInfo? version = null)
         {
             _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
             ImageBase = imgBase;

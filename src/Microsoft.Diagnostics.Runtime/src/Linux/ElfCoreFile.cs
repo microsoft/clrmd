@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class ElfCoreFile
     {
         private readonly Reader _reader;
-        private ElfLoadedImage[] _loadedImages;
-        private Dictionary<ulong, ulong> _auxvEntries;
-        private ELFVirtualAddressSpace _virtualAddressSpace;
+        private ElfLoadedImage[]? _loadedImages;
+        private readonly Dictionary<ulong, ulong> _auxvEntries = new Dictionary<ulong, ulong>();
+        private ELFVirtualAddressSpace? _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
 
@@ -43,14 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public IReadOnlyCollection<ElfLoadedImage> LoadedImages
-        {
-            get
-            {
-                LoadFileTable();
-                return _loadedImages;
-            }
-        }
+        public IReadOnlyCollection<ElfLoadedImage> LoadedImages => LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -67,9 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int ReadMemory(long address, Span<byte> buffer)
         {
-            if (_virtualAddressSpace == null)
-                _virtualAddressSpace = new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
-
+            _virtualAddressSpace ??= new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
             return _virtualAddressSpace.Read(address, buffer);
         }
 
@@ -80,12 +71,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void LoadAuxvTable()
         {
-            if (_auxvEntries != null)
+            if (_auxvEntries.Count != 0)
                 return;
 
-            _auxvEntries = new Dictionary<ulong, ulong>();
             ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
-            if (auxvNote == null)
+            if (auxvNote is null)
                 throw new BadImageFormatException($"No auxv entries in coredump");
 
             long position = 0;
@@ -113,10 +103,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private void LoadFileTable()
+        private IReadOnlyCollection<ElfLoadedImage> LoadFileTable()
         {
             if (_loadedImages != null)
-                return;
+                return _loadedImages;
 
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
@@ -177,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
+            return _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
         }
     }
 }

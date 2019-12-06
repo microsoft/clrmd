@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the thread which created this RCW.
         /// </summary>
-        public ClrThread CreatorThread { get; }
+        public ClrThread? CreatorThread { get; }
 
         /// <summary>
         /// Returns the internal WinRT object associated with this RCW (if one exists).

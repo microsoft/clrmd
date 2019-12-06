@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -43,7 +44,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         IReadOnlyList<ComInterfaceData> IRCWData.GetInterfaces()
         {
-            COMInterfacePointerData[] ifs = _sos.GetRCWInterfaces(Address, _rcwData.InterfaceCount);
+            COMInterfacePointerData[]? ifs = _sos.GetRCWInterfaces(Address, _rcwData.InterfaceCount);
+            if (ifs is null)
+                return Array.Empty<ComInterfaceData>();
+
             return _builder.CreateComInterfaces(ifs);
         }
     }

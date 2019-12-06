@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
         IClrObjectHelpers ClrObjectHelpers { get; }
 
-        string GetTypeName(ulong mt);
+        string? GetTypeName(ulong mt);
         ulong GetLoaderAllocatorHandle(ulong mt);
 
         // TODO: Should not expose this:

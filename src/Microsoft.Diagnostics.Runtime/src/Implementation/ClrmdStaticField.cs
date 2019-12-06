@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private ulong _address = ulong.MaxValue - 1;
         private readonly IFieldHelpers _helpers;
-        private string _name;
-        private ClrType _type;
+        private string? _name;
+        private ClrType? _type;
         private FieldAttributes _attributes = FieldAttributes.ReservedMask;
 
         public override ClrElementType ElementType { get; }
@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsValueClass => ElementType.IsValueClass();
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
-        public override string Name
+        public override string? Name
         {
             get
             {
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     return _type;
 
                 InitData();
-                return _type;
+                return _type!;
             }
         }
 
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0)
                 return default;
 
-            if (!_helpers.DataReader.Read<T>(address, out T value))
+            if (!_helpers.DataReader.Read(address, out T value))
                 return default;
 
             return value;
@@ -149,8 +149,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return default;
 
             ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
-            ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
-            if (type == null)
+            ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
+            if (type is null)
                 return default;
 
             return new ClrObject(obj, type);
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new ClrValueClass(Address, Type, interior: true);
         }
 
-        public override string ReadString()
+        public override string? ReadString()
         {
             ClrObject obj = ReadObject();
             if (obj.IsNull)

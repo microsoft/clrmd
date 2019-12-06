@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
         /// a valid managed object.
         /// </summary>
-        public abstract ClrType GetObjectType(ulong objRef);
+        public abstract ClrType? GetObjectType(ulong objRef);
 
         /// <summary>
         /// Enumerates all objects on the heap.
@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the GC segment for the given object.
         /// </summary>
-        public abstract ClrSegment GetSegmentByAddress(ulong objRef);
+        public abstract ClrSegment? GetSegmentByAddress(ulong objRef);
 
         /// <summary>
         /// Enumerates all finalizable objects on the heap.

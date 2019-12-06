@@ -97,13 +97,13 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return result;
         }
 
-        private GetCurrentProcessSystemIdDelegate _getProcessId;
-        private GetCurrentSystemIdDelegate _getSystemId;
-        private SetCurrentSystemIdDelegate _setSystemId;
-        private SetCurrentThreadIdDelegate _setCurrentThread;
-        private GetNumberThreadsDelegate _getNumberThreads;
-        private GetThreadIdsByIndexDelegate _getThreadIdsByIndex;
-        private GetThreadIdBySystemIdDelegate _getThreadIdBySystemId;
+        private GetCurrentProcessSystemIdDelegate? _getProcessId;
+        private GetCurrentSystemIdDelegate? _getSystemId;
+        private SetCurrentSystemIdDelegate? _setSystemId;
+        private SetCurrentThreadIdDelegate? _setCurrentThread;
+        private GetNumberThreadsDelegate? _getNumberThreads;
+        private GetThreadIdsByIndexDelegate? _getThreadIdsByIndex;
+        private GetThreadIdBySystemIdDelegate? _getThreadIdBySystemId;
         private int _systemId = -1;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

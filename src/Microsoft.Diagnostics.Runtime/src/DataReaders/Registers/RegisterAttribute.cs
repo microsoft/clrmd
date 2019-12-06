@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Optional name override
         /// </summary>
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Register type and flags

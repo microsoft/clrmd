@@ -254,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         internal IEnumerable<string> GetModulesFullPath()
         {
-            return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct();
+            return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct()!;
         }
 
         private static void CopyContext(ref AMD64Context context, in RegSetX64 registerSet)
@@ -435,7 +435,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         public ulong BeginAddr { get; set; }
         public ulong EndAddr { get; set; }
-        public string FilePath { get; set; }
+        public string? FilePath { get; set; }
         public int Permission { get; set; }
 
         public bool IsReadable()

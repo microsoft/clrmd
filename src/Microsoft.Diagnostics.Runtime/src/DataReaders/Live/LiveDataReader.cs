@@ -294,7 +294,7 @@ namespace Microsoft.Diagnostics.Runtime
         private static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport("psapi.dll", SetLastError = true)]
-        public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[] lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
+        public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
         [DllImport("psapi.dll", SetLastError = true)]
         [PreserveSig]

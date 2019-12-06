@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The interface that this interface inherits from.
         /// </summary>
-        public ClrInterface BaseInterface { get; }
+        public ClrInterface? BaseInterface { get; }
 
         /// <summary>
         /// Display string for this interface.
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>Display string for this interface.</returns>
         public override string ToString() => Name;
 
-        public ClrInterface(string name, ClrInterface baseInterface)
+        public ClrInterface(string name, ClrInterface? baseInterface)
         {
             Name = name;
             BaseInterface = baseInterface;
@@ -36,19 +36,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">Object to compare to.</param>
         /// <returns>True if this interface equals another.</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj == null || !(obj is ClrInterface))
+            if (!(obj is ClrInterface other))
                 return false;
 
-            ClrInterface rhs = (ClrInterface)obj;
-            if (Name != rhs.Name)
+            if (Name != other.Name)
                 return false;
 
-            if (BaseInterface == null)
-                return rhs.BaseInterface == null;
+            if (BaseInterface is null)
+                return other.BaseInterface is null;
 
-            return BaseInterface.Equals(rhs.BaseInterface);
+            return BaseInterface.Equals(other.BaseInterface);
         }
 
         /// <summary>

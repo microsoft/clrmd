@@ -5,6 +5,7 @@
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net471;netstandard2.0</TargetFrameworks>
 
     <NoWarn>;1591;1701</NoWarn>
+    <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <Description>ClrMD is a set of advanced APIs for programmatically inspecting a crash dump of a .NET program much in the same way that the SOS Debugging Extensions (SOS) do. This allows you to write automated crash analysis for your applications as well as automate many common debugger tasks. In addition to reading crash dumps ClrMD also allows supports attaching to live processes.</Description>
     <PackageReleaseNotes></PackageReleaseNotes>

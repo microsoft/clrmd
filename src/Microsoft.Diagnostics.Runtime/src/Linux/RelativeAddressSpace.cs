@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly long _baseToRelativeShift;
         private readonly string _name;
 
-        public string Name => _name == null ? _baseAddressSpace.Name : $"{_baseAddressSpace.Name}:{_name}";
+        public string Name => _name is null ? _baseAddressSpace.Name : $"{_baseAddressSpace.Name}:{_name}";
 
         public RelativeAddressSpace(IAddressSpace baseAddressSpace, string name, long startOffset, long length) :
             this(baseAddressSpace, name, startOffset, length, -startOffset)

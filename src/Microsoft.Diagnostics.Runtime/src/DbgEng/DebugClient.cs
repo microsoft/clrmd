@@ -20,10 +20,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             SuppressRelease();
         }
 
-        private EndSessionDelegate _endSession;
-        private DetatchProcessesDelegate _detatchProcesses;
-        private AttachProcessDelegate _attachProcess;
-        private OpenDumpFileDelegate _openDumpFile;
+        private EndSessionDelegate? _endSession;
+        private DetatchProcessesDelegate? _detatchProcesses;
+        private AttachProcessDelegate? _attachProcess;
+        private OpenDumpFileDelegate? _openDumpFile;
         private readonly DebugSystemObjects _sys;
 
         public void EndSession(DebugEnd mode)

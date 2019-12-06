@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool IsNull()
         {
-            return _sig == null;
+            return _sig is null;
         }
 
         private void CopyFrom(SigParser rhs)

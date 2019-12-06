@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadStackReferences(StackRefData[] stackRefs)
         {
-            if (stackRefs == null)
+            if (stackRefs is null)
                 throw new ArgumentNullException(nameof(stackRefs));
 
             int hr = _next(Self, stackRefs.Length, stackRefs, out int read);

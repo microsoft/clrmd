@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the DataTarget associated with this runtime.
         /// </summary>
-        public abstract DataTarget DataTarget { get; }
+        public abstract DataTarget? DataTarget { get; }
 
         /// <summary>
         /// Returns whether you are allowed to call into the transitive closure of ClrMD objects created from
@@ -42,12 +42,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The System AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
-        public abstract ClrAppDomain SystemDomain { get; }
+        public abstract ClrAppDomain? SystemDomain { get; }
 
         /// <summary>
         /// The Shared AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
-        public abstract ClrAppDomain SharedDomain { get; }
+        public abstract ClrAppDomain? SharedDomain { get; }
 
         public abstract ClrModule BaseClassLibrary { get; }
 
@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
         /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
-        public abstract ClrMethod GetMethodByHandle(ulong methodHandle);
+        public abstract ClrMethod? GetMethodByHandle(ulong methodHandle);
 
         /// <summary>
         /// Gets the ClrType corresponding to the given MethodTable.
@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
-        public abstract ClrType GetTypeByMethodTable(ulong methodTable);
+        public abstract ClrType? GetTypeByMethodTable(ulong methodTable);
 
         /// <summary>
         /// Enumerates a list of GC handles currently in the process.  Note that this list may be incomplete
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
         /// </summary>
-        public abstract ClrMethod GetMethodByInstructionPointer(ulong ip);
+        public abstract ClrMethod? GetMethodByInstructionPointer(ulong ip);
 
         /// <summary>
         /// Enumerate all managed modules in the runtime.
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">Address of a possible JIT helper function.</param>
         /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function.</returns>
-        public abstract string GetJitHelperFunctionName(ulong address);
+        public abstract string? GetJitHelperFunctionName(ulong address);
 
         /// <summary>
         /// Cleans up all resources and releases them.  You may not use this ClrRuntime or any object it transitively
