@@ -95,7 +95,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 8.  All caching and parallel support was stripped out of GCRoot.  Need to add it back.
 9.  SafeWin32Handle -> SafeAccessTokenHandle
 10.  Consider removing GetFieldForOffset
-
+11.  Consider enumerating offset in ClrObject.EnumerateReferences.
 
 # .Net Core 5 Dac Wishlist
 
