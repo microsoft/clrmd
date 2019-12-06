@@ -25,8 +25,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             List<SymPathElement> result = new List<SymPathElement>(entries.Length);
 
             foreach (string element in entries)
+            {
                 if (!string.IsNullOrEmpty(element))
-                    result.Add(new SymPathElement(element));
+                {
+                    SymPathElement? elem = Create(element);
+                    if (elem != null)
+                        result.Add(elem);
+                }
+            }
 
             return result;
         }
@@ -35,12 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// returns true if this element of the symbol server path a symbol server specification
         /// </summary>
         public bool IsSymServer { get; }
-
-        /// <summary>
-        /// returns true if this element of the symbol server path is a local cache specification
-        /// </summary>
-        public bool IsCache { get; }
-
+        
         /// <summary>
         /// returns the local cache for a symbol server specifcation.  returns null if not specified
         /// </summary>
@@ -49,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// returns location to look for symbols.  This is either a directory specification or an URL (for symbol servers)
         /// </summary>
-        public string? Target { get; }
+        public string Target { get; }
 
         /// <summary>
         /// IsRemote returns true if it looks like the target is not on the local machine.
@@ -158,34 +159,43 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Target = target;
         }
 
-        internal SymPathElement(string strElem)
+        public static SymPathElement? Create(string strElem)
         {
+            if (strElem is null)
+                return null;
+
+            bool isServer = false;
+            string target;
+            string? cache = null;
+
             Match m = Regex.Match(strElem, @"^\s*(SRV\*|http:)((\s*.*?\s*)\*)?\s*(.*?)\s*$", RegexOptions.IgnoreCase);
             if (m.Success)
             {
-                IsSymServer = true;
-                Cache = m.Groups[3].Value;
+                isServer = true;
+                cache = m.Groups[3].Value;
                 if (m.Groups[1].Value.Equals("http:", StringComparison.CurrentCultureIgnoreCase))
-                    Target = "http:" + m.Groups[4].Value;
+                    target = "http:" + m.Groups[4].Value;
                 else
-                    Target = m.Groups[4].Value;
-                if (Cache.Length == 0)
-                    Cache = null;
-                if (Target.Length == 0)
-                    Target = null;
-                return;
+                    target = m.Groups[4].Value;
+                
+                if (cache.Length == 0)
+                    cache = null;
+                
+                if (target.Length == 0)
+                    return null;
             }
 
             m = Regex.Match(strElem, @"^\s*CACHE\*(.*?)\s*$", RegexOptions.IgnoreCase);
             if (m.Success)
             {
-                IsCache = true;
-                Cache = m.Groups[1].Value;
+                target = cache = m.Groups[1].Value;
             }
             else
             {
-                Target = strElem.Trim();
+                target = strElem.Trim();
             }
+
+            return new SymPathElement(isServer, cache, target);
         }
     }
 }

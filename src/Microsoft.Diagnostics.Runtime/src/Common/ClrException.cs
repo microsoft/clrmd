@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the exception message.
         /// </summary>
-        public string Message => _object.GetStringField("_message");
+        public string? Message => _object.GetStringField("_message");
 
         /// <summary>
         /// Returns the inner exception, if one exists, null otherwise.

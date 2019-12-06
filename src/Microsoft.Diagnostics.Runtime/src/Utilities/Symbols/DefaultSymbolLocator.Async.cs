@@ -129,14 +129,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        private static async Task<T> GetFirstNonNullResult<T>(List<Task<T>> tasks)
-            where T : class?
+        private static async Task<string> GetFirstNonNullResult(List<Task<string?>> tasks)
         {
             while (tasks.Count > 0)
             {
-                Task<T> task = await Task.WhenAny(tasks).ConfigureAwait(false);
+                Task<string?> task = await Task.WhenAny(tasks).ConfigureAwait(false);
 
-                T result = task.Result;
+                string? result = task.Result;
                 if (result != null)
                     return result;
 
@@ -146,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 tasks.Remove(task);
             }
 
-            return null;
+            return null!;
         }
 
         private async Task<string?> CheckAndCopyRemoteFile(string sourcePath, string fullDestPath, Func<string, bool> matches)

@@ -21,12 +21,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the AppDomain parent of this module.
         /// </summary>
-        public abstract ClrAppDomain? AppDomain { get; }
+        public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// Returns the name of the assembly that this module is defined in.
         /// </summary>
-        public abstract string AssemblyName { get; }
+        public abstract string? AssemblyName { get; }
 
         /// <summary>
         /// Returns an identifier to uniquely represent this assembly.  This value is not used by any other
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the name of the module.
         /// </summary>
-        public abstract string Name { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
         /// Returns true if this module was created through Reflection.Emit (and thus has no associated
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns a name for the assembly.
         /// </summary>
         /// <returns>A name for the assembly.</returns>
-        public override string ToString()
+        public override string? ToString()
         {
             if (string.IsNullOrEmpty(Name))
             {
@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the pdb information for this module.
         /// </summary>
-        public abstract PdbInfo Pdb { get; }
+        public abstract PdbInfo? Pdb { get; }
 
 
         public override bool Equals(object? obj)

@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
         private ElfLoadedImage[]? _loadedImages;
-        private Dictionary<ulong, ulong>? _auxvEntries;
+        private readonly Dictionary<ulong, ulong> _auxvEntries = new Dictionary<ulong, ulong>();
         private ELFVirtualAddressSpace? _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
@@ -43,14 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public IReadOnlyCollection<ElfLoadedImage> LoadedImages
-        {
-            get
-            {
-                LoadFileTable();
-                return _loadedImages;
-            }
-        }
+        public IReadOnlyCollection<ElfLoadedImage> LoadedImages => LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -78,10 +71,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void LoadAuxvTable()
         {
-            if (_auxvEntries != null)
+            if (_auxvEntries.Count != 0)
                 return;
 
-            _auxvEntries = new Dictionary<ulong, ulong>();
             ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
             if (auxvNote is null)
                 throw new BadImageFormatException($"No auxv entries in coredump");
@@ -111,10 +103,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private void LoadFileTable()
+        private IReadOnlyCollection<ElfLoadedImage> LoadFileTable()
         {
             if (_loadedImages != null)
-                return;
+                return _loadedImages;
 
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
@@ -175,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
+            return _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
         }
     }
 }

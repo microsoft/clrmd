@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             foreach ((ulong mt, uint _) in module.EnumerateTypeDefToMethodTableMap())
             {
-                ClrType type = module.AppDomain.Runtime.GetTypeByMethodTable(mt);
-                if (type.Name == name)
+                ClrType? type = module.AppDomain.Runtime.GetTypeByMethodTable(mt);
+                if (type?.Name == name)
                     return type;
             }
 

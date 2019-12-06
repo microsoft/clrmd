@@ -79,12 +79,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             CanWalkHeap = heapBuilder.CanWalkHeap;
             IsServer = heapBuilder.IsServer;
 
-            // Prepopulate a few important method tables.
-
-            StringType = _helpers.Factory.GetOrCreateType(this, heapBuilder.StringMethodTable, 0);
-            ObjectType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ObjectMethodTable, 0);
-            FreeType = _helpers.Factory.GetOrCreateType(this, heapBuilder.FreeMethodTable, 0);
-            ExceptionType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ExceptionMethodTable, 0);
+            // Prepopulate a few important method tables.  This should never fail.
+            StringType = _helpers.Factory.GetOrCreateType(this, heapBuilder.StringMethodTable, 0) ?? throw new InvalidOperationException("Failed to create string type");
+            ObjectType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ObjectMethodTable, 0) ?? throw new InvalidOperationException("Failed to create object type");
+            FreeType = _helpers.Factory.GetOrCreateType(this, heapBuilder.FreeMethodTable, 0) ?? throw new InvalidOperationException("Failed to create Free type");
+            ExceptionType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ExceptionMethodTable, 0) ?? throw new InvalidOperationException("Failed to create exception type");
 
             // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
             Segments = heapBuilder.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);
@@ -198,6 +197,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static void WriteHeapStep(ulong obj, ulong mt, int baseSize, int componentSize, uint count)
         {
+            if (_steps is null)
+                return;
+
             _step = (_step + 1) % _steps.Length;
             _steps[_step] = new HeapWalkStep
             {

@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 string? cache = _symbolCache;
                 if (!string.IsNullOrEmpty(cache))
-                    return cache;
+                    return cache!;
 
                 string tmp = Path.GetTempPath();
                 if (string.IsNullOrEmpty(tmp))
@@ -183,7 +183,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (module is null)
                 throw new ArgumentNullException(nameof(module));
 
-            return FindBinary(module.FileName, module.TimeStamp, module.FileSize, checkProperties);
+            string? fn = module.FileName;
+            if (fn is null)
+                return null;
+
+            return FindBinary(fn, module.TimeStamp, module.FileSize, checkProperties);
         }
 
         /// <summary>
@@ -369,7 +373,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (module is null)
                 throw new ArgumentNullException(nameof(module));
 
-            return await FindBinaryAsync(module.FileName, module.TimeStamp, module.FileSize, checkProperties).ConfigureAwait(false);
+            string? fn = module.FileName;
+            if (fn is null)
+                return null;
+
+            return await FindBinaryAsync(fn, module.TimeStamp, module.FileSize, checkProperties).ConfigureAwait(false);
         }
 
         /// <summary>

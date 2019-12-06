@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Types have names.
         /// </summary>
-        public abstract string Name { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
         /// Returns true if the type CAN contain references to other objects.  This is used in optimizations
@@ -160,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// GetFieldForOffset repeatedly until the childFieldOffset is 0 will retrieve the whole chain.
         /// </summary>
         /// <returns>true if successful.  Will fail if it 'this' is an array type.</returns>
-        public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset);
+        public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset);
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
@@ -318,7 +318,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns a string representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
-        public override string ToString() => Name;
+        public override string? ToString() => Name;
 
         /// <summary>
         /// Used to provide functionality to ClrObject.

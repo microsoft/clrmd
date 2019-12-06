@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ClrAppDomain SharedDomain
+        public override ClrAppDomain? SharedDomain
         {
             get
             {
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ClrAppDomain SystemDomain
+        public override ClrAppDomain? SystemDomain
         {
             get
             {
@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrHandle> EnumerateHandles() => _helpers.EnumerateHandleTable(this);
 
-        public override string GetJitHelperFunctionName(ulong ip) => _helpers.GetJitHelperFunctionName(ip);
+        public override string? GetJitHelperFunctionName(ulong ip) => _helpers.GetJitHelperFunctionName(ip);
 
         public override ClrMethod? GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
 
@@ -137,6 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByHandle(md);
         }
 
-        public override ClrModule BaseClassLibrary => _bcl;
+        // _bcl will not be null by the time we reach this
+        public override ClrModule BaseClassLibrary => _bcl!;
     }
 }

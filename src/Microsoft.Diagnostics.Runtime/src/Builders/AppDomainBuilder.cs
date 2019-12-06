@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public int AppDomainCount => _appDomainStore.AppDomainCount;
 
         public IAppDomainHelpers Helpers { get; }
-        public string Name
+        public string? Name
         {
             get
             {

@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public struct ClrValueClass : IAddressableTypedEntity
     {
-        private IDataReader DataReader => Type?.Heap?.Runtime?.DataTarget.DataReader;
+        private IDataReader DataReader => GetTypeOrThrow().ClrObjectHelpers.DataReader;
         private readonly bool _interior;
 
         /// <summary>
@@ -55,8 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!DataReader.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
-            ClrType type = heap.GetObjectType(obj);
-            return new ClrObject(obj, type);
+            return heap.GetObject(obj);
         }
 
         /// <summary>
@@ -135,5 +134,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool Equals(IAddressableTypedEntity other)
             => other != null && Address == other.Address && Type == other.Type;
+
+        private ClrType GetTypeOrThrow()
+        {
+            if (Type == null)
+                throw new InvalidOperationException($"Unknown type of value at {Address:x}.");
+
+            return Type!;
+        }
     }
 }

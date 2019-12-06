@@ -24,8 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
-        public override string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
+        public override string? FindBinary(string? fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
+            if (fileName is null)
+                return null;
+
 #pragma warning disable CA1304 // Specify CultureInfo
             fileName = Path.GetFileName(fileName).ToLower();
 #pragma warning restore CA1304 // Specify CultureInfo
@@ -50,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Finally, check the symbol paths.
             string? exeIndexPath = null;
-            string activeSymbolCache = SymbolCache;
+            string? activeSymbolCache = SymbolCache;
             foreach (SymPathElement element in SymPathElement.GetElements(SymbolPath))
             {
                 if (element.IsSymServer)
@@ -69,13 +72,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         SetFileEntry(missingFiles, entry, target);
                         return target;
                     }
-                }
-                else if (element.IsCache)
-                {
-                    if (!string.IsNullOrEmpty(element.Cache))
-                        activeSymbolCache = element.Cache;
-                    else
-                        activeSymbolCache = SymbolCache;
                 }
                 else
                 {

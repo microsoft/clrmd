@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
+        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
         {
             childField = null;
             childFieldOffset = 0;

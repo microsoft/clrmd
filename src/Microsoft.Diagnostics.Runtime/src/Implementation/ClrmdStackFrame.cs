@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly byte[]? _context;
 
-        public ClrThread Thread { get; }
+        public ClrThread? Thread { get; }
         public override ReadOnlySpan<byte> Context => _context;
         public override ulong InstructionPointer { get; }
         public override ulong StackPointer { get; }
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrMethod? Method { get; }
         public override string? FrameName { get; }
 
-        public ClrmdStackFrame(ClrThread thread, byte[]? context, ulong ip, ulong sp, ClrStackFrameKind kind, ClrMethod? method, string? frameName)
+        public ClrmdStackFrame(ClrThread? thread, byte[]? context, ulong ip, ulong sp, ClrStackFrameKind kind, ClrMethod? method, string? frameName)
         {
             _context = context;
             Thread = thread;
@@ -31,22 +31,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             FrameName = frameName;
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
             if (Kind == ClrStackFrameKind.ManagedMethod)
-                return Method.Signature;
+                return Method?.Signature;
 
             int methodLen = 0;
             int methodTypeLen = 0;
 
             if (Method != null)
             {
-                methodLen = Method.Name.Length;
-                if (Method.Type != null)
+                methodLen = Method?.Name?.Length ?? 0;
+                if (Method?.Type?.Name != null)
                     methodTypeLen = Method.Type.Name.Length;
             }
 
-            StringBuilder sb = new StringBuilder(FrameName.Length + methodLen + methodTypeLen + 10);
+            int frameLen = FrameName?.Length ?? 0;
+            StringBuilder sb = new StringBuilder(frameLen + methodLen + methodTypeLen + 10);
 
             sb.Append('[');
             sb.Append(FrameName);

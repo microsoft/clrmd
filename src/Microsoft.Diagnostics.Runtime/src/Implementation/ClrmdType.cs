@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
 
-        public override string Name => _name ??= Helpers.GetTypeName(MethodTable);
+        public override string? Name => _name ??= Helpers.GetTypeName(MethodTable);
 
         public override int BaseSize { get; }
         public override int ComponentSize => 0;
@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrInterface? GetInterface(MetaDataImport import, int mdIFace)
         {
             ClrInterface? result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out string name, out _, out int extends))
+            if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends))
             {
                 name = import.GetTypeRefName(mdIFace);
             }
@@ -214,11 +214,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return _elementType = ClrElementType.Struct;
         }
 
-        public override string ToString()
-        {
-            return Name;
-        }
-
         public override bool IsException
         {
             get
@@ -236,8 +231,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         // TODO:  Add ClrObject GetCcw/GetRcw
         // TODO:  Move out of ClrType.
-        public override ComCallWrapper GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
-        public override RuntimeCallableWrapper GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
+        public override ComCallWrapper? GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
+        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
 
         private class EnumData
         {
@@ -310,10 +305,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (import is null)
                 return;
 
-            List<string> names = new List<string>();
+            List<string?> names = new List<string?>();
             foreach (uint token in import.EnumerateFields((int)MetadataToken))
             {
-                if (import.GetFieldProps(token, out string name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
+                if (import.GetFieldProps(token, out string? name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
                 {
                     if ((int)attr == 0x606 && name == "value__")
                     {
@@ -335,8 +330,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (type != null)
                         {
                             object o = Marshal.PtrToStructure(ppValue, type);
-                            _enumData.NameToValue[name] = o;
-                            _enumData.ValueToName[o] = name;
+                            if (name != null)
+                            {
+                                _enumData.NameToValue[name] = o;
+                                _enumData.ValueToName[o] = name;
+                            }
                         }
                     }
                 }
@@ -375,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
+        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
         {
             if (!IsArray)
             {

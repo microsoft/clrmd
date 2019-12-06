@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int ComponentSize { get; }
         public override ClrType? ComponentType => _componentType;
 
-        public ClrmdArrayType(ClrHeap heap, ClrType baseType, ClrModule module, ITypeData data)
+        public ClrmdArrayType(ClrHeap heap, ClrType? baseType, ClrModule module, ITypeData data)
             : base(heap, baseType, module, data)
         {
             if (data is null)

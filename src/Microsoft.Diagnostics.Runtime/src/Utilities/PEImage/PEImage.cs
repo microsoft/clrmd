@@ -267,10 +267,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
-                        string filename = ReadString(nameLen);
+                        string? filename = ReadString(nameLen);
 
-                        PdbInfo pdb = new PdbInfo(filename, guid, age);
-                        result.Add(pdb);
+                        if (filename != null)
+                        {
+                            PdbInfo pdb = new PdbInfo(filename, guid, age);
+                            result.Add(pdb);
+                        }
                     }
                 }
             }

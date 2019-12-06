@@ -30,6 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
             : base(library?.OwningLibrary, ref IID_IXCLRDataProcess, pUnknown)
         {
+            if (library is null)
+                throw new ArgumentNullException(nameof(library));
+
             _library = library;
         }
 

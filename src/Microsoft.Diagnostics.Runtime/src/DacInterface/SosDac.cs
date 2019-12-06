@@ -256,13 +256,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public string GetAppBase(ulong domain)
+        public string? GetAppBase(ulong domain)
         {
             InitDelegate(ref _getAppBase, VTable->GetApplicationBase);
             return GetString(_getAppBase, domain);
         }
 
-        public string GetConfigFile(ulong domain)
+        public string? GetConfigFile(ulong domain)
         {
             InitDelegate(ref _getConfigFile, VTable->GetAppDomainConfigFile);
             return GetString(_getConfigFile, domain);
@@ -401,13 +401,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr) || data.Address == addr && data.StubHeap != 0;
         }
 
-        public string GetAppDomainName(ulong appDomain)
+        public string? GetAppDomainName(ulong appDomain)
         {
             InitDelegate(ref _getAppDomainName, VTable->GetAppDomainName);
             return GetString(_getAppDomainName, appDomain);
         }
 
-        public string GetAssemblyName(ulong assembly)
+        public string? GetAssemblyName(ulong assembly)
         {
             InitDelegate(ref _getAssemblyName, VTable->GetAssemblyName);
             return GetString(_getAssemblyName, assembly);
@@ -427,19 +427,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public string GetMethodTableName(ulong mt)
+        public string? GetMethodTableName(ulong mt)
         {
             InitDelegate(ref _getMethodTableName, VTable->GetMethodTableName);
             return GetString(_getMethodTableName, mt);
         }
 
-        public string GetJitHelperFunctionName(ulong addr)
+        public string? GetJitHelperFunctionName(ulong addr)
         {
             InitDelegate(ref _getJitHelperFunctionName, VTable->GetJitHelperFunctionName);
             return GetAsciiString(_getJitHelperFunctionName, addr);
         }
 
-        public string GetPEFileName(ulong pefile)
+        public string? GetPEFileName(ulong pefile)
         {
             InitDelegate(ref _getPEFileName, VTable->GetPEFileName);
             return GetString(_getPEFileName, pefile);

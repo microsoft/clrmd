@@ -24,12 +24,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
-        private readonly SOSDac6 _sos6;
+        private readonly SOSDac6? _sos6;
         private readonly int _threads;
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
 
-        private volatile ClrType[]? _basicTypes;
+        private volatile ClrType?[]? _basicTypes;
         private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
 
@@ -50,12 +50,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ITypeFactory Factory => this;
 
-        public RuntimeBuilder(ClrInfo clr, DacLibrary library)
+        public RuntimeBuilder(ClrInfo clr, DacLibrary library, SOSDac sos)
         {
             _clrinfo = clr;
             _library = library;
+            _sos = sos;
             _dac = _library.DacPrivateInterface;
-            _sos = _library.SOSDacInterface;
             _sos6 = _library.SOSDacInterface6;
             DataReader = _clrinfo.DataTarget.DataReader;
 
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (!_disposed)
             {
                 _disposed = true;
-                _runtime.Dispose();
+                _runtime?.Dispose();
                 _dac.Dispose();
                 _sos.Dispose();
                 _sos6?.Dispose();
@@ -101,7 +101,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private MethodBuilder CreateMethodBuilder() => new MethodBuilder(_sos, this);
         private FieldBuilder CreateFieldBuilder() => new FieldBuilder(_sos, this);
 
-        public ClrModule? GetOrCreateModule(ClrAppDomain? domain, ulong addr)
+        private ClrModule GetModule(ulong addr)
+        {
+            // todo: should we create a fake AppDomain here and new up an empty module if not found?
+            _modules.TryGetValue(addr, out ClrModule module);
+            return module;
+        }
+
+        public ClrModule GetOrCreateModule(ClrAppDomain domain, ulong addr)
         {
             CheckDisposed();
             lock (_modules)
@@ -109,11 +116,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (_modules.TryGetValue(addr, out ClrModule result))
                     return result;
 
-                if (!_moduleBuilder.Init(addr))
-                    return null;
-
-                _modules[addr] = result = new ClrmdModule(domain, _moduleBuilder);
-                return result;
+                if (_moduleBuilder.Init(addr))
+                    return _modules[addr] = new ClrmdModule(domain, _moduleBuilder);
+                
+                return _modules[addr] = new ClrmdModule(domain, this, addr);
             }
         }
 
@@ -258,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
             else
             {
-                ClrMethod method = thread.Runtime?.GetMethodByInstructionPointer(ip);
+                ClrMethod? method = thread.Runtime?.GetMethodByInstructionPointer(ip);
                 return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameKind.ManagedMethod, method, null);
             }
         }
@@ -271,9 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 if (_sos.GetMethodTableData(mts.ObjectMethodTable, out MethodTableData mtData))
                 {
-                    ClrModule? result = GetOrCreateModule(null, mtData.Module);
-                    if (result != null)
-                        return result;
+                    return GetModule(mtData.Module);
                 }
             }
 
@@ -283,12 +287,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             if (runtime.SharedDomain != null)
                 foreach (ClrModule module in runtime.SharedDomain.Modules)
-                    if (module.Name.ToUpperInvariant().Contains(moduleName))
+                    if (!(module.Name is null) && module.Name.ToUpperInvariant().Contains(moduleName))
                         return module;
 
             foreach (ClrAppDomain domain in runtime.AppDomains)
                 foreach (ClrModule module in domain.Modules)
-                    if (module.Name.ToUpperInvariant().Contains(moduleName))
+                    if (!(module.Name is null) && module.Name.ToUpperInvariant().Contains(moduleName))
                         return module;
 
             return null;
@@ -345,7 +349,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             int i = 0;
             foreach (ulong domain in domainList)
             {
-                ClrAppDomain? ad = GetOrCreateAppDomain(builder, domain);
+                ClrAppDomain ad = GetOrCreateAppDomain(builder, domain);
                 if (ad != null)
                     result[i++] = ad;
             }
@@ -356,7 +360,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        public ClrAppDomain? GetOrCreateAppDomain(AppDomainBuilder? builder, ulong domain)
+        public ClrAppDomain GetOrCreateAppDomain(AppDomainBuilder? builder, ulong domain)
         {
             CheckDisposed();
 
@@ -367,10 +371,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 builder ??= new AppDomainBuilder(_sos, this);
 
-                if (!builder.Init(domain))
-                    return null;
+                if (builder.Init(domain))
+                    return _domains[domain] = new ClrmdAppDomain(GetOrCreateRuntime(), builder);
 
-                return _domains[domain] = new ClrmdAppDomain(GetOrCreateRuntime(), builder);
+                return _domains[domain] = new ClrmdAppDomain(GetOrCreateRuntime(), this, domain);
             }
         }
 
@@ -387,10 +391,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            using SOSHandleEnum handleEnum = _sos.EnumerateHandles(ClrHandleKind.Dependent);
+            using SOSHandleEnum? handleEnum = _sos.EnumerateHandles(ClrHandleKind.Dependent);
+            if (handleEnum is null)
+                yield break;
 
             HandleData[] handles = new HandleData[32];
-            int fetched = 0;
+            int fetched;
             while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {
                 for (int i = 0; i < fetched; i++)
@@ -423,9 +429,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 domains[domain.Address] = domain;
             }
 
-            using SOSHandleEnum handleEnum = _sos.EnumerateHandles();
+            using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
+            if (handleEnum is null)
+                yield break;
 
-            int fetched = 0;
+            int fetched;
             while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {
                 for (int i = 0; i < fetched; i++)
@@ -480,15 +488,16 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
             }
 
-            _runtime.Initialize();
+            if (_runtime is ClrmdRuntime runtime)
+                runtime.Initialize();
         }
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
-        string IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
+        string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
 
         public IExceptionHelpers ExceptionHelpers => this;
 
-        IReadOnlyList<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread thread, ClrObject obj)
+        IReadOnlyList<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
         {
             CheckDisposed();
 
@@ -516,7 +525,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 ulong sp = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size);
                 ulong md = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
-                ClrMethod method = CreateMethodFromHandle(md);
+                ClrMethod? method = CreateMethodFromHandle(md);
                 result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }
@@ -524,8 +533,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        string IAppDomainHelpers.GetConfigFile(ClrAppDomain domain) => _sos.GetConfigFile(domain.Address);
-        string IAppDomainHelpers.GetApplicationBase(ClrAppDomain domain) => _sos.GetAppBase(domain.Address);
+        string? IAppDomainHelpers.GetConfigFile(ClrAppDomain domain) => _sos.GetConfigFile(domain.Address);
+        string? IAppDomainHelpers.GetApplicationBase(ClrAppDomain domain) => _sos.GetAppBase(domain.Address);
         IEnumerable<ClrModule> IAppDomainHelpers.EnumerateModules(ClrAppDomain domain)
         {
             CheckDisposed();
@@ -596,14 +605,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             if (_basicTypes is null)
             {
-                ClrType[] basicTypes = new ClrType[(int)ClrElementType.SZArray];
+                ClrType?[] basicTypes = new ClrType[(int)ClrElementType.SZArray];
                 int count = 0;
                 ClrModule bcl = GetOrCreateRuntime().BaseClassLibrary;
                 if (bcl != null && bcl.MetadataImport != null)
                 {
                     foreach ((ulong mt, uint token) in bcl.EnumerateTypeDefToMethodTableMap())
                     {
-                        string name = _sos.GetMethodTableName(mt);
+                        string? name = _sos.GetMethodTableName(mt);
                         ClrElementType type = name switch
                         {
                             "System.Boolean" => ClrElementType.Boolean,
@@ -643,8 +652,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (index < 0 || index > _basicTypes.Length)
                 throw new ArgumentException($"Cannot create type for ClrElementType {basicType}");
 
-            if (_basicTypes[index] != null)
-                return _basicTypes[index];
+            ClrType? result = _basicTypes[index];
+            if (!(result is null))
+                return result;
 
             return _basicTypes[index] = new ClrmdPrimitiveType(this, GetOrCreateRuntime().BaseClassLibrary, GetOrCreateHeap(), basicType);
         }
@@ -674,9 +684,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (!typeData.Init(mt))
                     return null;
 
-                ClrType baseType = GetOrCreateType(heap, typeData.ParentMethodTable, 0);
+                ClrType? baseType = GetOrCreateType(heap, typeData.ParentMethodTable, 0);
 
-                ClrModule module = GetOrCreateModule(null, typeData.Module);
+                ClrModule module = GetModule(typeData.Module);
                 if (typeData.ComponentSize == 0)
                 {
                     ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
@@ -872,7 +882,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             statics = staticOut;
         }
 
-        public MetaDataImport GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
+        public MetaDataImport? GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
 
         public ComInterfaceData[] CreateComInterfaces(COMInterfacePointerData[] ifs)
         {
@@ -885,7 +895,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        bool IFieldHelpers.ReadProperties(ClrType type, uint fieldToken, out string name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
+        bool IFieldHelpers.ReadProperties(ClrType type, uint fieldToken, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
         {
             CheckDisposed();
 
@@ -910,7 +920,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return 0;
 
             ClrType type = field.Parent;
-            ClrModule? module = type?.Module;
+            ClrModule? module = type.Module;
             if (module is null)
                 return 0;
 
@@ -954,7 +964,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return (flags & 1) != 0;
         }
 
-        public string GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
+        public string? GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
         ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
@@ -976,7 +986,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return data;
         }
 
-        string IMethodHelpers.GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
+        string? IMethodHelpers.GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
 
         ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 

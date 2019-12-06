@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int ComponentSize => IntPtr.Size;
         public override ComCallWrapper? GetCCWData(ulong obj) => null;
         public override RuntimeCallableWrapper? GetRCWData(ulong obj) => null;
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset)
+        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
         {
             childField = null;
             childFieldOffset = 0;

@@ -205,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
-                    string fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
+                    string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
                     ModuleInfo info = new ModuleInfo(this, bases[i], mods[i].Size, mods[i].TimeDateStamp, fn);
                     modules.Add(info);
                 }

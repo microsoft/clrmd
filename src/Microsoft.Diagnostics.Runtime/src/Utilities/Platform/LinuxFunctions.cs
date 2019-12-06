@@ -25,7 +25,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         private delegate bool TryGetExport(IntPtr handle, string name, out IntPtr address);
 
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public LinuxFunctions()
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         {
             Type nativeLibraryType = Type.GetType("System.Runtime.InteropServices.NativeLibrary, System.Runtime.InteropServices", throwOnError: false);
             if (nativeLibraryType != null)

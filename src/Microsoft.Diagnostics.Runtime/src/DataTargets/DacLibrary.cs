@@ -24,20 +24,26 @@ namespace Microsoft.Diagnostics.Runtime
 
         private SOSDac GetSOSInterfaceNoAddRef()
         {
-            _sos ??= InternalDacPrivateInterface.GetSOSDacInterface();
+            if (_sos is null)
+            {
+                _sos = InternalDacPrivateInterface.GetSOSDacInterface();
+                if (_sos is null)
+                    throw new InvalidOperationException("This runtime does not support ISOSDac.");
+            }
+
             return _sos;
         }
 
-        public SOSDac? SOSDacInterface
+        public SOSDac SOSDacInterface
         {
             get
             {
                 SOSDac sos = GetSOSInterfaceNoAddRef();
-                return sos != null ? new SOSDac(this, sos) : null;
+                return new SOSDac(this, sos);
             }
         }
 
-        public SOSDac6 SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
+        public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
 
         public T? GetInterface<T>(ref Guid riid)
             where T : CallableCOMWrapper
@@ -66,9 +72,16 @@ namespace Microsoft.Diagnostics.Runtime
             return pUnk;
         }
 
-        public DacLibrary(IntPtr pClrDataProcess)
+        public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
+            if (dataTarget is null)
+                throw new ArgumentNullException(nameof(dataTarget));
+
+            if (pClrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(pClrDataProcess));
+
             InternalDacPrivateInterface = new ClrDataProcess(this, pClrDataProcess);
+            DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
         public DacLibrary(DataTarget dataTarget, string dacDll)

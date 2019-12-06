@@ -12,14 +12,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The CLR type this represents.
         /// </summary>
-        public ClrType Type { get; }
+        public ClrType? Type { get; }
 
         /// <summary>
         /// The interface pointer of Type.
         /// </summary>
         public ulong InterfacePointer { get; }
 
-        public ComInterfaceData(ClrType type, ulong pointer)
+        public ComInterfaceData(ClrType? type, ulong pointer)
         {
             Type = type;
             InterfacePointer = pointer;

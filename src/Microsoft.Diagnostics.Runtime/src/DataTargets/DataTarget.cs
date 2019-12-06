@@ -66,8 +66,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 DataReader.Dispose();
 
-                foreach (PEImage img in _pefileCache.Values)
-                    img.Stream.Dispose();
+                foreach (PEImage? img in _pefileCache.Values)
+                    img?.Stream.Dispose();
 
                 _pefileCache.Clear();
                 _disposed = true;

@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime);
         void FlushCachedData();
         ulong GetMethodDesc(ulong ip);
-        string GetJitHelperFunctionName(ulong ip);
+        string? GetJitHelperFunctionName(ulong ip);
         ClrModule? GetBaseClassLibrary(ClrRuntime runtime);
     }
 }

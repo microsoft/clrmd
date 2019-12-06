@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsValueClass => ElementType.IsValueClass();
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
-        public override string Name
+        public override string? Name
         {
             get
             {
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _type = GetTypeForFieldSig(_helpers.Factory, sigParser, Parent.Heap, Parent.Module);
         }
 
-        internal static ClrType GetTypeForFieldSig(ITypeFactory factory, SigParser sigParser, ClrHeap heap, ClrModule module)
+        internal static ClrType? GetTypeForFieldSig(ITypeFactory factory, SigParser sigParser, ClrHeap heap, ClrModule? module)
         {
             ClrType? result = null;
             bool res;
@@ -194,11 +194,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     sigParser.GetToken(out int token);
 
-                    ClrType? innerType = factory.GetOrCreateTypeFromToken(module, (uint)token);
-                    if (innerType is null)
-                        innerType = factory.GetOrCreateBasicType(type);
+                    if (module != null)
+                    {
+                        ClrType? innerType = factory.GetOrCreateTypeFromToken(module, (uint)token);
+                        if (innerType is null)
+                            innerType = factory.GetOrCreateBasicType(type);
 
-                    result = factory.GetOrCreatePointerType(innerType, 1);
+                        result = factory.GetOrCreatePointerType(innerType, 1);
+                    }
                 }
                 else if (type == ClrElementType.Object || type == ClrElementType.Class)
                 {
@@ -211,13 +214,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (etype == 0x11 || etype == 0x12)
                         sigParser.GetToken(out token);
 
-                    if (token != 0)
+                    if (token != 0 && module != null)
                         result = factory.GetOrCreateTypeFromToken(module, (uint)token);
 
                     if (result is null)
                         result = factory.GetOrCreateBasicType((ClrElementType)etype);
                 }
             }
+
+            if (result is null)
+                return result;
 
             if (result.IsArray && result.ComponentType is null && result is ClrmdArrayType clrmdType)
             {
@@ -240,9 +246,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (etype == 0x11 || etype == 0x12)
                     sigParser.GetToken(out token);
 
-                if (token != 0)
+                if (token != 0 && module != null)
                     clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, (uint)token));
-
                 else
                     clrmdType.SetComponentType(factory.GetOrCreateBasicType((ClrElementType)etype));
             }

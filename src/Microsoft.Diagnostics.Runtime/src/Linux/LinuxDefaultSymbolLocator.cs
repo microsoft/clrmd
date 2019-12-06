@@ -20,8 +20,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _modules = modules;
         }
 
-        public override string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
+        public override string? FindBinary(string? fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
         {
+            if (fileName is null)
+                return null;
+
             string name = Path.GetFileName(fileName);
             foreach (var m in _modules)
             {

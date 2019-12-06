@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            return ConstructRuntime(dac);
+            return ConstructRuntime(dac!);
         }
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -103,7 +103,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
-            var factory = new RuntimeBuilder(this, new DacLibrary(DataTarget, dac));
+            DacLibrary dacLibrary = new DacLibrary(DataTarget, dac);
+            DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface;
+            if (sos is null)
+                throw new InvalidOperationException($"Could not create a ISOSDac pointer from this dac library: {dac}");
+
+            var factory = new RuntimeBuilder(this, dacLibrary, sos);
             if (Flavor == ClrFlavor.Core)
                 return factory.GetOrCreateRuntime();
 

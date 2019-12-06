@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? rva : 0;
         }
 
-        public bool GetTypeDefProperties(int token, out string name, out TypeAttributes attributes, out int mdParent)
+        public bool GetTypeDefProperties(int token, out string? name, out TypeAttributes attributes, out int mdParent)
         {
             InitDelegate(ref _getTypeDefProps, VTable->GetTypeDefProps);
 
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public bool GetFieldProps(uint token, out string name, out FieldAttributes attrs, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue)
+        public bool GetFieldProps(uint token, out string? name, out FieldAttributes attrs, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue)
         {
             InitDelegate(ref _getFieldProps, VTable->GetFieldProps);
 

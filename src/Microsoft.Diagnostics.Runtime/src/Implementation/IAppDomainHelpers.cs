@@ -8,8 +8,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public interface IAppDomainHelpers
     {
-        string GetConfigFile(ClrAppDomain domain);
-        string GetApplicationBase(ClrAppDomain domain);
+        string? GetConfigFile(ClrAppDomain domain);
+        string? GetApplicationBase(ClrAppDomain domain);
         IEnumerable<ClrModule> EnumerateModules(ClrAppDomain domain);
     }
 }

@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsValueClass => ElementType.IsValueClass();
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
-        public override string Name
+        public override string? Name
         {
             get
             {

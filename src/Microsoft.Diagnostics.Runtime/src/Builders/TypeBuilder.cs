@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             var owner = Owner;
             Owner = null;
-            owner.Return(this);
+            owner?.Return(this);
         }
     }
 }

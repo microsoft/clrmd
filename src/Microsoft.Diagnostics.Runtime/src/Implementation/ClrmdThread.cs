@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (mt != 0)
                 {
-                    ClrType type = _helpers.Factory.GetOrCreateType(mt, obj);
+                    ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
                     if (type != null)
                         return new ClrException(_helpers.ExceptionHelpers, this, new ClrObject(obj, type));
                 }

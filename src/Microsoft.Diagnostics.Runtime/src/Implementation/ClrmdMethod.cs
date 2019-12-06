@@ -66,7 +66,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override int GetILOffset(ulong addr)
         {
-            IReadOnlyList<ILToNativeMap> map = ILOffsetMap;
+            IReadOnlyList<ILToNativeMap>? map = ILOffsetMap;
+            if (map is null)
+                return 0;
+
             int ilOffset = 0;
             if (map.Count > 1)
                 ilOffset = map[1].ILOffset;
@@ -161,6 +164,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override string ToString() => Signature;
+        public override string? ToString() => Signature;
     }
 }

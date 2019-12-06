@@ -42,12 +42,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The System AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
-        public abstract ClrAppDomain SystemDomain { get; }
+        public abstract ClrAppDomain? SystemDomain { get; }
 
         /// <summary>
         /// The Shared AppDomain for Desktop CLR (null on .Net Core).
         /// </summary>
-        public abstract ClrAppDomain SharedDomain { get; }
+        public abstract ClrAppDomain? SharedDomain { get; }
 
         public abstract ClrModule BaseClassLibrary { get; }
 
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">Address of a possible JIT helper function.</param>
         /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function.</returns>
-        public abstract string GetJitHelperFunctionName(ulong address);
+        public abstract string? GetJitHelperFunctionName(ulong address);
 
         /// <summary>
         /// Cleans up all resources and releases them.  You may not use this ClrRuntime or any object it transitively
