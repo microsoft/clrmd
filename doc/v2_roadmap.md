@@ -73,10 +73,10 @@ I really hope to find a better solution for testing the product. Since we requir
 
 Here is a list of feedback I am tracking from the community (my summary):
 
-1.  It is difficult to build unit tests for code which uses ClrMD because it requires hydrating an entire object tree.  It would be nice if the library was mock-able.
-2.  Consider enabling nullable reference types. - **Approved**
+1.  It is difficult to build unit tests for code which uses ClrMD because it requires hydrating an entire object tree.  It would be nice if the library was mock-able. - **Completed (somewhat)** - *Did not add interfaces for every type, but made it easier to construct your own Clr* objects.*
+2.  Consider enabling nullable reference types. - **Completed**
 3.  Have a mode where I can indicate what is most important to me speed or memory usage. - **Approved** - *I plan to have a way to limit the amount ClrMD allocates at the cost of performance.* 
-4.  Consider using native memory where it makes sense (basically limit small allocations and other memory thrashing.  **Completed (mostly)** - *The library has moved to using Span with stackalloc/ArrayPool.Rent in the vast majority of allocation cases.  I've also removed the usage of most marshalled arrays in PInvoke signatures, preferring instead to pass pointers to byte arrays.*
+4.  Consider using native memory where it makes sense (basically limit small allocations and other memory thrashing.  **Completed** - *The library has moved to using Span with stackalloc/ArrayPool.Rent in the vast majority of allocation cases.  I've also removed the usage of most marshalled arrays in PInvoke signatures, preferring instead to pass pointers to byte arrays.*
 5.  Clean up the design of a lot of weird parts of the library.  - **Approved** - *That is the goal of ClrMD 2.0.*
 6.  Improve the messages and exceptions thrown by the library. - **Tentatively Planned**
 7.  Document the expected 'cost' of main operations in memory/CPU.  - **Unsure** - *There's so many factors here I'm not sure what success looks like, but I'll take a look.*
@@ -93,7 +93,8 @@ Here is a list of feedback I am tracking from the community (my summary):
 6.  clean up exception usage
 7.  Add more tests now that we can easily mock up objects.
 8.  All caching and parallel support was stripped out of GCRoot.  Need to add it back.
-9.  SafeWin32Handle -> SafeAccessTokenHandle 
+9.  SafeWin32Handle -> SafeAccessTokenHandle
+10.  Consider removing GetFieldForOffset
 
 
 # .Net Core 5 Dac Wishlist
