@@ -12,7 +12,7 @@ namespace ParallelStressTest
     {
         const int Iterations = int.MaxValue;
         const int Threads = 8;
-        static object _sync = new object();
+        static readonly object _sync = new object();
         private static ClrObject[] _expectedObjects;
         private static ClrSegment[] _segments;
         private static readonly ManualResetEvent _event = new ManualResetEvent(initialState: false);
