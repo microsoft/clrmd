@@ -1,4 +1,4 @@
-#pragma warning disable CS0162
+#pragma warning disable 0162
 using System;
 
 public class Program
