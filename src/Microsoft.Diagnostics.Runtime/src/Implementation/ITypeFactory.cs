@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         void CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> staticFields);
         ComCallWrapper? CreateCCWForObject(ulong obj);
         RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
+        ClrType CreateSystemType(ClrHeap heap, ulong mt, string kind);
         ClrType? GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
         ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);

@@ -138,5 +138,39 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns whether this method is a static constructor.
         /// </summary>
         public virtual bool IsClassConstructor => Name == ".cctor";
+
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is ClrMethod method)
+            {
+                if (MethodDesc == method.MethodDesc)
+                    return true;
+
+                // MethodDesc shouldn't be 0, but we should check the other way equality mechanism anyway.
+                if (MethodDesc == 0 && Type == method.Type && MetadataToken == method.MetadataToken)
+                    return true;
+
+                // Fall back to reference equality
+                return base.Equals(obj);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode() => MethodDesc.GetHashCode();
+
+        public static bool operator ==(ClrMethod? left, ClrMethod? right)
+        {
+            if (left is null)
+                return right is null;
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(ClrMethod? left, ClrMethod? right)
+        {
+            return !(left == right);
+        }
     }
 }

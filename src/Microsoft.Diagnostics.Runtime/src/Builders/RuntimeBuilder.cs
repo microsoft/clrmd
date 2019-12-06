@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
+        private readonly CacheOptions _options;
         private readonly SOSDac6? _sos6;
         private readonly int _threads;
         private readonly ulong _finalizer;
@@ -55,6 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _clrinfo = clr;
             _library = library;
             _sos = sos;
+            _options = clr.DataTarget.CacheOptions;
+
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
             DataReader = _clrinfo.DataTarget.DataReader;
@@ -661,6 +664,31 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ClrType? GetOrCreateType(ulong mt, ulong obj) => mt == 0 ? null : GetOrCreateType(GetOrCreateHeap(), mt, obj);
 
+        public ClrType CreateSystemType(ClrHeap heap, ulong mt, string kind)
+        {
+            using TypeBuilder typeData = _typeBuilders.Rent();
+            if (!typeData.Init(mt))
+                throw new InvalidDataException($"Could not create well known type '{kind}' from MethodTable {mt:x}.");
+
+            ClrType? baseType = null;
+
+            if (typeData.ParentMethodTable != 0 && !_cache.TryGetValue(typeData.ParentMethodTable, out baseType))
+                throw new InvalidOperationException($"Base type for '{kind}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
+
+            ClrModule module = GetModule(typeData.Module);
+            ClrmdType result;
+            if (typeData.ComponentSize == 0)
+                result = new ClrmdType(heap, baseType, module, typeData);
+            else
+                result = new ClrmdArrayType(heap, baseType, module, typeData);
+
+            // Regardless of caching options, we always cache important system types and basic types
+            lock (_cache)
+                _cache[mt] = result;
+
+            return result;
+        }
+
         public ClrType? GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
         {
             CheckDisposed();
@@ -691,8 +719,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
 
-                    lock (_cache)
-                        _cache[mt] = result;
+                    if (_options.CacheTypes)
+                    {
+                        lock (_cache)
+                            _cache[mt] = result;
+                    }
 
                     return result;
                 }
@@ -700,8 +731,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     ClrmdArrayType result = new ClrmdArrayType(heap, baseType, module, typeData);
 
-                    lock (_cache)
-                        _cache[mt] = result;
+                    if (_options.CacheTypes)
+                    {
+                        lock (_cache)
+                            _cache[mt] = result;
+                    }
 
                     if (obj != 0 && result.IsArray && result.ComponentType is null)
                     {

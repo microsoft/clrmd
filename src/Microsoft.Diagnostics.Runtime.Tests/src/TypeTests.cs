@@ -129,9 +129,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal(2, typesFromModule.Length);
             Assert.NotSame(types[0], types[1]);
+            Assert.NotEqual(types[0], types[1]);
 
-            Assert.Same(types[0], typesFromModule[0]);
-            Assert.Same(types[1], typesFromModule[1]);
+            if (dt.CacheOptions.CacheTypes)
+            {
+                Assert.Same(types[0], typesFromModule[0]);
+                Assert.Same(types[1], typesFromModule[1]);
+            }
+            else
+            {
+                Assert.Equal(types[0], typesFromModule[0]);
+                Assert.Equal(types[1], typesFromModule[1]);
+            }
 
             // Get new types
             runtime.FlushCachedData();
@@ -216,7 +225,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
 
                 Assert.Equal(type.MethodTable, typeFromHeap.MethodTable);
-                Assert.Same(type, typeFromHeap);
+
+                if (dt.CacheOptions.CacheTypes)
+                    Assert.Same(type, typeFromHeap);
+                else
+                    Assert.Equal(type, typeFromHeap);
             }
         }
 
@@ -237,7 +250,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ulong mt = dt.DataReader.ReadPointerUnsafe(obj);
                 Assert.NotEqual(0ul, mt);
 
-                Assert.Same(type, runtime.GetTypeByMethodTable(mt));
+                if (dt.CacheOptions.CacheTypes)
+                    Assert.Same(type, runtime.GetTypeByMethodTable(mt));
+                else
+                    Assert.Equal(type, runtime.GetTypeByMethodTable(mt));
+
                 Assert.Equal(mt, type.MethodTable);
             }
         }
@@ -291,7 +308,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(structTest);
 
             ClrInstanceField field = structTestClass.GetFieldByName("s");
-            Assert.Same(structTest, field.Type);
+            if (dt.CacheOptions.CacheTypes)
+                Assert.Same(structTest, field.Type);
+            else
+                Assert.Equal(structTest, field.Type);
+
             Assert.Equal(sizeof(int), field.Size);
 
             ClrInstanceField nes = structTestClass.GetFieldByName("nes");
@@ -347,7 +368,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject m_arrayObj = cq.ReadObject().GetObjectField("m_head").GetObjectField("m_array");
 
             // Ensure we are looking at the same ClrType
-            Assert.Same(m_array.Type, m_arrayObj.Type);
+            if (dt.CacheOptions.CacheTypes)
+                Assert.Same(m_array.Type, m_arrayObj.Type);
+            else
+                Assert.Equal(m_array.Type, m_arrayObj.Type);
 
             // Assert that we eventually filled in ComponentType after we got a real object for the type
             Assert.NotNull(m_arrayObj.Type.ComponentType);
@@ -366,8 +390,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType fooType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
             ClrObject obj = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").ReadObject();
 
-            Assert.Same(fooType, obj.Type);
-            Assert.Same(fooType, heap.GetObjectType(obj.Address));
+            if (dt.CacheOptions.CacheTypes)
+            {
+                Assert.Same(fooType, obj.Type);
+                Assert.Same(fooType, heap.GetObjectType(obj.Address));
+            }
+            else
+            {
+                Assert.Equal(fooType, obj.Type);
+                Assert.Equal(fooType, heap.GetObjectType(obj.Address));
+            }
 
             TestFieldNameAndValue(fooType, obj, "i", 42);
             TestFieldNameAndValue(fooType, obj, "s", "string");

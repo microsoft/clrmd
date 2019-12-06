@@ -80,10 +80,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IsServer = heapBuilder.IsServer;
 
             // Prepopulate a few important method tables.  This should never fail.
-            StringType = _helpers.Factory.GetOrCreateType(this, heapBuilder.StringMethodTable, 0) ?? throw new InvalidOperationException("Failed to create string type");
-            ObjectType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ObjectMethodTable, 0) ?? throw new InvalidOperationException("Failed to create object type");
-            FreeType = _helpers.Factory.GetOrCreateType(this, heapBuilder.FreeMethodTable, 0) ?? throw new InvalidOperationException("Failed to create Free type");
-            ExceptionType = _helpers.Factory.GetOrCreateType(this, heapBuilder.ExceptionMethodTable, 0) ?? throw new InvalidOperationException("Failed to create exception type");
+            FreeType = _helpers.Factory.CreateSystemType(this, heapBuilder.FreeMethodTable, "Free");
+            ObjectType = _helpers.Factory.CreateSystemType(this, heapBuilder.ObjectMethodTable, "System.Object");
+            StringType = _helpers.Factory.CreateSystemType(this, heapBuilder.StringMethodTable, "System.String");
+            ExceptionType = _helpers.Factory.CreateSystemType(this, heapBuilder.ExceptionMethodTable, "System.Exception");
 
             // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
             Segments = heapBuilder.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);

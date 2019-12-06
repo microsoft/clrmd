@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable
     {
+        private SymbolLocator? _symbolLocator;
         private bool _disposed;
         private ClrInfo[]? _clrs;
         private ModuleInfo[]? _modules;
@@ -33,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IDataReader DataReader { get; }
 
-        private SymbolLocator? _symbolLocator;
+        public CacheOptions CacheOptions { get; } = new CacheOptions();
 
         /// <summary>
         /// Instance to manage the symbol path(s).
