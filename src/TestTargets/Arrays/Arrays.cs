@@ -1,3 +1,4 @@
+#pragma warning disable 0162
 using System;
 
 public class Program
