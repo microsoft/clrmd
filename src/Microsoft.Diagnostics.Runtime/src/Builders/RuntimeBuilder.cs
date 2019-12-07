@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
+        private readonly CacheOptions _options;
         private readonly SOSDac6? _sos6;
         private readonly int _threads;
         private readonly ulong _finalizer;
@@ -55,6 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _clrinfo = clr;
             _library = library;
             _sos = sos;
+            _options = clr.DataTarget.CacheOptions;
+
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
             DataReader = _clrinfo.DataTarget.DataReader;
@@ -553,6 +556,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
+        // When searching for a type, we don't want to actually cache or intern the name until we completely
+        // construct the type.  This will alleviate a lot of needless memory usage when we do something like
+        // search all modules for a named type we never find.
+        string? IModuleHelpers.GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -661,6 +668,31 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ClrType? GetOrCreateType(ulong mt, ulong obj) => mt == 0 ? null : GetOrCreateType(GetOrCreateHeap(), mt, obj);
 
+        public ClrType CreateSystemType(ClrHeap heap, ulong mt, string kind)
+        {
+            using TypeBuilder typeData = _typeBuilders.Rent();
+            if (!typeData.Init(mt))
+                throw new InvalidDataException($"Could not create well known type '{kind}' from MethodTable {mt:x}.");
+
+            ClrType? baseType = null;
+
+            if (typeData.ParentMethodTable != 0 && !_cache.TryGetValue(typeData.ParentMethodTable, out baseType))
+                throw new InvalidOperationException($"Base type for '{kind}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
+
+            ClrModule module = GetModule(typeData.Module);
+            ClrmdType result;
+            if (typeData.ComponentSize == 0)
+                result = new ClrmdType(heap, baseType, module, typeData);
+            else
+                result = new ClrmdArrayType(heap, baseType, module, typeData);
+
+            // Regardless of caching options, we always cache important system types and basic types
+            lock (_cache)
+                _cache[mt] = result;
+
+            return result;
+        }
+
         public ClrType? GetOrCreateType(ClrHeap heap, ulong mt, ulong obj)
         {
             CheckDisposed();
@@ -691,8 +723,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
 
-                    lock (_cache)
-                        _cache[mt] = result;
+                    if (_options.CacheTypes)
+                    {
+                        lock (_cache)
+                            _cache[mt] = result;
+                    }
 
                     return result;
                 }
@@ -700,8 +735,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     ClrmdArrayType result = new ClrmdArrayType(heap, baseType, module, typeData);
 
-                    lock (_cache)
-                        _cache[mt] = result;
+                    if (_options.CacheTypes)
+                    {
+                        lock (_cache)
+                            _cache[mt] = result;
+                    }
 
                     if (obj != 0 && result.IsArray && result.ComponentType is null)
                     {
@@ -754,19 +792,18 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return new RuntimeCallableWrapper(GetOrCreateRuntime(), builder);
         }
 
-        ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
+        bool ITypeFactory.CreateMethodsForType(ClrType type, out IReadOnlyList<ClrMethod> methods)
         {
             CheckDisposed();
 
             ulong mt = type.MethodTable;
-            if (!_sos.GetMethodTableData(mt, out MethodTableData data))
-                return Array.Empty<ClrMethod>();
-
-            if (data.NumMethods == 0)
-                return Array.Empty<ClrMethod>();
+            if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
+            {
+                methods = Array.Empty<ClrMethod>();
+                return true;
+            }
 
             using MethodBuilder builder = _methodBuilders.Rent();
-
             ClrMethod[] result = new ClrMethod[data.NumMethods];
 
             int curr = 0;
@@ -779,7 +816,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (curr < result.Length)
                 Array.Resize(ref result, curr);
 
-            return result;
+            if (result.Length == 0)
+            {
+                methods = Array.Empty<ClrMethod>();
+                return true;
+            }
+
+            methods = result;
+            return _options.CacheMethods;
         }
 
         public ClrMethod? CreateMethodFromHandle(ulong methodDesc)
@@ -804,17 +848,19 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return new ClrmdMethod(type, builder);
         }
 
-        void ITypeFactory.CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
+        bool ITypeFactory.CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
         {
             CheckDisposed();
 
-            CreateFieldsForMethodTableWorker(type, out fields, out statics);
+            CreateFieldsForMethodTableWorker(type, out fields!, out statics!);
 
             fields ??= Array.Empty<ClrInstanceField>();
             statics ??= Array.Empty<ClrStaticField>();
+
+            return _options.CacheFields;
         }
 
-        private void CreateFieldsForMethodTableWorker(ClrType type, [NotNull] out IReadOnlyList<ClrInstanceField>? fields, [NotNull] out IReadOnlyList<ClrStaticField>? statics)
+        private void CreateFieldsForMethodTableWorker(ClrType type, out IReadOnlyList<ClrInstanceField>? fields, out IReadOnlyList<ClrStaticField>? statics)
         {
             CheckDisposed();
 
@@ -841,7 +887,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             // Add base type's fields.
             if (type.BaseType != null)
             {
-                foreach (ClrInstanceField field in type.BaseType.Fields)
+                IReadOnlyList<ClrInstanceField> baseFields = type.BaseType.Fields;
+                foreach (ClrInstanceField field in baseFields)
                     fieldOut[fieldNum++] = field;
             }
 
@@ -964,7 +1011,17 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return (flags & 1) != 0;
         }
 
-        public string? GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
+        bool ITypeHelpers.GetTypeName(ulong mt, out string? name)
+        {
+            name = _sos.GetMethodTableName(mt);
+            if (string.IsNullOrWhiteSpace(name))
+                return true;
+
+            if (_options.CacheTypeNames == StringCaching.Intern)
+                name = string.Intern(name);
+
+            return _options.CacheTypeNames != StringCaching.None;
+        }
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
         ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
@@ -986,7 +1043,20 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return data;
         }
 
-        string? IMethodHelpers.GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
+        bool IMethodHelpers.GetSignature(ulong methodDesc, out string? signature)
+        {
+            signature = _sos.GetMethodDescName(methodDesc);
+
+            // Always cache an empty name, no reason to keep requesting it.
+            // Implementations may ignore this (ClrmdMethod doesn't cache null signatures).
+            if (string.IsNullOrWhiteSpace(signature))
+                return true;
+
+            if (_options.CacheMethodNames == StringCaching.Intern)
+                signature = string.Intern(signature);
+
+            return _options.CacheMethodNames != StringCaching.None;
+        }
 
         ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 

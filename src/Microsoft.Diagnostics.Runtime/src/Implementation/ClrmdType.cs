@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
 
-        private ClrMethod[]? _methods;
+        private IReadOnlyList<ClrMethod>? _methods;
         private IReadOnlyList<ClrInstanceField>? _fields;
         private IReadOnlyList<ClrStaticField>? _statics;
 
@@ -31,7 +31,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
 
-        public override string? Name => _name ??= Helpers.GetTypeName(MethodTable);
+        public override string? Name
+        {
+            get
+            {
+                if (_name != null)
+                    return _name;
+
+                if (Helpers.GetTypeName(MethodTable, out string? name))
+                    _name = name;
+
+                return name;
+            }
+        }
 
         public override int BaseSize { get; }
         public override int ComponentSize => 0;
@@ -382,7 +394,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!inner)
                     offset -= IntPtr.Size;
 
-                foreach (ClrInstanceField field in Fields)
+                IReadOnlyList<ClrInstanceField> fields = Fields;
+                foreach (ClrInstanceField field in fields)
                 {
                     if (field.ElementType == ClrElementType.Unknown)
                         break;
@@ -408,10 +421,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fields is null)
-                    InitFields();
+                if (_fields != null)
+                    return _fields;
 
-                return _fields!;
+                if (Helpers.Factory.CreateFieldsForType(this, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics))
+                {
+                    _fields = fields;
+                    _statics = statics;
+                }
+
+                return fields;
             }
         }
 
@@ -419,28 +438,34 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fields is null)
-                    InitFields();
+                if (_statics != null)
+                    return _statics;
 
-                if (_statics is null)
-                    return Array.Empty<ClrStaticField>();
+                if (Helpers.Factory.CreateFieldsForType(this, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics))
+                {
+                    _fields = fields;
+                    _statics = statics;
+                }
 
-                return _statics;
+                return statics;
             }
         }
 
-        private void InitFields()
+        public override IReadOnlyList<ClrMethod> Methods
         {
-            if (_fields != null)
-                return;
+            get
+            {
+                if (_methods != null)
+                    return _methods;
 
-            Helpers.Factory.CreateFieldsForType(this, out _fields, out _statics);
+                // Returns whether or not we should cache methods or not
+                if (Helpers.Factory.CreateMethodsForType(this, out IReadOnlyList<ClrMethod> methods))
+                    _methods = methods;
 
-            _fields ??= Array.Empty<ClrInstanceField>();
-            _statics ??= Array.Empty<ClrStaticField>();
+                return methods;
+            }
+
         }
-
-        public override IReadOnlyList<ClrMethod> Methods => _methods ??= Helpers.Factory.CreateMethodsForType(this);
 
         //TODO: remove
         public override ClrStaticField? GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);

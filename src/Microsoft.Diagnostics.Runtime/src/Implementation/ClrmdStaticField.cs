@@ -29,8 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_name != null)
                     return _name;
 
-                InitData();
-                return _name;
+                return ReadData();
             }
         }
 
@@ -82,14 +81,29 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_attributes != FieldAttributes.ReservedMask)
                 return;
 
-            if (!_helpers.ReadProperties(Parent, Token, out _name, out _attributes, out SigParser sigParser))
-                return;
+            ReadData();
+        }
+
+        private string? ReadData()
+        {
+            if (!_helpers.ReadProperties(Parent, Token, out string? name, out _attributes, out SigParser sigParser))
+                return null;
+
+            StringCaching options = Parent.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
+            if (name != null)
+            {
+                if (options == StringCaching.Intern)
+                    _name = string.Intern(name);
+                else if (options == StringCaching.Cache)
+                    _name = name;
+            }
 
             // We may have to try to construct a type from the sigParser if the method table was a bust in the constructor
             if (_type != null)
-                return;
+                return name;
 
             _type = ClrmdField.GetTypeForFieldSig(_helpers.Factory, sigParser, Parent.Heap, Parent.Module);
+            return name;
         }
 
         public override bool IsPublic
