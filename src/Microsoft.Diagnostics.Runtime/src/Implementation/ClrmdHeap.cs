@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private volatile IReadOnlyList<ClrSegment>? _segments;
 
         private int _lastSegmentIndex;
-        private (ulong, ulong)[]? _dependants;
+        private volatile (ulong, ulong)[]? _dependentHandles;
 
         [ThreadStatic]
         private static MemoryReader? _memoryReader;
@@ -193,6 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _segments = null;
                 _fqRoots = null;
                 _fqObjects = null;
+                _dependentHandles = null;
             }
         }
 
@@ -426,23 +427,26 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (considerDependantHandles)
             {
-                if (_dependants is null)
+                var dependent = _dependentHandles;
+                if (dependent is null)
                 {
-                    _dependants = _helpers.EnumerateDependentHandleLinks().ToArray();
-                    Array.Sort(_dependants, (x, y) => x.Item1.CompareTo(y.Item1));
+                    dependent = _helpers.EnumerateDependentHandleLinks().ToArray();
+                    Array.Sort(dependent, (x, y) => x.Item1.CompareTo(y.Item1));
+
+                    _dependentHandles = dependent;
                 }
 
-                if (_dependants.Length > 0)
+                if (dependent.Length > 0)
                 {
-                    int index = _dependants.Search(obj, (x, y) => x.Item1.CompareTo(y));
+                    int index = dependent.Search(obj, (x, y) => x.Item1.CompareTo(y));
                     if (index != -1)
                     {
-                        while (index >= 1 && _dependants[index - 1].Item1 == obj)
+                        while (index >= 1 && dependent[index - 1].Item1 == obj)
                             index--;
 
-                        while (index < _dependants.Length && _dependants[index].Item1 == obj)
+                        while (index < dependent.Length && dependent[index].Item1 == obj)
                         {
-                            ulong dependantObj = _dependants[index++].Item2;
+                            ulong dependantObj = dependent[index++].Item2;
                             yield return new ClrObject(dependantObj, GetObjectType(dependantObj));
                         }
                     }
