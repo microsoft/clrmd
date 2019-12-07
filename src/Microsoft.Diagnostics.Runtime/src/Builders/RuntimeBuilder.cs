@@ -349,13 +349,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             ulong[] domainList = _sos.GetAppDomainList(builder.AppDomainCount);
             ClrAppDomain[] result = new ClrAppDomain[domainList.Length];
+
             int i = 0;
             foreach (ulong domain in domainList)
-            {
-                ClrAppDomain ad = GetOrCreateAppDomain(builder, domain);
-                if (ad != null)
-                    result[i++] = ad;
-            }
+                result[i++] = GetOrCreateAppDomain(builder, domain);
 
             if (i < result.Length)
                 Array.Resize(ref result, i);

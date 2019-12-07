@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrType GetTypeOrThrow()
         {
             if (IsNull)
-                throw new InvalidOperationException("Object is null.");
+                throw new NullReferenceException("Object is null.");
 
             if (!IsValidObject)
                 throw new InvalidOperationException($"Object {Address:x} is corrupted, could not determine type.");
