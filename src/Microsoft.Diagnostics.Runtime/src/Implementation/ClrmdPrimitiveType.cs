@@ -92,5 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsArray => false;
 
         public override int ComponentSize => 0;
+
+        // TODO:  Must override equals
     }
 }

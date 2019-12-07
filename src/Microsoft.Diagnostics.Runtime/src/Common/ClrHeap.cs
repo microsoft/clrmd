@@ -26,6 +26,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract bool CanWalkHeap { get; }
 
+        public abstract int LogicalHeapCount { get; }
+
         /// <summary>
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
         /// of increasing object addresses.

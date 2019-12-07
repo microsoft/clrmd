@@ -130,12 +130,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 CheckModuleNotSame(oldModules[i], newModules[i]);
 
             ClrHeap newHeap = runtime.Heap;
-            Assert.Same(runtime.Heap, newHeap); // make sure we don't recreate the object every call
-            Assert.NotSame(oldHeap, newHeap);   // but also that we did recreate after flush
-
-            CheckTypeNotSame(oldHeap.ObjectType, newHeap.ObjectType);
-            CheckTypeNotSame(oldHeap.ExceptionType, newHeap.ExceptionType);
-            CheckTypeNotSame(oldHeap.StringType, newHeap.StringType);
 
             var newObjs = newHeap.EnumerateObjects().Take(20).ToArray();
             Assert.Equal(oldObjects.Length, newObjs.Length);
