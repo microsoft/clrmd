@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         IDataReader DataReader { get; }
 
-        string? GetSignature(ulong methodDesc);
+        bool GetSignature(ulong methodDesc, out string? signature);
         IReadOnlyList<ILToNativeMap> GetILMap(ulong nativeCode, in HotColdRegions hotColdInfo);
         ulong GetILForModule(ulong address, uint rva);
     }

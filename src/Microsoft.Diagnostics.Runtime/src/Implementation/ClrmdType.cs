@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
 
-        private ClrMethod[]? _methods;
+        private IReadOnlyList<ClrMethod>? _methods;
         private IReadOnlyList<ClrInstanceField>? _fields;
         private IReadOnlyList<ClrStaticField>? _statics;
 
@@ -440,7 +440,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _statics ??= Array.Empty<ClrStaticField>();
         }
 
-        public override IReadOnlyList<ClrMethod> Methods => _methods ??= Helpers.Factory.CreateMethodsForType(this);
+        public override IReadOnlyList<ClrMethod> Methods
+        {
+            get
+            {
+                if (_methods != null)
+                    return _methods;
+
+                // Returns whether or not we should cache methods or not
+                if (Helpers.Factory.CreateMethodsForType(this, out IReadOnlyList<ClrMethod> methods))
+                    _methods = methods;
+
+                return methods;
+            }
+
+        }
 
         //TODO: remove
         public override ClrStaticField? GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);

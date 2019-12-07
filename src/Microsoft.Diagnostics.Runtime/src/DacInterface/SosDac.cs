@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         return null;
                 }
 
-                return string.Intern(Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2));
+                return Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2);
             }
             finally
             {

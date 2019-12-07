@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime
         public bool CacheFields { get; set; } = true;
         public bool CacheMethods { get; set; } = true;
 
-        public bool CacheTypeNames { get; set; } = true;
-        public bool CacheFieldNames { get; set; } = true;
-        public bool CacheMethodNames { get; set; } = true;
+        public StringCaching CacheTypeNames { get; set; } = StringCaching.Cache;
+        public StringCaching CacheFieldNames { get; set; } = StringCaching.Cache;
+        public StringCaching CacheMethodNames { get; set; } = StringCaching.Cache;
     }
 }

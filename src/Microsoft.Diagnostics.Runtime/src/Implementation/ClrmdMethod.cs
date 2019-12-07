@@ -19,7 +19,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MethodDesc { get; }
         public override uint MetadataToken { get; }
         public override ClrType Type { get; }
-        public override string? Signature => _signature ??= _helpers?.GetSignature(MethodDesc);
+        public override string? Signature
+        {
+            get
+            {
+                if (_signature != null)
+                    return _signature;
+
+                // returns whether we should cache the signature or not.
+                if (_helpers.GetSignature(MethodDesc, out string? signature))
+                    _signature = signature;
+
+                return signature;
+            }
+        }
+
         public override IReadOnlyList<ILToNativeMap>? ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold);
 
         public override HotColdRegions HotColdInfo => _hotCold;
@@ -44,18 +58,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (Signature is null)
+                string? signature = Signature;
+                if (signature is null)
                     return null;
 
-                int last = Signature.LastIndexOf('(');
+                int last = signature.LastIndexOf('(');
                 if (last > 0)
                 {
-                    int first = Signature.LastIndexOf('.', last - 1);
+                    int first = signature.LastIndexOf('.', last - 1);
 
-                    if (first != -1 && Signature[first - 1] == '.')
+                    if (first != -1 && signature[first - 1] == '.')
                         first--;
 
-                    return Signature.Substring(first + 1, last - first - 1);
+                    return signature.Substring(first + 1, last - first - 1);
                 }
 
                 return "{error}";

@@ -788,19 +788,18 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return new RuntimeCallableWrapper(GetOrCreateRuntime(), builder);
         }
 
-        ClrMethod[] ITypeFactory.CreateMethodsForType(ClrType type)
+        bool ITypeFactory.CreateMethodsForType(ClrType type, out IReadOnlyList<ClrMethod> methods)
         {
             CheckDisposed();
 
             ulong mt = type.MethodTable;
-            if (!_sos.GetMethodTableData(mt, out MethodTableData data))
-                return Array.Empty<ClrMethod>();
-
-            if (data.NumMethods == 0)
-                return Array.Empty<ClrMethod>();
+            if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
+            {
+                methods = Array.Empty<ClrMethod>();
+                return true;
+            }
 
             using MethodBuilder builder = _methodBuilders.Rent();
-
             ClrMethod[] result = new ClrMethod[data.NumMethods];
 
             int curr = 0;
@@ -813,7 +812,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (curr < result.Length)
                 Array.Resize(ref result, curr);
 
-            return result;
+            if (result.Length == 0)
+            {
+                methods = Array.Empty<ClrMethod>();
+                return true;
+            }
+
+            methods = result;
+            return _options.CacheMethods;
         }
 
         public ClrMethod? CreateMethodFromHandle(ulong methodDesc)
@@ -1020,7 +1026,20 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return data;
         }
 
-        string? IMethodHelpers.GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
+        bool IMethodHelpers.GetSignature(ulong methodDesc, out string? signature)
+        {
+            signature = _sos.GetMethodDescName(methodDesc);
+
+            // Always cache an empty name, no reason to keep requesting it.
+            // Implementations may ignore this (ClrmdMethod doesn't cache null signatures).
+            if (string.IsNullOrWhiteSpace(signature))
+                return true;
+
+            if (_options.CacheMethodNames == StringCaching.Intern)
+                signature = string.Intern(signature);
+
+            return _options.CacheMethodNames != StringCaching.None;
+        }
 
         ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 

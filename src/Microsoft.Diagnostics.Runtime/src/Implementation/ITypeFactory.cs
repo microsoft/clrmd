@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrRuntime GetOrCreateRuntime();
         ClrHeap GetOrCreateHeap();
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
-        ClrMethod[] CreateMethodsForType(ClrType type);
+        bool CreateMethodsForType(ClrType type, out IReadOnlyList<ClrMethod> methods);
         void CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> staticFields);
         ComCallWrapper? CreateCCWForObject(ulong obj);
         RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
