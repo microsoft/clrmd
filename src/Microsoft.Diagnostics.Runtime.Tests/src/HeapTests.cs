@@ -35,6 +35,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(encounteredFoo);
         }
 
+        [Fact]
+        public void HeapEnumerationWhileClearingCache()
+        {
+            // Simply test that we can enumerate the heap.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            ClrObject[] objects = heap.EnumerateObjects().ToArray();
+            Assert.NotEmpty(objects);
+
+
+            int i = 0;
+            foreach (ClrObject obj in heap.EnumerateObjects())
+            {
+                Assert.Equal(objects[i].Address, obj.Address);
+                Assert.Equal(objects[i].Type, obj.Type);
+
+                if ((i % 8) == 0)
+                    runtime.FlushCachedData();
+
+                i++;
+            }
+        }
+
 
         [Fact]
         public void ServerSegmentTests()

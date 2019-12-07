@@ -34,10 +34,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
         private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
 
-        private ClrmdRuntime? _runtime;
-        private volatile ClrHeap? _heap;
+        private readonly ClrmdRuntime _runtime;
+        private readonly ClrmdHeap _heap;
 
-        private readonly Dictionary<ulong, ClrType> _cache = new Dictionary<ulong, ClrType>();
+        private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>();
 
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ObjectPool<MethodBuilder> _methodBuilders;
@@ -47,7 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public bool IsThreadSafe => true;
 
         public IDataReader DataReader { get; }
-        public IHeapBuilder HeapBuilder => new HeapBuilder(this, _sos, DataReader, _firstThread);
 
         public ITypeFactory Factory => this;
 
@@ -85,6 +84,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 moduleSizes[mi.ImageBase] = mi.FileSize;
 
             _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
+
+            _runtime = new ClrmdRuntime(clr, library, this);
+            _runtime.Initialize();
+
+            _heap = new ClrmdHeap(_runtime, new HeapBuilder(this, _sos));
         }
 
         public void Dispose()
@@ -99,6 +103,96 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 _library.Dispose();
             }
         }
+
+
+
+
+        IReadOnlyList<ClrSegment> IHeapHelpers.CreateSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts,
+                        out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects)
+        {
+            List<ClrSegment> result = new List<ClrSegment>();
+            List<AllocationContext> allocContexts = new List<AllocationContext>();
+            List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
+            List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
+
+            if (allocContexts.Count == 0)
+            {
+                ulong next = _firstThread;
+                HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
+                while (_sos.GetThreadData(next, out ThreadData thread))
+                {
+                    if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
+                        allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
+
+                    next = thread.NextThread;
+                    if (next == 0 || !seen.Add(next))
+                        break;
+                }
+            }
+
+            SegmentBuilder segBuilder = new SegmentBuilder(_sos);
+            if (clrHeap.IsServer)
+            {
+                ulong[] heapList = _sos.GetHeapList(clrHeap.LogicalHeapCount);
+                for (int i = 0; i < heapList.Length; i++)
+                {
+                    segBuilder.LogicalHeap = i;
+                    AddHeap(segBuilder, clrHeap, heapList[i], allocContexts, result, finalizerRoots, finalizerObjects);
+                }
+            }
+            else
+            {
+                AddHeap(segBuilder, clrHeap, allocContexts, result, finalizerRoots, finalizerObjects);
+            }
+
+            result.Sort((x, y) => x.Start.CompareTo(y.Start));
+
+            allocationContexts = allocContexts;
+            fqRoots = finalizerRoots;
+            fqObjects = finalizerObjects;
+            return result;
+        }
+
+        public void AddHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, ulong address, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+                            List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        {
+            if (_sos.GetServerHeapDetails(address, out HeapDetails heap))
+                ProcessHeap(segBuilder, clrHeap, in heap, allocationContexts, segments, fqRoots, fqObjects);
+        }
+
+        public void AddHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+                            List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        {
+            if (_sos.GetWksHeapDetails(out HeapDetails heap))
+                ProcessHeap(segBuilder, clrHeap, in heap, allocationContexts, segments, fqRoots, fqObjects);
+        }
+
+        private void ProcessHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, in HeapDetails heap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+                                    List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        {
+            if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
+                allocationContexts.Add(new AllocationContext(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
+
+            fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
+            fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));
+
+            AddSegments(segBuilder, clrHeap, large: true, in heap, segments, heap.GenerationTable[3].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: false, in heap, segments, heap.GenerationTable[2].StartSegment);
+        }
+
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
+        {
+            HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
+            segBuilder.IsLargeObjectSegment = large;
+
+            while (seenSegments.Add(address) && segBuilder.Initialize(address, in heap))
+            {
+                segments.Add(new ClrmdSegment(clrHeap, segBuilder));
+                address = segBuilder.Next;
+            }
+        }
+
+
 
         private TypeBuilder CreateTypeBuilder() => new TypeBuilder(_sos, this);
         private MethodBuilder CreateMethodBuilder() => new MethodBuilder(_sos, this);
@@ -467,11 +561,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         void IRuntimeHelpers.FlushCachedData()
         {
-            _heap = null;
+            _heap.ClearCachedData();
             _dac.Flush();
 
-            lock (_cache)
-                _cache.Clear();
+            lock (_types)
+                _types.Clear();
 
             lock (_domains)
                 _domains.Clear();
@@ -489,7 +583,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
 
             if (_runtime is ClrmdRuntime runtime)
-                runtime.Initialize();
+                lock (runtime)
+                    runtime.Initialize();
         }
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
@@ -546,9 +641,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ClrType TryGetType(ulong mt)
         {
-            lock (_cache)
+            lock (_types)
             {
-                _cache.TryGetValue(mt, out ClrType result);
+                _types.TryGetValue(mt, out ClrType result);
                 return result;
             }
         }
@@ -580,36 +675,18 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        public ClrRuntime GetOrCreateRuntime()
-        {
-            CheckDisposed();
+        public ClrRuntime GetOrCreateRuntime() => _runtime;
 
-            if (_runtime != null)
-                return _runtime;
-
-            ClrmdRuntime runtime = new ClrmdRuntime(_clrinfo, _library, this);
-            _runtime = runtime;
-
-            runtime.Initialize();
-            return _runtime;
-        }
-        public ClrHeap GetOrCreateHeap()
-        {
-            if (_heap != null)
-                return _heap;
-
-            ClrHeap heap = new ClrmdHeap(GetOrCreateRuntime(), HeapBuilder);
-            Interlocked.CompareExchange(ref _heap, heap, null);
-            return _heap;
-        }
+        public ClrHeap GetOrCreateHeap() => _heap;
 
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
         {
             CheckDisposed();
 
-            if (_basicTypes is null)
+            ClrType?[]? basicTypes = _basicTypes;
+            if (basicTypes is null)
             {
-                ClrType?[] basicTypes = new ClrType[(int)ClrElementType.SZArray];
+                basicTypes = new ClrType[(int)ClrElementType.SZArray];
                 int count = 0;
                 ClrModule bcl = GetOrCreateRuntime().BaseClassLibrary;
                 if (bcl != null && bcl.MetadataImport != null)
@@ -653,14 +730,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
 
             int index = (int)basicType - 1;
-            if (index < 0 || index > _basicTypes.Length)
+            if (index < 0 || index > basicTypes.Length)
                 throw new ArgumentException($"Cannot create type for ClrElementType {basicType}");
 
-            ClrType? result = _basicTypes[index];
+            ClrType? result = basicTypes[index];
             if (!(result is null))
                 return result;
 
-            return _basicTypes[index] = new ClrmdPrimitiveType(this, GetOrCreateRuntime().BaseClassLibrary, GetOrCreateHeap(), basicType);
+            return basicTypes[index] = new ClrmdPrimitiveType(this, GetOrCreateRuntime().BaseClassLibrary, GetOrCreateHeap(), basicType);
         }
 
         public ClrType? GetOrCreateType(ulong mt, ulong obj) => mt == 0 ? null : GetOrCreateType(GetOrCreateHeap(), mt, obj);
@@ -673,7 +750,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             ClrType? baseType = null;
 
-            if (typeData.ParentMethodTable != 0 && !_cache.TryGetValue(typeData.ParentMethodTable, out baseType))
+            if (typeData.ParentMethodTable != 0 && !_types.TryGetValue(typeData.ParentMethodTable, out baseType))
                 throw new InvalidOperationException($"Base type for '{kind}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
 
             ClrModule module = GetModule(typeData.Module);
@@ -684,8 +761,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 result = new ClrmdArrayType(heap, baseType, module, typeData);
 
             // Regardless of caching options, we always cache important system types and basic types
-            lock (_cache)
-                _cache[mt] = result;
+            lock (_types)
+                _types[mt] = result;
 
             return result;
         }
@@ -722,8 +799,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                     if (_options.CacheTypes)
                     {
-                        lock (_cache)
-                            _cache[mt] = result;
+                        lock (_types)
+                            _types[mt] = result;
                     }
 
                     return result;
@@ -734,8 +811,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                     if (_options.CacheTypes)
                     {
-                        lock (_cache)
-                            _cache[mt] = result;
+                        lock (_types)
+                            _types[mt] = result;
                     }
 
                     if (obj != 0 && result.IsArray && result.ComponentType is null)

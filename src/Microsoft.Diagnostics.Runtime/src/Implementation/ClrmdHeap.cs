@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -15,9 +16,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IHeapHelpers _helpers;
-        private readonly IReadOnlyList<FinalizerQueueSegment> _fqRoots;
-        private readonly IReadOnlyList<FinalizerQueueSegment> _fqObjects;
-        private readonly Dictionary<ulong, ulong> _allocationContext;
+
+        private readonly object _sync = new object();
+
+        private IReadOnlyList<FinalizerQueueSegment>? _fqRoots;
+        private IReadOnlyList<FinalizerQueueSegment>? _fqObjects;
+        private volatile Dictionary<ulong, ulong>? _allocationContext;
+        private volatile IReadOnlyList<ClrSegment>? _segments;
+
         private int _lastSegmentIndex;
         private (ulong, ulong)[]? _dependants;
 
@@ -56,7 +62,70 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool CanWalkHeap { get; }
 
-        public override IReadOnlyList<ClrSegment> Segments { get; }
+        private Dictionary<ulong, ulong> AllocationContext
+        {
+            get
+            {
+                // We never set _allocationContext to null after its been assigned.  This will
+                // always return the latest, non-null value even if we race against another thread
+                // setting it.
+
+                if (_allocationContext != null)
+                    return _allocationContext;
+
+                lock (_sync)
+                {
+                    if (_allocationContext == null)
+                        Initialize();
+
+                    return _allocationContext!;
+                }
+            }
+        }
+
+        private IReadOnlyList<FinalizerQueueSegment> FQRoots
+        {
+            get
+            {
+                if (_fqRoots == null)
+                    Initialize();
+
+                // _fqRoots is never set to zero after initialization
+                return _fqRoots!;
+            }
+        }
+        private IReadOnlyList<FinalizerQueueSegment> FQObjects
+        {
+            get
+            {
+                if (_fqObjects == null)
+                    Initialize();
+
+                // _fqObjects is never set to zero after initialization
+                return _fqObjects!;
+            }
+        }
+
+        public override IReadOnlyList<ClrSegment> Segments
+        {
+            get
+            {
+                IReadOnlyList<ClrSegment>? segments = _segments;
+                if (segments != null)
+                    return segments;
+
+                lock (_sync)
+                {
+                    segments = _segments;
+                    if (segments == null)
+                        segments = Initialize();
+
+                    return segments;
+                }
+            }
+        }
+
+        public override int LogicalHeapCount { get; }
 
         public override ClrType FreeType { get; }
 
@@ -78,19 +147,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Runtime = runtime;
             CanWalkHeap = heapBuilder.CanWalkHeap;
             IsServer = heapBuilder.IsServer;
+            LogicalHeapCount = heapBuilder.LogicalHeapCount;
 
             // Prepopulate a few important method tables.  This should never fail.
             FreeType = _helpers.Factory.CreateSystemType(this, heapBuilder.FreeMethodTable, "Free");
             ObjectType = _helpers.Factory.CreateSystemType(this, heapBuilder.ObjectMethodTable, "System.Object");
             StringType = _helpers.Factory.CreateSystemType(this, heapBuilder.StringMethodTable, "System.String");
             ExceptionType = _helpers.Factory.CreateSystemType(this, heapBuilder.ExceptionMethodTable, "System.Exception");
+        }
 
-            // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
-            Segments = heapBuilder.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);
-            if (Segments.Count > 0 && Segments[0].Start > Segments[Segments.Count - 1].Start)
-                throw new InvalidOperationException("IHeapBuilder returned segments out of order.");
+        private IReadOnlyList<ClrSegment> Initialize()
+        {
+            lock (_sync)
+            {
+                // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
+                var segments = _helpers.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);
+                if (segments.Count > 0 && segments[0].Start > segments[segments.Count - 1].Start)
+                    throw new InvalidOperationException("IHeapBuilder returned segments out of order.");
 
-            _allocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
+                _segments = segments;
+                _allocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
+                return segments;
+            }
+        }
+
+        public void ClearCachedData()
+        {
+            _segments = null;
         }
 
         internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment seg)
@@ -175,7 +258,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
 
                 obj += size;
-                while (!large && _allocationContext.TryGetValue(obj, out ulong nextObj))
+                while (!large && AllocationContext.TryGetValue(obj, out ulong nextObj))
                 {
                     nextObj += Align(minObjSize, large);
 
@@ -408,9 +491,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override IEnumerable<ClrObject> EnumerateFinalizableObjects() => EnumerateFQ(_fqObjects).Select(root => root.Object);
+        public override IEnumerable<ClrObject> EnumerateFinalizableObjects() => EnumerateFQ(FQObjects).Select(root => root.Object);
 
-        public override IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots() => EnumerateFQ(_fqRoots);
+        public override IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots() => EnumerateFQ(FQRoots);
 
         private IEnumerable<ClrFinalizerRoot> EnumerateFQ(IEnumerable<FinalizerQueueSegment> fqList)
         {

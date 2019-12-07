@@ -10,12 +10,15 @@ namespace ParallelStressTest
 {
     static class Program
     {
+        const bool BackgroundClear = true;
         const int Iterations = int.MaxValue;
         const int Threads = 8;
         static readonly object _sync = new object();
         private static ClrObject[] _expectedObjects;
         private static ClrSegment[] _segments;
         private static readonly ManualResetEvent _event = new ManualResetEvent(initialState: false);
+
+        private static volatile ClrRuntime _runtimeForClearing;
 
         static void Main(string[] args)
         {
@@ -32,6 +35,12 @@ namespace ParallelStressTest
                 _segments = runtime.Heap.Segments.ToArray();
             }
 
+            if (BackgroundClear)
+            {
+                Thread t = new Thread(ClearThreadProc);
+                t.Start();
+            }
+
             TimeSpan elapsed = default;
             for (int i = 0; i < Iterations; i++)
             {
@@ -39,6 +48,9 @@ namespace ParallelStressTest
 
                 dt.DataReader.FlushCachedData();
                 using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+                lock (_sync)
+                    _runtimeForClearing = runtime;
 
                 Thread[] threads = new Thread[Threads];
 
@@ -55,7 +67,24 @@ namespace ParallelStressTest
                 sw.Stop();
                 elapsed = sw.Elapsed;
 
+                lock (_sync)
+                    _runtimeForClearing = null;
+
                 _event.Reset();
+            }
+        }
+
+        private static void ClearThreadProc()
+        {
+            while (true)
+            {
+                lock (_sync)
+                {
+                    if (_runtimeForClearing != null)
+                        _runtimeForClearing.FlushCachedData();
+                }
+
+                Thread.Sleep(500);
             }
         }
 

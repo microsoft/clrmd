@@ -19,8 +19,5 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong FreeMethodTable { get; }
 
         bool CanWalkHeap { get; }
-
-        IReadOnlyList<ClrSegment> CreateSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts,
-                                                 out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects);
     }
 }
