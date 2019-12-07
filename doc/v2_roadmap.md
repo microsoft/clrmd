@@ -106,3 +106,4 @@ Here is a list of feedback I am tracking from the community (my summary):
 4. Images report size.
 5. TypeSpec enumeration
 6. Change modulemaptraverse to fill an array
+7. [Dac::Flush](https://github.com/dotnet/runtime/blob/master/src/coreclr/src/debug/daccess/daccess.cpp#L2002) needs to be synchronized.
