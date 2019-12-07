@@ -96,6 +96,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 9.  SafeWin32Handle -> SafeAccessTokenHandle
 10.  Consider removing GetFieldForOffset
 11.  Consider enumerating offset in ClrObject.EnumerateReferences.
+12.  Add back our debugger so we don't have to use a local csc.
 
 # .Net Core 5 Dac Wishlist
 
