@@ -89,6 +89,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _runtime.Initialize();
 
             _heap = new ClrmdHeap(_runtime, new HeapBuilder(this, _sos));
+
+            library.DacDataTarget.SetMagicCallback(_dac.Flush);
         }
 
         public void Dispose()
@@ -561,8 +563,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         void IRuntimeHelpers.FlushCachedData()
         {
+            FlushDac();
             _heap.ClearCachedData();
-            _dac.Flush();
+            
 
             lock (_types)
                 _types.Clear();
@@ -585,6 +588,32 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (_runtime is ClrmdRuntime runtime)
                 lock (runtime)
                     runtime.Initialize();
+        }
+
+        private void FlushDac()
+        {
+            // IXClrDataProcess::Flush is unfortunately not wrapped with DAC_ENTER.  This means that
+            // when it starts deleting memory, it's completely unsynchronized with parallel reads
+            // and writes, leading to heap corruption and other issues.  This means that in order to
+            // properly clear dac data structures, we need to trick the dac into entering the critical
+            // section for us so we can call Flush safely then.
+
+            // To accomplish this, we set a hook in our implementation of IDacDataTarget::ReadVirtual
+            // which will call IXClrDataProcess::Flush if the dac tries to read the address set by
+            // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
+            // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
+            // entered a special context.
+
+
+            _library.DacDataTarget.EnterMagicCallbackContext();
+            try
+            {
+                _sos.GetWorkRequestData(DacDataTargetWrapper.MagicCallbackConstant, out _);
+            }
+            finally
+            {
+                _library.DacDataTarget.ExitMagicCallbackContext();
+            }
         }
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);

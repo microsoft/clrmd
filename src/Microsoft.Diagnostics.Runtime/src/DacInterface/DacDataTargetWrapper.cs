@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -14,12 +15,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe class DacDataTargetWrapper : COMCallableIUnknown
     {
+        public const ulong MagicCallbackConstant = 0x43;
+
         private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
 
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;
         private readonly ModuleInfo[] _modules;
+
+        private Action? _callback;
+        private volatile int _callbackContext;
 
         private uint? _nextThreadId;
         private ulong? _nextTLSValue;
@@ -50,6 +56,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
         }
+
+        public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
+
+        public void ExitMagicCallbackContext() => Interlocked.Decrement(ref _callbackContext);
+
+        public void SetMagicCallback(Action flushCallback) => _callback = flushCallback;
 
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
@@ -112,6 +124,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
+
+            if (address == MagicCallbackConstant && _callbackContext > 0)
+            {
+                // See comment in RuntimeBuilder.FlushDac
+                _callback?.Invoke();
+                bytesRead = 0;
+                return E_FAIL;
+            }
 
             if (_dataReader.ReadMemory(address, span, out int read))
             {
