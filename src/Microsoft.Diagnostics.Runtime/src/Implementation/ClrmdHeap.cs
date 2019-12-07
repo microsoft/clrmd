@@ -19,8 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private readonly object _sync = new object();
 
-        private IReadOnlyList<FinalizerQueueSegment>? _fqRoots;
-        private IReadOnlyList<FinalizerQueueSegment>? _fqObjects;
+        private volatile IReadOnlyList<FinalizerQueueSegment>? _fqRoots;
+        private volatile IReadOnlyList<FinalizerQueueSegment>? _fqObjects;
         private volatile Dictionary<ulong, ulong>? _allocationContext;
         private volatile IReadOnlyList<ClrSegment>? _segments;
 
@@ -87,22 +87,37 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fqRoots == null)
-                    Initialize();
+                var roots = _fqRoots;
+                if (roots != null)
+                    return roots;
 
-                // _fqRoots is never set to zero after initialization
-                return _fqRoots!;
+                lock (_sync)
+                {
+                    if (_fqRoots != null)
+                        return _fqRoots;
+                    
+                    Initialize();
+                    return _fqRoots!;
+                }
             }
         }
+
         private IReadOnlyList<FinalizerQueueSegment> FQObjects
         {
             get
             {
-                if (_fqObjects == null)
-                    Initialize();
+                var objs = _fqObjects;
+                if (objs != null)
+                    return objs;
 
-                // _fqObjects is never set to zero after initialization
-                return _fqObjects!;
+                lock (_sync)
+                {
+                    if (_fqObjects != null)
+                        return _fqObjects;
+
+                    Initialize();
+                    return _fqObjects!;
+                }
             }
         }
 
@@ -173,7 +188,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public void ClearCachedData()
         {
-            _segments = null;
+            lock (_sync)
+            {
+                _segments = null;
+                _fqRoots = null;
+                _fqObjects = null;
+            }
         }
 
         internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment seg)
