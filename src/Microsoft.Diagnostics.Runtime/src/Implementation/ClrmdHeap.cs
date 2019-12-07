@@ -175,11 +175,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             lock (_sync)
             {
+                _helpers.CreateSegments(this,
+                                        out IReadOnlyList<ClrSegment> segments,
+                                        out IReadOnlyList<AllocationContext> allocContext,
+                                        out IReadOnlyList<FinalizerQueueSegment> fqRoots,
+                                        out IReadOnlyList<FinalizerQueueSegment> fqObjects);
+
                 // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
-                var segments = _helpers.CreateSegments(this, out IReadOnlyList<AllocationContext> allocContext, out _fqRoots, out _fqObjects);
                 if (segments.Count > 0 && segments[0].Start > segments[segments.Count - 1].Start)
                     throw new InvalidOperationException("IHeapBuilder returned segments out of order.");
 
+                _fqRoots = fqRoots;
+                _fqObjects = fqObjects;
                 _segments = segments;
                 _allocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
                 return segments;

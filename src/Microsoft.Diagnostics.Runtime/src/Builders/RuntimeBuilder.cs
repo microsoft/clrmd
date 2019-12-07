@@ -109,10 +109,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
 
 
-        IReadOnlyList<ClrSegment> IHeapHelpers.CreateSegments(ClrHeap clrHeap, out IReadOnlyList<AllocationContext> allocationContexts,
+        bool IHeapHelpers.CreateSegments(ClrHeap clrHeap, out IReadOnlyList<ClrSegment> segments, out IReadOnlyList<AllocationContext> allocationContexts,
                         out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects)
         {
-            List<ClrSegment> result = new List<ClrSegment>();
+            List<ClrSegment> segs = new List<ClrSegment>();
             List<AllocationContext> allocContexts = new List<AllocationContext>();
             List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
             List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
@@ -132,6 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
             }
 
+            bool result = false;
             SegmentBuilder segBuilder = new SegmentBuilder(_sos);
             if (clrHeap.IsServer)
             {
@@ -139,37 +140,30 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 for (int i = 0; i < heapList.Length; i++)
                 {
                     segBuilder.LogicalHeap = i;
-                    AddHeap(segBuilder, clrHeap, heapList[i], allocContexts, result, finalizerRoots, finalizerObjects);
+                    if (_sos.GetServerHeapDetails(heapList[i], out HeapDetails heap))
+                    {
+                        // As long as we got at least one heap we'll count that as success
+                        result = true;
+                        ProcessHeap(segBuilder, clrHeap, in heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                    }
                 }
             }
-            else
+            else if (_sos.GetWksHeapDetails(out HeapDetails heap))
             {
-                AddHeap(segBuilder, clrHeap, allocContexts, result, finalizerRoots, finalizerObjects);
+                ProcessHeap(segBuilder, clrHeap, in heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                result = true;
             }
 
-            result.Sort((x, y) => x.Start.CompareTo(y.Start));
+            segs.Sort((x, y) => x.Start.CompareTo(y.Start));
 
             allocationContexts = allocContexts;
             fqRoots = finalizerRoots;
             fqObjects = finalizerObjects;
+            segments = segs;
             return result;
         }
 
-        public void AddHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, ulong address, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
-                            List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
-        {
-            if (_sos.GetServerHeapDetails(address, out HeapDetails heap))
-                ProcessHeap(segBuilder, clrHeap, in heap, allocationContexts, segments, fqRoots, fqObjects);
-        }
-
-        public void AddHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
-                            List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
-        {
-            if (_sos.GetWksHeapDetails(out HeapDetails heap))
-                ProcessHeap(segBuilder, clrHeap, in heap, allocationContexts, segments, fqRoots, fqObjects);
-        }
-
-        private void ProcessHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, in HeapDetails heap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
+        private static void ProcessHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, in HeapDetails heap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
                                     List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
         {
             if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
@@ -182,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             AddSegments(segBuilder, clrHeap, large: false, in heap, segments, heap.GenerationTable[2].StartSegment);
         }
 
-        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
+        private static void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
@@ -193,8 +187,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 address = segBuilder.Next;
             }
         }
-
-
 
         private TypeBuilder CreateTypeBuilder() => new TypeBuilder(_sos, this);
         private MethodBuilder CreateMethodBuilder() => new MethodBuilder(_sos, this);
