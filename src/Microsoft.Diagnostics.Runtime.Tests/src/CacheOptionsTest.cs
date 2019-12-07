@@ -75,5 +75,48 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Same(method.Signature, string.Intern(method.Signature));
             }
         }
+
+
+        [Fact]
+        public void TypeCachingTest()
+        {
+            {
+                using DataTarget dt = TestTargets.Types.LoadFullDump();
+                dt.CacheOptions.CacheTypes = true;
+                dt.CacheOptions.CacheTypeNames = StringCaching.Cache;
+
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
+                Assert.NotEqual(0ul, type.MethodTable);  // Sanity test
+
+                Assert.Equal("Foo", type.Name);
+                Assert.NotSame("Foo", type.Name);
+                Assert.Same(type.Name, type.Name);
+            }
+
+            {
+                using DataTarget dt = TestTargets.Types.LoadFullDump();
+                dt.CacheOptions.CacheTypes = false;
+                dt.CacheOptions.CacheTypeNames = StringCaching.None;
+
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrModule module = runtime.GetModule("sharedlibrary.dll");
+                ClrType type = module.GetTypeByName("Foo");
+                Assert.NotEqual(0ul, type.MethodTable);  // Sanity test
+
+                ClrType type2 = runtime.GetTypeByMethodTable(type.MethodTable);
+                Assert.Equal(type, type2);
+                Assert.NotSame(type, type2);
+
+                Assert.NotNull(type.Name);
+                Assert.Equal(type.Name, type.Name);
+                Assert.NotSame(type.Name, type.Name);
+
+                dt.CacheOptions.CacheTypeNames = StringCaching.Intern;
+                Assert.Same(type.Name, type.Name);
+                Assert.Same(type.Name, string.Intern(type.Name));
+            }
+        }
     }
 }

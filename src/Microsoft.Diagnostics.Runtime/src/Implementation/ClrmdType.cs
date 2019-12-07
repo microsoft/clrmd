@@ -31,7 +31,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
 
-        public override string? Name => _name ??= Helpers.GetTypeName(MethodTable);
+        public override string? Name
+        {
+            get
+            {
+                if (_name != null)
+                    return _name;
+
+                if (Helpers.GetTypeName(MethodTable, out string? name))
+                    _name = name;
+
+                return name;
+            }
+        }
 
         public override int BaseSize { get; }
         public override int ComponentSize => 0;

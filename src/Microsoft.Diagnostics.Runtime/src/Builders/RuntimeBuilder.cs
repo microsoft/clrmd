@@ -556,6 +556,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
+        // When searching for a type, we don't want to actually cache or intern the name until we completely
+        // construct the type.  This will alleviate a lot of needless memory usage when we do something like
+        // search all modules for a named type we never find.
+        string? IModuleHelpers.GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -1004,7 +1008,17 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return (flags & 1) != 0;
         }
 
-        public string? GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
+        bool ITypeHelpers.GetTypeName(ulong mt, out string? name)
+        {
+            name = _sos.GetMethodTableName(mt);
+            if (string.IsNullOrWhiteSpace(name))
+                return true;
+
+            if (_options.CacheTypeNames == StringCaching.Intern)
+                name = string.Intern(name);
+
+            return _options.CacheTypeNames != StringCaching.None;
+        }
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
         ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
