@@ -848,17 +848,19 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return new ClrmdMethod(type, builder);
         }
 
-        void ITypeFactory.CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
+        bool ITypeFactory.CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
         {
             CheckDisposed();
 
-            CreateFieldsForMethodTableWorker(type, out fields, out statics);
+            CreateFieldsForMethodTableWorker(type, out fields!, out statics!);
 
             fields ??= Array.Empty<ClrInstanceField>();
             statics ??= Array.Empty<ClrStaticField>();
+
+            return _options.CacheFields;
         }
 
-        private void CreateFieldsForMethodTableWorker(ClrType type, [NotNull] out IReadOnlyList<ClrInstanceField>? fields, [NotNull] out IReadOnlyList<ClrStaticField>? statics)
+        private void CreateFieldsForMethodTableWorker(ClrType type, out IReadOnlyList<ClrInstanceField>? fields, out IReadOnlyList<ClrStaticField>? statics)
         {
             CheckDisposed();
 
@@ -885,7 +887,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             // Add base type's fields.
             if (type.BaseType != null)
             {
-                foreach (ClrInstanceField field in type.BaseType.Fields)
+                IReadOnlyList<ClrInstanceField> baseFields = type.BaseType.Fields;
+                foreach (ClrInstanceField field in baseFields)
                     fieldOut[fieldNum++] = field;
             }
 

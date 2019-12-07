@@ -394,7 +394,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!inner)
                     offset -= IntPtr.Size;
 
-                foreach (ClrInstanceField field in Fields)
+                IReadOnlyList<ClrInstanceField> fields = Fields;
+                foreach (ClrInstanceField field in fields)
                 {
                     if (field.ElementType == ClrElementType.Unknown)
                         break;
@@ -420,10 +421,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fields is null)
-                    InitFields();
+                if (_fields != null)
+                    return _fields;
 
-                return _fields!;
+                if (Helpers.Factory.CreateFieldsForType(this, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics))
+                {
+                    _fields = fields;
+                    _statics = statics;
+                }
+
+                return fields;
             }
         }
 
@@ -431,25 +438,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_fields is null)
-                    InitFields();
+                if (_statics != null)
+                    return _statics;
 
-                if (_statics is null)
-                    return Array.Empty<ClrStaticField>();
+                if (Helpers.Factory.CreateFieldsForType(this, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics))
+                {
+                    _fields = fields;
+                    _statics = statics;
+                }
 
-                return _statics;
+                return statics;
             }
-        }
-
-        private void InitFields()
-        {
-            if (_fields != null)
-                return;
-
-            Helpers.Factory.CreateFieldsForType(this, out _fields, out _statics);
-
-            _fields ??= Array.Empty<ClrInstanceField>();
-            _statics ??= Array.Empty<ClrStaticField>();
         }
 
         public override IReadOnlyList<ClrMethod> Methods
