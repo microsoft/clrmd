@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     if (type != null)
                         obj = new ClrObject(refs[i].Object, type);
                     else
-                        obj = new ClrObject();
+                        obj = new ClrObject(refs[i].Object, null);
 
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     frame ??= new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
