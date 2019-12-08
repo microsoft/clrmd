@@ -210,9 +210,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract object? GetArrayElementValue(ulong objRef, int index);
 
         /// <summary>
-        /// Returns the base size of the object.
+        /// Returns the static size of objects of this type when they are created on the CLR heap.
         /// </summary>
-        public abstract int BaseSize { get; }
+        public abstract int StaticSize { get; }
 
         /// <summary>
         /// Returns the size of elements of this object.

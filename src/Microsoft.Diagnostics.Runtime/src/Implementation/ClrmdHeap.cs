@@ -256,10 +256,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ulong size;
                 if (type.ComponentSize == 0)
                 {
-                    size = (uint)type.BaseSize;
+                    size = (uint)type.StaticSize;
 
                     if (logging)
-                        WriteHeapStep(obj, mt, type.BaseSize, -1, 0);
+                        WriteHeapStep(obj, mt, type.StaticSize, -1, 0);
                 }
                 else
                 {
@@ -273,10 +273,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (StringType == type)
                         count++;
 
-                    size = count * (ulong)type.ComponentSize + (ulong)type.BaseSize;
+                    size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
 
                     if (logging)
-                        WriteHeapStep(obj, mt, type.BaseSize, type.ComponentSize, count);
+                        WriteHeapStep(obj, mt, type.StaticSize, type.ComponentSize, count);
                 }
 
                 size = Align(size, large);
@@ -399,7 +399,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong size;
             if (type.ComponentSize == 0)
             {
-                size = (uint)type.BaseSize;
+                size = (uint)type.StaticSize;
             }
             else
             {
@@ -418,7 +418,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (StringType == type)
                     count++;
 
-                size = count * (ulong)type.ComponentSize + (ulong)(type.BaseSize);
+                size = count * (ulong)type.ComponentSize + (ulong)(type.StaticSize);
             }
 
             uint minSize = (uint)IntPtr.Size * 3;

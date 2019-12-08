@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
         public override bool IsShared => false;
-        public override int BaseSize => ClrmdField.GetSize(this, ElementType);
+        public override int StaticSize => ClrmdField.GetSize(this, ElementType);
         public override ClrType? BaseType => null; // todo;
         public override ClrHeap Heap { get; }
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Array.Empty<ClrInterface>();

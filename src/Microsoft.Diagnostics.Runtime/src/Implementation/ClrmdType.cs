@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override int BaseSize { get; }
+        public override int StaticSize { get; }
         public override int ComponentSize => 0;
         public override ClrType? ComponentType => null;
         public override ClrModule? Module { get; }
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Module = module;
             MetadataToken = data.Token;
             Shared = data.IsShared;
-            BaseSize = data.BaseSize;
+            StaticSize = data.BaseSize;
             ContainsPointers = data.ContainsPointers;
             IsShared = data.IsShared;
 
