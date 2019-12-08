@@ -70,8 +70,8 @@
     Inputs="Shared\SharedLibrary.cs"
     Outputs="$(BinDir32)SharedLibrary.dll;$(BinDir64)SharedLibrary.dll">
 
-    <Exec Command='"$(CscPath32)" /debug /target:library /out:$(BinDir32)SharedLibrary.dll Shared\SharedLibrary.cs' />
-    <Exec Command='"$(CscPath64)" /debug /target:library /out:$(BinDir64)SharedLibrary.dll Shared\SharedLibrary.cs' />
+    <Exec Command='"$(CscPath32)" /nologo /debug /target:library /out:$(BinDir32)SharedLibrary.dll Shared\SharedLibrary.cs' />
+    <Exec Command='"$(CscPath64)" /nologo /debug /target:library /out:$(BinDir64)SharedLibrary.dll Shared\SharedLibrary.cs' />
 
   </Target>
 
@@ -82,8 +82,8 @@
     Inputs="@(TargetSources)"
     Outputs="@(TargetSources->'%(ExePath32)');@(TargetSources->'%(ExePath64)')">
 
-    <Exec Command='"$(CscPath32)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
-    <Exec Command='"$(CscPath64)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath32)" /nologo /unsafe /reference:$(BinDir32)SharedLibrary.dll /platform:x86 /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath64)" /nologo /unsafe /reference:$(BinDir64)SharedLibrary.dll /platform:x64 /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
 
   </Target>
 
