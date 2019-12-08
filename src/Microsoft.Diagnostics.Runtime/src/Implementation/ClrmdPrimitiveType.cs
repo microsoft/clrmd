@@ -64,13 +64,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
-        {
-            childField = null;
-            childFieldOffset = 0;
-            return false;
-        }
-
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
 
         public override ComCallWrapper? GetCCWData(ulong obj) => null;

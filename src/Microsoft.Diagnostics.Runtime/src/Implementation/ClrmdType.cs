@@ -385,38 +385,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
-        {
-            if (!IsArray)
-            {
-                int offset = fieldOffset;
-
-                if (!inner)
-                    offset -= IntPtr.Size;
-
-                IReadOnlyList<ClrInstanceField> fields = Fields;
-                foreach (ClrInstanceField field in fields)
-                {
-                    if (field.ElementType == ClrElementType.Unknown)
-                        break;
-
-                    if (field.Offset <= offset && offset < field.Offset + field.Size)
-                    {
-                        childField = field;
-                        childFieldOffset = offset - field.Offset;
-                        return true;
-                    }
-                }
-            }
-
-            if (BaseType != null)
-                return BaseType.GetFieldForOffset(fieldOffset, inner, out childField, out childFieldOffset);
-
-            childField = null;
-            childFieldOffset = 0;
-            return false;
-        }
-
         public override IReadOnlyList<ClrInstanceField> Fields
         {
             get
