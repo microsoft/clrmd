@@ -57,6 +57,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public string Source { get; }
 
+        public string WorkstationFullDump { get; }
+
         private static string Architecture { get; }
         private static string TestRoot { get; }
 
@@ -85,6 +87,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string buildTestAssets = Path.Combine(TestRoot, "TestTargets.csproj");
                 throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: dotnet build {buildTestAssets}");
             }
+
+            WorkstationFullDump = BuildDumpName(GCMode.Workstation, true);
         }
 
         private static DataTarget LoadDump(string path)
@@ -97,6 +101,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private string BuildDumpName(GCMode gcmode, bool full)
         {
+            if (gcmode == GCMode.Workstation && full)
+                return WorkstationFullDump;
+
             string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
