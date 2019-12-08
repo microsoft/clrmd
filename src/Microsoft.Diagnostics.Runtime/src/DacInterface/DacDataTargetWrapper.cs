@@ -196,9 +196,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
-            if (_nextTLSValue.HasValue)
+            if (_nextTLSValue is ulong nextTLSValue)
             {
-                value = _nextTLSValue.Value;
+                value = nextTLSValue;
                 return S_OK;
             }
 
@@ -213,9 +213,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetCurrentThreadID(IntPtr self, out uint threadID)
         {
-            if (_nextThreadId.HasValue)
+            if (_nextThreadId is uint nextThreadId)
             {
-                threadID = _nextThreadId.Value;
+                threadID = nextThreadId;
                 return S_OK;
             }
 

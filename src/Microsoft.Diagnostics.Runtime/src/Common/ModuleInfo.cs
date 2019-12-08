@@ -81,13 +81,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (!_version.HasValue)
+                if (_version is VersionInfo version)
                 {
-                    _dataReader.GetVersionInfo(ImageBase, out VersionInfo version);
-                    _version = version;
+                    return version;
                 }
 
-                return _version.Value;
+                _dataReader.GetVersionInfo(ImageBase, out version);
+                _version = version;
+
+                return version;
             }
         }
 

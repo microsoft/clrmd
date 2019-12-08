@@ -94,15 +94,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_minidump.HasValue)
-                    return !_minidump.Value;
+                if (_minidump is bool minidump)
+                    return !minidump;
 
                 DEBUG_CLASS_QUALIFIER qual = _control.GetDebuggeeClassQualifier();
                 if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
                 {
                     DEBUG_FORMAT flags = _control.GetDumpFormat();
-                    _minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
-                    return !_minidump.Value;
+                    _minidump = minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
+                    return !minidump;
                 }
 
                 _minidump = false;
@@ -114,36 +114,37 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_architecture.HasValue)
-                    return _architecture.Value;
+                if (_architecture is Architecture architecture)
+                    return architecture;
 
                 IMAGE_FILE_MACHINE machineType = _control.GetEffectiveProcessorType();
                 switch (machineType)
                 {
                     case IMAGE_FILE_MACHINE.I386:
-                        _architecture = Architecture.X86;
+                        architecture = Architecture.X86;
                         break;
 
                     case IMAGE_FILE_MACHINE.AMD64:
-                        _architecture = Architecture.Amd64;
+                        architecture = Architecture.Amd64;
                         break;
 
                     case IMAGE_FILE_MACHINE.ARM:
                     case IMAGE_FILE_MACHINE.THUMB:
                     case IMAGE_FILE_MACHINE.THUMB2:
-                        _architecture = Architecture.Arm;
+                        architecture = Architecture.Arm;
                         break;
 
                     case IMAGE_FILE_MACHINE.ARM64:
-                        _architecture = Architecture.Arm64;
+                        architecture = Architecture.Arm64;
                         break;
 
                     default:
-                        _architecture = Architecture.Unknown;
+                        architecture = Architecture.Unknown;
                         break;
                 }
 
-                return _architecture.Value;
+                _architecture = architecture;
+                return architecture;
             }
         }
 
@@ -156,11 +157,11 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 _pointerSize = IntPtr.Size;
-                if (_pointerSize.HasValue)
-                    return _pointerSize.Value;
+                if (_pointerSize is int pointerSize)
+                    return pointerSize;
 
-                _pointerSize = _control.IsPointer64Bit() ? 8 : 4;
-                return _pointerSize.Value;
+                _pointerSize = pointerSize = _control.IsPointer64Bit() ? sizeof(long) : sizeof(int);
+                return pointerSize;
             }
         }
 
