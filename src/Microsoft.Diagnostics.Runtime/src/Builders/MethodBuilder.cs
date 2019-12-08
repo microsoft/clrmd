@@ -10,40 +10,35 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 {
     internal class MethodBuilder : IMethodData, IDisposable
     {
-        private readonly SOSDac _sos;
         private MethodDescData _mdData;
         private CodeHeaderData _codeHeaderData;
+        private IMethodHelpers? _helpers;
 
-        public MethodBuilder(SOSDac sos, IMethodHelpers helpers)
+        public bool Init(SOSDac sos, ulong mt, int i, IMethodHelpers helpers)
         {
-            _sos = sos;
-            Helpers = helpers;
-        }
+            ulong slot = sos.GetMethodTableSlot(mt, i);
 
-        public bool Init(ulong mt, int i)
-        {
-            ulong slot = _sos.GetMethodTableSlot(mt, i);
-
-            if (!_sos.GetCodeHeaderData(slot, out _codeHeaderData))
+            if (!sos.GetCodeHeaderData(slot, out _codeHeaderData))
                 return false;
 
+            _helpers = helpers;
             MethodDesc = _codeHeaderData.MethodDesc;
-            return _sos.GetMethodDescData(_codeHeaderData.MethodDesc, 0, out _mdData);
+            return sos.GetMethodDescData(_codeHeaderData.MethodDesc, 0, out _mdData);
         }
 
-        public bool Init(ulong methodDesc)
+        public bool Init(SOSDac sos, ulong methodDesc, IMethodHelpers helpers)
         {
             MethodDesc = methodDesc;
-            if (!_sos.GetMethodDescData(methodDesc, 0, out _mdData))
+            if (!sos.GetMethodDescData(methodDesc, 0, out _mdData))
                 return false;
 
-            ulong slot = _sos.GetMethodTableSlot(_mdData.MethodTable, _mdData.SlotNumber);
-
-            return _sos.GetCodeHeaderData(slot, out _codeHeaderData);
+            _helpers = helpers;
+            ulong slot = sos.GetMethodTableSlot(_mdData.MethodTable, _mdData.SlotNumber);
+            return sos.GetCodeHeaderData(slot, out _codeHeaderData);
         }
 
         public ObjectPool<MethodBuilder>? Owner { get; set; }
-        public IMethodHelpers Helpers { get; }
+        public IMethodHelpers Helpers => _helpers!;
 
         public uint Token => _mdData.MDToken;
 
@@ -60,6 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public void Dispose()
         {
+            _helpers = null;
             var owner = Owner;
             Owner = null;
             owner?.Return(this);

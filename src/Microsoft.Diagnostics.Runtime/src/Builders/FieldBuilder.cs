@@ -10,10 +10,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 {
     internal class FieldBuilder : IFieldData, IDisposable
     {
-        private readonly SOSDac _sos;
+        private IFieldHelpers? _helpers;
         private FieldData _fieldData;
 
-        public IFieldHelpers Helpers { get; }
+        public IFieldHelpers Helpers => _helpers!;
 
         public ClrElementType ElementType => (ClrElementType)_fieldData.ElementType;
 
@@ -31,16 +31,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public bool IsStatic => _fieldData.IsStatic != 0;
         public bool IsThreadLocal => _fieldData.IsThreadLocal != 0;
 
-        public FieldBuilder(SOSDac sos, IFieldHelpers helpers)
+        internal bool Init(SOSDac sos, ulong fieldDesc, IFieldHelpers helpers)
         {
-            _sos = sos;
-            Helpers = helpers;
+            _helpers = helpers;
+            return sos.GetFieldData(fieldDesc, out _fieldData);
         }
-
-        internal bool Init(ulong fieldDesc) => _sos.GetFieldData(fieldDesc, out _fieldData);
 
         public void Dispose()
         {
+            _helpers = null;
             var owner = Owner;
             Owner = null;
             owner?.Return(this);
