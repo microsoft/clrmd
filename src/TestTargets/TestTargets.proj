@@ -82,8 +82,8 @@
     Inputs="@(TargetSources)"
     Outputs="@(TargetSources->'%(ExePath32)');@(TargetSources->'%(ExePath64)')">
 
-    <Exec Command='"$(CscPath32)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
-    <Exec Command='"$(CscPath64)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath32)" /unsafe /reference:$(BinDir32)SharedLibrary.dll /platform:x86 /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath64)" /unsafe /reference:$(BinDir64)SharedLibrary.dll /platform:x64 /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
 
   </Target>
 
