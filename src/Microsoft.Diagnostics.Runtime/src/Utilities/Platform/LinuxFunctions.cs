@@ -211,8 +211,8 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            Debug.Assert(dataOffset != 0);
-            Debug.Assert(dataSize != 0);
+            DebugOnly.Assert(dataOffset != 0);
+            DebugOnly.Assert(dataSize != 0);
 
             Span<byte> buffer = stackalloc byte[s_versionLength];
             long address = dataOffset;

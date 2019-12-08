@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _setSystemId, VTable->SetCurrentSystemId);
 
             int hr = _setSystemId(Self, id);
-            Debug.Assert(hr == S_OK);
+            DebugOnly.Assert(hr == S_OK);
         }
 
         public void SetCurrentThread(uint id)
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = Enter();
             int hr = _setCurrentThread(Self, id);
-            Debug.Assert(hr == S_OK);
+            DebugOnly.Assert(hr == S_OK);
         }
 
         public int GetNumberThreads()
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = Enter();
             int hr = _getNumberThreads(Self, out int count);
-            Debug.Assert(hr == S_OK);
+            DebugOnly.Assert(hr == S_OK);
             return count;
         }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                 int hr = _getThreadIdsByIndex(Self, 0, count, null, pResult);
                 if (hr != S_OK)
                     return Array.Empty<uint>();
-                Debug.Assert(hr == S_OK);
+                DebugOnly.Assert(hr == S_OK);
 
                 return result;
             }
@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = Enter();
             int hr = _getThreadIdBySystemId(Self, sysId, out uint result);
-            Debug.Assert(hr == S_OK);
+            DebugOnly.Assert(hr == S_OK);
             return result;
         }
 

@@ -160,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             int etype = 0;
 
             if (res = sigParser.GetCallingConvInfo(out int sigType))
-                Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
+                DebugOnly.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
             res = res && sigParser.SkipCustomModifiers();
             res = res && sigParser.GetElemType(out etype);
@@ -246,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 etype = 0;
 
                 if (res = sigParser.GetCallingConvInfo(out sigType))
-                    Debug.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
+                    DebugOnly.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
 
                 res = res && sigParser.SkipCustomModifiers();
                 res = res && sigParser.GetElemType(out etype);

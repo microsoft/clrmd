@@ -16,8 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Pointer = pointer;
             Limit = limit;
 
-            Debug.Assert(Pointer < Limit);
-            Debug.Assert(Limit != 0);
+            DebugOnly.Assert(Pointer < Limit);
+            DebugOnly.Assert(Limit != 0);
         }
     }
 }

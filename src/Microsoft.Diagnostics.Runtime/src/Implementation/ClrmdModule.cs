@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_debugMode == int.MaxValue)
                     _debugMode = GetDebugAttribute();
 
-                Debug.Assert(_debugMode != int.MaxValue);
+                DebugOnly.Assert(_debugMode != int.MaxValue);
                 return (DebuggableAttribute.DebuggingModes)_debugMode;
             }
         }

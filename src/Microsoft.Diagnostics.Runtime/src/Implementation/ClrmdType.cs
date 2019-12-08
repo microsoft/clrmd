@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (reader is null)
                 return default;
 
-            Debug.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
+            DebugOnly.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
             if (!reader.Read(MethodTable - (ulong)IntPtr.Size, out int entries))
             {
                 _gcDesc = default;
@@ -572,7 +572,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (start >= end)
                             return start;
 
-                        //Debug.Assert(name[start] == ',');
+                        //DebugOnly.Assert(name[start] == ',');
                         sb.Append(',');
                         start++;
 

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (data != null)
                 {
                     _baseArrayOffset = (int)(data.DataPointer - objRef);
-                    Debug.Assert(_baseArrayOffset >= 0);
+                    DebugOnly.Assert(_baseArrayOffset >= 0);
                 }
                 else if (componentType != null)
                 {

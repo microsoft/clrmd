@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<(ulong, int)> WalkObject(ulong addr, ulong size, Func<ulong, ulong> readPointer)
         {
-            Debug.Assert(size >= (ulong)IntPtr.Size);
+            DebugOnly.Assert(size >= (ulong)IntPtr.Size);
 
             int series = GetNumSeries();
             int highest = GetHighestSeries();

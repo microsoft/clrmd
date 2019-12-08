@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
             Type = type;
             _interior = interior;
 
-            Debug.Assert(type.IsValueClass);
+            DebugOnly.Assert(type.IsValueClass);
         }
 
         /// <summary>

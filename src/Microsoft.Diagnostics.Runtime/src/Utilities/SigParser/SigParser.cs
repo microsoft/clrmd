@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void SkipBytes(int bytes)
         {
-            Debug.Assert(bytes <= _len);
+            DebugOnly.Assert(bytes <= _len);
             _offs += bytes;
             _len -= bytes;
         }
@@ -516,7 +516,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private byte GetSig(int offs)
         {
-            Debug.Assert(offs < _len);
+            DebugOnly.Assert(offs < _len);
             return _sig[_offs + offs];
         }
 

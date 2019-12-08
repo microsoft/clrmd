@@ -27,8 +27,8 @@ namespace Microsoft.Diagnostics.Runtime
             Address = address;
             Type = type;
 
-            Debug.Assert(address == 0 || type != null);
-            Debug.Assert(address == 0 || (type != null && type.Heap.GetObjectType(address) == type));
+            DebugOnly.Assert(address == 0 || type != null);
+            DebugOnly.Assert(address == 0 || (type != null && type.Heap.GetObjectType(address) == type));
         }
 
         /// <summary>

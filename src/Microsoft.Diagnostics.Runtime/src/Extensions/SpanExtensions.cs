@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (index != 0)
                 span = span.Slice(index * IntPtr.Size, IntPtr.Size);
 
-            Debug.Assert(span.Length >= IntPtr.Size);
+            DebugOnly.Assert(span.Length >= IntPtr.Size);
             return IntPtr.Size == 4
                 ? MemoryMarshal.Read<uint>(span)
                 : MemoryMarshal.Read<ulong>(span);
@@ -40,19 +40,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         public static int AsInt32(this Span<byte> span)
         {
-            Debug.Assert(span.Length >= sizeof(int));
+            DebugOnly.Assert(span.Length >= sizeof(int));
             return MemoryMarshal.Read<int>(span);
         }
 
         public static uint AsUInt32(this Span<byte> span)
         {
-            Debug.Assert(span.Length >= sizeof(uint));
+            DebugOnly.Assert(span.Length >= sizeof(uint));
             return MemoryMarshal.Read<uint>(span);
         }
 
         public static ulong AsUInt64(this Span<byte> span)
         {
-            Debug.Assert(span.Length >= sizeof(ulong));
+            DebugOnly.Assert(span.Length >= sizeof(ulong));
             return MemoryMarshal.Read<ulong>(span);
         }
     }
