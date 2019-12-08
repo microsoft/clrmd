@@ -526,12 +526,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                                 break;
 
                             case ClrHandleKind.Dependent:
-                                ulong dmt = DataReader.ReadPointerUnsafe(handles[i].Secondary);
-
-                                ClrObject dependent = default;
-                                if (dmt != 0)
-                                    dependent = GetOrCreateHeap().GetObject(dmt);
-
+                                ClrObject dependent = heap.GetObject(handles[i].Secondary);
                                 yield return new ClrmdDependentHandle(domain, handles[i].Handle, clrObj, dependent);
                                 break;
 
