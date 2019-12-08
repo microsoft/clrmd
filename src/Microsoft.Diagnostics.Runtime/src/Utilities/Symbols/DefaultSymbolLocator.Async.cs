@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private async Task<string?> TryGetFileFromServerAsync(string urlForServer, string fileIndexPath, string cache)
         {
             string fullDestPath = Path.Combine(cache, fileIndexPath);
-            Debug.Assert(!string.IsNullOrWhiteSpace(cache));
+            DebugOnly.Assert(!string.IsNullOrWhiteSpace(cache));
             if (string.IsNullOrWhiteSpace(urlForServer))
                 return null;
 

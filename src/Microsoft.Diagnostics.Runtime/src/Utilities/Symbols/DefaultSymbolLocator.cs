@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private string? TryGetFileFromServer(string urlForServer, string fileIndexPath, string cache)
         {
-            Debug.Assert(!string.IsNullOrEmpty(cache));
+            DebugOnly.Assert(!string.IsNullOrEmpty(cache));
             if (string.IsNullOrEmpty(urlForServer))
                 return null;
 

@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = _sys.Enter();
             int hr = _endSession(Self, mode);
-            Debug.Assert(hr == 0);
+            DebugOnly.Assert(hr == 0);
         }
 
         public void DetatchProcesses()
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = _sys.Enter();
             int hr = _detatchProcesses(Self);
-            Debug.Assert(hr == 0);
+            DebugOnly.Assert(hr == 0);
         }
 
         public int AttachProcess(uint pid, DebugAttach flags)

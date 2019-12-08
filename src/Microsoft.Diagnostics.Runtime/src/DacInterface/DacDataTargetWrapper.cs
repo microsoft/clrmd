@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 PEImage? peimage = _dataTarget.LoadPEImage(filePath);
                 if (peimage != null)
                 {
-                    Debug.Assert(peimage.IsValid);
+                    DebugOnly.Assert(peimage.IsValid);
                     int rva = checked((int)(address - info.ImageBase));
                     bytesRead = peimage.Read(rva, span);
                     return S_OK;
@@ -262,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (peimage is null || peimage.OptionalHeader is null)
                 return E_FAIL;
 
-            Debug.Assert(peimage.IsValid);
+            DebugOnly.Assert(peimage.IsValid);
 
             uint rva = mdRva;
             uint size = bufferSize;

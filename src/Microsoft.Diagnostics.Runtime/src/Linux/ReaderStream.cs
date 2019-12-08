@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 throw new NotImplementedException();
 
             int read = _reader.ReadBytes(_baseAddress + _position, new Span<byte>(buffer, 0, count));
-            Debug.Assert(read >= 0);
+            DebugOnly.Assert(read >= 0);
             _position += read;
 
             return read;

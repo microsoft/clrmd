@@ -344,8 +344,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 out LinkedListNode<ClrObject> end)
             {
                 // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
-                //Debug.Assert(obj.Type != null);
-                //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
+                //DebugOnly.Assert(obj.Type != null);
+                //DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
                 Stack<ClrObject> result = null;
 

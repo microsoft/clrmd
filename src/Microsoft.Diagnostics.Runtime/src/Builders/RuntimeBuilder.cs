@@ -5,7 +5,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -499,51 +498,66 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            // TODO: Use smarter handle enum overload in _sos
-            Dictionary<ulong, ClrAppDomain> domains = new Dictionary<ulong, ClrAppDomain>();
-            if (runtime.SharedDomain != null)
-                domains[runtime.SharedDomain.Address] = runtime.SharedDomain;
-
-            if (runtime.SystemDomain != null)
-                domains[runtime.SystemDomain.Address] = runtime.SystemDomain;
-
-            foreach (ClrAppDomain domain in runtime.AppDomains)
-            {
-                // Don't use .ToDictionary in case we have bad data
-                domains[domain.Address] = domain;
-            }
-
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
             if (handleEnum is null)
                 yield break;
+
+            ClrHeap heap = runtime.Heap;
+            ClrAppDomain? domain = heap.Runtime.AppDomains.Count > 0 ? heap.Runtime.AppDomains[0] : null;
 
             int fetched;
             while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {
                 for (int i = 0; i < fetched; i++)
                 {
-                    ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
-                    ulong mt = 0;
-                    if (obj != 0)
-                        mt = DataReader.ReadPointerUnsafe(obj);
+                    ulong objAddress = DataReader.ReadPointerUnsafe(handles[i].Handle);
+                    ClrObject clrObj = heap.GetObject(objAddress);
 
-                    if (mt != 0)
+                    if (!clrObj.IsNull)
                     {
-                        ClrType? type = GetOrCreateType(mt, obj);
-                        ClrType? dependent = null;
-                        if (handles[i].Type == (int)ClrHandleKind.Dependent && handles[i].Secondary != 0)
+                        if (domain == null || domain.Address != handles[i].AppDomain)
+                            domain = GetOrCreateAppDomain(null, handles[i].AppDomain);
+
+                        ClrHandleKind handleKind = (ClrHandleKind)handles[i].Type;
+                        switch (handleKind)
                         {
-                            ulong dmt = DataReader.ReadPointerUnsafe(handles[i].Secondary);
+                            default:
+                                yield return new ClrmdHandle(domain, handles[i].Handle, clrObj, handleKind);
+                                break;
 
-                            if (dmt != 0)
-                                dependent = GetOrCreateType(dmt, handles[i].Secondary);
+                            case ClrHandleKind.Dependent:
+                                ClrObject dependent = heap.GetObject(handles[i].Secondary);
+                                yield return new ClrmdDependentHandle(domain, handles[i].Handle, clrObj, dependent);
+                                break;
+
+                            case ClrHandleKind.RefCount:
+                                uint refCount = 0;
+
+                                if (handles[i].IsPegged != 0)
+                                    refCount = handles[i].JupiterRefCount;
+
+                                if (refCount < handles[i].RefCount)
+                                    refCount = handles[i].RefCount;
+
+                                if (!clrObj.IsNull)
+                                {
+                                    ComCallWrapper? ccw = clrObj.Type?.GetCCWData(objAddress);
+                                    if (ccw != null && refCount < ccw.RefCount)
+                                    {
+                                        refCount = (uint)ccw.RefCount;
+                                    }
+                                    else
+                                    {
+                                        RuntimeCallableWrapper? rcw = clrObj.Type?.GetRCWData(objAddress);
+                                        if (rcw != null && refCount < rcw.RefCount)
+                                            refCount = (uint)rcw.RefCount;
+                                    }
+                                }
+
+                                yield return new ClrmdRefCountHandle(domain, handles[i].Handle, clrObj, refCount);
+                                break;
+
                         }
-
-                        domains.TryGetValue(handles[i].AppDomain, out ClrAppDomain domain);
-
-                        ClrObject clrObj = type != null ? new ClrObject(obj, type) : default;
-                        ClrHandle handle = new ClrHandle(in handles[i], clrObj, domain, dependent);
-                        yield return handle;
                     }
                 }
             }

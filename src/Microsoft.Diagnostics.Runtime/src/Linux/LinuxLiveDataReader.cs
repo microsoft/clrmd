@@ -392,7 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private static int ParsePermission(string permission)
         {
-            Debug.Assert(permission.Length == 4);
+            DebugOnly.Assert(permission.Length == 4);
 
             // r = read
             // w = write

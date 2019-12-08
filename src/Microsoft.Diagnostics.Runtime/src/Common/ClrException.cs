@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
             _object = obj;
             Thread = thread;
 
-            Debug.Assert(obj.IsException);
+            DebugOnly.Assert(obj.IsException);
         }
 
         /// <summary>

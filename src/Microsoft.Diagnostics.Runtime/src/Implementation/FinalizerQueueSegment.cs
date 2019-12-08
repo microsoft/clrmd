@@ -16,8 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Start = start;
             End = end;
 
-            Debug.Assert(Start <= End);
-            Debug.Assert(End != 0);
+            DebugOnly.Assert(Start <= End);
+            DebugOnly.Assert(End != 0);
         }
     }
 }

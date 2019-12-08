@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // This actually "attaches" to the crash dump.
             bool result = _control.WaitForEvent(0xffffffff);
-            Debug.Assert(result);
+            DebugOnly.Assert(result);
         }
 
         public DbgEngDataReader(int pid, bool invasive, uint msecTimeout)
@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
             int hr = DebugCreate(ref guid, out IntPtr ptr);
-            Debug.Assert(hr == 0);
+            DebugOnly.Assert(hr == 0);
 
             return ptr;
         }

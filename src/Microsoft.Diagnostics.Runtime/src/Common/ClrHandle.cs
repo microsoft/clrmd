@@ -9,22 +9,22 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a Clr handle in the target process.
     /// </summary>
-    public sealed class ClrHandle : IClrRoot
+    public abstract class ClrHandle : IClrRoot
     {
         /// <summary>
         /// The address of the handle itself.  That is, *ulong == Object.
         /// </summary>
-        public ulong Address { get; }
+        public abstract ulong Address { get; }
 
         /// <summary>
         /// The Object the handle roots.
         /// </summary>
-        public ClrObject Object { get; }
+        public abstract ClrObject Object { get; }
 
         /// <summary>
         /// Gets the type of handle.
         /// </summary>
-        public ClrHandleKind HandleKind { get; }
+        public abstract ClrHandleKind HandleKind { get; }
 
         /// <summary>
         /// If this handle is a RefCount handle, this returns the reference count.
@@ -32,16 +32,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// NOTE: v2 CLR CANNOT determine the RefCount.  We always set the RefCount
         /// to 1 in a v2 query since a strong RefCount handle is the common case.
         /// </summary>
-        public uint RefCount { get; }
+        public abstract uint ReferenceCount { get; }
 
         /// <summary>
         /// The dependent handle target if this is a dependent handle.
         /// </summary>
-        public ClrObject Dependent { get; }
+        public abstract ClrObject Dependent { get; }
 
         /// The AppDomain the handle resides in.
         /// </summary>
-        public ClrAppDomain AppDomain { get; }
+        public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// ToString override.
@@ -50,57 +50,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             return HandleKind + " " + (Object.Type?.Name ?? string.Empty);
-        }
-
-        public ClrHandle(ulong address, ClrObject obj, ClrHandleKind handleKind, uint refCount, ClrObject dependent, ClrAppDomain domain)
-        {
-            Address = address;
-            Object = obj;
-            AppDomain = domain;
-            HandleKind = handleKind;
-            RefCount = refCount;
-            Dependent = dependent;
-        }
-
-        public ClrHandle(in HandleData handleData, ClrObject obj, ClrAppDomain domain, ClrType? dependentSecondary)
-        {
-            Address = handleData.Handle;
-
-            Object = obj;
-
-            uint refCount = 0;
-
-            if (handleData.Type == (int)ClrHandleKind.RefCount)
-            {
-                if (handleData.IsPegged != 0)
-                    refCount = handleData.JupiterRefCount;
-
-                if (refCount < handleData.RefCount)
-                    refCount = handleData.RefCount;
-
-                if (!obj.IsNull)
-                {
-                    ComCallWrapper? ccw = obj.Type?.GetCCWData(obj);
-                    if (ccw != null && refCount < ccw.RefCount)
-                    {
-                        refCount = (uint)ccw.RefCount;
-                    }
-                    else
-                    {
-                        RuntimeCallableWrapper? rcw = obj.Type?.GetRCWData(obj);
-                        if (rcw != null && refCount < rcw.RefCount)
-                            refCount = (uint)rcw.RefCount;
-                    }
-                }
-
-                RefCount = refCount;
-            }
-
-            HandleKind = (ClrHandleKind)handleData.Type;
-            AppDomain = domain;
-
-            if (HandleKind == ClrHandleKind.Dependent)
-                Dependent = new ClrObject(handleData.Secondary, dependentSecondary);
         }
 
         /// <summary>
@@ -113,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime
                 switch (HandleKind)
                 {
                     case ClrHandleKind.RefCount:
-                        return RefCount > 0;
+                        return ReferenceCount > 0;
 
                     case ClrHandleKind.WeakLong:
                     case ClrHandleKind.WeakShort:

@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = _sys.Enter();
             int hr = _addEngineOptions(Self, options);
-            Debug.Assert(hr == 0);
+            DebugOnly.Assert(hr == 0);
         }
 
         public DEBUG_FORMAT GetDumpFormat()
@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             using IDisposable holder = _sys.Enter();
             int hr = _getDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
-            Debug.Assert(hr == 0);
+            DebugOnly.Assert(hr == 0);
             return result;
         }
 

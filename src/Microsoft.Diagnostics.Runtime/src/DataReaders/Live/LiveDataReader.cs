@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 StringBuilder sb = new StringBuilder(1024);
                 uint res = GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
-                Debug.Assert(res != 0);
+                DebugOnly.Assert(res != 0);
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
                 GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             StringBuilder filename = new StringBuilder(1024);
             uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), filename, filename.Capacity);
-            Debug.Assert(res != 0);
+            DebugOnly.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
@@ -272,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     // Ensure the module contains the magic "PE" value at the offset it says it does.  This check should
                     // never fail unless we have the wrong base address for CLR.
-                    Debug.Assert(header == 0x4550);
+                    DebugOnly.Assert(header == 0x4550);
                     if (header == 0x4550)
                     {
                         const int timeDataOffset = 4;

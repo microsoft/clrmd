@@ -106,11 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static string TestWorkingDirectory
         {
             get => _userSetWorkingPath ?? _workingPath.Value;
-            set
-            {
-                Debug.Assert(!_workingPath.IsValueCreated);
-                _userSetWorkingPath = value;
-            }
+            set => _userSetWorkingPath = value;
         }
 
         private static string _userSetWorkingPath;

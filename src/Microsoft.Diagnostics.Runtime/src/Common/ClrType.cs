@@ -154,15 +154,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IReadOnlyList<ClrMethod> Methods { get; }
 
         /// <summary>
-        /// When you enumerate a object, the offset within the object is returned.  This offset might represent
-        /// nested fields (obj.Field1.Field2).    GetFieldOffset returns the first of these field (Field1),
-        /// and 'remaining' offset with the type of Field1 (which must be a struct type).   Calling
-        /// GetFieldForOffset repeatedly until the childFieldOffset is 0 will retrieve the whole chain.
-        /// </summary>
-        /// <returns>true if successful.  Will fail if it 'this' is an array type.</returns>
-        public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset);
-
-        /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
         public abstract ClrInstanceField? GetFieldByName(string name);
@@ -219,9 +210,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract object? GetArrayElementValue(ulong objRef, int index);
 
         /// <summary>
-        /// Returns the base size of the object.
+        /// Returns the static size of objects of this type when they are created on the CLR heap.
         /// </summary>
-        public abstract int BaseSize { get; }
+        public abstract int StaticSize { get; }
 
         /// <summary>
         /// Returns the size of elements of this object.

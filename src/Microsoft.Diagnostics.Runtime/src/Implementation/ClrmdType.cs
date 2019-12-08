@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override int BaseSize { get; }
+        public override int StaticSize { get; }
         public override int ComponentSize => 0;
         public override ClrType? ComponentType => null;
         public override ClrModule? Module { get; }
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Module = module;
             MetadataToken = data.Token;
             Shared = data.IsShared;
-            BaseSize = data.BaseSize;
+            StaticSize = data.BaseSize;
             ContainsPointers = data.ContainsPointers;
             IsShared = data.IsShared;
 
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (reader is null)
                 return default;
 
-            Debug.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
+            DebugOnly.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
             if (!reader.Read(MethodTable - (ulong)IntPtr.Size, out int entries))
             {
                 _gcDesc = default;
@@ -385,38 +385,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField? childField, out int childFieldOffset)
-        {
-            if (!IsArray)
-            {
-                int offset = fieldOffset;
-
-                if (!inner)
-                    offset -= IntPtr.Size;
-
-                IReadOnlyList<ClrInstanceField> fields = Fields;
-                foreach (ClrInstanceField field in fields)
-                {
-                    if (field.ElementType == ClrElementType.Unknown)
-                        break;
-
-                    if (field.Offset <= offset && offset < field.Offset + field.Size)
-                    {
-                        childField = field;
-                        childFieldOffset = offset - field.Offset;
-                        return true;
-                    }
-                }
-            }
-
-            if (BaseType != null)
-                return BaseType.GetFieldForOffset(fieldOffset, inner, out childField, out childFieldOffset);
-
-            childField = null;
-            childFieldOffset = 0;
-            return false;
-        }
-
         public override IReadOnlyList<ClrInstanceField> Fields
         {
             get
@@ -604,7 +572,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (start >= end)
                             return start;
 
-                        //Debug.Assert(name[start] == ',');
+                        //DebugOnly.Assert(name[start] == ',');
                         sb.Append(',');
                         start++;
 
