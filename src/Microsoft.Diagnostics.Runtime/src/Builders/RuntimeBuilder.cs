@@ -75,9 +75,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _firstThread = data.FirstThread;
             _finalizer = data.FinalizerThread;
 
-            _typeBuilders = new ObjectPool<TypeBuilder>(CreateTypeBuilder, (owner, obj) => obj.Owner = owner);
-            _methodBuilders = new ObjectPool<MethodBuilder>(CreateMethodBuilder, (owner, obj) => obj.Owner = owner);
-            _fieldBuilders = new ObjectPool<FieldBuilder>(CreateFieldBuilder, (owner, obj) => obj.Owner = owner);
+            _typeBuilders = new ObjectPool<TypeBuilder>((owner, obj) => obj.Owner = owner);
+            _methodBuilders = new ObjectPool<MethodBuilder>((owner, obj) => obj.Owner = owner);
+            _fieldBuilders = new ObjectPool<FieldBuilder>((owner, obj) => obj.Owner = owner);
 
             Dictionary<ulong, ulong> moduleSizes = new Dictionary<ulong, ulong>();
             foreach (ModuleInfo mi in _clrinfo.DataTarget.EnumerateModules())
@@ -187,10 +187,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 address = segBuilder.Next;
             }
         }
-
-        private TypeBuilder CreateTypeBuilder() => new TypeBuilder(_sos, this);
-        private MethodBuilder CreateMethodBuilder() => new MethodBuilder(_sos, this);
-        private FieldBuilder CreateFieldBuilder() => new FieldBuilder(_sos, this);
 
         private ClrModule GetModule(ulong addr)
         {
@@ -766,7 +762,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ClrType CreateSystemType(ClrHeap heap, ulong mt, string kind)
         {
             using TypeBuilder typeData = _typeBuilders.Rent();
-            if (!typeData.Init(mt))
+            if (!typeData.Init(_sos, mt, this))
                 throw new InvalidDataException($"Could not create well known type '{kind}' from MethodTable {mt:x}.");
 
             ClrType? baseType = null;
@@ -808,7 +804,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             {
                 using TypeBuilder typeData = _typeBuilders.Rent();
-                if (!typeData.Init(mt))
+                if (!typeData.Init(_sos, mt, this))
                     return null;
 
                 ClrType? baseType = GetOrCreateType(heap, typeData.ParentMethodTable, 0);
@@ -904,7 +900,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             int curr = 0;
             for (int i = 0; i < data.NumMethods; i++)
             {
-                if (builder.Init(mt, i))
+                if (builder.Init(_sos, mt, i, this))
                     result[curr++] = new ClrmdMethod(type, builder);
             }
 
@@ -937,7 +933,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return method;
 
             using MethodBuilder builder = _methodBuilders.Rent();
-            if (!builder.Init(methodDesc))
+            if (!builder.Init(_sos, methodDesc, this))
                 return null;
 
             return new ClrmdMethod(type, builder);
@@ -993,7 +989,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             int other = 0;
             while (other + fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
             {
-                if (!fieldData.Init(nextField))
+                if (!fieldData.Init(_sos, nextField, this))
                     break;
 
                 if (fieldData.IsContextLocal || fieldData.IsThreadLocal)

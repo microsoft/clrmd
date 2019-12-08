@@ -11,26 +11,21 @@ namespace Microsoft.Diagnostics.Runtime.Builders
     internal class TypeBuilder : ITypeData, IDisposable
     {
         private MethodTableData _mtData;
-        private readonly SOSDac _sos;
+        private ITypeHelpers? _helpers;
 
-        public TypeBuilder(SOSDac sos, ITypeHelpers helpers)
+        public bool Init(SOSDac sos, ulong methodTable, ITypeHelpers helpers)
         {
-            _sos = sos;
-            Helpers = helpers;
-        }
-
-        public bool Init(ulong methodTable)
-        {
-            MethodTable = methodTable;
-            if (!_sos.GetMethodTableData(MethodTable, out _mtData))
+            if (!sos.GetMethodTableData(methodTable, out _mtData))
                 return false;
 
+            MethodTable = methodTable;
+            _helpers = helpers;
             return true;
         }
 
         public ObjectPool<TypeBuilder>? Owner { get; set; }
 
-        public ITypeHelpers Helpers { get; }
+        public ITypeHelpers Helpers => _helpers!;
         public bool IsShared => _mtData.Shared != 0;
         public uint Token => _mtData.Token;
         public ulong MethodTable { get; private set; }
@@ -46,6 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             var owner = Owner;
             Owner = null;
+            _helpers = null;
             owner?.Return(this);
         }
     }
