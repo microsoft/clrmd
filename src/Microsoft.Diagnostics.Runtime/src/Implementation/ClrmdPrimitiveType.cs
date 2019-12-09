@@ -61,17 +61,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
         public override object? GetArrayElementValue(ulong objRef, int index) => null;
 
-        public override ClrInstanceField? GetFieldByName(string name)
-        {
-            return null;
-        }
-
+        public override ClrInstanceField? GetFieldByName(string name) => null;
+        
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
-
-        public override ComCallWrapper? GetCCWData(ulong obj) => null;
-
-        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => null;
-
+    
         public override bool IsFinalizeSuppressed(ulong obj) => false;
 
         public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();

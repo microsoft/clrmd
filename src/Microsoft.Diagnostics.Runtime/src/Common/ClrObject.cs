@@ -106,6 +106,29 @@ namespace Microsoft.Diagnostics.Runtime
                 return type.ClrObjectHelpers.DataReader.ReadUnsafe<int>(Address + (uint)IntPtr.Size);
             }
         }
+        /// <summary>
+        /// Returns the ComCallableWrapper for the given object.
+        /// </summary>
+        /// <returns>The ComCallableWrapper associated with the object, null if obj is not a CCW.</returns>
+        public ComCallableWrapper? AsComCallableWrapper()
+        {
+            if (IsNull || !IsValidObject)
+                return null;
+
+            return Helpers.Factory.CreateCCWForObject(Address);
+        }
+
+        /// <summary>
+        /// Returns the RuntimeCallableWrapper for the given object.
+        /// </summary>
+        /// <returns>The RuntimeCallableWrapper associated with the object, null if obj is not a RCW.</returns>
+        public RuntimeCallableWrapper? AsRuntimeCallableWrapper()
+        {
+            if (IsNull || !IsValidObject)
+                return null;
+
+            return Helpers.Factory.CreateRCWForObject(Address);
+        }
 
         /// <summary>
         /// Returns true if this object possibly contians GC pointers.

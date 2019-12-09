@@ -81,7 +81,5 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override uint MetadataToken => 0;
         public override bool IsArray => !IsPointer;
         public override int ComponentSize => IntPtr.Size;
-        public override ComCallWrapper? GetCCWData(ulong obj) => null;
-        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => null;
     }
 }

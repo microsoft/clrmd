@@ -169,18 +169,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType? BaseType { get; }
 
         /// <summary>
-        /// Returns the CCWData for the given object.
-        /// </summary>
-        /// <returns>The CCWData associated with the object, null if obj is not a CCW.</returns>
-        public abstract ComCallWrapper? GetCCWData(ulong obj);
-
-        /// <summary>
-        /// Returns the RCWData for the given object.
-        /// </summary>
-        /// <returns>The RCWData associated with the object, null if obj is not a RCW.</returns>
-        public abstract RuntimeCallableWrapper? GetRCWData(ulong obj);
-
-        /// <summary>
         /// Indicates if the type is in fact a pointer. If so, the pointer operators
         /// may be used.
         /// </summary>

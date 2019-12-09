@@ -542,14 +542,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                                 if (!clrObj.IsNull)
                                 {
-                                    ComCallWrapper? ccw = clrObj.Type?.GetCCWData(objAddress);
+                                    ComCallableWrapper? ccw = clrObj.AsComCallableWrapper();
                                     if (ccw != null && refCount < ccw.RefCount)
                                     {
                                         refCount = (uint)ccw.RefCount;
                                     }
                                     else
                                     {
-                                        RuntimeCallableWrapper? rcw = clrObj.Type?.GetRCWData(objAddress);
+                                        RuntimeCallableWrapper? rcw = clrObj.AsRuntimeCallableWrapper();
                                         if (rcw != null && refCount < rcw.RefCount)
                                             refCount = (uint)rcw.RefCount;
                                     }
@@ -876,7 +876,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        ComCallWrapper? ITypeFactory.CreateCCWForObject(ulong obj)
+        ComCallableWrapper? ITypeFactory.CreateCCWForObject(ulong obj)
         {
             CheckDisposed();
 
@@ -884,7 +884,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (!builder.Init(obj))
                 return null;
 
-            return new ComCallWrapper(builder);
+            return new ComCallableWrapper(builder);
         }
 
         RuntimeCallableWrapper? ITypeFactory.CreateRCWForObject(ulong obj)

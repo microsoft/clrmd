@@ -240,11 +240,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        // TODO:  Add ClrObject GetCcw/GetRcw
-        // TODO:  Move out of ClrType.
-        public override ComCallWrapper? GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
-        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
-
         public override bool IsEnum
         {
             get

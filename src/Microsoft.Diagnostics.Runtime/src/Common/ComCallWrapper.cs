@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Helper for Com Callable Wrapper objects.  (CCWs are CLR objects exposed to native code as COM
     /// objects).
     /// </summary>
-    public sealed class ComCallWrapper
+    public sealed class ComCallableWrapper
     {
         public ulong Address { get; }
 
@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IReadOnlyList<ComInterfaceData> Interfaces { get; }
 
-        public ComCallWrapper(ICCWData data)
+        public ComCallableWrapper(ICCWData data)
         {
             if (data is null)
                 throw new System.ArgumentNullException(nameof(data));
