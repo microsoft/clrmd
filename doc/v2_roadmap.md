@@ -34,27 +34,14 @@ Additionally we need to clean up what is meant to be reimplmeneted by folks and 
 
 ## Clean up poor design choices from 8 years ago.
 
-I erased the concept of "Assembly" even though it really exists...  That was a bad call.
-
 Should we do our own metadata reading in a lot of cases?  Is all of this code really needed?  https://github.com/microsoft/clrmd/blob/bbde79ff1d816d15697ae12dc7a5982682a83919/src/Microsoft.Diagnostics.Runtime/src/Desktop/DesktopInstanceField.cs#L47  Maybe.  Probably.  I want to go review it and see if we should be pushing that to ISOSDac to provide data instead of doing a lot of this parsing...
 
 Enumerating types should have been handled much differently.
-
-##  Allow ClrMD to take dependencies on other libraries instead of being a monolithic DLL.
-
-ClrMD was built before NuGet existed.  It used to be very difficult to take dependencies on other DLLs effectively.  I will likely take some dependencies on other NuGet pacakges and push some of the code out of the library.  For example, I fully plan to eliminate "DefaultSymbolLocator" and use the CLR diagnostics team's implementation.
-
-## Drop CLR v2 support?
-
-I'm considering dropping clr V2 support ("mscorwks.dll" aka CLR 3.5).  If people are still actually using this I will leave it in.  Right now it's very poorly tested and likely broken in some cases.  If there is interest in keeping it around then I plan to add more testing.
 
 ## Build features in .Net Core v.next to support features.
 
 Generics support is just broken and terrible and has been forever.  I am considering doing some work in .Net Core itself so that future versions of the runtime are more debuggable.
 
-## Testing
-
-I really hope to find a better solution for testing the product. Since we require a crash dump/core dump to debug it's very difficult to have a sane checked-in test environment.
 
 
 # Changes from ClrMD 1.1
@@ -69,21 +56,13 @@ Added features:
 Removed:
 
 1. **Removed Blocking Object** code - This was buggy in its initial implementation and never worked right.  We do not intend to support this or rebuild it in 2.0.
-2. **GCRoot moved** - Moved GCRoot to a new Utilities library.  It will be fully supported and on GitHub but not part of the default implementation of ClrMD.
-3. **SymbolLocator partially removed** - ClrMD still supports communicating with a symbol server to locate binaries but it's no longer intended to be a general purpose symbol server client.
-4. **CLR v2 and v4 (prior to 4.5) support removed** - ClrMD now only supports Desktop .Net 4.5+ and all .Net Core versions.
+2. **SymbolLocator partially removed** - ClrMD still supports communicating with a symbol server to locate binaries but it's no longer intended to be a general purpose symbol server client.
+3. **CLR v2 and v4 (prior to 4.5) support removed** - ClrMD now only supports Desktop .Net 4.5+ and all .Net Core versions.
+4. **PDB Reading Removed** - The implementation I was carrying in ClrMD was buggy and did not support PortablePDBs.  I do not intend to keep this functionality in ClrMD 2.0.  It's just too difficult to keep working and it's not needed or used by the rest of the library.
 
-# Features slated for removal
+# Features rejected
 
-1.  Blocking Objects - will be either reference code or in a separate library.
-2.  GCRoot - I want folks to share an implementation but it will likely be pushed to a separate library.
-3.  PDB reading - This is out of date, doesn't support portable pdbs, and there are better libraries to do it.  It was added back before there was really any PDB reading code to use (this was before NuGet) so it's a good time to axe this implementation.
-
-# Features under consideration (not commited to)
-
-1.  Allow x64 process to debug x32 dumps.  This is very, very difficult to acheive architecturally, because CLR's underlying debugging API is native code and deeply tied to architecture.  I don't believe I will be able to implement this reasonably, but I intend to take a close look at it.
-2.  Thread safety.  Is it possible to inspect the heap from multiple threads without too much of a perf penalty?  The real issue with this is the DbgEng based IDataReader does not support access from multiple threads.  This is theoretically possible using a custom dump reader.
-3.  A way to control the amount of memory ClrMD caches.
+Allow x64 process to debug x32 dumps - This is very, very difficult to acheive architecturally, because CLR's underlying debugging API is native code and deeply tied to architecture.  I took a look at doing this but ultimately could not come up with a viable approach for the 2.0 release.
 
 # Feedback from the community
 
@@ -95,7 +74,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 4.  Consider using native memory where it makes sense (basically limit small allocations and other memory thrashing.  **Completed** - *The library has moved to using Span with stackalloc/ArrayPool.Rent in the vast majority of allocation cases.  I've also removed the usage of most marshalled arrays in PInvoke signatures, preferring instead to pass pointers to byte arrays.*
 5.  Clean up the design of a lot of weird parts of the library.  - **Approved** - *That is the goal of ClrMD 2.0.*
 6.  Improve the messages and exceptions thrown by the library. - **Tentatively Planned**
-7.  Document the expected 'cost' of main operations in memory/CPU.  - **Unsure** - *There's so many factors here I'm not sure what success looks like, but I'll take a look.*
+7.  Document the expected 'cost' of main operations in memory/CPU.  - **Unsure** - *There's so many factors here I'm not sure what success looks like.  I think providing a set of benchmarks would be ideal for developers to understand what expected performance should look like.  This is not something I intend to tackle for the 2.0 release.*
 
 # TODO reminders
 
@@ -103,13 +82,10 @@ Here is a list of feedback I am tracking from the community (my summary):
 
 1.  Offsets for string and exception fields when we have no metadata.
 2.  Document all functions
-3.  consider reworking ClrField.GetValue
-4.  Enum related code in ClrType
-5.  clean up exception usage
-6.  Add more tests now that we can easily mock up objects.
-7.  All caching and parallel support was stripped out of GCRoot.  Need to add it back.
-8.  Consider enumerating offset in ClrObject.EnumerateReferences.
-9.  Add back our debugger so we don't have to use a local csc.
+3.  clean up exception usage
+4.  Consider enumerating offset in ClrObject.EnumerateReferences.
+5.  Add back our debugger so we don't have to use a local csc.
+6.  Enum related code in ClrType
 
 # .Net Core 5 Dac Wishlist
 
