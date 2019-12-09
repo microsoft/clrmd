@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    public class SymbolLocatorTests
+    public class BinaryLocatorTests
     {
         public static readonly string WellKnownDac = "mscordacwks_X86_X86_4.6.96.00.dll";
         public static readonly uint WellKnownDacTimeStamp = 0x55b96946;
