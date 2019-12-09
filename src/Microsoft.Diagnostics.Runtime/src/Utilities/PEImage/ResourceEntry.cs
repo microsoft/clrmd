@@ -40,6 +40,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool IsLeaf { get; }
 
         /// <summary>
+        /// Returns the size of data for this node.
+        /// </summary>
+        public int Size
+        {
+            get
+            {
+                GetDataVaAndSize(out _, out int size);
+                return size;
+            }
+        }
+
+        /// <summary>
         /// The number of children this entry contains.
         /// </summary>
         public int Count => Children.Count;
@@ -154,7 +166,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void GetDataVaAndSize(out int va, out int size)
         {
-
             IMAGE_RESOURCE_DATA_ENTRY dataEntry = Image.Read<IMAGE_RESOURCE_DATA_ENTRY>(_offset);
             va = dataEntry.RvaToData;
             size = dataEntry.Size;

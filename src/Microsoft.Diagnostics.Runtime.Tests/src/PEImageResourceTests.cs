@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -12,6 +13,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class PEImageResourceTests
     {
+        [FrameworkFact]
+        public void FileInfoVersionTest()
+        {
+            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            ModuleInfo clrModule = dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
+
+            PEImage img = clrModule.GetPEImage();
+            Assert.NotNull(img);
+
+            FileVersionInfo fileVersion = img.GetFileVersionInfo();
+            Assert.NotNull(fileVersion);
+            Assert.NotNull(fileVersion.FileVersion);
+
+            ClrInfo clrInfo = dt.ClrVersions[0];
+            Assert.Contains(clrInfo.Version.ToString(), fileVersion.FileVersion);
+        }
+
         [FrameworkFact]
         public void TestResourceImages()
         {
