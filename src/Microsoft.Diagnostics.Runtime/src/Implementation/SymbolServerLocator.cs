@@ -6,21 +6,18 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class BinaryLocator : IBinaryLocator
+    public sealed class SymbolServerLocator : IBinaryLocator
     {
         private readonly string _cache = string.Empty;
         private readonly SymbolPathEntry[] _paths;
-
         private readonly Dictionary<string, Task<string?>> _queries = new Dictionary<string, Task<string?>>();
 
-        public BinaryLocator(string symbolServer)
+        public SymbolServerLocator(string symbolServer)
         {
             if (symbolServer is null)
                 symbolServer = string.Empty;

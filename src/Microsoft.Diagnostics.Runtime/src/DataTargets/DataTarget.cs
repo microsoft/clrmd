@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_locator == null)
                 {
                     string symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
-                    _locator = new Implementation.BinaryLocator(symPath);
+                    _locator = new Implementation.SymbolServerLocator(symPath);
 
                 }
 

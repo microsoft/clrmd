@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     /// </summary>
     internal class LinuxDefaultSymbolLocator : IBinaryLocator
     {
-        private readonly BinaryLocator? _locator;
+        private readonly SymbolServerLocator? _locator;
         private readonly IEnumerable<string> _modules;
 
         public LinuxDefaultSymbolLocator(IEnumerable<string> modules)
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _modules = modules;
             string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
             if (!string.IsNullOrWhiteSpace(sympath))
-                _locator = new BinaryLocator(sympath);
+                _locator = new SymbolServerLocator(sympath);
             
         }
 
