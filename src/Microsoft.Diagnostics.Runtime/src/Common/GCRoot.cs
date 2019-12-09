@@ -16,8 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// A delegate for reporting GCRoot progress.
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
-    /// <param name="current">The total number of objects processed.</param>
-    public delegate void GCRootProgressEvent(GCRoot source, long current);
+    /// <param name="processed">The total number of objects processed.</param>
+    public delegate void GCRootProgressEvent(GCRoot source, int processed);
 
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
@@ -92,12 +92,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (!parallel)
             {
+                int count = 0;
+
                 ObjectSet processedObjects = new ObjectSet(Heap);
                 foreach (IClrRoot root in roots)
                 {
                     LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath(root, path.ToArray());
+
+                    if (count != processedObjects.Count)
+                    {
+                        count = processedObjects.Count;
+                        ProgressUpdate?.Invoke(this, count);
+                    }
                 }
             }
             else
@@ -120,18 +128,38 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 for (int i = 0; i < threads.Length; i++)
                     queue.Add(null);
 
+
+                int count = 0;
+
                 // Worker threads end when they have run out of roots to process.  While we are waiting for them to exit, yield return
                 // any results they've found.  We'll use a 100 msec timeout because processing roots is slooooow and finding a root is
                 // rare.  There's no reason to check these results super quickly and starve worker threads.
                 for (int i = 0; i < threads.Length; i++)
+                {
                     while (!threads[i].Join(100))
+                    {
                         while (results.TryDequeue(out GCRootPath result))
                             yield return result;
+                    }
+
+                    if (count != processedObjects.Count)
+                    {
+                        count = processedObjects.Count;
+                        ProgressUpdate?.Invoke(this, count);
+                    }
+                }
 
                 // We could have raced to put an object in the results queue while joining the last thread, so we need to drain the
                 // results queue one last time.
                 while (results.TryDequeue(out GCRootPath result))
                     yield return result;
+
+
+                if (count != processedObjects.Count)
+                {
+                    count = processedObjects.Count;
+                    ProgressUpdate?.Invoke(this, count);
+                }
             }
         }
 
