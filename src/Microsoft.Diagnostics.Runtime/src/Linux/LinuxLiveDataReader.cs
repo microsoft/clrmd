@@ -14,8 +14,16 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader that targets a Linux process.
-    /// This process must have ptrace access to the target process.
+    /// A data reader targets a Linux process, implemented by reading /proc/[pid]/maps 
+    /// and /proc/[pid]/mem files. The process must have READ permission to the above 2
+    /// files. 
+    ///   1. The current process can run as root.
+    ///   2. If executed from within a Docker container, the best way is to use "ptrace 
+    ///      attach" to obtain the permission. 
+    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent. 
+    ///        - the process must call the following before constructing the data reader.
+    ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
+    ///             wait(NULL);
     /// </summary>
     internal class LinuxLiveDataReader : IDataReader
     {

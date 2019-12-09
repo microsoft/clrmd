@@ -28,4 +28,7 @@
     <PackageReference Include="AutoFixture" Version="4.6.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.6.0" />
   </ItemGroup>
+  <Target Name="BuildTargets" AfterTargets="Build">
+    <MSBuild Projects="..\TestTargets\TestTargets.proj" />
+  </Target>
 </Project>

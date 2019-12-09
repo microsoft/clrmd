@@ -1,5 +1,5 @@
 ﻿using System;
-
+#pragma warning disable 0169
 #pragma warning disable 0414
 
 public class Foo

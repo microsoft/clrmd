@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable 0162
+
+using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Runtime.InteropServices;
