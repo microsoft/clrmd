@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -97,6 +98,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 else
                     Assert.Null(type.ComponentType);
             }
+        }
+
+        [Fact]
+        public void AirtyTest()
+        {
+            // https://github.com/microsoft/clrmd/issues/394
+            string name = ClrmdType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest`2[[System.String, System.Private.CoreLib],[System.Collections.Generic.List`1[[System.Collections.Generic.IEnumerable`1[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
+            const string expected = "Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest<System.String, System.Collections.Generic.List<System.Collections.Generic.IEnumerable<System.Int32>[,]>[]>";
+
+            Assert.Equal(expected, name);
+
+            name = ClrmdType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest[[System.String, System.Private.CoreLib],[System.Collections.Generic.List[[System.Collections.Generic.IEnumerable[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
+
+            Assert.Equal(expected, name);
+
+            Assert.Equal("MyAssembly.Test<System.String>", ClrmdType.FixGenerics("MyAssembly.Test`1[[System.String, mscorlib]]"));
+            Assert.Equal("MyAssembly.Test<System.String>", ClrmdType.FixGenerics("MyAssembly.Test[[System.String, mscorlib]]"));
         }
 
         [FrameworkFact]
