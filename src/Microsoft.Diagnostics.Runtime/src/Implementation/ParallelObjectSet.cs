@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal class ParallelObjectSet : ObjectSet
     {

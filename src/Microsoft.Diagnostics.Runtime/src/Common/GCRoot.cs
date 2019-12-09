@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -33,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// the number of objects processed will ever reach the total number of objects on the heap.  That's because there
         /// will be garbage objects on the heap we can't reach.
         /// </summary>
-        public event GCRootProgressEvent ProgressUpdate;
+        public event GCRootProgressEvent? ProgressUpdate;
 
         /// <summary>
         /// Returns the heap that's associated with this GCRoot instance.
@@ -104,9 +103,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             else
             {
                 ParallelObjectSet processedObjects = new ParallelObjectSet(Heap);
-
                 ConcurrentQueue<GCRootPath> results = new ConcurrentQueue<GCRootPath>();
-                using BlockingCollection<IClrRoot> queue = new BlockingCollection<IClrRoot>();
+                using BlockingCollection<IClrRoot?> queue = new BlockingCollection<IClrRoot?>();
+
                 Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
                 for (int i = 0; i < threads.Length; i++)
                 {
@@ -137,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private void WorkerThread(
-            BlockingCollection<IClrRoot> queue,
+            BlockingCollection<IClrRoot?> queue,
             ConcurrentQueue<GCRootPath> results,
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
@@ -146,14 +145,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             bool unique,
             CancellationToken cancelToken)
         {
-            IClrRoot root;
+            IClrRoot? root;
             while ((root = queue.Take()) != null)
             {
                 if (cancelToken.IsCancellationRequested)
                     break;
 
                 Console.WriteLine($"Considering {root.Address:x} {root.RootKind} {root.Object}");
-                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken, root))
+                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken))
                 {
                     if (path != null)
                     {
@@ -199,12 +198,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private IEnumerable<LinkedList<ClrObject>> PathsTo(
             ObjectSet seen,
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
+            Dictionary<ulong, LinkedListNode<ClrObject>>? knownEndPoints,
             ClrObject source,
             ulong target,
             bool unique,
-            CancellationToken cancelToken,
-            IClrRoot root = null)
+            CancellationToken cancelToken)
         {
             HashSet<ulong> processing = new HashSet<ulong>();
             LinkedList<PathEntry> path = new LinkedList<PathEntry>();
@@ -242,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 new PathEntry
                 {
                     Object = source,
-                    Todo = GetRefs(source, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+                    Todo = GetRefs(source, out bool foundTarget, out LinkedListNode<ClrObject>? foundEnding)
                 });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
@@ -352,17 +350,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Stack<ClrObject> GetRefs(
                 ClrObject obj,
                 out bool found,
-                out LinkedListNode<ClrObject> end)
+                out LinkedListNode<ClrObject>? end)
             {
                 // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
                 //DebugOnly.Assert(obj.Type != null);
                 //DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
-                Stack<ClrObject> result = null;
+                Stack<ClrObject>? result = null;
 
                 found = false;
                 end = null;
-                if (obj.Type.ContainsPointers || obj.Type.IsCollectible)
+                if (obj.Type != null && (obj.Type.ContainsPointers || obj.Type.IsCollectible))
                 {
                     foreach (ClrObject reference in obj.EnumerateReferences(true))
                     {
@@ -391,7 +389,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return result ?? s_emptyStack;
             }
 
-            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> end = null)
+            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject>? end = null)
             {
                 LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object));
 
@@ -443,7 +441,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         [Conditional("GCROOTTRACE")]
-        private static void TraceFullPath(string prefix, LinkedList<PathEntry> path)
+        private static void TraceFullPath(string? prefix, LinkedList<PathEntry> path)
         {
             if (!string.IsNullOrWhiteSpace(prefix))
                 prefix += ": ";
