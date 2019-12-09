@@ -92,5 +92,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             sosDac.Dispose();
             Assert.Equal(0, library.Release());
         }
+
+        [LinuxFact]
+        public void CreateSnapshotAndAttach_ThrowsPlatformNotSupportedException()
+        {
+            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id));
+        }
+
+        [WindowsFact]
+        public void LoadCoreDump_ThrowsPlatformNotSupportedException()
+        {
+            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCoreDump(TestTargets.Types.WorkstationFullDump));
+        }
+
+        [LinuxFact]
+        public void LoadCrashDump_ThrowsPlatformNotSupportedException()
+        {
+            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCrashDump(TestTargets.Types.WorkstationFullDump));
+        }
     }
 }
