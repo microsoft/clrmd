@@ -32,7 +32,7 @@ class GCHandles
         GC.KeepAlive(weak);
         GC.KeepAlive(weakLong);
     }
-    
+
     private static unsafe void IOCallback(uint errorCode, uint numBytes, NativeOverlapped* pOVERLAP)
     {
     }

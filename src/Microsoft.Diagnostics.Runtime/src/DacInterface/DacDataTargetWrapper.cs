@@ -7,20 +7,25 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Interop;
+using System.Threading;
+using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using IMAGE_DATA_DIRECTORY = Microsoft.Diagnostics.Runtime.Interop.IMAGE_DATA_DIRECTORY;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe class DacDataTargetWrapper : COMCallableIUnknown
     {
+        public const ulong MagicCallbackConstant = 0x43;
+
         private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
 
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;
         private readonly ModuleInfo[] _modules;
+
+        private Action? _callback;
+        private volatile int _callbackContext;
 
         private uint? _nextThreadId;
         private ulong? _nextTLSValue;
@@ -32,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
             _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, delegate(ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
+            Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
 
             VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
@@ -52,6 +57,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.Complete();
         }
 
+        public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
+
+        public void ExitMagicCallbackContext() => Interlocked.Decrement(ref _callbackContext);
+
+        public void SetMagicCallback(Action flushCallback) => _callback = flushCallback;
+
         public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
             machineType = _dataReader.Architecture switch
@@ -65,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return S_OK;
         }
 
-        private ModuleInfo GetModule(ulong address)
+        private ModuleInfo? GetModule(ulong address)
         {
             int min = 0, max = _modules.Length - 1;
 
@@ -114,6 +125,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
 
+            if (address == MagicCallbackConstant && _callbackContext > 0)
+            {
+                // See comment in RuntimeBuilder.FlushDac
+                _callback?.Invoke();
+                bytesRead = 0;
+                return E_FAIL;
+            }
+
             if (_dataReader.ReadMemory(address, span, out int read))
             {
                 bytesRead = read;
@@ -121,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
 
             bytesRead = 0;
-            ModuleInfo info = GetModule(address);
+            ModuleInfo? info = GetModule(address);
             if (info != null)
             {
                 if (Path.GetExtension(info.FileName).Equals(".so", StringComparison.OrdinalIgnoreCase))
@@ -131,18 +150,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return E_NOTIMPL;
                 }
 
-                string filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName, info.TimeStamp, info.FileSize, true);
-                if (filePath == null)
+
+                string? filePath;
+                if (!string.IsNullOrEmpty(info.FileName))
+                    filePath = null;
+                else
+                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+
+                if (filePath is null)
                 {
                     bytesRead = 0;
                     return E_FAIL;
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEImage peimage = _dataTarget.LoadPEImage(filePath);
+                PEImage? peimage = _dataTarget.LoadPEImage(filePath);
                 if (peimage != null)
                 {
-                    Debug.Assert(peimage.IsValid);
+                    DebugOnly.Assert(peimage.IsValid);
                     int rva = checked((int)(address - info.ImageBase));
                     bytesRead = peimage.Read(rva, span);
                     return S_OK;
@@ -171,9 +196,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
-            if (_nextTLSValue.HasValue)
+            if (_nextTLSValue is ulong nextTLSValue)
             {
-                value = _nextTLSValue.Value;
+                value = nextTLSValue;
                 return S_OK;
             }
 
@@ -188,9 +213,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int GetCurrentThreadID(IntPtr self, out uint threadID)
         {
-            if (_nextThreadId.HasValue)
+            if (_nextThreadId is uint nextThreadId)
             {
-                threadID = _nextThreadId.Value;
+                threadID = nextThreadId;
                 return S_OK;
             }
 
@@ -206,7 +231,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return E_FAIL;
         }
-
 
         public int Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
         {
@@ -229,16 +253,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (buffer == IntPtr.Zero)
                 return E_INVALIDARG;
 
-            string filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
-            if (filePath == null)
+            string? filePath = _dataTarget.BinaryLocator.FindBinary(filename, imageTimestamp, imageSize, true);
+            if (filePath is null)
                 return E_FAIL;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEImage peimage = _dataTarget.LoadPEImage(filePath);
-            if (peimage == null)
+            PEImage? peimage = _dataTarget.LoadPEImage(filePath);
+            if (peimage is null || peimage.OptionalHeader is null)
                 return E_FAIL;
 
-            Debug.Assert(peimage.IsValid);
+            DebugOnly.Assert(peimage.IsValid);
 
             uint rva = mdRva;
             uint size = bufferSize;
@@ -258,7 +282,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (pDataSize != null)
                     *pDataSize = read;
             }
-            
+
             return S_OK;
         }
 

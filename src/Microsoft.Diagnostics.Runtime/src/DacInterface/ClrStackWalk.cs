@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -15,9 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
 
-        private RequestDelegate _request;
-        private NextDelegate _next;
-        private GetContextDelegate _getContext;
+        private RequestDelegate? _request;
+        private NextDelegate? _next;
+        private GetContextDelegate? _getContext;
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public bool GetContext(uint contextFlags, uint contextBufSize, out uint contextSize, byte[] buffer)
+        public bool GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
             InitDelegate(ref _getContext, VTable->GetContext);
 
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetContextDelegate(IntPtr self, uint contextFlags, uint contextBufSize, out uint contextSize, byte[] buffer);
+        private delegate int GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int NextDelegate(IntPtr self);

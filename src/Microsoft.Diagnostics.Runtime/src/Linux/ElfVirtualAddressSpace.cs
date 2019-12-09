@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
 
         done:
-            buffer.Slice(bytesRead, bytesRead - buffer.Length).Clear();
+            buffer.Slice(bytesRead).Clear();
             return bytesRead;
         }
     }

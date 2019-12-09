@@ -13,25 +13,50 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public static class Helpers
     {
-        public static IEnumerable<ulong> GetObjectsOfType(this ClrHeap heap, string name)
+        public static IEnumerable<ClrObject> GetObjectsOfType(this ClrHeap heap, string name)
         {
-            return from obj in heap.EnumerateObjectAddresses()
-                   let type = heap.GetObjectType(obj)
-                   where type?.Name == name
+            return from obj in heap.EnumerateObjects()
+                   where obj.Type?.Name == name
                    select obj;
+        }
+
+        public static IEnumerable<ClrType> EnumerateTypes(this ClrModule module)
+        {
+            ClrRuntime runtime = module.AppDomain.Runtime;
+            foreach ((ulong mt, uint _) in module.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType type = runtime.GetTypeByMethodTable(mt);
+                if (type != null)
+                    yield return type;
+            }
+
+        }
+
+        public static IEnumerable<ClrModule> EnumerateModules(this ClrRuntime runtime) => runtime.AppDomains.SelectMany(ad => ad.Modules);
+
+        public static ClrType GetTypeByName(this ClrModule module, string typeName)
+        {
+            ClrRuntime runtime = module.AppDomain.Runtime;
+            foreach ((ulong mt, uint _) in module.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType type = runtime.GetTypeByMethodTable(mt);
+                if (type.Name == typeName)
+                    return type;
+            }
+
+            return null;
         }
 
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
             ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
-            ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
-            return new ClrObject(obj, mainType.Heap.GetObjectType(obj));
+            return field.ReadObject();
         }
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)
         {
             // .NET Core SDK 3.x creates an executable host by default (FDE)
-            return runtime.Modules.Single(m => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            return runtime.AppDomains.SelectMany(ad => ad.Modules).Single(m => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? m.FileName.EndsWith(".exe") : File.Exists(Path.ChangeExtension(m.FileName, null)));
         }
 
@@ -61,10 +86,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrModule GetModule(this ClrRuntime runtime, string filename)
         {
-            return (from module in runtime.Modules
+            return (from module in runtime.AppDomains.SelectMany(ad => ad.Modules)
                     let file = Path.GetFileName(module.FileName)
                     where file.Equals(filename, StringComparison.OrdinalIgnoreCase)
-                    select module).Single();
+                    select module).FirstOrDefault();
         }
 
         public static ClrThread GetMainThread(this ClrRuntime runtime)
@@ -75,17 +100,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrStackFrame GetFrame(this ClrThread thread, string functionName)
         {
-            return thread.StackTrace.Single(sf => sf.Method != null ? sf.Method.Name == functionName : false);
+            return thread.EnumerateStackTrace().Single(sf => sf.Method != null ? sf.Method.Name == functionName : false);
         }
 
         public static string TestWorkingDirectory
         {
             get => _userSetWorkingPath ?? _workingPath.Value;
-            set
-            {
-                Debug.Assert(!_workingPath.IsValueCreated);
-                _userSetWorkingPath = value;
-            }
+            set => _userSetWorkingPath = value;
         }
 
         private static string _userSetWorkingPath;

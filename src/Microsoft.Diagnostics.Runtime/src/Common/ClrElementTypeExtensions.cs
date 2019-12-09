@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
                 || cet == ClrElementType.Object;
         }
 
-        public static Type GetTypeForElementType(this ClrElementType type)
+        public static Type? GetTypeForElementType(this ClrElementType type)
         {
             switch (type)
             {

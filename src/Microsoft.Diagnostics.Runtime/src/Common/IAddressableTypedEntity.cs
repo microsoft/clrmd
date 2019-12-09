@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents an addressable entity (class or struct) with associated type.
     /// <para>Allows locating field values by known names.</para>
     /// </summary>
-    public interface IAddressableTypedEntity: IEquatable<IAddressableTypedEntity>
+    public interface IAddressableTypedEntity : IEquatable<IAddressableTypedEntity>
     {
         /// <summary>
         /// Gets the address of this entity.
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type associated with this entity.
         /// </summary>
-        ClrType Type { get; }
+        ClrType? Type { get; }
 
         /// <summary>
         /// Gets the value of a primitive field (f.e. <see cref="int"/>, <see cref="bool"/>).
@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field to read value from.</param>
         /// <returns>The value of the field.</returns>
         /// <exception cref="ArgumentException">Thrown when field was not found by name.</exception>
-        T GetField<T>(string fieldName) where T : struct;
+        T GetField<T>(string fieldName) where T : unmanaged;
 
         /// <summary>
         /// Gets the <see cref="string"/> value from the entity field.
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="ArgumentException">Thrown when field was not found by name.</exception>
         /// <exception cref="InvalidOperationException">Thrown when found field has other type than <see cref="string"/>.</exception>
         /// <exception cref="MemoryReadException">Thrown when object reference could not be followed, or <see cref="string"/> could not be read.</exception>
-        string GetStringField(string fieldName);
+        string? GetStringField(string fieldName, int maxLength = 4096);
 
         /// <summary>
         /// Gets the struct field value from the entity field.

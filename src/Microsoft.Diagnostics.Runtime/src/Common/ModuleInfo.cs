@@ -3,46 +3,53 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Provides information about loaded modules in a DataTarget
+    /// Provides information about loaded modules in a DataTarget.
     /// </summary>
-    [Serializable]
     public class ModuleInfo
     {
+        private PEImage? _image;
+        private readonly IDataReader _dataReader;
+        private VersionInfo? _version;
+
         /// <summary>
         /// The base address of the object.
         /// </summary>
-        public virtual ulong ImageBase { get; set; }
+        public ulong ImageBase { get; }
 
         /// <summary>
-        /// The filesize of the image.
+        /// The file size of the image.
         /// </summary>
-        public virtual uint FileSize { get; set; }
+        public uint FileSize { get; }
 
         /// <summary>
         /// The build timestamp of the image.
         /// </summary>
-        public virtual uint TimeStamp { get; set; }
+        public uint TimeStamp { get; }
 
         /// <summary>
         /// The filename of the module on disk.
         /// </summary>
-        public virtual string FileName { get; set; }
+        public string? FileName { get; }
 
         /// <summary>
         /// Returns a PEImage from a stream constructed using instance fields of this object.
         /// If the PEImage cannot be constructed, null is returned.
         /// </summary>
         /// <returns></returns>
-        public PEImage GetPEImage()
+        public PEImage? GetPEImage()
         {
+            if (_image != null)
+                return _image;
+
             try
             {
-                return new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
+                return _image = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
             }
             catch
             {
@@ -53,66 +60,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
         /// </summary>
-        public byte[] BuildId { get; internal set; }
+        public IReadOnlyList<byte>? BuildId { get; }
 
         /// <summary>
         /// Whether the module is managed or not.
         /// </summary>
-        public virtual bool IsManaged
-        {
-            get
-            {
-                InitData();
-                return _managed;
-            }
+        public bool IsManaged => GetPEImage()?.IsManaged ?? false;
 
-            internal set => _managed = value;
-        }
-
-        /// <summary>
-        /// To string.
-        /// </summary>
-        /// <returns>The filename of the module.</returns>
-        public override string ToString()
-        {
-            return FileName;
-        }
+        public override string? ToString() => FileName;
 
         /// <summary>
         /// The PDB associated with this module.
         /// </summary>
-        public PdbInfo Pdb
-        {
-            get
-            {
-                InitData();
-                return _pdb;
-            }
-
-            set => _pdb = value;
-        }
-
-        private void InitData()
-        {
-            if (_initialized)
-                return;
-
-            _initialized = true;
-
-            if (_dataReader == null)
-                return;
-            
-            try
-            {
-                using ReadVirtualStream stream = new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize);
-                PEImage image = new PEImage(stream, isVirtual: true);
-                _managed = image.OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
-                _pdb = image.DefaultPdb;
-            }
-            catch
-            {
-            }
-        }
+        public PdbInfo? Pdb => GetPEImage()?.DefaultPdb;
 
         /// <summary>
         /// The version information for this file.
@@ -121,26 +81,16 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_versionInit || _dataReader == null)
-                    return _version;
+                if (_version is VersionInfo version)
+                {
+                    return version;
+                }
 
-                _dataReader.GetVersionInfo(ImageBase, out _version);
-                _versionInit = true;
-                return _version;
+                _dataReader.GetVersionInfo(ImageBase, out version);
+                _version = version;
+
+                return version;
             }
-
-            set
-            {
-                _version = value;
-                _versionInit = true;
-            }
-        }
-
-        /// <summary>
-        /// Empty constructor for serialization.
-        /// </summary>
-        public ModuleInfo()
-        {
         }
 
         /// <summary>
@@ -148,17 +98,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// lazily evaluating VersionInfo.
         /// </summary>
         /// <param name="reader"></param>
-        public ModuleInfo(IDataReader reader)
+        public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string? filename,
+            IReadOnlyList<byte>? buildId = null, VersionInfo? version = null)
         {
-            _dataReader = reader;
+            _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
+            ImageBase = imgBase;
+            FileSize = filesize;
+            TimeStamp = timestamp;
+            FileName = filename;
+            BuildId = buildId;
+            _version = version;
         }
-
-        [NonSerialized]
-        private readonly IDataReader _dataReader;
-        private PdbInfo _pdb;
-        private bool _initialized;
-        private bool _managed;
-        private VersionInfo _version;
-        private bool _versionInit;
     }
 }

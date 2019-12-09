@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -100,16 +101,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ProcessId => (uint)_pid;
 
-        public bool IsMinidump => false;
+        public bool IsThreadSafe => true;
 
+        public bool IsFullMemoryAvailable => true;
 
-
-        public void ClearCachedData()
+        public void FlushCachedData()
         {
         }
 
         public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
-        
+
         public int PointerSize => IntPtr.Size;
 
         public IList<ModuleInfo> EnumerateModules()
@@ -135,20 +136,13 @@ namespace Microsoft.Diagnostics.Runtime
 
                 StringBuilder sb = new StringBuilder(1024);
                 uint res = GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
-                Debug.Assert(res != 0);
+                DebugOnly.Assert(res != 0);
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
                 GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
 
                 string filename = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this)
-                {
-                    ImageBase = baseAddr,
-                    FileName = filename,
-                    FileSize = filesize,
-                    TimeStamp = timestamp
-                };
-
+                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, filename);
                 result.Add(module);
             }
 
@@ -159,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             StringBuilder filename = new StringBuilder(1024);
             uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), filename, filename.Capacity);
-            Debug.Assert(res != 0);
+            DebugOnly.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
@@ -173,7 +167,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 fixed (byte* ptr = buffer)
                 {
-                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out bytesRead);
+                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out IntPtr read);
+                    bytesRead = (int)read;
                     return res != 0;
                 }
             }
@@ -194,14 +189,36 @@ namespace Microsoft.Diagnostics.Runtime
             return buffer.AsPointer();
         }
 
-        public uint ReadDwordUnsafe(ulong addr)
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
-            Span<byte> buffer = stackalloc byte[4];
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
 
-            if (!ReadMemory(addr, buffer, out int read))
-                return 0;
+            value = default;
+            return false;
+        }
 
-            return buffer.AsUInt32();
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         public IEnumerable<uint> EnumerateAllThreads()
@@ -213,17 +230,17 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
         {
-            vq = new VirtualQueryData();
-
             MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
             IntPtr ptr = addr.AsIntPtr();
 
             int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
             if (res == 0)
+            {
+                vq = default;
                 return false;
+            }
 
-            vq.BaseAddress = mem.BaseAddress;
-            vq.Size = mem.Size;
+            vq = new VirtualQueryData(mem.BaseAddress, mem.Size);
             return true;
         }
 
@@ -233,7 +250,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (thread.IsInvalid)
                 return false;
 
-            fixed (byte *ptr = context)
+            fixed (byte* ptr = context)
                 return GetThreadContext(thread.DangerousGetHandle(), new IntPtr(ptr));
         }
 
@@ -255,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     // Ensure the module contains the magic "PE" value at the offset it says it does.  This check should
                     // never fail unless we have the wrong base address for CLR.
-                    Debug.Assert(header == 0x4550);
+                    DebugOnly.Assert(header == 0x4550);
                     if (header == 0x4550)
                     {
                         const int timeDataOffset = 4;
@@ -277,20 +294,19 @@ namespace Microsoft.Diagnostics.Runtime
         private static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport("psapi.dll", SetLastError = true)]
-        public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[] lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
+        public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
         [DllImport("psapi.dll", SetLastError = true)]
         [PreserveSig]
         public static extern uint GetModuleFileNameExA([In] IntPtr hProcess, [In] IntPtr hModule, [Out] StringBuilder lpFilename, [In][MarshalAs(UnmanagedType.U4)] int nSize);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
-            [Out]
             byte* lpBuffer,
             int dwSize,
-            out int lpNumberOfBytesRead);
+            out IntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, ref MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);

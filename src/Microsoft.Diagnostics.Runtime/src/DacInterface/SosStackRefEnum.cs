@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int ReadStackReferences(StackRefData[] stackRefs)
         {
-            if (stackRefs == null)
+            if (stackRefs is null)
                 throw new ArgumentNullException(nameof(stackRefs));
 
             int hr = _next(Self, stackRefs.Length, stackRefs, out int read);

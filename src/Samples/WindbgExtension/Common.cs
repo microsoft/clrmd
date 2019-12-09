@@ -46,7 +46,7 @@ namespace WindbgExtension
             //   1. Store a copy of IDebugClient in DebugClient.
             //   2. Replace Console's output stream to be the debugger window.
             //   3. Create an instance of DataTarget using the IDebugClient.
-            if (DebugClient == null)
+            if (DebugClient is null)
             {
                 object client = Marshal.GetUniqueObjectForIUnknown(ptrClient);
                 DebugClient = (IDebugClient)client;
@@ -61,7 +61,7 @@ namespace WindbgExtension
             // If our ClrRuntime instance is null, it means that this is our first call, or
             // that the dac wasn't loaded on any previous call.  Find the dac loaded in the
             // process (the user must use .cordll), then construct our runtime from it.
-            if (Runtime == null)
+            if (Runtime is null)
             {
                 // Just find a module named mscordacwks and assume it's the one the user
                 // loaded into windbg.
@@ -77,7 +77,7 @@ namespace WindbgExtension
                 }
 
                 // Otherwise, the user didn't run .cordll.
-                if (Runtime == null)
+                if (Runtime is null)
                 {
                     Console.WriteLine("Mscordacwks.dll not loaded into the debugger.");
                     Console.WriteLine("Run .cordll to load the dac before running this command.");
@@ -109,7 +109,7 @@ namespace WindbgExtension
             return (((Major) & 0xffff) << 16) | ((Minor) & 0xffff);
         }
     }
-    
+
     class DbgEngStream : Stream
     {
         public void Clear()

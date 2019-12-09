@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -25,12 +25,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        private DacGetMethodTableCollectibleData _getMethodTableCollectibleData;
+        private DacGetMethodTableCollectibleData? _getMethodTableCollectibleData;
 
-        public bool GetMethodTableCollectibleData(ulong addr, out MethodTableCollectibleData data)
+        public bool GetMethodTableCollectibleData(ulong mt, out MethodTableCollectibleData data)
         {
             InitDelegate(ref _getMethodTableCollectibleData, VTable->GetMethodTableCollectibleData);
-            int hr = _getMethodTableCollectibleData(Self, addr, out data);
+            int hr = _getMethodTableCollectibleData(Self, mt, out data);
             return SUCCEEDED(hr);
         }
 

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -34,6 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types"));
         private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains"));
         private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue"));
+        private static readonly Lazy<TestTarget> _spin = new Lazy<TestTarget>(() => new TestTarget("Spin"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
@@ -45,6 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget FinalizationQueue => _finalizationQueue.Value;
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
+        public static TestTarget Spin => _spin.Value;
     }
 
     public class TestTarget
@@ -85,17 +88,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        private static DataTarget LoadDump(string path) =>
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? DataTarget.LoadCrashDump(path)
-                : DataTarget.LoadCoreDump(path);
+        private static DataTarget LoadDump(string path)
+        {
+            DataTarget dt = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? DataTarget.LoadCrashDump(path) : DataTarget.LoadCoreDump(path);
+            dt.BinaryLocator = new SymbolServerLocator("");
+            return dt;
+        }
 
-        private string BuildDumpName(GCMode gcmode, bool full)
+
+        public string BuildDumpName(GCMode gcmode, bool full)
         {
             string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
-            string dumpType = full ? "" : "_mini";
+            string dumpType = full ? string.Empty : "_mini";
             filename = $"{filename}_{gc}{dumpType}.dmp";
             return filename;
         }

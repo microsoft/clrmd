@@ -8,10 +8,11 @@ using System.Diagnostics;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an instance of a type which inherits from System.ValueClass
+    /// Represents an instance of a type which inherits from System.ValueClass.
     /// </summary>
     public struct ClrValueClass : IAddressableTypedEntity
     {
+        private IDataReader DataReader => GetTypeOrThrow().ClrObjectHelpers.DataReader;
         private readonly bool _interior;
 
         /// <summary>
@@ -30,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
             Type = type;
             _interior = interior;
 
-            Debug.Assert(type.IsValueClass);
+            DebugOnly.Assert(type.IsValueClass);
         }
 
         /// <summary>
@@ -41,8 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A ClrObject of the given field.</returns>
         public ClrObject GetObjectField(string fieldName)
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsObjectReference)
@@ -51,11 +52,10 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = Type.Heap;
 
             ulong addr = field.GetAddress(Address, _interior);
-            if (!heap.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 throw new MemoryReadException(addr);
 
-            ClrType type = heap.GetObjectType(obj);
-            return new ClrObject(obj, type);
+            return heap.GetObject(obj);
         }
 
         /// <summary>
@@ -66,13 +66,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of this field.</returns>
         public T GetField<T>(string fieldName)
-            where T : struct
+            where T : unmanaged
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
-            object value = field.GetValue(Address, _interior);
+            object value = field.Read<T>(Address, _interior);
             return (T)value;
         }
 
@@ -82,14 +82,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrValueClass GetValueClassField(string fieldName)
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueClass)
                 throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
-            if (field.Type == null)
+            if (field.Type is null)
                 throw new Exception("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address, _interior);
@@ -106,27 +106,23 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
-        public string GetStringField(string fieldName)
+        public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            RuntimeBase runtime = (RuntimeBase)Type.Heap.Runtime;
-
-            if (!runtime.ReadPointer(address, out ulong str))
+            if (!DataReader.ReadPointer(address, out ulong str))
                 throw new MemoryReadException(address);
 
             if (str == 0)
                 return null;
 
-            if (!runtime.ReadString(str, out string result))
-                throw new MemoryReadException(str);
-
-            return result;
+            ClrObject obj = new ClrObject(str, Type.Heap.StringType);
+            return obj.AsString(maxLength);
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
-            ClrInstanceField field = Type.GetFieldByName(fieldName);
-            if (field == null)
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
             if (field.ElementType != element)
@@ -138,5 +134,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool Equals(IAddressableTypedEntity other)
             => other != null && Address == other.Address && Type == other.Type;
+
+        private ClrType GetTypeOrThrow()
+        {
+            if (Type == null)
+                throw new InvalidOperationException($"Unknown type of value at {Address:x}.");
+
+            return Type!;
+        }
     }
 }

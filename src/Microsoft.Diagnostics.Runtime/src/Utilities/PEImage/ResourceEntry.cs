@@ -1,9 +1,11 @@
-﻿using System;
-using System.Buffers;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -14,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public class ResourceEntry
     {
         private static readonly ResourceEntry[] s_emptyChildren = Array.Empty<ResourceEntry>();
-        private ResourceEntry[] _children;
+        private ResourceEntry[]? _children;
         private readonly int _offset;
 
         /// <summary>
@@ -25,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The parent resource of this ResourceEntry.  Null if and only if this is the root node.
         /// </summary>
-        public ResourceEntry Parent { get; }
+        public ResourceEntry? Parent { get; }
 
         /// <summary>
         /// Resource Name.  May be null if this is the root node.
@@ -36,6 +38,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Returns true if this is a leaf, and contains data.
         /// </summary>
         public bool IsLeaf { get; }
+
+        /// <summary>
+        /// Returns the size of data for this node.
+        /// </summary>
+        public int Size
+        {
+            get
+            {
+                GetDataVaAndSize(out _, out int size);
+                return size;
+            }
+        }
 
         /// <summary>
         /// The number of children this entry contains.
@@ -61,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public IReadOnlyList<ResourceEntry> Children => GetChildren();
 
-        internal ResourceEntry(PEImage image, ResourceEntry parent, string name, bool leaf, int offset)
+        internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {
             Image = image;
             Parent = parent;
@@ -152,7 +166,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void GetDataVaAndSize(out int va, out int size)
         {
-
             IMAGE_RESOURCE_DATA_ENTRY dataEntry = Image.Read<IMAGE_RESOURCE_DATA_ENTRY>(_offset);
             va = dataEntry.RvaToData;
             size = dataEntry.Size;

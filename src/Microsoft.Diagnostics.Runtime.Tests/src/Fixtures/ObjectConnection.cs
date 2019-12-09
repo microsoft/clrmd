@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
     public abstract class ObjectConnection<T> : IDisposable
         where T : new()
     {
-        protected ObjectConnection(TestTarget testTarget, Type type): this(testTarget, type.Name)
+        protected ObjectConnection(TestTarget testTarget, Type type) : this(testTarget, type.Name)
         {
         }
 
@@ -41,12 +41,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
 
         private ClrObject FindFirstInstanceOfType(ClrHeap heap, string typeName)
         {
-            var type = heap.GetTypeByName(typeName);
+            ClrObject obj = heap.EnumerateObjects().FirstOrDefault(o => o.Type.Name == typeName);
 
-            if (type is null)
+            if (obj.IsNull)
                 throw new InvalidOperationException($"Could not find {typeName} in {TestTarget.Source} source.");
 
-            return new ClrObject(heap.GetObjectsOfType(typeName).First(), type);
+            return obj;
         }
 
         void IDisposable.Dispose() => DataTarget?.Dispose();

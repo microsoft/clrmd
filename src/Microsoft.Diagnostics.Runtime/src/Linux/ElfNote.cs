@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
         private readonly long _position;
-        private string _name;
+        private string? _name;
 
         public ElfNoteHeader Header { get; }
 
@@ -39,7 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
             return _reader.ReadBytes(position + contentsoffset, buffer);
         }
-
 
         public T ReadContents<T>(ref long position)
             where T : unmanaged

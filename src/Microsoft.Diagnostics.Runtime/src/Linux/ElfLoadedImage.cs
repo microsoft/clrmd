@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -26,16 +26,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             Path = path;
         }
 
-        public ElfFile Open()
+        public ElfFile? Open()
         {
-            IElfHeader header;
+            IElfHeader? header;
 
             if (_is64bit)
                 header = _vaReader.TryRead<ElfHeader64>(BaseAddress);
-            else 
+            else
                 header = _vaReader.TryRead<ElfHeader32>(BaseAddress);
 
-            if (header == null || !header.IsValid)
+            if (header is null || !header.IsValid)
                 return null;
 
             return new ElfFile(header, _vaReader, BaseAddress, true);

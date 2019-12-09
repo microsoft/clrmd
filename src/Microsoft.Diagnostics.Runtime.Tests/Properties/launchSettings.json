@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Microsoft.Diagnostics.Runtime.Tests": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

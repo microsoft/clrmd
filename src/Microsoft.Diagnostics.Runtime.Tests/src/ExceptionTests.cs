@@ -13,15 +13,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ExceptionPropertyTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             TestProperties(runtime);
         }
 
         internal static void TestProperties(ClrRuntime runtime)
         {
             ClrThread thread = runtime.GetMainThread();
-            ClrException ex = thread.CurrentException;
-            Assert.NotNull(ex);
+            ClrException? exNullable = thread.CurrentException;
+            Assert.NotNull(exNullable);
+
+            ClrException ex = exNullable.GetValueOrDefault();
 
             ExceptionTestData testData = TestTargets.NestedExceptionData;
             Assert.Equal(testData.OuterExceptionMessage, ex.Message);

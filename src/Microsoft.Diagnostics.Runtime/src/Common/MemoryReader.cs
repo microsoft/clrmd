@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return MisalignedRead(addr, out value);
 
             // If MoveToPage succeeds, we MUST be on the right page.
-            Debug.Assert(addr >= _currPageStart);
+            DebugOnly.Assert(addr >= _currPageStart);
 
             // However, the amount of data requested may fall off of the page.  In that case,
             // fall back to MisalignedRead.
@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return MisalignedRead(addr, out value);
 
             // If MoveToPage succeeds, we MUST be on the right page.
-            Debug.Assert(addr >= _currPageStart);
+            DebugOnly.Assert(addr >= _currPageStart);
 
             // However, the amount of data requested may fall off of the page.  In that case,
             // fall back to MisalignedRead.

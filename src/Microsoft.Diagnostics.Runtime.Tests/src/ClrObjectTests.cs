@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void GetField_WhenBool_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             var prototype = _connection.Prototype;
-            
+
             // Act
             bool actual = _primitiveCarrier.GetField<bool>(nameof(prototype.TrueBool));
 
@@ -56,44 +56,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(prototype.SomeEnum, enumValue);
         }
 
-        [Fact]
-        public void GetField_WhenDateTime_ThrowsException()
-        {
-            // Arrange
-            var prototype = _connection.Prototype;
-
-            // Act
-            void readDateTime() => _primitiveCarrier.GetField<DateTime>(nameof(prototype.Birthday));
-
-            // Assert
-            Assert.ThrowsAny<Exception>(readDateTime);
-        }
-
-        [Fact]
-        public void GetField_WhenGuid_ThrowsException()
-        {
-            // Arrange
-            var prototype = _connection.Prototype;
-
-            // Act
-            void readGuid() => _primitiveCarrier.GetField<Guid>(nameof(prototype.SampleGuid));
-
-            // Assert
-            Assert.ThrowsAny<Exception>(readGuid);
-        }
-
-        [Fact]
-        public void GetField_WhenTargetTypeMismatch_ThrowsException()
-        {
-            // Arrange
-            var prototype = _connection.Prototype;
-
-            // Act
-            void readingPointerAsBool() => _primitiveCarrier.GetField<bool>(nameof(prototype.SamplePointer));
-
-            // Assert
-            Assert.ThrowsAny<Exception>(readingPointerAsBool);
-        }
 
         [Fact]
         public void GetStringField_WhenStringField_ReturnsPointerToObject()

@@ -4,24 +4,13 @@
 
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-
-#pragma warning disable IDE0051 // Remove unused private members
-
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal struct SigParser
+    public unsafe struct SigParser
     {
-        private byte[] _sig;
+        private byte* _sig;
         private int _len;
         private int _offs;
-
-        public SigParser(byte[] sig, int len)
-        {
-            _sig = sig;
-            _len = len;
-            _offs = 0;
-        }
 
         public SigParser(SigParser rhs)
         {
@@ -34,8 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (len != 0)
             {
-                _sig = new byte[len];
-                Marshal.Copy(sig, _sig, 0, _sig.Length);
+                _sig = (byte*)sig.ToPointer();
             }
             else
             {
@@ -48,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool IsNull()
         {
-            return _sig == null;
+            return _sig is null;
         }
 
         private void CopyFrom(SigParser rhs)
@@ -60,10 +48,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void SkipBytes(int bytes)
         {
-            Debug.Assert(bytes <= _len);
+            DebugOnly.Assert(bytes <= _len);
             _offs += bytes;
             _len -= bytes;
-            Debug.Assert(_len <= 0 || _offs < _sig.Length);
         }
 
         private bool SkipInt()
@@ -263,8 +250,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return true;
-
-            ;
         }
 
         private bool AtSentinel()
@@ -296,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
-            while (ELEMENT_TYPE_CMOD_REQD == bElementType || ELEMENT_TYPE_CMOD_OPT == bElementType)
+            while (bElementType == ELEMENT_TYPE_CMOD_REQD || bElementType == ELEMENT_TYPE_CMOD_OPT)
             {
                 sigTemp.SkipBytes(1);
                 if (!sigTemp.GetToken(out _))
@@ -332,10 +317,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
-            while (ELEMENT_TYPE_CMOD_REQD == bElementType ||
-                ELEMENT_TYPE_CMOD_OPT == bElementType ||
-                ELEMENT_TYPE_MODIFIER == bElementType ||
-                ELEMENT_TYPE_PINNED == bElementType)
+            while (bElementType == ELEMENT_TYPE_CMOD_REQD ||
+                bElementType == ELEMENT_TYPE_CMOD_OPT ||
+                bElementType == ELEMENT_TYPE_MODIFIER ||
+                bElementType == ELEMENT_TYPE_PINNED)
             {
                 sigTemp.SkipBytes(1);
 
@@ -531,7 +516,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private byte GetSig(int offs)
         {
-            Debug.Assert(offs < _len);
+            DebugOnly.Assert(offs < _len);
             return _sig[_offs + offs];
         }
 
@@ -598,36 +583,36 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
 #pragma warning disable CA1823
-        private const int mdtModule = 0x00000000; //
-        private const int mdtTypeRef = 0x01000000; //
-        private const int mdtTypeDef = 0x02000000; //
-        private const int mdtFieldDef = 0x04000000; //
-        private const int mdtMethodDef = 0x06000000; //
-        private const int mdtParamDef = 0x08000000; //
-        private const int mdtInterfaceImpl = 0x09000000; //
-        private const int mdtMemberRef = 0x0a000000; //
-        private const int mdtCustomAttribute = 0x0c000000; //
-        private const int mdtPermission = 0x0e000000; //
-        private const int mdtSignature = 0x11000000; //
-        private const int mdtEvent = 0x14000000; //
-        private const int mdtProperty = 0x17000000; //
-        private const int mdtMethodImpl = 0x19000000; //
-        private const int mdtModuleRef = 0x1a000000; //
-        private const int mdtTypeSpec = 0x1b000000; //
-        private const int mdtAssembly = 0x20000000; //
-        private const int mdtAssemblyRef = 0x23000000; //
-        private const int mdtFile = 0x26000000; //
-        private const int mdtExportedType = 0x27000000; //
-        private const int mdtManifestResource = 0x28000000; //
-        private const int mdtGenericParam = 0x2a000000; //
-        private const int mdtMethodSpec = 0x2b000000; //
+        private const int mdtModule = 0x00000000;
+        private const int mdtTypeRef = 0x01000000;
+        private const int mdtTypeDef = 0x02000000;
+        private const int mdtFieldDef = 0x04000000;
+        private const int mdtMethodDef = 0x06000000;
+        private const int mdtParamDef = 0x08000000;
+        private const int mdtInterfaceImpl = 0x09000000;
+        private const int mdtMemberRef = 0x0a000000;
+        private const int mdtCustomAttribute = 0x0c000000;
+        private const int mdtPermission = 0x0e000000;
+        private const int mdtSignature = 0x11000000;
+        private const int mdtEvent = 0x14000000;
+        private const int mdtProperty = 0x17000000;
+        private const int mdtMethodImpl = 0x19000000;
+        private const int mdtModuleRef = 0x1a000000;
+        private const int mdtTypeSpec = 0x1b000000;
+        private const int mdtAssembly = 0x20000000;
+        private const int mdtAssemblyRef = 0x23000000;
+        private const int mdtFile = 0x26000000;
+        private const int mdtExportedType = 0x27000000;
+        private const int mdtManifestResource = 0x28000000;
+        private const int mdtGenericParam = 0x2a000000;
+        private const int mdtMethodSpec = 0x2b000000;
         private const int mdtGenericParamConstraint = 0x2c000000;
 
-        private const int mdtString = 0x70000000; //
-        private const int mdtName = 0x71000000; //
+        private const int mdtString = 0x70000000;
+        private const int mdtName = 0x71000000;
         private const int mdtBaseType = 0x72000000; // Leave this on the high end value. This does not correspond to metadata table
 
-        private static readonly int[] s_tkCorEncodeToken = {mdtTypeDef, mdtTypeRef, mdtTypeSpec, mdtBaseType};
+        private static readonly int[] s_tkCorEncodeToken = { mdtTypeDef, mdtTypeRef, mdtTypeSpec, mdtBaseType };
 
         private const int IMAGE_CEE_CS_CALLCONV_DEFAULT = 0x0;
 

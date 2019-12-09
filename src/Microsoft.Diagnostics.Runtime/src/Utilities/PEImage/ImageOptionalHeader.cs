@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -10,11 +14,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly bool _32bit;
         private readonly IMAGE_OPTIONAL_HEADER_AGNOSTIC _optional;
         private readonly Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> _specific;
-        private readonly Lazy<Interop.IMAGE_DATA_DIRECTORY[]> _directories;
+        private readonly Lazy<IMAGE_DATA_DIRECTORY[]> _directories;
 
         private IMAGE_OPTIONAL_HEADER_SPECIFIC OptionalSpecific => _specific.Value;
 
-        internal ImageOptionalHeader(ref IMAGE_OPTIONAL_HEADER_AGNOSTIC optional, Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> specific, Lazy<Interop.IMAGE_DATA_DIRECTORY[]> directories, bool is32bit)
+        internal ImageOptionalHeader(ref IMAGE_OPTIONAL_HEADER_AGNOSTIC optional, Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> specific, Lazy<IMAGE_DATA_DIRECTORY[]> directories, bool is32bit)
         {
             _optional = optional;
             _specific = specific;
@@ -58,20 +62,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public uint LoaderFlags => OptionalSpecific.LoaderFlags;
         public uint NumberOfRvaAndSizes => OptionalSpecific.NumberOfRvaAndSizes;
 
-        public Interop.IMAGE_DATA_DIRECTORY ExportDirectory => _directories.Value[0];
-        public Interop.IMAGE_DATA_DIRECTORY ImportDirectory => _directories.Value[1];
-        public Interop.IMAGE_DATA_DIRECTORY ResourceDirectory => _directories.Value[2];
-        public Interop.IMAGE_DATA_DIRECTORY ExceptionDirectory => _directories.Value[3];
-        public Interop.IMAGE_DATA_DIRECTORY CertificatesDirectory => _directories.Value[4];
-        public Interop.IMAGE_DATA_DIRECTORY BaseRelocationDirectory => _directories.Value[5];
-        public Interop.IMAGE_DATA_DIRECTORY DebugDirectory => _directories.Value[6];
-        public Interop.IMAGE_DATA_DIRECTORY ArchitectureDirectory => _directories.Value[7];
-        public Interop.IMAGE_DATA_DIRECTORY GlobalPointerDirectory => _directories.Value[8];
-        public Interop.IMAGE_DATA_DIRECTORY ThreadStorageDirectory => _directories.Value[9];
-        public Interop.IMAGE_DATA_DIRECTORY LoadConfigurationDirectory => _directories.Value[10];
-        public Interop.IMAGE_DATA_DIRECTORY BoundImportDirectory => _directories.Value[11];
-        public Interop.IMAGE_DATA_DIRECTORY ImportAddressTableDirectory => _directories.Value[12];
-        public Interop.IMAGE_DATA_DIRECTORY DelayImportDirectory => _directories.Value[13];
-        public Interop.IMAGE_DATA_DIRECTORY ComDescriptorDirectory => _directories.Value[14];
+        public IMAGE_DATA_DIRECTORY ExportDirectory => _directories.Value[0];
+        public IMAGE_DATA_DIRECTORY ImportDirectory => _directories.Value[1];
+        public IMAGE_DATA_DIRECTORY ResourceDirectory => _directories.Value[2];
+        public IMAGE_DATA_DIRECTORY ExceptionDirectory => _directories.Value[3];
+        public IMAGE_DATA_DIRECTORY CertificatesDirectory => _directories.Value[4];
+        public IMAGE_DATA_DIRECTORY BaseRelocationDirectory => _directories.Value[5];
+        public IMAGE_DATA_DIRECTORY DebugDirectory => _directories.Value[6];
+        public IMAGE_DATA_DIRECTORY ArchitectureDirectory => _directories.Value[7];
+        public IMAGE_DATA_DIRECTORY GlobalPointerDirectory => _directories.Value[8];
+        public IMAGE_DATA_DIRECTORY ThreadStorageDirectory => _directories.Value[9];
+        public IMAGE_DATA_DIRECTORY LoadConfigurationDirectory => _directories.Value[10];
+        public IMAGE_DATA_DIRECTORY BoundImportDirectory => _directories.Value[11];
+        public IMAGE_DATA_DIRECTORY ImportAddressTableDirectory => _directories.Value[12];
+        public IMAGE_DATA_DIRECTORY DelayImportDirectory => _directories.Value[13];
+        public IMAGE_DATA_DIRECTORY ComDescriptorDirectory => _directories.Value[14];
     }
 }

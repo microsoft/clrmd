@@ -2,11 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -16,10 +13,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly long _position;
         private readonly bool _virtual;
 
-        private Reader _virtualAddressReader;
-        private ElfNote[] _notes;
-        private ElfProgramHeader[] _programHeaders;
-        private byte[] _buildId;
+        private Reader? _virtualAddressReader;
+        private ElfNote[]? _notes;
+        private ElfProgramHeader[]? _programHeaders;
+        private byte[]? _buildId;
 
         public IElfHeader Header { get; }
 
@@ -28,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 LoadNotes();
-                return _notes;
+                return _notes!;
             }
         }
         public IReadOnlyList<ElfProgramHeader> ProgramHeaders
@@ -36,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 LoadProgramHeaders();
-                return _programHeaders;
+                return _programHeaders!;
             }
         }
 
@@ -45,11 +42,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 CreateVirtualAddressReader();
-                return _virtualAddressReader;
+                return _virtualAddressReader!;
             }
         }
 
-        public byte[] BuildId
+        public byte[]? BuildId
         {
             get
             {
@@ -74,32 +71,33 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     {
                     }
                 }
+
                 return null;
             }
         }
 
-        public ElfFile(Reader reader, long position = 0, bool virt = false)
+        public ElfFile(Reader reader, long position = 0, bool isVirtual = false)
         {
             _reader = reader;
             _position = position;
-            _virtual = virt;
+            _virtual = isVirtual;
 
-            if (virt)
+            if (isVirtual)
                 _virtualAddressReader = reader;
 
             ElfHeaderCommon common = reader.Read<ElfHeaderCommon>(position);
-            Header = common.GetHeader(reader, position);
-            if (Header == null)
+            Header = common.GetHeader(reader, position)!;
+            if (Header is null)
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
-        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool virt = false)
+        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool isVirtual = false)
         {
             _reader = reader;
             _position = position;
-            _virtual = virt;
+            _virtual = isVirtual;
 
-            if (virt)
+            if (isVirtual)
                 _virtualAddressReader = reader;
 
             Header = header;
@@ -107,10 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void CreateVirtualAddressReader()
         {
-            if (_virtualAddressReader != null)
-                return;
-
-            _virtualAddressReader = new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
+            _virtualAddressReader ??= new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
         }
 
         private void LoadNotes()
@@ -121,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             LoadProgramHeaders();
 
             List<ElfNote> notes = new List<ElfNote>();
-            foreach (ElfProgramHeader programHeader in _programHeaders)
+            foreach (ElfProgramHeader programHeader in _programHeaders!)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Note)
                 {
@@ -149,6 +144,5 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (int i = 0; i < _programHeaders.Length; i++)
                 _programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
         }
-
     }
 }

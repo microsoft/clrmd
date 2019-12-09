@@ -2,33 +2,33 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
+using System.Collections.Generic;
 
 #pragma warning disable 0618
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the dac dll
+    /// Represents the dac dll.
     /// </summary>
-    [Serializable]
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// The platform-agnostic filename of the dac dll
+        /// The platform-agnostic filename of the dac dll.
         /// </summary>
-        public string PlatformAgnosticFileName { get; set; }
+        public string PlatformAgnosticFileName { get; }
 
         /// <summary>
-        /// The architecture (x86 or amd64) being targeted
+        /// The architecture (x86 or amd64) being targeted.
         /// </summary>
-        public Architecture TargetArchitecture { get; set; }
+        public Architecture TargetArchitecture { get; }
 
         /// <summary>
-        /// Constructs a DacInfo object with the appropriate properties initialized
+        /// Constructs a DacInfo object with the appropriate properties initialized.
         /// </summary>
-        public DacInfo(IDataReader reader, string agnosticName, Architecture targetArch)
-            : base(reader)
+        public DacInfo(IDataReader reader, string agnosticName, Architecture targetArch, ulong imgBase,
+                        uint filesize, uint timestamp, string filename, VersionInfo version, IReadOnlyList<byte>? buildId = null)
+            : base(reader, imgBase, filesize, timestamp, filename, buildId, version)
         {
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;

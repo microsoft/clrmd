@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 //                                            /
 // SingleRef -- object[] -- DoubleRef -- TripleRef -- SingleRef -- TargetType
 //                              \           / \           /
-//                                SingleRef     SingleRef 
+//                                SingleRef     SingleRef
 class GCRootTarget
 {
     static object TheRoot;

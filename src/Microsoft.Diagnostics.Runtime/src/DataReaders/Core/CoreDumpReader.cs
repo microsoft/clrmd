@@ -4,8 +4,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -16,13 +17,13 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly string _source;
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
-        private Dictionary<uint, IElfPRStatus> _threads;
-        private List<ModuleInfo> _modules;
+        private Dictionary<uint, IElfPRStatus>? _threads;
+        private List<ModuleInfo>? _modules;
 
         public CoreDumpReader(string filename)
         {
             _source = filename;
-            _stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            _stream = File.OpenRead(filename);
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
@@ -53,7 +54,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public bool IsMinidump => false; // TODO
+        public bool IsThreadSafe => false;
+        public bool IsFullMemoryAvailable => true; // TODO
 
         public void Dispose()
         {
@@ -74,51 +76,45 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<uint> EnumerateAllThreads()
         {
             InitThreads();
-            return _threads.Keys;
+            return _threads!.Keys;
         }
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            if (_modules == null)
+            if (_modules is null)
             {
-                // Need to filter out non-modules like the interpreter (named something 
-                // like "ld-2.23") and anything that starts with /dev/ because their 
+                // Need to filter out non-modules like the interpreter (named something
+                // like "ld-2.23") and anything that starts with /dev/ because their
                 // memory range overlaps with actual modules.
                 ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 
                 _modules = new List<ModuleInfo>(_core.LoadedImages.Count);
-                foreach (ElfLoadedImage img in _core.LoadedImages)
-                    if ((ulong)img.BaseAddress != interpreter && !img.Path.StartsWith("/dev"))
-                        _modules.Add(CreateModuleInfo(img));
+                foreach (ElfLoadedImage image in _core.LoadedImages)
+                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev"))
+                        _modules.Add(CreateModuleInfo(image));
             }
 
             return _modules;
         }
 
-        private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
+        private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
-            ElfFile file = img.Open();
+            ElfFile? file = image.Open();
 
-            ModuleInfo result = new ModuleInfo
-            {
-                FileName = img.Path,
-                FileSize = (uint)img.Size,
-                ImageBase = (ulong)img.BaseAddress,
-                BuildId = file?.BuildId,
-                IsManaged = file == null
-            };
+            uint filesize = (uint)image.Size;
+            uint timestamp = 0;
 
-            if (result.IsManaged)
+            if (file is null)
             {
-                PEImage pe = img.OpenAsPEImage();
-                result.FileSize = (uint)pe.IndexFileSize;
-                result.TimeStamp = (uint)pe.IndexTimeStamp;
+                PEImage pe = image.OpenAsPEImage();
+                filesize = (uint)pe.IndexFileSize;
+                timestamp = (uint)pe.IndexTimeStamp;
             }
 
-            return result;
+            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId);
         }
 
-        public void ClearCachedData()
+        public void FlushCachedData()
         {
             _threads = null;
             _modules = null;
@@ -132,28 +128,20 @@ namespace Microsoft.Diagnostics.Runtime
         {
             InitThreads();
 
-            if (_threads.TryGetValue(threadID, out IElfPRStatus status))
+            if (_threads!.TryGetValue(threadID, out IElfPRStatus status))
                 return status.CopyContext(contextFlags, context);
 
             return false;
         }
 
-        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            // TODO
-            Debug.WriteLine($"GetVersionInfo not yet implemented: addr={baseAddress:x}");
-            version = new VersionInfo();
-        }
-
-        public uint ReadDwordUnsafe(ulong addr)
-        {
-            Span<byte> buffer = stackalloc byte[4];
-
-            int read = _core.ReadMemory((long)addr, buffer);
-            if (read == 4)
-                return buffer.AsUInt32();
-
-            return 0;
+            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
+            ElfFile? file = image.Open();
+            if (file is null)
+                version = default;
+            else
+                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
 
         public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
@@ -170,6 +158,38 @@ namespace Microsoft.Diagnostics.Runtime
                 return buffer.AsPointer();
 
             return 0;
+        }
+
+        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        {
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (!ReadMemory(addr, buffer, out _))
+            {
+                value = Unsafe.As<byte, T>(ref buffer[0]);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        {
+            Read(addr, out T value);
+            return value;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[IntPtr.Size];
+            if (!ReadMemory(address, buffer, out _))
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         public bool VirtualQuery(ulong address, out VirtualQueryData vq)

@@ -8,7 +8,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    class ReaderStream : Stream
+    internal class ReaderStream : Stream
     {
         private readonly Reader _reader;
         private readonly long _baseAddress;
@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 throw new NotImplementedException();
 
             int read = _reader.ReadBytes(_baseAddress + _position, new Span<byte>(buffer, 0, count));
-            Debug.Assert(read >= 0);
+            DebugOnly.Assert(read >= 0);
             _position += read;
 
             return read;
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _position = offset;
             else if (origin == SeekOrigin.Current)
                 _position += offset;
-            else 
+            else
                 throw new InvalidOperationException();
 
             return _position;

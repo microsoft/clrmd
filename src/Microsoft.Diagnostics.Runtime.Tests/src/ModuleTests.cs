@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void TestGetTypeByName()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ClrModule shared = runtime.GetModule("sharedlibrary.dll");
@@ -23,6 +23,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule types = runtime.GetModule(TypeTests.ModuleName);
             Assert.NotNull(types.GetTypeByName("Types"));
             Assert.Null(types.GetTypeByName("Foo"));
+        }
+
+        [Fact]
+        public void ModuleEqualityTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule[] oldModules = runtime.EnumerateModules().ToArray();
+            Assert.NotEmpty(oldModules);
+
+            runtime.FlushCachedData();
+
+            ClrModule[] newModules = runtime.EnumerateModules().ToArray();
+            Assert.Equal(oldModules.Length, newModules.Length);
+
+            for (int i = 0; i < newModules.Length; i++)
+            {
+                Assert.Equal(oldModules[i], newModules[i]);
+                Assert.NotSame(oldModules[i], newModules[i]);
+            }
         }
     }
 }

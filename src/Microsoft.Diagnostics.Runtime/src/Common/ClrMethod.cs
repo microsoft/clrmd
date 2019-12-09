@@ -20,26 +20,15 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong MethodDesc { get; }
 
         /// <summary>
-        /// Enumerates all method descs for this method in the process.  MethodDescs
-        /// are unique to an Method/AppDomain pair, so when there are multiple domains
-        /// there will be multiple MethodDescs for a method.
-        /// </summary>
-        /// <returns>
-        /// An enumeration of method handles in the process for this given
-        /// method.
-        /// </returns>
-        public abstract IEnumerable<ulong> EnumerateMethodDescs();
-
-        /// <summary>
         /// The name of the method.  For example, "void System.Foo.Bar(object o, int i)" would return "Bar".
         /// </summary>
-        public abstract string Name { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
         /// Returns the full signature of the function.  For example, "void System.Foo.Bar(object o, int i)"
         /// would return "System.Foo.Bar(System.Object, System.Int32)"
         /// </summary>
-        public abstract string GetFullSignature();
+        public abstract string? Signature { get; }
 
         /// <summary>
         /// Returns the instruction pointer in the target process for the start of the method's assembly.
@@ -56,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the location in memory of the IL for this method.
         /// </summary>
-        public abstract ILInfo IL { get; }
+        public abstract ILInfo? IL { get; }
 
         /// <summary>
         /// Returns the regions of memory that
@@ -71,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the IL to native offset mapping.
         /// </summary>
-        public abstract ILToNativeMap[] ILOffsetMap { get; }
+        public abstract IReadOnlyList<ILToNativeMap>? ILOffsetMap { get; }
 
         /// <summary>
         /// Returns the metadata token of the current method.
@@ -109,18 +98,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns if this method is static.
         /// </summary>
         public abstract bool IsStatic { get; }
+
         /// <summary>
         /// Returns if this method is final.
         /// </summary>
         public abstract bool IsFinal { get; }
+
         /// <summary>
         /// Returns if this method is a PInvoke.
         /// </summary>
         public abstract bool IsPInvoke { get; }
+
         /// <summary>
         /// Returns if this method is a special method.
         /// </summary>
         public abstract bool IsSpecialName { get; }
+
         /// <summary>
         /// Returns if this method is runtime special method.
         /// </summary>
@@ -130,15 +123,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns if this method is virtual.
         /// </summary>
         public abstract bool IsVirtual { get; }
+
         /// <summary>
         /// Returns if this method is abstract.
         /// </summary>
         public abstract bool IsAbstract { get; }
-
-        /// <summary>
-        /// Returns the location of the GCInfo for this method.
-        /// </summary>
-        public abstract ulong GCInfo { get; }
 
         /// <summary>
         /// Returns whether this method is an instance constructor.
@@ -149,5 +138,39 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns whether this method is a static constructor.
         /// </summary>
         public virtual bool IsClassConstructor => Name == ".cctor";
+
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is ClrMethod method)
+            {
+                if (MethodDesc == method.MethodDesc)
+                    return true;
+
+                // MethodDesc shouldn't be 0, but we should check the other way equality mechanism anyway.
+                if (MethodDesc == 0 && Type == method.Type && MetadataToken == method.MetadataToken)
+                    return true;
+
+                // Fall back to reference equality
+                return base.Equals(obj);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode() => MethodDesc.GetHashCode();
+
+        public static bool operator ==(ClrMethod? left, ClrMethod? right)
+        {
+            if (left is null)
+                return right is null;
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(ClrMethod? left, ClrMethod? right)
+        {
+            return !(left == right);
+        }
     }
 }

@@ -10,9 +10,14 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrField
     {
         /// <summary>
+        /// The ClrType containing this field.
+        /// </summary>
+        public abstract ClrType Parent { get; }
+
+        /// <summary>
         /// The name of the field.
         /// </summary>
-        public abstract string Name { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
         /// Returns the type token of this field.
@@ -89,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns a string representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
-        public override string ToString()
+        public override string? ToString()
         {
             ClrType type = Type;
             if (type != null)

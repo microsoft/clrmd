@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         public ElfSignalInfo SignalInfo;
         public short CurrentSignal;
-        readonly ushort Padding;
+        private readonly ushort Padding;
         public uint SignalsPending;
         public uint SignalsHeld;
 
@@ -35,6 +35,5 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public uint ThreadId => Pid;
 
         public unsafe bool CopyContext(uint contextFlags, Span<byte> context) => RegisterSet.CopyContext(context);
-
     }
 }

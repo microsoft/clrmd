@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         #endregion
 
-        #region Segment Registers 
+        #region Segment Registers
 
         [Register(RegisterType.Segments)]
         [FieldOffset(0x8c)]

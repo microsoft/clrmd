@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -19,72 +19,74 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
         private readonly DacLibrary _library;
 
-        public SOSDac(DacLibrary library, IntPtr ptr)
+        public SOSDac(DacLibrary? library, IntPtr ptr)
             : base(library?.OwningLibrary, ref IID_ISOSDac, ptr)
         {
-            _library = library;
+            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
-        public SOSDac(CallableCOMWrapper toClone) : base(toClone)
+        public SOSDac(DacLibrary lib, CallableCOMWrapper toClone) : base(toClone)
         {
+            _library = lib;
         }
-        
-        private DacGetIntPtr _getHandleEnum;
-        private DacGetIntPtrWithArg _getStackRefEnum;
-        private DacGetThreadData _getThreadData;
-        private DacGetHeapDetailsWithArg _getGCHeapDetails;
-        private DacGetHeapDetails _getGCHeapStaticData;
-        private DacGetUlongArray _getGCHeapList;
-        private DacGetUlongArray _getAppDomainList;
-        private DacGetUlongArrayWithArg _getAssemblyList;
-        private DacGetUlongArrayWithArg _getModuleList;
-        private DacGetAssemblyData _getAssemblyData;
-        private DacGetADStoreData _getAppDomainStoreData;
-        private DacGetMTData _getMethodTableData;
-        private DacGetUlongWithArg _getMTForEEClass;
-        private DacGetGCInfoData _getGCHeapData;
-        private DacGetCommonMethodTables _getCommonMethodTables;
-        private DacGetCharArrayWithArg _getMethodTableName;
-        private DacGetByteArrayWithArg _getJitHelperFunctionName;
-        private DacGetCharArrayWithArg _getPEFileName;
-        private DacGetCharArrayWithArg _getAppDomainName;
-        private DacGetCharArrayWithArg _getAssemblyName;
-        private DacGetCharArrayWithArg _getAppBase;
-        private DacGetCharArrayWithArg _getConfigFile;
-        private DacGetModuleData _getModuleData;
-        private DacGetSegmentData _getSegmentData;
-        private DacGetAppDomainData _getAppDomainData;
-        private DacGetJitManagers _getJitManagers;
-        private DacTraverseLoaderHeap _traverseLoaderHeap;
-        private DacTraverseStubHeap _traverseStubHeap;
-        private DacTraverseModuleMap _traverseModuleMap;
-        private DacGetFieldInfo _getFieldInfo;
-        private DacGetFieldData _getFieldData;
-        private DacGetObjectData _getObjectData;
-        private DacGetCCWData _getCCWData;
-        private DacGetRCWData _getRCWData;
-        private DacGetCharArrayWithArg _getFrameName;
-        private DacGetUlongWithArg _getMethodDescPtrFromFrame;
-        private DacGetUlongWithArg _getMethodDescPtrFromIP;
-        private DacGetCodeHeaderData _getCodeHeaderData;
-        private DacGetSyncBlockData _getSyncBlock;
-        private DacGetThreadPoolData _getThreadPoolData;
-        private DacGetWorkRequestData _getWorkRequestData;
-        private DacGetDomainLocalModuleDataFromAppDomain _getDomainLocalModuleDataFromAppDomain;
-        private DacGetLocalModuleData _getDomainLocalModuleDataFromModule;
-        private DacGetCodeHeaps _getCodeHeaps;
-        private DacGetCOMPointers _getCCWInterfaces;
-        private DacGetCOMPointers _getRCWInterfaces;
-        private DacGetUlongWithArgs _getILForModule;
-        private DacGetThreadLocalModuleData _getThreadLocalModuleData;
-        private DacGetUlongWithArgs _getMethodTableSlot;
-        private DacGetCharArrayWithArg _getMethodDescName;
-        private DacGetThreadFromThinLock _getThreadFromThinlockId;
-        private DacGetUInt _getTlsIndex;
-        private DacGetThreadStoreData _getThreadStoreData;
-        private GetMethodDescDataDelegate _getMethodDescData;
-        private GetMetaDataImportDelegate _getMetaData;
-        private GetMethodDescFromTokenDelegate _getMethodDescFromToken;
+
+        private DacGetIntPtr? _getHandleEnum;
+        private GetHandleEnumForTypesDelegate? _getHandleEnumForTypes;
+        private DacGetIntPtrWithArg? _getStackRefEnum;
+        private DacGetThreadData? _getThreadData;
+        private DacGetHeapDetailsWithArg? _getGCHeapDetails;
+        private DacGetHeapDetails? _getGCHeapStaticData;
+        private DacGetUlongArray? _getGCHeapList;
+        private DacGetUlongArray? _getAppDomainList;
+        private DacGetUlongArrayWithArg? _getAssemblyList;
+        private DacGetUlongArrayWithArg? _getModuleList;
+        private DacGetAssemblyData? _getAssemblyData;
+        private DacGetADStoreData? _getAppDomainStoreData;
+        private DacGetMTData? _getMethodTableData;
+        private DacGetUlongWithArg? _getMTForEEClass;
+        private DacGetGCInfoData? _getGCHeapData;
+        private DacGetCommonMethodTables? _getCommonMethodTables;
+        private DacGetCharArrayWithArg? _getMethodTableName;
+        private DacGetByteArrayWithArg? _getJitHelperFunctionName;
+        private DacGetCharArrayWithArg? _getPEFileName;
+        private DacGetCharArrayWithArg? _getAppDomainName;
+        private DacGetCharArrayWithArg? _getAssemblyName;
+        private DacGetCharArrayWithArg? _getAppBase;
+        private DacGetCharArrayWithArg? _getConfigFile;
+        private DacGetModuleData? _getModuleData;
+        private DacGetSegmentData? _getSegmentData;
+        private DacGetAppDomainData? _getAppDomainData;
+        private DacGetJitManagers? _getJitManagers;
+        private DacTraverseLoaderHeap? _traverseLoaderHeap;
+        private DacTraverseStubHeap? _traverseStubHeap;
+        private DacTraverseModuleMap? _traverseModuleMap;
+        private DacGetFieldInfo? _getFieldInfo;
+        private DacGetFieldData? _getFieldData;
+        private DacGetObjectData? _getObjectData;
+        private DacGetCCWData? _getCCWData;
+        private DacGetRCWData? _getRCWData;
+        private DacGetCharArrayWithArg? _getFrameName;
+        private DacGetUlongWithArg? _getMethodDescPtrFromFrame;
+        private DacGetUlongWithArg? _getMethodDescPtrFromIP;
+        private DacGetCodeHeaderData? _getCodeHeaderData;
+        private DacGetSyncBlockData? _getSyncBlock;
+        private DacGetThreadPoolData? _getThreadPoolData;
+        private DacGetWorkRequestData? _getWorkRequestData;
+        private DacGetDomainLocalModuleDataFromAppDomain? _getDomainLocalModuleDataFromAppDomain;
+        private DacGetLocalModuleData? _getDomainLocalModuleDataFromModule;
+        private DacGetCodeHeaps? _getCodeHeaps;
+        private DacGetCOMPointers? _getCCWInterfaces;
+        private DacGetCOMPointers? _getRCWInterfaces;
+        private DacGetUlongWithArgs? _getILForModule;
+        private DacGetThreadLocalModuleData? _getThreadLocalModuleData;
+        private DacGetUlongWithArgs? _getMethodTableSlot;
+        private DacGetCharArrayWithArg? _getMethodDescName;
+        private DacGetThreadFromThinLock? _getThreadFromThinlockId;
+        private DacGetUInt? _getTlsIndex;
+        private DacGetThreadStoreData? _getThreadStoreData;
+        private GetMethodDescDataDelegate? _getMethodDescData;
+        private GetMetaDataImportDelegate? _getMetaData;
+        private GetMethodDescFromTokenDelegate? _getMethodDescFromToken;
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
@@ -133,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return 0;
         }
 
-        public string GetMethodDescName(ulong md)
+        public string? GetMethodDescName(ulong md)
         {
             if (md == 0)
                 return null;
@@ -161,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         return null;
                 }
 
-                return string.Intern(Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2));
+                return Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2);
             }
             finally
             {
@@ -197,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? result : 0;
         }
 
-        public COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count)
+        public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
         {
             InitDelegate(ref _getCCWInterfaces, VTable->GetCCWInterfaces);
 
@@ -208,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public COMInterfacePointerData[] GetRCWInterfaces(ulong ccw, int count)
+        public COMInterfacePointerData[]? GetRCWInterfaces(ulong ccw, int count)
         {
             InitDelegate(ref _getRCWInterfaces, VTable->GetRCWInterfaces);
 
@@ -254,13 +256,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public string GetAppBase(ulong domain)
+        public string? GetAppBase(ulong domain)
         {
             InitDelegate(ref _getAppBase, VTable->GetApplicationBase);
             return GetString(_getAppBase, domain);
         }
 
-        public string GetConfigFile(ulong domain)
+        public string? GetConfigFile(ulong domain)
         {
             InitDelegate(ref _getConfigFile, VTable->GetAppDomainConfigFile);
             return GetString(_getConfigFile, domain);
@@ -339,7 +341,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public MetaDataImport GetMetadataImport(ulong module)
+        public MetaDataImport? GetMetadataImport(ulong module)
         {
             if (module == 0)
                 return null;
@@ -399,13 +401,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr) || data.Address == addr && data.StubHeap != 0;
         }
 
-        public string GetAppDomainName(ulong appDomain)
+        public string? GetAppDomainName(ulong appDomain)
         {
             InitDelegate(ref _getAppDomainName, VTable->GetAppDomainName);
             return GetString(_getAppDomainName, appDomain);
         }
 
-        public string GetAssemblyName(ulong assembly)
+        public string? GetAssemblyName(ulong assembly)
         {
             InitDelegate(ref _getAssemblyName, VTable->GetAssemblyName);
             return GetString(_getAssemblyName, assembly);
@@ -425,32 +427,32 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public string GetMethodTableName(ulong mt)
+        public string? GetMethodTableName(ulong mt)
         {
             InitDelegate(ref _getMethodTableName, VTable->GetMethodTableName);
             return GetString(_getMethodTableName, mt);
         }
 
-        public string GetJitHelperFunctionName(ulong addr)
+        public string? GetJitHelperFunctionName(ulong addr)
         {
             InitDelegate(ref _getJitHelperFunctionName, VTable->GetJitHelperFunctionName);
             return GetAsciiString(_getJitHelperFunctionName, addr);
         }
 
-        public string GetPEFileName(ulong pefile)
+        public string? GetPEFileName(ulong pefile)
         {
             InitDelegate(ref _getPEFileName, VTable->GetPEFileName);
             return GetString(_getPEFileName, pefile);
         }
 
-        private string GetString(DacGetCharArrayWithArg func, ulong addr, bool skipNull = true)
+        private string? GetString(DacGetCharArrayWithArg func, ulong addr, bool skipNull = true)
         {
             int hr = func(Self, addr, 0, null, out int needed);
             if (hr != S_OK)
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
             try
@@ -471,14 +473,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private string GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
+        private string? GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
         {
             int hr = func(Self, addr, 0, null, out int needed);
             if (hr != S_OK)
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
             try
@@ -526,7 +528,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable->GetAssemblyModuleList);
         }
 
-        private ulong[] GetModuleOrAssembly(ulong address, int count, ref DacGetUlongArrayWithArg func, IntPtr vtableEntry)
+        private ulong[] GetModuleOrAssembly(ulong address, int count, ref DacGetUlongArrayWithArg? func, IntPtr vtableEntry)
         {
             InitDelegate(ref func, vtableEntry);
 
@@ -576,7 +578,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int hr = _getThreadData(Self, address, out data);
 
             if (IntPtr.Size == 4)
-                data = new ThreadData(ref data);
+                ThreadData.Fixup(ref data);
 
             return SUCCEEDED(hr);
         }
@@ -603,7 +605,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             ulong[] refs = new ulong[heapCount];
             int hr = _getGCHeapList(Self, heapCount, refs, out int needed);
-            return hr == S_OK ? refs : null;
+            return hr == S_OK ? refs : Array.Empty<ulong>();
         }
 
         public bool GetServerHeapDetails(ulong addr, out HeapDetails data)
@@ -692,7 +694,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public SOSHandleEnum EnumerateHandles()
+        public SOSHandleEnum? EnumerateHandles(params ClrHandleKind[] types)
+        {
+            InitDelegate(ref _getHandleEnumForTypes, VTable->GetHandleEnumForTypes);
+
+            int hr = _getHandleEnumForTypes(Self, types, types.Length, out IntPtr ptrEnum);
+            return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
+        }
+
+        public SOSHandleEnum? EnumerateHandles()
         {
             InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
 
@@ -700,7 +710,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
         }
 
-        public SOSStackRefEnum EnumerateStackRefs(uint osThreadId)
+        public SOSStackRefEnum? EnumerateStackRefs(uint osThreadId)
         {
             InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
 
@@ -717,10 +727,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[] rejitData, out int needed);
+        private delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[]? rejitData, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetIntPtr(IntPtr self, out IntPtr data);
@@ -750,13 +763,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetUlongArray(IntPtr self, int count, [Out] ulong[] values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ulong[] values, out int needed);
+        private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ulong[]? values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
+        private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[]? values, [Out] out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
+        private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[]? values, [Out] out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out AssemblyData data);
@@ -822,7 +835,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ulong data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] JitCodeHeapInfo[] values, out int needed);
+        private delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] JitCodeHeapInfo[]? values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCOMPointers(IntPtr self, ulong addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
@@ -843,7 +856,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacTraverseModuleMap(IntPtr self, int type, ulong addr, IntPtr callback, IntPtr param);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[] jitManagers, out int pNeeded);
+        private delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[]? jitManagers, out int pNeeded);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMetaDataImportDelegate(IntPtr self, ulong addr, out IntPtr iunk);
@@ -955,7 +968,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Handles
         public readonly IntPtr GetHandleEnum;
-        private readonly IntPtr GetHandleEnumForTypes;
+        public readonly IntPtr GetHandleEnumForTypes;
         private readonly IntPtr GetHandleEnumForGC;
 
         // EH

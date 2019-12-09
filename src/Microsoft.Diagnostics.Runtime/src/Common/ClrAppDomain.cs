@@ -29,32 +29,29 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The name of the AppDomain, as specified when the domain was created.
         /// </summary>
-        public abstract string Name { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
         /// Returns a list of modules loaded into this AppDomain.
         /// </summary>
-        public abstract IList<ClrModule> Modules { get; }
+        public abstract IReadOnlyList<ClrModule> Modules { get; }
 
         /// <summary>
         /// Returns the config file used for the AppDomain.  This may be null if there was no config file
         /// loaded, or if the targeted runtime does not support enumerating that data.
         /// </summary>
-        public abstract string ConfigurationFile { get; }
+        public abstract string? ConfigurationFile { get; }
 
         /// <summary>
         /// Returns the base directory for this AppDomain.  This may return null if the targeted runtime does
         /// not support enumerating this information.
         /// </summary>
-        public abstract string ApplicationBase { get; }
+        public abstract string? ApplicationBase { get; }
 
         /// <summary>
         /// To string override.
         /// </summary>
         /// <returns>The name of this AppDomain.</returns>
-        public override string ToString()
-        {
-            return Name;
-        }
+        public override string? ToString() => Name;
     }
 }

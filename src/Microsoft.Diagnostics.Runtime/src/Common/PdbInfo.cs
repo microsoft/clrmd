@@ -7,36 +7,30 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime
 {
+    // TODO:  Make struct
+
     /// <summary>
     /// Information about a specific PDB instance obtained from a PE image.
     /// </summary>
-    [Serializable]
-    public class PdbInfo
+    public sealed class PdbInfo
     {
         /// <summary>
         /// The Guid of the PDB.
         /// </summary>
-        public Guid Guid { get; set; }
+        public Guid Guid { get; }
 
         /// <summary>
         /// The pdb revision.
         /// </summary>
-        public int Revision { get; set; }
+        public int Revision { get; }
 
         /// <summary>
         /// The filename of the pdb.
         /// </summary>
-        public string FileName { get; set; }
+        public string FileName { get; }
 
         /// <summary>
-        /// Creates an instance of the PdbInfo class
-        /// </summary>
-        public PdbInfo()
-        {
-        }
-
-        /// <summary>
-        /// Creates an instance of the PdbInfo class with the corresponding properties initialized
+        /// Creates an instance of the PdbInfo class with the corresponding properties initialized.
         /// </summary>
         public PdbInfo(string fileName, Guid guid, int rev)
         {
@@ -55,13 +49,13 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the
+        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return false;
 
             if (ReferenceEquals(this, obj))

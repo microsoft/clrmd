@@ -6,11 +6,10 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
-using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -25,30 +24,37 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable
     {
+        private IBinaryLocator? _locator;
         private bool _disposed;
-        private ClrInfo[] _clrs;
-        private ModuleInfo[] _modules;
-        private readonly Dictionary<string, PEImage> _pefileCache = new Dictionary<string, PEImage>(StringComparer.OrdinalIgnoreCase);
+        private ClrInfo[]? _clrs;
+        private ModuleInfo[]? _modules;
+        private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// The data reader for this instance.
         /// </summary>
         public IDataReader DataReader { get; }
 
-        private SymbolLocator _symbolLocator;
+        public CacheOptions CacheOptions { get; } = new CacheOptions();
+
         /// <summary>
-        /// Instance to manage the symbol path(s)
+        /// Instance to manage the symbol path(s).
         /// </summary>
-        public SymbolLocator SymbolLocator
+        public IBinaryLocator BinaryLocator
         {
             get
             {
-                if (_symbolLocator == null)
-                    _symbolLocator = new DefaultSymbolLocator();
+                if (_locator == null)
+                {
+                    string symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+                    _locator = new Implementation.SymbolServerLocator(symPath);
 
-                return _symbolLocator;
+                }
+
+                return _locator;
             }
-            set => _symbolLocator = value;
+
+            set => _locator = value;
         }
 
         /// <summary>
@@ -66,15 +72,17 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (!_disposed)
             {
-                foreach (PEImage img in _pefileCache.Values)
-                    img.Stream.Dispose();
+                DataReader.Dispose();
+
+                foreach (PEImage? img in _pefileCache.Values)
+                    img?.Stream.Dispose();
 
                 _pefileCache.Clear();
                 _disposed = true;
             }
         }
 
-        internal PEImage LoadPEImage(string fileName)
+        internal PEImage? LoadPEImage(string fileName)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
@@ -82,10 +90,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out PEImage result))
+            if (_pefileCache.TryGetValue(fileName, out PEImage? result))
                 return result;
 
-            Stream stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            Stream stream = File.OpenRead(fileName);
             result = new PEImage(stream);
 
             if (!result.IsValid)
@@ -127,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
 
                 string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                string dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
+                string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
 
                 if (platform == Platform.Linux)
                 {
@@ -158,21 +166,13 @@ namespace Microsoft.Diagnostics.Runtime
                 string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
-                DacInfo dacInfo = new DacInfo(DataReader, dacAgnosticName, arch)
-                {
-                    FileSize = module.FileSize,
-                    TimeStamp = module.TimeStamp,
-                    FileName = dacRegularName,
-                    Version = module.Version
-                };
-
+                DacInfo dacInfo = new DacInfo(DataReader, dacAgnosticName, arch, 0, module.FileSize, module.TimeStamp, dacRegularName, module.Version);
                 versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
             }
 
             _clrs = versions.ToArray();
             return _clrs;
         }
-
 
         /// <summary>
         /// Enumerates information about the loaded modules in the process (both managed and unmanaged).
@@ -187,39 +187,50 @@ namespace Microsoft.Diagnostics.Runtime
 
             char[] invalid = Path.GetInvalidPathChars();
             _modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
-            Array.Sort(_modules, (a, b)=> a.ImageBase.CompareTo(b.ImageBase));
+            Array.Sort(_modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
             return _modules;
         }
-
 
         #region Statics
         /// <summary>
         /// A set of helper functions that are consistently implemented across all platforms.
         /// </summary>
-        public static PlatformFunctions PlatformFunctions { get; }
-
-        static DataTarget()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                PlatformFunctions = new LinuxFunctions();
-            else
-                PlatformFunctions = new WindowsFunctions();
-        }
+        public static PlatformFunctions PlatformFunctions { get; } =
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? (PlatformFunctions)new LinuxFunctions() : new WindowsFunctions();
 
         /// <summary>
         /// Creates a DataTarget from a crash dump.
+        /// This method is only supported on Windows.
         /// </summary>
-        /// <param name="fileName">The crash dump's filename.</param>
+        /// <param name="fileName">The crash dump's file name.</param>
         /// <returns>A DataTarget instance.</returns>
-        public static DataTarget LoadCrashDump(string fileName) => new DataTarget(new DbgEngDataReader(fileName));
+        /// <exception cref="PlatformNotSupportedException">
+        /// The current platform is not Windows.
+        /// </exception>
+        public static DataTarget LoadCrashDump(string fileName)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                ThrowPlatformNotSupportedException();
+
+            return new DataTarget(new DbgEngDataReader(fileName));
+        }
 
         /// <summary>
-        /// Creates a DataTarget from a coredump.  Note that since we have to load a native library (libmscordaccore.so)
-        /// this must be run on a Linux machine.
+        /// Creates a DataTarget from a coredump.
+        /// This method is only supported on Linux.
         /// </summary>
         /// <param name="filename">The path to a core dump.</param>
         /// <returns>A DataTarget instance.</returns>
-        public static DataTarget LoadCoreDump(string filename) => new DataTarget(new CoreDumpReader(filename));
+        /// <exception cref="PlatformNotSupportedException">
+        /// The current platform is not Linux.
+        /// </exception>
+        public static DataTarget LoadCoreDump(string filename)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                ThrowPlatformNotSupportedException();
+
+            return new DataTarget(new CoreDumpReader(filename));
+        }
 
         /// <summary>
         /// Passively attaches to a live process.  Note that this method assumes that you have alread suspended
@@ -231,10 +242,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader((uint)pid);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: false);
                 return new DataTarget(reader)
                 {
-                    SymbolLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+                    BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 
@@ -249,20 +260,37 @@ namespace Microsoft.Diagnostics.Runtime
         public static DataTarget SuspendAndAttachToProcess(int pid)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                throw new NotImplementedException("Suspending a process is not yet implemented on Linux");
+            {
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: true);
+                return new DataTarget(reader)
+                {
+                    BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+                };
+            }
 
             return new DataTarget(new DbgEngDataReader(pid, invasive: false, 5000));
         }
 
         /// <summary>
-        /// Attaches to a snapshot process (see https://msdn.microsoft.com/en-us/library/dn457825(v=vs.85).aspx).
+        /// Attaches to a snapshot process (see https://docs.microsoft.com/windows/win32/api/_proc_snap/).
+        /// This method is only supported on Windows.
         /// </summary>
         /// <param name="pid">The process ID of the process to attach to.</param>
         /// <returns>A DataTarget instance.</returns>
+        /// <exception cref="PlatformNotSupportedException">
+        /// The current platform is not Windows.
+        /// </exception>
         public static DataTarget CreateSnapshotAndAttach(int pid)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                ThrowPlatformNotSupportedException();
+
             return new DataTarget(new LiveDataReader(pid, createSnapshot: true));
         }
+
+        [DoesNotReturn]
+        private static void ThrowPlatformNotSupportedException() =>
+            throw new PlatformNotSupportedException("This method is not supported on this platform.");
         #endregion
     }
 }

@@ -3,12 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     [Flags]
-    public enum RegisterType : byte 
+    public enum RegisterType : byte
     {
         General             = 0x01,
         Control             = 0x02,

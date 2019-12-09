@@ -13,6 +13,11 @@ namespace Microsoft.Diagnostics.Runtime
     public interface IDataReader : IDisposable
     {
         /// <summary>
+        /// Returns whether this data reader is safe to use in parallel from multiple threads.
+        /// </summary>
+        bool IsThreadSafe { get; }
+
+        /// <summary>
         /// Gets the architecture of the target.
         /// </summary>
         /// <returns>The architecture of the target.</returns>
@@ -32,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if the data target is a minidump which might not contain full heap data.
         /// </summary>
-        bool IsMinidump { get; }
+        bool IsFullMemoryAvailable { get; }
 
         /// <summary>
         /// Enumerates the OS thread ID of all threads in the process.
@@ -78,7 +83,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="context">A span to write the context to.</param>
         bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context);
 
-
         /// <summary>
         /// Read a pointer out of the target process.
         /// </summary>
@@ -88,18 +92,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// </returns>
         ulong ReadPointerUnsafe(ulong addr);
 
-        /// <summary>
-        /// Read an int out of the target process.
-        /// </summary>
-        /// <returns>
-        /// The int at the give address, or 0 if that pointer doesn't exist in
-        /// the data target.
-        /// </returns>
-        uint ReadDwordUnsafe(ulong addr);
+        bool Read<T>(ulong addr, out T value) where T : unmanaged;
+        T ReadUnsafe<T>(ulong addr) where T : unmanaged;
+        bool ReadPointer(ulong addr, out ulong value);
 
         /// <summary>
         /// Informs the data reader that the user has requested all data be flushed.
         /// </summary>
-        void ClearCachedData();
+        void FlushCachedData();
     }
 }

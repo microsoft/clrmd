@@ -9,28 +9,27 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents the version of a DLL.
     /// </summary>
-    [Serializable]
-    public struct VersionInfo : IEquatable<VersionInfo>, IComparable<VersionInfo>
+    public readonly struct VersionInfo : IEquatable<VersionInfo>, IComparable<VersionInfo>
     {
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'A'.
         /// </summary>
-        public readonly int Major;
+        public readonly int Major { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'B'.
         /// </summary>
-        public readonly int Minor;
+        public readonly int Minor { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'C'.
         /// </summary>
-        public readonly int Revision;
+        public readonly int Revision { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'D'.
         /// </summary>
-        public readonly int Patch;
+        public readonly int Patch { get; }
 
         internal VersionInfo(int major, int minor, int revision, int patch)
         {
@@ -51,10 +50,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Equals
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj is null) return false;
-
             return obj is VersionInfo other && Equals(other);
         }
 
@@ -97,15 +94,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The A.B.C.D version prepended with 'v'.</returns>
         public override string ToString()
         {
-            return $"v{Major}.{Minor}.{Revision}.{Patch:D2}";
+            return $"{Major}.{Minor}.{Revision}.{Patch}";
         }
 
-        public static bool operator ==(VersionInfo left, VersionInfo right)
+        public static bool operator ==(VersionInfo? left, VersionInfo? right)
         {
+            if (left is null)
+                return right is null;
+
             return left.Equals(right);
         }
 
-        public static bool operator !=(VersionInfo left, VersionInfo right)
+        public static bool operator !=(VersionInfo? left, VersionInfo? right)
         {
             return !(left == right);
         }

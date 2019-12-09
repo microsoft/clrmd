@@ -44,26 +44,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             areSame.Should().BeFalse();
         }
 
-        [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrObject target, [Frozen]ClrType structType, ClrValueClass someStruct, ClrInstanceField structReferenceField, ulong fieldAddress)
-        {
-            // Arrange
-            structReferenceField.IsObjectReference.Returns(true);
-            structReferenceField.GetAddress(someStruct.Address, Arg.Any<bool>()).Returns(fieldAddress);
-
-            heap.ReadPointer(fieldAddress, out var whatever)
-                .Returns(call =>
-               {
-                   call[1] = target.Address;
-                   return true;
-               });
-
-            // Act
-            var structRefFieldTarget = someStruct.GetObjectField(structReferenceField.Name);
-
-            // Assert
-            structRefFieldTarget.Should().Be(target);
-        }
 
         [Theory, AutoNSubstituteData]
         public void GetValueClassField_WhenFieldFound_ReturnsField(ClrValueClass target, [Frozen]ClrType structType, ClrValueClass someStruct, ClrInstanceField structValueField)

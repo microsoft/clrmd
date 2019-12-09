@@ -1,4 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -21,25 +24,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int ImageDataDirectoryCount = 15;
         private const int ComDataDirectory = 14;
         private const int DebugDataDirectory = 6;
-        
+
         private readonly bool _virt;
         private int _offset = 0;
         private readonly int _peHeaderOffset;
 
-        private readonly Lazy<ImageFileHeader> _imageFileHeader;
-        private readonly Lazy<ImageOptionalHeader> _imageOptionalHeader;
-        private readonly Lazy<CorHeader> _corHeader;
+        private readonly Lazy<ImageFileHeader?> _imageFileHeader;
+        private readonly Lazy<ImageOptionalHeader?> _imageOptionalHeader;
+        private readonly Lazy<CorHeader?> _corHeader;
         private readonly Lazy<List<SectionHeader>> _sections;
         private readonly Lazy<List<PdbInfo>> _pdbs;
-        private readonly Lazy<Interop.IMAGE_DATA_DIRECTORY[]> _directories;
+        private readonly Lazy<IMAGE_DATA_DIRECTORY[]> _directories;
         private readonly Lazy<ResourceEntry> _resources;
 
-        private Interop.IMAGE_DATA_DIRECTORY GetDirectory(int index) => _directories.Value[index];
+        private IMAGE_DATA_DIRECTORY GetDirectory(int index) => _directories.Value[index];
         private int HeaderOffset => _peHeaderOffset + sizeof(uint);
         private int OptionalHeaderOffset => HeaderOffset + sizeof(IMAGE_FILE_HEADER);
         private int SpecificHeaderOffset => OptionalHeaderOffset + sizeof(IMAGE_OPTIONAL_HEADER_AGNOSTIC);
         private int DataDirectoryOffset => SpecificHeaderOffset + (IsPE64 ? 5 * 8 : 6 * 4);
-        private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(Interop.IMAGE_DATA_DIRECTORY);
+        private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(IMAGE_DATA_DIRECTORY);
 
         /// <summary>
         /// Constructs a PEImage class for a given PE image (dll/exe) on disk.
@@ -79,10 +82,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 IsValid = peSignature == ExpectedPESignature;
             }
 
-            _imageFileHeader = new Lazy<ImageFileHeader>(ReadImageFileHeader);
-            _imageOptionalHeader = new Lazy<ImageOptionalHeader>(ReadImageOptionalHeader);
-            _corHeader = new Lazy<CorHeader>(ReadCorHeader);
-            _directories = new Lazy<Interop.IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
+            _imageFileHeader = new Lazy<ImageFileHeader?>(ReadImageFileHeader);
+            _imageOptionalHeader = new Lazy<ImageOptionalHeader?>(ReadImageOptionalHeader);
+            _corHeader = new Lazy<CorHeader?>(ReadCorHeader);
+            _directories = new Lazy<IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
             _sections = new Lazy<List<SectionHeader>>(ReadSections);
             _pdbs = new Lazy<List<PdbInfo>>(ReadPdbs);
             _resources = new Lazy<ResourceEntry>(CreateResourceRoot);
@@ -108,12 +111,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Returns true if this image is for a 64bit processor.
         /// </summary>
-        public bool IsPE64 => OptionalHeader != null ? OptionalHeader.Magic != 0x010b : false;
+        public bool IsPE64 => OptionalHeader != null && OptionalHeader.Magic != 0x010b;
 
         /// <summary>
-        /// Returns true if this image is managed.  (.Net image)
+        /// Returns true if this image is managed. (.NET image)
         /// </summary>
-        public bool IsManaged => GetDirectory(14).VirtualAddress != 0;
+        public bool IsManaged => OptionalHeader != null && OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 
         /// <summary>
         /// Returns the timestamp that this PE image is indexed under.
@@ -128,17 +131,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Returns the managed header information for this image.  Undefined behavior if IsValid is false.
         /// </summary>
-        public CorHeader CorHeader => _corHeader.Value;
+        public CorHeader? CorHeader => _corHeader.Value;
 
         /// <summary>
         /// Returns a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is false.
         /// </summary>
-        public ImageFileHeader Header => _imageFileHeader.Value;
+        public ImageFileHeader? Header => _imageFileHeader.Value;
 
         /// <summary>
         /// Returns a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is false.
         /// </summary>
-        public ImageOptionalHeader OptionalHeader => _imageOptionalHeader.Value;
+        public ImageOptionalHeader? OptionalHeader => _imageOptionalHeader.Value;
 
         /// <summary>
         /// Returns a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is false.
@@ -194,6 +197,38 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return Stream.Read(dest);
         }
 
+        /// <summary>
+        /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
+        /// version tab a file's property page is populated with).
+        /// </summary>
+        public FileVersionInfo? GetFileVersionInfo()
+        {
+            ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
+            if (versionNode == null || versionNode.Children.Count != 1)
+                return null;
+
+            versionNode = versionNode.Children[0];
+            if (!versionNode.IsLeaf && versionNode.Children.Count == 1)
+                versionNode = versionNode.Children[0];
+
+            int size = versionNode.Size;
+            if (size <= FileVersionInfo.DataOffset)
+                return null;
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                int count = versionNode.GetData(buffer);
+                Span<byte> span = new Span<byte>(buffer, 0, count);
+                FileVersionInfo result = new FileVersionInfo(span);
+                return result;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         private ResourceEntry CreateResourceRoot()
         {
             return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
@@ -205,8 +240,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!IsValid)
                 return sections;
 
-            ImageFileHeader header = Header;
-            if (header == null)
+            ImageFileHeader? header = Header;
+            if (header is null)
                 return sections;
 
             SeekTo(ImageDataDirectoryOffset);
@@ -263,10 +298,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
-                        string filename = ReadString(nameLen);
-                        
-                        PdbInfo pdb = new PdbInfo(filename, guid, age);
-                        result.Add(pdb);
+                        string? filename = ReadString(nameLen);
+
+                        if (filename != null)
+                        {
+                            PdbInfo pdb = new PdbInfo(filename, guid, age);
+                            result.Add(pdb);
+                        }
                     }
                 }
             }
@@ -274,10 +312,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return result;
         }
 
-        private string ReadString(int len) => ReadString(_offset, len);
-        
+        private string? ReadString(int len) => ReadString(_offset, len);
 
-        private string ReadString(int offset, int len)
+        private string? ReadString(int offset, int len)
         {
             if (len > 4096)
                 len = 4096;
@@ -290,14 +327,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (Stream.Read(buffer, 0, len) != len)
                     return null;
 
-                for (int i = 0; i < len; i++)
-                {
-                    if (buffer[i] == 0)
-                    {
-                        len = i;
-                        break;
-                    }
-                }
+                int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
+                if (index >= 0)
+                    len = index;
 
                 return Encoding.ASCII.GetString(buffer, 0, len);
             }
@@ -313,24 +345,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             t = default;
             int size = Unsafe.SizeOf<T>();
-
-            // .Net Core only.  This isn't compiled into Desktop CLR because Stream.Read(Span<byte>) doesn't
-            // exist, and so our stackalloc + copy will be more inefficent than just renting our own byte array.
-#if !NET45
-            if (size < Configuration.MaxStackAlloc)
-            {
-                Span<byte> span = stackalloc byte[size];
-                SeekTo(offset);
-
-                int read = Stream.Read(span);
-                _offset = offset + read;
-                if (read != size)
-                    return false;
-
-                t = Unsafe.As<byte, T>(ref span[0]);
-                return true;
-            }
-#endif
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
             try
@@ -369,9 +383,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return t;
         }
 
-
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
-        
+
         private void SeekTo(int offset)
         {
             if (offset != _offset)
@@ -381,7 +394,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private ImageFileHeader ReadImageFileHeader()
+        private ImageFileHeader? ReadImageFileHeader()
         {
             if (!IsValid)
                 return null;
@@ -392,21 +405,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private Interop.IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
+        private IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
         {
-            Interop.IMAGE_DATA_DIRECTORY[] directories = new Interop.IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
+            IMAGE_DATA_DIRECTORY[] directories = new IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
 
             if (!IsValid)
                 return directories;
 
             SeekTo(DataDirectoryOffset);
             for (int i = 0; i < directories.Length; i++)
-                directories[i] = Read<Interop.IMAGE_DATA_DIRECTORY>();
+                directories[i] = Read<IMAGE_DATA_DIRECTORY>();
 
             return directories;
         }
 
-        private ImageOptionalHeader ReadImageOptionalHeader()
+        private ImageOptionalHeader? ReadImageOptionalHeader()
         {
             if (!IsValid)
                 return null;
@@ -432,7 +445,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return new ImageOptionalHeader(ref optional, specific, _directories, is32Bit);
         }
 
-        private CorHeader ReadCorHeader()
+        private CorHeader? ReadCorHeader()
         {
             var clrDataDirectory = GetDirectory(ComDataDirectory);
 

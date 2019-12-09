@@ -4,12 +4,11 @@
 
 using System;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct HeapDetails : IHeapDetails
+    public readonly struct HeapDetails
     {
         public readonly ulong Address; // Only filled in in server mode, otherwise NULL
         public readonly ulong Allocated;
@@ -30,6 +29,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ulong LowestAddress;
         public readonly ulong HighestAddress;
         public readonly ulong CardTable;
+
+        public ulong EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
+        public ulong EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
 
         internal HeapDetails(ref HeapDetails other)
         {
@@ -68,22 +70,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             ptr = (uint)ptr;
         }
 
-        ulong IHeapDetails.FirstHeapSegment => GenerationTable[2].StartSegment;
-
-        ulong IHeapDetails.FirstLargeHeapSegment => GenerationTable[3].StartSegment;
-        ulong IHeapDetails.EphemeralSegment => EphemeralHeapSegment;
-        ulong IHeapDetails.EphemeralEnd => Allocated;
-        ulong IHeapDetails.EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
-        ulong IHeapDetails.EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
-        ulong IHeapDetails.FQAllObjectsStart => FinalizationFillPointers[0];
-        ulong IHeapDetails.FQAllObjectsStop => FinalizationFillPointers[3];
-        ulong IHeapDetails.FQRootsStart => FinalizationFillPointers[3];
-        ulong IHeapDetails.FQRootsStop => FinalizationFillPointers[5];
-        ulong IHeapDetails.Gen0Start => GenerationTable[0].AllocationStart;
-        ulong IHeapDetails.Gen0Stop => Allocated;
-        ulong IHeapDetails.Gen1Start => GenerationTable[1].AllocationStart;
-        ulong IHeapDetails.Gen1Stop => GenerationTable[0].AllocationStart;
-        ulong IHeapDetails.Gen2Start => GenerationTable[2].AllocationStart;
-        ulong IHeapDetails.Gen2Stop => GenerationTable[1].AllocationStart;
+        public ulong FQAllObjectsStart => FinalizationFillPointers[0];
+        public ulong FQAllObjectsStop => FinalizationFillPointers[3];
+        public ulong FQRootsStart => FinalizationFillPointers[3];
+        public ulong FQRootsStop => FinalizationFillPointers[5];
     }
 }

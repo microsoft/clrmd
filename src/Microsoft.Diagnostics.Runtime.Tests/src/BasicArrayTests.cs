@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private ArrayConnection.ArraysHolder _prototype => _connection.Prototype;
         private ClrHeap _heap => _arrayHolder.Type.Heap;
+        private IDataReader DataReader => _heap.Runtime.DataTarget.DataReader;
 
         public BasicArrayTests(ArrayConnection connection)
         {
@@ -29,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void Length_WhenPrimitiveValueTypeArray_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             ClrObject intArraySnapshot = _arrayHolder
                 .GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray));
 
@@ -40,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void Length_WhenGuidArray_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             ClrObject guidArray = _arrayHolder
                 .GetObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
 
@@ -51,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void Length_WhenDateTimeArray_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             ClrObject dateTimeArray = _arrayHolder
                 .GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
 
@@ -62,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void Length_WhenCustomStructArray_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             ClrObject customStructArray = _arrayHolder
                 .GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
 
@@ -73,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void Length_WhenStringArray_ReturnsExpected()
         {
-            // Arrange 
+            // Arrange
             ClrObject referenceArraySnapshot = _arrayHolder
                 .GetObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
 
@@ -84,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void Length_WhenReferenceArrayWithBlanks_ReturnsExpected()
         {
-            // Arrange             
+            // Arrange
             ClrObject referenceArraySnapshot = _arrayHolder
                 .GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
@@ -101,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
+            // Act
             int actual = (int)intArraySnapshot.Type.GetArrayElementValue(intArraySnapshot, index);
 
             // Assert
@@ -117,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
+            // Act
             string actual = (string)referenceArray.Type.GetArrayElementValue(referenceArray, index);
 
             // Assert
@@ -132,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Arrange
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
-            // Act 
+            // Act
             ulong actualPointer = (ulong)referenceArray.Type.GetArrayElementValue(referenceArray, setElementIndex);
 
             ClrType pointerType = _connection.Runtime.Heap.GetObjectType(actualPointer);
@@ -147,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Arrange
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
-            // Act 
+            // Act
             ulong actualPointer = (ulong)referenceArray.Type.GetArrayElementValue(referenceArray, blankElementIndex);
 
             // Assert
@@ -175,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
 
             var index = seed % originalArray.Length;
-            
+
             // Assert
             Assert.ThrowsAny<Exception>(() => structArray.Type.GetArrayElementValue(structArray, index));
         }
@@ -202,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
+            // Act
             ulong elementAddress = structArray.Type.GetArrayElementAddress(structArray, index);
 
             // Assert
@@ -218,10 +219,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
+            // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, index);
 
-            _heap.ReadPointer(elementAddress, out var actualValue);
+            DataReader.ReadPointer(elementAddress, out var actualValue);
 
             string actual = (string)(new ClrObject(actualValue, _heap.GetObjectType(actualValue)));
 
@@ -237,10 +238,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Arrange
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
-            // Act 
+            // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, setElementIndex);
 
-            _heap.ReadPointer(elementAddress, out ulong actualPointer);
+            DataReader.ReadPointer(elementAddress, out ulong actualPointer);
 
             ClrType pointerType = _connection.Runtime.Heap.GetObjectType(actualPointer);
 
@@ -254,7 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Arrange
             ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
-            // Act 
+            // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, blankElementIndex);
 
             // Assert
@@ -271,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
+            // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
 
             // Assert
@@ -289,34 +290,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var structType = structArray.Type.ComponentType;
             var textField = structType.GetFieldByName(nameof(ArrayConnection.SampleStruct.ReferenceLoad));
 
-            // Act 
+            // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
-            
-            _heap.ReadPointer(structStart + (ulong)textField.Offset, out var textAddress);
 
-            var text = (string)_heap.GetObjectType(textAddress).GetValue(textAddress);
+            DataReader.ReadPointer(structStart + (ulong)textField.Offset, out var textAddress);
+
+            ClrObject obj = _heap.GetObject(textAddress);
+            string text = obj.AsString();
 
             // Assert
             Assert.Equal(originalArray[index].ReferenceLoad, actual: text);
-        }
-
-        [Theory, AutoData]
-        public void GetArrayElementAddress_WhenCustomStructArray_ReadsIntData(int seed)
-        {
-            // Arrange
-            var originalArray = _prototype.StructArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
-
-            var index = seed % originalArray.Length;
-            var structType = structArray.Type.ComponentType;
-            var primitiveField = structType.GetFieldByName(nameof(ArrayConnection.SampleStruct.Number));
-
-            // Act 
-            ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
-            int number = (int)primitiveField.Type.GetValue(structStart);
-
-            // Assert
-            Assert.Equal(originalArray[index].Number, number);
         }
 
         [Theory, AutoData]
@@ -328,7 +311,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
 
-            // Act 
+            // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
 
             // Assert

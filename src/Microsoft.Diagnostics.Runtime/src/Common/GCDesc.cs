@@ -3,24 +3,27 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class GCDesc
+    public struct GCDesc
     {
         private static readonly int s_GCDescSize = IntPtr.Size * 2;
 
         private readonly byte[] _data;
+
+        public bool IsEmpty => _data is null;
 
         public GCDesc(byte[] data)
         {
             _data = data;
         }
 
-        public void WalkObject(ulong addr, ulong size, Func<ulong, ulong> readPointer, Action<ulong, int> refCallback)
+        public IEnumerable<(ulong, int)> WalkObject(ulong addr, ulong size, Func<ulong, ulong> readPointer)
         {
-            Debug.Assert(size >= (ulong)IntPtr.Size);
+            DebugOnly.Assert(size >= (ulong)IntPtr.Size);
 
             int series = GetNumSeries();
             int highest = GetHighestSeries();
@@ -38,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         ulong ret = readPointer(ptr);
                         if (ret != 0)
-                            refCallback(ret, (int)(ptr - addr));
+                            yield return (ret, (int)(ptr - addr));
 
                         ptr += (ulong)IntPtr.Size;
                     }
@@ -62,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             ulong ret = readPointer(ptr);
                             if (ret != 0)
-                                refCallback(ret, (int)(ptr - addr));
+                                yield return (ret, (int)(ptr - addr));
 
                             ptr += (ulong)IntPtr.Size;
                         } while (ptr < stop);

@@ -23,9 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             get
             {
-                if (_heap == null)
-                    _heap = new NativeHeap(this);
-
+                _heap ??= new NativeHeap(this);
                 return _heap;
             }
         }
@@ -38,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
             _dataReader = dt.DataReader;
             _modules = dt.EnumerateModules().ToArray();
 
-            if (SOSNative == null)
+            if (SOSNative is null)
                 throw new ClrDiagnosticsException("Unsupported dac version.", ClrDiagnosticsExceptionKind.DacError);
         }
 
@@ -46,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             get
             {
-                if (_threads == null)
+                if (_threads is null)
                     InitThreads();
 
                 return _threads;
@@ -75,9 +73,9 @@ namespace Microsoft.Diagnostics.Runtime.Native
 
             _threads = threads.ToArray();
         }
-        
+
         /*
-         
+
         internal unsafe IList<ClrRoot> EnumerateStackRoots(ClrThread thread)
         {
             int contextSize;

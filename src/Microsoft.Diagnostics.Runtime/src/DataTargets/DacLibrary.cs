@@ -12,31 +12,26 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class DacLibrary : IDisposable
     {
         private bool _disposed;
-        private SOSDac _sos;
-        private SOSDac6 _sos6;
+        private SOSDac? _sos;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
-        internal RefCountedFreeLibrary OwningLibrary { get; }
+        public RefCountedFreeLibrary? OwningLibrary { get; }
 
         internal ClrDataProcess InternalDacPrivateInterface { get; }
 
-        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(InternalDacPrivateInterface);
+        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(this, InternalDacPrivateInterface);
 
-        internal SOSDac GetSOSInterfaceNoAddRef()
+        private SOSDac GetSOSInterfaceNoAddRef()
         {
-            if (_sos == null)
+            if (_sos is null)
+            {
                 _sos = InternalDacPrivateInterface.GetSOSDacInterface();
+                if (_sos is null)
+                    throw new InvalidOperationException("This runtime does not support ISOSDac.");
+            }
 
             return _sos;
-        }
-
-        internal SOSDac6 GetSOSInterface6NoAddRef()
-        {
-            if (_sos6 == null)
-                _sos6 = InternalDacPrivateInterface.GetSOSDacInterface6();
-
-            return _sos6;
         }
 
         public SOSDac SOSDacInterface
@@ -44,11 +39,13 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 SOSDac sos = GetSOSInterfaceNoAddRef();
-                return sos != null ? new SOSDac(sos) : null;
+                return new SOSDac(this, sos);
             }
         }
 
-        public T GetInterface<T>(ref Guid riid)
+        public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
+
+        public T? GetInterface<T>(ref Guid riid)
             where T : CallableCOMWrapper
         {
             IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(ref riid);
@@ -75,9 +72,16 @@ namespace Microsoft.Diagnostics.Runtime
             return pUnk;
         }
 
-        public DacLibrary(IntPtr pClrDataProcess)
+        public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
+            if (dataTarget is null)
+                throw new ArgumentNullException(nameof(dataTarget));
+
+            if (pClrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(pClrDataProcess));
+
             InternalDacPrivateInterface = new ClrDataProcess(this, pClrDataProcess);
+            DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
         public DacLibrary(DataTarget dataTarget, string dacDll)
@@ -141,7 +145,6 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 InternalDacPrivateInterface?.Dispose();
                 _sos?.Dispose();
-                _sos6?.Dispose();
                 OwningLibrary?.Release();
 
                 _disposed = true;

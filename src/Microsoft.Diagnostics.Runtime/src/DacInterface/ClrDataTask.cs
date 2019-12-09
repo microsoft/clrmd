@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        public ClrStackWalk CreateStackWalk(DacLibrary library, uint flags)
+        public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
         {
             CreateStackWalkDelegate create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable->CreateStackWalk, typeof(CreateStackWalkDelegate));
             int hr = create(Self, flags, out IntPtr pUnk);

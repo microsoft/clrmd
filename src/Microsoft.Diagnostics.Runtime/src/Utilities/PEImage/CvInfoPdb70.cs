@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int CvSignature;
         public Guid Signature;
         public int Age;
-        public fixed byte bytePdbFileName[1]; // Actually variable sized. 
+        public fixed byte bytePdbFileName[1]; // Actually variable sized.
         public string PdbFileName
         {
             get

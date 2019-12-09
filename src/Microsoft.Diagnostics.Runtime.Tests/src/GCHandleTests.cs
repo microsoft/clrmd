@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // I made some changes to v4.5 handle enumeration to enumerate handles out faster.
             // This test makes sure I have a stable enumeration.
             using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             List<ClrHandle> handles = new List<ClrHandle>(runtime.EnumerateHandles());
 
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 Assert.Equal(handles[i].Address, hnd.Address);
                 Assert.Equal(handles[i].Object, hnd.Object);
-                Assert.Equal(handles[i].HandleType, hnd.HandleType);
+                Assert.Equal(handles[i].HandleKind, hnd.HandleKind);
 
                 i++;
             }
@@ -41,13 +41,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             HashSet<ClrHandle> handles = new HashSet<ClrHandle>();
 
             using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
-            ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrHandle handle in runtime.EnumerateHandles())
                 Assert.True(handles.Add(handle));
 
             // Make sure we had at least one AsyncPinned handle
-            Assert.Contains(handles, h => h.HandleType == HandleType.AsyncPinned);
+            Assert.Contains(handles, h => h.HandleKind == ClrHandleKind.AsyncPinned);
         }
     }
 }

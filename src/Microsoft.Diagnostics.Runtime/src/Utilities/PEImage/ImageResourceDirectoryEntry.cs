@@ -3,6 +3,8 @@
 // See the LICENSE file in the project root for more information.
 
 #pragma warning disable 0649
+#pragma warning disable CA1305 // Specify IFormatProvider
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>

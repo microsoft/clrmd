@@ -125,15 +125,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 RedirectStandardInput = options.Input != null
             };
 
-            Process = new Process {StartInfo = startInfo};
+            Process = new Process { StartInfo = startInfo };
             Process.StartInfo = startInfo;
             _output = new StringBuilder();
             if (options.elevate)
             {
                 options.useShellExecute = true;
                 startInfo.Verb = "runas";
-                if (options.currentDirectory == null)
-                    options.currentDirectory = Environment.CurrentDirectory;
+                options.currentDirectory ??= Environment.CurrentDirectory;
             }
 
             Process.OutputDataReceived += OnProcessOutput;
@@ -141,15 +140,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (options.environmentVariables != null)
             {
-                // copy over the environment variables to the process startInfo options. 
+                // copy over the environment variables to the process startInfo options.
                 foreach (string key in options.environmentVariables.Keys)
                 {
-                    // look for %VAR% strings in the value and subtitute the appropriate environment variable. 
+                    // look for %VAR% strings in the value and subtitute the appropriate environment variable.
                     string value = options.environmentVariables[key];
                     if (value != null)
                     {
                         int startAt = 0;
-                        for (;;)
+                        for (; ; )
                         {
                             m = new Regex(@"%(\w+)%").Match(value, startAt);
                             if (!m.Success) break;
@@ -157,15 +156,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             string varName = m.Groups[1].Value;
                             string varValue;
                             if (startInfo.EnvironmentVariables.ContainsKey(varName))
+                            {
                                 varValue = startInfo.EnvironmentVariables[varName];
+                            }
                             else
                             {
                                 varValue = Environment.GetEnvironmentVariable(varName);
-                                if (varValue == null)
-                                    varValue = "";
+                                varValue ??= string.Empty;
                             }
 
-                            // replace this instance of the variable with its definition.  
+                            // replace this instance of the variable with its definition.
                             int varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
                             int varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
                             value = value.Substring(0, varStart) + varValue + value.Substring(varEnd, value.Length - varEnd);
@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Process.BeginErrorReadLine();
             }
 
-            // Send any input to the command 
+            // Send any input to the command
             if (options.input != null)
             {
                 Process.StandardInput.Write(options.input);
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 waitReturned = true;
                 //  TODO : HACK we see to have a race in the async process stuff
                 //  If you do Run("cmd /c set") you get truncated output at the
-                //  Looks like the problem in the framework.  
+                //  Looks like the problem in the framework.
                 for (int i = 0; i < 10; i++)
                     Thread.Sleep(1);
             }
@@ -255,7 +255,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            // If we created the output stream, we should close it.  
+            // If we created the output stream, we should close it.
             if (_outputStream != null && Options.outputFile != null)
                 _outputStream.Dispose();
             _outputStream = null;
@@ -276,15 +276,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Command.Run failure was the appropriate action.
         /// </summary>
         /// <param name="message">An additional message to print in the throw (can be null)</param>
-        public void ThrowCommandFailure(string message)
+        public void ThrowCommandFailure(string? message)
         {
             if (Process.ExitCode != 0)
             {
-                string outSpec = "";
-                if (_outputStream == null)
+                string outSpec = string.Empty;
+                if (_outputStream is null)
                 {
                     string outStr = _output.ToString();
-                    // Only show the first lineNumber the last two lines if there are a lot of output. 
+                    // Only show the first lineNumber the last two lines if there are a lot of output.
                     Match m = Regex.Match(outStr, @"^(\s*\n)?(.+\n)(.|\n)*?(.+\n.*\S)\s*$");
                     if (m.Success)
                         outStr = m.Groups[2].Value + "    <<< Omitted output ... >>>\r\n" + m.Groups[4].Value;
@@ -295,8 +295,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     outSpec = "\r\n  Output: {\r\n    " + outStr + "\r\n  }";
                 }
 
-                if (message == null)
-                    message = "";
+                if (message is null)
+                    message = string.Empty;
                 else if (message.Length > 0)
                     message += "\r\n";
                 throw new Exception($"{message} Process returned exit code 0x{Process.ExitCode:x} Cmd: {_commandLine}{outSpec}");
@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public void Kill()
         {
             // We use taskkill because it is built into windows, and knows
-            // how to kill all subchildren of a process, which important. 
+            // how to kill all subchildren of a process, which important.
             // TODO (should we use WMI instead?)
             Debug.WriteLine("Killing process tree " + Id + " Cmd: " + _commandLine);
             try
@@ -341,7 +341,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             } while (!Process.HasExited);
 
-            // If we created the output stream, we should close it.  
+            // If we created the output stream, we should close it.
             if (_outputStream != null && Options.outputFile != null)
                 _outputStream.Dispose();
             _outputStream = null;
@@ -365,9 +365,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Given a string 'commandExe' look for it on the path the way cmd.exe would.
         /// Returns null if it was not found.
         /// </summary>
-        public static string FindOnPath(string commandExe)
+        public static string? FindOnPath(string commandExe)
         {
-            string ret = ProbeForExe(commandExe);
+            string? ret = ProbeForExe(commandExe);
             if (ret != null)
                 return ret;
 
@@ -385,7 +385,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private static string ProbeForExe(string path)
+        private static string? ProbeForExe(string path)
         {
             if (File.Exists(path))
                 return path;
@@ -404,22 +404,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (s_pathExts == null)
-                    s_pathExts = Environment.GetEnvironmentVariable("PATHEXT").Split(';');
+                s_pathExts ??= Environment.GetEnvironmentVariable("PATHEXT").Split(';');
                 return s_pathExts;
             }
         }
-        private static string[] s_pathExts;
+        private static string[]? s_pathExts;
         private static string[] Paths
         {
             get
             {
-                if (s_paths == null)
-                    s_paths = Environment.GetEnvironmentVariable("PATH").Split(';');
+                s_paths ??= Environment.GetEnvironmentVariable("PATH").Split(';');
                 return s_paths;
             }
         }
-        private static string[] s_paths;
+        private static string[]? s_paths;
 
         /* called data comes to either StdErr or Stdout */
         private void OnProcessOutput(object sender, DataReceivedEventArgs e)
@@ -433,6 +431,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /* private state */
         private readonly string _commandLine;
         private readonly StringBuilder _output;
-        private TextWriter _outputStream;
+        private TextWriter? _outputStream;
     }
 }

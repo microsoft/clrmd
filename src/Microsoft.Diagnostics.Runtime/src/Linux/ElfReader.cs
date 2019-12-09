@@ -30,7 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return result;
 
             return null;
-
         }
 
         public T Read<T>(long position)
@@ -57,6 +56,37 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int ReadBytes(long position, Span<byte> buffer) => DataSource.Read(position, buffer);
 
+        public string ReadNullTerminatedAscii(long position)
+        {
+            StringBuilder builder = new StringBuilder();
+            for (; ; )
+            {
+                Span<byte> bytes = stackalloc byte[1];
+                int read = DataSource.Read(position, bytes);
+                if (read < bytes.Length)
+                {
+                    break;
+                }
+
+                if (bytes[0] == '\0')
+                {
+                    break;
+                }
+
+                Span<char> chars = stackalloc char[1];
+                fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
+                fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
+                {
+                    _ = Encoding.ASCII.GetChars(bytesPtr, bytes.Length, charsPtr, chars.Length);
+                }
+
+                _ = builder.Append(chars[0]);
+                position++;
+            }
+
+            return builder.ToString();
+        }
+
         public string ReadNullTerminatedAscii(long position, int len)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
@@ -66,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (read == 0)
                     return string.Empty;
 
-                if (buffer[read - 1] == 0)
+                if (buffer[read - 1] == '\0')
                     read--;
 
                 return Encoding.ASCII.GetString(buffer, 0, read);

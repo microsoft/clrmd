@@ -24,11 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal bool noWait;
         internal bool elevate;
         internal int timeoutMSec;
-        internal string input;
-        internal string outputFile;
-        internal TextWriter outputStream;
-        internal string currentDirectory;
-        internal Dictionary<string, string> environmentVariables;
+        internal string? input;
+        internal string? outputFile;
+        internal TextWriter? outputStream;
+        internal string? currentDirectory;
+        internal Dictionary<string, string>? environmentVariables;
 
         /// <summary>
         /// Can be assigned to the Timeout Property to indicate infinite timeout.
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// CommanOptions holds a set of options that can be passed to the constructor
-        /// to the Command Class as well as Command.Run*
+        /// to the Command Class as well as Command.Run*.
         /// </summary>
         public CommandOptions()
         {
@@ -45,9 +45,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Return a copy an existing set of command options
+        /// Return a copy an existing set of command options.
         /// </summary>
-        /// <returns>The copy of the command options</returns>
+        /// <returns>The copy of the command options.</returns>
         public CommandOptions Clone()
         {
             return (CommandOptions)MemberwiseClone();
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// ShortHand for UseShellExecute and NoWait
+        /// ShortHand for UseShellExecute and NoWait.
         /// </summary>
         public bool Start
         {
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Normally commands are launched with CreateProcess.  However it is
         /// also possible use the Shell Start API.  This causes Command to look
-        /// up the executable differently
+        /// up the executable differently.
         /// </summary>
         public bool UseShellExecute
         {
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Indicates that the command must run at elevated Windows privledges (causes a new command window)
+        /// Indicates that the command must run at elevated Windows privledges (causes a new command window).
         /// </summary>
         public bool Elevate
         {
@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Updates the Timeout propery and returns the updated commandOptions.
-        /// CommandOptions.Infinite can be used for infinite
+        /// CommandOptions.Infinite can be used for infinite.
         /// </summary>
         public CommandOptions AddTimeout(int milliseconds)
         {
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Indicates the string will be sent to Console.In for the subprocess.
         /// </summary>
-        public string Input
+        public string? Input
         {
             get => input;
             set => input = value;
@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Indicates the current directory the subProcess will have.
         /// </summary>
-        public string CurrentDirectory
+        public string? CurrentDirectory
         {
             get => currentDirectory;
             set => currentDirectory = value;
@@ -234,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// to a archiveFile rather than being stored in Memory in the 'Output' property of the
         /// command.
         /// </summary>
-        public string OutputFile
+        public string? OutputFile
         {
             get => outputFile;
             set
@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// to a a TextWriter rather than being stored in Memory in the 'Output' property
         /// of the command.
         /// </summary>
-        public TextWriter OutputStream
+        public TextWriter? OutputStream
         {
             get => outputStream;
             set
@@ -287,14 +287,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// of the form %VAR% is found in a value of a environment variable it is
         /// replaced with the value of the environment variable at the time the
         /// command is launched.  This is useful for example to update the PATH
-        /// environment variable eg. "%PATH%;someNewPath"
+        /// environment variable eg. "%PATH%;someNewPath".
         /// </summary>
         public Dictionary<string, string> EnvironmentVariables
         {
             get
             {
-                if (environmentVariables == null)
-                    environmentVariables = new Dictionary<string, string>();
+                environmentVariables ??= new Dictionary<string, string>();
                 return environmentVariables;
             }
         }
@@ -306,7 +305,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// of the form %VAR% is found in a value of a environment variable it is
         /// replaced with the value of the environment variable at the time the
         /// command is launched.  This is useful for example to update the PATH
-        /// environment variable eg. "%PATH%;someNewPath"
+        /// environment variable eg. "%PATH%;someNewPath".
         /// </summary>
         public CommandOptions AddEnvironmentVariable(string variable, string value)
         {
@@ -314,9 +313,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return this;
         }
 
-        // We ar friends with the Command class 
+        // We are friends with the Command class
 
         // TODO implement
-        // internal bool showCommand;          // Show the command before running it. 
+        // internal bool showCommand;          // Show the command before running it.
     }
 }
