@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -90,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static DataTarget LoadDump(string path)
         {
             DataTarget dt = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? DataTarget.LoadCrashDump(path) : DataTarget.LoadCoreDump(path);
-            dt.SymbolLocator.SymbolPath = string.Empty;
+            dt.BinaryLocator = new SymbolServerLocator("");
             return dt;
         }
 

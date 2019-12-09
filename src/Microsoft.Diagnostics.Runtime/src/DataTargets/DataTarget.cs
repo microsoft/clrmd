@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable
     {
-        private SymbolLocator? _symbolLocator;
+        private IBinaryLocator? _locator;
         private bool _disposed;
         private ClrInfo[]? _clrs;
         private ModuleInfo[]? _modules;
@@ -39,15 +39,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Instance to manage the symbol path(s).
         /// </summary>
-        public SymbolLocator SymbolLocator
+        public IBinaryLocator BinaryLocator
         {
             get
             {
-                _symbolLocator ??= new DefaultSymbolLocator();
-                return _symbolLocator;
+                if (_locator == null)
+                {
+                    string symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+                    _locator = new Implementation.SymbolServerLocator(symPath);
+
+                }
+
+                return _locator;
             }
 
-            set => _symbolLocator = value;
+            set => _locator = value;
         }
 
         /// <summary>
@@ -226,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime
                 LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: false);
                 return new DataTarget(reader)
                 {
-                    SymbolLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+                    BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 
@@ -245,7 +251,7 @@ namespace Microsoft.Diagnostics.Runtime
                 LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: true);
                 return new DataTarget(reader)
                 {
-                    SymbolLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+                    BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 

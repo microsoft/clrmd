@@ -86,7 +86,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (dac != null && !File.Exists(dac))
                 dac = null;
 
-            dac ??= DataTarget.SymbolLocator.FindBinary(DacInfo);
+            if (DacInfo.FileName != null)
+                dac ??= DataTarget.BinaryLocator.FindBinary(DacInfo.FileName, DacInfo.TimeStamp, DacInfo.FileSize);
 
             if (!File.Exists(dac))
                 throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.FileName);
