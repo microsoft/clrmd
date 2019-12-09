@@ -50,6 +50,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IClrObjectHelpers ClrObjectHelpers => ComponentType.ClrObjectHelpers;
 
+        public override bool IsEnum => false;
+        public override ClrEnum AsEnum() => throw new InvalidOperationException();
+
         // We have no good way of finding this value, unfortunately
         public override ClrElementType ElementType { get; }
         public override ulong MethodTable => 0;

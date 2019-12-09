@@ -17,6 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ElementType = type;
         }
 
+        public override bool IsEnum => false;
+        public override ClrEnum AsEnum() => throw new InvalidOperationException();
         public override ClrModule Module { get; }
         public override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
