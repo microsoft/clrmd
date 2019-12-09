@@ -102,13 +102,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [WindowsFact]
         public void LoadCoreDump_ThrowsPlatformNotSupportedException()
         {
-            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCoreDump(TestTargets.Types.WorkstationFullDump));
+            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCoreDump(TestTargets.Types.BuildDumpName(GCMode.Workstation, true)));
         }
 
         [LinuxFact]
         public void LoadCrashDump_ThrowsPlatformNotSupportedException()
         {
-            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCrashDump(TestTargets.Types.WorkstationFullDump));
+            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCrashDump(TestTargets.Types.BuildDumpName(GCMode.Workstation, true)));
         }
     }
 }
