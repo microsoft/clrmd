@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The A.B.C.D version prepended with 'v'.</returns>
         public override string ToString()
         {
-            return $"v{Major}.{Minor}.{Revision}.{Patch:D2}";
+            return $"{Major}.{Minor}.{Revision}.{Patch}";
         }
 
         public static bool operator ==(VersionInfo? left, VersionInfo? right)

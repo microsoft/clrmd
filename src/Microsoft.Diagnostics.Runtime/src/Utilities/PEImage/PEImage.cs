@@ -198,6 +198,38 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return Stream.Read(dest);
         }
 
+        /// <summary>
+        /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
+        /// version tab a file's property page is populated with).
+        /// </summary>
+        public FileVersionInfo? GetFileVersionInfo()
+        {
+            ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
+            if (versionNode == null || versionNode.Children.Count != 1)
+                return null;
+
+            versionNode = versionNode.Children[0];
+            if (!versionNode.IsLeaf && versionNode.Children.Count == 1)
+                versionNode = versionNode.Children[0];
+
+            int size = versionNode.Size;
+            if (size <= FileVersionInfo.DataOffset)
+                return null;
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                int count = versionNode.GetData(buffer);
+                Span<byte> span = new Span<byte>(buffer, 0, count);
+                FileVersionInfo result = new FileVersionInfo(span);
+                return result;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         private ResourceEntry CreateResourceRoot()
         {
             return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
