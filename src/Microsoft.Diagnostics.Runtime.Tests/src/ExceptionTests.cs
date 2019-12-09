@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrException? exNullable = thread.CurrentException;
             Assert.NotNull(exNullable);
 
-            ClrException ex = exNullable.Value;
+            ClrException ex = exNullable.GetValueOrDefault();
 
             ExceptionTestData testData = TestTargets.NestedExceptionData;
             Assert.Equal(testData.OuterExceptionMessage, ex.Message);
