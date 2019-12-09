@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class BinaryLocator : IBinaryLocator
+    public sealed class BinaryLocator : IBinaryLocator
     {
         private readonly string _cache = string.Empty;
         private readonly SymbolPathEntry[] _paths;
@@ -22,6 +22,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public BinaryLocator(string symbolServer)
         {
+            if (symbolServer is null)
+                symbolServer = string.Empty;
+
             string[] entries = symbolServer.Split(';');
 
             List<SymbolPathEntry> paths = new List<SymbolPathEntry>(8);
