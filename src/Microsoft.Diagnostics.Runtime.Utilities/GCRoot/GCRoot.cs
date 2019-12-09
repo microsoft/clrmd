@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     break;
 
                 Console.WriteLine($"Considering {root.Address:x} {root.RootKind} {root.Object}");
-                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken))
+                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken, root))
                 {
                     if (path != null)
                     {
@@ -203,8 +203,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ClrObject source,
             ulong target,
             bool unique,
-            CancellationToken cancelToken)
+            CancellationToken cancelToken,
+            IClrRoot root = null)
         {
+            HashSet<ulong> processing = new HashSet<ulong>();
             LinkedList<PathEntry> path = new LinkedList<PathEntry>();
 
             if (knownEndPoints != null)
@@ -213,13 +215,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject> ending))
                     {
-                        yield return GetResult(ending);
+                        if (!unique || ending.Value.Address == target)
+                        {
+                            yield return GetResult(ending);
+                        }
+
                         yield break;
                     }
                 }
             }
 
-            if (!seen.Add(source.Address))
+            if (unique && !seen.Add(source.Address))
                 yield break;
 
             if (source.Type is null)
@@ -229,7 +235,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 path.AddLast(new PathEntry { Object = source });
                 yield return GetResult();
-
                 yield break;
             }
 
@@ -249,8 +254,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
             else if (foundEnding != null)
             {
-                yield return GetResult(foundEnding);
-                yield break;
+                if (!unique || foundEnding.Value.Address == target)
+                {
+                    yield return GetResult(foundEnding);
+                    yield break;
+                }
             }
 
             while (path.Count > 0)
@@ -266,6 +274,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // We've exhausted all children and didn't find the target.  Remove this node
                     // and continue.
                     path.RemoveLast();
+                    seen.Add(last.Object.Address);
+                    processing.Remove(last.Object.Address);
                 }
                 else
                 {
@@ -280,7 +290,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
-                        if (!seen.Add(next.Address))
+                        if (seen.Contains(next.Address))
+                        {
+                            if (knownEndPoints != null)
+                                lock (knownEndPoints)
+                                    if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject> end))
+                                    {
+
+                                        TraceFullPath(path, end);
+                                        yield return GetResult(end);
+
+                                        path.RemoveLast();
+                                    }
+
+                            continue;
+                        }
+
+                        if (!processing.Add(next.Address))
                             continue;
 
                         // We should never reach the 'end' here, as we always check if we found the target
@@ -308,8 +334,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         }
                         else if (foundEnding != null)
                         {
-                            TraceFullPath(path, foundEnding);
-                            yield return GetResult(foundEnding);
+                            if (!unique || foundEnding.Value.Address == target)
+                            {
+                                TraceFullPath(path, foundEnding);
+                                yield return GetResult(foundEnding);
+                            }
 
                             path.RemoveLast();
                         }
@@ -369,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 for (; end != null; end = end.Next)
                     result.AddLast(end.Value);
 
-                if (!unique && knownEndPoints != null)
+                if (knownEndPoints != null)
                     lock (knownEndPoints)
                         for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
                         {
@@ -379,6 +408,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                             knownEndPoints[address] = node;
                         }
+
+                foreach (var obj in result)
+                {
+                    seen.Add(obj.Address);
+                }
 
                 return result;
             }

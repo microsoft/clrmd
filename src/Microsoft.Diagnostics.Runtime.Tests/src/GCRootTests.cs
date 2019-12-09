@@ -164,14 +164,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
 
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, true, 1, CancellationToken.None).ToArray();
-            CheckRootPaths(heap, target, rootPaths);
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
 
-            rootPaths = gcroot.EnumerateGCRoots(target, true, 16, CancellationToken.None).ToArray();
-            CheckRootPaths(heap, target, rootPaths);
+            rootPaths = gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+
+            rootPaths = gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+
+            // In the case where we say we only want unique rooting chains AND we want to look in parallel,
+            // we cannot guarantee that we will pick the static roots over the stack ones.  Hence we don't
+            // ensure that the static variable is enumerated.
+            rootPaths = gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: false);
         }
 
-        private void CheckRootPaths(ClrHeap heap, ulong target, GCRootPath[] rootPaths)
+        private void CheckRootPaths(ClrHeap heap, ulong target, GCRootPath[] rootPaths, bool mustContainStatic)
         {
             Assert.True(rootPaths.Length >= 2);
 
@@ -180,26 +189,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             bool hasThread = false, hasStatic = false;
 
-            using (var outp = File.AppendText(@"d:\work\test22.txt"))
+            foreach (GCRootPath rootPath in rootPaths)
             {
-                outp.WriteLine($"----------");
-                foreach (GCRootPath rootPath in rootPaths)
-                {
-                    outp.Write($"{rootPath.Root.Address:x} {rootPath.Root.RootKind} ");
-                    foreach (var entry in rootPath.Path)
-                        outp.Write($"-> {entry.Address:x} {entry.Type}");
-
-                    outp.WriteLine();
-
-                    if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
-                        hasStatic = true;
-                    else if (rootPath.Root.RootKind == ClrRootKind.Stack)
-                        hasThread = true;
-                }
+                if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
+                    hasStatic = true;
+                else if (rootPath.Root.RootKind == ClrRootKind.Stack)
+                    hasThread = true;
             }
 
             Assert.True(hasThread);
-            Assert.True(hasStatic);
+
+            if (mustContainStatic)
+                Assert.True(hasStatic);
         }
 
         [Fact]
@@ -232,9 +233,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("IndirectTarget").Single();
 
-            GCRootPath path = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None));
             _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 8, CancellationToken.None));
+            GCRootPath path = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None));
 
+            var paths = gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).ToArray();
             Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
             Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 8, CancellationToken.None).Count());
         }
