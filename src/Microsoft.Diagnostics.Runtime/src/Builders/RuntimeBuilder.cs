@@ -190,7 +190,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private ClrModule GetModule(ulong addr)
         {
-            // todo: should we create a fake AppDomain here and new up an empty module if not found?
             _modules.TryGetValue(addr, out ClrModule module);
             return module;
         }
