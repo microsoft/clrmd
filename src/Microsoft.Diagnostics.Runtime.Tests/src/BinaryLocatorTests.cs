@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         internal static IBinaryLocator GetLocator()
         {
-            return new SymbolServerLocator($"cache*{Helpers.TestWorkingDirectory}*http://msdl.microsoft.com/download/symbols");
+            return new SymbolServerLocator($"srv*{Helpers.TestWorkingDirectory}*http://msdl.microsoft.com/download/symbols");
         }
 
         [Fact(Skip ="Touches network, don't run regularly.")]

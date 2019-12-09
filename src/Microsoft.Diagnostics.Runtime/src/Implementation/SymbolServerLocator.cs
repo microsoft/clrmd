@@ -40,8 +40,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     if (cache.Equals("cache", StringComparison.OrdinalIgnoreCase))
                     {
-                        _cache = location;
-                        continue;
+                        if (cache == null)
+                        {
+                            // case: cache*c:\location
+                            _cache = location;
+                            continue;
+                        }
+
+                        // case: cache*c:\location*\\remote\path
+                        _cache = cache;
                     }
 
                     if (cache.Equals("srv") || cache.Equals("svr"))
