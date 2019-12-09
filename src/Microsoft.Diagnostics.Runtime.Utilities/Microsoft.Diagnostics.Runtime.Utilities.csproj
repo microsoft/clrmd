@@ -41,4 +41,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="GCRoot\" />
+  </ItemGroup>
 </Project>

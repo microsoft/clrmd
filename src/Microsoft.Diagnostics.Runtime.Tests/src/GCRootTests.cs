@@ -4,9 +4,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -161,14 +163,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, true, CancellationToken.None).ToArray();
 
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+
+            rootPaths = gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+
+            rootPaths = gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+
+            // In the case where we say we only want unique rooting chains AND we want to look in parallel,
+            // we cannot guarantee that we will pick the static roots over the stack ones.  Hence we don't
+            // ensure that the static variable is enumerated.
+            rootPaths = gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: false);
+        }
+
+        private void CheckRootPaths(ClrHeap heap, ulong target, GCRootPath[] rootPaths, bool mustContainStatic)
+        {
             Assert.True(rootPaths.Length >= 2);
 
             foreach (GCRootPath rootPath in rootPaths)
                 AssertPathIsCorrect(heap, rootPath.Path, rootPath.Path.First().Address, target);
 
             bool hasThread = false, hasStatic = false;
+
             foreach (GCRootPath rootPath in rootPaths)
             {
                 if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
@@ -178,7 +198,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             Assert.True(hasThread);
-            Assert.True(hasStatic);
+
+            if (mustContainStatic)
+                Assert.True(hasStatic);
         }
 
         [Fact]
@@ -192,9 +214,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("DirectTarget").Single();
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).Count());
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, CancellationToken.None).Count());
+
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
         }
 
         [Fact]
@@ -208,9 +233,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("IndirectTarget").Single();
 
-            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, CancellationToken.None));
+            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 8, CancellationToken.None));
+            GCRootPath path = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None));
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, CancellationToken.None).Count());
+            var paths = gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).ToArray();
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 8, CancellationToken.None).Count());
         }
 
         [Fact]

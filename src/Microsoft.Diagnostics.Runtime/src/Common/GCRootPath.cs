@@ -14,11 +14,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The location that roots the object.
         /// </summary>
-        public IClrRoot Root { get; set; }
+        public IClrRoot Root { get; }
 
         /// <summary>
         /// The path from Root to a given target object.
         /// </summary>
-        public IReadOnlyList<ClrObject> Path { get; set; }
+        public IReadOnlyList<ClrObject> Path { get; }
+
+        public GCRootPath(IClrRoot root, IReadOnlyList<ClrObject> path)
+        {
+            Root = root;
+            Path = path;
+        }
     }
 }
