@@ -373,7 +373,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrInstanceField m_head = cq.Type.GetFieldByName("m_head");
             ClrInstanceField m_array = m_head.Type.GetFieldByName("m_array");
-            bool hasSimpleValue = m_array.HasSimpleValue;
             ClrElementType elementType = m_array.ElementType;
             ClrType componentType = m_array.Type.ComponentType;
 

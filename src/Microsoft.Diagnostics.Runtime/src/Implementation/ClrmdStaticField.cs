@@ -45,11 +45,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        /// <summary>
-        /// Given an object reference, fetch the address of the field.
-        /// </summary>
-
-        public override bool HasSimpleValue => !ElementType.IsValueClass();
         public override int Size => ClrmdField.GetSize(Type, ElementType);
 
         public override uint Token { get; }

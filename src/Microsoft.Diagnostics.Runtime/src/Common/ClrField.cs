@@ -80,12 +80,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsProtected { get; }
 
         /// <summary>
-        /// Returns true if this field has a simple value (meaning you may call "GetFieldValue" in one of the subtypes
-        /// of this class).
-        /// </summary>
-        public abstract bool HasSimpleValue { get; }
-
-        /// <summary>
         /// If the field has a well defined offset from the base of the object, return it (otherwise -1).
         /// </summary>
         public virtual int Offset => -1;
