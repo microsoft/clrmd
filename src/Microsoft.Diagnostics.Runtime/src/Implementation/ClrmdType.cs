@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -39,9 +40,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     return _name;
 
                 if (Helpers.GetTypeName(MethodTable, out string? name))
-                    _name = name;
+                    return _name = FixGenerics(name);
 
-                return name;
+                return FixGenerics(name);
             }
         }
 
@@ -444,165 +445,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
         public override object? GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
 
-        /// <summary>
-        /// A messy version with better performance that doesn't use regular expression.
-        /// </summary>
-        internal static int FixGenericsWorker(string name, int start, int end, StringBuilder sb)
-        {
-            int parenCount = 0;
-            while (start < end)
-            {
-                char c = name[start];
-                if (c == '`')
-                    break;
-
-                if (c == '[')
-                    parenCount++;
-
-                if (c == ']')
-                    parenCount--;
-
-                if (parenCount < 0)
-                    return start + 1;
-
-                if (c == ',' && parenCount == 0)
-                    return start;
-
-                sb.Append(c);
-                start++;
-            }
-
-            if (start >= end)
-                return start;
-
-            start++;
-            int paramCount = 0;
-
-            bool hasSubtypeArity;
-            do
-            {
-                int currParamCount = 0;
-                hasSubtypeArity = false;
-                // Skip arity.
-                while (start < end)
-                {
-                    char c = name[start];
-                    if (c < '0' || c > '9')
-                        break;
-
-                    currParamCount = currParamCount * 10 + c - '0';
-                    start++;
-                }
-
-                paramCount += currParamCount;
-                if (start >= end)
-                    return start;
-
-                if (name[start] == '+')
-                {
-                    while (start < end && name[start] != '[')
-                    {
-                        if (name[start] == '`')
-                        {
-                            start++;
-                            hasSubtypeArity = true;
-                            break;
-                        }
-
-                        sb.Append(name[start]);
-                        start++;
-                    }
-
-                    if (start >= end)
-                        return start;
-                }
-            } while (hasSubtypeArity);
-
-            if (name[start] == '[')
-            {
-                sb.Append('<');
-                start++;
-                while (paramCount-- > 0)
-                {
-                    if (start >= end)
-                        return start;
-
-                    bool withModule = false;
-                    if (name[start] == '[')
-                    {
-                        withModule = true;
-                        start++;
-                    }
-
-                    start = FixGenericsWorker(name, start, end, sb);
-
-                    if (start < end && name[start] == '[')
-                    {
-                        start++;
-                        if (start >= end)
-                            return start;
-
-                        sb.Append('[');
-
-                        while (start < end && name[start] == ',')
-                        {
-                            sb.Append(',');
-                            start++;
-                        }
-
-                        if (start >= end)
-                            return start;
-
-                        if (name[start] == ']')
-                        {
-                            sb.Append(']');
-                            start++;
-                        }
-                    }
-
-                    if (withModule)
-                    {
-                        while (start < end && name[start] != ']')
-                            start++;
-                        start++;
-                    }
-
-                    if (paramCount > 0)
-                    {
-                        if (start >= end)
-                            return start;
-
-                        //DebugOnly.Assert(name[start] == ',');
-                        sb.Append(',');
-                        start++;
-
-                        if (start >= end)
-                            return start;
-
-                        if (name[start] == ' ')
-                            start++;
-                    }
-                }
-
-                sb.Append('>');
-                start++;
-            }
-
-            if (start + 1 >= end)
-                return start;
-
-            if (name[start] == '[' && name[start + 1] == ']')
-                sb.Append("[]");
-
-            return start;
-        }
-
-        internal static string FixGenerics(string name)
-        {
-            StringBuilder builder = new StringBuilder();
-            FixGenericsWorker(name, 0, name.Length, builder);
-            return builder.ToString();
-        }
+        // convenience function for testing
+        public static string? FixGenerics(string? name) => RuntimeBuilder.FixGenerics(name);
 
         private void InitFlags()
         {

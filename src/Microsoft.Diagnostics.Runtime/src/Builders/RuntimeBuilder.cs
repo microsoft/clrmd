@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -682,7 +683,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         // When searching for a type, we don't want to actually cache or intern the name until we completely
         // construct the type.  This will alleviate a lot of needless memory usage when we do something like
         // search all modules for a named type we never find.
-        string? IModuleHelpers.GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
+        string? IModuleHelpers.GetTypeName(ulong mt) => FixGenerics(_sos.GetMethodTableName(mt));
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -1122,10 +1123,105 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (string.IsNullOrWhiteSpace(name))
                 return true;
 
+            name = FixGenerics(name);
             if (_options.CacheTypeNames == StringCaching.Intern)
                 name = string.Intern(name);
 
             return _options.CacheTypeNames != StringCaching.None;
+        }
+
+        private static void FixGenerics(StringBuilder result, string name, int start, int len, out int finish)
+        {
+            int i = start;
+            while (i < len)
+            {
+                if (name[i] == '`')
+                    while (i < len && name[i] != '[')
+                        i++;
+
+                if (name[i] == ',')
+                {
+                    finish = i;
+                    return;
+                }
+
+                if (name[i] == '[')
+                {
+                    int end = FindEnd(name, i);
+
+                    if (IsArraySubstring(name, i, end))
+                    {
+                        result.Append(name, i, end - i + 1);
+                        i = end + 1;
+                    }
+                    else
+                    {
+                        result.Append('<');
+
+                        int curr = i;
+                        do
+                        {
+                            FixGenerics(result, name, curr + 2, end - 1, out int currEnd);
+                            curr = FindEnd(name, currEnd) + 1;
+
+                            if (curr >= end)
+                                break;
+
+                            if (name[curr] == ',')
+                                result.Append(", ");
+                        }
+                        while (curr < end);
+
+                        result.Append('>');
+
+                        i = curr + 1;
+                    }
+                }
+                else
+                {
+                    result.Append(name[i]);
+                    i++;
+                }
+            }
+
+            finish = i;
+        }
+
+        private static int FindEnd(string name, int start)
+        {
+            int parenCount = 1;
+            for (int i = start + 1; i < name.Length; i++)
+            {
+                if (name[i] == '[')
+                    parenCount++;
+                if (name[i] == ']' && --parenCount == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static bool IsArraySubstring(string name, int start, int end)
+        {
+            start++;
+            end--;
+            while (start < end)
+                if (name[start++] != ',')
+                    return false;
+
+            return true;
+        }
+
+        public static string? FixGenerics(string? name)
+        {
+            if (name == null || name.IndexOf("[[") == -1)
+                return name;
+
+            StringBuilder sb = new StringBuilder();
+            FixGenerics(sb, name, 0, name.Length, out _);
+            return sb.ToString();
         }
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
