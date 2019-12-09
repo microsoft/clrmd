@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (!string.IsNullOrEmpty(info.FileName))
                     filePath = null;
                 else
-                    filePath = _dataTarget.SymbolLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
 
                 if (filePath is null)
                 {
@@ -253,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (buffer == IntPtr.Zero)
                 return E_INVALIDARG;
 
-            string? filePath = _dataTarget.SymbolLocator.FindBinary(filename, imageTimestamp, imageSize, true);
+            string? filePath = _dataTarget.BinaryLocator.FindBinary(filename, imageTimestamp, imageSize, true);
             if (filePath is null)
                 return E_FAIL;
 

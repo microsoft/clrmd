@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static DataTarget LoadDump(string path)
         {
             DataTarget dt = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? DataTarget.LoadCrashDump(path) : DataTarget.LoadCoreDump(path);
-            dt.SymbolLocator.SymbolPath = string.Empty;
+            dt.BinaryLocator.SymbolPath = string.Empty;
             return dt;
         }
 
