@@ -3,8 +3,10 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,7 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public class GCRoot
     {
         private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
-        private int _maxTasks;
 
         /// <summary>
         /// Since GCRoot can be long running, this event will provide periodic updates to how many objects the algorithm
@@ -40,36 +41,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ClrHeap Heap { get; }
 
         /// <summary>
-        /// Whether or not to allow GC root to search in parallel or not.  Note that GCRoot does not have to respect this
-        /// flag.  Parallel searching of roots will only happen if a copy of the stack and heap were built using BuildCache,
-        /// and if the entire heap was cached.  Note that ClrMD and underlying APIs do NOT support multithreading, so this
-        /// is only used when we can ensure all relevant data is local memory and we do not need to touch the debuggee.
-        /// </summary>
-        public bool AllowParallelSearch { get; set; } = false;
-
-        /// <summary>
-        /// The maximum number of tasks allowed to run in parallel, if GCRoot does a parallel search.
-        /// </summary>
-        public int MaximumTasksAllowed
-        {
-            get => _maxTasks;
-            set
-            {
-                if (_maxTasks < 0)
-                    throw new InvalidOperationException($"{nameof(MaximumTasksAllowed)} cannot be less than 0!");
-
-                _maxTasks = value;
-            }
-        }
-
-        /// <summary>
         /// Creates a GCRoot helper object for the given heap.
         /// </summary>
         /// <param name="heap">The heap the object in question is on.</param>
         public GCRoot(ClrHeap heap)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            _maxTasks = Environment.ProcessorCount * 2;
         }
 
         /// <summary>
@@ -83,6 +60,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return EnumerateGCRoots(target, true, cancelToken);
         }
 
+
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
+        {
+            return EnumerateGCRoots(target, unique, Environment.ProcessorCount, cancelToken);
+        }
+
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, CancellationToken cancelToken)
+        {
+            return EnumerateGCRoots(target, unique, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancelToken);
+        }
+
         /// <summary>
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.
         /// </summary>
@@ -90,108 +78,91 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="unique">Whether to only return fully unique paths.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancelToken)
         {
-            long lastObjectReported = 0;
+            if (roots is null)
+                throw new ArgumentNullException(nameof(roots));
 
-            bool parallel = AllowParallelSearch && _maxTasks > 0;
+            bool parallel = Heap.Runtime.IsThreadSafe && maxDegreeOfParallelism > 1;
 
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>()
             {
                 { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
             };
 
-            ObjectSet processedObjects = parallel
-                ? new ParallelObjectSet(Heap)
-                : new ObjectSet(Heap);
 
-            Task<Tuple<LinkedList<ClrObject>, IClrRoot>>[] tasks = parallel
-                ? new Task<Tuple<LinkedList<ClrObject>, IClrRoot>>[_maxTasks]
-                : null;
-
-            int initial = 0;
-
-            foreach (IClrRoot root in Heap.EnumerateRoots())
+            if (!parallel)
             {
-                GCRootPath? gcRootPath = ProcessRoot(root);
-                if (gcRootPath.HasValue)
-                    yield return gcRootPath.Value;
-            }
-
-            if (parallel)
-            {
-                foreach (Tuple<LinkedList<ClrObject>, IClrRoot> result in WhenEach(tasks))
+                ObjectSet processedObjects = new ObjectSet(Heap);
+                foreach (IClrRoot root in roots)
                 {
-                    ReportObjectCount(processedObjects.Count);
-                    yield return new GCRootPath { Root = result.Item2, Path = result.Item1.ToArray() };
-                }
-            }
-
-            yield break;
-
-            GCRootPath? ProcessRoot(IClrRoot root)
-            {
-                var rootObject = root.Object;
-                GCRootPath? result = null;
-
-                if (parallel)
-                {
-                    Task<Tuple<LinkedList<ClrObject>, IClrRoot>> task = Task.Run(
-                        () =>
-                            {
-                                LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
-                                return new Tuple<LinkedList<ClrObject>, IClrRoot>(path, path == null ? null : root);
-                            },
-                        cancelToken);
-
-                    if (initial < tasks.Length)
-                    {
-                        tasks[initial++] = task;
-                    }
-                    else
-                    {
-                        int i = Task.WaitAny(tasks);
-                        Task<Tuple<LinkedList<ClrObject>, IClrRoot>> completed = tasks[i];
-                        tasks[i] = task;
-
-                        if (completed.Result.Item1 != null)
-                            result = new GCRootPath { Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray() };
-                    }
-                }
-                else
-                {
-                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
-                        result = new GCRootPath { Root = root, Path = path.ToArray() };
+                        yield return new GCRootPath(root, path.ToArray());
                 }
-
-                ReportObjectCount(processedObjects.Count);
-
-                return result;
             }
-
-            void ReportObjectCount(long curr)
+            else
             {
-                if (curr != lastObjectReported)
+                ParallelObjectSet processedObjects = new ParallelObjectSet(Heap);
+
+                ConcurrentQueue<GCRootPath> results = new ConcurrentQueue<GCRootPath>();
+                using BlockingCollection<IClrRoot> queue = new BlockingCollection<IClrRoot>();
+                Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
+                for (int i = 0; i < threads.Length; i++)
                 {
-                    lastObjectReported = curr;
-                    ProgressUpdate?.Invoke(this, lastObjectReported);
+                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all:true, unique, cancelToken)) { Name = "GCRoot Worker Thread" };
+                    threads[i].Start();
                 }
+
+                foreach (IClrRoot root in roots)
+                    queue.Add(root);
+
+                // Add one sentinal value for every thread
+                for (int i = 0; i < threads.Length; i++)
+                    queue.Add(null);
+
+                // Worker threads end when they have run out of roots to process.  While we are waiting for them to exit, yield return
+                // any results they've found.  We'll use a 100 msec timeout because processing roots is slooooow and finding a root is
+                // rare.  There's no reason to check these results super quickly and starve worker threads.
+                for (int i = 0; i < threads.Length; i++)
+                    while (!threads[i].Join(100))
+                        while (results.TryDequeue(out GCRootPath result))
+                            yield return result;
+
+                // We could have raced to put an object in the results queue while joining the last thread, so we need to drain the
+                // results queue one last time.
+                while (results.TryDequeue(out GCRootPath result))
+                    yield return result;
             }
         }
 
-        private static IEnumerable<Tuple<LinkedList<ClrObject>, IClrRoot>> WhenEach(Task<Tuple<LinkedList<ClrObject>, IClrRoot>>[] tasks)
+        private void WorkerThread(
+            BlockingCollection<IClrRoot> queue,
+            ConcurrentQueue<GCRootPath> results,
+            ObjectSet seen,
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
+            ulong target,
+            bool all,
+            bool unique,
+            CancellationToken cancelToken)
         {
-            List<Task<Tuple<LinkedList<ClrObject>, IClrRoot>>> taskList = tasks.Where(t => t != null).ToList();
-
-            while (taskList.Count > 0)
+            IClrRoot root;
+            while ((root = queue.Take()) != null)
             {
-                Task<Tuple<LinkedList<ClrObject>, IClrRoot>> task = Task.WhenAny(taskList).Result;
-                if (task.Result.Item1 != null)
-                    yield return task.Result;
+                if (cancelToken.IsCancellationRequested)
+                    break;
 
-                bool removed = taskList.Remove(task);
-                Debug.Assert(removed);
+                Console.WriteLine($"Considering {root.Address:x} {root.RootKind} {root.Object}");
+                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken))
+                {
+                    if (path != null)
+                    {
+                        results.Enqueue(new GCRootPath(root, path.ToArray()));
+
+                        if (!all)
+                            break;
+                    }
+                }
             }
         }
 
@@ -236,14 +207,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             LinkedList<PathEntry> path = new LinkedList<PathEntry>();
 
-            if (knownEndPoints != null && knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject> ending))
+            if (knownEndPoints != null)
             {
-                yield return GetResult(ending);
-                yield break;
+                lock (knownEndPoints)
+                {
+                    if (knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject> ending))
+                    {
+                        yield return GetResult(ending);
+                        yield break;
+                    }
+                }
             }
 
             if (!seen.Add(source.Address))
-                yield return null;
+                yield break;
 
             if (source.Type is null)
                 yield break;
@@ -266,17 +243,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // Did the 'start' object point directly to 'end'?  If so, early out.
             if (foundTarget)
             {
-                path.AddLast(new PathEntry { Object = Heap.GetObject(target) });
+                path.AddLast(new PathEntry { Object = Heap.GetObject(target), Todo = s_emptyStack });
                 yield return GetResult();
+                yield break;
             }
             else if (foundEnding != null)
             {
                 yield return GetResult(foundEnding);
+                yield break;
             }
 
             while (path.Count > 0)
             {
-                cancelToken.ThrowIfCancellationRequested();
+                if (cancelToken.IsCancellationRequested)
+                    yield break;
 
                 TraceFullPath(null, path);
                 PathEntry last = path.Last.Value;
@@ -293,7 +273,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // we can't get an object's type...inconsistent heap happens sometimes).
                     do
                     {
-                        cancelToken.ThrowIfCancellationRequested();
+                        if (cancelToken.IsCancellationRequested)
+                            yield break;
+
                         ClrObject next = last.Todo.Pop();
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider

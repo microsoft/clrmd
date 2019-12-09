@@ -4,9 +4,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -161,20 +163,39 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, true, CancellationToken.None).ToArray();
 
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, true, 1, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths);
+
+            rootPaths = gcroot.EnumerateGCRoots(target, true, 16, CancellationToken.None).ToArray();
+            CheckRootPaths(heap, target, rootPaths);
+        }
+
+        private void CheckRootPaths(ClrHeap heap, ulong target, GCRootPath[] rootPaths)
+        {
             Assert.True(rootPaths.Length >= 2);
 
             foreach (GCRootPath rootPath in rootPaths)
                 AssertPathIsCorrect(heap, rootPath.Path, rootPath.Path.First().Address, target);
 
             bool hasThread = false, hasStatic = false;
-            foreach (GCRootPath rootPath in rootPaths)
+
+            using (var outp = File.AppendText(@"d:\work\test22.txt"))
             {
-                if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
-                    hasStatic = true;
-                else if (rootPath.Root.RootKind == ClrRootKind.Stack)
-                    hasThread = true;
+                outp.WriteLine($"----------");
+                foreach (GCRootPath rootPath in rootPaths)
+                {
+                    outp.Write($"{rootPath.Root.Address:x} {rootPath.Root.RootKind} ");
+                    foreach (var entry in rootPath.Path)
+                        outp.Write($"-> {entry.Address:x} {entry.Type}");
+
+                    outp.WriteLine();
+
+                    if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
+                        hasStatic = true;
+                    else if (rootPath.Root.RootKind == ClrRootKind.Stack)
+                        hasThread = true;
+                }
             }
 
             Assert.True(hasThread);
@@ -192,9 +213,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("DirectTarget").Single();
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).Count());
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, CancellationToken.None).Count());
+
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
         }
 
         [Fact]
@@ -208,9 +232,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("IndirectTarget").Single();
 
-            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, CancellationToken.None));
+            GCRootPath path = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None));
+            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 8, CancellationToken.None));
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 8, CancellationToken.None).Count());
         }
 
         [Fact]
