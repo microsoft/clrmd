@@ -254,6 +254,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// the value of this field out of the data target.
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <param name="maxLength">The maximum length of the string returned.  Warning: If the DataTarget
+        /// being inspected has corrupted or an inconsistent heap state, the length of a string may be
+        /// incorrect, leading to OutOfMemory and other failures.</param>
         /// <returns>The value of the given field.</returns>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
@@ -311,9 +314,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Determines whether this instance and a specified object, which must also be a <see cref="ClrObject" />, have the same value.
         /// </summary>
-        /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
+        /// <param name="obj">The <see cref="ClrObject" /> to compare to this instance.</param>
         /// <returns>
-        /// <c>true</c> if <paramref name="other" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
+        /// <c>true</c> if <paramref name="obj" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
         /// otherwise.
         /// </returns>
         public override bool Equals(object? obj)

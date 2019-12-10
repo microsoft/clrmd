@@ -41,6 +41,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="ArgumentException">Thrown when field was not found by name.</exception>
         /// <exception cref="InvalidOperationException">Thrown when found field has other type than <see cref="string"/>.</exception>
         /// <exception cref="MemoryReadException">Thrown when object reference could not be followed, or <see cref="string"/> could not be read.</exception>
+        /// <param name="maxLength">The maximum length of the string returned.  Warning: If the DataTarget
+        /// being inspected has corrupted or an inconsistent heap state, the length of a string may be
+        /// incorrect, leading to OutOfMemory and other failures.</param>
         string? GetStringField(string fieldName, int maxLength = 4096);
 
         /// <summary>

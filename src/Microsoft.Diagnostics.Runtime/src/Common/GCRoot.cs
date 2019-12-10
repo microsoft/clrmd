@@ -75,6 +75,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="target">The target object to search for GC rooting.</param>
         /// <param name="unique">Whether to only return fully unique paths.</param>
+        /// <param name="maxDegreeOfParallelism">The number of threads this class is allowed to use to calculate the result.
+        /// Setting this to 1 will cause the algorithm to run on the current thread.</param>
+        /// <param name="roots">The roots to consider.  You can pass ClrMD.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancelToken)

@@ -68,7 +68,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the ClrType corresponding to the given MethodTable.
         /// </summary>
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <param name="componentMethodTable">The ClrType's component MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or null if no such type exists.</returns>
         public abstract ClrType? GetTypeByMethodTable(ulong methodTable);
 

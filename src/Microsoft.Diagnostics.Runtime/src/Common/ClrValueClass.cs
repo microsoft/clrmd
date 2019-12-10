@@ -105,6 +105,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// the value of this field out of the data target.
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
+        /// <param name="maxLength">The maximum length of the string returned.  Warning: If the DataTarget
+        /// being inspected has corrupted or an inconsistent heap state, the length of a string may be
+        /// incorrect, leading to OutOfMemory and other failures.</param>
         /// <returns>The value of the given field.</returns>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
