@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// set to indicate this.  Otherwise the high bit is clear and the offset
     /// field points to a resource data entry.
     /// </summary>
-    internal unsafe struct IMAGE_RESOURCE_DIRECTORY_ENTRY
+    internal struct IMAGE_RESOURCE_DIRECTORY_ENTRY
     {
         public bool IsStringName => _nameOffsetAndFlag < 0;
         public int NameOffset => _nameOffsetAndFlag & 0x7FFFFFFF;

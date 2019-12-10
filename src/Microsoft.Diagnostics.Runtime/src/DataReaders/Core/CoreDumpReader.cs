@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
             ElfFile? file = image.Open();

@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
             _modules = null;
         }
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             uint id = _systemObjects.GetThreadIdBySystemId(threadID);
             _systemObjects.SetCurrentThread(id);

@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal unsafe sealed class HeapBuilder : IHeapBuilder
+    internal sealed class HeapBuilder : IHeapBuilder
     {
         private readonly CommonMethodTables _mts;
 
