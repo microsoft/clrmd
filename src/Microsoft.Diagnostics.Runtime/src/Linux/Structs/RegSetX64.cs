@@ -39,36 +39,36 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public readonly ulong FS;
         public readonly ulong GS;
 
-        public bool CopyContext(Span<byte> buffer)
+        public bool CopyContext(Span<byte> context)
         {
-            if (buffer.Length < AMD64Context.Size)
+            if (context.Length < AMD64Context.Size)
                 return false;
 
-            ref AMD64Context context = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(buffer));
+            ref AMD64Context contextRef = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
 
-            context.ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
-            context.R15 = R15;
-            context.R14 = R14;
-            context.R13 = R13;
-            context.R12 = R12;
-            context.Rbp = Rbp;
-            context.Rbx = Rbx;
-            context.R11 = R11;
-            context.R10 = R10;
-            context.R9 = R9;
-            context.R8 = R8;
-            context.Rax = Rax;
-            context.Rcx = Rcx;
-            context.Rdx = Rdx;
-            context.Rsi = Rsi;
-            context.Rdi = Rdi;
-            context.Rip = Rip;
-            context.Rsp = Rsp;
-            context.Cs = (ushort)CS;
-            context.Ds = (ushort)DS;
-            context.Ss = (ushort)SS;
-            context.Fs = (ushort)FS;
-            context.Gs = (ushort)GS;
+            contextRef.ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
+            contextRef.R15 = R15;
+            contextRef.R14 = R14;
+            contextRef.R13 = R13;
+            contextRef.R12 = R12;
+            contextRef.Rbp = Rbp;
+            contextRef.Rbx = Rbx;
+            contextRef.R11 = R11;
+            contextRef.R10 = R10;
+            contextRef.R9 = R9;
+            contextRef.R8 = R8;
+            contextRef.Rax = Rax;
+            contextRef.Rcx = Rcx;
+            contextRef.Rdx = Rdx;
+            contextRef.Rsi = Rsi;
+            contextRef.Rdi = Rdi;
+            contextRef.Rip = Rip;
+            contextRef.Rsp = Rsp;
+            contextRef.Cs = (ushort)CS;
+            contextRef.Ds = (ushort)DS;
+            contextRef.Ss = (ushort)SS;
+            contextRef.Fs = (ushort)FS;
+            contextRef.Gs = (ushort)GS;
 
             return true;
         }
