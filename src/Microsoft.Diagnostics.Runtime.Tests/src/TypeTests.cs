@@ -341,6 +341,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void PrimitiveTypeEquality()
+        {
+            // Make sure ClrmdPrimitiveType always equals "real" ClrmdTypes if their ElementTypes are equal.
+            // ClrmdPrimitiveType are fake, mocked up types we create if we aren't able to create the real
+            // ClrType for a field.
+
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            dt.CacheOptions.CacheTypes = false;
+
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            foreach ((ulong mt, uint _) in runtime.BaseClassLibrary.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType type = runtime.GetTypeByMethodTable(mt);
+                if (type != null && type.IsPrimitive)
+                {
+                    // We are hoping that creating a type through a MT will result in a real ClrmdType and
+                    // not a ClrmdPrimitiveType.  A ClrmdPrimitiveType is there to mock up a type we cannot
+                    // find.
+                    Assert.IsType<ClrmdType>(type);
+
+                    ClrmdType ct = (ClrmdType)type;
+
+                    ClrmdPrimitiveType prim = new ClrmdPrimitiveType((ITypeHelpers)type.ClrObjectHelpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
+                    Assert.True(ct == prim);
+                    Assert.True(prim == ct);
+                }
+            }
+        }
+
+
+        [Fact]
         public void InnerStructSizeTest()
         {
             // https://github.com/microsoft/clrmd/issues/101

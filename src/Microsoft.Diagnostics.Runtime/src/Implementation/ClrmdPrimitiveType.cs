@@ -7,13 +7,16 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrmdPrimitiveType : ClrType
+    public class ClrmdPrimitiveType : ClrType
     {
         public ClrmdPrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {
-            Module = module;
+            if (helpers is null)
+                throw new ArgumentNullException(nameof(helpers));
+
             ClrObjectHelpers = helpers.ClrObjectHelpers;
-            Heap = heap;
+            Module = module ?? throw new ArgumentNullException(nameof(module));
+            Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             ElementType = type;
         }
 
@@ -73,14 +76,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IReadOnlyList<ClrStaticField> StaticFields => Array.Empty<ClrStaticField>();
 
-        public override IReadOnlyList<ClrMethod> Methods => throw new NotImplementedException();
+        public override IReadOnlyList<ClrMethod> Methods => Array.Empty<ClrMethod>();
 
         public override ClrType? ComponentType => null;
 
         public override bool IsArray => false;
 
         public override int ComponentSize => 0;
-
-        // TODO:  Must override equals
     }
 }
