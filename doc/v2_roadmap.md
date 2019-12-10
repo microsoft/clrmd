@@ -83,9 +83,7 @@ Here is a list of feedback I am tracking from the community (my summary):
 1.  Offsets for string and exception fields when we have no metadata.
 2.  Document all functions
 3.  clean up exception usage
-4.  Consider enumerating offset in ClrObject.EnumerateReferences.
-5.  Add back our debugger so we don't have to use a local csc.
-6.  Enum related code in ClrType
+4.  Add back our debugger so we don't have to use a local csc.
 
 # .Net Core 5 Dac Wishlist
 
