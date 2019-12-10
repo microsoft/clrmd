@@ -169,18 +169,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType? BaseType { get; }
 
         /// <summary>
-        /// Returns the CCWData for the given object.
-        /// </summary>
-        /// <returns>The CCWData associated with the object, null if obj is not a CCW.</returns>
-        public abstract ComCallWrapper? GetCCWData(ulong obj);
-
-        /// <summary>
-        /// Returns the RCWData for the given object.
-        /// </summary>
-        /// <returns>The RCWData associated with the object, null if obj is not a RCW.</returns>
-        public abstract RuntimeCallableWrapper? GetRCWData(ulong obj);
-
-        /// <summary>
         /// Indicates if the type is in fact a pointer. If so, the pointer operators
         /// may be used.
         /// </summary>
@@ -237,73 +225,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if this type is an enum.
         /// </summary>
-        public virtual bool IsEnum => false;
+        public abstract bool IsEnum { get; }
 
         /// <summary>
-        /// Returns the element type of this enum.
+        /// Returns the ClrEnum representation of this type.
         /// </summary>
-        public virtual ClrElementType GetEnumElementType()
-        {
-            throw new NotImplementedException();
-        }
+        /// <returns>The ClrEnum representation of this type.  Throws InvalidOperationException if IsEnum returns false.</returns>
+        public abstract ClrEnum AsEnum();
 
         /// <summary>
-        /// Returns a list of names in the enum.
+        /// Returns true if this type is shared across multiple AppDomains.
         /// </summary>
-        public virtual IEnumerable<string> GetEnumNames()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Gets the name of the value in the enum, or null if the value doesn't have a name.
-        /// This is a convenience function, and has undefined results if the same value appears
-        /// twice in the enum.
-        /// </summary>
-        /// <param name="value">The value to lookup.</param>
-        /// <returns>The name of one entry in the enum with this value, or null if none exist.</returns>
-        public virtual string GetEnumName(object value)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Gets the name of the value in the enum, or null if the value doesn't have a name.
-        /// This is a convenience function, and has undefined results if the same value appears
-        /// twice in the enum.
-        /// </summary>
-        /// <param name="value">The value to lookup.</param>
-        /// <returns>The name of one entry in the enum with this value, or null if none exist.</returns>
-        public virtual string GetEnumName(int value)
-        {
-            throw new NotImplementedException();
-        }
-
         public abstract bool IsShared { get; }
-
-        /// <summary>
-        /// Attempts to get the integer value for a given enum entry.  Note you should only call this function if
-        /// GetEnumElementType returns ELEMENT_TYPE_I4.
-        /// </summary>
-        /// <param name="name">The name of the value to get (taken from GetEnumNames).</param>
-        /// <param name="value">The value to write out.</param>
-        /// <returns>True if we successfully filled value, false if <paramref name="name"/> is not a part of the enumeration.</returns>
-        public virtual bool TryGetEnumValue(string name, out int value)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Attempts to get the value for a given enum entry.  The type of "value" can be determined by the
-        /// return value of GetEnumElementType.
-        /// </summary>
-        /// <param name="name">The name of the value to get (taken from GetEnumNames).</param>
-        /// <param name="value">The value to write out.</param>
-        /// <returns>True if we successfully filled value, false if <paramref name="name"/> is not a part of the enumeration.</returns>
-        public virtual bool TryGetEnumValue(string name, out object value)
-        {
-            throw new NotImplementedException();
-        }
 
         /// <summary>
         /// Returns a string representation of this object.

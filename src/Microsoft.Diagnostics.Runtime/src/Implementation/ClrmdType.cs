@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -28,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private IReadOnlyList<ClrInstanceField>? _fields;
         private IReadOnlyList<ClrStaticField>? _statics;
 
-        private EnumData? _enumData;
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
 
@@ -242,38 +240,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        // TODO:  Add ClrObject GetCcw/GetRcw
-        // TODO:  Move out of ClrType.
-        public override ComCallWrapper? GetCCWData(ulong obj) => Helpers.Factory.CreateCCWForObject(obj);
-        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => Helpers.Factory.CreateRCWForObject(obj);
-
-        private class EnumData
-        {
-            internal ClrElementType ElementType;
-            internal readonly Dictionary<string, object> NameToValue = new Dictionary<string, object>();
-            internal readonly Dictionary<object, string> ValueToName = new Dictionary<object, string>();
-        }
-
-        public override bool TryGetEnumValue(string name, out int value)
-        {
-            if (TryGetEnumValue(name, out object val))
-            {
-                value = (int)val;
-                return true;
-            }
-
-            value = int.MinValue;
-            return false;
-        }
-
-        public override bool TryGetEnumValue(string name, out object value)
-        {
-            if (_enumData is null)
-                InitEnumData();
-
-            return _enumData!.NameToValue.TryGetValue(name, out value);
-        }
-
         public override bool IsEnum
         {
             get
@@ -286,72 +252,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override string GetEnumName(object value)
-        {
-            if (_enumData is null)
-                InitEnumData();
-
-            _enumData!.ValueToName.TryGetValue(value, out string result);
-            return result;
-        }
-
-        public override string GetEnumName(int value)
-        {
-            return GetEnumName((object)value);
-        }
-
-        public override IEnumerable<string> GetEnumNames()
-        {
-            if (_enumData is null)
-                InitEnumData();
-
-            return _enumData!.NameToValue.Keys;
-        }
-
-        private void InitEnumData()
+        public override ClrEnum AsEnum()
         {
             if (!IsEnum)
-                throw new InvalidOperationException("Type is not an Enum.");
+                throw new InvalidOperationException($"{Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType.IsEnum)} before using {nameof(AsEnum)}.");
 
-            _enumData = new EnumData();
-            MetaDataImport? import = Module?.MetadataImport;
-            if (import is null)
-                return;
-
-            List<string?> names = new List<string?>();
-            foreach (uint token in import.EnumerateFields((int)MetadataToken))
-            {
-                if (import.GetFieldProps(token, out string? name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
-                {
-                    if ((int)attr == 0x606 && name == "value__")
-                    {
-                        SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
-                        if (parser.GetCallingConvInfo(out _) && parser.GetElemType(out int elemType))
-                            _enumData.ElementType = (ClrElementType)elemType;
-                    }
-
-                    // public, static, literal, has default
-                    if ((int)attr == 0x8056)
-                    {
-                        names.Add(name);
-
-                        SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
-                        parser.GetCallingConvInfo(out _);
-                        parser.GetElemType(out _);
-
-                        Type? type = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
-                        if (type != null)
-                        {
-                            object o = Marshal.PtrToStructure(ppValue, type);
-                            if (name != null)
-                            {
-                                _enumData.NameToValue[name] = o;
-                                _enumData.ValueToName[o] = name;
-                            }
-                        }
-                    }
-                }
-            }
+            return new ClrEnum(this);
         }
 
         public override bool IsFree => this == Heap.FreeType;

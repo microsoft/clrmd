@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using System.Security.Principal;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -98,6 +99,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 else
                     Assert.Null(type.ComponentType);
             }
+        }
+
+        [Fact]
+        public void AsEnumTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrType appDomain = runtime.Heap.GetObjectsOfType("System.AppDomain").First().Type;
+            ClrInstanceField field = appDomain.Fields.Single(f => f.Name == "_PrincipalPolicy");
+            Assert.True(field.Type.IsEnum);
+
+            ClrEnum clrEnum = field.Type.AsEnum();
+            Assert.NotNull(clrEnum);
+
+            string[] propertyNames = clrEnum.GetEnumNames().ToArray();
+            Assert.NotEmpty(propertyNames);
+            Assert.Contains("NoPrincipal", propertyNames);
+            Assert.Contains("UnauthenticatedPrincipal", propertyNames);
+            Assert.Contains("WindowsPrincipal", propertyNames);
+
+            Assert.Equal(ClrElementType.Int32, clrEnum.ElementType);
+
+            Assert.Equal(PrincipalPolicy.NoPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.NoPrincipal)));
+            Assert.Equal(PrincipalPolicy.UnauthenticatedPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.UnauthenticatedPrincipal)));
+            Assert.Equal(PrincipalPolicy.WindowsPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.WindowsPrincipal)));
         }
 
         [Fact]
@@ -314,6 +341,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void PrimitiveTypeEquality()
+        {
+            // Make sure ClrmdPrimitiveType always equals "real" ClrmdTypes if their ElementTypes are equal.
+            // ClrmdPrimitiveType are fake, mocked up types we create if we aren't able to create the real
+            // ClrType for a field.
+
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            dt.CacheOptions.CacheTypes = false;
+
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            foreach ((ulong mt, uint _) in runtime.BaseClassLibrary.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType type = runtime.GetTypeByMethodTable(mt);
+                if (type != null && type.IsPrimitive)
+                {
+                    // We are hoping that creating a type through a MT will result in a real ClrmdType and
+                    // not a ClrmdPrimitiveType.  A ClrmdPrimitiveType is there to mock up a type we cannot
+                    // find.
+                    Assert.IsType<ClrmdType>(type);
+
+                    ClrmdType ct = (ClrmdType)type;
+
+                    ClrmdPrimitiveType prim = new ClrmdPrimitiveType((ITypeHelpers)type.ClrObjectHelpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
+                    Assert.True(ct == prim);
+                    Assert.True(prim == ct);
+                }
+            }
+        }
+
+
+        [Fact]
         public void InnerStructSizeTest()
         {
             // https://github.com/microsoft/clrmd/issues/101
@@ -373,7 +431,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrInstanceField m_head = cq.Type.GetFieldByName("m_head");
             ClrInstanceField m_array = m_head.Type.GetFieldByName("m_array");
-            bool hasSimpleValue = m_array.HasSimpleValue;
             ClrElementType elementType = m_array.ElementType;
             ClrType componentType = m_array.Type.ComponentType;
 

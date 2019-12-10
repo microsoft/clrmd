@@ -7,16 +7,21 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrmdPrimitiveType : ClrType
+    public class ClrmdPrimitiveType : ClrType
     {
         public ClrmdPrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {
-            Module = module;
+            if (helpers is null)
+                throw new ArgumentNullException(nameof(helpers));
+
             ClrObjectHelpers = helpers.ClrObjectHelpers;
-            Heap = heap;
+            Module = module ?? throw new ArgumentNullException(nameof(module));
+            Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             ElementType = type;
         }
 
+        public override bool IsEnum => false;
+        public override ClrEnum AsEnum() => throw new InvalidOperationException();
         public override ClrModule Module { get; }
         public override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
@@ -59,17 +64,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
         public override object? GetArrayElementValue(ulong objRef, int index) => null;
 
-        public override ClrInstanceField? GetFieldByName(string name)
-        {
-            return null;
-        }
-
+        public override ClrInstanceField? GetFieldByName(string name) => null;
+        
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
-
-        public override ComCallWrapper? GetCCWData(ulong obj) => null;
-
-        public override RuntimeCallableWrapper? GetRCWData(ulong obj) => null;
-
+    
         public override bool IsFinalizeSuppressed(ulong obj) => false;
 
         public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
@@ -78,14 +76,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IReadOnlyList<ClrStaticField> StaticFields => Array.Empty<ClrStaticField>();
 
-        public override IReadOnlyList<ClrMethod> Methods => throw new NotImplementedException();
+        public override IReadOnlyList<ClrMethod> Methods => Array.Empty<ClrMethod>();
 
         public override ClrType? ComponentType => null;
 
         public override bool IsArray => false;
 
         public override int ComponentSize => 0;
-
-        // TODO:  Must override equals
     }
 }
