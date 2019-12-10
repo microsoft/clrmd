@@ -39,6 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract ClrObject Dependent { get; }
 
+        /// <summary>
         /// The AppDomain the handle resides in.
         /// </summary>
         public abstract ClrAppDomain AppDomain { get; }
