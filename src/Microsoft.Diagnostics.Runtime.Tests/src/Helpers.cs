@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
+            foreach (string directory in Directory.EnumerateDirectories(Environment.CurrentDirectory))
                 if (directory.Contains(Helpers.TempRoot))
                     Directory.Delete(directory, true);
         }

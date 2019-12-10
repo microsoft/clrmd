@@ -283,10 +283,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (_threadIDs.Count == 0)
             {
                 string taskDirPath = $"/proc/{ProcessId}/task";
-                foreach (var taskDir in Directory.GetDirectories(taskDirPath))
+                foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
                 {
                     string dirName = Path.GetFileName(taskDir);
-                    if (uint.TryParse(dirName, out uint taskId) && taskId > 0)
+                    if (uint.TryParse(dirName, out uint taskId))
                     {
                         _threadIDs.Add(taskId);
                     }
