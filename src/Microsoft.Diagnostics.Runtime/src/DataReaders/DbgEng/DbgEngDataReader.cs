@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 
@@ -81,6 +82,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if ((uint)hr == 0xd00000bb)
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
+
+                if (!WindowsFunctions.IsProcessRunning(pid))
+                    throw new ArgumentException("The process is not running");
 
                 throw new ClrDiagnosticsException($"Could not attach to process {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
             }

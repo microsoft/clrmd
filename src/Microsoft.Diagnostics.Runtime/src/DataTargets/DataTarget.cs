@@ -257,6 +257,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="pid">The process ID of the process to suspend and attach to.</param>
         /// <returns>A DataTarget instance.</returns>
+        /// <exception cref="ArgumentException">
+        /// The process specified by <paramref name="pid"/> is not running.
+        /// </exception>
         public static DataTarget SuspendAndAttachToProcess(int pid)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -277,6 +280,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="pid">The process ID of the process to attach to.</param>
         /// <returns>A DataTarget instance.</returns>
+        /// <exception cref="ArgumentException">
+        /// The process specified by <paramref name="pid"/> is not running.
+        /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>

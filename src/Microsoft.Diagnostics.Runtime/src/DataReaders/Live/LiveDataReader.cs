@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -29,6 +30,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (createSnapshot)
             {
                 _originalPid = pid;
+
+                // Throws
                 Process process = Process.GetProcessById(pid);
                 int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if (hr != 0)
@@ -49,6 +52,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_process == IntPtr.Zero)
             {
+                if (!WindowsFunctions.IsProcessRunning(_pid))
+                    throw new ArgumentException("The process is not running");
+
                 int hr = Marshal.GetLastWin32Error();
                 throw new ClrDiagnosticsException($"Could not attach to process. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
             }
@@ -287,7 +293,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        [DllImport("kernel32.dll", EntryPoint = "OpenProcess")]
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
 
         [DllImport("kernel32.dll", SetLastError = true)]
