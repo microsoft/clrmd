@@ -38,9 +38,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ProcessId = (uint)processId;
             _memoryMapEntries = LoadMemoryMap();
 
+            int status = kill(processId, 0);
+            if (status < 0 && Marshal.GetLastWin32Error() != EPERM)
+                throw new ArgumentException("The process is not running");
+
             if (suspend)
             {
-                int status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
+                status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
 
                 if (status >= 0)
                     status = waitpid(processId, IntPtr.Zero, 0);
@@ -418,6 +422,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private const int ESRCH = 3;
 
         private const string LibC = "libc";
+
+        [DllImport(LibC, SetLastError = true)]
+        private static extern int kill(int pid, int sig);
 
         [DllImport(LibC, SetLastError = true)]
         private static extern IntPtr ptrace(uint request, int pid, IntPtr addr, IntPtr data);

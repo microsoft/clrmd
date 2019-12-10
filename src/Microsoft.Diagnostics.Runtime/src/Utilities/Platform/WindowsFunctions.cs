@@ -10,6 +10,42 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal unsafe sealed class WindowsFunctions : PlatformFunctions
     {
+        internal static bool IsProcessRunning(int processId)
+        {
+            IntPtr handle = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_INFORMATION, false, processId);
+            if (handle != IntPtr.Zero)
+            {
+                NativeMethods.CloseHandle(handle);
+                return true;
+            }
+
+            int minimumLength = 256;
+            int[] processIds = ArrayPool<int>.Shared.Rent(minimumLength);
+            try
+            {
+                int size;
+                for (; ; )
+                {
+                    NativeMethods.EnumProcesses(processIds, processIds.Length * sizeof(int), out size);
+                    if (size == processIds.Length * sizeof(int))
+                    {
+                        ArrayPool<int>.Shared.Return(processIds);
+                        minimumLength *= 2;
+                        processIds = ArrayPool<int>.Shared.Rent(minimumLength);
+                        continue;
+                    }
+
+                    break;
+                }
+
+                return Array.IndexOf(processIds, processId, 0, size / sizeof(int)) >= 0;
+            }
+            finally
+            {
+                ArrayPool<int>.Shared.Return(processIds);
+            }
+        }
+
         public override bool FreeLibrary(IntPtr module)
         {
             return NativeMethods.FreeLibrary(module);
@@ -61,6 +97,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal static class NativeMethods
         {
             private const string Kernel32LibraryName = "kernel32.dll";
+
+            public const int PROCESS_QUERY_INFORMATION = 0x0400;
+
+            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+
+            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            public static extern bool CloseHandle(IntPtr hObject);
+
+            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            public static extern unsafe bool EnumProcesses(int[] lpidProcess, int cb, out int lpcbNeeded);
 
             public const uint FILE_MAP_READ = 4;
 
