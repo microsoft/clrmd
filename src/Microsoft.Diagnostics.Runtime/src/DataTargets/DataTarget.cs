@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_locator == null)
+                if (_locator is null)
                 {
                     string symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
                     _locator = new Implementation.SymbolServerLocator(symPath);
@@ -229,7 +229,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 ThrowPlatformNotSupportedException();
 
-            return new DataTarget(new CoreDumpReader(filename));
+            CoreDumpReader reader = new CoreDumpReader(filename);
+            return new DataTarget(reader)
+            {
+                BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
+            };
         }
 
         /// <summary>

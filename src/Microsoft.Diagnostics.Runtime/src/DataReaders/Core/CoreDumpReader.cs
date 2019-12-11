@@ -207,6 +207,11 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
+        internal IEnumerable<string> GetModulesFullPath()
+        {
+            return EnumerateModules().Where(module => !string.IsNullOrEmpty(module.FileName)).Select(module => module.FileName!);
+        }
+
         private void InitThreads()
         {
             if (_threads != null)
