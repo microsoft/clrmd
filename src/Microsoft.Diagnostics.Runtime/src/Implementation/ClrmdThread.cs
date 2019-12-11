@@ -53,10 +53,10 @@ namespace Microsoft.Diagnostics.Runtime
                 if (ptr == 0)
                     return null;
 
-                ulong obj = _helpers.DataReader.ReadPointerUnsafe(ptr);
+                ulong obj = _helpers.DataReader.ReadPointer(ptr);
                 ulong mt = 0;
                 if (obj != 0)
-                    mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+                    mt = _helpers.DataReader.ReadPointer(obj);
 
                 if (mt != 0)
                 {

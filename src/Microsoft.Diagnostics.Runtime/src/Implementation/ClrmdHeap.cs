@@ -227,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ulong mt;
                 if (large)
                 {
-                    if (!dataReader.ReadMemory(obj, buffer, out int read) || read != buffer.Length)
+                    if (!dataReader.Read(obj, buffer, out int read) || read != buffer.Length)
                         break;
 
                     if (IntPtr.Size == 4)
@@ -347,7 +347,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
             else
             {
-                mt = _helpers.DataReader.ReadPointerUnsafe(objRef);
+                mt = _helpers.DataReader.ReadPointer(objRef);
             }
 
             if (mt == 0)
@@ -412,7 +412,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_memoryReader != null)
                     _memoryReader.ReadDword(loc, out count);
                 else
-                    count = _helpers.DataReader.ReadUnsafe<uint>(loc);
+                    count = _helpers.DataReader.Read<uint>(loc);
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
                 if (StringType == type)
@@ -462,7 +462,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (type.IsCollectible)
             {
-                ulong la = _helpers.DataReader.ReadPointerUnsafe(type.LoaderAllocatorHandle);
+                ulong la = _helpers.DataReader.ReadPointer(type.LoaderAllocatorHandle);
                 if (la != 0)
                     yield return new ClrObject(la, GetObjectType(la));
             }
@@ -491,7 +491,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_memoryReader != null && _memoryReader.Contains(ptr) && _memoryReader.ReadPtr(ptr, out ulong value))
                 return value;
 
-            return _helpers.DataReader.ReadPointerUnsafe(ptr);
+            return _helpers.DataReader.ReadPointer(ptr);
         }
 
         public override IEnumerable<IClrRoot> EnumerateRoots()
@@ -535,11 +535,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 for (ulong ptr = seg.Start; ptr < seg.End; ptr += (uint)IntPtr.Size)
                 {
-                    ulong obj = _helpers.DataReader.ReadPointerUnsafe(ptr);
+                    ulong obj = _helpers.DataReader.ReadPointer(ptr);
                     if (obj == 0)
                         continue;
 
-                    ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+                    ulong mt = _helpers.DataReader.ReadPointer(obj);
                     ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
                     if (type != null)
                         yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));

@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int Read(long position, Span<byte> buffer)
         {
-            _ = _dataReader.ReadMemory((ulong)position, buffer, out int read);
+            _ = _dataReader.Read((ulong)position, buffer, out int read);
             return read;
         }
     }

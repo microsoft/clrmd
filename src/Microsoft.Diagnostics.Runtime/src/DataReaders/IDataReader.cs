@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// An interface for reading data out of the target process.
     /// </summary>
-    public interface IDataReader : IDisposable
+    public interface IDataReader : IDisposable, IMemoryReader
     {
         /// <summary>
         /// Returns whether this data reader is safe to use in parallel from multiple threads.
@@ -22,12 +22,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>The architecture of the target.</returns>
         Architecture Architecture { get; }
-
-        /// <summary>
-        /// Gets the size of a pointer in the target process.
-        /// </summary>
-        /// <returns>The pointer size of the target process.</returns>
-        int PointerSize { get; }
 
         /// <summary>
         /// The ProcessId of the DataTarget.
@@ -59,15 +53,6 @@ namespace Microsoft.Diagnostics.Runtime
         void GetVersionInfo(ulong baseAddress, out VersionInfo version);
 
         /// <summary>
-        /// Read memory out of the target process.
-        /// </summary>
-        /// <param name="address">The address of memory to read.</param>
-        /// <param name="buffer">The buffer to write to.</param>
-        /// <param name="bytesRead">The number of bytes actually read out of the target process.</param>
-        /// <returns>True if any bytes were read at all, false if the read failed (and no bytes were read).</returns>
-        bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead);
-
-        /// <summary>
         /// Gets information about the given memory range.
         /// </summary>
         /// <param name="addr">An arbitrary address in the target process.</param>
@@ -82,19 +67,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
         /// <param name="context">A span to write the context to.</param>
         bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context);
-
-        /// <summary>
-        /// Read a pointer out of the target process.
-        /// </summary>
-        /// <returns>
-        /// The pointer at the give address, or 0 if that pointer doesn't exist in
-        /// the data target.
-        /// </returns>
-        ulong ReadPointerUnsafe(ulong addr);
-
-        bool Read<T>(ulong addr, out T value) where T : unmanaged;
-        T ReadUnsafe<T>(ulong addr) where T : unmanaged;
-        bool ReadPointer(ulong addr, out ulong value);
 
         /// <summary>
         /// Informs the data reader that the user has requested all data be flushed.

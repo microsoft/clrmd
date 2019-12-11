@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime
                 version = new VersionInfo();
         }
 
-        public bool ReadMemory(ulong address, Span<byte> buffer, out int bytesRead)
+        public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
         {
             try
             {
@@ -185,11 +185,11 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ulong ReadPointerUnsafe(ulong addr)
+        public ulong ReadPointer(ulong addr)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
 
-            if (!ReadMemory(addr, buffer, out int read))
+            if (!Read(addr, buffer, out int read))
                 return 0;
 
             return buffer.AsPointer();
@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (!ReadMemory(addr, buffer, out _))
+            if (!Read(addr, buffer, out _))
             {
                 value = Unsafe.As<byte, T>(ref buffer[0]);
                 return true;
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        public T Read<T>(ulong addr) where T : unmanaged
         {
             Read(addr, out T value);
             return value;
@@ -217,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (!ReadMemory(address, buffer, out _))
+            if (!Read(address, buffer, out _))
             {
                 value = buffer.AsPointer();
                 return true;
@@ -267,12 +267,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             Span<byte> buffer = stackalloc byte[4];
 
-            if (ReadMemory(moduleBase + 0x3c, buffer, out int read) && read == buffer.Length)
+            if (Read(moduleBase + 0x3c, buffer, out int read) && read == buffer.Length)
             {
                 uint sigOffset = buffer.AsUInt32();
                 int sigLength = 4;
 
-                if (ReadMemory(moduleBase + sigOffset, buffer, out read) && read == buffer.Length)
+                if (Read(moduleBase + sigOffset, buffer, out read) && read == buffer.Length)
                 {
                     uint header = buffer.AsUInt32();
 
@@ -283,10 +283,10 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         const int timeDataOffset = 4;
                         const int imageSizeOffset = 0x4c;
-                        if (ReadMemory(moduleBase + sigOffset + (ulong)sigLength + timeDataOffset, buffer, out read) && read == buffer.Length)
+                        if (Read(moduleBase + sigOffset + (ulong)sigLength + timeDataOffset, buffer, out read) && read == buffer.Length)
                             timestamp = buffer.AsUInt32();
 
-                        if (ReadMemory(moduleBase + sigOffset + (ulong)sigLength + imageSizeOffset, buffer, out read) && read == buffer.Length)
+                        if (Read(moduleBase + sigOffset + (ulong)sigLength + imageSizeOffset, buffer, out read) && read == buffer.Length)
                             filesize = buffer.AsUInt32();
                     }
                 }

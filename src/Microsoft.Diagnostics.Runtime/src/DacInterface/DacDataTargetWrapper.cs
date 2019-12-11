@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return E_FAIL;
             }
 
-            if (_dataReader.ReadMemory(address, span, out int read))
+            if (_dataReader.Read(address, span, out int read))
             {
                 bytesRead = read;
                 return S_OK;

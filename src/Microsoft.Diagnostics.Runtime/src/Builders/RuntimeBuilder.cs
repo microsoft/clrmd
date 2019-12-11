@@ -312,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     if (frameVtbl != 0)
                     {
                         sp = frameVtbl;
-                        frameVtbl = DataReader.ReadPointerUnsafe(sp);
+                        frameVtbl = DataReader.ReadPointer(sp);
                     }
 
                     byte[]? contextCopy = null;
@@ -486,7 +486,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     if (handles[i].Type == (int)ClrHandleKind.Dependent)
                     {
-                        ulong obj = DataReader.ReadPointerUnsafe(handles[i].Handle);
+                        ulong obj = DataReader.ReadPointer(handles[i].Handle);
                         if (obj != 0)
                             yield return (obj, handles[i].Secondary);
                     }
@@ -510,7 +510,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 for (int i = 0; i < fetched; i++)
                 {
-                    ulong objAddress = DataReader.ReadPointerUnsafe(handles[i].Handle);
+                    ulong objAddress = DataReader.ReadPointer(handles[i].Handle);
                     ClrObject clrObj = heap.GetObject(objAddress);
 
                     if (!clrObj.IsNull)
@@ -647,9 +647,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             for (int i = 0; i < (int)count; ++i)
             {
-                ulong ip = DataReader.ReadPointerUnsafe(dataPtr);
-                ulong sp = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size);
-                ulong md = DataReader.ReadPointerUnsafe(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
+                ulong ip = DataReader.ReadPointer(dataPtr);
+                ulong sp = DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size);
+                ulong md = DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
                 ClrMethod? method = CreateMethodFromHandle(md);
                 result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);

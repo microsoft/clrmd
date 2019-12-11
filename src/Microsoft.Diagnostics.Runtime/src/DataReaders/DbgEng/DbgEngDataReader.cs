@@ -260,13 +260,13 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public bool ReadMemory(ulong address, Span<byte> buffer, out int read)
+        public bool Read(ulong address, Span<byte> buffer, out int read)
         {
             read = _spaces.ReadVirtual(address, buffer);
             return read == buffer.Length;
         }
 
-        public ulong ReadPointerUnsafe(ulong addr)
+        public ulong ReadPointer(ulong addr)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
             if (_spaces.ReadVirtual(addr, buffer) != IntPtr.Size)
@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (ReadMemory(addr, buffer, out _))
+            if (Read(addr, buffer, out _))
             {
                 value = Unsafe.As<byte, T>(ref buffer[0]);
                 return true;
@@ -288,7 +288,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public T ReadUnsafe<T>(ulong addr) where T : unmanaged
+        public T Read<T>(ulong addr) where T : unmanaged
         {
             Read(addr, out T value);
             return value;
@@ -297,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (ReadMemory(address, buffer, out _))
+            if (Read(address, buffer, out _))
             {
                 value = buffer.AsPointer();
                 return true;

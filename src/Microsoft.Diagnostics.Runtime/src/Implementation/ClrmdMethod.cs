@@ -167,8 +167,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     }
                     else if (dataReader.Read(il, out uint flags))
                     {
-                        int len = dataReader.ReadUnsafe<int>(il + 4);
-                        uint localToken = dataReader.ReadUnsafe<uint>(il + 8);
+                        int len = dataReader.Read<int>(il + 4);
+                        uint localToken = dataReader.Read<uint>(il + 8);
                         ulong address = il + 12;
 
                         return new ILInfo(address, len, flags, localToken);

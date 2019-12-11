@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out ulong value)
         {
             Span<byte> span = stackalloc byte[IntPtr.Size];
-            bool res = _dataReader.ReadMemory(addr, span, out int size);
+            bool res = _dataReader.Read(addr, span, out int size);
 
             ref byte b = ref MemoryMarshal.GetReference(span);
             if (IntPtr.Size == 4)
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out uint value)
         {
             Span<byte> span = stackalloc byte[sizeof(uint)];
-            bool res = _dataReader.ReadMemory(addr, span, out _);
+            bool res = _dataReader.Read(addr, span, out _);
 
             value = span.AsUInt32();
 
@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out int value)
         {
             Span<byte> span = stackalloc byte[sizeof(int)];
-            bool res = _dataReader.ReadMemory(addr, span, out _);
+            bool res = _dataReader.Read(addr, span, out _);
 
             value = span.AsInt32();
 
@@ -184,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected virtual bool ReadMemory(ulong addr)
         {
             _currPageStart = addr;
-            bool res = _dataReader.ReadMemory(_currPageStart, new Span<byte>(_data, 0, _cacheSize), out _currPageSize);
+            bool res = _dataReader.Read(_currPageStart, new Span<byte>(_data, 0, _cacheSize), out _currPageSize);
 
             if (!res)
             {
