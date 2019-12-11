@@ -294,7 +294,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer, out _))
+            if (Read(address, buffer, out int size) && size == IntPtr.Size)
             {
                 value = buffer.AsPointer();
                 return true;
