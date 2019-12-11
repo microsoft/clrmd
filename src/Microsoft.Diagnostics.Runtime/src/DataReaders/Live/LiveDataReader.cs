@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer, out _))
+            if (Read(address, buffer, out int size) && size == sizeof(T))
             {
                 value = Unsafe.As<byte, T>(ref buffer[0]);
                 return true;
