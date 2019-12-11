@@ -12,6 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal static class ValueReader
     {
         private static bool _initializedStringFields;
+        private static ClrType? _stringType;
         private static ClrInstanceField? _firstChar;
         private static ClrInstanceField? _stringLength;
 
@@ -147,6 +148,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (strAddr == 0)
                 return null;
 
+            _initializedStringFields = _initializedStringFields && _stringType == stringType;
+
             if (!_initializedStringFields)
             {
                 // since .NET Core 2.1
@@ -164,6 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_stringLength?.Type is null)
                     _stringLength = null;
 
+                _stringType = stringType;
                 _initializedStringFields = true;
             }
 
