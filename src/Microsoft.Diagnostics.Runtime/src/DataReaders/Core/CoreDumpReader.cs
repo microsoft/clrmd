@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(addr, buffer, out int read) && read == sizeof(T))
+            if (Read(addr, buffer, out _))
             {
                 value = Unsafe.As<byte, T>(ref buffer[0]);
                 return true;
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer, out int read) && read == IntPtr.Size)
+            if (Read(address, buffer, out _))
             {
                 value = buffer.AsPointer();
                 return true;
