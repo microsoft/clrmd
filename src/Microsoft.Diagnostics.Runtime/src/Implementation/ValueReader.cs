@@ -149,8 +149,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (!_initializedStringFields)
             {
-                _firstChar = stringType.GetFieldByName("m_firstChar");
-                _stringLength = stringType.GetFieldByName("m_stringLength");
+                // since .NET Core 2.1
+                _firstChar = stringType.GetFieldByName("_firstChar");
+                _stringLength = stringType.GetFieldByName("_stringLength");
+
+                _firstChar ??= stringType.GetFieldByName("m_firstChar");
+                _stringLength ??= stringType.GetFieldByName("m_stringLength");
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
