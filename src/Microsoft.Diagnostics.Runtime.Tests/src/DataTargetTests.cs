@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
+using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using Xunit;
@@ -109,6 +110,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void LoadCrashDump_ThrowsPlatformNotSupportedException()
         {
             _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCrashDump(TestTargets.Types.BuildDumpName(GCMode.Workstation, true)));
+        }
+
+        [LinuxFact]
+        public void LoadCoreDump_ThrowsInvalidDataException()
+        {
+            string path = Path.GetTempFileName();
+            File.WriteAllText(path, Environment.NewLine);
+            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCoreDump(path));
+        }
+
+        [WindowsFact]
+        public void LoadCrashDump_ThrowsInvalidDataException()
+        {
+            string path = Path.GetTempFileName();
+            File.WriteAllText(path, Environment.NewLine);
+            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCrashDump(path));
         }
     }
 }
