@@ -178,10 +178,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(addr, buffer, out _))
+            if (Read(address, buffer, out _))
             {
                 value = Unsafe.As<byte, T>(ref buffer[0]);
                 return true;
@@ -191,9 +191,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return false;
         }
 
-        public T Read<T>(ulong addr) where T : unmanaged
+        public T Read<T>(ulong address) where T : unmanaged
         {
-            Read(addr, out T value);
+            Read(address, out T value);
             return value;
         }
 
@@ -216,11 +216,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _threadIDs;
         }
 
-        public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
+        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
         {
             foreach (var entry in _memoryMapEntries)
             {
-                if (entry.BeginAddr <= addr && entry.EndAddr >= addr)
+                if (entry.BeginAddr <= address && entry.EndAddr >= address)
                 {
                     vq = new VirtualQueryData(entry.BeginAddr, entry.EndAddr - entry.BeginAddr + 1);
                     return true;

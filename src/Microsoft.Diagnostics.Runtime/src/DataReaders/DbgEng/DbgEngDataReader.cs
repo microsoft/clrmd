@@ -248,9 +248,9 @@ namespace Microsoft.Diagnostics.Runtime
             Interlocked.Increment(ref s_totalInstanceCount);
         }
 
-        public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
+        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
         {
-            if (_spaces.QueryVirtual(addr, out MEMORY_BASIC_INFORMATION64 mem))
+            if (_spaces.QueryVirtual(address, out MEMORY_BASIC_INFORMATION64 mem))
             {
                 vq = new VirtualQueryData(mem.BaseAddress, mem.RegionSize);
                 return true;
@@ -266,16 +266,16 @@ namespace Microsoft.Diagnostics.Runtime
             return read == buffer.Length;
         }
 
-        public ulong ReadPointer(ulong addr)
+        public ulong ReadPointer(ulong address)
         {
-            ReadPointer(addr, out ulong value);
+            ReadPointer(address, out ulong value);
             return value;
         }
 
-        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(addr, buffer, out _))
+            if (Read(address, buffer, out _))
             {
                 value = Unsafe.As<byte, T>(ref buffer[0]);
                 return true;
@@ -285,9 +285,9 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public T Read<T>(ulong addr) where T : unmanaged
+        public T Read<T>(ulong address) where T : unmanaged
         {
-            Read(addr, out T value);
+            Read(address, out T value);
             return value;
         }
 
