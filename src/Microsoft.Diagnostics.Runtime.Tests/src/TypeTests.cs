@@ -508,7 +508,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return field;
         }
 
-        [Fact]
+        [WindowsFact]
         public void CollectibleTypeTest()
         {
             CollectibleAssemblyLoadContext context = new CollectibleAssemblyLoadContext();
