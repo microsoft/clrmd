@@ -427,13 +427,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrType fooType = runtime.GetModule(ModuleName).GetTypeByName("Types");
-            ClrStaticField cq = fooType.GetStaticFieldByName("s_cq");
-            Assert.NotNull(cq);
+            ClrStaticField list = fooType.GetStaticFieldByName("s_list");
+            Assert.NotNull(list);
 
-            ClrInstanceField m_head = cq.Type.GetFieldByName("m_head");
-            ClrInstanceField m_array = m_head.Type.GetFieldByName("m_array");
-            ClrElementType elementType = m_array.ElementType;
-            ClrType componentType = m_array.Type.ComponentType;
+            ClrInstanceField itemsField = list.Type.GetFieldByName("_items");
+            ClrElementType elementType = itemsField.ElementType;
+            ClrType componentType = itemsField.Type.ComponentType;
 
             // If this assert fails, remove the test.  This value is null because currently CLR's
             // debugging layer doesn't tell us the component type of an array.  If we eventually
@@ -441,16 +440,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // this test to fail but the underlying issue would be fixed.
             Assert.Null(componentType);
 
-            ClrObject m_arrayObj = cq.ReadObject().GetObjectField("m_head").GetObjectField("m_array");
+            ClrObject itemsObj = list.ReadObject().GetObjectField("_items");
 
             // Ensure we are looking at the same ClrType
             if (dt.CacheOptions.CacheTypes)
-                Assert.Same(m_array.Type, m_arrayObj.Type);
+                Assert.Same(itemsField.Type, itemsObj.Type);
             else
-                Assert.Equal(m_array.Type, m_arrayObj.Type);
+                Assert.Equal(itemsField.Type, itemsObj.Type);
 
             // Assert that we eventually filled in ComponentType after we got a real object for the type
-            Assert.NotNull(m_arrayObj.Type.ComponentType);
+            Assert.NotNull(itemsObj.Type.ComponentType);
         }
 
         [Fact]
