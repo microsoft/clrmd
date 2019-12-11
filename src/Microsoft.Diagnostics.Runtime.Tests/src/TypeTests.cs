@@ -12,7 +12,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using System.Security.Principal;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -107,8 +106,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrType appDomain = runtime.Heap.GetObjectsOfType("System.AppDomain").First().Type;
-            ClrInstanceField field = appDomain.Fields.Single(f => f.Name == "_PrincipalPolicy");
+            ClrModule typesModule = runtime.GetModule(ModuleName);
+            ClrType type = typesModule.GetTypeByName("Types");
+
+            ClrStaticField field = type.GetStaticFieldByName("s_enum");
             Assert.True(field.Type.IsEnum);
 
             ClrEnum clrEnum = field.Type.AsEnum();
@@ -116,15 +117,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             string[] propertyNames = clrEnum.GetEnumNames().ToArray();
             Assert.NotEmpty(propertyNames);
-            Assert.Contains("NoPrincipal", propertyNames);
-            Assert.Contains("UnauthenticatedPrincipal", propertyNames);
-            Assert.Contains("WindowsPrincipal", propertyNames);
+            Assert.Contains(nameof(FileAccess.Read), propertyNames);
+            Assert.Contains(nameof(FileAccess.Write), propertyNames);
+            Assert.Contains(nameof(FileAccess.ReadWrite), propertyNames);
 
             Assert.Equal(ClrElementType.Int32, clrEnum.ElementType);
 
-            Assert.Equal(PrincipalPolicy.NoPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.NoPrincipal)));
-            Assert.Equal(PrincipalPolicy.UnauthenticatedPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.UnauthenticatedPrincipal)));
-            Assert.Equal(PrincipalPolicy.WindowsPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.WindowsPrincipal)));
+            Assert.Equal(FileAccess.Read, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.Read)));
+            Assert.Equal(FileAccess.Write, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.Write)));
+            Assert.Equal(FileAccess.ReadWrite, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.ReadWrite)));
         }
 
         [Fact]

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 
 class Types
 {
@@ -13,6 +14,8 @@ class Types
     static ConcurrentQueue<int> s_cq = new ConcurrentQueue<int>();
 
     static object s_i = 42;
+
+    public static FileAccess s_enum = FileAccess.Read;
 
     static Types()
     {
