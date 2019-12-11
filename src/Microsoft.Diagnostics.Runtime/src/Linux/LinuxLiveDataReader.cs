@@ -183,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             if (Read(address, buffer, out int size) && size == sizeof(T))
             {
-                value = Unsafe.As<byte, T>(ref buffer[0]);
+                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
             }
 

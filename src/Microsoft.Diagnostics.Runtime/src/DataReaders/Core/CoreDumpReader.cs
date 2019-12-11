@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -161,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             if (Read(address, buffer, out int size) && size == sizeof(T))
             {
-                value = Unsafe.As<byte, T>(ref buffer[0]);
+                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
             }
 
