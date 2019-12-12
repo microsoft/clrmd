@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -9,7 +10,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a method on a class.
     /// </summary>
-    public abstract class ClrMethod
+    public abstract class ClrMethod :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<ClrMethod>
+#nullable restore
     {
         /// <summary>
         /// Retrieves the first MethodDesc in EnumerateMethodDescs().  For single
@@ -140,37 +144,33 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual bool IsClassConstructor => Name == ".cctor";
 
 
-        public override bool Equals(object? obj)
+        public override bool Equals(object? obj) => Equals(obj as ClrMethod);
+
+        public bool Equals(ClrMethod? other)
         {
-            if (obj is ClrMethod method)
-            {
-                if (MethodDesc == method.MethodDesc)
-                    return true;
+            if (ReferenceEquals(this, other))
+                return true;
 
-                // MethodDesc shouldn't be 0, but we should check the other way equality mechanism anyway.
-                if (MethodDesc == 0 && Type == method.Type && MetadataToken == method.MetadataToken)
-                    return true;
+            if (other is null)
+                return false;
 
-                // Fall back to reference equality
-                return base.Equals(obj);
-            }
+            if (MethodDesc == other.MethodDesc)
+                return true;
 
-            return false;
+            // MethodDesc shouldn't be 0, but we should check the other way equality mechanism anyway.
+            return MethodDesc == 0 && Type == other.Type && MetadataToken == other.MetadataToken;
         }
 
         public override int GetHashCode() => MethodDesc.GetHashCode();
 
         public static bool operator ==(ClrMethod? left, ClrMethod? right)
         {
-            if (left is null)
-                return right is null;
+            if (right is null)
+                return left is null;
 
-            return left.Equals(right);
+            return right.Equals(left);
         }
 
-        public static bool operator !=(ClrMethod? left, ClrMethod? right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(ClrMethod? left, ClrMethod? right) => !(left == right);
     }
 }

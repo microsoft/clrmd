@@ -2,12 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// An interface implementation in the target process.
     /// </summary>
-    public sealed class ClrInterface
+    public sealed class ClrInterface :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<ClrInterface>
+#nullable restore
     {
         /// <summary>
         /// The typename of the interface.
@@ -36,18 +41,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">Object to compare to.</param>
         /// <returns>True if this interface equals another.</returns>
-        public override bool Equals(object? obj)
+        public override bool Equals(object? obj) => Equals(obj as ClrInterface);
+
+        public bool Equals(ClrInterface? other)
         {
-            if (!(obj is ClrInterface other))
+            if (ReferenceEquals(this, other))
+                return true;
+
+            if (other is null)
                 return false;
 
-            if (Name != other.Name)
-                return false;
-
-            if (BaseInterface is null)
-                return other.BaseInterface is null;
-
-            return BaseInterface.Equals(other.BaseInterface);
+            return Name == other.Name && BaseInterface == other.BaseInterface;
         }
 
         /// <summary>
@@ -66,5 +70,15 @@ namespace Microsoft.Diagnostics.Runtime
 
             return hashCode;
         }
+
+        public static bool operator ==(ClrInterface? left, ClrInterface? right)
+        {
+            if (right is null)
+                return left is null;
+
+            return right.Equals(left);
+        }
+
+        public static bool operator !=(ClrInterface? left, ClrInterface? right) => !(left == right);
     }
 }

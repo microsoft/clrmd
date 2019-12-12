@@ -12,7 +12,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Information about a specific PDB instance obtained from a PE image.
     /// </summary>
-    public sealed class PdbInfo
+    public sealed class PdbInfo :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<PdbInfo>
+#nullable restore
     {
         /// <summary>
         /// The Guid of the PDB.
@@ -53,22 +56,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
-        public override bool Equals(object? obj)
-        {
-            if (obj is null)
-                return false;
+        public override bool Equals(object? obj) => Equals(obj as PdbInfo);
 
-            if (ReferenceEquals(this, obj))
+        public bool Equals(PdbInfo? other)
+        {
+            if (ReferenceEquals(this, other))
                 return true;
 
-            if (obj is PdbInfo rhs)
+            if (other is null)
+                return false;
+
+            if (Revision == other.Revision && Guid == other.Guid)
             {
-                if (Revision == rhs.Revision && Guid == rhs.Guid)
-                {
-                    string lhsFilename = Path.GetFileName(FileName);
-                    string rhsFilename = Path.GetFileName(rhs.FileName);
-                    return lhsFilename.Equals(rhsFilename, StringComparison.OrdinalIgnoreCase);
-                }
+                string thisFileName = Path.GetFileName(FileName);
+                string otherFileName = Path.GetFileName(other.FileName);
+                return thisFileName.Equals(otherFileName, StringComparison.OrdinalIgnoreCase);
             }
 
             return false;
@@ -82,5 +84,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return $"{Guid} {Revision} {FileName}";
         }
+
+        public static bool operator ==(PdbInfo? left, PdbInfo? right)
+        {
+            if (right is null)
+                return left is null;
+
+            return right.Equals(left);
+        }
+
+        public static bool operator !=(PdbInfo? left, PdbInfo? right) => !(left == right);
     }
 }

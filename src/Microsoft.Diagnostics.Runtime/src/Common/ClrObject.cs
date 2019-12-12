@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
@@ -306,10 +305,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
         /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
-        public bool Equals(ClrObject other)
-        {
-            return Address == other.Address;
-        }
+        public bool Equals(ClrObject other) => Address == other.Address;
 
         /// <summary>
         /// Determines whether this instance and a specified object, which must also be a <see cref="ClrObject" />, have the same value.
@@ -319,10 +315,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <c>true</c> if <paramref name="obj" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
         /// otherwise.
         /// </returns>
-        public override bool Equals(object? obj)
-        {
-            return obj is ClrObject other && Equals(other);
-        }
+        public override bool Equals(object? obj) => obj is ClrObject other && Equals(other);
 
         /// <summary>
         /// Returns the hash code for this <see cref="ClrObject" /> based on its <see cref="Address" />.
@@ -333,8 +326,7 @@ namespace Microsoft.Diagnostics.Runtime
             return Address.GetHashCode();
         }
 
-        public bool Equals(IAddressableTypedEntity other)
-            => other is ClrObject && Equals((ClrObject)other);
+        public bool Equals(IAddressableTypedEntity entity) => entity is ClrObject other && Equals(other);
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrObject" /> have the same value.
@@ -342,13 +334,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
         /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
         /// <returns><c>true</c> if <paramref name="left" /> <see cref="Equals(ClrObject)" /> <paramref name="right" />; <c>false</c> otherwise.</returns>
-        public static bool operator ==(ClrObject? left, ClrObject? right)
-        {
-            if (left is null)
-                return right is null;
-
-            return left.Equals(right);
-        }
+        public static bool operator ==(ClrObject left, ClrObject right) => left.Equals(right);
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrObject" /> have different values.
@@ -356,10 +342,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
         /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
         /// <returns><c>true</c> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <c>false</c> otherwise.</returns>
-        public static bool operator !=(ClrObject? left, ClrObject? right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(ClrObject left, ClrObject right) => !(left == right);
 
         private ClrType GetTypeOrThrow()
         {
