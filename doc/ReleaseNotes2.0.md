@@ -76,21 +76,3 @@ Here is a list of feedback I am tracking from the community (my summary):
 6.  Improve the messages and exceptions thrown by the library. - **Tentatively Planned**
 7.  Document the expected 'cost' of main operations in memory/CPU.  - **Unsure** - *There's so many factors here I'm not sure what success looks like.  I think providing a set of benchmarks would be ideal for developers to understand what expected performance should look like.  This is not something I intend to tackle for the 2.0 release.*
 
-# TODO reminders
-
-(Notes to myself about what I need to revisit.)
-
-1.  Offsets for string and exception fields when we have no metadata.
-2.  Document all functions
-3.  clean up exception usage
-4.  Add back our debugger so we don't have to use a local csc.
-
-# .Net Core 5 Dac Wishlist
-
-1. Get ElementType for method table data.
-2. All method tables => type handle.
-3. Generics.
-4. Images report size.
-5. TypeSpec enumeration
-6. Change modulemaptraverse to fill an array
-7. [Dac::Flush](https://github.com/dotnet/runtime/blob/master/src/coreclr/src/debug/daccess/daccess.cpp#L2002) needs to be synchronized.
