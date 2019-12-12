@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
@@ -14,26 +14,26 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly bool _virtual;
 
         private Reader? _virtualAddressReader;
-        private ElfNote[]? _notes;
-        private ElfProgramHeader[]? _programHeaders;
-        private byte[]? _buildId;
+        private ImmutableArray<ElfNote> _notes;
+        private ImmutableArray<ElfProgramHeader> _programHeaders;
+        private ImmutableArray<byte> _buildId;
 
         public IElfHeader Header { get; }
 
-        public IReadOnlyCollection<ElfNote> Notes
+        public ImmutableArray<ElfNote> Notes
         {
             get
             {
                 LoadNotes();
-                return _notes!;
+                return _notes;
             }
         }
-        public IReadOnlyList<ElfProgramHeader> ProgramHeaders
+        public ImmutableArray<ElfProgramHeader> ProgramHeaders
         {
             get
             {
                 LoadProgramHeaders();
-                return _programHeaders!;
+                return _programHeaders;
             }
         }
 
@@ -46,11 +46,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public byte[]? BuildId
+        public ImmutableArray<byte> BuildId
         {
             get
             {
-                if (_buildId != null)
+                if (!_buildId.IsDefault)
                     return _buildId;
 
                 if (Header.ProgramHeaderOffset != 0 && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
@@ -61,8 +61,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         {
                             if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
                             {
-                                _buildId = new byte[note.Header.ContentSize];
-                                note.ReadContents(0, _buildId);
+                                ImmutableArray<byte>.Builder buildId = ImmutableArray.CreateBuilder<byte>((int)note.Header.ContentSize);
+                                buildId.Count = buildId.Capacity;
+
+                                note.ReadContents(0, buildId.DangerousGetSpan());
+
+                                _buildId = buildId.MoveToImmutable();
                                 return _buildId;
                             }
                         }
@@ -72,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     }
                 }
 
-                return null;
+                return default;
             }
         }
 
@@ -110,13 +114,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void LoadNotes()
         {
-            if (_notes != null)
+            if (!_notes.IsDefault)
                 return;
 
             LoadProgramHeaders();
 
-            List<ElfNote> notes = new List<ElfNote>();
-            foreach (ElfProgramHeader programHeader in _programHeaders!)
+            ImmutableArray<ElfNote>.Builder notes = ImmutableArray.CreateBuilder<ElfNote>();
+            foreach (ElfProgramHeader programHeader in _programHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Note)
                 {
@@ -132,17 +136,21 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
             }
 
-            _notes = notes.ToArray();
+            _notes = notes.MoveOrCopyToImmutable();
         }
 
         private void LoadProgramHeaders()
         {
-            if (_programHeaders != null)
+            if (!_programHeaders.IsDefault)
                 return;
 
-            _programHeaders = new ElfProgramHeader[Header.ProgramHeaderCount];
-            for (int i = 0; i < _programHeaders.Length; i++)
-                _programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+            ImmutableArray<ElfProgramHeader>.Builder programHeaders = ImmutableArray.CreateBuilder<ElfProgramHeader>(Header.ProgramHeaderCount);
+            programHeaders.Count = programHeaders.Capacity;
+
+            for (int i = 0; i < programHeaders.Count; i++)
+                programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+
+            _programHeaders = programHeaders.MoveToImmutable();
         }
     }
 }

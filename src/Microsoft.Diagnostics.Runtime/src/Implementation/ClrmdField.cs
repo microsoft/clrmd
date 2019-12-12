@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         return 1;
 
                     ClrField? last = null;
-                    IReadOnlyList<ClrInstanceField> fields = type.Fields;
+                    ImmutableArray<ClrInstanceField> fields = type.Fields;
                     foreach (ClrField field in fields)
                     {
                         if (last is null)

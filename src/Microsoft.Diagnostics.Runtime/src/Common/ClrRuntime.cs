@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -37,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates the list of appdomains in the process.
         /// </summary>
-        public abstract IReadOnlyList<ClrAppDomain> AppDomains { get; }
+        public abstract ImmutableArray<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
         /// The System AppDomain for Desktop CLR (null on .Net Core).
@@ -55,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>
-        public abstract IReadOnlyList<ClrThread> Threads { get; }
+        public abstract ImmutableArray<ClrThread> Threads { get; }
 
         /// <summary>
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).

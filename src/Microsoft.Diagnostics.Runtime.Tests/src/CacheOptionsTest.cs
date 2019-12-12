@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Linq;
-using System.Text;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -132,8 +133,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType type = module.GetTypeByName("Foo");
             Assert.NotEqual(0ul, type.MethodTable);  // Sanity test
 
-            Assert.Same(type.Fields, type.Fields);
-            Assert.Same(type.StaticFields, type.StaticFields);
+            Assert.Equal(type.Fields, type.Fields);
+            Assert.Equal(type.StaticFields, type.StaticFields);
 
             ClrField field = type.GetFieldByName("o");
             ClrField field2 = type.Fields.Single(f => f.Name == "o");
@@ -154,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType type = module.GetTypeByName("Foo");
             Assert.NotEqual(0ul, type.MethodTable);  // Sanity test
 
-            Assert.NotSame(type.Fields, type.Fields);
+            Assert.NotEqual(type.Fields, type.Fields);
 
             ClrField field = type.GetFieldByName("o");
             ClrField field2 = type.Fields.Single(f => f.Name == "o");

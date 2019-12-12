@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -58,9 +59,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MethodTable => 0;
         public override bool IsFinalizeSuppressed(ulong obj) => false;
         public override bool IsPointer => true;
-        public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
-        public override IReadOnlyList<ClrStaticField> StaticFields => Array.Empty<ClrStaticField>();
-        public override IReadOnlyList<ClrMethod> Methods => Array.Empty<ClrMethod>();
+        public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
+        public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
+        public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Array.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override bool IsPublic => true;

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the list of interfaces this RCW implements.
         /// </summary>
-        public IReadOnlyList<ComInterfaceData> Interfaces { get; }
+        public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
         public RuntimeCallableWrapper(ClrRuntime runtime, IRCWData data)
         {

@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class ElfCoreFile
     {
         private readonly Reader _reader;
-        private ElfLoadedImage[]? _loadedImages;
+        private ImmutableArray<ElfLoadedImage> _loadedImages;
         private readonly Dictionary<ulong, ulong> _auxvEntries = new Dictionary<ulong, ulong>();
         private ELFVirtualAddressSpace? _virtualAddressSpace;
 
@@ -43,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public IReadOnlyCollection<ElfLoadedImage> LoadedImages => LoadFileTable();
+        public ImmutableArray<ElfLoadedImage> LoadedImages => LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -103,9 +104,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private IReadOnlyCollection<ElfLoadedImage> LoadFileTable()
+        private ImmutableArray<ElfLoadedImage> LoadFileTable()
         {
-            if (_loadedImages != null)
+            if (!_loadedImages.IsDefault)
                 return _loadedImages;
 
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
@@ -167,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            return _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
+            return _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToImmutableArray();
         }
     }
 }

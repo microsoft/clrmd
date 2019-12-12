@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -109,15 +110,19 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
 
 
-        bool IHeapHelpers.CreateSegments(ClrHeap clrHeap, out IReadOnlyList<ClrSegment> segments, out IReadOnlyList<AllocationContext> allocationContexts,
-                        out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects)
+        bool IHeapHelpers.CreateSegments(
+            ClrHeap clrHeap,
+            out IReadOnlyList<ClrSegment> segments,
+            out IReadOnlyList<AllocationContext> allocationContexts,
+            out IReadOnlyList<FinalizerQueueSegment> fqRoots,
+            out IReadOnlyList<FinalizerQueueSegment> fqObjects)
         {
             List<ClrSegment> segs = new List<ClrSegment>();
             List<AllocationContext> allocContexts = new List<AllocationContext>();
             List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
             List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
 
-            if (allocContexts.Count == 0)
+            if (true)
             {
                 ulong next = _firstThread;
                 HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
@@ -163,8 +168,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        private static void ProcessHeap(SegmentBuilder segBuilder, ClrHeap clrHeap, in HeapDetails heap, List<AllocationContext> allocationContexts, List<ClrSegment> segments,
-                                    List<FinalizerQueueSegment> fqRoots, List<FinalizerQueueSegment> fqObjects)
+        private static void ProcessHeap(
+            SegmentBuilder segBuilder,
+            ClrHeap clrHeap,
+            in HeapDetails heap,
+            List<AllocationContext> allocationContexts,
+            List<ClrSegment> segments,
+            List<FinalizerQueueSegment> fqRoots,
+            List<FinalizerQueueSegment> fqObjects)
         {
             if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
                 allocationContexts.Add(new AllocationContext(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
@@ -204,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 if (_moduleBuilder.Init(addr))
                     return _modules[addr] = new ClrmdModule(domain, _moduleBuilder);
-                
+
                 return _modules[addr] = new ClrmdModule(domain, this, addr);
             }
         }
@@ -396,11 +407,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return null;
         }
 
-        IReadOnlyList<ClrThread> IRuntimeHelpers.GetThreads(ClrRuntime runtime)
+        ImmutableArray<ClrThread> IRuntimeHelpers.GetThreads(ClrRuntime runtime)
         {
             CheckDisposed();
 
-            ClrThread[] threads = new ClrThread[_threads];
+            ImmutableArray<ClrThread>.Builder threads = ImmutableArray.CreateBuilder<ClrThread>(_threads);
+            threads.Count = threads.Capacity;
 
             // Ensure we don't hit a loop due to corrupt data
 
@@ -409,7 +421,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             HashSet<ulong> seen = new HashSet<ulong>() { 0 };
             ulong addr = _firstThread;
             int i;
-            for (i = 0; i < threads.Length && seen.Add(addr); i++)
+            for (i = 0; i < threads.Count && seen.Add(addr); i++)
             {
                 if (!threadBuilder.Init(addr))
                     break;
@@ -421,13 +433,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
 
             // Shouldn't happen unless we caught the runtime at a really bad place
-            if (i < threads.Length)
-                Array.Resize(ref threads, i);
+            if (i < threads.Count)
+                threads.Capacity = threads.Count = i;
 
-            return threads;
+            return threads.MoveToImmutable();
         }
 
-        IReadOnlyList<ClrAppDomain> IRuntimeHelpers.GetAppDomains(ClrRuntime runtime, out ClrAppDomain? system, out ClrAppDomain? shared)
+        ImmutableArray<ClrAppDomain> IRuntimeHelpers.GetAppDomains(ClrRuntime runtime, out ClrAppDomain? system, out ClrAppDomain? shared)
         {
             CheckDisposed();
 
@@ -443,16 +455,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 shared = GetOrCreateAppDomain(builder, builder.SharedDomain);
 
             ClrDataAddress[] domainList = _sos.GetAppDomainList(builder.AppDomainCount);
-            ClrAppDomain[] result = new ClrAppDomain[domainList.Length];
+            ImmutableArray<ClrAppDomain>.Builder result = ImmutableArray.CreateBuilder<ClrAppDomain>(domainList.Length);
+            result.Count = result.Capacity;
 
-            int i = 0;
-            foreach (ulong domain in domainList)
-                result[i++] = GetOrCreateAppDomain(builder, domain);
+            for (int i = 0; i < domainList.Length; i++)
+                result[i] = GetOrCreateAppDomain(builder, domainList[i]);
 
-            if (i < result.Length)
-                Array.Resize(ref result, i);
-
-            return result;
+            return result.MoveToImmutable();
         }
 
         public ClrAppDomain GetOrCreateAppDomain(AppDomainBuilder? builder, ulong domain)
@@ -515,7 +524,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 yield break;
 
             ClrHeap heap = runtime.Heap;
-            ClrAppDomain? domain = heap.Runtime.AppDomains.Count > 0 ? heap.Runtime.AppDomains[0] : null;
+            ClrAppDomain? domain = heap.Runtime.AppDomains.Length > 0 ? heap.Runtime.AppDomains[0] : null;
 
             int fetched;
             while ((fetched = handleEnum.ReadHandles(handles)) != 0)
@@ -579,7 +588,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             FlushDac();
             _heap.ClearCachedData();
-            
+
 
             lock (_types)
                 _types.Clear();
@@ -635,24 +644,25 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public IExceptionHelpers ExceptionHelpers => this;
 
-        IReadOnlyList<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
+        ImmutableArray<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
         {
             CheckDisposed();
 
             ClrObject _stackTrace = obj.GetObjectField("_stackTrace");
             if (_stackTrace.IsNull)
-                return Array.Empty<ClrStackFrame>();
+                return ImmutableArray<ClrStackFrame>.Empty;
 
             int len = _stackTrace.Length;
             if (len == 0)
-                return Array.Empty<ClrStackFrame>();
+                return ImmutableArray<ClrStackFrame>.Empty;
 
             int elementSize = IntPtr.Size * 4;
             ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
             if (!DataReader.ReadPointer(dataPtr, out ulong count))
-                return Array.Empty<ClrStackFrame>();
+                return ImmutableArray<ClrStackFrame>.Empty;
 
-            ClrStackFrame[] result = new ClrStackFrame[count];
+            ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>((int)count);
+            result.Count = result.Capacity;
 
             // Skip size and header
             dataPtr += (ulong)(IntPtr.Size * 2);
@@ -668,7 +678,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 dataPtr += (ulong)elementSize;
             }
 
-            return result;
+            return result.MoveToImmutable();
         }
 
         string? IAppDomainHelpers.GetConfigFile(ClrAppDomain domain) => _sos.GetConfigFile(domain.Address);
@@ -909,19 +919,20 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return new RuntimeCallableWrapper(GetOrCreateRuntime(), builder);
         }
 
-        bool ITypeFactory.CreateMethodsForType(ClrType type, out IReadOnlyList<ClrMethod> methods)
+        bool ITypeFactory.CreateMethodsForType(ClrType type, out ImmutableArray<ClrMethod> methods)
         {
             CheckDisposed();
 
             ulong mt = type.MethodTable;
             if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
             {
-                methods = Array.Empty<ClrMethod>();
+                methods = ImmutableArray<ClrMethod>.Empty;
                 return true;
             }
 
             using MethodBuilder builder = _methodBuilders.Rent();
-            ClrMethod[] result = new ClrMethod[data.NumMethods];
+            ImmutableArray<ClrMethod>.Builder result = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
+            result.Count = result.Capacity;
 
             int curr = 0;
             for (int i = 0; i < data.NumMethods; i++)
@@ -930,16 +941,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     result[curr++] = new ClrmdMethod(type, builder);
             }
 
-            if (curr < result.Length)
-                Array.Resize(ref result, curr);
-
-            if (result.Length == 0)
+            if (curr == 0)
             {
-                methods = Array.Empty<ClrMethod>();
+                methods = ImmutableArray<ClrMethod>.Empty;
                 return true;
             }
 
-            methods = result;
+            result.Capacity = result.Count = curr;
+            methods = result.MoveToImmutable();
             return _options.CacheMethods;
         }
 
@@ -965,24 +974,27 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return new ClrmdMethod(type, builder);
         }
 
-        bool ITypeFactory.CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics)
+        bool ITypeFactory.CreateFieldsForType(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics)
         {
             CheckDisposed();
 
-            CreateFieldsForMethodTableWorker(type, out fields!, out statics!);
+            CreateFieldsForMethodTableWorker(type, out fields, out statics);
 
-            fields ??= Array.Empty<ClrInstanceField>();
-            statics ??= Array.Empty<ClrStaticField>();
+            if (fields.IsDefault)
+                fields = ImmutableArray<ClrInstanceField>.Empty;
+
+            if (statics.IsDefault)
+                statics = ImmutableArray<ClrStaticField>.Empty;
 
             return _options.CacheFields;
         }
 
-        private void CreateFieldsForMethodTableWorker(ClrType type, out IReadOnlyList<ClrInstanceField>? fields, out IReadOnlyList<ClrStaticField>? statics)
+        private void CreateFieldsForMethodTableWorker(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics)
         {
             CheckDisposed();
 
-            fields = null;
-            statics = null;
+            fields = default;
+            statics = default;
 
             if (type.IsFree)
                 return;
@@ -994,26 +1006,31 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return;
             }
 
-            ClrInstanceField[] fieldOut = new ClrInstanceField[fieldInfo.NumInstanceFields];
-            ClrStaticField[] staticOut = new ClrStaticField[fieldInfo.NumStaticFields];
+            ImmutableArray<ClrInstanceField>.Builder fieldsBuilder = ImmutableArray.CreateBuilder<ClrInstanceField>(fieldInfo.NumInstanceFields);
+            fieldsBuilder.Count = fieldsBuilder.Capacity;
+
+            ImmutableArray<ClrStaticField>.Builder staticsBuilder = ImmutableArray.CreateBuilder<ClrStaticField>(fieldInfo.NumStaticFields);
+            staticsBuilder.Count = staticsBuilder.Capacity;
+
             if (fieldInfo.NumStaticFields == 0)
-                statics = Array.Empty<ClrStaticField>();
+                statics = ImmutableArray<ClrStaticField>.Empty;
+
             int fieldNum = 0;
             int staticNum = 0;
 
             // Add base type's fields.
             if (type.BaseType != null)
             {
-                IReadOnlyList<ClrInstanceField> baseFields = type.BaseType.Fields;
+                ImmutableArray<ClrInstanceField> baseFields = type.BaseType.Fields;
                 foreach (ClrInstanceField field in baseFields)
-                    fieldOut[fieldNum++] = field;
+                    fieldsBuilder[fieldNum++] = field;
             }
 
             using FieldBuilder fieldData = _fieldBuilders.Rent();
 
             ulong nextField = fieldInfo.FirstFieldAddress;
             int other = 0;
-            while (other + fieldNum + staticNum < fieldOut.Length + staticOut.Length && nextField != 0)
+            while (other + fieldNum + staticNum < fieldsBuilder.Capacity + staticsBuilder.Capacity && nextField != 0)
             {
                 if (!fieldData.Init(_sos, nextField, this))
                     break;
@@ -1024,39 +1041,38 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
                 else if (fieldData.IsStatic)
                 {
-                    staticOut[staticNum++] = new ClrmdStaticField(type, fieldData);
+                    staticsBuilder[staticNum++] = new ClrmdStaticField(type, fieldData);
                 }
                 else
                 {
-                    fieldOut[fieldNum++] = new ClrmdField(type, fieldData);
+                    fieldsBuilder[fieldNum++] = new ClrmdField(type, fieldData);
                 }
 
                 nextField = fieldData.NextField;
             }
 
-            if (fieldNum != fieldOut.Length)
-                Array.Resize(ref fieldOut, fieldNum);
+            fieldsBuilder.Capacity = fieldsBuilder.Count = fieldNum;
+            staticsBuilder.Capacity = staticsBuilder.Count = staticNum;
 
-            if (staticNum != staticOut.Length)
-                Array.Resize(ref staticOut, staticNum);
+            fieldsBuilder.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            Array.Sort(fieldOut, (a, b) => a.Offset.CompareTo(b.Offset));
-
-            fields = fieldOut;
-            statics = staticOut;
+            fields = fieldsBuilder.MoveOrCopyToImmutable();
+            statics = staticsBuilder.MoveOrCopyToImmutable();
         }
 
         public MetaDataImport? GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
 
-        public ComInterfaceData[] CreateComInterfaces(COMInterfacePointerData[] ifs)
+        public ImmutableArray<ComInterfaceData> CreateComInterfaces(COMInterfacePointerData[] ifs)
         {
             CheckDisposed();
 
-            ComInterfaceData[] result = new ComInterfaceData[ifs.Length];
+            ImmutableArray<ComInterfaceData>.Builder result = ImmutableArray.CreateBuilder<ComInterfaceData>(ifs.Length);
+            result.Count = result.Capacity;
 
             for (int i = 0; i < ifs.Length; i++)
-                result[i] = new ComInterfaceData(GetOrCreateType(ifs[0].MethodTable, 0), ifs[0].InterfacePointer);
-            return result;
+                result[i] = new ComInterfaceData(GetOrCreateType(ifs[i].MethodTable, 0), ifs[i].InterfacePointer);
+
+            return result.MoveToImmutable();
         }
 
         bool IFieldHelpers.ReadProperties(ClrType type, uint fieldToken, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
@@ -1272,11 +1288,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 
-        IReadOnlyList<ILToNativeMap> IMethodHelpers.GetILMap(ulong ip, in HotColdRegions hotColdInfo)
+        ImmutableArray<ILToNativeMap> IMethodHelpers.GetILMap(ulong ip, in HotColdRegions hotColdInfo)
         {
             CheckDisposed();
 
-            List<ILToNativeMap> list = new List<ILToNativeMap>();
+            ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
 
             foreach (ClrDataMethod method in _dac.EnumerateMethodInstancesByAddress(ip))
             {
@@ -1294,13 +1310,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         }
                     }
 
-                    list.AddRange(map);
+                    result.AddRange(map);
                 }
 
                 method.Dispose();
             }
 
-            return list.ToArray();
+            return result.MoveOrCopyToImmutable();
         }
 
         private static ulong FindEnd(HotColdRegions reg, ulong address)

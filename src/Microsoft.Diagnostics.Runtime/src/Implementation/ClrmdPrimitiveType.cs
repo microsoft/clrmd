@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -65,18 +66,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override object? GetArrayElementValue(ulong objRef, int index) => null;
 
         public override ClrInstanceField? GetFieldByName(string name) => null;
-        
+
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
-    
+
         public override bool IsFinalizeSuppressed(ulong obj) => false;
 
-        public override IReadOnlyList<ClrInstanceField> Fields => Array.Empty<ClrInstanceField>();
+        public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
 
         public override GCDesc GCDesc => default;
 
-        public override IReadOnlyList<ClrStaticField> StaticFields => Array.Empty<ClrStaticField>();
+        public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
 
-        public override IReadOnlyList<ClrMethod> Methods => Array.Empty<ClrMethod>();
+        public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
 
         public override ClrType? ComponentType => null;
 

@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
 
-            if (dataTarget.ClrVersions.Count == 0)
+            if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
             IntPtr dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);

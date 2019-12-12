@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns a list of modules loaded into this AppDomain.
         /// </summary>
-        public abstract IReadOnlyList<ClrModule> Modules { get; }
+        public abstract ImmutableArray<ClrModule> Modules { get; }
 
         /// <summary>
         /// Returns the config file used for the AppDomain.  This may be null if there was no config file

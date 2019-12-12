@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
         /// </summary>
-        public IReadOnlyList<byte>? BuildId { get; }
+        public ImmutableArray<byte> BuildId { get; }
 
         /// <summary>
         /// Whether the module is managed or not.
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// lazily evaluating VersionInfo.
         /// </summary>
         public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string? filename,
-            IReadOnlyList<byte>? buildId = null, VersionInfo? version = null)
+            ImmutableArray<byte> buildId = default, VersionInfo? version = null)
         {
             _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
             ImageBase = imgBase;
