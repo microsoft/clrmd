@@ -12,6 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal static class ValueReader
     {
         private static bool _initializedStringFields;
+        private static ClrType? _stringType;
         private static ClrInstanceField? _firstChar;
         private static ClrInstanceField? _stringLength;
 
@@ -147,10 +148,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (strAddr == 0)
                 return null;
 
+            _initializedStringFields = _initializedStringFields && _stringType == stringType;
+
             if (!_initializedStringFields)
             {
-                _firstChar = stringType.GetFieldByName("m_firstChar");
-                _stringLength = stringType.GetFieldByName("m_stringLength");
+                // since .NET Core 2.1
+                _firstChar = stringType.GetFieldByName("_firstChar");
+                _stringLength = stringType.GetFieldByName("_stringLength");
+
+                _firstChar ??= stringType.GetFieldByName("m_firstChar");
+                _stringLength ??= stringType.GetFieldByName("m_stringLength");
 
                 // .Type being null can happen in minidumps.  In that case we will fall back to
                 // hardcoded values and hope they don't get out of date.
@@ -160,6 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_stringLength?.Type is null)
                     _stringLength = null;
 
+                _stringType = stringType;
                 _initializedStringFields = true;
             }
 

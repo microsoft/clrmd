@@ -12,7 +12,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using System.Security.Principal;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -107,8 +106,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrType appDomain = runtime.Heap.GetObjectsOfType("System.AppDomain").First().Type;
-            ClrInstanceField field = appDomain.Fields.Single(f => f.Name == "_PrincipalPolicy");
+            ClrModule typesModule = runtime.GetModule(ModuleName);
+            ClrType type = typesModule.GetTypeByName("Types");
+
+            ClrStaticField field = type.GetStaticFieldByName("s_enum");
             Assert.True(field.Type.IsEnum);
 
             ClrEnum clrEnum = field.Type.AsEnum();
@@ -116,15 +117,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             string[] propertyNames = clrEnum.GetEnumNames().ToArray();
             Assert.NotEmpty(propertyNames);
-            Assert.Contains("NoPrincipal", propertyNames);
-            Assert.Contains("UnauthenticatedPrincipal", propertyNames);
-            Assert.Contains("WindowsPrincipal", propertyNames);
+            Assert.Contains(nameof(FileAccess.Read), propertyNames);
+            Assert.Contains(nameof(FileAccess.Write), propertyNames);
+            Assert.Contains(nameof(FileAccess.ReadWrite), propertyNames);
 
             Assert.Equal(ClrElementType.Int32, clrEnum.ElementType);
 
-            Assert.Equal(PrincipalPolicy.NoPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.NoPrincipal)));
-            Assert.Equal(PrincipalPolicy.UnauthenticatedPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.UnauthenticatedPrincipal)));
-            Assert.Equal(PrincipalPolicy.WindowsPrincipal, clrEnum.GetEnumValue<PrincipalPolicy>(nameof(PrincipalPolicy.WindowsPrincipal)));
+            Assert.Equal(FileAccess.Read, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.Read)));
+            Assert.Equal(FileAccess.Write, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.Write)));
+            Assert.Equal(FileAccess.ReadWrite, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.ReadWrite)));
         }
 
         [Fact]
@@ -426,13 +427,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrType fooType = runtime.GetModule(ModuleName).GetTypeByName("Types");
-            ClrStaticField cq = fooType.GetStaticFieldByName("s_cq");
-            Assert.NotNull(cq);
+            ClrStaticField list = fooType.GetStaticFieldByName("s_list");
+            Assert.NotNull(list);
 
-            ClrInstanceField m_head = cq.Type.GetFieldByName("m_head");
-            ClrInstanceField m_array = m_head.Type.GetFieldByName("m_array");
-            ClrElementType elementType = m_array.ElementType;
-            ClrType componentType = m_array.Type.ComponentType;
+            ClrInstanceField itemsField = list.Type.GetFieldByName("_items");
+            ClrElementType elementType = itemsField.ElementType;
+            ClrType componentType = itemsField.Type.ComponentType;
 
             // If this assert fails, remove the test.  This value is null because currently CLR's
             // debugging layer doesn't tell us the component type of an array.  If we eventually
@@ -440,16 +440,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // this test to fail but the underlying issue would be fixed.
             Assert.Null(componentType);
 
-            ClrObject m_arrayObj = cq.ReadObject().GetObjectField("m_head").GetObjectField("m_array");
+            ClrObject itemsObj = list.ReadObject().GetObjectField("_items");
 
             // Ensure we are looking at the same ClrType
             if (dt.CacheOptions.CacheTypes)
-                Assert.Same(m_array.Type, m_arrayObj.Type);
+                Assert.Same(itemsField.Type, itemsObj.Type);
             else
-                Assert.Equal(m_array.Type, m_arrayObj.Type);
+                Assert.Equal(itemsField.Type, itemsObj.Type);
 
             // Assert that we eventually filled in ComponentType after we got a real object for the type
-            Assert.NotNull(m_arrayObj.Type.ComponentType);
+            Assert.NotNull(itemsObj.Type.ComponentType);
         }
 
         [Fact]
@@ -508,7 +508,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return field;
         }
 
-        [Fact]
+        [WindowsFact]
         public void CollectibleTypeTest()
         {
             CollectibleAssemblyLoadContext context = new CollectibleAssemblyLoadContext();

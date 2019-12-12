@@ -151,11 +151,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 }
 
 
-                string? filePath;
-                if (!string.IsNullOrEmpty(info.FileName))
-                    filePath = null;
-                else
-                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+                string? filePath = string.IsNullOrEmpty(info.FileName) ? null :
+                    _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
 
                 if (filePath is null)
                 {

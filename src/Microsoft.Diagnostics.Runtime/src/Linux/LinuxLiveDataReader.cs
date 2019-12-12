@@ -14,16 +14,8 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader targets a Linux process, implemented by reading /proc/[pid]/maps 
-    /// and /proc/[pid]/mem files. The process must have READ permission to the above 2
-    /// files. 
-    ///   1. The current process can run as root.
-    ///   2. If executed from within a Docker container, the best way is to use "ptrace 
-    ///      attach" to obtain the permission. 
-    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent. 
-    ///        - the process must call the following before constructing the data reader.
-    ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
-    ///             wait(NULL);
+    /// A data reader that targets a Linux process.
+    /// The current process must have ptrace access to the target process.
     /// </summary>
     internal class LinuxLiveDataReader : IDataReader
     {
@@ -35,12 +27,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public LinuxLiveDataReader(int processId, bool suspend)
         {
-            ProcessId = (uint)processId;
-            _memoryMapEntries = LoadMemoryMap();
-
             int status = kill(processId, 0);
             if (status < 0 && Marshal.GetLastWin32Error() != EPERM)
                 throw new ArgumentException("The process is not running");
+
+            ProcessId = (uint)processId;
+            _memoryMapEntries = LoadMemoryMap();
 
             if (suspend)
             {
@@ -186,12 +178,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (!Read(addr, buffer, out _))
+            if (Read(address, buffer, out int size) && size == sizeof(T))
             {
-                value = Unsafe.As<byte, T>(ref buffer[0]);
+                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
             }
 
@@ -199,16 +191,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return false;
         }
 
-        public T Read<T>(ulong addr) where T : unmanaged
+        public T Read<T>(ulong address) where T : unmanaged
         {
-            Read(addr, out T value);
+            Read(address, out T value);
             return value;
         }
 
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (!Read(address, buffer, out _))
+            if (Read(address, buffer, out int size) && size == IntPtr.Size)
             {
                 value = buffer.AsPointer();
                 return true;
@@ -224,11 +216,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _threadIDs;
         }
 
-        public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
+        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
         {
             foreach (var entry in _memoryMapEntries)
             {
-                if (entry.BeginAddr <= addr && entry.EndAddr >= addr)
+                if (entry.BeginAddr <= address && entry.EndAddr >= address)
                 {
                     vq = new VirtualQueryData(entry.BeginAddr, entry.EndAddr - entry.BeginAddr + 1);
                     return true;

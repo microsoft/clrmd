@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void EnsureFlushClearsData()
         {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             var oldShared = runtime.SharedDomain;

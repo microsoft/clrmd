@@ -185,22 +185,18 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ulong ReadPointer(ulong addr)
+        public ulong ReadPointer(ulong address)
         {
-            Span<byte> buffer = stackalloc byte[IntPtr.Size];
-
-            if (!Read(addr, buffer, out int read))
-                return 0;
-
-            return buffer.AsPointer();
+            ReadPointer(address, out ulong value);
+            return value;
         }
 
-        public unsafe bool Read<T>(ulong addr, out T value) where T : unmanaged
+        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (!Read(addr, buffer, out _))
+            if (Read(address, buffer, out int size) && size == sizeof(T))
             {
-                value = Unsafe.As<byte, T>(ref buffer[0]);
+                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
             }
 
@@ -208,16 +204,16 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public T Read<T>(ulong addr) where T : unmanaged
+        public T Read<T>(ulong address) where T : unmanaged
         {
-            Read(addr, out T value);
+            Read(address, out T value);
             return value;
         }
 
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (!Read(address, buffer, out _))
+            if (Read(address, buffer, out int size) && size == IntPtr.Size)
             {
                 value = buffer.AsPointer();
                 return true;
@@ -234,10 +230,10 @@ namespace Microsoft.Diagnostics.Runtime
                 yield return (uint)thread.Id;
         }
 
-        public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
+        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
         {
             MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
-            IntPtr ptr = addr.AsIntPtr();
+            IntPtr ptr = address.AsIntPtr();
 
             int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
             if (res == 0)

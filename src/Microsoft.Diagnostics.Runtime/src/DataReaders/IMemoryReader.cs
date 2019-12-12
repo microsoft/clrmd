@@ -27,27 +27,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <typeparam name="T">The type to read.  This may be a struct or primitive type as long as it does
         /// not managed pointeres.</typeparam>
-        /// <param name="addr">The address to read from.</param>
+        /// <param name="address">The address to read from.</param>
         /// <param name="value">The value that was read.</param>
         /// <returns>True if the memory was present, false otherwise.</returns>
-        bool Read<T>(ulong addr, out T value) where T : unmanaged;
+        bool Read<T>(ulong address, out T value) where T : unmanaged;
 
         /// <summary>
         /// Read an unmanaged value from the given address.  Returns default(T) if the data was not readable.
         /// </summary>
         /// <typeparam name="T">The type to read.  This may be a struct or primitive type as long as it does
         /// not managed pointeres.</typeparam>
-        /// <param name="addr">The address to read from.</param>
+        /// <param name="address">The address to read from.</param>
         /// <returns>The value at addr, or default(T) if not present in the data target.</returns>
-        T Read<T>(ulong addr) where T : unmanaged;
+        T Read<T>(ulong address) where T : unmanaged;
 
         /// <summary>
         /// Reads a pointer at the given address.
         /// </summary>
-        /// <param name="addr">The address to read from.</param>
+        /// <param name="address">The address to read from.</param>
         /// <param name="value">A pointer sized value that was read.</param>
         /// <returns>True if the value was read, false if the value could not be read.</returns>
-        bool ReadPointer(ulong addr, out ulong value);
+        bool ReadPointer(ulong address, out ulong value);
 
         /// <summary>
         /// Read a pointer out of the target process.
@@ -56,6 +56,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The pointer at the give address, or 0 if that pointer doesn't exist in
         /// the data target.
         /// </returns>
-        ulong ReadPointer(ulong addr);
+        ulong ReadPointer(ulong address);
     }
 }
