@@ -204,6 +204,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fileName">The crash dump's file name.</param>
         /// <returns>A DataTarget instance.</returns>
+        /// <exception cref="InvalidDataException">
+        /// The file specified by <paramref name="fileName"/> is not a crash dump.
+        /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
@@ -221,6 +224,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="filename">The path to a core dump.</param>
         /// <returns>A DataTarget instance.</returns>
+        /// <exception cref="InvalidDataException">
+        /// The file specified by <paramref name="filename"/> is not a coredump.
+        /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Linux.
         /// </exception>

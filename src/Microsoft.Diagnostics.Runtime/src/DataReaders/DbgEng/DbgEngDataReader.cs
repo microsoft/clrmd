@@ -51,6 +51,11 @@ namespace Microsoft.Diagnostics.Runtime
             int hr = _client.OpenDumpFile(dumpFile);
             if (hr != 0)
             {
+                const int E_INVALIDARG = unchecked((int)0x80070057);
+
+                if (hr == E_INVALIDARG)
+                    throw new InvalidDataException("The file is not a crash dump");
+
                 var kind = (uint)hr == 0x80004005 ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
                 throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: 0x{hr:x8}", kind, hr).AddData("DumpFile", dumpFile);
             }
