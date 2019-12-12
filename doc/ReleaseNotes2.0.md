@@ -6,7 +6,7 @@ Over the last few weeks we have been rewriting a lot of the internal core of Clr
 
 We plan to continue fixing bugs in ClrMD 1.1 for the forseeable future, so you are not forced to upgrade if you do not want to.  I do plan to only add new features to ClrMD 2.0, but the community is welcome to submit Pull Requests to backport or add features to ClrMD 1.1.
 
-Note that the API surface area of ClrMD 2.0 is **not** finalized and there may be breaking changes between now and when the library is out of beta.  I expect to release the non-beta version around March/April 2020.
+**Please note that the API surface area of ClrMD 2.0 is not finalized and there may be breaking changes between now and when the library is out of beta.**  I expect to release the non-beta version around March/April 2020.
 
 # Changes from ClrMD 1.1
 
