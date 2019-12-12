@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -21,8 +20,11 @@ namespace Microsoft.Diagnostics.Runtime
             _data = data;
         }
 
-        public IEnumerable<(ulong, int)> WalkObject(ulong addr, ulong size, Func<ulong, ulong> readPointer)
+        public IEnumerable<(ulong, int)> WalkObject(ulong addr, ulong size, IMemoryReader reader)
         {
+            if (reader is null)
+                throw new ArgumentNullException(nameof(reader));
+
             DebugOnly.Assert(size >= (ulong)IntPtr.Size);
 
             int series = GetNumSeries();
@@ -39,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     while (ptr < stop)
                     {
-                        ulong ret = readPointer(ptr);
+                        ulong ret = reader.ReadPointer(ptr);
                         if (ret != 0)
                             yield return (ret, (int)(ptr - addr));
 
@@ -63,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime
                         ulong stop = ptr + (ulong)(nptrs * IntPtr.Size);
                         do
                         {
-                            ulong ret = readPointer(ptr);
+                            ulong ret = reader.ReadPointer(ptr);
                             if (ret != 0)
                                 yield return (ret, (int)(ptr - addr));
 
