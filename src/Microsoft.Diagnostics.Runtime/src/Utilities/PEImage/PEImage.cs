@@ -1,5 +1,6 @@
 ﻿using Microsoft.Diagnostics.Runtime.Interop;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -217,6 +218,54 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SeekTo(offset);
             int read = Stream.Read(dest, 0, bytesRequested);
             return read;
+        }
+
+        /// <summary>
+        /// Reads data out of PE image into a native buffer.
+        /// </summary>
+        /// <param name="virtualAddress">The address to read from.</param>
+        /// <param name="dest">The location to write the data.</param>
+        /// <returns>The number of bytes actually read from the image and written to dest.</returns>
+        public int Read(int virtualAddress, Span<byte> dest)
+        {
+            int offset = RvaToOffset(virtualAddress);
+            if (offset == -1)
+                return 0;
+
+            SeekTo(offset);
+            return Stream.Read(dest);
+        }
+
+        /// <summary>
+        /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
+        /// version tab a file's property page is populated with).
+        /// </summary>
+        public FileVersionInfo? GetFileVersionInfo()
+        {
+            ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
+            if (versionNode == null || versionNode.Children.Count != 1)
+                return null;
+
+            versionNode = versionNode.Children[0];
+            if (!versionNode.IsLeaf && versionNode.Children.Count == 1)
+                versionNode = versionNode.Children[0];
+
+            int size = versionNode.Size;
+            if (size <= FileVersionInfo.DataOffset)
+                return null;
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                int count = versionNode.GetData(buffer);
+                Span<byte> span = new Span<byte>(buffer, 0, count);
+                FileVersionInfo result = new FileVersionInfo(span);
+                return result;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         private ResourceEntry CreateResourceRoot()

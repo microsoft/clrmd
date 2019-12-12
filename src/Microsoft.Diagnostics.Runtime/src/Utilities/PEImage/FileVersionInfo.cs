@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
@@ -9,40 +11,41 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public sealed unsafe class FileVersionInfo
     {
-        // TODO incomplete, but this is all I need.  
+        /// <summary>
+        /// Gets the position of the string data within the resource block.
+        /// See http://msdn.microsoft.com/en-us/library/ms647001(v=VS.85).aspx
+        /// </summary>
+        public const int DataOffset = 0x5c;
+
         /// <summary>
         /// The verison string
         /// </summary>
-        public string FileVersion { get; }
+        public string? FileVersion { get; }
 
         /// <summary>
         /// Comments to supplement the file version
         /// </summary>
-        public string Comments { get; }
+        public string? Comments { get; }
 
-        internal FileVersionInfo(byte* data, int dataLen)
+        internal FileVersionInfo(Span<byte> data)
         {
-            FileVersion = "";
-            if (dataLen <= 0x5c)
-                return;
+            data = data.Slice(DataOffset);
+            fixed (byte* ptr = data)
+            {
+                string dataAsString = new string((char*)ptr, 0, data.Length / 2);
 
-            // See http://msdn.microsoft.com/en-us/library/ms647001(v=VS.85).aspx
-            byte* stringInfoPtr = data + 0x5c; // Gets to first StringInfo
-
-            // TODO search for FileVersion string ... 
-            string dataAsString = new string((char*)stringInfoPtr, 0, (dataLen - 0x5c) / 2);
-
-            FileVersion = GetDataString(dataAsString, "FileVersion");
-            Comments = GetDataString(dataAsString, "Comments");
+                FileVersion = GetDataString(dataAsString, "FileVersion");
+                Comments = GetDataString(dataAsString, "Comments");
+            }
         }
 
-        private static string GetDataString(string dataAsString, string fileVersionKey)
+        private static string? GetDataString(string dataAsString, string fileVersionKey)
         {
             int fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIdx >= 0)
             {
                 int valIdx = fileVersionIdx + fileVersionKey.Length;
-                for (;;)
+                for (; ; )
                 {
                     valIdx++;
                     if (valIdx >= dataAsString.Length)
@@ -61,5 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return null;
         }
+
+        public override string? ToString() => FileVersion;
     }
 }

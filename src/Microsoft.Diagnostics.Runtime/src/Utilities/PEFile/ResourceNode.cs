@@ -26,16 +26,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             PEBuffer buff = _file.AllocBuff();
             byte* bytes = FetchData(0, DataLength, buff);
-            FileVersionInfo ret = new FileVersionInfo(bytes, DataLength);
+
+            FileVersionInfo ret = new FileVersionInfo(new Span<byte>(bytes, DataLength));
             _file.FreeBuff(buff);
             return ret;
         }
 
         public override string ToString()
         {
-            StringWriter sw = new StringWriter();
-            ToString(sw, "");
-            return sw.ToString();
+            using (var sw = new StringWriter())
+            {
+                ToString(sw, "");
+                return sw.ToString();
+            }
         }
 
         public static ResourceNode GetChild(ResourceNode node, string name)

@@ -206,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             PEBuffer buff = AllocBuff();
             byte* bytes = versionNode.FetchData(0, versionNode.DataLength, buff);
-            FileVersionInfo ret = new FileVersionInfo(bytes, versionNode.DataLength);
+            FileVersionInfo ret = new FileVersionInfo(new Span<byte>(bytes, versionNode.DataLength));
 
             FreeBuff(buff);
             return ret;
