@@ -121,8 +121,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public int ReadVirtual(IntPtr self, ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        public int ReadVirtual(IntPtr _, ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
+            ulong address = cda;
             Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
 
             if (address == MagicCallbackConstant && _callbackContext > 0)
@@ -174,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public int WriteVirtual(IntPtr self, ulong address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
+        public int WriteVirtual(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
         {
             // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
             bytesWritten = bytesRequested;
@@ -203,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return E_FAIL;
         }
 
-        public int SetTLSValue(IntPtr self, uint threadID, uint index, ulong value)
+        public int SetTLSValue(IntPtr self, uint threadID, uint index, ClrDataAddress value)
         {
             return E_FAIL;
         }
@@ -308,7 +309,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int ReadVirtualDelegate(
             IntPtr self,
-            ulong address,
+            ClrDataAddress address,
             IntPtr buffer,
             int bytesRequested,
             out int bytesRead);
@@ -316,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int WriteVirtualDelegate(
             IntPtr self,
-            ulong address,
+            ClrDataAddress address,
             IntPtr buffer,
             uint bytesRequested,
             out uint bytesWritten);
@@ -333,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             uint threadID,
             uint index,
-            ulong value);
+            ClrDataAddress value);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);

@@ -10,9 +10,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public readonly struct MethodTableData
     {
         public readonly uint IsFree; // everything else is NULL if this is true.
-        public readonly ulong Module;
-        public readonly ulong EEClass;
-        public readonly ulong ParentMethodTable;
+        public readonly ClrDataAddress Module;
+        public readonly ClrDataAddress EEClass;
+        public readonly ClrDataAddress ParentMethodTable;
         public readonly ushort NumInterfaces;
         public readonly ushort NumMethods;
         public readonly ushort NumVtableSlots;

@@ -11,15 +11,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public readonly uint ElementType; // CorElementType
         public readonly uint SigType; // CorElementType
-        public readonly ulong TypeMethodTable; // NULL if Type is not loaded
-        public readonly ulong TypeModule;
+        public readonly ClrDataAddress TypeMethodTable; // NULL if Type is not loaded
+        public readonly ClrDataAddress TypeModule;
         public readonly uint TypeToken;
         public readonly uint FieldToken;
-        public readonly ulong MTOfEnclosingClass;
+        public readonly ClrDataAddress MTOfEnclosingClass;
         public readonly uint Offset;
         public readonly uint IsThreadLocal;
         public readonly uint IsContextLocal;
         public readonly uint IsStatic;
-        public readonly ulong NextField;
+        public readonly ClrDataAddress NextField;
     }
 }

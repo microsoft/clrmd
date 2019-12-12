@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public readonly struct MethodTableCollectibleData
     {
-        public readonly ulong LoaderAllocatorObjectHandle;
+        public readonly ClrDataAddress LoaderAllocatorObjectHandle;
         public readonly uint Collectible;
     }
 }

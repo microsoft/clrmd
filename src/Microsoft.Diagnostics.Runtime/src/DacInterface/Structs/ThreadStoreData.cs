@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly int BackgroundThreadCount;
         public readonly int PendingThreadCount;
         public readonly int DeadThreadCount;
-        public readonly ulong FirstThread;
-        public readonly ulong FinalizerThread;
-        public readonly ulong GCThread;
+        public readonly ClrDataAddress FirstThread;
+        public readonly ClrDataAddress FinalizerThread;
+        public readonly ClrDataAddress GCThread;
         public readonly uint HostConfig;
     }
 }

@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public readonly struct JitCodeHeapInfo
     {
         public readonly CodeHeapType Type;
-        public readonly ulong Address;
-        public readonly ulong CurrentAddress;
+        public readonly ClrDataAddress Address;
+        public readonly ClrDataAddress CurrentAddress;
     }
 }

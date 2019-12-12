@@ -9,10 +9,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct CCWData
     {
-        public readonly ulong OuterIUnknown;
-        public readonly ulong ManagedObject;
-        public readonly ulong Handle;
-        public readonly ulong CCWAddress;
+        public readonly ClrDataAddress OuterIUnknown;
+        public readonly ClrDataAddress ManagedObject;
+        public readonly ClrDataAddress Handle;
+        public readonly ClrDataAddress CCWAddress;
 
         public readonly int RefCount;
         public readonly int InterfaceCount;

@@ -9,13 +9,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct RCWData
     {
-        public readonly ulong IdentityPointer;
-        public readonly ulong IUnknownPointer;
-        public readonly ulong ManagedObject;
-        public readonly ulong JupiterObject;
-        public readonly ulong VTablePointer;
-        public readonly ulong CreatorThread;
-        public readonly ulong CTXCookie;
+        public readonly ClrDataAddress IdentityPointer;
+        public readonly ClrDataAddress IUnknownPointer;
+        public readonly ClrDataAddress ManagedObject;
+        public readonly ClrDataAddress JupiterObject;
+        public readonly ClrDataAddress VTablePointer;
+        public readonly ClrDataAddress CreatorThread;
+        public readonly ClrDataAddress CTXCookie;
 
         public readonly int RefCount;
         public readonly int InterfaceCount;
