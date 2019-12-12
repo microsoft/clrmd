@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -26,9 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private int _lastSegmentIndex;
         private volatile (ulong, ulong)[]? _dependentHandles;
-
-        [ThreadStatic]
-        private static MemoryReader? _memoryReader;
 
         [ThreadStatic]
         private static HeapWalkStep[]? _steps;
@@ -214,20 +212,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong obj = seg.FirstObject;
 
             IDataReader dataReader = _helpers.DataReader;
-            byte[] buffer = new byte[IntPtr.Size * 2 + sizeof(uint)];
 
-            _memoryReader ??= new MemoryReader(_helpers.DataReader, 0x10000);
+            using MemoryReader? memoryReader = !large ? new MemoryReader(dataReader, 0x10000) : null;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(IntPtr.Size * 2 + sizeof(uint));
 
             // The large object heap
             if (!large)
-                _memoryReader.EnsureRangeInCache(obj);
+                memoryReader!.EnsureRangeInCache(obj);
 
             while (obj < seg.CommittedEnd)
             {
                 ulong mt;
                 if (large)
                 {
-                    if (!dataReader.ReadMemory(obj, buffer, out int read) || read != buffer.Length)
+                    if (!dataReader.Read(obj, buffer, out int read) || read != buffer.Length)
                         break;
 
                     if (IntPtr.Size == 4)
@@ -237,7 +235,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
                 else
                 {
-                    if (!_memoryReader.ReadPtr(obj, out mt))
+                    if (!memoryReader!.ReadPtr(obj, out mt))
                         break;
                 }
 
@@ -267,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (large)
                         count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size * 2]);
                     else
-                        _memoryReader.ReadDword(obj + (uint)IntPtr.Size, out count);
+                        memoryReader!.ReadDword(obj + (uint)IntPtr.Size, out count);
                     
                     // Strings in v4+ contain a trailing null terminator not accounted for.
                     if (StringType == type)
@@ -303,7 +301,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
             }
 
-            _memoryReader = null;
+            ArrayPool<byte>.Shared.Return(buffer);
         }
 
         private static void WriteHeapStep(ulong obj, ulong mt, int baseSize, int componentSize, uint count)
@@ -342,13 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrType? GetObjectType(ulong objRef)
         {
-            if (_memoryReader != null && _memoryReader.Contains(objRef) && _memoryReader.TryReadPtr(objRef, out ulong mt))
-            {
-            }
-            else
-            {
-                mt = _helpers.DataReader.ReadPointerUnsafe(objRef);
-            }
+            ulong mt = _helpers.DataReader.ReadPointer(objRef);
 
             if (mt == 0)
                 return null;
@@ -406,13 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 uint countOffset = (uint)IntPtr.Size;
                 ulong loc = objRef + countOffset;
 
-                uint count;
-
-
-                if (_memoryReader != null)
-                    _memoryReader.ReadDword(loc, out count);
-                else
-                    count = _helpers.DataReader.ReadUnsafe<uint>(loc);
+                uint count = _helpers.DataReader.Read<uint>(loc);
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
                 if (StringType == type)
@@ -462,7 +448,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (type.IsCollectible)
             {
-                ulong la = _helpers.DataReader.ReadPointerUnsafe(type.LoaderAllocatorHandle);
+                ulong la = _helpers.DataReader.ReadPointer(type.LoaderAllocatorHandle);
                 if (la != 0)
                     yield return new ClrObject(la, GetObjectType(la));
             }
@@ -480,18 +466,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             yield break;
                     }
 
-                    foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, ReadPointerForGCDesc))
+                    foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
                         yield return new ClrObject(reference, GetObjectType(reference));
                 }
             }
-        }
-
-        private ulong ReadPointerForGCDesc(ulong ptr)
-        {
-            if (_memoryReader != null && _memoryReader.Contains(ptr) && _memoryReader.ReadPtr(ptr, out ulong value))
-                return value;
-
-            return _helpers.DataReader.ReadPointerUnsafe(ptr);
         }
 
         public override IEnumerable<IClrRoot> EnumerateRoots()
@@ -535,11 +513,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 for (ulong ptr = seg.Start; ptr < seg.End; ptr += (uint)IntPtr.Size)
                 {
-                    ulong obj = _helpers.DataReader.ReadPointerUnsafe(ptr);
+                    ulong obj = _helpers.DataReader.ReadPointer(ptr);
                     if (obj == 0)
                         continue;
 
-                    ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+                    ulong mt = _helpers.DataReader.ReadPointer(obj);
                     ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
                     if (type != null)
                         yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));

@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             while (address < endAddress)
             {
-                bool result = dataReader.ReadMemory(address, buffer, out int read);
+                bool result = dataReader.Read(address, buffer, out int read);
                 if (!result || read < s_versionLength)
                 {
                     address += (uint)s_versionLength;
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
                 while (address < endAddress)
                 {
                     Span<byte> bytes = stackalloc byte[1];
-                    result = dataReader.ReadMemory(address, bytes, out read);
+                    result = dataReader.Read(address, bytes, out read);
                     if (!result || read < bytes.Length)
                     {
                         break;

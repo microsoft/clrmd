@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!reader.ReadMemory(MethodTable - (ulong)(slots * IntPtr.Size), buffer, out int read) || read != buffer.Length)
+            if (!reader.Read(MethodTable - (ulong)(slots * IntPtr.Size), buffer, out int read) || read != buffer.Length)
             {
                 _gcDesc = default;
                 return default;
@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsFinalizeSuppressed(ulong obj)
         {
             // TODO move to ClrObject?
-            uint value = Helpers.DataReader.ReadUnsafe<uint>(obj - 4);
+            uint value = Helpers.DataReader.Read<uint>(obj - 4);
 
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }

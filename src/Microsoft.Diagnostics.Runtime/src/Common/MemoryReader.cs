@@ -3,25 +3,29 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class MemoryReader
+    internal sealed class MemoryReader : IDisposable
     {
-        protected ulong _currPageStart;
-        protected int _currPageSize;
-        protected byte[] _data;
-        protected IDataReader _dataReader;
-        protected int _cacheSize;
+        private ulong _currPageStart;
+        private int _currPageSize;
+        private readonly byte[] _data;
+        private readonly IDataReader _dataReader;
 
         public MemoryReader(IDataReader dataReader, int cacheSize)
         {
-            _data = new byte[cacheSize];
+            _data = ArrayPool<byte>.Shared.Rent(cacheSize);
             _dataReader = dataReader;
-            _cacheSize = cacheSize;
+        }
+
+        public void Dispose()
+        {
+            ArrayPool<byte>.Shared.Return(_data);
         }
 
         public bool ReadDword(ulong addr, out uint value)
@@ -132,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public virtual void EnsureRangeInCache(ulong addr)
+        public void EnsureRangeInCache(ulong addr)
         {
             if (!Contains(addr))
                 MoveToPage(addr);
@@ -146,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out ulong value)
         {
             Span<byte> span = stackalloc byte[IntPtr.Size];
-            bool res = _dataReader.ReadMemory(addr, span, out int size);
+            bool res = _dataReader.Read(addr, span, out int size);
 
             ref byte b = ref MemoryMarshal.GetReference(span);
             if (IntPtr.Size == 4)
@@ -159,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out uint value)
         {
             Span<byte> span = stackalloc byte[sizeof(uint)];
-            bool res = _dataReader.ReadMemory(addr, span, out _);
+            bool res = _dataReader.Read(addr, span, out _);
 
             value = span.AsUInt32();
 
@@ -169,22 +173,17 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out int value)
         {
             Span<byte> span = stackalloc byte[sizeof(int)];
-            bool res = _dataReader.ReadMemory(addr, span, out _);
+            bool res = _dataReader.Read(addr, span, out _);
 
             value = span.AsInt32();
 
             return res;
         }
 
-        protected virtual bool MoveToPage(ulong addr)
-        {
-            return ReadMemory(addr);
-        }
-
-        protected virtual bool ReadMemory(ulong addr)
+        private bool MoveToPage(ulong addr)
         {
             _currPageStart = addr;
-            bool res = _dataReader.ReadMemory(_currPageStart, new Span<byte>(_data, 0, _cacheSize), out _currPageSize);
+            bool res = _dataReader.Read(_currPageStart, _data, out _currPageSize);
 
             if (!res)
             {

@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (helpers is null)
                 return default;
 
-            return helpers.DataReader.ReadUnsafe<T>(Address + (ulong)IntPtr.Size);
+            return helpers.DataReader.Read<T>(Address + (ulong)IntPtr.Size);
         }
 
         public bool IsException => Type != null && Type.IsException;
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!type.IsArray)
                     throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{Type!.Name}'.");
 
-                return type.ClrObjectHelpers.DataReader.ReadUnsafe<int>(Address + (uint)IntPtr.Size);
+                return type.ClrObjectHelpers.DataReader.Read<int>(Address + (uint)IntPtr.Size);
             }
         }
         /// <summary>

@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 case ClrElementType.SZArray:
                 case ClrElementType.Object:
                     {
-                        return reader.ReadPointerUnsafe(addr);
+                        return reader.ReadPointer(addr);
                     }
 
                 case ClrElementType.Boolean:
@@ -74,12 +74,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 case ClrElementType.Pointer:
                 case ClrElementType.FunctionPointer:
                     {
-                        return reader.ReadPointerUnsafe(addr);
+                        return reader.ReadPointer(addr);
                     }
 
                 case ClrElementType.NativeInt: // native int
                     {
-                        return reader.ReadPointerUnsafe(addr);
+                        return reader.ReadPointer(addr);
                     }
 
                 case ClrElementType.Int8:
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             byte[] buffer = ArrayPool<byte>.Shared.Rent(length * 2);
             try
             {
-                if (!reader.ReadMemory(dataAddress, new Span<byte>(buffer, 0, length * 2), out int count))
+                if (!reader.Read(dataAddress, new Span<byte>(buffer, 0, length * 2), out int count))
                     return null;
 
                 return Encoding.Unicode.GetString(buffer, 0, count);

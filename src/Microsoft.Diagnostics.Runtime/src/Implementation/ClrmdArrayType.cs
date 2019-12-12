@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return null;
 
             if (cet == ClrElementType.String)
-                addr = DataReader.ReadPointerUnsafe(addr);
+                addr = DataReader.ReadPointer(addr);
 
             return ValueReader.GetValueAtAddress(Heap, DataReader, cet, addr);
         }

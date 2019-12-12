@@ -292,7 +292,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrType type = obj.Type;
                 Assert.NotNull(type);
 
-                ulong mt = dt.DataReader.ReadPointerUnsafe(obj);
+                ulong mt = dt.DataReader.ReadPointer(obj);
                 Assert.NotEqual(0ul, mt);
 
                 if (dt.CacheOptions.CacheTypes)
@@ -328,8 +328,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.NotSame(appDomainsFoo.Type, nestedFoo.Type);
 
-            ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointerUnsafe(nestedFoo.Address);
-            ulong appDomainsFooMethodTable = dt.DataReader.ReadPointerUnsafe(appDomainsFoo.Address);
+            ulong nestedExceptionFooMethodTable = dt.DataReader.ReadPointer(nestedFoo.Address);
+            ulong appDomainsFooMethodTable = dt.DataReader.ReadPointer(appDomainsFoo.Address);
 
             // These are in different domains and should have different type handles:
             Assert.NotEqual(nestedExceptionFooMethodTable, appDomainsFooMethodTable);
@@ -530,7 +530,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(collectibleType.ContainsPointers);
             Assert.True(collectibleType.IsCollectible);
             Assert.NotEqual(default, collectibleType.LoaderAllocatorHandle);
-            ulong obj = dataTarget.DataReader.ReadPointerUnsafe(collectibleType.LoaderAllocatorHandle);
+            ulong obj = dataTarget.DataReader.ReadPointer(collectibleType.LoaderAllocatorHandle);
             Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(obj).Name);
 
             ClrType uncollectibleType = types.Single(type => type?.Name == typeof(UncollectibleUnmanagedStruct).FullName);
@@ -588,7 +588,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(expected[i], (ulong)arrayType.GetArrayElementValue(s_array, i));
 
                 ulong address = arrayType.GetArrayElementAddress(s_array, i);
-                ulong value = dt.DataReader.ReadPointerUnsafe(address);
+                ulong value = dt.DataReader.ReadPointer(address);
 
                 Assert.NotEqual(0ul, address);
                 Assert.Equal(expected[i], value);

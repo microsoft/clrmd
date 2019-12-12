@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Address == 0 || !_helpers.DataReader.ReadPointer(Address, out ulong obj) || obj == 0)
                 return default;
 
-            ulong mt = _helpers.DataReader.ReadPointerUnsafe(obj);
+            ulong mt = _helpers.DataReader.ReadPointer(obj);
             ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
             if (type is null)
                 return default;
