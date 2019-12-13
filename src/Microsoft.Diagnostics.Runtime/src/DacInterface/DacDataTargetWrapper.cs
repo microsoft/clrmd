@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
@@ -255,30 +256,29 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (filePath is null)
                 return E_FAIL;
 
-            // We do not put a using statement here to prevent needing to load/unload the binary over and over.
+            // We do not dispose the loaded file to avoid loading/unloading the same binary over and over.
             PEImage? peimage = _dataTarget.LoadPEImage(filePath);
             if (peimage is null || peimage.CorHeader is null)
                 return E_FAIL;
 
             DebugOnly.Assert(peimage.IsValid);
 
-            uint rva = mdRva;
-            uint size = bufferSize;
-            if (rva == 0)
+            Stream peStream = peimage.Stream;
+            peStream.Seek(0, SeekOrigin.Begin);
+
+            using (var peReader = new PEReader(peStream, PEStreamOptions.LeaveOpen))
             {
-                IMAGE_DATA_DIRECTORY metadata = peimage.CorHeader.Metadata;
-                if (metadata.VirtualAddress == 0)
+                if (!peReader.HasMetadata)
                     return E_FAIL;
 
-                rva = metadata.VirtualAddress;
-                size = Math.Min(bufferSize, metadata.Size);
-            }
-
-            checked
-            {
-                int read = peimage.Read((int)rva, new Span<byte>(buffer.ToPointer(), (int)size));
-                if (pDataSize != null)
-                    *pDataSize = read;
+                PEMemoryBlock metadataInfo = peReader.GetMetadata();
+                unsafe
+                {
+                    int size = Math.Min((int)bufferSize, metadataInfo.Length);
+                    Marshal.Copy(metadataInfo.GetContent().ToArray(), 0, buffer, size);
+                    if (pDataSize != null)
+                        *pDataSize = size;
+                }
             }
 
             return S_OK;
