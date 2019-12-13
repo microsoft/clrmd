@@ -271,15 +271,27 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             int ipOffset;
             int spOffset;
             int contextSize;
-            uint contextFlags;
-            if (IntPtr.Size == 4)
+            uint contextFlags = 0;
+            if (DataReader.Architecture == Architecture.Arm)
+            {
+                ipOffset = 64;
+                spOffset = 56;
+                contextSize = 416;
+            }
+            else if (DataReader.Architecture == Architecture.Arm64)
+            {
+                ipOffset = 264;
+                spOffset = 256;
+                contextSize = 912;
+            }
+            else if (DataReader.Architecture == Architecture.X86)
             {
                 ipOffset = 184;
                 spOffset = 196;
                 contextSize = 716;
                 contextFlags = 0x1003f;
             }
-            else
+            else // Architecture.Amd64
             {
                 ipOffset = 248;
                 spOffset = 152;
