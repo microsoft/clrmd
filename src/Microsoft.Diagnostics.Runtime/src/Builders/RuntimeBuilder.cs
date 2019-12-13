@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             SegmentBuilder segBuilder = new SegmentBuilder(_sos);
             if (clrHeap.IsServer)
             {
-                ulong[] heapList = _sos.GetHeapList(clrHeap.LogicalHeapCount);
+                ClrDataAddress[] heapList = _sos.GetHeapList(clrHeap.LogicalHeapCount);
                 for (int i = 0; i < heapList.Length; i++)
                 {
                     segBuilder.LogicalHeap = i;
@@ -430,7 +430,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (builder.SharedDomain != 0)
                 shared = GetOrCreateAppDomain(builder, builder.SharedDomain);
 
-            ulong[] domainList = _sos.GetAppDomainList(builder.AppDomainCount);
+            ClrDataAddress[] domainList = _sos.GetAppDomainList(builder.AppDomainCount);
             ClrAppDomain[] result = new ClrAppDomain[domainList.Length];
 
             int i = 0;
