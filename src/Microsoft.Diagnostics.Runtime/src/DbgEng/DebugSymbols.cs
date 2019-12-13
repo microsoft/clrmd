@@ -4,6 +4,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -91,10 +92,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                 if (hr < 0)
                     return default;
 
-                int minor = (ushort)Marshal.ReadInt16(buffer, 8);
-                int major = (ushort)Marshal.ReadInt16(buffer, 10);
-                int patch = (ushort)Marshal.ReadInt16(buffer, 12);
-                int revision = (ushort)Marshal.ReadInt16(buffer, 14);
+                int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
+                int major = Unsafe.As<byte, ushort>(ref buffer[10]);
+                int patch = Unsafe.As<byte, ushort>(ref buffer[12]);
+                int revision = Unsafe.As<byte, ushort>(ref buffer[14]);
 
                 return new VersionInfo(major, minor, revision, patch);
             }
