@@ -36,6 +36,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool IsLeaf { get; }
 
         /// <summary>
+        /// Returns the size of data for this node.
+        /// </summary>
+        public int Size
+        {
+            get
+            {
+                GetDataVaAndSize(out _, out int size);
+                return size;
+            }
+        }
+
+        /// <summary>
         /// The number of children this entry contains.
         /// </summary>
         public int Count => Children.Count;

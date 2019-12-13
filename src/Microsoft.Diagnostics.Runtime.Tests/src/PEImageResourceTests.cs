@@ -1,5 +1,6 @@
 ﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Xunit;
@@ -8,6 +9,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class PEImageResourceTests
     {
+        [Fact]
+        public void FileInfoVersionTest()
+        {
+            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            ModuleInfo clrModule = dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
+
+            PEImage img = clrModule.GetPEImage();
+            Assert.NotNull(img);
+
+            FileVersionInfo fileVersion = img.GetFileVersionInfo();
+            Assert.NotNull(fileVersion);
+            Assert.NotNull(fileVersion.FileVersion);
+
+            ClrInfo clrInfo = dt.ClrVersions[0];
+            Assert.Contains(clrInfo.Version.ToString(), fileVersion.FileVersion);
+        }
+
         [Fact]
         public void TestResourceImages()
         {

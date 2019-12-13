@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -217,6 +218,31 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SeekTo(offset);
             int read = Stream.Read(dest, 0, bytesRequested);
             return read;
+        }
+
+        /// <summary>
+        /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
+        /// version tab a file's property page is populated with).
+        /// </summary>
+        public unsafe FileVersionInfo? GetFileVersionInfo()
+        {
+            ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
+            if (versionNode == null || versionNode.Children.Count != 1)
+                return null;
+
+            versionNode = versionNode.Children[0];
+            if (!versionNode.IsLeaf && versionNode.Children.Count == 1)
+                versionNode = versionNode.Children[0];
+
+            int size = versionNode.Size;
+            if (size <= FileVersionInfo.DataOffset)
+                return null;
+
+            byte[] bytes = versionNode.GetData();
+
+            FileVersionInfo ret = new FileVersionInfo(bytes, versionNode.Size);
+
+            return ret;
         }
 
         private ResourceEntry CreateResourceRoot()

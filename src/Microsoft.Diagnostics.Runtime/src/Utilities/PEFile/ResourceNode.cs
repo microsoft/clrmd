@@ -33,9 +33,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public override string ToString()
         {
-            StringWriter sw = new StringWriter();
-            ToString(sw, "");
-            return sw.ToString();
+            using (var sw = new StringWriter())
+            {
+                ToString(sw, "");
+                return sw.ToString();
+            }
         }
 
         public static ResourceNode GetChild(ResourceNode node, string name)
