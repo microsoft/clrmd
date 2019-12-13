@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -99,35 +99,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Get the data associated with this entry.
-        /// </summary>
-        /// <param name="span">The location to write the data</param>
-        /// <returns>The number of bytes actually read from the image and written to dest</returns>
-        public int GetData(Span<byte> span)
-        {
-            GetDataVaAndSize(out int va, out int size);
-            if (size == 0 || va == 0)
-                return 0;
-
-            return Image.Read(va, span);
-        }
-
-        /// <summary>
         /// A convenience function to get structured data out of this entry.
         /// </summary>
         /// <typeparam name="T">A struct type to convert.</typeparam>
         /// <param name="offset">The offset into the data.</param>
         /// <returns>The struct that was read out of the data section.</returns>
-        public unsafe T GetData<T>(int offset = 0) where T : unmanaged
+        public T GetData<T>(int offset = 0) where T : struct
         {
-            int size = Unsafe.SizeOf<T>();
-            GetDataVaAndSize(out int va, out int sectionSize);
-            if (va == 0 || sectionSize < size + offset)
-                return default;
+            byte[] data = GetData();
+            int size = Marshal.SizeOf(typeof(T));
+            if (size + offset > data.Length)
+                throw new IndexOutOfRangeException();
 
-            T output;
-            int read = Image.Read(va + offset, new Span<byte>(&output, size));
-            return read == size ? output : default;
+            GCHandle hnd = GCHandle.Alloc(data, GCHandleType.Pinned);
+            T result = (T)Marshal.PtrToStructure(hnd.AddrOfPinnedObject(), typeof(T));
+            hnd.Free();
+
+            return result;
         }
 
         private ResourceEntry[] GetChildren()

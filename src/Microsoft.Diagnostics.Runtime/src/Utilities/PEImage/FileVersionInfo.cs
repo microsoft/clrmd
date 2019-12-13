@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -27,16 +28,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public string? Comments { get; }
 
-        internal FileVersionInfo(Span<byte> data)
+        internal FileVersionInfo(byte[] data, int dataLen)
         {
-            data = data.Slice(DataOffset);
-            fixed (byte* ptr = data)
-            {
-                string dataAsString = new string((char*)ptr, 0, data.Length / 2);
+            FileVersion = "";
+            if (dataLen <= DataOffset)
+                return;
 
-                FileVersion = GetDataString(dataAsString, "FileVersion");
-                Comments = GetDataString(dataAsString, "Comments");
-            }
+            var dataAsString = Encoding.Unicode.GetString(data, DataOffset, dataLen - DataOffset);
+
+            FileVersion = GetDataString(dataAsString, "FileVersion");
+            Comments = GetDataString(dataAsString, "Comments");
+        }
+
+        [Obsolete]
+        internal FileVersionInfo(byte* data, int dataLen)
+        {
+            FileVersion = "";
+            if (dataLen <= 0x5c)
+                return;
+
+            // See http://msdn.microsoft.com/en-us/library/ms647001(v=VS.85).aspx
+            byte* stringInfoPtr = data + 0x5c; // Gets to first StringInfo
+
+            // TODO search for FileVersion string ... 
+            string dataAsString = new string((char*)stringInfoPtr, 0, (dataLen - 0x5c) / 2);
+
+            FileVersion = GetDataString(dataAsString, "FileVersion");
+            Comments = GetDataString(dataAsString, "Comments");
         }
 
         private static string? GetDataString(string dataAsString, string fileVersionKey)
