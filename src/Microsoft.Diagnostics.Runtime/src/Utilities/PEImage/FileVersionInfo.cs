@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -27,42 +28,30 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public string? Comments { get; }
 
-        internal FileVersionInfo(Span<byte> data)
+        internal FileVersionInfo(ReadOnlySpan<byte> data)
         {
             data = data.Slice(DataOffset);
-            fixed (byte* ptr = data)
-            {
-                string dataAsString = new string((char*)ptr, 0, data.Length / 2);
 
-                FileVersion = GetDataString(dataAsString, "FileVersion");
-                Comments = GetDataString(dataAsString, "Comments");
-            }
+            ReadOnlySpan<char> dataAsString = MemoryMarshal.Cast<byte, char>(data);
+
+            FileVersion = GetDataString(dataAsString, "FileVersion".AsSpan());
+            Comments = GetDataString(dataAsString, "Comments".AsSpan());
         }
 
-        private static string? GetDataString(string dataAsString, string fileVersionKey)
+        private static string? GetDataString(ReadOnlySpan<char> dataAsString, ReadOnlySpan<char> fileVersionKey)
         {
-            int fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
-            if (fileVersionIdx >= 0)
-            {
-                int valIdx = fileVersionIdx + fileVersionKey.Length;
-                for (; ; )
-                {
-                    valIdx++;
-                    if (valIdx >= dataAsString.Length)
-                        return null;
+            int fileVersionIndex = dataAsString.IndexOf(fileVersionKey);
+            if (fileVersionIndex < 0)
+                return null;
 
-                    if (dataAsString[valIdx] != (char)0)
-                        break;
-                }
+            dataAsString = dataAsString.Slice(fileVersionIndex + fileVersionKey.Length);
+            dataAsString = dataAsString.TrimStart('\0');
 
-                int varEndIdx = dataAsString.IndexOf((char)0, valIdx);
-                if (varEndIdx < 0)
-                    return null;
+            int endIndex = dataAsString.IndexOf('\0');
+            if (endIndex < 0)
+                return null;
 
-                return dataAsString.Substring(valIdx, varEndIdx - valIdx);
-            }
-
-            return null;
+            return dataAsString.Slice(0, endIndex).ToString();
         }
 
         public override string? ToString() => FileVersion;

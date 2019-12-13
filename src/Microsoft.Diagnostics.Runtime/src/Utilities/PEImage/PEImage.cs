@@ -219,9 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             try
             {
                 int count = versionNode.GetData(buffer);
-                Span<byte> span = new Span<byte>(buffer, 0, count);
-                FileVersionInfo result = new FileVersionInfo(span);
-                return result;
+                return new FileVersionInfo(buffer.AsSpan(0, count));
             }
             finally
             {
