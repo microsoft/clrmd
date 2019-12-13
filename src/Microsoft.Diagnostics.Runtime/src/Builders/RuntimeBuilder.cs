@@ -122,19 +122,16 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
             List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
 
-            if (true)
+            ulong next = _firstThread;
+            HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
+            while (_sos.GetThreadData(next, out ThreadData thread))
             {
-                ulong next = _firstThread;
-                HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
-                while (_sos.GetThreadData(next, out ThreadData thread))
-                {
-                    if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
-                        allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
+                if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
+                    allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
 
-                    next = thread.NextThread;
-                    if (next == 0 || !seen.Add(next))
-                        break;
-                }
+                next = thread.NextThread;
+                if (next == 0 || !seen.Add(next))
+                    break;
             }
 
             bool result = false;
