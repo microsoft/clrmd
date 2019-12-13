@@ -61,13 +61,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         {
                             if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
                             {
-                                ImmutableArray<byte>.Builder buildId = ImmutableArray.CreateBuilder<byte>((int)note.Header.ContentSize);
-                                buildId.Count = buildId.Capacity;
-
-                                note.ReadContents(0, buildId.DangerousGetSpan());
-
-                                _buildId = buildId.MoveToImmutable();
-                                return _buildId;
+                                byte[] buildId = new byte[note.Header.ContentSize];
+                                note.ReadContents(0, buildId);
+                                return _buildId = buildId.AsImmutableArray();
                             }
                         }
                     }

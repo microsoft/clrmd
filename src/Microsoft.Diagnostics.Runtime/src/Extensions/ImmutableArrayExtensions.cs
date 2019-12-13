@@ -2,23 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
+using System.Diagnostics;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal static class ImmutableArrayExtension
+    internal static class ImmutableArrayExtensions
     {
-        /// <summary>
-        /// <b>WARNING:</b> Typing this method may cause Visual Studio IntelliCode 2.2 to crash.
-        /// </summary>
-        internal static unsafe Span<T> DangerousGetSpan<T>(this ImmutableArray<T>.Builder builder) where T : unmanaged
+        internal static ImmutableArray<T> AsImmutableArray<T>(this T[] array)
         {
-            // MemoryMarshal.CreateSpan isn't available on .NET Standard 2.0
-            fixed (T* pointer = &builder.ItemRef(0))
-            {
-                return new Span<T>(pointer, builder.Count);
-            }
+            Debug.Assert(Unsafe.SizeOf<T[]>() == Unsafe.SizeOf<ImmutableArray<T>>());
+            return Unsafe.As<T[], ImmutableArray<T>>(ref array);
         }
 
         internal static ImmutableArray<T> MoveOrCopyToImmutable<T>(this ImmutableArray<T>.Builder builder)
