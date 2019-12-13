@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -135,15 +134,15 @@ namespace Microsoft.Diagnostics.Runtime
             return address;
         }
 
-        public bool Equals(IAddressableTypedEntity other)
+        public bool Equals(IAddressableTypedEntity? other)
             => other != null && Address == other.Address && Type == other.Type;
 
         private ClrType GetTypeOrThrow()
         {
-            if (Type == null)
+            if (Type is null)
                 throw new InvalidOperationException($"Unknown type of value at {Address:x}.");
 
-            return Type!;
+            return Type;
         }
     }
 }

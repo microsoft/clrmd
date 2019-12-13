@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -11,7 +12,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a managed module in the target process.
     /// </summary>
-    public abstract class ClrModule
+    public abstract class ClrModule :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<ClrModule>
+#nullable restore
     {
         /// <summary>
         /// This is the address of the clr!Module object.
@@ -137,25 +141,29 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract PdbInfo? Pdb { get; }
 
+        public override bool Equals(object? obj) => Equals(obj as ClrModule);
 
-        public override bool Equals(object? obj)
+        public bool Equals(ClrModule? other)
         {
-            return obj is ClrModule other && Address == other.Address;
+            if (ReferenceEquals(this, other))
+                return true;
+
+            if (other is null)
+                return false;
+
+            return Address == other.Address;
         }
 
         public override int GetHashCode() => Address.GetHashCode();
 
         public static bool operator ==(ClrModule? left, ClrModule? right)
         {
-            if (left is null)
-                return right is null;
+            if (right is null)
+                return left is null;
 
-            return left.Equals(right);
+            return right.Equals(left);
         }
 
-        public static bool operator !=(ClrModule? left, ClrModule? right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(ClrModule? left, ClrModule? right) => !(left == right);
     }
 }

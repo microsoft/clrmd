@@ -39,25 +39,16 @@ namespace Microsoft.Diagnostics.Runtime
             Patch = patch;
         }
 
-        /// <summary>
-        /// Equals
-        /// </summary>
+        /// <inheritdoc/>
         public bool Equals(VersionInfo other)
         {
             return Major == other.Major && Minor == other.Minor && Revision == other.Revision && Patch == other.Patch;
         }
 
-        /// <summary>
-        /// Equals
-        /// </summary>
-        public override bool Equals(object? obj)
-        {
-            return obj is VersionInfo other && Equals(other);
-        }
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is VersionInfo other && Equals(other);
 
-        /// <summary>
-        /// GetHashCode
-        /// </summary>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             unchecked
@@ -70,10 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        /// <summary>
-        /// CompareTo
-        /// </summary>
-        /// <returns>-1 if less, 0 if equal, 1 if greater.</returns>
+        /// <inheritdoc/>
         public int CompareTo(VersionInfo other)
         {
             if (Major != other.Major)
@@ -97,37 +85,16 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{Major}.{Minor}.{Revision}.{Patch}";
         }
 
-        public static bool operator ==(VersionInfo? left, VersionInfo? right)
-        {
-            if (left is null)
-                return right is null;
+        public static bool operator ==(VersionInfo left, VersionInfo right) => left.Equals(right);
 
-            return left.Equals(right);
-        }
+        public static bool operator !=(VersionInfo left, VersionInfo right) => !(left == right);
 
-        public static bool operator !=(VersionInfo? left, VersionInfo? right)
-        {
-            return !(left == right);
-        }
+        public static bool operator <(VersionInfo left, VersionInfo right) => left.CompareTo(right) < 0;
 
-        public static bool operator <(VersionInfo left, VersionInfo right)
-        {
-            return left.CompareTo(right) < 0;
-        }
+        public static bool operator <=(VersionInfo left, VersionInfo right) => left.CompareTo(right) <= 0;
 
-        public static bool operator <=(VersionInfo left, VersionInfo right)
-        {
-            return left.CompareTo(right) <= 0;
-        }
+        public static bool operator >(VersionInfo left, VersionInfo right) => right < left;
 
-        public static bool operator >(VersionInfo left, VersionInfo right)
-        {
-            return left.CompareTo(right) > 0;
-        }
-
-        public static bool operator >=(VersionInfo left, VersionInfo right)
-        {
-            return left.CompareTo(right) >= 0;
-        }
+        public static bool operator >=(VersionInfo left, VersionInfo right) => right <= left;
     }
 }

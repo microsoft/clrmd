@@ -11,7 +11,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A representation of a type in the target process.
     /// </summary>
-    public abstract class ClrType
+    public abstract class ClrType :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<ClrType>
+#nullable restore
     {
         /// <summary>
         /// Gets the GCDesc associated with this type.  Only valid if ContainsPointers returns true.
@@ -249,32 +252,29 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract IClrObjectHelpers ClrObjectHelpers { get; }
 
-        public override bool Equals(object? obj)
+        public override bool Equals(object? obj) => Equals(obj as ClrType);
+
+        public bool Equals(ClrType? other)
         {
-            if (obj is ClrType type)
-            {
-                if (MethodTable != 0 && type.MethodTable != 0)
-                    return MethodTable == type.MethodTable;
+            if (ReferenceEquals(this, other))
+                return true;
 
-                if (type.IsPointer)
-                {
-                    if (type.ComponentType is null)
-                        return base.Equals(obj);
+            if (other is null)
+                return false;
 
-                    return ComponentType == type.ComponentType;
-                }
+            if (MethodTable != 0 && other.MethodTable != 0)
+                return MethodTable == other.MethodTable;
 
-                if (IsPrimitive && type.IsPrimitive && ElementType != ClrElementType.Unknown)
-                    return ElementType == type.ElementType;
+            if (other.IsPointer)
+                return ComponentType == other.ComponentType;
 
-                // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
-                // check if we resolved from the same token out of the same module.
-                if (Module != null && MetadataToken != 0)
-                    return Module == type.Module && MetadataToken == type.MetadataToken;
+            if (IsPrimitive && other.IsPrimitive && ElementType != ClrElementType.Unknown)
+                return ElementType == other.ElementType;
 
-                // Fall back to reference equality
-                return base.Equals(obj);
-            }
+            // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
+            // check if we resolved from the same token out of the same module.
+            if (Module != null && MetadataToken != 0)
+                return Module == other.Module && MetadataToken == other.MetadataToken;
 
             return false;
         }
@@ -283,10 +283,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public static bool operator ==(ClrType? left, ClrType? right)
         {
-            if (left is null)
-                return right is null;
+            if (right is null)
+                return left is null;
 
-            return left.Equals(right);
+            return right.Equals(left);
         }
 
         public static bool operator !=(ClrType? left, ClrType? right)
