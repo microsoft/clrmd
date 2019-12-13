@@ -10,41 +10,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct SegmentData
     {
-        public readonly ulong Address;
-        public readonly ulong Allocated;
-        public readonly ulong Committed;
-        public readonly ulong Reserved;
-        public readonly ulong Used;
-        public readonly ulong Start;
-        public readonly ulong Next;
-        public readonly ulong Heap;
-        public readonly ulong HighAllocMark;
+        public readonly ClrDataAddress Address;
+        public readonly ClrDataAddress Allocated;
+        public readonly ClrDataAddress Committed;
+        public readonly ClrDataAddress Reserved;
+        public readonly ClrDataAddress Used;
+        public readonly ClrDataAddress Start;
+        public readonly ClrDataAddress Next;
+        public readonly ClrDataAddress Heap;
+        public readonly ClrDataAddress HighAllocMark;
         public readonly IntPtr Flags;
-        public readonly ulong BackgroundAllocated;
-
-        internal SegmentData(ref SegmentData data)
-        {
-            this = data;
-
-            // Sign extension issues
-            if (IntPtr.Size == 4)
-            {
-                FixupPointer(ref Address);
-                FixupPointer(ref Allocated);
-                FixupPointer(ref Committed);
-                FixupPointer(ref Reserved);
-                FixupPointer(ref Used);
-                FixupPointer(ref Start);
-                FixupPointer(ref Next);
-                FixupPointer(ref Heap);
-                FixupPointer(ref HighAllocMark);
-                FixupPointer(ref BackgroundAllocated);
-            }
-        }
-
-        private static void FixupPointer(ref ulong ptr)
-        {
-            ptr = (uint)ptr;
-        }
+        public readonly ClrDataAddress BackgroundAllocated;
     }
 }

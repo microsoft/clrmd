@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly short NumInstanceFields;
         public readonly short NumStaticFields;
         public readonly short NumThreadStaticFields;
-        public readonly ulong FirstFieldAddress; // If non-null, you can retrieve more
+        public readonly ClrDataAddress FirstFieldAddress; // If non-null, you can retrieve more
         public readonly short ContextStaticOffset;
         public readonly short ContextStaticsSize;
     }

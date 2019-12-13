@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        public ulong GetFrameVtable()
+        public ClrDataAddress GetFrameVtable()
         {
             InitDelegate(ref _request, VTable->Request);
 
@@ -35,11 +35,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int hr = _request(Self, 0xf0000000, 0, null, 8u, ptrBuffer);
             if (hr == S_OK)
             {
-                ulong result = Unsafe.ReadUnaligned<ulong>(ptrBuffer);
+                ClrDataAddress result = new ClrDataAddress(Unsafe.ReadUnaligned<long>(ptrBuffer));
                 return result;
             }
 
-            return 0;
+            return default;
         }
 
         public bool Next()

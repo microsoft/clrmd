@@ -9,8 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct AppDomainStoreData
     {
-        public readonly ulong SharedDomain;
-        public readonly ulong SystemDomain;
+        public readonly ClrDataAddress SharedDomain;
+        public readonly ClrDataAddress SystemDomain;
         public readonly int AppDomainCount;
     }
 }

@@ -16,9 +16,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly int MinLimitTotalWorkerThreads;
         public readonly int MaxLimitTotalWorkerThreads;
 
-        public readonly ulong FirstUnmanagedWorkRequest;
+        public readonly ClrDataAddress FirstUnmanagedWorkRequest;
 
-        public readonly ulong HillClimbingLog;
+        public readonly ClrDataAddress HillClimbingLog;
         public readonly int HillClimbingLogFirstIndex;
         public readonly int HillClimbingLogSize;
 
@@ -32,6 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly int CurrentLimitTotalCPThreads;
         public readonly int MinLimitTotalCPThreads;
 
-        public readonly ulong AsyncTimerCallbackCompletionFPtr;
+        public readonly ClrDataAddress AsyncTimerCallbackCompletionFPtr;
     }
 }

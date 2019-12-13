@@ -9,8 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct WorkRequestData
     {
-        public readonly ulong Function;
-        public readonly ulong Context;
-        public readonly ulong NextWorkRequest;
+        public readonly ClrDataAddress Function;
+        public readonly ClrDataAddress Context;
+        public readonly ClrDataAddress NextWorkRequest;
     }
 }

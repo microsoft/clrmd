@@ -126,13 +126,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return uint.MaxValue;
         }
 
-        public ulong GetThreadFromThinlockId(uint id)
+        public ClrDataAddress GetThreadFromThinlockId(uint id)
         {
             InitDelegate(ref _getThreadFromThinlockId, VTable->GetThreadFromThinlockID);
-            if (_getThreadFromThinlockId(Self, id, out ulong thread) == S_OK)
+            if (_getThreadFromThinlockId(Self, id, out ClrDataAddress thread) == S_OK)
                 return thread;
 
-            return 0;
+            return default;
         }
 
         public string? GetMethodDescName(ulong md)
@@ -282,22 +282,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public ulong GetMethodDescPtrFromFrame(ulong frame)
+        public ClrDataAddress GetMethodDescPtrFromFrame(ulong frame)
         {
             InitDelegate(ref _getMethodDescPtrFromFrame, VTable->GetMethodDescPtrFromFrame);
-            if (_getMethodDescPtrFromFrame(Self, frame, out ulong data) == S_OK)
+            if (_getMethodDescPtrFromFrame(Self, frame, out ClrDataAddress data) == S_OK)
                 return data;
 
-            return 0;
+            return default;
         }
 
-        public ulong GetMethodDescPtrFromIP(ulong frame)
+        public ClrDataAddress GetMethodDescPtrFromIP(ulong frame)
         {
             InitDelegate(ref _getMethodDescPtrFromIP, VTable->GetMethodDescPtrFromIP);
-            if (_getMethodDescPtrFromIP(Self, frame, out ulong data) == S_OK)
+            if (_getMethodDescPtrFromIP(Self, frame, out ClrDataAddress data) == S_OK)
                 return data;
 
-            return 0;
+            return default;
         }
 
         public string GetFrameName(ulong vtable)
@@ -368,12 +368,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return _getCommonMethodTables(Self, out commonMTs) == S_OK;
         }
 
-        public ulong[] GetAssemblyList(ulong appDomain)
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain)
         {
             return GetAssemblyList(appDomain, 0);
         }
 
-        public ulong[] GetAssemblyList(ulong appDomain, int count)
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count)
         {
             return GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable->GetAssemblyList);
         }
@@ -502,13 +502,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public ulong GetMethodTableByEEClass(ulong eeclass)
+        public ClrDataAddress GetMethodTableByEEClass(ulong eeclass)
         {
             InitDelegate(ref _getMTForEEClass, VTable->GetMethodTableForEEClass);
-            if (_getMTForEEClass(Self, eeclass, out ulong data) == S_OK)
+            if (_getMTForEEClass(Self, eeclass, out ClrDataAddress data) == S_OK)
                 return data;
 
-            return 0;
+            return default;
         }
 
         public bool GetModuleData(ulong module, out ModuleData data)
@@ -518,17 +518,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public ulong[] GetModuleList(ulong assembly)
+        public ClrDataAddress[] GetModuleList(ulong assembly)
         {
             return GetModuleList(assembly, 0);
         }
 
-        public ulong[] GetModuleList(ulong assembly, int count)
+        public ClrDataAddress[] GetModuleList(ulong assembly, int count)
         {
             return GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable->GetAssemblyModuleList);
         }
 
-        private ulong[] GetModuleOrAssembly(ulong address, int count, ref DacGetUlongArrayWithArg? func, IntPtr vtableEntry)
+        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, ref DacGetUlongArrayWithArg? func, IntPtr vtableEntry)
         {
             InitDelegate(ref func, vtableEntry);
 
@@ -536,33 +536,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (count <= 0)
             {
                 if (func(Self, address, 0, null, out needed) < 0)
-                    return Array.Empty<ulong>();
+                    return Array.Empty<ClrDataAddress>();
 
                 count = needed;
             }
 
             // We ignore the return value here since the list may be partially filled
-            ulong[] modules = new ulong[count];
+            ClrDataAddress[] modules = new ClrDataAddress[count];
             func(Self, address, modules.Length, modules, out needed);
 
             return modules;
         }
 
-        public ulong[] GetAppDomainList(int count = 0)
+        public ClrDataAddress[] GetAppDomainList(int count = 0)
         {
             InitDelegate(ref _getAppDomainList, VTable->GetAppDomainList);
 
             if (count <= 0)
             {
                 if (!GetAppDomainStoreData(out AppDomainStoreData addata))
-                    return Array.Empty<ulong>();
+                    return Array.Empty<ClrDataAddress>();
 
                 count = addata.AppDomainCount;
             }
 
-            ulong[] data = new ulong[count];
+            ClrDataAddress[] data = new ClrDataAddress[count];
             int hr = _getAppDomainList(Self, data.Length, data, out int needed);
-            return hr == S_OK ? data : Array.Empty<ulong>();
+            return hr == S_OK ? data : Array.Empty<ClrDataAddress>();
         }
 
         public bool GetThreadData(ulong address, out ThreadData data)
@@ -574,12 +574,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
 
             InitDelegate(ref _getThreadData, VTable->GetThreadData);
-
             int hr = _getThreadData(Self, address, out data);
-
-            if (IntPtr.Size == 4)
-                ThreadData.Fixup(ref data);
-
             return SUCCEEDED(hr);
         }
 
@@ -594,27 +589,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getSegmentData, VTable->GetHeapSegmentData);
             int hr = _getSegmentData(Self, addr, out data);
-            if (hr == 0 && IntPtr.Size == 4)
-                data = new SegmentData(ref data);
             return SUCCEEDED(hr);
         }
 
-        public ulong[] GetHeapList(int heapCount)
+        public ClrDataAddress[] GetHeapList(int heapCount)
         {
             InitDelegate(ref _getGCHeapList, VTable->GetGCHeapList);
 
-            ulong[] refs = new ulong[heapCount];
+            ClrDataAddress[] refs = new ClrDataAddress[heapCount];
             int hr = _getGCHeapList(Self, heapCount, refs, out int needed);
-            return hr == S_OK ? refs : Array.Empty<ulong>();
+            return hr == S_OK ? refs : Array.Empty<ClrDataAddress>();
         }
 
         public bool GetServerHeapDetails(ulong addr, out HeapDetails data)
         {
             InitDelegate(ref _getGCHeapDetails, VTable->GetGCHeapDetails);
             int hr = _getGCHeapDetails(Self, addr, out data);
-
-            if (IntPtr.Size == 4)
-                data = new HeapDetails(ref data);
 
             return SUCCEEDED(hr);
         }
@@ -623,9 +613,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getGCHeapStaticData, VTable->GetGCHeapStaticData);
             int hr = _getGCHeapStaticData(Self, out data);
-
-            if (IntPtr.Size == 4)
-                data = new HeapDetails(ref data);
             return SUCCEEDED(hr);
         }
 
@@ -739,7 +726,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetIntPtr(IntPtr self, out IntPtr data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongWithArg(IntPtr self, ulong arg, out ulong data);
+        private delegate int DacGetUlongWithArg(IntPtr self, ulong arg, out ClrDataAddress data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetUlongWithArgs(IntPtr self, ulong arg, uint id, out ulong data);
@@ -760,10 +747,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetHeapDetails(IntPtr self, out HeapDetails data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongArray(IntPtr self, int count, [Out] ulong[] values, out int needed);
+        private delegate int DacGetUlongArray(IntPtr self, int count, [Out] ClrDataAddress[] values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ulong[]? values, out int needed);
+        private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ClrDataAddress[]? values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[]? values, [Out] out int needed);
@@ -832,7 +819,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetLocalModuleData(IntPtr self, ulong addr, out DomainLocalModuleData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ulong data);
+        private delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ClrDataAddress data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] JitCodeHeapInfo[]? values, out int needed);

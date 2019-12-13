@@ -9,11 +9,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct AssemblyData
     {
-        public readonly ulong Address;
-        public readonly ulong ClassLoader;
-        public readonly ulong ParentDomain;
-        public readonly ulong AppDomain;
-        public readonly ulong AssemblySecurityDescriptor;
+        public readonly ClrDataAddress Address;
+        public readonly ClrDataAddress ClassLoader;
+        public readonly ClrDataAddress ParentDomain;
+        public readonly ClrDataAddress AppDomain;
+        public readonly ClrDataAddress AssemblySecurityDescriptor;
         public readonly int Dynamic;
         public readonly int ModuleCount;
         public readonly uint LoadContext;

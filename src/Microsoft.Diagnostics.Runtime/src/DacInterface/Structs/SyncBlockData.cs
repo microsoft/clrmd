@@ -9,15 +9,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct SyncBlockData
     {
-        public readonly ulong Object;
+        public readonly ClrDataAddress Object;
         public readonly uint Free;
-        public readonly ulong Address;
+        public readonly ClrDataAddress Address;
         public readonly uint COMFlags;
         public readonly uint MonitorHeld;
         public readonly uint Recursion;
-        public readonly ulong HoldingThread;
+        public readonly ClrDataAddress HoldingThread;
         public readonly uint AdditionalThreadCount;
-        public readonly ulong AppDomain;
+        public readonly ClrDataAddress AppDomain;
         public readonly uint TotalSyncBlockCount;
     }
 }

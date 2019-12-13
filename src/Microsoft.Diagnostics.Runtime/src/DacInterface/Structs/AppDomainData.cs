@@ -9,13 +9,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct AppDomainData
     {
-        public readonly ulong Address;
-        public readonly ulong SecurityDescriptor;
-        public readonly ulong LowFrequencyHeap;
-        public readonly ulong HighFrequencyHeap;
-        public readonly ulong StubHeap;
-        public readonly ulong DomainLocalBlock;
-        public readonly ulong DomainLocalModules;
+        public readonly ClrDataAddress Address;
+        public readonly ClrDataAddress SecurityDescriptor;
+        public readonly ClrDataAddress LowFrequencyHeap;
+        public readonly ClrDataAddress HighFrequencyHeap;
+        public readonly ClrDataAddress StubHeap;
+        public readonly ClrDataAddress DomainLocalBlock;
+        public readonly ClrDataAddress DomainLocalModules;
         public readonly int Id;
         public readonly int AssemblyCount;
         public readonly int FailedAssemblyCount;

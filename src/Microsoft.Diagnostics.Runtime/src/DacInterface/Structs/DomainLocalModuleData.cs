@@ -9,12 +9,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct DomainLocalModuleData
     {
-        public readonly ulong AppDomainAddress;
+        public readonly ClrDataAddress AppDomainAddress;
         public readonly ulong ModuleID;
 
-        public readonly ulong ClassData;
-        public readonly ulong DynamicClassTable;
-        public readonly ulong GCStaticDataStart;
-        public readonly ulong NonGCStaticDataStart;
+        public readonly ClrDataAddress ClassData;
+        public readonly ClrDataAddress DynamicClassTable;
+        public readonly ClrDataAddress GCStaticDataStart;
+        public readonly ClrDataAddress NonGCStaticDataStart;
     }
 }
