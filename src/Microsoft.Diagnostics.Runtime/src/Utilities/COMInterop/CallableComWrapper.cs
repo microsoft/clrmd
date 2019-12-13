@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             GC.SuppressFinalize(this);
         }
 
-        protected CallableCOMWrapper(RefCountedFreeLibrary? library, ref Guid desiredInterface, IntPtr pUnknown)
+        protected CallableCOMWrapper(RefCountedFreeLibrary? library, in Guid desiredInterface, IntPtr pUnknown)
         {
             _library = library ?? throw new ArgumentNullException(nameof(library));
             _library.AddRef();
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
             QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
-            int hr = queryInterface(pUnknown, ref desiredInterface, out IntPtr pCorrectUnknown);
+            int hr = queryInterface(pUnknown, desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
             {
                 GC.SuppressFinalize(this);
@@ -82,11 +82,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return count;
         }
 
-        public IntPtr QueryInterface(ref Guid riid)
+        public IntPtr QueryInterface(in Guid riid)
         {
             QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
 
-            int hr = queryInterface(Self, ref riid, out IntPtr unk);
+            int hr = queryInterface(Self, riid, out IntPtr unk);
             return hr == S_OK ? unk : IntPtr.Zero;
         }
 

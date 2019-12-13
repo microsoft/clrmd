@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ImmutableArray<ILToNativeMap> ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold) ?? default;
+        public override ImmutableArray<ILToNativeMap> ILOffsetMap => _helpers?.GetILMap(NativeCode, _hotCold) ?? default;
 
         public override HotColdRegions HotColdInfo => _hotCold;
 

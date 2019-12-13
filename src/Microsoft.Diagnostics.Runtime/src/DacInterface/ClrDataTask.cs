@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe class ClrDataTask : CallableCOMWrapper
     {
-        private static Guid IID_IXCLRDataTask = new Guid("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
+        private static readonly Guid IID_IXCLRDataTask = new Guid("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 
         private ClrDataTaskVTable* VTable => (ClrDataTaskVTable*)_vtable;
 
         public ClrDataTask(DacLibrary library, IntPtr pUnk)
-            : base(library.OwningLibrary, ref IID_IXCLRDataTask, pUnk)
+            : base(library.OwningLibrary, IID_IXCLRDataTask, pUnk)
         {
         }
 

@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected const int E_NOTIMPL = unchecked((int)0x80004001);
         protected const int E_NOINTERFACE = unchecked((int)0x80004002);
 
-        protected readonly Guid IUnknownGuid = new Guid("00000000-0000-0000-C000-000000000046");
+        protected static readonly Guid IUnknownGuid = new Guid("00000000-0000-0000-C000-000000000046");
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         protected delegate int AddRefDelegate(IntPtr self);
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected delegate int ReleaseDelegate(IntPtr self);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        protected delegate int QueryInterfaceDelegate(IntPtr self, ref Guid guid, out IntPtr ptr);
+        protected delegate int QueryInterfaceDelegate(IntPtr self, in Guid guid, out IntPtr ptr);
 
         /// <summary>
         /// Release an IUnknown pointer.

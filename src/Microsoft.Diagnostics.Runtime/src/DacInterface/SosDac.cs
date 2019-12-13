@@ -15,12 +15,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// </summary>
     public sealed unsafe class SOSDac : CallableCOMWrapper
     {
-        internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
+        internal static readonly Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
         private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
         private readonly DacLibrary _library;
 
         public SOSDac(DacLibrary? library, IntPtr ptr)
-            : base(library?.OwningLibrary, ref IID_ISOSDac, ptr)
+            : base(library?.OwningLibrary, IID_ISOSDac, ptr)
         {
             _library = library ?? throw new ArgumentNullException(nameof(library));
         }

@@ -10,13 +10,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class ClrDataMethod : CallableCOMWrapper
     {
-        private static Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
+        private static readonly Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
         private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
         private GetILAddressMapDelegate? _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, ref IID_IXCLRDataMethodInstance, pUnk)
+            : base(library?.OwningLibrary, IID_IXCLRDataMethodInstance, pUnk)
         {
         }
 

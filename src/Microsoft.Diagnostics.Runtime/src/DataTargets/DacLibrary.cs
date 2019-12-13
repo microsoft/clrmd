@@ -45,10 +45,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
 
-        public T? GetInterface<T>(ref Guid riid)
+        public T? GetInterface<T>(in Guid riid)
             where T : CallableCOMWrapper
         {
-            IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(ref riid);
+            IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(riid);
             if (pUnknown == IntPtr.Zero)
                 return null;
 
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             CreateDacInstance func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-            int res = func(ref guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
+            int res = func(guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
             if (res != 0)
                 throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", ClrDiagnosticsExceptionKind.DacError, res);
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CreateDacInstance(
-            ref Guid riid,
+            in Guid riid,
             IntPtr dacDataInterface,
             out IntPtr ppObj);
     }

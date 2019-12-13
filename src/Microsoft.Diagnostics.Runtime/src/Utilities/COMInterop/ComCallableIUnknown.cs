@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _delegates.AddRange(keepAlive);
         }
 
-        private int QueryInterfaceImpl(IntPtr self, ref Guid guid, out IntPtr ptr)
+        private int QueryInterfaceImpl(IntPtr self, in Guid guid, out IntPtr ptr)
         {
             if (_interfaces.TryGetValue(guid, out IntPtr value))
             {

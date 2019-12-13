@@ -11,10 +11,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugClient : CallableCOMWrapper
     {
-        internal static Guid IID_IDebugClient = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+        internal static readonly Guid IID_IDebugClient = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+
         private IDebugClientVTable* VTable => (IDebugClientVTable*)_vtable;
+
         public DebugClient(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects system)
-            : base(library, ref IID_IDebugClient, pUnk)
+            : base(library, IID_IDebugClient, pUnk)
         {
             _sys = system;
             SuppressRelease();

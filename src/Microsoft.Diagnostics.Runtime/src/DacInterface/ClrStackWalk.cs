@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
-        private static Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
+        private static readonly Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
         private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
 
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetContextDelegate? _getContext;
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)
+            : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
         {
         }
 

@@ -13,10 +13,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugSymbols : CallableCOMWrapper
     {
-        internal static Guid IID_IDebugSymbols3 = new Guid("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
+        internal static readonly Guid IID_IDebugSymbols3 = new Guid("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
+
         private IDebugSymbols3VTable* VTable => (IDebugSymbols3VTable*)_vtable;
+
         public DebugSymbols(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
-            : base(library, ref IID_IDebugSymbols3, pUnk)
+            : base(library, IID_IDebugSymbols3, pUnk)
         {
             _sys = sys;
             SuppressRelease();

@@ -11,10 +11,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugControl : CallableCOMWrapper
     {
-        internal static Guid IID_IDebugControl2 = new Guid("d4366723-44df-4bed-8c7e-4c05424f4588");
+        internal static readonly Guid IID_IDebugControl2 = new Guid("d4366723-44df-4bed-8c7e-4c05424f4588");
+
         private IDebugControlVTable* VTable => (IDebugControlVTable*)_vtable;
+
         public DebugControl(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
-            : base(library, ref IID_IDebugControl2, pUnk)
+            : base(library, IID_IDebugControl2, pUnk)
         {
             _sys = sys;
             SuppressRelease();

@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Native
         {
             Module = module;
             DataTarget = dt;
-            SOSNative = lib.GetInterface<SOSNative>(ref SOSNative.IID_ISOSNative);
+            SOSNative = lib.GetInterface<SOSNative>(SOSNative.IID_ISOSNative);
             _dataReader = dt.DataReader;
             _modules = dt.EnumerateModules().ToArray();
 

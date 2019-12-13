@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class MetaDataImport : CallableCOMWrapper
     {
-        private static Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
+        private static readonly Guid IID_IMetaDataImport = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44");
         private IMetaDataImportVTable* VTable => (IMetaDataImportVTable*)_vtable;
         private IntPtr EnumInterfaceImpls => VTable->EnumInterfaceImpls;
         private IntPtr EnumFieldPtr => VTable->EnumFields;
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetCustomAttributeByNameDelegate? _getCustomAttributeByName;
 
         public MetaDataImport(DacLibrary library, IntPtr pUnknown)
-            : base(library?.OwningLibrary, ref IID_IMetaDataImport, pUnknown)
+            : base(library?.OwningLibrary, IID_IMetaDataImport, pUnknown)
         {
         }
 
