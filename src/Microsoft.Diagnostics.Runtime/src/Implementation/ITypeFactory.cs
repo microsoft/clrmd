@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrRuntime GetOrCreateRuntime();
         ClrHeap GetOrCreateHeap();
         ClrModule GetOrCreateModule(ClrAppDomain domain, ulong address);
-        bool CreateMethodsForType(ClrType type, out IReadOnlyList<ClrMethod> methods);
-        bool CreateFieldsForType(ClrType type, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> staticFields);
+        bool CreateMethodsForType(ClrType type, out ImmutableArray<ClrMethod> methods);
+        bool CreateFieldsForType(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields);
         ComCallableWrapper? CreateCCWForObject(ulong obj);
         RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
         ClrType CreateSystemType(ClrHeap heap, ulong mt, string kind);

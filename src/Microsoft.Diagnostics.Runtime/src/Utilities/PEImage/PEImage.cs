@@ -204,11 +204,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public FileVersionInfo? GetFileVersionInfo()
         {
             ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
-            if (versionNode == null || versionNode.Children.Count != 1)
+            if (versionNode is null || versionNode.Children.Length != 1)
                 return null;
 
             versionNode = versionNode.Children[0];
-            if (!versionNode.IsLeaf && versionNode.Children.Count == 1)
+            if (!versionNode.IsLeaf && versionNode.Children.Length == 1)
                 versionNode = versionNode.Children[0];
 
             int size = versionNode.Size;

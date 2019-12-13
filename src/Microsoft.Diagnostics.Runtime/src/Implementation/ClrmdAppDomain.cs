@@ -3,8 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -16,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong Address { get; }
         public override int Id { get; }
         public override string? Name { get; }
-        public override IReadOnlyList<ClrModule> Modules { get; }
+        public override ImmutableArray<ClrModule> Modules { get; }
 
         public override string? ConfigurationFile => _helpers.GetConfigFile(this);
         public override string? ApplicationBase => _helpers.GetApplicationBase(this);
@@ -32,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Address = data.Address;
             Name = data.Name;
             Runtime = runtime;
-            Modules = _helpers.EnumerateModules(this).ToArray();
+            Modules = _helpers.EnumerateModules(this).ToImmutableArray();
         }
 
         /// <summary>
@@ -53,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _helpers = helpers;
             Address = address;
             Id = -1;
-            Modules = _helpers.EnumerateModules(this).ToArray();
+            Modules = _helpers.EnumerateModules(this).ToImmutableArray();
         }
     }
 }

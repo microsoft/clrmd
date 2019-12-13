@@ -114,15 +114,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEmpty(oldMethods);
 
             // Make sure we aren't regenerating this list every time.
-            Assert.Same(oldDomains, runtime.AppDomains);
+            Assert.Equal(oldDomains, runtime.AppDomains);
 
             // Clear all cached data.
             runtime.FlushCachedData();
 
             CheckDomainNotSame(oldShared, runtime.SharedDomain);
             CheckDomainNotSame(oldSystem, runtime.SystemDomain);
-            Assert.Equal(oldDomains.Count, runtime.AppDomains.Count);
-            for (int i = 0; i < oldDomains.Count; i++)
+            Assert.Equal(oldDomains.Length, runtime.AppDomains.Length);
+            for (int i = 0; i < oldDomains.Length; i++)
                 CheckDomainNotSame(oldDomains[i], runtime.AppDomains[i]);
 
             var newModules = runtime.EnumerateModules().ToArray();
@@ -140,9 +140,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             var newThreads = runtime.Threads;
-            Assert.Same(newThreads, runtime.Threads);
-            Assert.Equal(oldThreads.Count, newThreads.Count);
-            for (int i = 0; i < oldThreads.Count; i++)
+            Assert.Equal(newThreads, runtime.Threads);
+            Assert.Equal(oldThreads.Length, newThreads.Length);
+            for (int i = 0; i < oldThreads.Length; i++)
             {
                 Assert.Equal(oldThreads[i].OSThreadId, newThreads[i].OSThreadId);
                 Assert.NotSame(oldThreads[i], newThreads[i]);
@@ -155,13 +155,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             AssertEqualNotSame(oldType.Name, newType.Name);
 
-            for (int i = 0; i < oldType.Fields.Count; i++)
+            for (int i = 0; i < oldType.Fields.Length; i++)
                 AssertEqualNotSame(oldType.Fields[i].Name, newType.Fields[i].Name);
 
-            for (int i = 0; i < oldType.StaticFields.Count; i++)
+            for (int i = 0; i < oldType.StaticFields.Length; i++)
                 AssertEqualNotSame(oldType.StaticFields[i].Name, newType.StaticFields[i].Name);
 
-            for (int i = 0; i < oldType.Methods.Count; i++)
+            for (int i = 0; i < oldType.Methods.Length; i++)
                 AssertEqualNotSame(oldType.Methods[i].Name, newType.Methods[i].Name);
         }
 

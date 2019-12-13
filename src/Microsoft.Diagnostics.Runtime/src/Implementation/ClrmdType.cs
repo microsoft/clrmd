@@ -4,13 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -23,9 +22,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
 
-        private IReadOnlyList<ClrMethod>? _methods;
-        private IReadOnlyList<ClrInstanceField>? _fields;
-        private IReadOnlyList<ClrStaticField>? _statics;
+        private ImmutableArray<ClrMethod> _methods;
+        private ImmutableArray<ClrInstanceField> _fields;
+        private ImmutableArray<ClrStaticField> _statics;
 
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
@@ -80,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // If there are no methods, preempt the expensive work to create methods
             if (data.MethodCount == 0)
-                _methods = Array.Empty<ClrMethod>();
+                _methods = ImmutableArray<ClrMethod>.Empty;
 
             DebugOnlyLoadLazyValues();
         }
@@ -292,14 +291,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override IReadOnlyList<ClrInstanceField> Fields
+        public override ImmutableArray<ClrInstanceField> Fields
         {
             get
             {
-                if (_fields != null)
+                if (!_fields.IsDefault)
                     return _fields;
 
-                if (Helpers.Factory.CreateFieldsForType(this, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics))
+                if (Helpers.Factory.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
                 {
                     _fields = fields;
                     _statics = statics;
@@ -309,14 +308,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override IReadOnlyList<ClrStaticField> StaticFields
+        public override ImmutableArray<ClrStaticField> StaticFields
         {
             get
             {
-                if (_statics != null)
+                if (!_statics.IsDefault)
                     return _statics;
 
-                if (Helpers.Factory.CreateFieldsForType(this, out IReadOnlyList<ClrInstanceField> fields, out IReadOnlyList<ClrStaticField> statics))
+                if (Helpers.Factory.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
                 {
                     _fields = fields;
                     _statics = statics;
@@ -326,15 +325,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override IReadOnlyList<ClrMethod> Methods
+        public override ImmutableArray<ClrMethod> Methods
         {
             get
             {
-                if (_methods != null)
+                if (!_methods.IsDefault)
                     return _methods;
 
                 // Returns whether or not we should cache methods or not
-                if (Helpers.Factory.CreateMethodsForType(this, out IReadOnlyList<ClrMethod> methods))
+                if (Helpers.Factory.CreateMethodsForType(this, out ImmutableArray<ClrMethod> methods))
                     _methods = methods;
 
                 return methods;

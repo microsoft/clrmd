@@ -12,7 +12,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
 
         IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks();
-        bool CreateSegments(ClrHeap clrHeap, out IReadOnlyList<ClrSegment> segemnts, out IReadOnlyList<AllocationContext> allocationContexts,
-                            out IReadOnlyList<FinalizerQueueSegment> fqRoots, out IReadOnlyList<FinalizerQueueSegment> fqObjects);
+        bool CreateSegments(
+            ClrHeap clrHeap,
+            out IReadOnlyList<ClrSegment> segemnts,
+            out IReadOnlyList<AllocationContext> allocationContexts,
+            out IReadOnlyList<FinalizerQueueSegment> fqRoots,
+            out IReadOnlyList<FinalizerQueueSegment> fqObjects);
     }
 }

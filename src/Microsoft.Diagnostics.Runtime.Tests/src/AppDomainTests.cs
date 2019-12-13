@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.NotEqual(systemDomain.Address, sharedDomain.Address);
 
-            Assert.Equal(2, runtime.AppDomains.Count);
+            Assert.Equal(2, runtime.AppDomains.Length);
             ClrAppDomain AppDomainsExe = runtime.AppDomains[0];
             Assert.Equal("AppDomains.exe", AppDomainsExe.Name);
             Assert.Equal(1, AppDomainsExe.Id);
@@ -89,18 +89,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain systemDomain = runtime.SystemDomain;
-            Assert.Equal(0, systemDomain.Modules.Count);
+            Assert.Empty(systemDomain.Modules);
 
             ClrAppDomain sharedDomain = runtime.SharedDomain;
 
             if (runtime.ClrInfo.Version.Major == 2)
             {
-                Assert.Equal(3, sharedDomain.Modules.Count);
+                Assert.Equal(3, sharedDomain.Modules.Length);
                 Assert.Contains("mscorlib.dll", sharedDomain.Modules.Select(m => Path.GetFileName("mscorlib.dll")));
             }
             else
             {
-                Assert.Equal(1, sharedDomain.Modules.Count);
+                Assert.Single(sharedDomain.Modules);
 
                 ClrModule mscorlib = sharedDomain.Modules.Single();
                 Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.FileName), true);

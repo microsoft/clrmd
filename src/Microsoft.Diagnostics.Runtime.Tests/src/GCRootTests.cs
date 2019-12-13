@@ -4,11 +4,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -258,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             LinkedList<ClrObject> path = gcroot.FindSinglePath(source, target, CancellationToken.None);
 
-            AssertPathIsCorrect(heap, path.ToArray(), source, target);
+            AssertPathIsCorrect(heap, path.ToImmutableArray(), source, target);
         }
 
         [Fact]
@@ -282,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(3, paths.Length);
 
             foreach (LinkedList<ClrObject> path in paths)
-                AssertPathIsCorrect(heap, path.ToArray(), source, target);
+                AssertPathIsCorrect(heap, path.ToImmutableArray(), source, target);
         }
 
         private static void GetKnownSourceAndTarget(ClrHeap heap, out ulong source, out ulong target)
@@ -294,15 +293,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             target = heap.GetObjectsOfType("TargetType").Single();
         }
 
-        private void AssertPathIsCorrect(ClrHeap heap, IReadOnlyList<ClrObject> path, ulong source, ulong target)
+        private void AssertPathIsCorrect(ClrHeap heap, ImmutableArray<ClrObject> path, ulong source, ulong target)
         {
-            Assert.NotNull(path);
-            Assert.True(path.Count > 0);
+            Assert.NotEqual(default, path);
+            Assert.True(path.Length > 0);
 
             ClrObject first = path.First();
             Assert.Equal(source, first.Address);
 
-            for (int i = 0; i < path.Count - 1; i++)
+            for (int i = 0; i < path.Length - 1; i++)
             {
                 ClrObject curr = path[i];
                 Assert.Equal(curr.Type, heap.GetObjectType(curr.Address));

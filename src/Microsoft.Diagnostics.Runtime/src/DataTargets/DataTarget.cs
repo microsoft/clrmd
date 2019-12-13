@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -26,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private IBinaryLocator? _locator;
         private bool _disposed;
-        private ClrInfo[]? _clrs;
+        private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
@@ -117,18 +118,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the list of Clr versions loaded into the process.
         /// </summary>
-        public IReadOnlyList<ClrInfo> ClrVersions => GetOrCreateClrVersions();
+        public ImmutableArray<ClrInfo> ClrVersions => GetOrCreateClrVersions();
 
-        private IReadOnlyList<ClrInfo> GetOrCreateClrVersions()
+        private ImmutableArray<ClrInfo> GetOrCreateClrVersions()
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (_clrs != null)
+            if (!_clrs.IsDefault)
                 return _clrs;
 
             Architecture arch = DataReader.Architecture;
-            List<ClrInfo> versions = new List<ClrInfo>(2);
+            ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
                 if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var platform))
@@ -170,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime
                 versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
             }
 
-            _clrs = versions.ToArray();
+            _clrs = versions.MoveOrCopyToImmutable();
             return _clrs;
         }
 

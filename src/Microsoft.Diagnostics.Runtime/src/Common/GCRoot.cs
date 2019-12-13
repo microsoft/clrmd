@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -102,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, unique, cancelToken).FirstOrDefault();
                     if (path != null)
-                        yield return new GCRootPath(root, path.ToArray());
+                        yield return new GCRootPath(root, path.ToImmutableArray());
 
                     if (count != processedObjects.Count)
                     {
@@ -120,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
                 for (int i = 0; i < threads.Length; i++)
                 {
-                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all:true, unique, cancelToken)) { Name = "GCRoot Worker Thread" };
+                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all: true, unique, cancelToken)) { Name = "GCRoot Worker Thread" };
                     threads[i].Start();
                 }
 
@@ -187,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (path != null)
                     {
-                        results.Enqueue(new GCRootPath(root, path.ToArray()));
+                        results.Enqueue(new GCRootPath(root, path.ToImmutableArray()));
 
                         if (!all)
                             break;

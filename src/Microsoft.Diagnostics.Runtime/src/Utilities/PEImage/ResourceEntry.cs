@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -15,8 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class ResourceEntry
     {
-        private static readonly ResourceEntry[] s_emptyChildren = Array.Empty<ResourceEntry>();
-        private ResourceEntry[]? _children;
+        private ImmutableArray<ResourceEntry> _children;
         private readonly int _offset;
 
         /// <summary>
@@ -54,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The number of children this entry contains.
         /// </summary>
-        public int Count => Children.Count;
+        public int Count => Children.Length;
 
         /// <summary>
         /// Returns the i'th child.
@@ -73,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The children resources of this ResourceEntry.
         /// </summary>
-        public IReadOnlyList<ResourceEntry> Children => GetChildren();
+        public ImmutableArray<ResourceEntry> Children => GetChildren();
 
         internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {
@@ -115,13 +114,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return read == size ? output : default;
         }
 
-        private ResourceEntry[] GetChildren()
+        private ImmutableArray<ResourceEntry> GetChildren()
         {
-            if (_children != null)
+            if (!_children.IsDefault)
                 return _children;
 
             if (IsLeaf)
-                return _children = s_emptyChildren;
+                return _children = ImmutableArray<ResourceEntry>.Empty;
 
             ResourceEntry root = Image.Resources;
             int resourceStartFileOffset = root._offset;
@@ -129,7 +128,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             IMAGE_RESOURCE_DIRECTORY hdr = Image.Read<IMAGE_RESOURCE_DIRECTORY>(ref offset);
 
             int count = hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
-            ResourceEntry[] result = new ResourceEntry[count];
+            ImmutableArray<ResourceEntry>.Builder result = ImmutableArray.CreateBuilder<ResourceEntry>(count);
+            result.Count = result.Capacity;
 
             for (int i = 0; i < count; i++)
             {
@@ -143,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 result[i] = new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset);
             }
 
-            return _children = result;
+            return _children = result.MoveToImmutable();
         }
 
         private string GetName(ref IMAGE_RESOURCE_DIRECTORY_ENTRY entry, int resourceStartFileOffset)

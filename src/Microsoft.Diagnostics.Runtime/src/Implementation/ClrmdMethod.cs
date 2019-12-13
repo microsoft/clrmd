@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override IReadOnlyList<ILToNativeMap>? ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold);
+        public override ImmutableArray<ILToNativeMap> ILOffsetMap => _helpers?.GetILMap(NativeCode, in _hotCold) ?? default;
 
         public override HotColdRegions HotColdInfo => _hotCold;
 
@@ -81,15 +81,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override int GetILOffset(ulong addr)
         {
-            IReadOnlyList<ILToNativeMap>? map = ILOffsetMap;
-            if (map is null)
+            ImmutableArray<ILToNativeMap> map = ILOffsetMap;
+            if (map.IsDefault)
                 return 0;
 
             int ilOffset = 0;
-            if (map.Count > 1)
+            if (map.Length > 1)
                 ilOffset = map[1].ILOffset;
 
-            for (int i = 0; i < map.Count; ++i)
+            for (int i = 0; i < map.Length; ++i)
                 if (map[i].StartAddress <= addr && addr <= map[i].EndAddress)
                     return map[i].ILOffset;
 

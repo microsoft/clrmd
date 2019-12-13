@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // memory range overlaps with actual modules.
                 ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 
-                _modules = new List<ModuleInfo>(_core.LoadedImages.Count);
+                _modules = new List<ModuleInfo>(_core.LoadedImages.Length);
                 foreach (ElfLoadedImage image in _core.LoadedImages)
                     if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev"))
                         _modules.Add(CreateModuleInfo(image));
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime
                 timestamp = (uint)pe.IndexTimeStamp;
             }
 
-            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId);
+            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId ?? default);
         }
 
         public void FlushCachedData()

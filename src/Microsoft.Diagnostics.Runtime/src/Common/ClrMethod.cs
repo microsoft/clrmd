@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the IL to native offset mapping.
         /// </summary>
-        public abstract IReadOnlyList<ILToNativeMap>? ILOffsetMap { get; }
+        public abstract ImmutableArray<ILToNativeMap> ILOffsetMap { get; }
 
         /// <summary>
         /// Returns the metadata token of the current method.

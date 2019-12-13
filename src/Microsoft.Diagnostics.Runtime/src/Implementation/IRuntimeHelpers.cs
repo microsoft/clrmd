@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -11,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
-        IReadOnlyList<ClrThread> GetThreads(ClrRuntime runtime);
-        IReadOnlyList<ClrAppDomain> GetAppDomains(ClrRuntime runtime, out ClrAppDomain? system, out ClrAppDomain? shared);
+        ImmutableArray<ClrThread> GetThreads(ClrRuntime runtime);
+        ImmutableArray<ClrAppDomain> GetAppDomains(ClrRuntime runtime, out ClrAppDomain? system, out ClrAppDomain? shared);
         IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime);
         void FlushCachedData();
         ulong GetMethodDesc(ulong ip);

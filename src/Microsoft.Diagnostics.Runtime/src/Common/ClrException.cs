@@ -3,8 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections.Immutable;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -77,6 +76,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// the middle of constructing the stackwalk.)  This returns an empty list if no stack trace is
         /// associated with this exception object.
         /// </summary>
-        public IReadOnlyList<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(Thread, _object);
+        public ImmutableArray<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(Thread, _object);
     }
 }

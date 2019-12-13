@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 #pragma warning disable 649
@@ -15,8 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IRuntimeHelpers _helpers;
         private ClrHeap? _heap;
         private ClrModule? _bcl;
-        private IReadOnlyList<ClrThread>? _threads;
-        private IReadOnlyList<ClrAppDomain>? _domains;
+        private ImmutableArray<ClrThread> _threads;
+        private ImmutableArray<ClrAppDomain> _domains;
         private ClrAppDomain? _systemDomain;
         private ClrAppDomain? _sharedDomain;
         private bool _disposed;
@@ -25,13 +26,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override DataTarget? DataTarget => ClrInfo?.DataTarget;
         public override DacLibrary DacLibrary { get; }
         public override ClrInfo ClrInfo { get; }
-        public override IReadOnlyList<ClrThread> Threads => _threads ??= _helpers.GetThreads(this);
-        public override ClrHeap Heap => _heap ??= _helpers.Factory.GetOrCreateHeap();
-        public override IReadOnlyList<ClrAppDomain> AppDomains
+
+        public override ImmutableArray<ClrThread> Threads
         {
             get
             {
-                _domains ??= _helpers.GetAppDomains(this, out _systemDomain, out _sharedDomain);
+                if (_threads.IsDefault)
+                    _threads = _helpers.GetThreads(this);
+
+                return _threads;
+            }
+        }
+
+        public override ClrHeap Heap => _heap ??= _helpers.Factory.GetOrCreateHeap();
+
+        public override ImmutableArray<ClrAppDomain> AppDomains
+        {
+            get
+            {
+                if (_domains.IsDefault)
+                    _domains = _helpers.GetAppDomains(this, out _systemDomain, out _sharedDomain);
+
                 return _domains;
             }
         }
@@ -40,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_domains is null)
+                if (_domains.IsDefault)
                     _ = AppDomains;
 
                 return _sharedDomain;
@@ -51,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_domains is null)
+                if (_domains.IsDefault)
                     _ = AppDomains;
 
                 return _systemDomain;
@@ -99,8 +114,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _heap = null;
             _bcl = null;
-            _threads = null;
-            _domains = null;
+            _threads = default;
+            _domains = default;
             _systemDomain = null;
             _sharedDomain = null;
 
