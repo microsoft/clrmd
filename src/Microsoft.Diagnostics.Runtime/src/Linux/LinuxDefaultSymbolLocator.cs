@@ -47,9 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             string name = Path.GetFileName(fileName);
             foreach (var m in _modules)
             {
-                if (name == Path.GetFileName(m))
-                    return m;
-
                 string path = Path.Combine(Path.GetDirectoryName(m), name);
                 if (File.Exists(path))
                     return path;
