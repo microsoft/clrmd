@@ -291,7 +291,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     int ptr = tmp.Item1;
                     int size = tmp.Item2;
 
-                    if (TryRead(out int cvSig) && cvSig == CV_INFO_PDB70.PDB70CvSignature)
+                    if (TryRead(ptr, out int cvSig) && cvSig == CV_INFO_PDB70.PDB70CvSignature)
                     {
                         Guid guid = Read<Guid>();
                         int age = Read<int>();
