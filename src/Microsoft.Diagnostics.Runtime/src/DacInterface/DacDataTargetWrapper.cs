@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
@@ -37,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
             _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
+            Array.Sort(_modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
 
             VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
@@ -262,21 +263,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             DebugOnly.Assert(peimage.IsValid);
 
-            uint rva = mdRva;
-            uint size = bufferSize;
+            int rva = (int)mdRva;
+            int size = (int)bufferSize;
             if (rva == 0)
             {
-                IMAGE_DATA_DIRECTORY metadata = peimage.CorHeader.Metadata;
-                if (metadata.VirtualAddress == 0)
+                DirectoryEntry metadata = peimage.CorHeader.MetadataDirectory;
+                if (metadata.RelativeVirtualAddress == 0)
                     return E_FAIL;
 
-                rva = metadata.VirtualAddress;
-                size = Math.Min(bufferSize, metadata.Size);
+                rva = metadata.RelativeVirtualAddress;
+                size = Math.Min(size, metadata.Size);
             }
 
             checked
             {
-                int read = peimage.Read((int)rva, new Span<byte>(buffer.ToPointer(), (int)size));
+                int read = peimage.Read(rva, new Span<byte>(buffer.ToPointer(), size));
                 if (pDataSize != null)
                     *pDataSize = read;
             }
