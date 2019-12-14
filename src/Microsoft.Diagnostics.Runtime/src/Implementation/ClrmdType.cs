@@ -124,19 +124,30 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override uint MetadataToken { get; }
 
+        public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters()
+        {
+            MetaDataImport2? import = Module?.MetadataImport2;
+            if (import is null)
+                yield break;
+
+            foreach (int token in import.EnumerateGenericParams((int)MetadataToken))
+                if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
+                    yield return new ClrGenericParameter(index, attributes, name);
+        }
+
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
             MetaDataImport? import = Module?.MetadataImport;
-            if (import != null)
+            if (import is null)
+                yield break;
+
+            foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
             {
-                foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
+                if (import.GetInterfaceImplProps(token, out _, out int mdIFace))
                 {
-                    if (import.GetInterfaceImplProps(token, out _, out int mdIFace))
-                    {
-                        ClrInterface? result = GetInterface(import, mdIFace);
-                        if (result != null)
-                            yield return result;
-                    }
+                    ClrInterface? result = GetInterface(import, mdIFace);
+                    if (result != null)
+                        yield return result;
                 }
             }
         }
@@ -172,6 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (this == Heap.StringType)
                 return _elementType = ClrElementType.String;
+
             if (ComponentSize > 0)
                 return _elementType = ClrElementType.SZArray;
 
@@ -185,43 +197,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return _elementType = et;
             }
 
-            switch (Name)
+            return _elementType = Name switch
             {
-                case "System.Int32":
-                    return _elementType = ClrElementType.Int32;
-                case "System.Int16":
-                    return _elementType = ClrElementType.Int16;
-                case "System.Int64":
-                    return _elementType = ClrElementType.Int64;
-                case "System.IntPtr":
-                    return _elementType = ClrElementType.NativeInt;
-                case "System.UInt16":
-                    return _elementType = ClrElementType.UInt16;
-                case "System.UInt32":
-                    return _elementType = ClrElementType.UInt32;
-                case "System.UInt64":
-                    return _elementType = ClrElementType.UInt64;
-                case "System.UIntPtr":
-                    return _elementType = ClrElementType.NativeUInt;
-                case "System.Boolean":
-                    return _elementType = ClrElementType.Boolean;
-                case "System.Single":
-                    return _elementType = ClrElementType.Float;
-                case "System.Double":
-                    return _elementType = ClrElementType.Double;
-                case "System.Byte":
-                    return _elementType = ClrElementType.UInt8;
-                case "System.Char":
-                    return _elementType = ClrElementType.Char;
-                case "System.SByte":
-                    return _elementType = ClrElementType.Int8;
-                case "System.Enum":
-                    return _elementType = ClrElementType.Int32;
-                default:
-                    break;
-            }
-
-            return _elementType = ClrElementType.Struct;
+                "System.Int32" => ClrElementType.Int32,
+                "System.Int16" => ClrElementType.Int16,
+                "System.Int64" => ClrElementType.Int64,
+                "System.IntPtr" => ClrElementType.NativeInt,
+                "System.UInt16" => ClrElementType.UInt16,
+                "System.UInt32" => ClrElementType.UInt32,
+                "System.UInt64" => ClrElementType.UInt64,
+                "System.UIntPtr" => ClrElementType.NativeUInt,
+                "System.Boolean" => ClrElementType.Boolean,
+                "System.Single" => ClrElementType.Float,
+                "System.Double" => ClrElementType.Double,
+                "System.Byte" => ClrElementType.UInt8,
+                "System.Char" => ClrElementType.Char,
+                "System.SByte" => ClrElementType.Int8,
+                "System.Enum" => ClrElementType.Int32,
+                _ => ClrElementType.Struct,
+            };
         }
 
         public override bool IsException

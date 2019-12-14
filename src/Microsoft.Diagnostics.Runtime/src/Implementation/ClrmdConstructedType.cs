@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -62,7 +63,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
         public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
         public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
-        public override IEnumerable<ClrInterface> EnumerateInterfaces() => Array.Empty<ClrInterface>();
+        public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Enumerable.Empty<ClrGenericParameter>();
+        public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override bool IsPublic => true;
         public override bool IsPrivate => false;

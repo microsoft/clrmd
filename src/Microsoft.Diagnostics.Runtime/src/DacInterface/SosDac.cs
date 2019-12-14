@@ -365,6 +365,27 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
+        public MetaDataImport2? GetMetadataImport2(ulong module)
+        {
+            if (module == 0)
+                return null;
+
+            InitDelegate(ref _getMetaData, VTable->GetMetaDataImport);
+            if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
+                return null;
+
+            try
+            {
+                return new MetaDataImport2(_library, iunk);
+            }
+            catch (InvalidCastException)
+            {
+                // QueryInterface on MetaDataImport seems to fail when we don't have full
+                // metadata available.
+                return null;
+            }
+        }
+
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
         {
             InitDelegate(ref _getCommonMethodTables, VTable->GetUsefulGlobals);

@@ -90,6 +90,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual MetaDataImport? MetadataImport => null;
 
+        public virtual MetaDataImport2? MetadataImport2 => null;
+
         /// <summary>
         /// The debugging attributes for this module.
         /// </summary>

@@ -508,6 +508,33 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return field;
         }
 
+        [Fact]
+        public void GenericTypeTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass`5");
+
+            ClrGenericParameter[] genericParameters = genericType.EnumerateGenericParameters().ToArray();
+            Assert.Equal(5, genericParameters.Length);
+
+            VerifyGenericParameter(genericParameters, 0, "T1");
+            VerifyGenericParameter(genericParameters, 1, "T2");
+            VerifyGenericParameter(genericParameters, 2, "T3");
+            VerifyGenericParameter(genericParameters, 3, "T4");
+            VerifyGenericParameter(genericParameters, 4, "T5");
+
+            static void VerifyGenericParameter(ClrGenericParameter[] genericParameters, int index, string name)
+            {
+                ClrGenericParameter genericParameter = genericParameters[index];
+
+                Assert.Equal(index, genericParameter.Index);
+                Assert.Equal(GenericParameterAttributes.None, genericParameter.Attributes);
+                Assert.Equal(name, genericParameter.Name);
+            }
+        }
+
         [WindowsFact]
         public void CollectibleTypeTest()
         {
