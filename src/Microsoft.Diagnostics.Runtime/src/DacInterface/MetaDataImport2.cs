@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class MetaDataImport2 : CallableCOMWrapper
     {
-        private static readonly Guid IID_IMetaDataImport2 = new Guid("FCE5EFA0-8BBA-4f8e-A036-8F2022B08466");
+        private static readonly Guid IID_IMetaDataImport2 = new Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44"/*"FCE5EFA0-8BBA-4f8e-A036-8F2022B08466"*/);
 
         private CloseEnumDelegate? _closeEnum;
         private EnumGenericParamsDelegate? _enumGenericParams;
