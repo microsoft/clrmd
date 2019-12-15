@@ -181,19 +181,28 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return ReadString(reader, data, length);
         }
 
-        internal static string? ReadString(IDataReader reader, ulong dataAddress, int length)
+        internal static unsafe string? ReadString(IDataReader reader, ulong dataAddress, int length)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(length * 2);
+            byte[]? array = null;
+            int size = length * sizeof(char);
+            Span<byte> buffer = size <= 32 ? stackalloc byte[size] : (array = ArrayPool<byte>.Shared.Rent(size)).AsSpan(0, size);
+
             try
             {
-                if (!reader.Read(dataAddress, new Span<byte>(buffer, 0, length * 2), out int count))
+                if (!reader.Read(dataAddress, buffer, out int count))
                     return null;
 
-                return Encoding.Unicode.GetString(buffer, 0, count);
+#if NETCOREAPP
+                return Encoding.Unicode.GetString(buffer.Slice(0, count));
+#else
+                fixed (byte* bufferPtr = buffer)
+                    return Encoding.Unicode.GetString(bufferPtr, count);
+#endif
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
             }
         }
     }

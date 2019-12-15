@@ -145,11 +145,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_getMethodDescName(Self, md, 0, null, out int needed) < S_OK)
                 return null;
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * sizeof(char));
             try
             {
-                if (_getMethodDescName(Self, md, needed, buffer, out int actuallyNeeded) < S_OK)
-                    return null;
+                int actuallyNeeded;
+                fixed (byte* bufferPtr = buffer)
+                    if (_getMethodDescName(Self, md, needed, bufferPtr, out actuallyNeeded) < S_OK)
+                        return null;
 
                 // Patch for a bug on sos side :
                 //  Sometimes, when the target method has parameters with generic types
@@ -158,12 +160,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (needed != actuallyNeeded)
                 {
                     ArrayPool<byte>.Shared.Return(buffer);
-                    buffer = ArrayPool<byte>.Shared.Rent(actuallyNeeded * 2);
-                    if (_getMethodDescName(Self, md, actuallyNeeded, buffer, out actuallyNeeded) < S_OK)
-                        return null;
+                    buffer = ArrayPool<byte>.Shared.Rent(actuallyNeeded * sizeof(char));
+                    fixed (byte* bufferPtr = buffer)
+                        if (_getMethodDescName(Self, md, actuallyNeeded, bufferPtr, out actuallyNeeded) < S_OK)
+                            return null;
                 }
 
-                return Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2);
+                return Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * sizeof(char));
             }
             finally
             {
@@ -454,22 +457,32 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (needed == 0)
                 return string.Empty;
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * 2);
+            byte[]? array = null;
+            int size = needed * sizeof(char);
+            Span<byte> buffer = size <= 32 ? stackalloc byte[size] : (array = ArrayPool<byte>.Shared.Rent(size)).AsSpan(0, size);
+
             try
             {
-                hr = func(Self, addr, needed, buffer, out needed);
+                fixed (byte* bufferPtr = buffer)
+                    hr = func(Self, addr, needed, bufferPtr, out needed);
+
                 if (hr != S_OK)
                     return null;
 
                 if (skipNull)
                     needed--;
 
-                string result = Encoding.Unicode.GetString(buffer, 0, needed * 2);
-                return result;
+#if NETCOREAPP
+                return Encoding.Unicode.GetString(buffer.Slice(0, needed * sizeof(char)));
+#else
+                fixed (byte* bufferPtr = buffer)
+                    return Encoding.Unicode.GetString(bufferPtr, needed * sizeof(char));
+#endif
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
             }
         }
 
@@ -482,23 +495,32 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (needed == 0)
                 return string.Empty;
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
+            byte[]? array = null;
+            Span<byte> buffer = needed <= 32 ? stackalloc byte[needed] : (array = ArrayPool<byte>.Shared.Rent(needed)).AsSpan(0, needed);
+
             try
             {
-                hr = func(Self, addr, needed, buffer, out needed);
+                fixed (byte* bufferPtr = buffer)
+                    hr = func(Self, addr, needed, bufferPtr, out needed);
+
                 if (hr != S_OK)
                     return null;
 
-                int len = Array.IndexOf(buffer, (byte)0);
+                int len = buffer.IndexOf((byte)'\0');
                 if (len >= 0)
                     needed = len;
 
-                string result = Encoding.ASCII.GetString(buffer, 0, needed);
-                return result;
+#if NETCOREAPP
+                return Encoding.ASCII.GetString(buffer.Slice(0, needed));
+#else
+                fixed (byte* bufferPtr = buffer)
+                    return Encoding.ASCII.GetString(bufferPtr, needed);
+#endif
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
             }
         }
 
@@ -753,10 +775,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ClrDataAddress[]? values, out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[]? values, [Out] out int needed);
+        private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, byte* values, [Out] out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[]? values, [Out] out int needed);
+        private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, byte* values, [Out] out int needed);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out AssemblyData data);

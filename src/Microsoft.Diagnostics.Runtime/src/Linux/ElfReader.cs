@@ -87,9 +87,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return builder.ToString();
         }
 
-        public string ReadNullTerminatedAscii(long position, int len)
+        public string ReadNullTerminatedAscii(long position, int length)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
+            byte[]? array = null;
+            Span<byte> buffer = length <= 32 ? stackalloc byte[length] : (array = ArrayPool<byte>.Shared.Rent(length)).AsSpan(0, length);
+
             try
             {
                 int read = DataSource.Read(position, buffer);
@@ -99,11 +101,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (buffer[read - 1] == '\0')
                     read--;
 
-                return Encoding.ASCII.GetString(buffer, 0, read);
+#if NETCOREAPP
+                return Encoding.ASCII.GetString(buffer.Slice(0, read));
+#else
+                fixed (byte* bufferPtr = buffer)
+                    return Encoding.ASCII.GetString(bufferPtr, read);
+#endif
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
             }
         }
     }
