@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime
             filesize = 0;
             timestamp = 0;
 
-            Span<byte> buffer = stackalloc byte[4];
+            Span<byte> buffer = stackalloc byte[sizeof(uint)];
 
             if (Read(moduleBase + 0x3c, buffer, out int read) && read == buffer.Length)
             {

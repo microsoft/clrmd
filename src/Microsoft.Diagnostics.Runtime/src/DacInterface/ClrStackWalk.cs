@@ -28,18 +28,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _request, VTable->Request);
 
-            byte* ptrBuffer = stackalloc byte[8];
-            for (int i = 0; i < 8; i++)
-                ptrBuffer[i] = 0xcc;
+            long ptr = 0xcccccccc;
 
-            int hr = _request(Self, 0xf0000000, 0, null, 8u, ptrBuffer);
-            if (hr == S_OK)
-            {
-                ClrDataAddress result = new ClrDataAddress(Unsafe.ReadUnaligned<long>(ptrBuffer));
-                return result;
-            }
-
-            return default;
+            int hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
+            return hr == S_OK ? new ClrDataAddress(ptr) : default;
         }
 
         public bool Next()

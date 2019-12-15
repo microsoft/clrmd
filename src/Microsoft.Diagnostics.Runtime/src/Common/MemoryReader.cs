@@ -152,11 +152,8 @@ namespace Microsoft.Diagnostics.Runtime
             Span<byte> span = stackalloc byte[IntPtr.Size];
             bool res = _dataReader.Read(addr, span, out int size);
 
-            ref byte b = ref MemoryMarshal.GetReference(span);
-            if (IntPtr.Size == 4)
-                value = Unsafe.As<byte, uint>(ref b);
-            else
-                value = Unsafe.As<byte, ulong>(ref b);
+            value = span.AsPointer();
+
             return res;
         }
 
