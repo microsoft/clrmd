@@ -3,16 +3,17 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-
     /// <summary>
     /// A representation of CLR's CLRDATA_ADDRESS, which is a signed 64bit integer.
     /// Unfortuantely this can cause issues when inspecting 32bit processes, since
     /// if the highest bit is set the value will be sign-extended.  This struct is
     /// meant to 
     /// </summary>
+    [DebuggerDisplay("{AsUInt64()}")]
     public struct ClrDataAddress
     {
         /// <summary>
@@ -24,10 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// Creates an instance of ClrDataAddress.
         /// </summary>
         /// <param name="value"></param>
-        public ClrDataAddress(long value)
-        {
-            Value = value;
-        }
+        public ClrDataAddress(long value) => Value = value;
 
         /// <summary>
         /// Returns the value of this address and un-sign extends the value if appropriate.
@@ -39,12 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// Returns the value of this address and un-sign extends the value if appropriate.
         /// </summary>
         /// <returns>The value of this address and un-sign extends the value if appropriate.</returns>
-        private ulong AsUInt64()
-        {
-            if (IntPtr.Size == 4)
-                return (uint)Value;
-
-            return (ulong)Value;
-        }
+        private ulong AsUInt64() => IntPtr.Size == 4 ? (uint)Value : (ulong)Value;
     }
 }
