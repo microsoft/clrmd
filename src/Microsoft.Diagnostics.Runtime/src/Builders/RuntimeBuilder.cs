@@ -1057,7 +1057,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             statics = staticsBuilder.MoveOrCopyToImmutable();
         }
 
-        public MetaDataImport? GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
+        public MetaDataImport? GetMetadataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
 
         public ImmutableArray<ComInterfaceData> CreateComInterfaces(COMInterfacePointerData[] ifs)
         {
