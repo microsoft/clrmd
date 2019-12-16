@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// </summary>
     public unsafe class ClrDataProcess : CallableCOMWrapper
     {
-        private static Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
+        private static readonly Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
         private IXCLRDataProcessVtable* VTable => (IXCLRDataProcessVtable*)_vtable;
 
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly DacLibrary _library;
 
         public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
-            : base(library?.OwningLibrary, ref IID_IXCLRDataProcess, pUnknown)
+            : base(library?.OwningLibrary, IID_IXCLRDataProcess, pUnknown)
         {
             if (library is null)
                 throw new ArgumentNullException(nameof(library));
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSDac? GetSOSDacInterface()
         {
-            IntPtr result = QueryInterface(ref SOSDac.IID_ISOSDac);
+            IntPtr result = QueryInterface(SOSDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
                 return null;
 
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSDac6? GetSOSDacInterface6()
         {
-            IntPtr result = QueryInterface(ref SOSDac6.IID_ISOSDac6);
+            IntPtr result = QueryInterface(SOSDac6.IID_ISOSDac6);
             if (result == IntPtr.Zero)
                 return null;
 

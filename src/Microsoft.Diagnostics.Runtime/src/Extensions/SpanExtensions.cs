@@ -4,8 +4,8 @@
 
 using System;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -27,33 +27,27 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public static ulong AsPointer(this Span<byte> span, int index = 0)
+        public static unsafe ulong AsPointer(this Span<byte> span)
         {
-            if (index != 0)
-                span = span.Slice(index * IntPtr.Size, IntPtr.Size);
-
             DebugOnly.Assert(span.Length >= IntPtr.Size);
+            DebugOnly.Assert((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span)) % IntPtr.Size == 0);
             return IntPtr.Size == 4
-                ? MemoryMarshal.Read<uint>(span)
-                : MemoryMarshal.Read<ulong>(span);
+                ? Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span))
+                : Unsafe.As<byte, ulong>(ref MemoryMarshal.GetReference(span));
         }
 
-        public static int AsInt32(this Span<byte> span)
+        public static unsafe int AsInt32(this Span<byte> span)
         {
             DebugOnly.Assert(span.Length >= sizeof(int));
-            return MemoryMarshal.Read<int>(span);
+            DebugOnly.Assert((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span)) % sizeof(int) == 0);
+            return Unsafe.As<byte, int>(ref MemoryMarshal.GetReference(span));
         }
 
-        public static uint AsUInt32(this Span<byte> span)
+        public static unsafe uint AsUInt32(this Span<byte> span)
         {
             DebugOnly.Assert(span.Length >= sizeof(uint));
-            return MemoryMarshal.Read<uint>(span);
-        }
-
-        public static ulong AsUInt64(this Span<byte> span)
-        {
-            DebugOnly.Assert(span.Length >= sizeof(ulong));
-            return MemoryMarshal.Read<ulong>(span);
+            DebugOnly.Assert((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span)) % sizeof(uint) == 0);
+            return Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span));
         }
     }
 }

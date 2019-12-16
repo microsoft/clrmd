@@ -4,9 +4,7 @@
 
 using System;
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -66,11 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
                 ulong offset = addr - _currPageStart;
-                ref byte b = ref _data[offset];
-                if (IntPtr.Size == 4)
-                    value = Unsafe.As<byte, uint>(ref b);
-                else
-                    value = Unsafe.As<byte, ulong>(ref b);
+                value = _data.AsSpan((int)offset).AsPointer();
 
                 return true;
             }
@@ -83,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
                 ulong offset = addr - _currPageStart;
-                value = Unsafe.As<byte, uint>(ref _data[offset]);
+                value = _data.AsSpan((int)offset).AsUInt32();
                 return true;
             }
 
@@ -95,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_currPageStart <= addr && addr - _currPageStart < (uint)_currPageSize)
             {
                 ulong offset = addr - _currPageStart;
-                value = Unsafe.As<byte, int>(ref _data[offset]);
+                value = _data.AsSpan((int)offset).AsInt32();
                 return true;
             }
 
@@ -127,11 +121,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // If we reach here we know we are on the right page of memory in the cache, and
             // that the read won't fall off of the end of the page.
-            ref byte b = ref _data[offset];
-            if (IntPtr.Size == 4)
-                value = Unsafe.As<byte, uint>(ref b);
-            else
-                value = Unsafe.As<byte, ulong>(ref b);
+            value = _data.AsSpan((int)offset).AsPointer();
 
             return true;
         }
@@ -152,11 +142,8 @@ namespace Microsoft.Diagnostics.Runtime
             Span<byte> span = stackalloc byte[IntPtr.Size];
             bool res = _dataReader.Read(addr, span, out int size);
 
-            ref byte b = ref MemoryMarshal.GetReference(span);
-            if (IntPtr.Size == 4)
-                value = Unsafe.As<byte, uint>(ref b);
-            else
-                value = Unsafe.As<byte, ulong>(ref b);
+            value = span.AsPointer();
+
             return res;
         }
 

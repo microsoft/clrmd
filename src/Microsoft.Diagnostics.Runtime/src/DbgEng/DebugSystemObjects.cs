@@ -13,10 +13,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
     internal unsafe sealed class DebugSystemObjects : CallableCOMWrapper
     {
-        internal static Guid IID_DebugSystemObjects3 = new Guid("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
+        internal static readonly Guid IID_DebugSystemObjects3 = new Guid("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
+
         private IDebugSystemObjects3VTable* VTable => (IDebugSystemObjects3VTable*)_vtable;
+
         public DebugSystemObjects(RefCountedFreeLibrary library, IntPtr pUnk)
-            : base(library, ref IID_DebugSystemObjects3, pUnk)
+            : base(library, IID_DebugSystemObjects3, pUnk)
         {
             SuppressRelease();
         }

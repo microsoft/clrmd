@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport("dbgeng.dll")]
-        public static extern int DebugCreate(ref Guid InterfaceId, out IntPtr Interface);
+        public static extern int DebugCreate(in Guid InterfaceId, out IntPtr Interface);
 
         public int PointerSize
         {
@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime
         private IntPtr CreateIDebugClient()
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            int hr = DebugCreate(ref guid, out IntPtr ptr);
+            int hr = DebugCreate(guid, out IntPtr ptr);
             DebugOnly.Assert(hr == 0);
 
             return ptr;

@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
-        private static Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
+        private static readonly Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
         private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
 
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetContextDelegate? _getContext;
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)
+            : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
         {
         }
 
@@ -28,18 +28,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _request, VTable->Request);
 
-            byte* ptrBuffer = stackalloc byte[8];
-            for (int i = 0; i < 8; i++)
-                ptrBuffer[i] = 0xcc;
+            long ptr = 0xcccccccc;
 
-            int hr = _request(Self, 0xf0000000, 0, null, 8u, ptrBuffer);
-            if (hr == S_OK)
-            {
-                ClrDataAddress result = new ClrDataAddress(Unsafe.ReadUnaligned<long>(ptrBuffer));
-                return result;
-            }
-
-            return default;
+            int hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
+            return hr == S_OK ? new ClrDataAddress(ptr) : default;
         }
 
         public bool Next()

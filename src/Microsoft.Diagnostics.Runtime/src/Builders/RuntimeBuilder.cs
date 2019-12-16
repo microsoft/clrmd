@@ -146,13 +146,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     {
                         // As long as we got at least one heap we'll count that as success
                         result = true;
-                        ProcessHeap(segBuilder, clrHeap, in heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                        ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                     }
                 }
             }
             else if (_sos.GetWksHeapDetails(out HeapDetails heap))
             {
-                ProcessHeap(segBuilder, clrHeap, in heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                 result = true;
             }
 
@@ -180,8 +180,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
             fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));
 
-            AddSegments(segBuilder, clrHeap, large: true, in heap, segments, heap.GenerationTable[3].StartSegment);
-            AddSegments(segBuilder, clrHeap, large: false, in heap, segments, heap.GenerationTable[2].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: true, heap, segments, heap.GenerationTable[3].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
         }
 
         private static void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
@@ -189,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
 
-            while (seenSegments.Add(address) && segBuilder.Initialize(address, in heap))
+            while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
             {
                 segments.Add(new ClrmdSegment(clrHeap, segBuilder));
                 address = segBuilder.Next;
@@ -1112,7 +1112,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (!_sos.GetDomainLocalModuleDataFromAppDomain(appDomain.Address, (int)data.ModuleID, out DomainLocalModuleData dlmd))
                     return 0;
 
-                if (!shared && !IsInitialized(in dlmd, type.MetadataToken))
+                if (!shared && !IsInitialized(dlmd, type.MetadataToken))
                     return 0;
 
                 if (field.ElementType.IsPrimitive())
