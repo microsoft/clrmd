@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters()
         {
-            MetaDataImport2? import = Module?.MetadataImport2;
+            MetaDataImport? import = Module?.MetadataImport;
             if (import is null)
                 yield break;
 

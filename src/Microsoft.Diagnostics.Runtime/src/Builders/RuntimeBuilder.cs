@@ -1059,8 +1059,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public MetaDataImport? GetMetaDataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
 
-        public MetaDataImport2? GetMetaDataImport2(ClrModule module) => _sos.GetMetadataImport2(module.Address);
-
         public ImmutableArray<ComInterfaceData> CreateComInterfaces(COMInterfacePointerData[] ifs)
         {
             CheckDisposed();
