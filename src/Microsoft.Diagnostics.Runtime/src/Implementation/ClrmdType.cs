@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             foreach (int token in import.EnumerateGenericParams((int)MetadataToken))
                 if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
-                    yield return new ClrGenericParameter(index, attributes, name);
+                    yield return new ClrGenericParameter(token, index, attributes, name);
         }
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
