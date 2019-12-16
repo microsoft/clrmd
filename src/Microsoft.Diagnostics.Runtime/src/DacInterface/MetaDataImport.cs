@@ -41,19 +41,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _enumInterfaceImpls, EnumInterfaceImpls);
 
             IntPtr handle = IntPtr.Zero;
-            int hr;
             uint[] tokens = ArrayPool<uint>.Shared.Rent(32);
             try
             {
+                int hr;
                 while ((hr = _enumInterfaceImpls(Self, ref handle, token, tokens, tokens.Length, out int count)) >= S_OK && count > 0)
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
             }
             finally
             {
+                if (handle != IntPtr.Zero)
+                    CloseEnum(handle);
+
                 ArrayPool<uint>.Shared.Return(tokens);
             }
-            CloseEnum(handle);
         }
 
         public MethodAttributes GetMethodAttributes(uint token)
@@ -135,20 +137,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _enumFields, EnumFieldPtr);
 
+            IntPtr handle = IntPtr.Zero;
             uint[] tokens = ArrayPool<uint>.Shared.Rent(32);
             try
             {
-                IntPtr handle = IntPtr.Zero;
                 int hr;
-
                 while ((hr = _enumFields(Self, ref handle, token, tokens, tokens.Length, out int count)) >= 0 && count > 0)
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
-
-                CloseEnum(handle);
             }
             finally
             {
+                if (handle != IntPtr.Zero)
+                    CloseEnum(handle);
+
                 ArrayPool<uint>.Shared.Return(tokens);
             }
         }

@@ -32,20 +32,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _enumGenericParams, VTable.EnumGenericParams);
 
+            IntPtr handle = IntPtr.Zero;
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
             {
-                IntPtr handle = IntPtr.Zero;
                 int hr;
-
                 while ((hr = _enumGenericParams(Self, ref handle, token, tokens, tokens.Length, out int count)) >= 0 && count > 0)
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
-
-                CloseEnum(handle);
             }
             finally
             {
+                if (handle != IntPtr.Zero)
+                    CloseEnum(handle);
+
                 ArrayPool<int>.Shared.Return(tokens);
             }
         }
