@@ -11,6 +11,7 @@ public class Foo
     double d = 8.4;
     object o = new object();
     Struct st = new Struct();
+    GenericClass<bool, int, float, string, object> g = new GenericClass<bool, int, float, string, object>();
 
     public string FooString = "Foo string";
 

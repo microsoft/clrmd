@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly IModuleHelpers _helpers;
         private int _debugMode = int.MaxValue;
-        private MetaDataImport? _metadata;
+        private MetadataImport? _metadata;
         private PdbInfo? _pdb;
         private IReadOnlyList<(ulong, uint)>? _typeDefMap;
         private IReadOnlyList<(ulong, uint)>? _typeRefMap;
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MetadataLength { get; }
         public override bool IsDynamic { get; }
         public override string? FileName => IsPEFile ? Name : null;
-        public override MetaDataImport? MetadataImport => _metadata ??= _helpers.GetMetaDataImport(this);
+        public override MetadataImport? MetadataImport => _metadata ??= _helpers.GetMetadataImport(this);
 
         public ClrmdModule(ClrAppDomain parent, IModuleData data)
         {
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private unsafe int GetDebugAttribute()
         {
-            MetaDataImport? metadata = MetadataImport;
+            MetadataImport? metadata = MetadataImport;
             if (metadata != null)
             {
                 try

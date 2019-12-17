@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -30,7 +31,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int StaticSize => ClrmdField.GetSize(this, ElementType);
         public override ClrType? BaseType => null; // todo;
         public override ClrHeap Heap { get; }
-        public override IEnumerable<ClrInterface> EnumerateInterfaces() => Array.Empty<ClrInterface>();
+        public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Enumerable.Empty<ClrGenericParameter>();
+        public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsAbstract => false;
         public override bool IsFinalizable => false;
         public override bool IsInterface => false;

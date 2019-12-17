@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (module is null)
                 return null;
 
-            MetaDataImport? mdImport = module.MetadataImport;
+            MetadataImport? mdImport = module.MetadataImport;
             if (mdImport is null)
                 return null;
 
