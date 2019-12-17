@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            PdbInfo[] allPdbs = runtime.EnumerateModules().Select(m => m.Pdb).ToArray();
+            PdbInfo[] allPdbs = runtime.EnumerateModules().Select(m => m.Pdb).Where(pdb => pdb != null).ToArray();
             Assert.True(allPdbs.Length > 1);
 
             for (int i = 0; i < allPdbs.Length; i++)
