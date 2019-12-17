@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!type.IsEnum)
                 throw new InvalidOperationException($"{type.Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType)}.{nameof(ClrType.IsEnum)} before using {nameof(ClrEnum)}.");
 
-            MetaDataImport? import = type.Module?.MetadataImport;
+            MetadataImport? import = type.Module?.MetadataImport;
             if (import != null)
             {
                 _values = EnumerateValues(import, out ClrElementType elementType).ToArray();
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<string> GetEnumNames() => _values.Select(v => v.Item1);
         public IEnumerable<(string, object?)> EnumerateValues() => _values;
 
-        private (string, object?)[] EnumerateValues(MetaDataImport import, out ClrElementType elementType)
+        private (string, object?)[] EnumerateValues(MetadataImport import, out ClrElementType elementType)
         {
             List<(string, object?)> values = new List<(string, object?)>();
             elementType = ClrElementType.Unknown;

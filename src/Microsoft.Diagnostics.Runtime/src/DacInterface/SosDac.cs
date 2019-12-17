@@ -344,7 +344,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public MetaDataImport? GetMetadataImport(ulong module)
+        public MetadataImport? GetMetadataImport(ulong module)
         {
             if (module == 0)
                 return null;
@@ -355,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new MetaDataImport(_library, iunk);
+                return new MetadataImport(_library, iunk);
             }
             catch (InvalidCastException)
             {

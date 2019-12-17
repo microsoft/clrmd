@@ -1057,7 +1057,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             statics = staticsBuilder.MoveOrCopyToImmutable();
         }
 
-        public MetaDataImport? GetMetadataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
+        public MetadataImport? GetMetadataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
 
         public ImmutableArray<ComInterfaceData> CreateComInterfaces(COMInterfacePointerData[] ifs)
         {
@@ -1076,7 +1076,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            MetaDataImport? import = type?.Module?.MetadataImport;
+            MetadataImport? import = type?.Module?.MetadataImport;
             if (import is null || !import.GetFieldProps(fieldToken, out name, out attributes, out IntPtr fieldSig, out int sigLen, out _, out _))
             {
                 name = null;

@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters()
         {
-            MetaDataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module?.MetadataImport;
             if (import is null)
                 yield break;
 
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
-            MetaDataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module?.MetadataImport;
             if (import is null)
                 yield break;
 
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        private ClrInterface? GetInterface(MetaDataImport import, int mdIFace)
+        private ClrInterface? GetInterface(MetadataImport import, int mdIFace)
         {
             ClrInterface? result = null;
             if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends))
@@ -352,7 +352,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_attributes != 0 || Module is null)
                 return;
 
-            MetaDataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module?.MetadataImport;
             if (import is null)
             {
                 _attributes = (TypeAttributes)0x70000000;
