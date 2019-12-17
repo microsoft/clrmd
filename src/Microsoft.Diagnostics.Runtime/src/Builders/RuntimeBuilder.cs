@@ -80,11 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _methodBuilders = new ObjectPool<MethodBuilder>((owner, obj) => obj.Owner = owner);
             _fieldBuilders = new ObjectPool<FieldBuilder>((owner, obj) => obj.Owner = owner);
 
-            Dictionary<ulong, ulong> moduleSizes = new Dictionary<ulong, ulong>();
-            foreach (ModuleInfo mi in _clrinfo.DataTarget.EnumerateModules())
-                moduleSizes[mi.ImageBase] = mi.FileSize;
-
-            _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
+            _moduleBuilder = new ModuleBuilder(this, _sos);
 
             _runtime = new ClrmdRuntime(clr, library, this);
             _runtime.Initialize();
@@ -598,11 +594,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             lock (_modules)
             {
                 _modules.Clear();
-                Dictionary<ulong, ulong> moduleSizes = new Dictionary<ulong, ulong>();
-                foreach (ModuleInfo mi in _clrinfo.DataTarget.EnumerateModules())
-                    moduleSizes[mi.ImageBase] = mi.FileSize;
 
-                _moduleBuilder = new ModuleBuilder(this, _sos, moduleSizes);
+                _moduleBuilder = new ModuleBuilder(this, _sos);
             }
 
             if (_runtime is ClrmdRuntime runtime)

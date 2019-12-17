@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
@@ -12,12 +11,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
     {
         private ModuleData _moduleData;
         private readonly SOSDac _sos;
-        private readonly Dictionary<ulong, ulong> _moduleSizes;
 
-        public ModuleBuilder(IModuleHelpers helpers, SOSDac sos, Dictionary<ulong, ulong> moduleSizes)
+        public ModuleBuilder(IModuleHelpers helpers, SOSDac sos)
         {
             _sos = sos;
-            _moduleSizes = moduleSizes;
             Helpers = helpers;
         }
 
@@ -28,9 +25,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public bool IsPEFile => _moduleData.IsPEFile != 0;
         public ulong PEImageBase => _moduleData.PEFile;
         public ulong ILImageBase => _moduleData.ILBase;
-        public ulong Size => _moduleSizes.GetValueOrDefault(ILImageBase);
         public ulong MetadataStart => _moduleData.MetadataStart;
         public ulong MetadataLength => _moduleData.MetadataSize;
+
+        public ulong Size { get; private set; }
+
         public string? Name
         {
             get
@@ -60,7 +59,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public bool Init(ulong address)
         {
             Address = address;
-            return _sos.GetModuleData(Address, out _moduleData);
+            if (!_sos.GetModuleData(Address, out _moduleData))
+                return false;
+
+            using ClrDataModule? dataModule = _sos.GetClrDataModule(address);
+            Size = dataModule != null && dataModule.GetModuleData(out ExtendedModuleData data) ? data.LoadedPESize : 0;
+            return true;
         }
     }
 }
