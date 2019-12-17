@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public int IsFileLayout;
         public ClrDataAddress PEFile;
         public ClrDataAddress LoadedPEAddress;
-        public ulong LoadedPESize;
+        public ulong LoadedPESize; // size of file on disk
         public ClrDataAddress InMemoryPdbAddress;
         public ulong InMemoryPdbSize;
     }
