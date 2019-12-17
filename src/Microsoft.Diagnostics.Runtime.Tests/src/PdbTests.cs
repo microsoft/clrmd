@@ -33,5 +33,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
+
+        [CoreFact]
+        public void TestHasPdb()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule types = runtime.GetModule(TypeTests.ModuleName);
+            Assert.NotNull(types.Pdb);
+
+            ClrModule shared = runtime.GetModule("sharedlibrary.dll");
+            Assert.NotNull(shared.Pdb);
+        }
     }
 }
