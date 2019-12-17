@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
 #pragma warning disable 649
 
@@ -125,15 +124,28 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrModule> EnumerateModules()
         {
-            IEnumerable<ClrModule> modules = AppDomains.SelectMany(ad => ad.Modules);
+            // In Desktop CLR, modules in the SharedDomain can potentially also be in every other domain.
+            // To prevent duplicates we'll first enumerate all shared modules, then we'll make sure every
+            // module we yield return after that isn't in the SharedDomain.
+            // In .Net Core, there's only one AppDomain and no shared domain, so "sharedModules" will always be
+            // Empty and we'll enumerate everything in the single domain.
 
-            if (SharedDomain != null)
-                modules = SharedDomain.Modules.Concat(modules);
+            ImmutableArray<ClrModule> sharedModules = SharedDomain?.Modules ?? ImmutableArray<ClrModule>.Empty;
+
+            foreach (ClrModule module in sharedModules)
+                yield return module;
+
+            // sharedModules will always contain a small number of items, so using the raw array will be better
+            // than creating a tiny HashSet.
+            foreach (ClrAppDomain domain in AppDomains)
+                foreach (ClrModule module in domain.Modules)
+                    if (!sharedModules.Contains(module))
+                        yield return module;
 
             if (SystemDomain != null)
-                modules = SystemDomain.Modules.Concat(modules);
-
-            return modules;
+                foreach (ClrModule module in SystemDomain.Modules)
+                    if (!sharedModules.Contains(module))
+                        yield return module;
         }
 
         public override IEnumerable<ClrHandle> EnumerateHandles() => _helpers.EnumerateHandleTable(this);

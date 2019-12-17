@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -9,6 +10,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class ModuleTests
     {
+        [Fact]
+        public void NoDuplicateModules()
+        {
+            // Modules should have a unique .Address.
+            // https://github.com/microsoft/clrmd/issues/440
+
+            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            HashSet<ulong> seen = new HashSet<ulong> { 0 };
+            HashSet<ClrModule> seenModules = new HashSet<ClrModule> { null };
+            foreach (ClrModule module in runtime.EnumerateModules())
+            {
+                Assert.True(seenModules.Add(module));
+                Assert.True(seen.Add(module.Address));
+            }
+        }
+
         [Fact]
         public void TestGetTypeByName()
         {
