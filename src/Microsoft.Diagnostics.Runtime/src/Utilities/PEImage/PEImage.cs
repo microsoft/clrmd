@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 versionNode = versionNode.Children[0];
 
             int size = versionNode.Size;
-            if (size <= FileVersionInfo.DataOffset)
+            if (size < 16)  // Arbtirarily small value to ensure it's non-zero and has at least a little data in it
                 return null;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(size);

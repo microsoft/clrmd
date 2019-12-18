@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -107,15 +108,27 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 {
                     uint filesize = 0;
                     uint timestamp = 0;
+                    VersionInfo? version = null;
 
                     if (File.Exists(entry.FilePath))
                     {
-                        var fileInfo = new FileInfo(entry.FilePath);
-                        filesize = (uint)fileInfo.Length;
-                        timestamp = (uint)new DateTimeOffset(fileInfo.CreationTimeUtc).ToUnixTimeSeconds();
+                        try
+                        {
+                            using FileStream stream = File.OpenRead(entry.FilePath);
+                            PEImage pe = new PEImage(stream);
+                            if (pe.IsValid)
+                            {
+                                filesize = (uint)pe.IndexFileSize;
+                                timestamp = (uint)pe.IndexTimeStamp;
+                                version = pe.GetFileVersionInfo()?.VersionInfo;
+                            }
+                        }
+                        catch
+                        {
+                        }
                     }
 
-                    ModuleInfo moduleInfo = new ModuleInfo(this, entry.BeginAddr, filesize, timestamp, entry.FilePath);
+                    ModuleInfo moduleInfo = new ModuleInfo(this, entry.BeginAddr, filesize, timestamp, entry.FilePath, buildId: default, version: version ?? default);
                     result.Add(moduleInfo);
                 }
             }

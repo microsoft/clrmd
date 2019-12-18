@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Xunit;
 
@@ -10,6 +12,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class ModuleTests
     {
+        [Fact]
+        public void FileVersionInfoVersionTest()
+        {
+            // Make sure we never return different values for the version
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            foreach (ModuleInfo module in dt.EnumerateModules())
+            {
+                if (!module.IsManaged)
+                    continue;
+
+                PEImage img = module.GetPEImage();
+                Assert.NotNull(img);
+
+                FileVersionInfo fileVersionInfo = img.GetFileVersionInfo();
+                Assert.NotNull(fileVersionInfo);
+
+                VersionInfo moduleVersion = module.Version;
+                Assert.Equal(moduleVersion, fileVersionInfo.VersionInfo);
+            }
+        }
+
         [Fact]
         public void NoDuplicateModules()
         {

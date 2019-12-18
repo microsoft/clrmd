@@ -13,15 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public sealed unsafe class FileVersionInfo
     {
         /// <summary>
-        /// Gets the position of the string data within the resource block.
-        /// See http://msdn.microsoft.com/en-us/library/ms647001(v=VS.85).aspx
-        /// </summary>
-        public const int DataOffset = 0x5c;
-
-        /// <summary>
         /// The verison string
         /// </summary>
         public string? FileVersion { get; }
+
+        /// <summary>
+        /// The version of this module
+        /// </summary>
+        public VersionInfo VersionInfo { get; }
 
         /// <summary>
         /// Comments to supplement the file version
@@ -30,12 +29,29 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal FileVersionInfo(ReadOnlySpan<byte> data)
         {
-            data = data.Slice(DataOffset);
-
             ReadOnlySpan<char> dataAsString = MemoryMarshal.Cast<byte, char>(data);
 
             FileVersion = GetDataString(dataAsString, "FileVersion".AsSpan());
             Comments = GetDataString(dataAsString, "Comments".AsSpan());
+            VersionInfo = GetVersionInfo(dataAsString);
+        }
+
+        private static VersionInfo GetVersionInfo(ReadOnlySpan<char> dataAsString)
+        {
+            ReadOnlySpan<char> fileVersionKey = "VS_VERSION_INFO".AsSpan();
+            int fileVersionIndex = dataAsString.IndexOf(fileVersionKey);
+            if (fileVersionIndex < 0)
+                return default;
+
+            dataAsString = dataAsString.Slice(fileVersionIndex + fileVersionKey.Length);
+            ReadOnlySpan<byte> asBytes = MemoryMarshal.Cast<char, byte>(dataAsString);
+
+            int minor = MemoryMarshal.Read<ushort>(asBytes.Slice(12));
+            int major = MemoryMarshal.Read<ushort>(asBytes.Slice(14));
+            int patch = MemoryMarshal.Read<ushort>(asBytes.Slice(16));
+            int revision = MemoryMarshal.Read<ushort>(asBytes.Slice(18));
+
+            return new VersionInfo(major, minor, revision, patch);
         }
 
         private static string? GetDataString(ReadOnlySpan<char> dataAsString, ReadOnlySpan<char> fileVersionKey)
