@@ -33,14 +33,14 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrStackFrameKind Kind { get; }
 
         /// <summary>
-        /// Returns the ClrMethod which corresponds to the current stack frame.  This may be null if the
+        /// Returns the ClrMethod which corresponds to the current stack frame.  This may be <see langword="null"/> if the
         /// current frame is actually a CLR "Internal Frame" representing a marker on the stack, and that
         /// stack marker does not have a managed method associated with it.
         /// </summary>
         public abstract ClrMethod? Method { get; }
 
         /// <summary>
-        /// The helper method frame name if Kind == Runtime, null otherwise.
+        /// The helper method frame name if Kind == Runtime, <see langword="null"/> otherwise.
         /// </summary>
         public abstract string? FrameName { get; }
     }

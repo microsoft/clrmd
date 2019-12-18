@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A wrapper for exception objects which help with common tasks for exception objects.
     /// Create this using ClrObject.AsException  You may call that when ClrObject.IsException
-    /// returns true.
+    /// returns <see langword="true"/>.
     /// </summary>
     public struct ClrException
     {
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ClrObject _object;
 
         /// <summary>
-        /// The original thread this exception was thrown from.  This may be null if we do not know.
+        /// The original thread this exception was thrown from.  This may be <see langword="null"/> if we do not know.
         /// </summary>
         public ClrThread? Thread { get; }
 
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
         public string? Message => _object.GetStringField("_message");
 
         /// <summary>
-        /// Returns the inner exception, if one exists, null otherwise.
+        /// Returns the inner exception, if one exists, <see langword="null"/> otherwise.
         /// </summary>
         public ClrException? Inner
         {

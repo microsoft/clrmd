@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ModuleInfo ModuleInfo { get; }
 
         /// <summary>
-        /// Returns the location of the local dac on your machine which matches this version of Clr, or null
+        /// Returns the location of the local dac on your machine which matches this version of Clr, or <see langword="null"/>
         /// if one could not be found.
         /// </summary>
         public string? LocalMatchingDac { get; }

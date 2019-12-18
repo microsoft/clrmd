@@ -41,12 +41,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ImmutableArray<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
-        /// The System AppDomain for Desktop CLR (null on .Net Core).
+        /// The System AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
         /// </summary>
         public abstract ClrAppDomain? SystemDomain { get; }
 
         /// <summary>
-        /// The Shared AppDomain for Desktop CLR (null on .Net Core).
+        /// The Shared AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
         /// </summary>
         public abstract ClrAppDomain? SharedDomain { get; }
 
@@ -62,14 +62,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns a ClrMethod by its internal runtime handle (on desktop CLR this is a MethodDesc).
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
-        /// <returns>The ClrMethod for the given method handle, or null if no method was found.</returns>
+        /// <returns>The ClrMethod for the given method handle, or <see langword="null"/> if no method was found.</returns>
         public abstract ClrMethod? GetMethodByHandle(ulong methodHandle);
 
         /// <summary>
         /// Gets the ClrType corresponding to the given MethodTable.
         /// </summary>
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        /// <returns>A ClrType object, or <see langword="null"/> if no such type exists.</returns>
         public abstract ClrType? GetTypeByMethodTable(ulong methodTable);
 
         /// <summary>
@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the name of a JIT helper function.
         /// </summary>
         /// <param name="address">Address of a possible JIT helper function.</param>
-        /// <returns>The name of the JIT helper function or null if <paramref name="address"/> isn't a JIT helper function.</returns>
+        /// <returns>The name of the JIT helper function or <see langword="null"/> if <paramref name="address"/> isn't a JIT helper function.</returns>
         public abstract string? GetJitHelperFunctionName(ulong address);
 
         /// <summary>

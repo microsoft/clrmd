@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// Gets the GCDesc associated with this type.  Only valid if ContainsPointers returns true.
+        /// Gets the GCDesc associated with this type.  Only valid if ContainsPointers is <see langword="true"/>.
         /// </summary>
         public abstract GCDesc GCDesc { get; }
 
@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrStaticField? GetStaticFieldByName(string name);
 
         /// <summary>
-        /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown).
+        /// If this type inherits from another type, this is that type.  Can return <see langword="null"/> if it does not inherit (or is unknown).
         /// </summary>
         public abstract ClrType? BaseType { get; }
 
@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong GetArrayElementAddress(ulong objRef, int index);
 
         /// <summary>
-        /// Returns the array element value at the given index.  Returns 'null' if the array element is of type
+        /// Returns the array element value at the given index.  Returns <see langword="null"/> if the array element is of type
         /// VALUE_CLASS.
         /// </summary>
         public abstract object? GetArrayElementValue(ulong objRef, int index);
@@ -241,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the ClrEnum representation of this type.
         /// </summary>
-        /// <returns>The ClrEnum representation of this type.  Throws InvalidOperationException if IsEnum returns false.</returns>
+        /// <returns>The ClrEnum representation of this type.  Throws InvalidOperationException if IsEnum is <see langword="false"/>.</returns>
         public abstract ClrEnum AsEnum();
 
         /// <summary>

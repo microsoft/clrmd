@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public IMAGE_DATA_DIRECTORY ExportAddressTableJumps => _header.ExportAddressTableJumps;
 
         /// <summary>
-        /// This is null for ordinary IL images.  NGEN images it points at a CORCOMPILE_HEADER structure.
+        /// This is <see langword="null"/> for ordinary IL images.  NGEN images it points at a CORCOMPILE_HEADER structure.
         /// </summary>
         public IMAGE_DATA_DIRECTORY ManagedNativeHeader => _header.ManagedNativeHeader;
     }

@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="buildTimeStamp">The build timestamp the binary is indexed under.</param>
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
-        /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
+        /// <returns>A full path on disk (local) of where the binary was copied to, <see langword="null"/> if it was not found.</returns>
         string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true);
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="buildTimeStamp">The build timestamp the binary is indexed under.</param>
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
-        /// <returns>A full path on disk (local) of where the binary was copied to, null if it was not found.</returns>
+        /// <returns>A full path on disk (local) of where the binary was copied to, <see langword="null"/> if it was not found.</returns>
         Task<string?> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties = true);
     }
 }

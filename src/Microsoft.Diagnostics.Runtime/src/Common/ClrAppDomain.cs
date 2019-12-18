@@ -37,13 +37,13 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ImmutableArray<ClrModule> Modules { get; }
 
         /// <summary>
-        /// Returns the config file used for the AppDomain.  This may be null if there was no config file
+        /// Returns the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
         /// loaded, or if the targeted runtime does not support enumerating that data.
         /// </summary>
         public abstract string? ConfigurationFile { get; }
 
         /// <summary>
-        /// Returns the base directory for this AppDomain.  This may return null if the targeted runtime does
+        /// Returns the base directory for this AppDomain.  This may return <see langword="null"/> if the targeted runtime does
         /// not support enumerating this information.
         /// </summary>
         public abstract string? ApplicationBase { get; }

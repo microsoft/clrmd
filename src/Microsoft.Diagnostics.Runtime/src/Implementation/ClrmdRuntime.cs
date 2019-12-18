@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// Gets the ClrType corresponding to the given MethodTable.
         /// </summary>
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        /// <returns>A ClrType object, or <see langword="null"/> if no such type exists.</returns>
         public override ClrType? GetTypeByMethodTable(ulong methodTable) => _helpers.Factory.GetOrCreateType(methodTable, 0);
 
         /// <summary>

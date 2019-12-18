@@ -25,13 +25,13 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract uint Token { get; }
 
         /// <summary>
-        /// The type of the field.  Note this property may return null on error.  There is a bug in several versions
+        /// The type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
         public abstract ClrType Type { get; }
 
         /// <summary>
-        /// Returns the element type of this field.  Note that even when Type is null, this should still tell you
+        /// Returns the element type of this field.  Note that even when Type is <see langword="null"/>, this should still tell you
         /// the element type of the field.
         /// </summary>
         public abstract ClrElementType ElementType { get; }

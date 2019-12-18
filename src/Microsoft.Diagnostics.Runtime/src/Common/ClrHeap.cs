@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets a <see cref="ClrObject"/> for the given address on this heap.
         /// </summary>
         /// <remarks>
-        /// The returned object will have a <c>null</c> <see cref="ClrObject.Type"/> if objRef does not point to
+        /// The returned object will have a <see langword="null"/> <see cref="ClrObject.Type"/> if objRef does not point to
         /// a valid managed object.
         /// </remarks>
         /// <param name="objRef"></param>
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject GetObject(ulong objRef) => new ClrObject(objRef, GetObjectType(objRef));
 
         /// <summary>
-        /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
+        /// Obtains the type of an object at the given address.  Returns <see langword="null"/> if objRef does not point to
         /// a valid managed object.
         /// </summary>
         public abstract ClrType? GetObjectType(ulong objRef);

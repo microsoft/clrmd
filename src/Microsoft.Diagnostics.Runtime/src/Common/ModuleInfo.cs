@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Returns a PEImage from a stream constructed using instance fields of this object.
-        /// If the PEImage cannot be constructed, null is returned.
+        /// If the PEImage cannot be constructed, <see langword="null"/> is returned.
         /// </summary>
         /// <returns></returns>
         public PEImage? GetPEImage()
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// The Linux BuildId of this module.  This will be null if the module does not have a BuildId.
+        /// The Linux BuildId of this module.  This will be <see langword="null"/> if the module does not have a BuildId.
         /// </summary>
         public ImmutableArray<byte> BuildId { get; }
 

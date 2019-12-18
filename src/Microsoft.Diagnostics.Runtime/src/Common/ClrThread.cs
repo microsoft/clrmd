@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false);
 
         /// <summary>
-        /// Returns the exception currently on the thread.  Note that this field may be null.  Also note
+        /// Returns the exception currently on the thread.  Note that this field may be <see langword="null"/>.  Also note
         /// that this is basically the "last thrown exception", and may be stale...meaning the thread could
         /// be done processing the exception but a crash dump was taken before the current exception was
         /// cleared off the field.

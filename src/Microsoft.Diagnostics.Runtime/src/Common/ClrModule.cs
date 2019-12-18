@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Returns the file name of where the module was loaded from on disk.  Undefined results if
-        /// IsPEFile returns false.
+        /// IsPEFile is <see langword="false"/>.
         /// </summary>
         public abstract string? FileName { get; }
 
@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Resolves the give metdata token for this module.
         /// </summary>
         /// <param name="typeDefOrRefToken">A typedef or typeref token.</param>
-        /// <returns>The ClrType of the resolved token, null if not found or if a type for the token hasn't been constructed by the runtime.</returns>
+        /// <returns>The ClrType of the resolved token, <see langword="null"/> if not found or if a type for the token hasn't been constructed by the runtime.</returns>
         public abstract ClrType? ResolveToken(uint typeDefOrRefToken);
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// this function.
         /// </summary>
         /// <param name="name">The name of the type.  (This would be the EXACT value returned by ClrType.Name.)</param>
-        /// <returns>The requested ClrType, or null if the type doesn't exist or if the runtime hasn't constructed it.</returns>
+        /// <returns>The requested ClrType, or <see langword="null"/> if the type doesn't exist or if the runtime hasn't constructed it.</returns>
         public abstract ClrType? GetTypeByName(string name);
 
         /// <summary>

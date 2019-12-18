@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ResourceEntry? Parent { get; }
 
         /// <summary>
-        /// Resource Name.  May be null if this is the root node.
+        /// Resource Name.  May be <see langword="null"/> if this is the root node.
         /// </summary>
         public string Name { get; }
 
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Returns the given resource child by name.
         /// </summary>
         /// <param name="name">The name of the child to return.</param>
-        /// <returns>The child in question, or null if none are found with that name.</returns>
+        /// <returns>The child in question, or <see langword="null"/> if none are found with that name.</returns>
         public ResourceEntry this[string name] => Children.SingleOrDefault(c => c.Name == name);
 
         /// <summary>

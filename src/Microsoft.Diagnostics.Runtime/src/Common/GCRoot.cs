@@ -197,25 +197,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Returns the path from the start object to the end object (or null if no such path exists).
+        /// Returns the path from the start object to the end object (or <see langword="null"/> if no such path exists).
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
         /// <param name="cancelToken">A cancellation token to stop searching.</param>
-        /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
+        /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
         public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
         {
             return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
         }
 
         /// <summary>
-        /// Returns the path from the start object to the end object (or null if no such path exists).
+        /// Returns the path from the start object to the end object (or <see langword="null"/> if no such path exists).
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
         /// <param name="unique">Whether to only enumerate fully unique paths.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
-        /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
+        /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
         public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
         {
             return PathsTo(

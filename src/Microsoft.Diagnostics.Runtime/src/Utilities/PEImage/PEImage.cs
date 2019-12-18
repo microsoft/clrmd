@@ -129,22 +129,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int IndexFileSize => (int)(OptionalHeader?.SizeOfImage ?? 0);
 
         /// <summary>
-        /// Returns the managed header information for this image.  Undefined behavior if IsValid is false.
+        /// Returns the managed header information for this image.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public CorHeader? CorHeader => _corHeader.Value;
 
         /// <summary>
-        /// Returns a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is false.
+        /// Returns a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ImageFileHeader? Header => _imageFileHeader.Value;
 
         /// <summary>
-        /// Returns a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is false.
+        /// Returns a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ImageOptionalHeader? OptionalHeader => _imageOptionalHeader.Value;
 
         /// <summary>
-        /// Returns a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is false.
+        /// Returns a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ReadOnlyCollection<SectionHeader> Sections => _sections.Value.AsReadOnly();
 
@@ -152,13 +152,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Enumerates a list of PDBs associated with this PE image.  PE images can contain multiple PDB entries,
         /// but by convention it's usually the last entry that is the most up to date.  Unless you need to enumerate
         /// all PDBs for some reason, you should use DefaultPdb instead.
-        /// Undefined behavior if IsValid is false.
+        /// Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ReadOnlyCollection<PdbInfo> Pdbs => _pdbs.Value.AsReadOnly();
 
         /// <summary>
         /// Returns the PDB information for this module.  If this image does not contain PDB info (or that information
-        /// wasn't included in Stream) this returns null.  If multiple PDB streams are present, this method returns the
+        /// wasn't included in Stream) this returns <see langword="null"/>.  If multiple PDB streams are present, this method returns the
         /// last entry.
         /// </summary>
         public PdbInfo DefaultPdb => Pdbs.LastOrDefault();

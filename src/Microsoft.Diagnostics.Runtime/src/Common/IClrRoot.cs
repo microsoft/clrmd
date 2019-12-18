@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Whether Address may point to the interior of an object (IE not the start of an object).
         /// If Address happens to point to the start of the object, IClrRoot.Object will be filled
-        /// as normal, otherwise IClrRoot.Object.IsNull will be true.  In order to properly account
+        /// as normal, otherwise IClrRoot.Object.IsNull will be <see langword="true"/>.  In order to properly account
         /// for interior objects, you must read the value out of Address then find the object which
         /// contains it.
         /// </summary>

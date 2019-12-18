@@ -30,12 +30,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool HasExited => Process.HasExited;
 
         /// <summary>
-        /// The time the processed Exited.  (HasExited should be true before calling)
+        /// The time the processed Exited.  (HasExited should be <see langword="true"/> before calling)
         /// </summary>
         public DateTime ExitTime => Process.ExitTime;
 
         /// <summary>
-        /// The duration of the command (HasExited should be true before calling)
+        /// The duration of the command (HasExited should be <see langword="true"/> before calling)
         /// </summary>
         public TimeSpan Duration => ExitTime - StartTime;
 
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int Id => Process.Id;
 
         /// <summary>
-        /// The process exit code for the subprocess.  (HasExited should be true before calling)
+        /// The process exit code for the subprocess.  (HasExited should be <see langword="true"/> before calling)
         /// Often this does not need to be checked because Command.Run will throw an exception
         /// if it is not zero.   However it is useful if the CommandOptions.NoThrow property
         /// was set.
@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Wait for a started process to complete (HasExited will be true on return)
+        /// Wait for a started process to complete (HasExited will be <see langword="true"/> on return)
         /// </summary>
         /// <returns>Wait returns that 'this' pointer.</returns>
         public Command Wait()
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// you determine that the command really did fail, and an normal
         /// Command.Run failure was the appropriate action.
         /// </summary>
-        /// <param name="message">An additional message to print in the throw (can be null)</param>
+        /// <param name="message">An additional message to print in the throw.</param>
         public void ThrowCommandFailure(string? message)
         {
             if (Process.ExitCode != 0)
@@ -363,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Given a string 'commandExe' look for it on the path the way cmd.exe would.
-        /// Returns null if it was not found.
+        /// Returns <see langword="null"/> if it was not found.
         /// </summary>
         public static string? FindOnPath(string commandExe)
         {
