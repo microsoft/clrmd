@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public bool IsPEFile => _moduleData.IsPEFile != 0;
         public ulong PEImageBase => _moduleData.PEFile;
         public ulong ILImageBase => _moduleData.ILBase;
-        public ulong Size => _moduleSizes.GetOrDefault(Address);
+        public ulong Size => _moduleSizes.GetValueOrDefault(ILImageBase);
         public ulong MetadataStart => _moduleData.MetadataStart;
         public ulong MetadataLength => _moduleData.MetadataSize;
         public string? Name

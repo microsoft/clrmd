@@ -6,11 +6,11 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal static class AccessorHelpers
+    internal static class CollectionExtensions
     {
-        public static V GetOrDefault<K, V>(this Dictionary<K, V> dictionary, K key)
+        public static TValue GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key)
         {
-            dictionary.TryGetValue(key, out V value);
+            dictionary.TryGetValue(key, out TValue value);
             return value;
         }
     }
