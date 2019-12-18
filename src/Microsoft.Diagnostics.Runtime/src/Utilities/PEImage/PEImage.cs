@@ -224,9 +224,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
         /// version tab a file's property page is populated with).
         /// </summary>
-        public unsafe FileVersionInfo? GetFileVersionInfo()
+        public unsafe FileVersionInfo GetFileVersionInfo()
         {
-            ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
+            ResourceEntry versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
             if (versionNode == null || versionNode.Children.Count != 1)
                 return null;
 
