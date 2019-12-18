@@ -21,12 +21,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The verison string
         /// </summary>
-        public string? FileVersion { get; }
+        public string FileVersion { get; }
 
         /// <summary>
         /// Comments to supplement the file version
         /// </summary>
-        public string? Comments { get; }
+        public string Comments { get; }
 
         internal FileVersionInfo(byte[] data, int dataLen)
         {
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Comments = GetDataString(dataAsString, "Comments");
         }
 
-        private static string? GetDataString(string dataAsString, string fileVersionKey)
+        private static string GetDataString(string dataAsString, string fileVersionKey)
         {
             int fileVersionIdx = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIdx >= 0)
@@ -83,6 +83,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        public override string? ToString() => FileVersion;
+        public override string ToString() => FileVersion;
     }
 }

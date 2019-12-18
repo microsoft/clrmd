@@ -137,7 +137,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
 
             ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
-            List<ElfLoadedImage> images = new List<ElfLoadedImage>(fileTable.Length);
             Dictionary<string, ElfLoadedImage> lookup = new Dictionary<string, ElfLoadedImage>(fileTable.Length);
 
             for (int i = 0; i < fileTable.Length; i++)

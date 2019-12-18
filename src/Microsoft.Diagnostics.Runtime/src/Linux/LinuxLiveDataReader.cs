@@ -97,11 +97,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        public void GetVersionInfo(ulong addr, out VersionInfo version)
+        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            version = new VersionInfo();
+            MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
+            ElfFile file = new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
-
+        
         public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
         {
             this.OpenMemFile();
@@ -134,6 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
             if (readableBytesCount <= 0)
             {
+                bytesRead = 0;
                 return false;
             }
             try

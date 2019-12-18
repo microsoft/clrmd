@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual ulong ImageBase { get; set; }
 
         /// <summary>
-        /// The filesize of the image.
+        /// The file size of the image.
         /// </summary>
         public virtual uint FileSize { get; set; }
 
