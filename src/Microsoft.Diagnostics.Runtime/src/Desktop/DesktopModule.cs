@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             MetadataAddress = data.MetdataStart;
             MetadataLength = data.MetadataLength;
             AssemblyId = data.Assembly;
-            _size = new Lazy<ulong>(() => runtime.GetModuleSize(address));
+            _size = new Lazy<ulong>(() => runtime.GetModuleSize(data.ImageBase));
         }
 
         public override ulong Address => _address;
