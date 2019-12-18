@@ -150,9 +150,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// lazily evaluating VersionInfo.
         /// </summary>
         /// <param name="reader"></param>
-        public ModuleInfo(IDataReader reader)
+        public ModuleInfo(IDataReader reader, VersionInfo? version = null)
         {
             _dataReader = reader;
+            if (version.HasValue)
+            {
+                _versionInit = true;
+                _version = version.Value;
+            }
         }
 
         [NonSerialized]

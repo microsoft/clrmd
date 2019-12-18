@@ -101,22 +101,27 @@ namespace Microsoft.Diagnostics.Runtime
         private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
         {
             ElfFile file = img.Open();
-
-            ModuleInfo result = new ModuleInfo(this)
-            {
-                FileName = img.Path,
-                FileSize = (uint)img.Size,
-                ImageBase = (ulong)img.BaseAddress,
-                BuildId = file?.BuildId,
-                IsManaged = file == null
-            };
-
-            if (result.IsManaged)
+            
+            VersionInfo? version = null;
+            uint fileSize = (uint)img.Size;
+            uint timeStamp = 0;
+            
+            if (file is null)
             {
                 PEImage pe = img.OpenAsPEImage();
-                result.FileSize = (uint)pe.IndexFileSize;
-                result.TimeStamp = (uint)pe.IndexTimeStamp;
+                fileSize = (uint)pe.IndexFileSize;
+                timeStamp = (uint)pe.IndexTimeStamp;
             }
+
+            ModuleInfo result = new ModuleInfo(this, version)
+            {
+                FileName = img.Path,
+                ImageBase = (ulong)img.BaseAddress,
+                BuildId = file?.BuildId,
+                IsManaged = file == null,
+                FileSize = fileSize,
+                TimeStamp = timeStamp,
+            };
 
             return result;
         }
