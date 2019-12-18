@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ElfFile file = img.Open();
 
-            ModuleInfo result = new ModuleInfo
+            ModuleInfo result = new ModuleInfo(this)
             {
                 FileName = img.Path,
                 FileSize = (uint)img.Size,
@@ -173,7 +173,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
             ElfFile file = image.Open();
-            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            if (file != null)
+                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            else
+                version = default;
         }
 
         public uint ReadDwordUnsafe(ulong addr)
