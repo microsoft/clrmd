@@ -11,68 +11,8 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    public class DataTargetTests : IDisposable
+    public class DataTargetTests
     {
-        private readonly NoFailContext _context = new NoFailContext();
-
-        public void Dispose() => _context.Dispose();
-
-        [Fact]
-        public void PassiveAttachToProcess()
-        {
-            using Process process = CreateProcess();
-
-            try
-            {
-                using DataTarget dataTarget = DataTarget.PassiveAttachToProcess(process.Id);
-                ProcessThread mainThread = GetMainThread(process, dataTarget);
-
-                Assert.Equal(ThreadState.Running, mainThread.ThreadState);
-            }
-            finally
-            {
-                process.Kill();
-            }
-        }
-
-        [Fact]
-        public void SuspendAndAttachToProcess()
-        {
-            using Process process = CreateProcess();
-
-            try
-            {
-                using DataTarget dataTarget = DataTarget.SuspendAndAttachToProcess(process.Id);
-                ProcessThread mainThread = GetMainThread(process, dataTarget);
-
-                Assert.Equal(ThreadState.Wait, mainThread.ThreadState);
-            }
-            finally
-            {
-                process.Kill();
-            }
-        }
-
-        private static Process CreateProcess()
-        {
-            Process process = Process.Start(new ProcessStartInfo
-            {
-                FileName = TestTargets.Spin.Executable,
-                Arguments = "_",
-                RedirectStandardOutput = true,
-            });
-
-            _ = process.StandardOutput.ReadLine();
-            return process;
-        }
-
-        private static ProcessThread GetMainThread(Process process, DataTarget dataTarget)
-        {
-            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            uint mainThreadId = runtime.GetMainThread().OSThreadId;
-            return process.Threads.Cast<ProcessThread>().Single(thread => thread.Id == mainThreadId);
-        }
-
         [Fact]
         public void EnsureFinalReleaseOfInterfaces()
         {
