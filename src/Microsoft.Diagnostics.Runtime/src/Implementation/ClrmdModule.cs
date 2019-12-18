@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong Address { get; }
         public override bool IsPEFile { get; }
         public override ulong ImageBase { get; }
+        public override bool IsFileLayout { get; }
         public override ulong Size { get; }
         public override ulong MetadataAddress { get; }
         public override ulong MetadataLength { get; }
@@ -48,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Address = data.Address;
             IsPEFile = data.IsPEFile;
             ImageBase = data.ILImageBase;
+            IsFileLayout = data.IsFileLayout;
             Size = data.Size;
             MetadataAddress = data.MetadataStart;
             MetadataLength = data.MetadataLength;
@@ -71,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
 
                         using ReadVirtualStream stream = new ReadVirtualStream(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000));
-                        PEImage pefile = new PEImage(stream, true);
+                        PEImage pefile = new PEImage(stream, !IsFileLayout);
                         if (pefile.IsValid)
                             _pdb = pefile.DefaultPdb;
                     }

@@ -12,6 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         bool IsPEFile { get; }
         ulong PEImageBase { get; }
         ulong ILImageBase { get; }
+        bool IsFileLayout { get; }
         ulong Size { get; }
         ulong MetadataStart { get; }
         string? Name { get; }

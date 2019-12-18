@@ -68,6 +68,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract ulong ImageBase { get; }
 
+        public abstract bool IsFileLayout { get; }
+
         /// <summary>
         /// Returns the size of the image in memory.
         /// </summary>

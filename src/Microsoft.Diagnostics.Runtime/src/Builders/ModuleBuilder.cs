@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ulong MetadataStart => _moduleData.MetadataStart;
         public ulong MetadataLength => _moduleData.MetadataSize;
 
+        public bool IsFileLayout { get; private set; }
         public ulong Size { get; private set; }
 
         public string? Name
@@ -63,7 +64,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return false;
 
             using ClrDataModule? dataModule = _sos.GetClrDataModule(address);
-            Size = dataModule != null && dataModule.GetModuleData(out ExtendedModuleData data) ? data.LoadedPESize : 0;
+            if (dataModule != null && dataModule.GetModuleData(out ExtendedModuleData data))
+            {
+                IsFileLayout = data.IsFileLayout != 0;
+                Size = data.LoadedPESize;
+            }
+
             return true;
         }
     }
