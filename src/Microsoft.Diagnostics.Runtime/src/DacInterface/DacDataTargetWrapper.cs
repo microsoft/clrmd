@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
             PEImage? peimage = _dataTarget.LoadPEImage(filePath);
-            if (peimage is null || peimage.OptionalHeader is null)
+            if (peimage is null || peimage.CorHeader is null)
                 return E_FAIL;
 
             DebugOnly.Assert(peimage.IsValid);
@@ -266,12 +266,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             uint size = bufferSize;
             if (rva == 0)
             {
-                IMAGE_DATA_DIRECTORY comDescriptor = peimage.OptionalHeader.ComDescriptorDirectory;
-                if (comDescriptor.VirtualAddress == 0)
+                IMAGE_DATA_DIRECTORY metadata = peimage.CorHeader.Metadata;
+                if (metadata.VirtualAddress == 0)
                     return E_FAIL;
 
-                rva = comDescriptor.VirtualAddress;
-                size = Math.Min(bufferSize, comDescriptor.Size);
+                rva = metadata.VirtualAddress;
+                size = Math.Min(bufferSize, metadata.Size);
             }
 
             checked
