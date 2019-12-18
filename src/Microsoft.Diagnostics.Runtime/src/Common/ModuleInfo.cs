@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         public uint TimeStamp { get; }
 
         /// <summary>
-        /// The filename of the module on disk.
+        /// The file name of the module on disk.
         /// </summary>
         public string? FileName { get; }
 
@@ -97,14 +97,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a ModuleInfo object with an IDataReader instance.  This is used when
         /// lazily evaluating VersionInfo.
         /// </summary>
-        public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string? filename,
+        public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string? fileName,
             ImmutableArray<byte> buildId = default, VersionInfo? version = null)
         {
             _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
             ImageBase = imgBase;
             FileSize = filesize;
             TimeStamp = timestamp;
-            FileName = filename;
+            FileName = fileName;
             BuildId = buildId;
             _version = version;
         }

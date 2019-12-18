@@ -104,12 +104,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public string BuildDumpName(GCMode gcmode, bool full)
         {
-            string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
+            string fileName = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
             string dumpType = full ? string.Empty : "_mini";
-            filename = $"{filename}_{gc}{dumpType}.dmp";
-            return filename;
+            fileName = $"{fileName}_{gc}{dumpType}.dmp";
+            return fileName;
         }
 
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));

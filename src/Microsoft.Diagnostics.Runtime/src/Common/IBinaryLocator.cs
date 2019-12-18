@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// locally to the symbol cache and return the location of the local file on disk.  May be called
         /// from multiple threads at the same time.
         /// </summary>
-        /// <param name="fileName">The filename of the binary to locate, this may be a full path as a hint of where to look.</param>
+        /// <param name="fileName">The file name of the binary to locate, this may be a full path as a hint of where to look.</param>
         /// <param name="buildTimeStamp">The build timestamp the binary is indexed under.</param>
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// locally to the symbol cache and return the location of the local file on disk.  May be called
         /// from multiple threads at the same time.
         /// </summary>
-        /// <param name="fileName">The filename of the binary to locate, this may be a full path as a hint of where to look.</param>
+        /// <param name="fileName">The file name of the binary to locate, this may be a full path as a hint of where to look.</param>
         /// <param name="buildTimeStamp">The build timestamp the binary is indexed under.</param>
         /// <param name="imageSize">The image size the binary is indexed under.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>

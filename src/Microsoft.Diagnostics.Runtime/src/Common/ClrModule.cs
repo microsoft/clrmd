@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsPEFile { get; }
 
         /// <summary>
-        /// Returns the filename of where the module was loaded from on disk.  Undefined results if
+        /// Returns the file name of where the module was loaded from on disk.  Undefined results if
         /// IsPEFile returns false.
         /// </summary>
         public abstract string? FileName { get; }

@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the filename of the dac dll according to the specified parameters.
+        /// Returns the file name of the dac dll according to the specified parameters.
         /// </summary>
         public static string GetDacFileName(ClrFlavor flavor, Platform platform)
         {
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the filename of the dac dll for the requests to the symbol server.
+        /// Returns the file name of the dac dll for the requests to the symbol server.
         /// </summary>
         public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo version, Platform platform)
         {

@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         public int Revision { get; }
 
         /// <summary>
-        /// The filename of the pdb.
+        /// The file name of the pdb.
         /// </summary>
         public string FileName { get; }
 
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the.
+        /// Override for Equals.  Returns true if the guid, age, and file names equal.  Note that this compares only the.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>

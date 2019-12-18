@@ -147,8 +147,8 @@ namespace Microsoft.Diagnostics.Runtime
                 ulong baseAddr = (ulong)ptr.ToInt64();
                 GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
 
-                string filename = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, filename);
+                string fileName = sb.ToString();
+                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, fileName);
                 result.Add(module);
             }
 
@@ -157,11 +157,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
-            StringBuilder filename = new StringBuilder(1024);
-            uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), filename, filename.Capacity);
+            StringBuilder fileName = new StringBuilder(1024);
+            uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
             DebugOnly.Assert(res != 0);
 
-            if (DataTarget.PlatformFunctions.GetFileVersion(filename.ToString(), out int major, out int minor, out int revision, out int patch))
+            if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
             else
                 version = new VersionInfo();

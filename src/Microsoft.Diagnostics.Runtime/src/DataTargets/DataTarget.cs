@@ -223,20 +223,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a DataTarget from a coredump.
         /// This method is only supported on Linux.
         /// </summary>
-        /// <param name="filename">The path to a core dump.</param>
+        /// <param name="fileName">The path to a core dump.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="InvalidDataException">
-        /// The file specified by <paramref name="filename"/> is not a coredump.
+        /// The file specified by <paramref name="fileName"/> is not a coredump.
         /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Linux.
         /// </exception>
-        public static DataTarget LoadCoreDump(string filename)
+        public static DataTarget LoadCoreDump(string fileName)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 ThrowPlatformNotSupportedException();
 
-            CoreDumpReader reader = new CoreDumpReader(filename);
+            CoreDumpReader reader = new CoreDumpReader(fileName);
             return new DataTarget(reader)
             {
                 BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())

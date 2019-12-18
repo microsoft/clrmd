@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// The platform-agnostic filename of the dac dll.
+        /// The platform-agnostic file name of the dac dll.
         /// </summary>
         public string PlatformAgnosticFileName { get; }
 
@@ -31,10 +31,10 @@ namespace Microsoft.Diagnostics.Runtime
             ulong imgBase,
             uint filesize,
             uint timestamp,
-            string filename,
+            string fileName,
             VersionInfo version,
             ImmutableArray<byte> buildId = default)
-            : base(reader, imgBase, filesize, timestamp, filename, buildId, version)
+            : base(reader, imgBase, filesize, timestamp, fileName, buildId, version)
         {
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;

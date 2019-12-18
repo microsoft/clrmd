@@ -84,11 +84,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return runtime.AppDomains.Single(ad => ad.Name == domainName);
         }
 
-        public static ClrModule GetModule(this ClrRuntime runtime, string filename)
+        public static ClrModule GetModule(this ClrRuntime runtime, string fileName)
         {
             return (from module in runtime.AppDomains.SelectMany(ad => ad.Modules)
                     let file = Path.GetFileName(module.FileName)
-                    where file.Equals(filename, StringComparison.OrdinalIgnoreCase)
+                    where file.Equals(fileName, StringComparison.OrdinalIgnoreCase)
                     select module).FirstOrDefault();
         }
 
