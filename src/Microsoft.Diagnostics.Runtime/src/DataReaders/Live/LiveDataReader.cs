@@ -25,14 +25,14 @@ namespace Microsoft.Diagnostics.Runtime
         private const int PROCESS_VM_READ = 0x10;
         private const int PROCESS_QUERY_INFORMATION = 0x0400;
 
-        public LiveDataReader(int pid, bool createSnapshot)
+        public LiveDataReader(int processId, bool createSnapshot)
         {
             if (createSnapshot)
             {
-                _originalPid = pid;
+                _originalPid = processId;
 
                 // Throws
-                Process process = Process.GetProcessById(pid);
+                Process process = Process.GetProcessById(processId);
                 int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if (hr != 0)
                     throw new ClrDiagnosticsException($"Could not create snapshot to process. Error {hr}.", ClrDiagnosticsExceptionKind.Unknown, hr);
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                _pid = pid;
+                _pid = processId;
             }
 
             _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);

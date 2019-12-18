@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
             DebugOnly.Assert(result);
         }
 
-        public DbgEngDataReader(int pid, bool invasive, uint msecTimeout)
+        public DbgEngDataReader(int processId, bool invasive, uint msecTimeout)
         {
             IntPtr client = CreateIDebugClient();
             CreateClient(client);
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
             DebugAttach attach = invasive ? DebugAttach.Default : DebugAttach.NonInvasive;
             _control.AddEngineOptions(DebugControl.INITIAL_BREAK);
 
-            int hr = _client.AttachProcess((uint)pid, attach);
+            int hr = _client.AttachProcess((uint)processId, attach);
 
             if (hr == 0)
                 hr = _control.WaitForEvent(msecTimeout) ? 0 : -1;
@@ -91,10 +91,10 @@ namespace Microsoft.Diagnostics.Runtime
                 if ((uint)hr == 0xd00000bb)
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
-                if (!WindowsFunctions.IsProcessRunning(pid))
+                if (!WindowsFunctions.IsProcessRunning(processId))
                     throw new ArgumentException("The process is not running");
 
-                throw new ClrDiagnosticsException($"Could not attach to process {pid:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
+                throw new ClrDiagnosticsException($"Could not attach to process {processId:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
             }
         }
 

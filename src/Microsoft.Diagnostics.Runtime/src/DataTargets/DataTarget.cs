@@ -247,62 +247,62 @@ namespace Microsoft.Diagnostics.Runtime
         /// Passively attaches to a live process.  Note that this method assumes that you have alread suspended
         /// the target process.  It is unsupported to inspect a running process.
         /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A DataTarget instance.</returns>
-        public static DataTarget PassiveAttachToProcess(int pid)
+        public static DataTarget PassiveAttachToProcess(int processId)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: false);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(processId, suspend: false);
                 return new DataTarget(reader)
                 {
                     BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 
-            return new DataTarget(new LiveDataReader(pid, createSnapshot: false));
+            return new DataTarget(new LiveDataReader(processId, createSnapshot: false));
         }
 
         /// <summary>
         /// Attaches to a live process.
         /// </summary>
-        /// <param name="pid">The process ID of the process to suspend and attach to.</param>
+        /// <param name="processId">The ID of the process to suspend and attach to.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="ArgumentException">
-        /// The process specified by <paramref name="pid"/> is not running.
+        /// The process specified by <paramref name="processId"/> is not running.
         /// </exception>
-        public static DataTarget SuspendAndAttachToProcess(int pid)
+        public static DataTarget SuspendAndAttachToProcess(int processId)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: true);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(processId, suspend: true);
                 return new DataTarget(reader)
                 {
                     BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 
-            return new DataTarget(new DbgEngDataReader(pid, invasive: false, 5000));
+            return new DataTarget(new DbgEngDataReader(processId, invasive: false, 5000));
         }
 
         /// <summary>
         /// Attaches to a snapshot process (see https://docs.microsoft.com/windows/win32/api/_proc_snap/).
         /// This method is only supported on Windows.
         /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="ArgumentException">
-        /// The process specified by <paramref name="pid"/> is not running.
+        /// The process specified by <paramref name="processId"/> is not running.
         /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
-        public static DataTarget CreateSnapshotAndAttach(int pid)
+        public static DataTarget CreateSnapshotAndAttach(int processId)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 ThrowPlatformNotSupportedException();
 
-            return new DataTarget(new LiveDataReader(pid, createSnapshot: true));
+            return new DataTarget(new LiveDataReader(processId, createSnapshot: true));
         }
 
         [DoesNotReturn]
