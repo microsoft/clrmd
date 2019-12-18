@@ -69,17 +69,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (_pdb is null)
                 {
-                    try
-                    {
-
-                        using ReadVirtualStream stream = new ReadVirtualStream(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000));
-                        PEImage pefile = new PEImage(stream, !IsFileLayout);
-                        if (pefile.IsValid)
-                            _pdb = pefile.DefaultPdb;
-                    }
-                    catch
-                    {
-                    }
+                    using ReadVirtualStream stream = new ReadVirtualStream(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000));
+                    PEImage pefile = new PEImage(stream, !IsFileLayout);
+                    if (pefile.IsValid)
+                        _pdb = pefile.DefaultPdb;
                 }
 
                 return _pdb;
