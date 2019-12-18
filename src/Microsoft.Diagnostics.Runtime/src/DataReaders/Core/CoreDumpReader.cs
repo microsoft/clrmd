@@ -102,6 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ElfFile? file = image.Open();
 
+            VersionInfo version = default;
             uint filesize = (uint)image.Size;
             uint timestamp = 0;
 
@@ -110,9 +111,10 @@ namespace Microsoft.Diagnostics.Runtime
                 PEImage pe = image.OpenAsPEImage();
                 filesize = (uint)pe.IndexFileSize;
                 timestamp = (uint)pe.IndexTimeStamp;
+                version = pe.GetFileVersionInfo()?.VersionInfo ?? default;
             }
 
-            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId ?? default);
+            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId ?? default, version);
         }
 
         public void FlushCachedData()
