@@ -69,6 +69,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 IsFileLayout = data.IsFileLayout != 0;
                 Size = data.LoadedPESize;
             }
+            else
+            {
+                IsFileLayout = false;
+                Size = 0;
+            }
 
             return true;
         }
