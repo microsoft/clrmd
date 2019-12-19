@@ -50,10 +50,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             int byteIndex = (fileVersionIndex + vsVersionInfo.Length) * sizeof(char);
 
-            int minor = Marshal.ReadInt16(new IntPtr(data + byteIndex + 12));
-            int major = Marshal.ReadInt16(new IntPtr(data + byteIndex + 14));
-            int patch = Marshal.ReadInt16(new IntPtr(data + byteIndex + 16));
-            int revision = Marshal.ReadInt16(new IntPtr(data + byteIndex + 18));
+            int minor = (ushort)Marshal.ReadInt16(new IntPtr(data + byteIndex + 12));
+            int major = (ushort)Marshal.ReadInt16(new IntPtr(data + byteIndex + 14));
+            int patch = (ushort)Marshal.ReadInt16(new IntPtr(data + byteIndex + 16));
+            int revision = (ushort)Marshal.ReadInt16(new IntPtr(data + byteIndex + 18));
 
             return new VersionInfo(major, minor, revision, patch);
         }
