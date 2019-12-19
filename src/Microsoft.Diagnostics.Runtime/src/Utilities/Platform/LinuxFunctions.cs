@@ -231,6 +231,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                 address += s_versionLength;
 
+                // TODO:  This should be cleaned up to not read byte by byte in the future.  Leaving it here
+                // until we decide whether to rewrite the Linux coredumpreader or not.
                 StringBuilder builder = new StringBuilder();
                 while (address < endAddress)
                 {
