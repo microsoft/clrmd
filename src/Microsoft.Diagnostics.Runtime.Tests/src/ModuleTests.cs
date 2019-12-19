@@ -15,6 +15,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void FileVersionInfoVersionTest()
         {
+            bool found = false;
+
             // Make sure we never return different values for the version
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             foreach (ModuleInfo module in dt.EnumerateModules())
@@ -26,14 +28,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotNull(img);
 
                 FileVersionInfo fileVersionInfo = img.GetFileVersionInfo();
-                Assert.NotNull(fileVersionInfo);
-
-                VersionInfo moduleVersion = module.Version;
-                Assert.Equal(moduleVersion, fileVersionInfo.VersionInfo);
+                if (fileVersionInfo != null)
+                {
+                    VersionInfo moduleVersion = module.Version;
+                    Assert.Equal(moduleVersion, fileVersionInfo.VersionInfo);
+                    found = true;
+                }
             }
+
+            Assert.True(found, "Did not find any modules with non-null GetFileVersionInfo to compare");
         }
 
-        [Fact]
+        [FrameworkFact]
         public void NoDuplicateModules()
         {
             // Modules should have a unique .Address.
