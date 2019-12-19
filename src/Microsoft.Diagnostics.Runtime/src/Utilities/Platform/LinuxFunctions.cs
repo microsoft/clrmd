@@ -95,7 +95,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal static void GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
         {
-            Console.WriteLine($"GetVersionInfo2");
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
