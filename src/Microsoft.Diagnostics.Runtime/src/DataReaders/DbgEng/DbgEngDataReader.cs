@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
             return bases.ToArray();
         }
 
-        public IList<ModuleInfo> EnumerateModules()
+        public IEnumerable<ModuleInfo> EnumerateModules()
         {
             if (_modules != null)
                 return _modules;

@@ -42,8 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates modules in the target process.
         /// </summary>
-        /// <returns>A list of the modules in the target process.</returns>
-        IList<ModuleInfo> EnumerateModules();
+        /// <returns>An enumerable of the modules in the target process.</returns>
+        IEnumerable<ModuleInfo> EnumerateModules();
 
         /// <summary>
         /// Gets the version information for a given module (given by the base address of the module).
