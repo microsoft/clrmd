@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                         // There could still accidently be a pattern that matches this somewhere
                         while (addressFound != 0 && addressFound < expectedOffset)
-                            addressFound = dt.DataReader.SearchMemory(addressFound + 1, (int)segment.End, buffer.Slice(0, i + sizeof(ulong)));
+                            addressFound = dt.DataReader.SearchMemory(addressFound + 1, (int)(segment.End - (addressFound + 1)), buffer.Slice(0, i + sizeof(ulong)));
 
                         Assert.Equal(expectedOffset, addressFound);
                     }
