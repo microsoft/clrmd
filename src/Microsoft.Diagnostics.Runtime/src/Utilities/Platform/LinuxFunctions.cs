@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime
                     break;
                 }
 
-                if (EqualsVersion(buffer))
+                if (!EqualsVersion(buffer))
                 {
                     address++;
                     continue;
