@@ -292,12 +292,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             uint size = bufferSize;
             if (rva == 0)
             {
-                IMAGE_DATA_DIRECTORY comDescriptor = peimage.OptionalHeader.ComDescriptorDirectory;
-                if (comDescriptor.VirtualAddress == 0)
+                CorHeader corHeader = peimage.CorHeader;
+                if (corHeader is null)
                     return E_FAIL;
 
-                rva = comDescriptor.VirtualAddress;
-                size = Math.Min(bufferSize, comDescriptor.Size);
+                IMAGE_DATA_DIRECTORY metadata = corHeader.Metadata;
+                if (metadata.VirtualAddress == 0)
+                    return E_FAIL;
+
+                rva = metadata.VirtualAddress;
+                size = Math.Min(bufferSize, metadata.Size);
             }
 
             checked
