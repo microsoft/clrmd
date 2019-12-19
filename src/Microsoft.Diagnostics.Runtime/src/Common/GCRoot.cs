@@ -183,7 +183,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (cancelToken.IsCancellationRequested)
                     break;
 
-                Console.WriteLine($"Considering {root.Address:x} {root.RootKind} {root.Object}");
                 foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken))
                 {
                     if (path != null)

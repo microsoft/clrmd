@@ -95,7 +95,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal static void GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
         {
-            Console.WriteLine($"GetVersionInfo2");
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
@@ -113,7 +112,9 @@ namespace Microsoft.Diagnostics.Runtime
         internal static unsafe void GetVersionInfo(IDataReader dataReader, ulong startAddress, ulong size, out VersionInfo version)
         {
             version = default;
-            ulong address = dataReader.SearchMemory(startAddress, startAddress + size, s_versionString);
+
+            // (int)size underflow will result in returning 0 here, so this is acceptable
+            ulong address = dataReader.SearchMemory(startAddress, (int)size, s_versionString);
             if (address == 0)
                 return;
 
@@ -231,6 +232,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                 address += s_versionLength;
 
+                // TODO:  This should be cleaned up to not read byte by byte in the future.  Leaving it here
+                // until we decide whether to rewrite the Linux coredumpreader or not.
                 StringBuilder builder = new StringBuilder();
                 while (address < endAddress)
                 {
