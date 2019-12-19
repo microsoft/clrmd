@@ -58,30 +58,20 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public string ReadNullTerminatedAscii(long position)
         {
-            StringBuilder builder = new StringBuilder();
-            for (; ; )
+            StringBuilder builder = new StringBuilder(64);
+            Span<byte> bytes = stackalloc byte[64];
+
+            bool done = false;
+            int read;
+            while (!done && (read = DataSource.Read(position, bytes)) != 0)
             {
-                Span<byte> bytes = stackalloc byte[1];
-                int read = DataSource.Read(position, bytes);
-                if (read < bytes.Length)
+                for (int i = 0; !done && i < read; i++)
                 {
-                    break;
+                    if (bytes[i] != 0)
+                        builder.Append((char)bytes[i]);
+                    else
+                        done = true;
                 }
-
-                if (bytes[0] == '\0')
-                {
-                    break;
-                }
-
-                Span<char> chars = stackalloc char[1];
-                fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
-                fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
-                {
-                    _ = Encoding.ASCII.GetChars(bytesPtr, bytes.Length, charsPtr, chars.Length);
-                }
-
-                _ = builder.Append(chars[0]);
-                position++;
             }
 
             return builder.ToString();

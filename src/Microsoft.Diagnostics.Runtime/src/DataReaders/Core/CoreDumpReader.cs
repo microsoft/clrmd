@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ElfFile? file = image.Open();
 
-            VersionInfo version = default;
+            VersionInfo version;
             uint filesize = (uint)image.Size;
             uint timestamp = 0;
 
@@ -112,6 +112,10 @@ namespace Microsoft.Diagnostics.Runtime
                 filesize = (uint)pe.IndexFileSize;
                 timestamp = (uint)pe.IndexTimeStamp;
                 version = pe.GetFileVersionInfo()?.VersionInfo ?? default;
+            }
+            else
+            {
+                LinuxFunctions.GetVersionInfo(this, (ulong)image.BaseAddress, file, out version);
             }
 
             return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId ?? default, version);
