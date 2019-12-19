@@ -87,5 +87,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotSame(oldModules[i], newModules[i]);
             }
         }
+
+        [CoreFact]
+        public void TestModuleSize()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            foreach (ClrModule module in runtime.EnumerateModules())
+            {
+                Assert.True(module.IsDynamic || module.Size > 0);
+            }
+        }
     }
 }

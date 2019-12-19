@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private DacGetUInt? _getTlsIndex;
         private DacGetThreadStoreData? _getThreadStoreData;
         private GetMethodDescDataDelegate? _getMethodDescData;
-        private GetMetaDataImportDelegate? _getMetaData;
+        private GetModuleDelegate? _getModule;
         private GetMethodDescFromTokenDelegate? _getMethodDescFromToken;
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
@@ -344,13 +344,25 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
+        public ClrDataModule? GetClrDataModule(ulong module)
+        {
+            if (module == 0)
+                return null;
+
+            InitDelegate(ref _getModule, VTable->GetModule);
+            if (_getModule(Self, module, out IntPtr iunk) != S_OK)
+                return null;
+
+            return new ClrDataModule(_library, iunk);
+        }
+
         public MetadataImport? GetMetadataImport(ulong module)
         {
             if (module == 0)
                 return null;
 
-            InitDelegate(ref _getMetaData, VTable->GetMetaDataImport);
-            if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
+            InitDelegate(ref _getModule, VTable->GetModule);
+            if (_getModule(Self, module, out IntPtr iunk) != S_OK)
                 return null;
 
             try
@@ -868,7 +880,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[]? jitManagers, out int pNeeded);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMetaDataImportDelegate(IntPtr self, ulong addr, out IntPtr iunk);
+        private delegate int GetModuleDelegate(IntPtr self, ulong addr, out IntPtr iunk);
     }
 
 #pragma warning disable CS0169
@@ -894,7 +906,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetAssemblyName;
 
         // Modules
-        public readonly IntPtr GetMetaDataImport;
+        public readonly IntPtr GetModule;
         public readonly IntPtr GetModuleData;
         public readonly IntPtr TraverseModuleMap;
         public readonly IntPtr GetAssemblyModuleList;
