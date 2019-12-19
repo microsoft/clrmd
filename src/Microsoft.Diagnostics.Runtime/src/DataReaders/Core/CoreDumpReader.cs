@@ -111,6 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
                 PEImage pe = img.OpenAsPEImage();
                 fileSize = (uint)pe.IndexFileSize;
                 timeStamp = (uint)pe.IndexTimeStamp;
+                version = pe.GetFileVersionInfo()?.VersionInfo;
             }
 
             ModuleInfo result = new ModuleInfo(this, version)
