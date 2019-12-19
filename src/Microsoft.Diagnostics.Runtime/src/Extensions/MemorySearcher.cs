@@ -65,11 +65,11 @@ namespace Microsoft.Diagnostics.Runtime
                     // To keep the code simple, we'll re-read the last bit of the buffer each time instead of
                     // block copying the leftover bits at the end and having to keep track of the buffer offset
                     // along the way.
-                    uint increment = (uint)(buffer.Length - searchFor.Length);
-                    if (increment == 0)
+                    int increment = buffer.Length - searchFor.Length;
+                    if (increment <= 0)
                         break;
 
-                    startAddress += increment;
+                    startAddress += (uint)increment;
                 }
             }
             finally
