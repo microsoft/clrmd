@@ -55,12 +55,9 @@ namespace Microsoft.Diagnostics.Runtime
                         break;
 
                     buffer = buffer.Slice(0, read);
-                    for (int i = 0; i + searchFor.Length < buffer.Length; i++)
-                    {
-                        Span<byte> slice = buffer.Slice(i, searchFor.Length);
-                        if (slice.SequenceEqual(searchFor))
-                            return startAddress + (uint)i;
-                    }
+                    int index = buffer.IndexOf(searchFor);
+                    if (index != -1)
+                        return startAddress + (uint)index;
 
                     // To keep the code simple, we'll re-read the last bit of the buffer each time instead of
                     // block copying the leftover bits at the end and having to keep track of the buffer offset
