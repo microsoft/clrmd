@@ -149,7 +149,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a ModuleInfo object with an IDataReader instance.  This is used when
         /// lazily evaluating VersionInfo.
         /// </summary>
-        /// <param name="reader"></param>
+        /// <param name="reader">The data reader</param>
+        /// <param name="version">The version of this module</param>
         public ModuleInfo(IDataReader reader, VersionInfo? version = null)
         {
             _dataReader = reader;
