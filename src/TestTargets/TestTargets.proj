@@ -9,8 +9,8 @@
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <CscPath32>C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe</CscPath32>
     <CscPath64>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath64>
-    <CdbPath32>C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</CdbPath32>
-    <CdbPath64>C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</CdbPath64>
+    <CdbPath32 Condition="'$(CdbPath32)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</CdbPath32>
+    <CdbPath64 Condition="'$(CdbPath64)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</CdbPath64>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">

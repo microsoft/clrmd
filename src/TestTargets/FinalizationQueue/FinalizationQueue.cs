@@ -9,13 +9,18 @@ public class FinalizationQueueTarget
     public const int ObjectsCountC = 25;
 
     private static readonly ICollection<object> _objects = new List<object>();
+    private static readonly ManualResetEvent _waitForBlock = new ManualResetEvent(false);
 
     public static void Main(params string[] args)
     {
         BlockQueue();
-        GC.Collect();
+        do
+        {
+            GC.Collect();
+        } while (!_waitForBlock.WaitOne(250));
 
         CreateA();
+        GC.Collect();
         GC.Collect();
 
         CreateB();
@@ -27,7 +32,7 @@ public class FinalizationQueueTarget
     private static void BlockQueue()
     {
         // Pause the finalizer queue
-        Console.WriteLine(new DieHard());
+        new DieHard(_waitForBlock);
     }
 
     private static void CreateA()
@@ -52,9 +57,15 @@ public class FinalizationQueueTarget
 public class DieHard
 {
     private static readonly WaitHandle _handle = new ManualResetEvent(false);
+    private readonly ManualResetEvent _evt;
+
+    public DieHard(ManualResetEvent evt) { _evt = evt; }
+
 
     ~DieHard()
     {
+        Console.WriteLine("FQ blocked");
+        _evt.Set();
         _handle.WaitOne();
     }
 }
