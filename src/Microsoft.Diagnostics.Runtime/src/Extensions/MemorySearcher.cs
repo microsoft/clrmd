@@ -21,24 +21,23 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="reader">The memory reader to search through.</param>
         /// <param name="startAddress">The address to start searching memory.</param>
-        /// <param name="endAddress">The address to stop searching memory.</param>
+        /// <param name="length">The length of memory to search.</param>
         /// <param name="searchFor">The memory to search for.</param>
         /// <returns>The address of the value if found, 0 if not found.</returns>
-        public static ulong SearchMemory(this IMemoryReader reader, ulong startAddress, ulong endAddress, ReadOnlySpan<byte> searchFor)
+        public static ulong SearchMemory(this IMemoryReader reader, ulong startAddress, int length, ReadOnlySpan<byte> searchFor)
         {
             if (reader is null)
                 throw new ArgumentNullException(nameof(reader));
 
             // While not strictly disallowed, providing a sanity check to make sure the user isn't
             // searching from 0 to ulong.MaxValue is a good idea.
-            if (startAddress == 0 || endAddress == ulong.MaxValue)
-                throw new ArgumentException($"The start and end addresses must be within allocated memory.");
+            if (startAddress == 0)
+                throw new ArgumentException($"{nameof(startAddress)} must be within allocated memory.");
 
-            if (endAddress - startAddress > int.MaxValue)
-                throw new ArgumentException($"The range of memory to search must be less than {int.MaxValue:n0} bytes.");
+            if (length <= searchFor.Length)
+                return 0;
 
-            if (startAddress > endAddress)
-                throw new ArgumentException($"Expected {nameof(startAddress)} <= {nameof(endAddress)}");
+            ulong endAddress = startAddress + (uint)length;
 
             // Reading memory is slow, we want to read in reasonably large chunks.
             byte[] array = ArrayPool<byte>.Shared.Rent(768 + searchFor.Length);

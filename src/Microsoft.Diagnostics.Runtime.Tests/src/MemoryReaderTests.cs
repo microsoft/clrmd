@@ -43,11 +43,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         if (!dt.DataReader.Read(expectedOffset, slice, out int read) || read != slice.Length)
                             continue;
 
-                        ulong addressFound = dt.DataReader.SearchMemory(segment.Start, segment.End, buffer.Slice(0, i + sizeof(ulong)));
+                        ulong addressFound = dt.DataReader.SearchMemory(segment.Start, (int)segment.Length, buffer.Slice(0, i + sizeof(ulong)));
 
                         // There could still accidently be a pattern that matches this somewhere
                         while (addressFound != 0 && addressFound < expectedOffset)
-                            addressFound = dt.DataReader.SearchMemory(addressFound + 1, segment.End, buffer.Slice(0, i + sizeof(ulong)));
+                            addressFound = dt.DataReader.SearchMemory(addressFound + 1, (int)segment.End, buffer.Slice(0, i + sizeof(ulong)));
 
                         Assert.Equal(expectedOffset, addressFound);
                     }
