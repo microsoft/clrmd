@@ -49,13 +49,16 @@ namespace Microsoft.Diagnostics.Runtime
                     if (bytesRemaining < searchFor.Length)
                         break;
 
-                    Span<byte> buffer = new Span<byte>(array, 0, Math.Min(bytesRemaining, array.Length));
+                    Span<byte> buffer = array.AsSpan(0, Math.Min(bytesRemaining, array.Length));
                     if (!reader.Read(startAddress, buffer, out int read) || read < searchFor.Length)
-                        break;
+                    {
+                        startAddress += (uint)searchFor.Length;
+                        continue;
+                    }
 
                     buffer = buffer.Slice(0, read);
                     int index = buffer.IndexOf(searchFor);
-                    if (index != -1)
+                    if (index >= 0)
                         return startAddress + (uint)index;
 
                     // To keep the code simple, we'll re-read the last bit of the buffer each time instead of
@@ -63,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
                     // along the way.
                     int increment = buffer.Length - searchFor.Length;
                     if (increment <= 0)
-                        break;
+                        increment = searchFor.Length;
 
                     startAddress += (uint)increment;
                 }
