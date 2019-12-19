@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -96,6 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal static void GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
         {
+            Console.WriteLine($"GetVersionInfo2");
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
@@ -110,72 +110,69 @@ namespace Microsoft.Diagnostics.Runtime
             version = default;
         }
 
-        internal static unsafe void GetVersionInfo(IDataReader dataReader, ulong address, ulong size, out VersionInfo version)
+        internal static unsafe void GetVersionInfo(IDataReader dataReader, ulong startAddress, ulong size, out VersionInfo version)
         {
-            Span<byte> buffer = stackalloc byte[s_versionLength];
-            ulong endAddress = address + size;
+            version = default;
+            ulong address = dataReader.SearchMemory(startAddress, startAddress + size, s_versionString);
+            if (address == 0)
+                return;
 
-            while (address < endAddress)
+            Span<byte> bytes = stackalloc byte[64];
+            if (dataReader.Read(address + (uint)s_versionString.Length, bytes, out int read))
             {
-                bool result = dataReader.Read(address, buffer, out int read);
-                if (!result || read < s_versionLength)
+                bytes = bytes.Slice(0, read);
+                version = ParseAsciiVersion(bytes);
+            }
+        }
+
+        private static VersionInfo ParseAsciiVersion(ReadOnlySpan<byte> span)
+        {
+            int major = 0, minor = 0, rev = 0, patch = 0;
+
+            int position = 0;
+            long curr = 0;
+
+            for (int i = 0; ; i++)
+            {
+                if (i == span.Length || span[i] == '.' || span[i] == ' ')
                 {
-                    address += (uint)s_versionLength;
-                    continue;
-                }
-
-                if (!buffer.SequenceEqual(s_versionString))
-                {
-                    address++;
-                    continue;
-                }
-
-                address += (uint)s_versionLength;
-
-                StringBuilder builder = new StringBuilder();
-                while (address < endAddress)
-                {
-                    Span<byte> bytes = stackalloc byte[1];
-                    result = dataReader.Read(address, bytes, out read);
-                    if (!result || read < bytes.Length)
+                    switch (position)
                     {
-                        break;
-                    }
-
-                    if (bytes[0] == '\0')
-                    {
-                        break;
-                    }
-
-                    if (bytes[0] == ' ')
-                    {
-                        try
-                        {
-                            Version v = Version.Parse(builder.ToString());
-                            version = new VersionInfo(v.Major, v.Minor, v.Build, v.Revision);
-                            return;
-                        }
-                        catch (FormatException)
-                        {
+                        case 0:
+                            major = (int)curr;
                             break;
-                        }
+
+                        case 1:
+                            minor = (int)curr;
+                            break;
+
+                        case 2:
+                            rev = (int)curr;
+                            break;
+
+                        case 3:
+                            patch = (int)curr;
+                            break;
                     }
 
-                    Span<char> chars = stackalloc char[1];
-                    fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
-                    fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
-                    {
-                        _ = Encoding.ASCII.GetChars(bytesPtr, bytes.Length, charsPtr, chars.Length);
-                    }
+                    curr = 0;
+                    if (i == span.Length)
+                        break;
 
-                    _ = builder.Append(chars[0]);
-                    address++;
+                    if (++position == 4 || span[i] == ' ')
+                        break;
                 }
 
-                break;
+                // skip bits like "-beta"
+                if ('0' <= span[i]  && span[i] <= '9')
+                    curr = curr * 10 + (span[i] - '0');
+
+                // In this case I don't know what we are parsing but it's not a version
+                if (curr > int.MaxValue)
+                    return default;
             }
 
-            version = default;
+            return new VersionInfo(major, minor, rev, patch);
         }
 
         internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
