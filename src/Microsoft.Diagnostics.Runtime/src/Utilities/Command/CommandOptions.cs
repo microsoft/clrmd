@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Indicates that the command must run at elevated Windows privledges (causes a new command window).
+        /// Gets or sets a value indicating whether the command must run at elevated Windows privledges (causes a new command window).
         /// </summary>
         public bool Elevate
         {

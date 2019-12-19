@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public event GCRootProgressEvent? ProgressUpdate;
 
         /// <summary>
-        /// Returns the heap that's associated with this GCRoot instance.
+        /// Gets the heap that's associated with this GCRoot instance.
         /// </summary>
         public ClrHeap Heap { get; }
 

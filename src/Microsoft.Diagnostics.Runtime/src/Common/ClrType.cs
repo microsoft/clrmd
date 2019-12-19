@@ -23,12 +23,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract GCDesc GCDesc { get; }
 
         /// <summary>
-        /// The MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
+        /// Gets the MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
         /// </summary>
         public abstract ulong MethodTable { get; }
 
         /// <summary>
-        /// Returns the metadata token of this type.
+        /// Gets the metadata token of this type.
         /// </summary>
         public abstract uint MetadataToken { get; }
 
@@ -44,12 +44,12 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual bool ContainsPointers => true;
 
         /// <summary>
-        /// Whether this is a collectible type or not.
+        /// Gets a value indicating whether this is a collectible type.
         /// </summary>
         public virtual bool IsCollectible => false;
 
         /// <summary>
-        /// The handle to the LoaderAllocator object for collectible types.
+        /// Gets the handle to the LoaderAllocator object for collectible types.
         /// </summary>
         public virtual ulong LoaderAllocatorHandle => 0;
 
@@ -59,12 +59,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrHeap Heap { get; }
 
         /// <summary>
-        /// Returns the module this type is defined in.
+        /// Gets the module this type is defined in.
         /// </summary>
         public abstract ClrModule? Module { get; }
 
         /// <summary>
-        /// Returns the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
+        /// Gets the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
         /// </summary>
         public abstract ClrElementType ElementType { get; }
 
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsPublic { get; }
 
         /// <summary>
-        /// returns true if this type is marked Private.
+        /// Returns true if this type is marked Private.
         /// </summary>
         public abstract bool IsPrivate { get; }
 
@@ -144,13 +144,13 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsInterface { get; }
 
         /// <summary>
-        /// Returns all possible fields in this type.   It does not return dynamically typed fields.
+        /// Gets all possible fields in this type.   It does not return dynamically typed fields.
         /// Returns an empty list if there are no fields.
         /// </summary>
         public abstract ImmutableArray<ClrInstanceField> Fields { get; }
 
         /// <summary>
-        /// Returns a list of static fields on this type.  Returns an empty list if there are no fields.
+        /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
         /// </summary>
         public abstract ImmutableArray<ClrStaticField> StaticFields { get; }
 
@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType? BaseType { get; }
 
         /// <summary>
-        /// Indicates if the type is in fact a pointer. If so, the pointer operators
+        /// Gets a value indicating whether the type is in fact a pointer. If so, the pointer operators
         /// may be used.
         /// </summary>
         public virtual bool IsPointer => false;
@@ -209,12 +209,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract T[]? GetArrayElementsValues<T>(ulong objRef, int count) where T : unmanaged;
 
         /// <summary>
-        /// Returns the static size of objects of this type when they are created on the CLR heap.
+        /// Gets the static size of objects of this type when they are created on the CLR heap.
         /// </summary>
         public abstract int StaticSize { get; }
 
         /// <summary>
-        /// Returns the size of elements of this object.
+        /// Gets the size of elements of this object.
         /// </summary>
         public abstract int ComponentSize { get; }
 

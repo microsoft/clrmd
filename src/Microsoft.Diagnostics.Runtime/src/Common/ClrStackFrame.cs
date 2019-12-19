@@ -18,29 +18,29 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ReadOnlySpan<byte> Context { get; }
 
         /// <summary>
-        /// The instruction pointer of this frame.
+        /// Gets the instruction pointer of this frame.
         /// </summary>
         public abstract ulong InstructionPointer { get; }
 
         /// <summary>
-        /// The stack pointer of this frame.
+        /// Gets the stack pointer of this frame.
         /// </summary>
         public abstract ulong StackPointer { get; }
 
         /// <summary>
-        /// The type of frame (managed or internal).
+        /// Gets the type of frame (managed or internal).
         /// </summary>
         public abstract ClrStackFrameKind Kind { get; }
 
         /// <summary>
-        /// Returns the ClrMethod which corresponds to the current stack frame.  This may be <see langword="null"/> if the
+        /// Gets the ClrMethod which corresponds to the current stack frame.  This may be <see langword="null"/> if the
         /// current frame is actually a CLR "Internal Frame" representing a marker on the stack, and that
         /// stack marker does not have a managed method associated with it.
         /// </summary>
         public abstract ClrMethod? Method { get; }
 
         /// <summary>
-        /// The helper method frame name if Kind == Runtime, <see langword="null"/> otherwise.
+        /// Gets the helper method frame name if Kind == Runtime, <see langword="null"/> otherwise.
         /// </summary>
         public abstract string? FrameName { get; }
     }

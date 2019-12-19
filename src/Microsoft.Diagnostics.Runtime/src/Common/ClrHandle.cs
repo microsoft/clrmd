@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrHandle : IClrRoot
     {
         /// <summary>
-        /// The address of the handle itself.  That is, *ulong == Object.
+        /// Gets the address of the handle itself.  That is, *ulong == Object.
         /// </summary>
         public abstract ulong Address { get; }
 
         /// <summary>
-        /// The Object the handle roots.
+        /// Gets the Object the handle roots.
         /// </summary>
         public abstract ClrObject Object { get; }
 
@@ -35,12 +35,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract uint ReferenceCount { get; }
 
         /// <summary>
-        /// The dependent handle target if this is a dependent handle.
+        /// Gets the dependent handle target if this is a dependent handle.
         /// </summary>
         public abstract ClrObject Dependent { get; }
 
         /// <summary>
-        /// The AppDomain the handle resides in.
+        /// Gets the AppDomain the handle resides in.
         /// </summary>
         public abstract ClrAppDomain AppDomain { get; }
 
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Whether the handle is strong (roots the object) or not.
+        /// Gets a value indicating whether the handle is strong (roots the object).
         /// </summary>
         public bool IsStrong
         {
@@ -81,8 +81,8 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsInterior => false;
 
         /// <summary>
-        /// Whether or not the handle pins the object (doesn't allow the GC to
-        /// relocate it) or not.
+        /// Gets a value indicating whether the handle pins the object (doesn't allow the GC to
+        /// relocate it).
         /// </summary>
         public bool IsPinned => HandleKind == ClrHandleKind.AsyncPinned || HandleKind == ClrHandleKind.Pinned;
     }

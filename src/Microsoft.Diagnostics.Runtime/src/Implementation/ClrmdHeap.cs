@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public static IReadOnlyList<HeapWalkStep>? Steps => _steps;
 
         /// <summary>
-        /// The current index into the Steps circular buffer.
+        /// Gets the current index into the Steps circular buffer.
         /// </summary>
         public static int Step => _step;
 

@@ -13,17 +13,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public sealed unsafe class FileVersionInfo
     {
         /// <summary>
-        /// The verison string
+        /// Gets the verison string
         /// </summary>
         public string? FileVersion { get; }
 
         /// <summary>
-        /// The version of this module
+        /// Gets the version of this module
         /// </summary>
         public VersionInfo VersionInfo { get; }
 
         /// <summary>
-        /// Comments to supplement the file version
+        /// Gets comments to supplement the file version
         /// </summary>
         public string? Comments { get; }
 

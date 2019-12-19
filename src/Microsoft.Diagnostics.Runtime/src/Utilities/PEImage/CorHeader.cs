@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// A set of COMIMAGE_FLAGS.
+        /// Gets a set of COMIMAGE_FLAGS.
         /// </summary>
         public COMIMAGE_FLAGS Flags => (COMIMAGE_FLAGS)_header.Flags;
         public ushort MajorRuntimeVersion => _header.MajorRuntimeVersion;

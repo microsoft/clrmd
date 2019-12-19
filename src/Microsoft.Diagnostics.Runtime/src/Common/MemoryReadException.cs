@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     public class MemoryReadException : IOException
     {
         /// <summary>
-        /// The address of memory that could not be read.
+        /// Gets the address of memory that could not be read.
         /// </summary>
         public ulong Address { get; private set; }
 

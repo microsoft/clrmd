@@ -32,14 +32,14 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// The data reader for this instance.
+        /// Gets the data reader for this instance.
         /// </summary>
         public IDataReader DataReader { get; }
 
         public CacheOptions CacheOptions { get; } = new CacheOptions();
 
         /// <summary>
-        /// Instance to manage the symbol path(s).
+        /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
         public IBinaryLocator BinaryLocator
         {
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the list of Clr versions loaded into the process.
+        /// Gets the list of Clr versions loaded into the process.
         /// </summary>
         public ImmutableArray<ClrInfo> ClrVersions => GetOrCreateClrVersions();
 
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         #region Statics
         /// <summary>
-        /// A set of helper functions that are consistently implemented across all platforms.
+        /// Gets a set of helper functions that are consistently implemented across all platforms.
         /// </summary>
         public static PlatformFunctions PlatformFunctions { get; } =
             RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? (PlatformFunctions)new LinuxFunctions() : new WindowsFunctions();

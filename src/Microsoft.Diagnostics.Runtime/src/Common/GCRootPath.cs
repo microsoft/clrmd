@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime
     public struct GCRootPath
     {
         /// <summary>
-        /// The location that roots the object.
+        /// Gets the location that roots the object.
         /// </summary>
         public IClrRoot Root { get; }
 
         /// <summary>
-        /// The path from Root to a given target object.
+        /// Gets the path from Root to a given target object.
         /// </summary>
         public ImmutableArray<ClrObject> Path { get; }
 

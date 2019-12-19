@@ -7,23 +7,23 @@ namespace Microsoft.Diagnostics.Runtime
     public interface IClrRoot
     {
         /// <summary>
-        /// The address in memory of the root.  Typically dereferencing this address will
+        /// Gets the address in memory of the root.  Typically dereferencing this address will
         /// give you the associated Object, but not always.
         /// </summary>
         ulong Address { get; }
 
         /// <summary>
-        /// The object the root points to.
+        /// Gets the object the root points to.
         /// </summary>
         ClrObject Object { get; }
 
         /// <summary>
-        /// The kind of root this is.
+        /// Gets the kind of root this is.
         /// </summary>
         ClrRootKind RootKind { get; }
 
         /// <summary>
-        /// Whether Address may point to the interior of an object (IE not the start of an object).
+        /// Gets a value indicating whether Address may point to the interior of an object (i.e. not the start of an object).
         /// If Address happens to point to the start of the object, IClrRoot.Object will be filled
         /// as normal, otherwise IClrRoot.Object.IsNull will be <see langword="true"/>.  In order to properly account
         /// for interior objects, you must read the value out of Address then find the object which
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         bool IsInterior { get; }
 
         /// <summary>
-        /// Whether the object is pinned in place by this root and will not be relocated by the GC.
+        /// Gets a value indicating whether the object is pinned in place by this root and will not be relocated by the GC.
         /// </summary>
         bool IsPinned { get; }
     }

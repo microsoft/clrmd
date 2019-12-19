@@ -18,22 +18,22 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// This is the address of the clr!Module object.
+        /// Gets the address of the clr!Module object.
         /// </summary>
         public abstract ulong Address { get; }
 
         /// <summary>
-        /// Returns the AppDomain parent of this module.
+        /// Gets the AppDomain parent of this module.
         /// </summary>
         public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
-        /// Returns the name of the assembly that this module is defined in.
+        /// Gets the name of the assembly that this module is defined in.
         /// </summary>
         public abstract string? AssemblyName { get; }
 
         /// <summary>
-        /// Returns an identifier to uniquely represent this assembly.  This value is not used by any other
+        /// Gets an identifier to uniquely represent this assembly.  This value is not used by any other
         /// function in ClrMD, but can be used to group modules by their assembly.  (Do not use AssemblyName
         /// for this, as reflection and other special assemblies can share the same name, but actually be
         /// different.)
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong AssemblyAddress { get; }
 
         /// <summary>
-        /// Returns the name of the module.
+        /// Gets the name of the module.
         /// </summary>
         public abstract string? Name { get; }
 
@@ -57,13 +57,13 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsPEFile { get; }
 
         /// <summary>
-        /// Returns the file name of where the module was loaded from on disk.  Undefined results if
+        /// Gets the file name of where the module was loaded from on disk.  Undefined results if
         /// IsPEFile is <see langword="false"/>.
         /// </summary>
         public abstract string? FileName { get; }
 
         /// <summary>
-        /// Returns the base of the image loaded into memory.  This may be 0 if there is not a physical
+        /// Gets the base of the image loaded into memory.  This may be 0 if there is not a physical
         /// file backing it.
         /// </summary>
         public abstract ulong ImageBase { get; }
@@ -71,29 +71,29 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsFileLayout { get; }
 
         /// <summary>
-        /// Returns the size of the image in memory.
+        /// Gets the size of the image in memory.
         /// </summary>
         public abstract ulong Size { get; }
 
         /// <summary>
-        /// The location of metadata for this module in the process's memory.  This is useful if you
+        /// Gets the location of metadata for this module in the process's memory.  This is useful if you
         /// need to manually create IMetaData* objects.
         /// </summary>
         public abstract ulong MetadataAddress { get; }
 
         /// <summary>
-        /// The length of the metadata for this module.
+        /// Gets the length of the metadata for this module.
         /// </summary>
         public abstract ulong MetadataLength { get; }
 
         /// <summary>
-        /// The IMetaDataImport interface for this module.  Note that this API does not provide a
+        /// Gets the IMetaDataImport interface for this module.  Note that this API does not provide a
         /// wrapper for IMetaDataImport.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
         public virtual MetadataImport? MetadataImport => null;
 
         /// <summary>
-        /// The debugging attributes for this module.
+        /// Gets the debugging attributes for this module.
         /// </summary>
         public abstract DebuggableAttribute.DebuggingModes DebuggingMode { get; }
 
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the pdb information for this module.
+        /// Gets the pdb information for this module.
         /// </summary>
         public abstract PdbInfo? Pdb { get; }
 

@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// The platform-agnostic file name of the dac dll.
+        /// Gets the platform-agnostic file name of the dac dll.
         /// </summary>
         public string PlatformAgnosticFileName { get; }
 
         /// <summary>
-        /// The architecture (x86 or amd64) being targeted.
+        /// Gets the architecture (x86 or amd64) being targeted.
         /// </summary>
         public Architecture TargetArchitecture { get; }
 

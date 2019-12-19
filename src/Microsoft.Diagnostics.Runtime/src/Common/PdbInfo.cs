@@ -18,17 +18,17 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// The Guid of the PDB.
+        /// Gets the Guid of the PDB.
         /// </summary>
         public Guid Guid { get; }
 
         /// <summary>
-        /// The pdb revision.
+        /// Gets the pdb revision.
         /// </summary>
         public int Revision { get; }
 
         /// <summary>
-        /// The file name of the pdb.
+        /// Gets the file name of the pdb.
         /// </summary>
         public string FileName { get; }
 

@@ -20,32 +20,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     internal sealed class Command
     {
         /// <summary>
-        /// The time the process started.
+        /// Gets the time the process started.
         /// </summary>
         public DateTime StartTime => Process.StartTime;
 
         /// <summary>
-        /// returns true if the process has exited.
+        /// Returns true if the process has exited.
         /// </summary>
         public bool HasExited => Process.HasExited;
 
         /// <summary>
-        /// The time the processed Exited.  (HasExited should be <see langword="true"/> before calling)
+        /// Gets the time the processed Exited.  (HasExited should be <see langword="true"/> before calling)
         /// </summary>
         public DateTime ExitTime => Process.ExitTime;
 
         /// <summary>
-        /// The duration of the command (HasExited should be <see langword="true"/> before calling)
+        /// Gets the duration of the command (HasExited should be <see langword="true"/> before calling)
         /// </summary>
         public TimeSpan Duration => ExitTime - StartTime;
 
         /// <summary>
-        /// The operating system ID for the subprocess.
+        /// Gets the operating system ID for the subprocess.
         /// </summary>
         public int Id => Process.Id;
 
         /// <summary>
-        /// The process exit code for the subprocess.  (HasExited should be <see langword="true"/> before calling)
+        /// Gets the process exit code for the subprocess.  (HasExited should be <see langword="true"/> before calling)
         /// Often this does not need to be checked because Command.Run will throw an exception
         /// if it is not zero.   However it is useful if the CommandOptions.NoThrow property
         /// was set.
@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int ExitCode => Process.ExitCode;
 
         /// <summary>
-        /// The standard output and standard error output from the command.  This
+        /// Gets the standard output and standard error output from the command.  This
         /// is accumulated in real time so it can vary if the process is still running.
         /// This property is NOT available if the CommandOptions.OutputFile or CommandOptions.OutputStream
         /// is specified since the output is being redirected there.   If a large amount of output is
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Returns that CommandOptions structure that holds all the options that affect
+        /// Gets that CommandOptions structure that holds all the options that affect
         /// the running of the command (like Timeout, Input ...)
         /// </summary>
         public CommandOptions Options { get; }
@@ -304,7 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Get the underlying process object.  Generally not used.
+        /// Gets the underlying process object.  Generally not used.
         /// </summary>
         public Process Process { get; }
 

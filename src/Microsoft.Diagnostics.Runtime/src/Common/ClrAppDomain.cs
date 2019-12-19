@@ -17,33 +17,33 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrRuntime Runtime { get; }
 
         /// <summary>
-        /// Address of the AppDomain.
+        /// Gets address of the AppDomain.
         /// </summary>
         public abstract ulong Address { get; }
 
         /// <summary>
-        /// The AppDomain's ID.
+        /// Gets the AppDomain's ID.
         /// </summary>
         public abstract int Id { get; }
 
         /// <summary>
-        /// The name of the AppDomain, as specified when the domain was created.
+        /// Gets the name of the AppDomain, as specified when the domain was created.
         /// </summary>
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns a list of modules loaded into this AppDomain.
+        /// Gets a list of modules loaded into this AppDomain.
         /// </summary>
         public abstract ImmutableArray<ClrModule> Modules { get; }
 
         /// <summary>
-        /// Returns the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
+        /// Gets the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
         /// loaded, or if the targeted runtime does not support enumerating that data.
         /// </summary>
         public abstract string? ConfigurationFile { get; }
 
         /// <summary>
-        /// Returns the base directory for this AppDomain.  This may return <see langword="null"/> if the targeted runtime does
+        /// Gets the base directory for this AppDomain.  This may return <see langword="null"/> if the targeted runtime does
         /// not support enumerating this information.
         /// </summary>
         public abstract string? ApplicationBase { get; }

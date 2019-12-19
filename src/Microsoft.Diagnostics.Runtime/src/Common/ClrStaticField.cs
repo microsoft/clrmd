@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsInitialized(ClrAppDomain appDomain);
 
         /// <summary>
-        /// Returns the address of the static field's value in memory.
+        /// Gets the address of the static field's value in memory.
         /// </summary>
         /// <returns>The address of the field's value.</returns>
         public abstract ulong Address { get; }

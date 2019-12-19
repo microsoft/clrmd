@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Exception kind
+        /// Gets exception kind
         /// </summary>
         public ClrDiagnosticsExceptionKind Kind { get; }
 

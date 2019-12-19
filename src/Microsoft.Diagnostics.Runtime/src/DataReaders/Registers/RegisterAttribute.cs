@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime
     public class RegisterAttribute : Attribute
     {
         /// <summary>
-        /// Optional name override
+        /// Gets or sets optional name override
         /// </summary>
         public string? Name { get; set; }
 
         /// <summary>
-        /// Register type and flags
+        /// Gets register type and flags
         /// </summary>
         public RegisterType RegisterType { get; }
 

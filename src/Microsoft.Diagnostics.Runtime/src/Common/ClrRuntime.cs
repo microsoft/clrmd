@@ -20,12 +20,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract DacLibrary DacLibrary { get; }
 
         /// <summary>
-        /// The ClrInfo of the current runtime.
+        /// Gets the ClrInfo of the current runtime.
         /// </summary>
         public abstract ClrInfo ClrInfo { get; }
 
         /// <summary>
-        /// Returns the DataTarget associated with this runtime.
+        /// Gets the DataTarget associated with this runtime.
         /// </summary>
         public abstract DataTarget? DataTarget { get; }
 
@@ -36,24 +36,24 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsThreadSafe { get; }
 
         /// <summary>
-        /// Enumerates the list of appdomains in the process.
+        /// Gets the list of appdomains in the process.
         /// </summary>
         public abstract ImmutableArray<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
-        /// The System AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
+        /// Gets the System AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
         /// </summary>
         public abstract ClrAppDomain? SystemDomain { get; }
 
         /// <summary>
-        /// The Shared AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
+        /// Gets the Shared AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
         /// </summary>
         public abstract ClrAppDomain? SharedDomain { get; }
 
         public abstract ClrModule BaseClassLibrary { get; }
 
         /// <summary>
-        /// Enumerates all managed threads in the process.  Only threads which have previously run managed
+        /// Gets all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>
         public abstract ImmutableArray<ClrThread> Threads { get; }

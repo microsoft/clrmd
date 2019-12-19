@@ -15,12 +15,12 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly bool _interior;
 
         /// <summary>
-        /// The address of the object.
+        /// Gets the address of the object.
         /// </summary>
         public ulong Address { get; }
 
         /// <summary>
-        /// The type of the object.
+        /// Gets the type of the object.
         /// </summary>
         public ClrType Type { get; }
 

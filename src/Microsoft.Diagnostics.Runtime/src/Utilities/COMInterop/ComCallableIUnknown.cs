@@ -23,12 +23,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
         /// <summary>
-        /// The IUnknown pointer to this object.
+        /// Gets the IUnknown pointer to this object.
         /// </summary>
         public IntPtr IUnknownObject { get; }
 
         /// <summary>
-        /// The IUnknown VTable for this object.
+        /// Gets the IUnknown VTable for this object.
         /// </summary>
         public IUnknownVTable IUnknown => **(IUnknownVTable**)IUnknownObject;
 

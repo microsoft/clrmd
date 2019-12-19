@@ -15,12 +15,12 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// The typename of the interface.
+        /// Gets the typename of the interface.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// The interface that this interface inherits from.
+        /// Gets the interface that this interface inherits from.
         /// </summary>
         public ClrInterface? BaseInterface { get; }
 

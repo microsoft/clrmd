@@ -25,27 +25,27 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// The version number of this runtime.
+        /// Gets the version number of this runtime.
         /// </summary>
         public VersionInfo Version => ModuleInfo.Version;
 
         /// <summary>
-        /// The type of CLR this module represents.
+        /// Gets the type of CLR this module represents.
         /// </summary>
         public ClrFlavor Flavor { get; }
 
         /// <summary>
-        /// Returns module information about the Dac needed create a ClrRuntime instance for this runtime.
+        /// Gets module information about the Dac needed create a ClrRuntime instance for this runtime.
         /// </summary>
         public DacInfo DacInfo { get; }
 
         /// <summary>
-        /// Returns module information about the ClrInstance.
+        /// Gets module information about the ClrInstance.
         /// </summary>
         public ModuleInfo ModuleInfo { get; }
 
         /// <summary>
-        /// Returns the location of the local dac on your machine which matches this version of Clr, or <see langword="null"/>
+        /// Gets the location of the local dac on your machine which matches this version of Clr, or <see langword="null"/>
         /// if one could not be found.
         /// </summary>
         public string? LocalMatchingDac { get; }

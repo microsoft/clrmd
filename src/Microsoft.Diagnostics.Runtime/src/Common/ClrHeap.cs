@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrHeap
     {
         /// <summary>
-        /// Returns the runtime associated with this heap.
+        /// Gets the runtime associated with this heap.
         /// </summary>
         public abstract ClrRuntime Runtime { get; }
 
@@ -35,22 +35,22 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IReadOnlyList<ClrSegment> Segments { get; }
 
         /// <summary>
-        /// Returns the ClrType representing free space on the GC heap.
+        /// Gets the ClrType representing free space on the GC heap.
         /// </summary>
         public abstract ClrType FreeType { get; }
 
         /// <summary>
-        /// Returns the ClrType representing System.String.
+        /// Gets the ClrType representing System.String.
         /// </summary>
         public abstract ClrType StringType { get; }
 
         /// <summary>
-        /// Returns the ClrType representing System.Object.
+        /// Gets the ClrType representing System.Object.
         /// </summary>
         public abstract ClrType ObjectType { get; }
 
         /// <summary>
-        /// Returns the ClrType representing System.Exception.
+        /// Gets the ClrType representing System.Exception.
         /// </summary>
         public abstract ClrType ExceptionType { get; }
 

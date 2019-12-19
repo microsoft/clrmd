@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime
     public struct MemoryRegionInfo
     {
         /// <summary>
-        /// The base address of the allocation.
+        /// Gets the base address of the allocation.
         /// </summary>
         public ulong BaseAddress { get; }
 
         /// <summary>
-        /// The size of the allocation.
+        /// Gets the size of the allocation.
         /// </summary>
         public ulong Size { get; }
 

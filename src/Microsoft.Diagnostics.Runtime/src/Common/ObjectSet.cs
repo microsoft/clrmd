@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected HeapHashSegment[] _segments;
 
         /// <summary>
-        /// Returns the count of objects in this set.
+        /// Gets or sets the count of objects in this set.
         /// </summary>
         public int Count { get; protected set; }
 

@@ -18,22 +18,22 @@ namespace Microsoft.Diagnostics.Runtime
         private VersionInfo? _version;
 
         /// <summary>
-        /// The base address of the object.
+        /// Gets the base address of the object.
         /// </summary>
         public ulong ImageBase { get; }
 
         /// <summary>
-        /// The file size of the image.
+        /// Gets the file size of the image.
         /// </summary>
         public uint FileSize { get; }
 
         /// <summary>
-        /// The build timestamp of the image.
+        /// Gets the build timestamp of the image.
         /// </summary>
         public uint TimeStamp { get; }
 
         /// <summary>
-        /// The file name of the module on disk.
+        /// Gets the file name of the module on disk.
         /// </summary>
         public string? FileName { get; }
 
@@ -58,24 +58,24 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// The Linux BuildId of this module.  This will be <see langword="null"/> if the module does not have a BuildId.
+        /// Gets the Linux BuildId of this module.  This will be <see langword="null"/> if the module does not have a BuildId.
         /// </summary>
         public ImmutableArray<byte> BuildId { get; }
 
         /// <summary>
-        /// Whether the module is managed or not.
+        /// Gets a value indicating whether the module is managed.
         /// </summary>
         public bool IsManaged => GetPEImage()?.IsManaged ?? false;
 
         public override string? ToString() => FileName;
 
         /// <summary>
-        /// The PDB associated with this module.
+        /// Gets the PDB associated with this module.
         /// </summary>
         public PdbInfo? Pdb => GetPEImage()?.DefaultPdb;
 
         /// <summary>
-        /// The version information for this file.
+        /// Gets the version information for this file.
         /// </summary>
         public VersionInfo Version
         {
