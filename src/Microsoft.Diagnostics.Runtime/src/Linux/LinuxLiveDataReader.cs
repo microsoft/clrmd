@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
         public int PointerSize => IntPtr.Size;
 
-        public IList<ModuleInfo> EnumerateModules()
+        public IEnumerable<ModuleInfo> EnumerateModules()
         {
             List<ModuleInfo> result = new List<ModuleInfo>();
             foreach (var entry in _memoryMapEntries)

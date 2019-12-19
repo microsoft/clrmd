@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int PointerSize => IntPtr.Size;
 
-        public IList<ModuleInfo> EnumerateModules()
+        public IEnumerable<ModuleInfo> EnumerateModules()
         {
             List<ModuleInfo> result = new List<ModuleInfo>();
 

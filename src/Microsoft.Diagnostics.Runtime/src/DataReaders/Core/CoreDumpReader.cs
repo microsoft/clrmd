@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _threads!.Keys;
         }
 
-        public IList<ModuleInfo> EnumerateModules()
+        public IEnumerable<ModuleInfo> EnumerateModules()
         {
             if (_modules is null)
             {
