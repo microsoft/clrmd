@@ -4,35 +4,45 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Immutable;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A class to read information out of PE images (dll/exe).
     /// </summary>
-    public class PEImage : IDisposable
+    public unsafe class PEImage
     {
         private const ushort ExpectedDosHeaderMagic = 0x5A4D;   // MZ
         private const int PESignatureOffsetLocation = 0x3C;
         private const uint ExpectedPESignature = 0x00004550;    // PE00
+        private const int ImageDataDirectoryCount = 15;
+        private const int ComDataDirectory = 14;
+        private const int DebugDataDirectory = 6;
 
-        private readonly PEReader _reader = null!;
-        private readonly bool _isVirtual;
+        private readonly bool _virt;
         private int _offset = 0;
+        private readonly int _peHeaderOffset;
 
-        private CoffHeader? _coffHeader;
-        private PEHeader? _peHeader;
-        private CorHeader? _corHeader;
-        private ImmutableArray<SectionHeader> _sections;
-        private ImmutableArray<PdbInfo> _pdbs;
-        private ResourceEntry? _resources;
+        private readonly Lazy<ImageFileHeader?> _imageFileHeader;
+        private readonly Lazy<ImageOptionalHeader?> _imageOptionalHeader;
+        private readonly Lazy<CorHeader?> _corHeader;
+        private readonly Lazy<List<SectionHeader>> _sections;
+        private readonly Lazy<List<PdbInfo>> _pdbs;
+        private readonly Lazy<IMAGE_DATA_DIRECTORY[]> _directories;
+        private readonly Lazy<ResourceEntry> _resources;
 
-        private bool _disposed;
+        private IMAGE_DATA_DIRECTORY GetDirectory(int index) => _directories.Value[index];
+        private int HeaderOffset => _peHeaderOffset + sizeof(uint);
+        private int OptionalHeaderOffset => HeaderOffset + sizeof(IMAGE_FILE_HEADER);
+        private int SpecificHeaderOffset => OptionalHeaderOffset + sizeof(IMAGE_OPTIONAL_HEADER_AGNOSTIC);
+        private int DataDirectoryOffset => SpecificHeaderOffset + (IsPE64 ? 5 * 8 : 6 * 4);
+        private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(IMAGE_DATA_DIRECTORY);
 
         /// <summary>
         /// Constructs a PEImage class for a given PE image (dll/exe) on disk.
@@ -50,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="isVirtual">Whether stream points to a PE image mapped into an address space (such as in a live process or crash dump).</param>
         public PEImage(Stream stream, bool isVirtual)
         {
-            _isVirtual = isVirtual;
+            _virt = isVirtual;
             Stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
             if (!stream.CanSeek)
@@ -58,33 +68,35 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
-                return;
+            {
+                IsValid = false;
+            }
+            else
+            {
+                _peHeaderOffset = Read<int>(PESignatureOffsetLocation);
 
-            int peHeaderOffset = Read<int>(PESignatureOffsetLocation);
-            if (peHeaderOffset == 0)
-                return;
+                uint peSignature = 0;
+                if (_peHeaderOffset != 0)
+                    peSignature = Read<uint>(_peHeaderOffset);
 
-            uint peSignature = Read<uint>(peHeaderOffset);
-            if (peSignature != ExpectedPESignature)
-                return;
+                IsValid = peSignature == ExpectedPESignature;
+            }
 
-            IsValid = true;
-
-            SeekTo(0);
-
-            PEStreamOptions options = PEStreamOptions.LeaveOpen;
-            if (isVirtual)
-                options |= PEStreamOptions.IsLoadedImage;
-
-            _reader = new PEReader(stream, options);
+            _imageFileHeader = new Lazy<ImageFileHeader?>(ReadImageFileHeader);
+            _imageOptionalHeader = new Lazy<ImageOptionalHeader?>(ReadImageOptionalHeader);
+            _corHeader = new Lazy<CorHeader?>(ReadCorHeader);
+            _directories = new Lazy<IMAGE_DATA_DIRECTORY[]>(ReadDataDirectories);
+            _sections = new Lazy<List<SectionHeader>>(ReadSections);
+            _pdbs = new Lazy<List<PdbInfo>>(ReadPdbs);
+            _resources = new Lazy<ResourceEntry>(CreateResourceRoot);
         }
 
-        internal int ResourceVirtualAddress => PEHeader?.ResourceTableDirectory.RelativeVirtualAddress ?? 0;
+        internal int ResourceVirtualAddress => (int)GetDirectory(2).VirtualAddress;
 
         /// <summary>
         /// Returns the root resource node of this PEImage.
         /// </summary>
-        public ResourceEntry Resources => _resources ??= CreateResourceRoot();
+        public ResourceEntry Resources => _resources.Value;
 
         /// <summary>
         /// The underlying stream.
@@ -94,47 +106,47 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Returns true if the given Stream contains a valid DOS header and PE signature.
         /// </summary>
-        public bool IsValid { get; }
+        public bool IsValid { get; private set; }
 
         /// <summary>
         /// Returns true if this image is for a 64bit processor.
         /// </summary>
-        public bool IsPE64 => PEHeader != null && PEHeader.Magic != PEMagic.PE32;
+        public bool IsPE64 => OptionalHeader != null && OptionalHeader.Magic != 0x010b;
 
         /// <summary>
         /// Returns true if this image is managed. (.NET image)
         /// </summary>
-        public bool IsManaged => PEHeader != null && PEHeader.CorHeaderTableDirectory.RelativeVirtualAddress != 0;
+        public bool IsManaged => OptionalHeader != null && OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 
         /// <summary>
         /// Returns the timestamp that this PE image is indexed under.
         /// </summary>
-        public int IndexTimeStamp => CoffHeader?.TimeDateStamp ?? 0;
+        public int IndexTimeStamp => (int)(Header?.TimeDateStamp ?? 0);
 
         /// <summary>
         /// Returns the file size that this PE image is indexed under.
         /// </summary>
-        public int IndexFileSize => PEHeader?.SizeOfImage ?? 0;
+        public int IndexFileSize => (int)(OptionalHeader?.SizeOfImage ?? 0);
 
         /// <summary>
         /// Returns the managed header information for this image.  Undefined behavior if IsValid is false.
         /// </summary>
-        public CorHeader? CorHeader => _corHeader ??= ReadCorHeader();
+        public CorHeader? CorHeader => _corHeader.Value;
 
         /// <summary>
         /// Returns a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is false.
         /// </summary>
-        public CoffHeader? CoffHeader => _coffHeader ??= ReadCoffHeader();
+        public ImageFileHeader? Header => _imageFileHeader.Value;
 
         /// <summary>
         /// Returns a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is false.
         /// </summary>
-        public PEHeader? PEHeader => _peHeader ??= ReadPEHeader();
+        public ImageOptionalHeader? OptionalHeader => _imageOptionalHeader.Value;
 
         /// <summary>
         /// Returns a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is false.
         /// </summary>
-        public ImmutableArray<SectionHeader> Sections => !_sections.IsDefault ? _sections : (_sections = ReadSections());
+        public ReadOnlyCollection<SectionHeader> Sections => _sections.Value.AsReadOnly();
 
         /// <summary>
         /// Enumerates a list of PDBs associated with this PE image.  PE images can contain multiple PDB entries,
@@ -142,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// all PDBs for some reason, you should use DefaultPdb instead.
         /// Undefined behavior if IsValid is false.
         /// </summary>
-        public ImmutableArray<PdbInfo> Pdbs => !_pdbs.IsDefault ? _pdbs : (_pdbs = ReadPdbs());
+        public ReadOnlyCollection<PdbInfo> Pdbs => _pdbs.Value.AsReadOnly();
 
         /// <summary>
         /// Returns the PDB information for this module.  If this image does not contain PDB info (or that information
@@ -151,25 +163,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public PdbInfo DefaultPdb => Pdbs.LastOrDefault();
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _reader.Dispose();
-                }
-
-                _disposed = true;
-            }
-        }
-
         /// <summary>
         /// Allows you to convert between a virtual address to a stream offset for this module.
         /// </summary>
@@ -177,16 +170,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>The position in the stream of the data, -1 if the virtual address doesn't map to any location of the PE image.</returns>
         public int RvaToOffset(int virtualAddress)
         {
-            if (_isVirtual)
+            if (_virt)
                 return virtualAddress;
 
-            ImmutableArray<SectionHeader> sections = Sections;
-            for (int i = 0; i < sections.Length; i++)
-            {
-                SectionHeader section = sections[i];
-                if (section.VirtualAddress <= virtualAddress && virtualAddress < section.VirtualAddress + section.VirtualSize)
-                    return section.PointerToRawData + (virtualAddress - section.VirtualAddress);
-            }
+            List<SectionHeader> sections = _sections.Value;
+            for (int i = 0; i < sections.Count; i++)
+                if (sections[i].VirtualAddress <= virtualAddress && virtualAddress < sections[i].VirtualAddress + sections[i].VirtualSize)
+                    return (int)sections[i].PointerToRawData + (virtualAddress - (int)sections[i].VirtualAddress);
 
             return -1;
         }
@@ -242,9 +232,141 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
         }
 
+        private List<SectionHeader> ReadSections()
+        {
+            List<SectionHeader> sections = new List<SectionHeader>();
+            if (!IsValid)
+                return sections;
+
+            ImageFileHeader? header = Header;
+            if (header is null)
+                return sections;
+
+            SeekTo(ImageDataDirectoryOffset);
+
+            // Sanity check, there's a null row at the end of the data directory table
+
+            if (!TryRead(out ulong zero) || zero != 0)
+                return sections;
+
+            for (int i = 0; i < header.NumberOfSections; i++)
+                if (TryRead(out IMAGE_SECTION_HEADER sectionHdr))
+                    sections.Add(new SectionHeader(ref sectionHdr));
+
+            return sections;
+        }
+
+        private List<PdbInfo> ReadPdbs()
+        {
+            int offs = _offset;
+            List<PdbInfo> result = new List<PdbInfo>();
+
+            var debugData = GetDirectory(DebugDataDirectory);
+            if (debugData.VirtualAddress != 0 && debugData.Size != 0)
+            {
+                if ((debugData.Size % sizeof(IMAGE_DEBUG_DIRECTORY)) != 0)
+                    return result;
+
+                int offset = RvaToOffset((int)debugData.VirtualAddress);
+                if (offset == -1)
+                    return result;
+
+                int count = (int)debugData.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
+                List<Tuple<int, int>> entries = new List<Tuple<int, int>>(count);
+
+                SeekTo(offset);
+                for (int i = 0; i < count; i++)
+                {
+                    if (TryRead(out IMAGE_DEBUG_DIRECTORY directory))
+                    {
+                        if (directory.Type == IMAGE_DEBUG_TYPE.CODEVIEW && directory.SizeOfData >= sizeof(CV_INFO_PDB70))
+                            entries.Add(Tuple.Create(_virt ? directory.AddressOfRawData : directory.PointerToRawData, directory.SizeOfData));
+                    }
+                }
+
+                foreach (Tuple<int, int> tmp in entries.OrderBy(e => e.Item1))
+                {
+                    int ptr = tmp.Item1;
+                    int size = tmp.Item2;
+
+                    if (TryRead(ptr, out int cvSig) && cvSig == CV_INFO_PDB70.PDB70CvSignature)
+                    {
+                        Guid guid = Read<Guid>();
+                        int age = Read<int>();
+
+                        // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
+                        int nameLen = size - 0x18 - 1;
+                        string? filename = ReadString(nameLen);
+
+                        if (filename != null)
+                        {
+                            PdbInfo pdb = new PdbInfo(filename, guid, age);
+                            result.Add(pdb);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private string? ReadString(int len) => ReadString(_offset, len);
+
+        private string? ReadString(int offset, int len)
+        {
+            if (len > 4096)
+                len = 4096;
+
+            SeekTo(offset);
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
+            try
+            {
+                if (Stream.Read(buffer, 0, len) != len)
+                    return null;
+
+                int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
+                if (index >= 0)
+                    len = index;
+
+                return Encoding.ASCII.GetString(buffer, 0, len);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        private bool TryRead<T>(out T result) where T : unmanaged => TryRead(_offset, out result);
+
+        private bool TryRead<T>(int offset, out T t) where T : unmanaged
+        {
+            t = default;
+            int size = Unsafe.SizeOf<T>();
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                SeekTo(offset);
+                int read = Stream.Read(buffer, 0, size);
+                _offset = offset + read;
+
+                if (read != size)
+                    return false;
+
+                t = Unsafe.As<byte, T>(ref buffer[0]);
+
+                return true;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         internal T Read<T>(int offset) where T : unmanaged => Read<T>(ref offset);
 
-        internal unsafe T Read<T>(ref int offset) where T : unmanaged
+        internal T Read<T>(ref int offset) where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
             T t = default;
@@ -256,7 +378,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (read != size)
                 return default;
-
             return t;
         }
 
@@ -271,36 +392,69 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private CoffHeader? ReadCoffHeader() => !IsValid ? null : _reader.PEHeaders.CoffHeader;
-
-        private PEHeader? ReadPEHeader() => !IsValid ? null : _reader.PEHeaders.PEHeader;
-
-        private CorHeader? ReadCorHeader() => !IsValid ? null : _reader.PEHeaders.CorHeader;
-
-        private ImmutableArray<SectionHeader> ReadSections() => !IsValid ? default : _reader.PEHeaders.SectionHeaders;
-
-        private ImmutableArray<PdbInfo> ReadPdbs()
+        private ImageFileHeader? ReadImageFileHeader()
         {
             if (!IsValid)
-                return default;
+                return null;
 
-            ImmutableArray<DebugDirectoryEntry> debugDirectories = _reader.ReadDebugDirectory();
-            if (debugDirectories.IsEmpty)
-                return ImmutableArray<PdbInfo>.Empty;
+            if (TryRead(HeaderOffset, out IMAGE_FILE_HEADER header))
+                return new ImageFileHeader(ref header);
 
-            ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(debugDirectories.Length);
+            return null;
+        }
 
-            foreach (DebugDirectoryEntry entry in debugDirectories)
+        private IMAGE_DATA_DIRECTORY[] ReadDataDirectories()
+        {
+            IMAGE_DATA_DIRECTORY[] directories = new IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
+
+            if (!IsValid)
+                return directories;
+
+            SeekTo(DataDirectoryOffset);
+            for (int i = 0; i < directories.Length; i++)
+                directories[i] = Read<IMAGE_DATA_DIRECTORY>();
+
+            return directories;
+        }
+
+        private ImageOptionalHeader? ReadImageOptionalHeader()
+        {
+            if (!IsValid)
+                return null;
+
+            if (!TryRead(OptionalHeaderOffset, out IMAGE_OPTIONAL_HEADER_AGNOSTIC optional))
+                return null;
+
+            bool is32Bit = optional.Magic == 0x010b;
+            Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC> specific = new Lazy<IMAGE_OPTIONAL_HEADER_SPECIFIC>(() =>
             {
-                if (entry.Type == DebugDirectoryEntryType.CodeView)
+                SeekTo(SpecificHeaderOffset);
+                return new IMAGE_OPTIONAL_HEADER_SPECIFIC()
                 {
-                    CodeViewDebugDirectoryData data = _reader.ReadCodeViewDebugDirectoryData(entry);
-                    PdbInfo pdb = new PdbInfo(data.Path, data.Guid, data.Age);
-                    result.Add(pdb);
-                }
-            }
+                    SizeOfStackReserve = is32Bit ? Read<uint>() : Read<ulong>(),
+                    SizeOfStackCommit = is32Bit ? Read<uint>() : Read<ulong>(),
+                    SizeOfHeapReserve = is32Bit ? Read<uint>() : Read<ulong>(),
+                    SizeOfHeapCommit = is32Bit ? Read<uint>() : Read<ulong>(),
+                    LoaderFlags = Read<uint>(),
+                    NumberOfRvaAndSizes = Read<uint>()
+                };
+            });
 
-            return result.MoveOrCopyToImmutable();
+            return new ImageOptionalHeader(ref optional, specific, _directories, is32Bit);
+        }
+
+        private CorHeader? ReadCorHeader()
+        {
+            var clrDataDirectory = GetDirectory(ComDataDirectory);
+
+            int offset = RvaToOffset((int)clrDataDirectory.VirtualAddress);
+            if (offset == -1)
+                return null;
+
+            if (TryRead(offset, out IMAGE_COR20_HEADER hdr))
+                return new CorHeader(ref hdr);
+
+            return null;
         }
     }
 }

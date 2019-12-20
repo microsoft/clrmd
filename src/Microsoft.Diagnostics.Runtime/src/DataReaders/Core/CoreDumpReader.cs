@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is null)
             {
-                using PEImage pe = image.OpenAsPEImage();
+                PEImage pe = image.OpenAsPEImage();
                 filesize = (uint)pe.IndexFileSize;
                 timestamp = (uint)pe.IndexTimeStamp;
                 version = pe.GetFileVersionInfo()?.VersionInfo ?? default;
