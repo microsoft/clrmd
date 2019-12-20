@@ -5,9 +5,9 @@
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// The result of a VirtualQuery.
+    /// Contains information about a range of memory.
     /// </summary>
-    public struct VirtualQueryData
+    public struct MemoryInfo
     {
         /// <summary>
         /// The base address of the allocation.
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="addr">Base address of the memory range.</param>
         /// <param name="size">The size of the memory range.</param>
-        public VirtualQueryData(ulong addr, ulong size)
+        public MemoryInfo(ulong addr, ulong size)
         {
             BaseAddress = addr;
             Size = size;

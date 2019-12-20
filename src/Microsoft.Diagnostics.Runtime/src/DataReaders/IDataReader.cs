@@ -56,9 +56,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets information about the given memory range.
         /// </summary>
         /// <param name="address">An arbitrary address in the target process.</param>
-        /// <param name="vq">The base address and size of the allocation.</param>
+        /// <param name="info">The base address and size of the allocation.</param>
         /// <returns>True if the address was found and vq was filled, false if the address is not valid memory.</returns>
-        bool VirtualQuery(ulong address, out VirtualQueryData vq);
+        bool QueryMemory(ulong address, out MemoryInfo info);
 
         /// <summary>
         /// Gets the thread context for the given thread.

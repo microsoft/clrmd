@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
+        public bool QueryMemory(ulong address, out MemoryInfo vq)
         {
             long addr = (long)address;
             foreach (ElfProgramHeader item in _core.ElfFile.ProgramHeaders)
@@ -205,12 +205,12 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (start <= addr && addr < end)
                 {
-                    vq = new VirtualQueryData((ulong)start, (ulong)item.VirtualSize);
+                    vq = new MemoryInfo((ulong)start, (ulong)item.VirtualSize);
                     return true;
                 }
             }
 
-            vq = new VirtualQueryData();
+            vq = default;
             return false;
         }
 
