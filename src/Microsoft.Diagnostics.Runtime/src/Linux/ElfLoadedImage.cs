@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public PEImage OpenAsPEImage()
         {
-            Stream stream = new ReaderStream(BaseAddress, _vaReader);
+            Stream stream = new ReaderStream(BaseAddress, Size, _vaReader);
             return new PEImage(stream, isVirtual: true);
         }
 
