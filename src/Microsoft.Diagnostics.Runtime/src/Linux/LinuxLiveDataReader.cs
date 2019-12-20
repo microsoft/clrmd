@@ -115,7 +115,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     continue;
                 }
 
-                if (!result.Exists(module => module.FileName == entry.FilePath))
+                ModuleInfo? module = result.FirstOrDefault(module => module.FileName == entry.FilePath);
+                if (module is null)
                 {
                     int filesize = 0;
                     int timestamp = 0;
@@ -141,8 +142,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         }
                     }
 
-                    ModuleInfo moduleInfo = new ModuleInfo(this, entry.BeginAddr, filesize, timestamp, entry.FilePath, buildId: default, version: version ?? default);
-                    result.Add(moduleInfo);
+                    result.Add(new ModuleInfo(this, entry.BeginAddr, filesize, timestamp, entry.FilePath, entry.IsExecutable, buildId: default, version: version ?? default));
+                }
+                else
+                {
+                    module._isVirtual = module._isVirtual || entry.IsExecutable;
                 }
             }
 
@@ -343,7 +347,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 MemoryMapEntry entry = _memoryMapEntries[i];
                 ulong entryBeginAddr = entry.BeginAddr;
                 ulong entryEndAddr = entry.EndAddr;
-                if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable())
+                if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
                 {
                     int regionSize = (int)(entryEndAddr - address);
                     if (regionSize >= bytesRequested)
@@ -369,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 MemoryMapEntry entry = _memoryMapEntries[i];
                 ulong entryBeginAddr = entry.BeginAddr;
                 ulong entryEndAddr = entry.EndAddr;
-                if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable())
+                if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
                 {
                     break;
                 }
@@ -485,9 +489,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public string? FilePath { get; set; }
         public int Permission { get; set; }
 
-        public bool IsReadable()
-        {
-            return (Permission & 8) != 0;
-        }
+        public bool IsReadable => (Permission & 8) != 0;
+
+        public bool IsExecutable => (Permission & 2) != 0;
     }
 }

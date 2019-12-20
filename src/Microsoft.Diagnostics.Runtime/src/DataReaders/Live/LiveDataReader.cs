@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime
                 GetFileProperties(baseAddr, out int filesize, out int timestamp);
 
                 string fileName = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, fileName);
+                ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, fileName, isVirtual: true);
                 result.Add(module);
             }
 

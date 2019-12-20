@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IDataReader _dataReader;
         private bool? _isManaged;
         private VersionInfo? _version;
+        internal bool _isVirtual;
 
         /// <summary>
         /// Gets the base address of the object.
@@ -48,11 +49,11 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                PEImage img = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
+                PEImage image = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), _isVirtual);
                 if (!_isManaged.HasValue)
-                    _isManaged = img.IsManaged;
+                    _isManaged = image.IsManaged;
 
-                return img;
+                return image;
             }
             catch
             {
@@ -75,10 +76,10 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_isManaged.HasValue)
                 {
                     // this can assign _isManaged
-                    using PEImage? img = GetPEImage();
+                    using PEImage? image = GetPEImage();
 
                     if (!_isManaged.HasValue)
-                        _isManaged = img?.IsManaged ?? false;
+                        _isManaged = image?.IsManaged ?? false;
                 }
 
                 return _isManaged.Value;
@@ -94,13 +95,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                using PEImage? img = GetPEImage();
-                if (img != null)
+                using PEImage? image = GetPEImage();
+                if (image != null)
                 {
                     if (!_isManaged.HasValue)
-                        _isManaged = img.IsManaged;
+                        _isManaged = image.IsManaged;
 
-                    return img.DefaultPdb;
+                    return image.DefaultPdb;
                 }
 
                 return null;
@@ -136,6 +137,7 @@ namespace Microsoft.Diagnostics.Runtime
             int filesize,
             int timestamp,
             string? fileName,
+            bool isVirtual,
             ImmutableArray<byte> buildId = default,
             VersionInfo? version = null)
         {
@@ -144,6 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
             FileSize = filesize;
             TimeStamp = timestamp;
             FileName = fileName;
+            _isVirtual = isVirtual;
             BuildId = buildId;
             _version = version;
         }

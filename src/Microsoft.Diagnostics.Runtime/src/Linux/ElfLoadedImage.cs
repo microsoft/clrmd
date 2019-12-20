@@ -14,6 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
         private long _end;
+        internal bool _containsExecutable;
 
         public string Path { get; }
         public long BaseAddress { get; private set; }
@@ -44,12 +45,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public PEImage OpenAsPEImage()
         {
             Stream stream = new ReaderStream(BaseAddress, Size, _vaReader);
-            return new PEImage(stream, isVirtual: true);
+            return new PEImage(stream, _containsExecutable);
         }
 
-        internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
+        internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers, bool isExecutable)
         {
             _fileTable.Add(pointers);
+            _containsExecutable = _containsExecutable || isExecutable;
 
             long start = checked((long)pointers.Start);
             if (BaseAddress == 0 || start < BaseAddress)

@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Constructs a PEImage class for a given PE image (dll/exe) on disk.
+        /// Constructs a PEImage class for a given PE image (dll/exe) in memory.
         /// </summary>
         /// <param name="stream">A Stream that contains a PE image at its 0th offset.  This stream must be seekable.</param>
         /// <param name="isVirtual">Whether stream points to a PE image mapped into an address space (such as in a live process or crash dump).</param>
@@ -163,7 +163,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (disposing)
                 {
-                    _reader.Dispose();
+                    if (IsValid)
+                        _reader.Dispose();
                 }
 
                 _disposed = true;

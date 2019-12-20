@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
             string fileName,
             VersionInfo version,
             ImmutableArray<byte> buildId = default)
-            : base(reader, imgBase, filesize, timestamp, fileName, buildId, version)
+            : base(reader, imgBase, filesize, timestamp, fileName, isVirtual: false, buildId, version)
         {
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;
