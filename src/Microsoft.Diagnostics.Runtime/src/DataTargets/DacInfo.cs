@@ -7,12 +7,12 @@ using System.Collections.Immutable;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the dac dll.
+    /// Represents the DAC dll.
     /// </summary>
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// Gets the platform-agnostic file name of the dac dll.
+        /// Gets the platform-agnostic file name of the DAC dll.
         /// </summary>
         public string PlatformAgnosticFileName { get; }
 

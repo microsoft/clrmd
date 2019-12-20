@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         Architecture Architecture { get; }
 
         /// <summary>
-        /// Gets the ProcessId of the DataTarget.
+        /// Gets the process ID of the DataTarget.
         /// </summary>
         uint ProcessId { get; }
 

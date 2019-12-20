@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Helper for Com Callable Wrapper objects.  (CCWs are CLR objects exposed to native code as COM
+    /// Helper for COM Callable Wrapper objects.  (CCWs are CLR objects exposed to native code as COM
     /// objects).
     /// </summary>
     public sealed class ComCallableWrapper

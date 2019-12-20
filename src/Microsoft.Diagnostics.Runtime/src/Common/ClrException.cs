@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// A wrapper for exception objects which help with common tasks for exception objects.
-    /// Create this using ClrObject.AsException  You may call that when ClrObject.IsException
-    /// returns <see langword="true"/>.
+    /// Create this using <see cref="ClrObject.AsException"/>. You may call that when <see cref="ClrObject.IsException"/>
+    /// is <see langword="true"/>.
     /// </summary>
     public struct ClrException
     {
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Address => _object;
 
         /// <summary>
-        /// Gets the ClrType for this exception object.
+        /// Gets the <see cref="ClrType"/> for this exception object.
         /// </summary>
         public ClrType Type => _object.Type!;
 

@@ -23,12 +23,12 @@ namespace Microsoft.Diagnostics.Runtime
         public Guid Guid { get; }
 
         /// <summary>
-        /// Gets the pdb revision.
+        /// Gets the PDB revision.
         /// </summary>
         public int Revision { get; }
 
         /// <summary>
-        /// Gets the file name of the pdb.
+        /// Gets the file name of the PDB.
         /// </summary>
         public string FileName { get; }
 

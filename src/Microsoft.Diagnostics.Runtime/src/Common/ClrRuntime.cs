@@ -20,12 +20,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract DacLibrary DacLibrary { get; }
 
         /// <summary>
-        /// Gets the ClrInfo of the current runtime.
+        /// Gets the <see cref="ClrInfo"/> of the current runtime.
         /// </summary>
         public abstract ClrInfo ClrInfo { get; }
 
         /// <summary>
-        /// Gets the DataTarget associated with this runtime.
+        /// Gets the <see cref="DataTarget"/> associated with this runtime.
         /// </summary>
         public abstract DataTarget? DataTarget { get; }
 
@@ -41,12 +41,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ImmutableArray<ClrAppDomain> AppDomains { get; }
 
         /// <summary>
-        /// Gets the System AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
+        /// Gets the System AppDomain for Desktop CLR (<see langword="null"/> on .NET Core).
         /// </summary>
         public abstract ClrAppDomain? SystemDomain { get; }
 
         /// <summary>
-        /// Gets the Shared AppDomain for Desktop CLR (<see langword="null"/> on .Net Core).
+        /// Gets the Shared AppDomain for Desktop CLR (<see langword="null"/> on .NET Core).
         /// </summary>
         public abstract ClrAppDomain? SharedDomain { get; }
 
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrMethod? GetMethodByHandle(ulong methodHandle);
 
         /// <summary>
-        /// Gets the ClrType corresponding to the given MethodTable.
+        /// Gets the <see cref="ClrType"/> corresponding to the given MethodTable.
         /// </summary>
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
         /// <returns>A ClrType object, or <see langword="null"/> if no such type exists.</returns>
@@ -96,11 +96,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<ClrModule> EnumerateModules();
 
         /// <summary>
-        /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
+        /// Flushes the DAC cache.  This function MUST be called any time you expect to call the same function
         /// but expect different results.  For example, after walking the heap, you need to call Flush before
         /// attempting to walk the heap again.  After calling this function, you must discard ALL ClrMD objects
         /// you have cached other than DataTarget and ClrRuntime and re-request the objects and data you need.
-        /// (E.G. if you want to use the ClrHeap object after calling flush, you must call ClrRuntime.GetHeap
+        /// (e.g. if you want to use the ClrHeap object after calling flush, you must call ClrRuntime.GetHeap
         /// again after Flush to get a new instance.)
         /// </summary>
         public abstract void FlushCachedData();

@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the list of Clr versions loaded into the process.
+        /// Gets the list of CLR versions loaded into the process.
         /// </summary>
         public ImmutableArray<ClrInfo> ClrVersions => GetOrCreateClrVersions();
 

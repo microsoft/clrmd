@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrField
     {
         /// <summary>
-        /// Gets the ClrType containing this field.
+        /// Gets the <see cref="ClrType"/> containing this field.
         /// </summary>
         public abstract ClrType Parent { get; }
 
@@ -37,9 +37,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrElementType ElementType { get; }
 
         /// <summary>
-        /// Returns true if this field is a primitive (int, float, etc), false otherwise.
+        /// Returns true if this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.
         /// </summary>
-        /// <returns>True if this field is a primitive (int, float, etc), false otherwise.</returns>
+        /// <returns>True if this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>

@@ -7,7 +7,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents a Clr handle in the target process.
+    /// Represents a CLR handle in the target process.
     /// </summary>
     public abstract class ClrHandle : IClrRoot
     {
@@ -29,8 +29,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// If this handle is a RefCount handle, this returns the reference count.
         /// RefCount handles with a RefCount > 0 are strong.
-        /// NOTE: v2 CLR CANNOT determine the RefCount.  We always set the RefCount
-        /// to 1 in a v2 query since a strong RefCount handle is the common case.
         /// </summary>
         public abstract uint ReferenceCount { get; }
 

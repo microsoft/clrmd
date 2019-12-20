@@ -8,7 +8,7 @@
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     /// <summary>
-    /// This struct represents a single step in ClrmdHeap's heap walk.  This is used for diagnostic purposes.
+    /// This struct represents a single step in <see cref="ClrmdHeap"/>'s heap walk.  This is used for diagnostic purposes.
     /// </summary>
     public struct HeapWalkStep
     {

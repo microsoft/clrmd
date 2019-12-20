@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns true if this module was created through Reflection.Emit (and thus has no associated
+        /// Returns true if this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
         /// file).
         /// </summary>
         public abstract bool IsDynamic { get; }
@@ -87,8 +87,8 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong MetadataLength { get; }
 
         /// <summary>
-        /// Gets the IMetaDataImport interface for this module.  Note that this API does not provide a
-        /// wrapper for IMetaDataImport.  You will need to wrap the API yourself if you need to use this.
+        /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
+        /// wrapper for <c>IMetaDataImport</c>.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
         public virtual MetadataImport? MetadataImport => null;
 
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
-        /// the way that the dac handles types.  This function will fail for Generics, and types which have
+        /// the way that the DAC handles types.  This function will fail for Generics, and types which have
         /// never been constructed in the target process.  Please be sure to null-check the return value of
         /// this function.
         /// </summary>
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the pdb information for this module.
+        /// Gets the PDB information for this module.
         /// </summary>
         public abstract PdbInfo? Pdb { get; }
 

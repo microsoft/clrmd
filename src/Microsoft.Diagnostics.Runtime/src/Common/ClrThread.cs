@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract uint OSThreadId { get; }
 
         /// <summary>
-        /// Gets the managed thread ID (this is equivalent to System.Threading.Thread.ManagedThreadId
+        /// Gets the managed thread ID (this is equivalent to <see cref="System.Threading.Thread.ManagedThreadId"/>
         /// in the target process).
         /// </summary>
         public abstract int ManagedThreadId { get; }
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsGCSuspendPending { get; }
 
         /// <summary>
-        /// Returns true if the user has suspended the thread (using Thread.Suspend).
+        /// Returns true if the user has suspended the thread (using <see cref="System.Threading.Thread.Suspend"/>).
         /// </summary>
         public abstract bool IsUserSuspended { get; }
 
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsUnstarted { get; }
 
         /// <summary>
-        /// Returns true if the Clr runtime called CoIntialize for this thread.
+        /// Returns true if the CLR called <c>CoIntialize</c> for this thread.
         /// </summary>
         public abstract bool IsCoInitialized { get; }
 

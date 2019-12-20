@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Strings will be cached by the objects which hold them and they will also be
         /// interned, ensuring that the same string value will not be kept alive by multiple
         /// objects.  The danger here is that interned strings are never freed until the
-        /// AppDomain they live in is unloaded (or never for .Net Core).  Field names will
+        /// AppDomain they live in is unloaded (or never for .NET Core).  Field names will
         /// benefit from interning if you read a lot of fields for a lot of types.  It's
         /// unlikely that method names or type names will benefit from interning unless
         /// the same types are loaded into multiple AppDomains in the target process.

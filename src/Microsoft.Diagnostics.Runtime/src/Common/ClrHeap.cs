@@ -35,22 +35,22 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IReadOnlyList<ClrSegment> Segments { get; }
 
         /// <summary>
-        /// Gets the ClrType representing free space on the GC heap.
+        /// Gets the <see cref="ClrType"/> representing free space on the GC heap.
         /// </summary>
         public abstract ClrType FreeType { get; }
 
         /// <summary>
-        /// Gets the ClrType representing System.String.
+        /// Gets the <see cref="ClrType"/> representing <see cref="string"/>.
         /// </summary>
         public abstract ClrType StringType { get; }
 
         /// <summary>
-        /// Gets the ClrType representing System.Object.
+        /// Gets the <see cref="ClrType"/> representing <see cref="object"/>.
         /// </summary>
         public abstract ClrType ObjectType { get; }
 
         /// <summary>
-        /// Gets the ClrType representing System.Exception.
+        /// Gets the <see cref="ClrType"/> representing <see cref="System.Exception"/>.
         /// </summary>
         public abstract ClrType ExceptionType { get; }
 

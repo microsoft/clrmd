@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Builders;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents information about a single Clr runtime in a process.
+    /// Represents information about a single CLR in a process.
     /// </summary>
     public sealed class ClrInfo
     {
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrFlavor Flavor { get; }
 
         /// <summary>
-        /// Gets module information about the Dac needed create a ClrRuntime instance for this runtime.
+        /// Gets module information about the DAC needed create a <see cref="ClrRuntime"/> instance for this runtime.
         /// </summary>
         public DacInfo DacInfo { get; }
 
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ModuleInfo ModuleInfo { get; }
 
         /// <summary>
-        /// Gets the location of the local dac on your machine which matches this version of Clr, or <see langword="null"/>
+        /// Gets the location of the local DAC on your machine which matches this version of Clr, or <see langword="null"/>
         /// if one could not be found.
         /// </summary>
         public string? LocalMatchingDac { get; }
@@ -53,13 +53,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// To string.
         /// </summary>
-        /// <returns>A version string for this Clr runtime.</returns>
+        /// <returns>A version string for this CLR.</returns>
         public override string ToString() => Version.ToString();
 
         /// <summary>
-        /// Creates a runtime from the given Dac file on disk.
+        /// Creates a runtime from the given DAC file on disk.
         /// </summary>
-        /// <param name="dacFilename">A full path to the matching mscordacwks for this process.</param>
+        /// <param name="dacFilename">A full path to the matching DAC dll for this process.</param>
         /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
         /// <returns></returns>
         public ClrRuntime CreateRuntime(string dacFilename, bool ignoreMismatch = false)

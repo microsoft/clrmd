@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Provides information about loaded modules in a DataTarget.
+    /// Provides information about loaded modules in a <see cref="DataTarget"/>.
     /// </summary>
     public class ModuleInfo
     {
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
         public string? FileName { get; }
 
         /// <summary>
-        /// Returns a PEImage from a stream constructed using instance fields of this object.
+        /// Returns a <see cref="PEImage"/> from a stream constructed using instance fields of this object.
         /// If the PEImage cannot be constructed, <see langword="null"/> is returned.
         /// </summary>
         /// <returns></returns>

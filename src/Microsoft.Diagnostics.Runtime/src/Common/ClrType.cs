@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// Gets the GCDesc associated with this type.  Only valid if ContainsPointers is <see langword="true"/>.
+        /// Gets the <see cref="GCDesc"/> associated with this type.  Only valid if <see cref="ContainsPointers"/> is <see langword="true"/>.
         /// </summary>
         public abstract GCDesc GCDesc { get; }
 
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns true if the type CAN contain references to other objects.  This is used in optimizations
+        /// Returns true if the type <b>can</b> contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.
         /// </summary>
         public virtual bool ContainsPointers => true;
@@ -49,12 +49,12 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual bool IsCollectible => false;
 
         /// <summary>
-        /// Gets the handle to the LoaderAllocator object for collectible types.
+        /// Gets the handle to the <c>LoaderAllocator</c> object for collectible types.
         /// </summary>
         public virtual ulong LoaderAllocatorHandle => 0;
 
         /// <summary>
-        /// All types know the heap they belong to.
+        /// Gets the <see cref="ClrHeap"/> this type belongs to.
         /// </summary>
         public abstract ClrHeap Heap { get; }
 
@@ -69,9 +69,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrElementType ElementType { get; }
 
         /// <summary>
-        /// Returns true if this type is a primitive (int, float, etc), false otherwise.
+        /// Returns true if this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.
         /// </summary>
-        /// <returns>True if this type is a primitive (int, float, etc), false otherwise.</returns>
+        /// <returns>True if this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int ComponentSize { get; }
 
         /// <summary>
-        /// Returns true if this type is System.String.
+        /// Returns true if this type is <see cref="string"/>.
         /// </summary>
         public virtual bool IsString => false;
 
@@ -229,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual bool IsFree => false;
 
         /// <summary>
-        /// Returns true if this type is an exception (that is, it derives from System.Exception).
+        /// Returns true if this type is an exception (that is, it derives from <see cref="Exception"/>).
         /// </summary>
         public virtual bool IsException => false;
 
@@ -239,9 +239,10 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsEnum { get; }
 
         /// <summary>
-        /// Returns the ClrEnum representation of this type.
+        /// Returns the <see cref="ClrEnum"/> representation of this type.
         /// </summary>
-        /// <returns>The ClrEnum representation of this type.  Throws InvalidOperationException if IsEnum is <see langword="false"/>.</returns>
+        /// <returns>The <see cref="ClrEnum"/> representation of this type.</returns>
+        /// <exception cref="InvalidOperationException"><see cref="IsEnum"/> is <see langword="false"/>.</exception>
         public abstract ClrEnum AsEnum();
 
         /// <summary>

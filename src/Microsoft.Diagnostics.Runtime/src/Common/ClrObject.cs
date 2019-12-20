@@ -249,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
         /// will not do type coercion.  This method will throw an ArgumentException if no field matches
         /// the given name.  It will throw a NullReferenceException if the target object is <see langword="null"/> (that is,
-        /// if (IsNull is <see langword="true"/>).  It will throw an InvalidOperationException if the field is not
+        /// if IsNull is <see langword="true"/>).  It will throw an InvalidOperationException if the field is not
         /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
         /// the value of this field out of the data target.
         /// </summary>
