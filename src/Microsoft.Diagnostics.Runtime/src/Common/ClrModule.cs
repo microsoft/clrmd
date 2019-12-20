@@ -46,13 +46,13 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns true if this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
+        /// Gets a value indicating whether this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
         /// file).
         /// </summary>
         public abstract bool IsDynamic { get; }
 
         /// <summary>
-        /// Returns true if this module is an actual PEFile on disk.
+        /// Gets a value indicating whether this module is an actual PEFile on disk.
         /// </summary>
         public abstract bool IsPEFile { get; }
 

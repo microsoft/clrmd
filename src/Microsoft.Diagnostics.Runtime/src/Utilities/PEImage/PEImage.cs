@@ -104,17 +104,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public Stream Stream { get; }
 
         /// <summary>
-        /// Returns true if the given Stream contains a valid DOS header and PE signature.
+        /// Gets a value indicating whether the given Stream contains a valid DOS header and PE signature.
         /// </summary>
         public bool IsValid { get; private set; }
 
         /// <summary>
-        /// Returns true if this image is for a 64bit processor.
+        /// Gets a value indicating whether this image is for a 64bit processor.
         /// </summary>
         public bool IsPE64 => OptionalHeader != null && OptionalHeader.Magic != 0x010b;
 
         /// <summary>
-        /// Returns true if this image is managed. (.NET image)
+        /// Gets a value indicating whether this image is managed. (.NET image)
         /// </summary>
         public bool IsManaged => OptionalHeader != null && OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 

@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Object { get; }
 
         /// <summary>
-        /// Returns true if the RCW is disconnected from the underlying COM type.
+        /// Gets a value indicating whether the RCW is disconnected from the underlying COM type.
         /// </summary>
         public bool IsDisconnected { get; }
 

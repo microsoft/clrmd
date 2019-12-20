@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public DateTime StartTime => Process.StartTime;
 
         /// <summary>
-        /// Returns true if the process has exited.
+        /// Gets a value indicating whether the process has exited.
         /// </summary>
         public bool HasExited => Process.HasExited;
 

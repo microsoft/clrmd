@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract GCMode GCMode { get; }
 
         /// <summary>
-        /// Returns true if this is the finalizer thread.
+        /// Gets a value indicating whether this is the finalizer thread.
         /// </summary>
         public abstract bool IsFinalizer { get; }
 
@@ -101,48 +101,48 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsAbortRequested { get; }
 
         /// <summary>
-        /// Returns true if this thread was aborted.
+        /// Gets a value indicating whether this thread was aborted.
         /// </summary>
         public abstract bool IsAborted { get; }
 
         /// <summary>
-        /// Returns true if the GC is attempting to suspend this thread.
+        /// Gets a value indicating whether the GC is attempting to suspend this thread.
         /// </summary>
         public abstract bool IsGCSuspendPending { get; }
 
         /// <summary>
-        /// Returns true if the user has suspended the thread (using <see cref="System.Threading.Thread.Suspend"/>).
+        /// Gets a value indicating whether the user has suspended the thread (using <see cref="System.Threading.Thread.Suspend"/>).
         /// </summary>
         public abstract bool IsUserSuspended { get; }
 
         /// <summary>
-        /// Returns true if the debugger has suspended the thread.
+        /// Gets a value indicating whether the debugger has suspended the thread.
         /// </summary>
         public abstract bool IsDebugSuspended { get; }
 
         /// <summary>
-        /// Returns true if this thread is a background thread.  (That is, if the thread does not keep the
+        /// Gets a value indicating whether this thread is a background thread.  (That is, if the thread does not keep the
         /// managed execution environment alive and running.)
         /// </summary>
         public abstract bool IsBackground { get; }
 
         /// <summary>
-        /// Returns true if this thread was created, but not started.
+        /// Gets a value indicating whether this thread was created, but not started.
         /// </summary>
         public abstract bool IsUnstarted { get; }
 
         /// <summary>
-        /// Returns true if the CLR called <c>CoIntialize</c> for this thread.
+        /// Gets a value indicating whether the CLR called <c>CoIntialize</c> for this thread.
         /// </summary>
         public abstract bool IsCoInitialized { get; }
 
         /// <summary>
-        /// Returns true if this thread is in a COM single threaded apartment.
+        /// Gets a value indicating whether this thread is in a COM single threaded apartment.
         /// </summary>
         public abstract bool IsSTA { get; }
 
         /// <summary>
-        /// Returns true if the thread is a COM multithreaded apartment.
+        /// Gets a value indicating whether the thread is a COM multithreaded apartment.
         /// </summary>
         public abstract bool IsMTA { get; }
     }

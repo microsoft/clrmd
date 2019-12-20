@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrType ExceptionType { get; }
 
         /// <summary>
-        /// Returns whether the GC heap is in Server mode or not.
+        /// Gets a value indicating whether the GC heap is in Server mode.
         /// </summary>
         public abstract bool IsServer { get; }
 

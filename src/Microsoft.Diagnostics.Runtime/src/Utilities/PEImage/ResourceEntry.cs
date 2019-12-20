@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public string Name { get; }
 
         /// <summary>
-        /// Returns true if this is a leaf, and contains data.
+        /// Gets a value indicating whether this is a leaf, and contains data.
         /// </summary>
         public bool IsLeaf { get; }
 

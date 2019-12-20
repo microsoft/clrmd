@@ -69,19 +69,19 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrElementType ElementType { get; }
 
         /// <summary>
-        /// Returns true if this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.
+        /// Gets a value indicating whether this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc).
         /// </summary>
         /// <returns>True if this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
-        /// Returns true if this type is a ValueClass (struct), false otherwise.
+        /// Gets a value indicating whether this type is a ValueClass (struct).
         /// </summary>
         /// <returns>True if this type is a ValueClass (struct), false otherwise.</returns>
         public virtual bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
-        /// Returns true if this type is an object reference, false otherwise.
+        /// Gets a value indicating whether this type is an object reference.
         /// </summary>
         /// <returns>True if this type is an object reference, false otherwise.</returns>
         public virtual bool IsObjectReference => ElementType.IsObjectReference();
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsFinalizeSuppressed(ulong obj);
 
         /// <summary>
-        /// Returns whether objects of this type are finalizable.
+        /// Gets a value indicating whether objects of this type are finalizable.
         /// </summary>
         public abstract bool IsFinalizable { get; }
 
@@ -129,17 +129,17 @@ namespace Microsoft.Diagnostics.Runtime
         // Other attributes:
 
         /// <summary>
-        /// Returns true if this class is abstract.
+        /// Gets a value indicating whether this class is abstract.
         /// </summary>
         public abstract bool IsAbstract { get; }
 
         /// <summary>
-        /// Returns true if this class is sealed.
+        /// Gets a value indicating whether this class is sealed.
         /// </summary>
         public abstract bool IsSealed { get; }
 
         /// <summary>
-        /// Returns true if this type is an interface.
+        /// Gets a value indicating whether this type is an interface.
         /// </summary>
         public abstract bool IsInterface { get; }
 
@@ -219,22 +219,22 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int ComponentSize { get; }
 
         /// <summary>
-        /// Returns true if this type is <see cref="string"/>.
+        /// Gets a value indicating whether this type is <see cref="string"/>.
         /// </summary>
         public virtual bool IsString => false;
 
         /// <summary>
-        /// Returns true if this type represents free space on the heap.
+        /// Gets a value indicating whether this type represents free space on the heap.
         /// </summary>
         public virtual bool IsFree => false;
 
         /// <summary>
-        /// Returns true if this type is an exception (that is, it derives from <see cref="Exception"/>).
+        /// Gets a value indicating whether this type is an exception (that is, it derives from <see cref="Exception"/>).
         /// </summary>
         public virtual bool IsException => false;
 
         /// <summary>
-        /// Returns true if this type is an enum.
+        /// Gets a value indicating whether this type is an enum.
         /// </summary>
         public abstract bool IsEnum { get; }
 
@@ -246,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrEnum AsEnum();
 
         /// <summary>
-        /// Returns true if this type is shared across multiple AppDomains.
+        /// Gets a value indicating whether this type is shared across multiple AppDomains.
         /// </summary>
         public abstract bool IsShared { get; }
 

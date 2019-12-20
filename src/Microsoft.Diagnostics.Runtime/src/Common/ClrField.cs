@@ -37,19 +37,19 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrElementType ElementType { get; }
 
         /// <summary>
-        /// Returns true if this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.
+        /// Gets a value indicating whether this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc).
         /// </summary>
         /// <returns>True if this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
-        /// Returns true if this field is a ValueClass (struct), false otherwise.
+        /// Gets a value indicating whether this field is a ValueClass (struct).
         /// </summary>
         /// <returns>True if this field is a ValueClass (struct), false otherwise.</returns>
         public virtual bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
-        /// Returns true if this field is an object reference, false otherwise.
+        /// Gets a value indicating whether this field is an object reference.
         /// </summary>
         /// <returns>True if this field is an object reference, false otherwise.</returns>
         public virtual bool IsObjectReference => ElementType.IsObjectReference();
@@ -60,22 +60,22 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int Size { get; }
 
         /// <summary>
-        /// Returns true if this field is public.
+        /// Gets a value indicating whether this field is public.
         /// </summary>
         public abstract bool IsPublic { get; }
 
         /// <summary>
-        /// Returns true if this field is private.
+        /// Gets a value indicating whether this field is private.
         /// </summary>
         public abstract bool IsPrivate { get; }
 
         /// <summary>
-        /// Returns true if this field is internal.
+        /// Gets a value indicating whether this field is internal.
         /// </summary>
         public abstract bool IsInternal { get; }
 
         /// <summary>
-        /// Returns true if this field is protected.
+        /// Gets a value indicating whether this field is protected.
         /// </summary>
         public abstract bool IsProtected { get; }
 

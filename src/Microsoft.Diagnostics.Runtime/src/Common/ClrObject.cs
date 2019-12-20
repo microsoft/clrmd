@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Size => GetTypeOrThrow().Heap.GetObjectSize(Address, GetTypeOrThrow());
 
         /// <summary>
-        /// Returns whether this object is an array or not.
+        /// Gets a value indicating whether this object is an array.
         /// </summary>
         public bool IsArray => GetTypeOrThrow().IsArray;
 
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns true if this object possibly contians GC pointers.
+        /// Gets a value indicating whether this object possibly contians GC pointers.
         /// </summary>
         public bool ContainsPointers => Type != null && Type.ContainsPointers;
 

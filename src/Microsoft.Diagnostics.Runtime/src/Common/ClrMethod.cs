@@ -134,12 +134,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsAbstract { get; }
 
         /// <summary>
-        /// Returns whether this method is an instance constructor.
+        /// Gets a value indicating whether this method is an instance constructor.
         /// </summary>
         public virtual bool IsConstructor => Name == ".ctor";
 
         /// <summary>
-        /// Returns whether this method is a static constructor.
+        /// Gets a value indicating whether this method is a static constructor.
         /// </summary>
         public virtual bool IsClassConstructor => Name == ".cctor";
 
