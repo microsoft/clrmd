@@ -11,7 +11,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Provides information about loaded modules in a <see cref="DataTarget"/>.
     /// </summary>
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
     public class ModuleInfo
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
     {
         private readonly IDataReader _dataReader;
         private bool? _isManaged;
