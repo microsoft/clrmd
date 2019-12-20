@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">An arbitrary address in the target process.</param>
         /// <param name="info">The base address and size of the allocation.</param>
         /// <returns>True if the address was found and vq was filled, false if the address is not valid memory.</returns>
-        bool QueryMemory(ulong address, out MemoryInfo info);
+        bool QueryMemory(ulong address, out MemoryRegionInfo info);
 
         /// <summary>
         /// Gets the thread context for the given thread.

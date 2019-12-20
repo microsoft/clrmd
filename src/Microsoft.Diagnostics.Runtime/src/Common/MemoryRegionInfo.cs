@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Contains information about a range of memory.
     /// </summary>
-    public struct MemoryInfo
+    public struct MemoryRegionInfo
     {
         /// <summary>
         /// The base address of the allocation.
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="addr">Base address of the memory range.</param>
         /// <param name="size">The size of the memory range.</param>
-        public MemoryInfo(ulong addr, ulong size)
+        public MemoryRegionInfo(ulong addr, ulong size)
         {
             BaseAddress = addr;
             Size = size;

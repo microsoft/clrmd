@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public bool QueryMemory(ulong address, out MemoryInfo vq)
+        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
             long addr = (long)address;
             foreach (ElfProgramHeader item in _core.ElfFile.ProgramHeaders)
@@ -205,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (start <= addr && addr < end)
                 {
-                    vq = new MemoryInfo((ulong)start, (ulong)item.VirtualSize);
+                    vq = new MemoryRegionInfo((ulong)start, (ulong)item.VirtualSize);
                     return true;
                 }
             }

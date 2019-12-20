@@ -253,11 +253,11 @@ namespace Microsoft.Diagnostics.Runtime
             Interlocked.Increment(ref s_totalInstanceCount);
         }
 
-        public bool QueryMemory(ulong address, out MemoryInfo vq)
+        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
             if (_spaces.QueryVirtual(address, out MEMORY_BASIC_INFORMATION64 mem))
             {
-                vq = new MemoryInfo(mem.BaseAddress, mem.RegionSize);
+                vq = new MemoryRegionInfo(mem.BaseAddress, mem.RegionSize);
                 return true;
             }
 
