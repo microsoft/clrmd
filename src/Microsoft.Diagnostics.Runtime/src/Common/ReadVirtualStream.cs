@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        public override long Length => throw new NotImplementedException();
+        public override long Length => _len;
 
         public override long Position
         {
