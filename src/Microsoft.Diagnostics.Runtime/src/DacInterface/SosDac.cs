@@ -612,7 +612,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public bool GetGcHeapData(out GCInfo data)
+        public bool GetGCHeapData(out GCInfo data)
         {
             InitDelegate(ref _getGCHeapData, VTable->GetGCHeapData);
             int hr = _getGCHeapData(Self, out data);

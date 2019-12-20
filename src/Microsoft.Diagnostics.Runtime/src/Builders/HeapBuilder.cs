@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (sos.GetCommonMethodTables(out _mts))
                 CanWalkHeap = ArrayMethodTable != 0 && StringMethodTable != 0 && ExceptionMethodTable != 0 && FreeMethodTable != 0 && ObjectMethodTable != 0;
 
-            if (sos.GetGcHeapData(out GCInfo gcdata))
+            if (sos.GetGCHeapData(out GCInfo gcdata))
             {
                 if (gcdata.MaxGeneration != 2)
                     throw new NotSupportedException($"The GC reported a max generation of {gcdata.MaxGeneration} which this build of ClrMD does not support.");

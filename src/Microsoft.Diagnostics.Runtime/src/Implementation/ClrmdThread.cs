@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override ClrRuntime Runtime { get; }
         public override ulong Address { get; }
         public override bool IsFinalizer { get; }
-        public override GcMode GcMode { get; }
+        public override GCMode GCMode { get; }
         public override uint OSThreadId { get; }
         public override int ManagedThreadId { get; }
         public override ClrAppDomain CurrentAppDomain { get; }
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
             _exceptionHandle = data.ExceptionHandle;
             StackBase = data.StackBase;
             StackLimit = data.StackLimit;
-            GcMode = data.Preemptive ? GcMode.Preemptive : GcMode.Cooperative;
+            GCMode = data.Preemptive ? GCMode.Preemptive : GCMode.Cooperative;
         }
 
         public override ClrException? CurrentException

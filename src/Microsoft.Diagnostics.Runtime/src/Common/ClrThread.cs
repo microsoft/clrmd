@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The suspension state of the thread according to the runtime.
         /// </summary>
-        public abstract GcMode GcMode { get; }
+        public abstract GCMode GCMode { get; }
 
         /// <summary>
         /// Returns true if this is the finalizer thread.
