@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an instance of a type which inherits from System.ValueClass.
+    /// Represents an instance of a type which inherits from <see cref="ValueType"/>.
     /// </summary>
     public struct ClrValueType : IAddressableTypedEntity
     {

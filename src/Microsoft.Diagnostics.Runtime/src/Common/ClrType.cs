@@ -75,9 +75,9 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
-        /// Gets a value indicating whether this type is a ValueClass (struct).
+        /// Gets a value indicating whether this type is a value type.
         /// </summary>
-        /// <returns>True if this type is a ValueClass (struct), false otherwise.</returns>
+        /// <returns>True if this type is a value type, false otherwise.</returns>
         public virtual bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
