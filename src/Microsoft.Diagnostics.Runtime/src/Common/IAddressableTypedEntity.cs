@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
         /// <exception cref="ArgumentException">Thrown when field was not found by name, or found field is not of struct type.</exception>
-        ClrValueClass GetValueClassField(string fieldName);
+        ClrValueType GetValueTypeField(string fieldName);
 
         /// <summary>
         /// Gets the value of reference field.

@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an instance of a type which inherits from System.ValueClass.
     /// </summary>
-    public struct ClrValueClass : IAddressableTypedEntity
+    public struct ClrValueType : IAddressableTypedEntity
     {
         private IDataReader DataReader => GetTypeOrThrow().ClrObjectHelpers.DataReader;
         private readonly bool _interior;
@@ -24,13 +24,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrType Type { get; }
 
-        internal ClrValueClass(ulong address, ClrType type, bool interior)
+        internal ClrValueType(ulong address, ClrType type, bool interior)
         {
             Address = address;
             Type = type;
             _interior = interior;
 
-            DebugOnly.Assert(type.IsValueClass);
+            DebugOnly.Assert(type.IsValueType);
         }
 
         /// <summary>
@@ -79,20 +79,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName"></param>
         /// <returns></returns>
-        public ClrValueClass GetValueClassField(string fieldName)
+        public ClrValueType GetValueTypeField(string fieldName)
         {
             ClrInstanceField? field = Type.GetFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
-            if (!field.IsValueClass)
+            if (!field.IsValueType)
                 throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
             if (field.Type is null)
                 throw new Exception("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address, _interior);
-            return new ClrValueClass(addr, field.Type, true);
+            return new ClrValueType(addr, field.Type, true);
         }
 
         /// <summary>

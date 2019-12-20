@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrElementType ElementType { get; }
 
         public override bool IsObjectReference => ElementType.IsObjectReference();
-        public override bool IsValueClass => ElementType.IsValueClass();
+        public override bool IsValueType => ElementType.IsValueType();
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
         public override string? Name
@@ -292,13 +292,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new ClrObject(obj, type);
         }
 
-        public override ClrValueClass ReadStruct(ulong objRef, bool interior)
+        public override ClrValueType ReadStruct(ulong objRef, bool interior)
         {
             ulong address = GetAddress(objRef, interior);
             if (address == 0)
                 return default;
 
-            return new ClrValueClass(address, Type, interior: true);
+            return new ClrValueType(address, Type, interior: true);
         }
 
         public override string? ReadString(ulong objRef, bool interior)

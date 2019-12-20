@@ -12,10 +12,10 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
-    public class ClrValueClassTests
+    public class ClrValueTypeTests
     {
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenSameAddressAndTypes_ReturnsTrue([Frozen]ulong address, [Frozen]ClrType type, ClrValueClass uno, ClrValueClass dos)
+        public void Equals_WhenSameAddressAndTypes_ReturnsTrue([Frozen]ulong address, [Frozen]ClrType type, ClrValueType uno, ClrValueType dos)
         {
             // Act
             var areSame = uno.Equals(dos);
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenDifferentAddress_ReturnsFalse([Frozen]ClrType type, ClrValueClass uno, ClrValueClass dos)
+        public void Equals_WhenDifferentAddress_ReturnsFalse([Frozen]ClrType type, ClrValueType uno, ClrValueType dos)
         {
             // Act
             var areSame = uno.Equals(dos);
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void Equals_WhenDifferentTypesButSameAddress_ReturnsFalse([Frozen]ulong address, ClrValueClass uno, ClrValueClass dos)
+        public void Equals_WhenDifferentTypesButSameAddress_ReturnsFalse([Frozen]ulong address, ClrValueType uno, ClrValueType dos)
         {
             // Act
             var areSame = uno.Equals(dos);
@@ -46,15 +46,15 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
 
         [Theory, AutoNSubstituteData]
-        public void GetValueClassField_WhenFieldFound_ReturnsField(ClrValueClass target, [Frozen]ClrType structType, ClrValueClass someStruct, ClrInstanceField structValueField)
+        public void GetValueTypeField_WhenFieldFound_ReturnsField(ClrValueType target, [Frozen]ClrType structType, ClrValueType someStruct, ClrInstanceField structValueField)
         {
             // Arrange
-            structValueField.IsValueClass.Returns(true);
+            structValueField.IsValueType.Returns(true);
             structValueField.Type.Returns(target.Type);
             structValueField.GetAddress(someStruct.Address, Arg.Any<bool>()).Returns(target.Address);
 
             // Act
-            var structRefFieldTarget = someStruct.GetValueClassField(structValueField.Name);
+            var structRefFieldTarget = someStruct.GetValueTypeField(structValueField.Name);
 
             // Assert
             structRefFieldTarget.Equals(target).Should().BeTrue();

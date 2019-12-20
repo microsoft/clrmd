@@ -42,11 +42,11 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
             fixture.Register((ClrType type, ulong address) =>
             {
-                type.IsValueClass.Returns(true);
+                type.IsValueType.Returns(true);
 
-                var constructor = typeof(ClrValueClass)
+                var constructor = typeof(ClrValueType)
                 .GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, binder: null, types: new Type[] { typeof(ulong), typeof(ClrType), typeof(bool) }, null);
-                return (ClrValueClass)constructor.Invoke(new object[] { address, type, true });
+                return (ClrValueType)constructor.Invoke(new object[] { address, type, true });
             });
         }
     }

@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public abstract T Read<T>() where T : unmanaged;
         public abstract ClrObject ReadObject();
-        public abstract ClrValueClass ReadStruct();
+        public abstract ClrValueType ReadStruct();
         public abstract string? ReadString();
     }
 }
