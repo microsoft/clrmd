@@ -57,7 +57,7 @@ jobs:
       - task: PublishBuildArtifacts@1
         displayName: Publish Packages
         inputs:
-          PathtoPublish: '$(Build.SourcesDirectory)/artifacts/packages'
+          PathtoPublish: '$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)'
           PublishLocation: Container
           ArtifactName: Packages_$(Agent.Os)_$(Agent.JobName)
         continueOnError: true
