@@ -51,17 +51,22 @@ jobs:
           -prepareMachine
           $(_SignArgs)
           $(_OfficialBuildIdArgs)
+          /p:Coverage=true
         name: Build
         displayName: Build
         condition: succeeded()
       - task: PublishBuildArtifacts@1
         displayName: Publish Packages
         inputs:
-          PathtoPublish: '$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)'
-          PublishLocation: Container
-          ArtifactName: Packages_$(Agent.Os)_$(Agent.JobName)
+          pathtoPublish: '$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)'
+          artifactName: Packages_$(Agent.Os)_$(Agent.JobName)
         continueOnError: true
         condition: always()
+      - task: PublishCodeCoverageResults@1
+        displayName: Publish Code Coverage
+        inputs:
+          codeCoverageTool: cobertura
+          summaryFileLocation: '$(Build.SourcesDirectory)/src/*/coverage.cobertura.xml'
     - job: Linux
       pool:
         name: NetCorePublic-Pool
@@ -76,6 +81,12 @@ jobs:
       - script: eng/common/cibuild.sh
           --configuration $(_BuildConfig)
           --prepareMachine
+          /p:Coverage=true
         name: Build
         displayName: Build
         condition: succeeded()
+      - task: PublishCodeCoverageResults@1
+        displayName: Publish Code Coverage
+        inputs:
+          codeCoverageTool: cobertura
+          summaryFileLocation: '$(Build.SourcesDirectory)/src/*/coverage.cobertura.xml'

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "coverlet.console": {
+      "version": "1.6.0",
+      "commands": [
+        "coverlet"
+      ]
+    },
+    "powershell": {
+      "version": "6.2.3",
+      "commands": [
+        "pwsh"
+      ]
+    }
+  }
+}
