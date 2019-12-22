@@ -63,9 +63,9 @@ jobs:
         continueOnError: true
         condition: always()
     - job: Linux
-      container: LinuxContainer
       pool:
-        name: Hosted Ubuntu 1604
+        name: NetCorePublic-Pool
+        queue: BuildPool.Ubuntu.1604.Amd64.Open
       strategy:
         matrix:
           debug:
