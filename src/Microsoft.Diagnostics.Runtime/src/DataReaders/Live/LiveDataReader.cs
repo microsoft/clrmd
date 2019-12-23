@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime
                 yield return (uint)thread.Id;
         }
 
-        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
+        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
             MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
             IntPtr ptr = address.AsIntPtr();
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
             }
 
-            vq = new VirtualQueryData(mem.BaseAddress, mem.Size);
+            vq = new MemoryRegionInfo(mem.BaseAddress, mem.Size);
             return true;
         }
 

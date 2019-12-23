@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName"></param>
         /// <returns></returns>
-        public ClrValueClass GetValueClassField(string fieldName)
+        public ClrValueType GetValueTypeField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
 
@@ -194,14 +194,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (field is null)
                 throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
-            if (!field.IsValueClass)
+            if (!field.IsValueType)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
 
             if (field.Type is null)
                 throw new Exception("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address);
-            return new ClrValueClass(addr, field.Type, true);
+            return new ClrValueType(addr, field.Type, true);
         }
 
         /// <summary>
@@ -239,7 +239,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (field.ElementType == ClrElementType.NativeInt)
                 mt = (ulong)GetField<IntPtr>("m_handle");
             else
-                mt = (ulong)GetValueClassField("m_handle").GetField<IntPtr>("m_ptr");
+                mt = (ulong)GetValueTypeField("m_handle").GetField<IntPtr>("m_ptr");
 
             return type.ClrObjectHelpers.Factory.GetOrCreateType(mt, 0);
         }

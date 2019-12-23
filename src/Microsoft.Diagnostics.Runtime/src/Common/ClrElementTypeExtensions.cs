@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
                 || cet == ClrElementType.Pointer || cet == ClrElementType.FunctionPointer;
         }
 
-        public static bool IsValueClass(this ClrElementType cet)
+        public static bool IsValueType(this ClrElementType cet)
         {
             return cet == ClrElementType.Struct;
         }

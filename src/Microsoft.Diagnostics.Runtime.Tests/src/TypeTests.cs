@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(type.IsPrimitive);
             Assert.False(type.IsObjectReference);
-            Assert.False(type.IsValueClass);
+            Assert.False(type.IsValueType);
 
             var fds = obj.Type.Fields;
 

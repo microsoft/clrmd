@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Defines the state of the thread from the runtime's perspective.
     /// </summary>
-    public enum GcMode
+    public enum GCMode
     {
         /// <summary>
         /// In Cooperative mode the thread must cooperate before a GC may proceed.  This means when a GC

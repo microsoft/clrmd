@@ -123,26 +123,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void GetValueClassField_WhenDateTime_ThrowsException()
+        public void GetValueTypeField_WhenDateTime_ThrowsException()
         {
             // Arrange
             var prototype = _connection.Prototype;
 
             // Act
-            ClrValueClass birthday = _primitiveCarrier.GetValueClassField(nameof(prototype.Birthday));
+            ClrValueType birthday = _primitiveCarrier.GetValueTypeField(nameof(prototype.Birthday));
 
             // Assert
             Assert.Equal(typeof(DateTime).FullName, birthday.Type.Name);
         }
 
         [Fact]
-        public void GetValueClassField_WhenGuid_ThrowsException()
+        public void GetValueTypeField_WhenGuid_ThrowsException()
         {
             // Arrange
             var prototype = _connection.Prototype;
 
             // Act
-            ClrValueClass sampleGuid = _primitiveCarrier.GetValueClassField(nameof(prototype.SampleGuid));
+            ClrValueType sampleGuid = _primitiveCarrier.GetValueTypeField(nameof(prototype.SampleGuid));
 
             // Assert
             Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);

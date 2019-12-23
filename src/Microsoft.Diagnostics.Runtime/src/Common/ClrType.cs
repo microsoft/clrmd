@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if this type is a ValueClass (struct), false otherwise.
         /// </summary>
         /// <returns>True if this type is a ValueClass (struct), false otherwise.</returns>
-        public virtual bool IsValueClass => ElementType.IsValueClass();
+        public virtual bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
         /// Returns true if this type is an object reference, false otherwise.

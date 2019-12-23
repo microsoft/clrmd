@@ -105,10 +105,10 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetValueClassField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueClass target, [Frozen]ClrType clrObjectType, ClrObject clrObject, ClrInstanceField clrObjValueField)
+        public void GetValueTypeField_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueType target, [Frozen]ClrType clrObjectType, ClrObject clrObject, ClrInstanceField clrObjValueField)
         {
             // Arrange
-            clrObjValueField.IsValueClass.Returns(true);
+            clrObjValueField.IsValueType.Returns(true);
             clrObjValueField.Type.Returns(target.Type);
 
             clrObjValueField
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
                 .Returns(target.Address);
 
             // Act
-            var structRefFieldTarget = clrObject.GetValueClassField(clrObjValueField.Name);
+            var structRefFieldTarget = clrObject.GetValueTypeField(clrObjValueField.Name);
 
             // Assert
             structRefFieldTarget.Equals(target).Should().BeTrue();

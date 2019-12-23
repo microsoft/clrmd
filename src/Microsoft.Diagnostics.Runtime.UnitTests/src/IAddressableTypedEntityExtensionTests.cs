@@ -30,12 +30,12 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 
 
         [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenStructureHasStructureField_ReturnsField(ClrValueClass target, [Frozen]ClrType structType, ClrValueClass rawStruct, ClrInstanceField structValueField)
+        public void GetFieldFrom_WhenStructureHasStructureField_ReturnsField(ClrValueType target, [Frozen]ClrType structType, ClrValueType rawStruct, ClrInstanceField structValueField)
         {
             // Arrange
             IAddressableTypedEntity entity = rawStruct;
 
-            structValueField.IsValueClass.Returns(true);
+            structValueField.IsValueType.Returns(true);
             structValueField.Type.Returns(entity.Type);
             structValueField.GetAddress(entity.Address, Arg.Any<bool>()).Returns(target.Address);
 
@@ -47,9 +47,9 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetFieldFrom_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueClass target, [Frozen]ClrType clrObjectType, ClrObject rawClrObject, ClrInstanceField clrObjValueField)
+        public void GetFieldFrom_WhenFieldFound_ReturnsField([Frozen] ClrHeap heap, ClrValueType target, [Frozen]ClrType clrObjectType, ClrObject rawClrObject, ClrInstanceField clrObjValueField)
         {
-            clrObjValueField.IsValueClass.Returns(true);
+            clrObjValueField.IsValueType.Returns(true);
             clrObjValueField.Type.Returns(target.Type);
 
             clrObjValueField

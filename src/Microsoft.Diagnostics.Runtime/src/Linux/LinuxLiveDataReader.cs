@@ -229,13 +229,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return _threadIDs;
         }
 
-        public bool VirtualQuery(ulong address, out VirtualQueryData vq)
+        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
             foreach (var entry in _memoryMapEntries)
             {
                 if (entry.BeginAddr <= address && entry.EndAddr >= address)
                 {
-                    vq = new VirtualQueryData(entry.BeginAddr, entry.EndAddr - entry.BeginAddr + 1);
+                    vq = new MemoryRegionInfo(entry.BeginAddr, entry.EndAddr - entry.BeginAddr + 1);
                     return true;
                 }
             }
