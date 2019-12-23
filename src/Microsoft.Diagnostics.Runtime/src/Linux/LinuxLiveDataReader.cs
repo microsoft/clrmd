@@ -6,11 +6,11 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -50,6 +50,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                 _suspended = true;
             }
+
+            Architecture = RuntimeInformation.ProcessArchitecture switch
+            {
+                ProcessArchitecture.X86 => Architecture.X86,
+                ProcessArchitecture.X64 => Architecture.Amd64,
+                ProcessArchitecture.Arm => Architecture.Arm,
+                ProcessArchitecture.Arm64 => Architecture.Arm64,
+                _ => Architecture.Unknown,
+            };
         }
 
         ~LinuxLiveDataReader() => Dispose(false);
@@ -92,7 +101,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _memoryMapEntries = LoadMemoryMap();
         }
 
-        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
+        public Architecture Architecture { get; }
+
         public int PointerSize => IntPtr.Size;
 
         public IEnumerable<ModuleInfo> EnumerateModules()
@@ -246,12 +256,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
-            if (!_threadIDs.Contains(threadID) || context.Length != AMD64Context.Size)
+            if (!_threadIDs.Contains(threadID) || Architecture == Architecture.X86)
                 return false;
 
-            ref AMD64Context ctx = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
-            ctx.ContextFlags = contextFlags;
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(RegSetX64));
+            int regSize = Architecture switch
+            {
+                Architecture.Arm => sizeof(RegSetArm),
+                Architecture.Arm64 => sizeof(RegSetArm64),
+                _ => sizeof(RegSetX64),
+            };
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
             try
             {
                 fixed (byte* data = buffer)
@@ -259,7 +274,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, new IntPtr(data));
                 }
 
-                CopyContext(ref ctx, Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())));
+                if (Architecture == Architecture.Arm)
+                    Unsafe.As<byte, RegSetArm>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                else if (Architecture == Architecture.Arm64)
+                    Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                else
+                    Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
             }
             finally
             {
@@ -272,27 +292,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         internal IEnumerable<string> GetModulesFullPath()
         {
             return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct()!;
-        }
-
-        private static void CopyContext(ref AMD64Context context, in RegSetX64 registerSet)
-        {
-            context.R15 = registerSet.R15;
-            context.R14 = registerSet.R14;
-            context.R13 = registerSet.R13;
-            context.R12 = registerSet.R12;
-            context.Rbp = registerSet.Rbp;
-            context.Rbx = registerSet.Rbx;
-            context.R11 = registerSet.R11;
-            context.R10 = registerSet.R10;
-            context.R9 = registerSet.R9;
-            context.R8 = registerSet.R8;
-            context.Rax = registerSet.Rax;
-            context.Rcx = registerSet.Rcx;
-            context.Rdx = registerSet.Rdx;
-            context.Rsi = registerSet.Rsi;
-            context.Rdi = registerSet.Rdi;
-            context.Rip = registerSet.Rip;
-            context.Rsp = registerSet.Rsp;
         }
 
         private void LoadThreads()
