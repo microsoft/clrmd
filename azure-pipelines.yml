@@ -52,6 +52,7 @@ jobs:
           $(_SignArgs)
           $(_OfficialBuildIdArgs)
           /p:Coverage=true
+          /p:ContinuousIntegrationBuild=false
         name: Build
         displayName: Build
         condition: succeeded()
@@ -82,6 +83,7 @@ jobs:
           --configuration $(_BuildConfig)
           --prepareMachine
           /p:Coverage=true
+          /p:ContinuousIntegrationBuild=false
         name: Build
         displayName: Build
         condition: succeeded()
