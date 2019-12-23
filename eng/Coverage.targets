@@ -33,6 +33,8 @@
       <Using Namespace="System.Diagnostics" />
       <Using Namespace="System.IO.Pipes" />
       <Code>
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} .");
+
         using var coverlet = Process.Start(
           @"$(DotNetTool)",
           $@"tool run coverlet ""{TestAssembly}"" " +
@@ -48,9 +50,13 @@
           @"""");
         CoverletId = coverlet.Id;
 
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ..");
+
         using var client = new NamedPipeClientStream(PipeName);
         client.Connect();
         client.WriteByte(0);
+
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ...");
       </Code>
     </Task>
 
@@ -70,11 +76,17 @@
       <Using Namespace="System.Diagnostics" />
       <Using Namespace="System.IO.Pipes" />
       <Code>
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ....");
+
         using var client = new NamedPipeClientStream(PipeName);
         client.Connect();
 
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} .....");
+
         using var coverlet = Process.GetProcessById(CoverletId);
         coverlet.WaitForExit();
+
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ......");
       </Code>
     </Task>
 
