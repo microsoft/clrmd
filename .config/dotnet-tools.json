@@ -13,6 +13,12 @@
       "commands": [
         "pwsh"
       ]
+    },
+    "codecov.tool": {
+      "version": "1.9.0",
+      "commands": [
+        "codecov"
+      ]
     }
   }
 }

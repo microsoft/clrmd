@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <CoverageFormat Condition="'$(CoverageFormat)' == ''">cobertura</CoverageFormat>
+    <CoverageOutputPath Condition="'$(CoverageOutputPath)' == ''">coverage.cobertura.xml</CoverageOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -16,6 +17,7 @@
 
   <Target Name="AfterCollectCodeCoverage" AfterTargets="RunTests">
     <AfterCollectCodeCoverageTask PipeName="%(TestToRun.Filename)" CoverletId="$(CoverletId)" />
+    <!-- <Exec Command="$(DotNetTool) tool run codecov -f '$(CoverageOutputPath)'" /> -->
   </Target>
 
   <UsingTask
@@ -39,6 +41,7 @@
           @"$(DotNetTool)",
           $@"tool run coverlet ""{TestAssembly}"" " +
           @"--format $(CoverageFormat) " +
+          @"--output ""$(CoverageOutputPath)"" " +
           @"--target ""$(DotNetTool)"" " +
           @"--targetargs ""tool run pwsh " +
           $"$server = [System.IO.Pipes.NamedPipeServerStream]::new('{PipeName}');" +
