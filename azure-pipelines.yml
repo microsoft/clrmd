@@ -52,7 +52,7 @@ jobs:
           $(_SignArgs)
           $(_OfficialBuildIdArgs)
           /p:Coverage=true
-          /p:ContinuousIntegrationBuild=false
+          /p:DeterministicSourcePaths=false # tonerdo/coverlet#363
         name: Build
         displayName: Build
         condition: succeeded()
@@ -83,7 +83,7 @@ jobs:
           --configuration $(_BuildConfig)
           --prepareMachine
           /p:Coverage=true
-          /p:ContinuousIntegrationBuild=false
+          /p:DeterministicSourcePaths=false # tonerdo/coverlet#363
         name: Build
         displayName: Build
         condition: succeeded()
