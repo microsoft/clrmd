@@ -19,6 +19,12 @@
       "commands": [
         "codecov"
       ]
+    },
+    "dotnet-reportgenerator-globaltool": {
+      "version": "4.3.9",
+      "commands": [
+        "reportgenerator"
+      ]
     }
   }
 }
