@@ -4,8 +4,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -52,12 +52,15 @@ namespace Microsoft.Diagnostics.Runtime
             if (hr != 0)
             {
                 const int E_INVALIDARG = unchecked((int)0x80070057);
+                const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
-                if (hr == E_INVALIDARG)
+                if (hr == E_INVALIDARG || hr == HRESULT_FROM_NT(STATUS_MAPPED_FILE_SIZE_ZERO))
                     throw new InvalidDataException("The file is not a crash dump");
 
                 var kind = (uint)hr == 0x80004005 ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
                 throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: 0x{hr:x8}", kind, hr).AddData("DumpFile", dumpFile);
+
+                static int HRESULT_FROM_NT(int status) => status | 0x10000000;
             }
 
             // This actually "attaches" to the crash dump.
@@ -208,10 +211,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong[] bases = GetImageBases();
             if (bases.Length == 0)
-                return Array.Empty<ModuleInfo>();
+                return Enumerable.Empty<ModuleInfo>();
 
             List<ModuleInfo> modules = new List<ModuleInfo>();
-            if (_symbols.GetModuleParameters(bases, out DbgEng.DEBUG_MODULE_PARAMETERS[] mods))
+            if (_symbols.GetModuleParameters(bases, out DEBUG_MODULE_PARAMETERS[] mods))
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
