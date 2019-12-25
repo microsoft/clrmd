@@ -4,6 +4,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -16,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public sealed unsafe class SOSDac : CallableCOMWrapper
     {
         internal static readonly Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
-        private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
+
         private readonly DacLibrary _library;
 
         public SOSDac(DacLibrary? library, IntPtr ptr)
@@ -24,6 +25,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             _library = library ?? throw new ArgumentNullException(nameof(library));
         }
+
+        private ref readonly ISOSDacVTable VTable => ref Unsafe.AsRef<ISOSDacVTable>(_vtable);
 
         public SOSDac(DacLibrary lib, CallableCOMWrapper toClone) : base(toClone)
         {
@@ -90,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
-            InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
+            InitDelegate(ref _getMethodDescData, VTable.GetMethodDescData);
             int hr = _getMethodDescData(Self, md, ip, out MethodDescData data, 0, null, out int needed);
 
             if (SUCCEEDED(hr) && needed > 1)
@@ -106,20 +109,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
         {
-            InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
+            InitDelegate(ref _getMethodDescData, VTable.GetMethodDescData);
             int hr = _getMethodDescData(Self, md, ip, out data, 0, null, out int needed);
             return SUCCEEDED(hr);
         }
 
         public bool GetThreadStoreData(out ThreadStoreData data)
         {
-            InitDelegate(ref _getThreadStoreData, VTable->GetThreadStoreData);
+            InitDelegate(ref _getThreadStoreData, VTable.GetThreadStoreData);
             return _getThreadStoreData(Self, out data) == S_OK;
         }
 
         public uint GetTlsIndex()
         {
-            InitDelegate(ref _getTlsIndex, VTable->GetTLSIndex);
+            InitDelegate(ref _getTlsIndex, VTable.GetTLSIndex);
             if (_getTlsIndex(Self, out uint index) == S_OK)
                 return index;
 
@@ -128,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetThreadFromThinlockId(uint id)
         {
-            InitDelegate(ref _getThreadFromThinlockId, VTable->GetThreadFromThinlockID);
+            InitDelegate(ref _getThreadFromThinlockId, VTable.GetThreadFromThinlockID);
             if (_getThreadFromThinlockId(Self, id, out ClrDataAddress thread) == S_OK)
                 return thread;
 
@@ -140,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (md == 0)
                 return null;
 
-            InitDelegate(ref _getMethodDescName, VTable->GetMethodDescName);
+            InitDelegate(ref _getMethodDescName, VTable.GetMethodDescName);
 
             if (_getMethodDescName(Self, md, 0, null, out int needed) < S_OK)
                 return null;
@@ -179,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (mt == 0)
                 return 0;
 
-            InitDelegate(ref _getMethodTableSlot, VTable->GetMethodTableSlot);
+            InitDelegate(ref _getMethodTableSlot, VTable.GetMethodTableSlot);
 
             if (_getMethodTableSlot(Self, mt, (uint)slot, out ClrDataAddress ip) == S_OK)
                 return ip;
@@ -189,14 +192,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetThreadLocalModuleData(ulong thread, uint index, out ThreadLocalModuleData data)
         {
-            InitDelegate(ref _getThreadLocalModuleData, VTable->GetThreadLocalModuleData);
+            InitDelegate(ref _getThreadLocalModuleData, VTable.GetThreadLocalModuleData);
 
             return _getThreadLocalModuleData(Self, thread, index, out data) == S_OK;
         }
 
         public ulong GetILForModule(ulong moduleAddr, uint rva)
         {
-            InitDelegate(ref _getILForModule, VTable->GetILForModule);
+            InitDelegate(ref _getILForModule, VTable.GetILForModule);
 
             int hr = _getILForModule(Self, moduleAddr, rva, out ClrDataAddress result);
             return hr == S_OK ? result : 0ul;
@@ -204,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
         {
-            InitDelegate(ref _getCCWInterfaces, VTable->GetCCWInterfaces);
+            InitDelegate(ref _getCCWInterfaces, VTable.GetCCWInterfaces);
 
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
             if (_getCCWInterfaces(Self, ccw, count, data, out int pNeeded) >= 0)
@@ -215,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public COMInterfacePointerData[]? GetRCWInterfaces(ulong ccw, int count)
         {
-            InitDelegate(ref _getRCWInterfaces, VTable->GetRCWInterfaces);
+            InitDelegate(ref _getRCWInterfaces, VTable.GetRCWInterfaces);
 
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
             if (_getRCWInterfaces(Self, ccw, count, data, out int pNeeded) >= 0)
@@ -226,48 +229,48 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetDomainLocalModuleDataFromModule(ulong module, out DomainLocalModuleData data)
         {
-            InitDelegate(ref _getDomainLocalModuleDataFromModule, VTable->GetDomainLocalModuleDataFromModule);
+            InitDelegate(ref _getDomainLocalModuleDataFromModule, VTable.GetDomainLocalModuleDataFromModule);
             int res = _getDomainLocalModuleDataFromModule(Self, module, out data);
             return SUCCEEDED(res);
         }
 
         public bool GetDomainLocalModuleDataFromAppDomain(ulong appDomain, int id, out DomainLocalModuleData data)
         {
-            InitDelegate(ref _getDomainLocalModuleDataFromAppDomain, VTable->GetDomainLocalModuleDataFromAppDomain);
+            InitDelegate(ref _getDomainLocalModuleDataFromAppDomain, VTable.GetDomainLocalModuleDataFromAppDomain);
             int res = _getDomainLocalModuleDataFromAppDomain(Self, appDomain, id, out data);
             return SUCCEEDED(res);
         }
 
         public bool GetWorkRequestData(ulong request, out WorkRequestData data)
         {
-            InitDelegate(ref _getWorkRequestData, VTable->GetWorkRequestData);
+            InitDelegate(ref _getWorkRequestData, VTable.GetWorkRequestData);
             int hr = _getWorkRequestData(Self, request, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetThreadPoolData(out ThreadPoolData data)
         {
-            InitDelegate(ref _getThreadPoolData, VTable->GetThreadpoolData);
+            InitDelegate(ref _getThreadPoolData, VTable.GetThreadpoolData);
             int hr = _getThreadPoolData(Self, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetSyncBlockData(int index, out SyncBlockData data)
         {
-            InitDelegate(ref _getSyncBlock, VTable->GetSyncBlockData);
+            InitDelegate(ref _getSyncBlock, VTable.GetSyncBlockData);
             int hr = _getSyncBlock(Self, index, out data);
             return SUCCEEDED(hr);
         }
 
         public string? GetAppBase(ulong domain)
         {
-            InitDelegate(ref _getAppBase, VTable->GetApplicationBase);
+            InitDelegate(ref _getAppBase, VTable.GetApplicationBase);
             return GetString(_getAppBase, domain);
         }
 
         public string? GetConfigFile(ulong domain)
         {
-            InitDelegate(ref _getConfigFile, VTable->GetAppDomainConfigFile);
+            InitDelegate(ref _getConfigFile, VTable.GetAppDomainConfigFile);
             return GetString(_getConfigFile, domain);
         }
 
@@ -279,7 +282,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return false;
             }
 
-            InitDelegate(ref _getCodeHeaderData, VTable->GetCodeHeaderData);
+            InitDelegate(ref _getCodeHeaderData, VTable.GetCodeHeaderData);
 
             int hr = _getCodeHeaderData(Self, ip, out codeHeaderData);
             return hr == S_OK;
@@ -287,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetMethodDescPtrFromFrame(ulong frame)
         {
-            InitDelegate(ref _getMethodDescPtrFromFrame, VTable->GetMethodDescPtrFromFrame);
+            InitDelegate(ref _getMethodDescPtrFromFrame, VTable.GetMethodDescPtrFromFrame);
             if (_getMethodDescPtrFromFrame(Self, frame, out ClrDataAddress data) == S_OK)
                 return data;
 
@@ -296,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetMethodDescPtrFromIP(ulong frame)
         {
-            InitDelegate(ref _getMethodDescPtrFromIP, VTable->GetMethodDescPtrFromIP);
+            InitDelegate(ref _getMethodDescPtrFromIP, VTable.GetMethodDescPtrFromIP);
             if (_getMethodDescPtrFromIP(Self, frame, out ClrDataAddress data) == S_OK)
                 return data;
 
@@ -305,41 +308,41 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string GetFrameName(ulong vtable)
         {
-            InitDelegate(ref _getFrameName, VTable->GetFrameName);
+            InitDelegate(ref _getFrameName, VTable.GetFrameName);
             return GetString(_getFrameName, vtable, false) ?? "Unknown Frame";
         }
 
         public bool GetFieldInfo(ulong mt, out V4FieldInfo data)
         {
-            InitDelegate(ref _getFieldInfo, VTable->GetMethodTableFieldData);
+            InitDelegate(ref _getFieldInfo, VTable.GetMethodTableFieldData);
             int hr = _getFieldInfo(Self, mt, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetFieldData(ulong fieldDesc, out FieldData data)
         {
-            InitDelegate(ref _getFieldData, VTable->GetFieldDescData);
+            InitDelegate(ref _getFieldData, VTable.GetFieldDescData);
             int hr = _getFieldData(Self, fieldDesc, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetObjectData(ulong obj, out V45ObjectData data)
         {
-            InitDelegate(ref _getObjectData, VTable->GetObjectData);
+            InitDelegate(ref _getObjectData, VTable.GetObjectData);
             int hr = _getObjectData(Self, obj, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetCCWData(ulong ccw, out CCWData data)
         {
-            InitDelegate(ref _getCCWData, VTable->GetCCWData);
+            InitDelegate(ref _getCCWData, VTable.GetCCWData);
             int hr = _getCCWData(Self, ccw, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetRCWData(ulong rcw, out RCWData data)
         {
-            InitDelegate(ref _getRCWData, VTable->GetRCWData);
+            InitDelegate(ref _getRCWData, VTable.GetRCWData);
             int hr = _getRCWData(Self, rcw, out data);
             return SUCCEEDED(hr);
         }
@@ -349,7 +352,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (module == 0)
                 return null;
 
-            InitDelegate(ref _getModule, VTable->GetModule);
+            InitDelegate(ref _getModule, VTable.GetModule);
             if (_getModule(Self, module, out IntPtr iunk) != S_OK)
                 return null;
 
@@ -361,7 +364,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (module == 0)
                 return null;
 
-            InitDelegate(ref _getModule, VTable->GetModule);
+            InitDelegate(ref _getModule, VTable.GetModule);
             if (_getModule(Self, module, out IntPtr iunk) != S_OK)
                 return null;
 
@@ -379,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
         {
-            InitDelegate(ref _getCommonMethodTables, VTable->GetUsefulGlobals);
+            InitDelegate(ref _getCommonMethodTables, VTable.GetUsefulGlobals);
             return _getCommonMethodTables(Self, out commonMTs) == S_OK;
         }
 
@@ -390,12 +393,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count)
         {
-            return GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable->GetAssemblyList);
+            return GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable.GetAssemblyList);
         }
 
         public bool GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
         {
-            InitDelegate(ref _getAssemblyData, VTable->GetAssemblyData);
+            InitDelegate(ref _getAssemblyData, VTable.GetAssemblyData);
 
             // The dac seems to have an issue where the assembly data can be filled in for a minidump.
             // If the data is partially filled in, we'll use it.
@@ -406,7 +409,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetAppDomainData(ulong addr, out AppDomainData data)
         {
-            InitDelegate(ref _getAppDomainData, VTable->GetAppDomainData);
+            InitDelegate(ref _getAppDomainData, VTable.GetAppDomainData);
 
             // We can face an exception while walking domain data if we catch the process
             // at a bad state.  As a workaround we will return partial data if data.Address
@@ -418,45 +421,45 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetAppDomainName(ulong appDomain)
         {
-            InitDelegate(ref _getAppDomainName, VTable->GetAppDomainName);
+            InitDelegate(ref _getAppDomainName, VTable.GetAppDomainName);
             return GetString(_getAppDomainName, appDomain);
         }
 
         public string? GetAssemblyName(ulong assembly)
         {
-            InitDelegate(ref _getAssemblyName, VTable->GetAssemblyName);
+            InitDelegate(ref _getAssemblyName, VTable.GetAssemblyName);
             return GetString(_getAssemblyName, assembly);
         }
 
         public bool GetAppDomainStoreData(out AppDomainStoreData data)
         {
-            InitDelegate(ref _getAppDomainStoreData, VTable->GetAppDomainStoreData);
+            InitDelegate(ref _getAppDomainStoreData, VTable.GetAppDomainStoreData);
             int hr = _getAppDomainStoreData(Self, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetMethodTableData(ulong addr, out MethodTableData data)
         {
-            InitDelegate(ref _getMethodTableData, VTable->GetMethodTableData);
+            InitDelegate(ref _getMethodTableData, VTable.GetMethodTableData);
             int hr = _getMethodTableData(Self, addr, out data);
             return SUCCEEDED(hr);
         }
 
         public string? GetMethodTableName(ulong mt)
         {
-            InitDelegate(ref _getMethodTableName, VTable->GetMethodTableName);
+            InitDelegate(ref _getMethodTableName, VTable.GetMethodTableName);
             return GetString(_getMethodTableName, mt);
         }
 
         public string? GetJitHelperFunctionName(ulong addr)
         {
-            InitDelegate(ref _getJitHelperFunctionName, VTable->GetJitHelperFunctionName);
+            InitDelegate(ref _getJitHelperFunctionName, VTable.GetJitHelperFunctionName);
             return GetAsciiString(_getJitHelperFunctionName, addr);
         }
 
         public string? GetPEFileName(ulong pefile)
         {
-            InitDelegate(ref _getPEFileName, VTable->GetPEFileName);
+            InitDelegate(ref _getPEFileName, VTable.GetPEFileName);
             return GetString(_getPEFileName, pefile);
         }
 
@@ -538,7 +541,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetMethodTableByEEClass(ulong eeclass)
         {
-            InitDelegate(ref _getMTForEEClass, VTable->GetMethodTableForEEClass);
+            InitDelegate(ref _getMTForEEClass, VTable.GetMethodTableForEEClass);
             if (_getMTForEEClass(Self, eeclass, out ClrDataAddress data) == S_OK)
                 return data;
 
@@ -547,7 +550,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetModuleData(ulong module, out ModuleData data)
         {
-            InitDelegate(ref _getModuleData, VTable->GetModuleData);
+            InitDelegate(ref _getModuleData, VTable.GetModuleData);
             int hr = _getModuleData(Self, module, out data);
             return SUCCEEDED(hr);
         }
@@ -559,7 +562,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[] GetModuleList(ulong assembly, int count)
         {
-            return GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable->GetAssemblyModuleList);
+            return GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable.GetAssemblyModuleList);
         }
 
         private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, ref DacGetAddrArrayWithArg? func, IntPtr vtableEntry)
@@ -584,7 +587,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[] GetAppDomainList(int count = 0)
         {
-            InitDelegate(ref _getAppDomainList, VTable->GetAppDomainList);
+            InitDelegate(ref _getAppDomainList, VTable.GetAppDomainList);
 
             if (count <= 0)
             {
@@ -607,28 +610,28 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return false;
             }
 
-            InitDelegate(ref _getThreadData, VTable->GetThreadData);
+            InitDelegate(ref _getThreadData, VTable.GetThreadData);
             int hr = _getThreadData(Self, address, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetGcHeapData(out GCInfo data)
         {
-            InitDelegate(ref _getGCHeapData, VTable->GetGCHeapData);
+            InitDelegate(ref _getGCHeapData, VTable.GetGCHeapData);
             int hr = _getGCHeapData(Self, out data);
             return SUCCEEDED(hr);
         }
 
         public bool GetSegmentData(ulong addr, out SegmentData data)
         {
-            InitDelegate(ref _getSegmentData, VTable->GetHeapSegmentData);
+            InitDelegate(ref _getSegmentData, VTable.GetHeapSegmentData);
             int hr = _getSegmentData(Self, addr, out data);
             return SUCCEEDED(hr);
         }
 
         public ClrDataAddress[] GetHeapList(int heapCount)
         {
-            InitDelegate(ref _getGCHeapList, VTable->GetGCHeapList);
+            InitDelegate(ref _getGCHeapList, VTable.GetGCHeapList);
 
             ClrDataAddress[] refs = new ClrDataAddress[heapCount];
             int hr = _getGCHeapList(Self, heapCount, refs, out int needed);
@@ -637,7 +640,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetServerHeapDetails(ulong addr, out HeapDetails data)
         {
-            InitDelegate(ref _getGCHeapDetails, VTable->GetGCHeapDetails);
+            InitDelegate(ref _getGCHeapDetails, VTable.GetGCHeapDetails);
             int hr = _getGCHeapDetails(Self, addr, out data);
 
             return SUCCEEDED(hr);
@@ -645,14 +648,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetWksHeapDetails(out HeapDetails data)
         {
-            InitDelegate(ref _getGCHeapStaticData, VTable->GetGCHeapStaticData);
+            InitDelegate(ref _getGCHeapStaticData, VTable.GetGCHeapStaticData);
             int hr = _getGCHeapStaticData(Self, out data);
             return SUCCEEDED(hr);
         }
 
         public JitManagerInfo[] GetJitManagers()
         {
-            InitDelegate(ref _getJitManagers, VTable->GetJitManagerList);
+            InitDelegate(ref _getJitManagers, VTable.GetJitManagerList);
             int hr = _getJitManagers(Self, 0, null, out int needed);
             if (hr != S_OK || needed == 0)
                 return Array.Empty<JitManagerInfo>();
@@ -665,7 +668,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public JitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
         {
-            InitDelegate(ref _getCodeHeaps, VTable->GetCodeHeapList);
+            InitDelegate(ref _getCodeHeaps, VTable.GetCodeHeapList);
             int hr = _getCodeHeaps(Self, jitManager, 0, null, out int needed);
             if (hr != S_OK || needed == 0)
                 return Array.Empty<JitCodeHeapInfo>();
@@ -687,7 +690,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
-            InitDelegate(ref _traverseModuleMap, VTable->TraverseModuleMap);
+            InitDelegate(ref _traverseModuleMap, VTable.TraverseModuleMap);
 
             int hr = _traverseModuleMap(Self, (int)mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
@@ -699,7 +702,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
         {
-            InitDelegate(ref _traverseLoaderHeap, VTable->TraverseLoaderHeap);
+            InitDelegate(ref _traverseLoaderHeap, VTable.TraverseLoaderHeap);
 
             int hr = _traverseLoaderHeap(Self, heap, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
@@ -708,7 +711,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool TraverseStubHeap(ulong heap, int type, LoaderHeapTraverse callback)
         {
-            InitDelegate(ref _traverseStubHeap, VTable->TraverseVirtCallStubHeap);
+            InitDelegate(ref _traverseStubHeap, VTable.TraverseVirtCallStubHeap);
 
             int hr = _traverseStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
@@ -717,7 +720,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSHandleEnum? EnumerateHandles(params ClrHandleKind[] types)
         {
-            InitDelegate(ref _getHandleEnumForTypes, VTable->GetHandleEnumForTypes);
+            InitDelegate(ref _getHandleEnumForTypes, VTable.GetHandleEnumForTypes);
 
             int hr = _getHandleEnumForTypes(Self, types, types.Length, out IntPtr ptrEnum);
             return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
@@ -725,7 +728,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSHandleEnum? EnumerateHandles()
         {
-            InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
+            InitDelegate(ref _getHandleEnum, VTable.GetHandleEnum);
 
             int hr = _getHandleEnum(Self, out IntPtr ptrEnum);
             return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
@@ -733,7 +736,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSStackRefEnum? EnumerateStackRefs(uint osThreadId)
         {
-            InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
+            InitDelegate(ref _getStackRefEnum, VTable.GetStackReferences);
 
             int hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
             return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
@@ -741,7 +744,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ulong GetMethodDescFromToken(ulong module, uint token)
         {
-            InitDelegate(ref _getMethodDescFromToken, VTable->GetMethodDescFromToken);
+            InitDelegate(ref _getMethodDescFromToken, VTable.GetMethodDescFromToken);
 
             int hr = _getMethodDescFromToken(Self, module, token, out ClrDataAddress md);
             return hr == S_OK ? md : 0ul;

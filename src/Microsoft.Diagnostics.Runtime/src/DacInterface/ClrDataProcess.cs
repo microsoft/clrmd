@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -15,8 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public unsafe class ClrDataProcess : CallableCOMWrapper
     {
         private static readonly Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-
-        private IXCLRDataProcessVtable* VTable => (IXCLRDataProcessVtable*)_vtable;
 
         private FlushDelegate? _flush;
         private GetTaskByOSThreadIDDelegate? _getTask;
@@ -35,6 +34,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             _library = library;
         }
+
+        private ref readonly IXCLRDataProcessVtable VTable => ref Unsafe.AsRef<IXCLRDataProcessVtable>(_vtable);
 
         public ClrDataProcess(DacLibrary library, CallableCOMWrapper toClone) : base(toClone)
         {
@@ -75,13 +76,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public void Flush()
         {
-            InitDelegate(ref _flush, VTable->Flush);
+            InitDelegate(ref _flush, VTable.Flush);
             _flush(Self);
         }
 
         public int Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
         {
-            InitDelegate(ref _request, VTable->Request);
+            InitDelegate(ref _request, VTable.Request);
 
             fixed (byte* pInput = input)
             fixed (byte* pOutput = output)
@@ -90,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
-            InitDelegate(ref _getTask, VTable->GetTaskByOSThreadID);
+            InitDelegate(ref _getTask, VTable.GetTaskByOSThreadID);
 
             int hr = _getTask(Self, id, out IntPtr pUnkTask);
             if (hr != S_OK)
@@ -111,9 +112,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ulong addr)
         {
-            InitDelegate(ref _startEnum, VTable->StartEnumMethodInstancesByAddress);
-            InitDelegate(ref _enum, VTable->EnumMethodInstanceByAddress);
-            InitDelegate(ref _endEnum, VTable->EndEnumMethodInstancesByAddress);
+            InitDelegate(ref _startEnum, VTable.StartEnumMethodInstancesByAddress);
+            InitDelegate(ref _enum, VTable.EnumMethodInstanceByAddress);
+            InitDelegate(ref _endEnum, VTable.EndEnumMethodInstancesByAddress);
 
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 

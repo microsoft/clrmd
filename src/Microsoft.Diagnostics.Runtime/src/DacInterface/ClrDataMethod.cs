@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -12,7 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
-        private IXCLRDataMethodInstanceVTable* VTable => (IXCLRDataMethodInstanceVTable*)_vtable;
         private GetILAddressMapDelegate? _getILAddressMap;
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
@@ -20,9 +20,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
+        private ref readonly IXCLRDataMethodInstanceVTable VTable => ref Unsafe.AsRef<IXCLRDataMethodInstanceVTable>(_vtable);
+
         public ILToNativeMap[]? GetILToNativeMap()
         {
-            InitDelegate(ref _getILAddressMap, VTable->GetILAddressMap);
+            InitDelegate(ref _getILAddressMap, VTable.GetILAddressMap);
 
             int hr = _getILAddressMap(Self, 0, out uint needed, null);
             if (hr != S_OK)
