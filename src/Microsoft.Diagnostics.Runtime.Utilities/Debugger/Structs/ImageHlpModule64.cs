@@ -5,8 +5,6 @@
 using System;
 using System.Runtime.InteropServices;
 
-#pragma warning disable 1591
-
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
     [StructLayout(LayoutKind.Sequential)]
