@@ -6,9 +6,6 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-
     /// <summary>
     /// The basic VTable for an IUnknown interface.
     /// </summary>

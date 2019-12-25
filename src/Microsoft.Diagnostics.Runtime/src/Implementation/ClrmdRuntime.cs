@@ -6,8 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-#pragma warning disable 649
-
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public sealed class ClrmdRuntime : ClrRuntime
