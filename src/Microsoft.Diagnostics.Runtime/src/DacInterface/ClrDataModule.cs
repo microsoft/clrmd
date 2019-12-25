@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct IClrDataModuleVTable
+        private readonly struct IClrDataModuleVTable
         {
             private readonly IntPtr StartEnumAssemblies;
             private readonly IntPtr EnumAssembly;

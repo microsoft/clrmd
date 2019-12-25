@@ -144,12 +144,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int GetModuleByOffsetDelegate(IntPtr self, ulong offset, int index, out int outIndex, out ulong imgBase);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugSymbols3VTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugSymbols3VTable
     {
         public readonly IntPtr GetSymbolOptions;
         public readonly IntPtr AddSymbolOptions;

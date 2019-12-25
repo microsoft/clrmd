@@ -38,7 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetMethodTableCollectibleData(IntPtr self, ulong addr, out MethodTableCollectibleData data);
     }
 
-    internal struct ISOSDac6VTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ISOSDac6VTable
     {
         public readonly IntPtr GetMethodTableCollectibleData;
     }

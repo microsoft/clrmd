@@ -3,12 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-
-#pragma warning disable 0649
-#pragma warning disable 0169
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Native.DacInterface
 {
+    [StructLayout(LayoutKind.Sequential)]
     internal readonly struct ISOSNativeVTable
     {
         public readonly IntPtr Flush;

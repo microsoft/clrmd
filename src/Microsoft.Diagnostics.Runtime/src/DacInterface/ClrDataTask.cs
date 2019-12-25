@@ -33,12 +33,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int CreateStackWalkDelegate(IntPtr self, uint flags, out IntPtr stackwalk);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823
-
-    internal struct ClrDataTaskVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ClrDataTaskVTable
     {
         private readonly IntPtr GetProcess;
         private readonly IntPtr GetCurrentAppDomain;

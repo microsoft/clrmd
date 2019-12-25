@@ -37,12 +37,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int GetThreadContextDelegate(IntPtr self, byte* context, int contextSize);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugAdvancedVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugAdvancedVTable
     {
         public readonly IntPtr GetThreadContext;
         public readonly IntPtr SetThreadContext;

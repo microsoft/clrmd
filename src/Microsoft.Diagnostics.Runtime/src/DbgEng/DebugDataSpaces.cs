@@ -8,7 +8,6 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-
     internal unsafe sealed class DebugDataSpaces : CallableCOMWrapper
     {
         internal static readonly Guid IID_IDebugDataSpaces2 = new Guid("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
@@ -50,12 +49,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugDataSpacesVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugDataSpacesVTable
     {
         public readonly IntPtr ReadVirtual;
         public readonly IntPtr WriteVirtual;

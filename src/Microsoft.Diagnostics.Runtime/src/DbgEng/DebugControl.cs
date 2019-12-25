@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -106,12 +105,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugControlVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugControlVTable
     {
         public readonly IntPtr GetInterrupt;
         public readonly IntPtr SetInterrupt;

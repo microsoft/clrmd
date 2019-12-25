@@ -74,12 +74,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int OpenDumpFileDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPStr)] string file);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugClientVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugClientVTable
     {
         public readonly IntPtr AttachKernel;
         public readonly IntPtr GetKernelConnectionOptions;

@@ -3,14 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-
     internal unsafe sealed class DebugSystemObjects : CallableCOMWrapper
     {
         internal static readonly Guid IID_DebugSystemObjects3 = new Guid("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
@@ -145,12 +143,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         }
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugSystemObjects3VTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugSystemObjects3VTable
     {
         public readonly IntPtr GetEventThread;
         public readonly IntPtr GetEventProcess;

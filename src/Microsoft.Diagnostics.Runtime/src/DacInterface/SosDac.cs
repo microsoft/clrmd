@@ -883,12 +883,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetModuleDelegate(IntPtr self, ulong addr, out IntPtr iunk);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823
-
-    internal struct ISOSDacVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ISOSDacVTable
     {
         // ThreadStore
         public readonly IntPtr GetThreadStoreData;
