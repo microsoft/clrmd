@@ -16,6 +16,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static ClrInstanceField? _firstChar;
         private static ClrInstanceField? _stringLength;
 
+        internal static T[]? GetValuesFromAddress<T>(IDataReader reader, ulong addr, int count) where T : unmanaged
+        {
+            if (reader.ReadArray(addr, count, out T[] values))
+            {
+                return values;
+            }
+
+            return default;
+        }
+
         internal static object? GetValueAtAddress(ClrHeap heap, IDataReader reader, ClrElementType cet, ulong addr)
         {
             switch (cet)

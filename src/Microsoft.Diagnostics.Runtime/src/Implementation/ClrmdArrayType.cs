@@ -86,5 +86,30 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return ValueReader.GetValueAtAddress(Heap, DataReader, cet, addr);
         }
+
+        public override T[]? GetArrayElementsValues<T>(ulong objRef, int count)
+        {
+            ulong addr = GetArrayElementAddress(objRef, 0);
+            ClrType? componentType = ComponentType;
+            ClrElementType cet;
+            if (componentType != null)
+            {
+                cet = componentType.ElementType;
+            }
+            else
+            {
+                // Slow path, we need to get the element type of the array.
+                IObjectData data = Helpers.GetObjectData(objRef);
+                if (data is null)
+                    return null;
+
+                cet = data.ElementType;
+            }
+
+            if (cet == ClrElementType.Unknown)
+                return null;
+
+            return ValueReader.GetValuesFromAddress<T>(DataReader, addr, count);
+        }
     }
 }

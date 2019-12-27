@@ -204,6 +204,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract object? GetArrayElementValue(ulong objRef, int index);
 
         /// <summary>
+        /// Returns multiple consecutive array element values.
+        /// </summary>
+        public abstract T[]? GetArrayElementsValues<T>(ulong objRef, int count) where T : unmanaged;
+
+        /// <summary>
         /// Returns the static size of objects of this type when they are created on the CLR heap.
         /// </summary>
         public abstract int StaticSize { get; }

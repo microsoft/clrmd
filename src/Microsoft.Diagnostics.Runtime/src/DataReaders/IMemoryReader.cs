@@ -41,6 +41,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value at addr, or default(T) if not present in the data target.</returns>
         T Read<T>(ulong address) where T : unmanaged;
 
+        bool ReadArray<T>(ulong addr, int count, out T[] values) where T : unmanaged;
+
         /// <summary>
         /// Reads a pointer at the given address.
         /// </summary>

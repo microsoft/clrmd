@@ -317,5 +317,33 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Assert
             Assert.NotEqual(default, structStart);
         }
+
+        [Fact]
+        public void GetArrayElementsValues_WhenIntArray_GetAllValues()
+        {
+            // Arrange
+            var originalArray = _prototype.IntArray;
+            ClrObject intArraySnapshot = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray));
+
+            // Act
+            int[] ints = intArraySnapshot.Type.GetArrayElementsValues<Int32>(intArraySnapshot, originalArray.Length);
+
+            // Assert
+            Assert.Equal(originalArray, ints);
+        }
+
+        [Fact]
+        public void GetArrayElementsValues_WhenDateTimeArray_GetAllValues()
+        {
+            // Arrange
+            var originalArray = _prototype.DateTimeArray;
+            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
+
+            // Act
+            DateTime[] datetimes = structArray.Type.GetArrayElementsValues<DateTime>(structArray, originalArray.Length);
+
+            // Assert
+            Assert.Equal(originalArray, datetimes);
+        }
     }
 }
