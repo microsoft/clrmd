@@ -13,8 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
-        private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
-
         private RequestDelegate? _request;
         private NextDelegate? _next;
         private GetContextDelegate? _getContext;
@@ -24,9 +22,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
+        private ref readonly IXCLRDataStackWalkVTable VTable => ref Unsafe.AsRef<IXCLRDataStackWalkVTable>(_vtable);
+
         public ClrDataAddress GetFrameVtable()
         {
-            InitDelegate(ref _request, VTable->Request);
+            InitDelegate(ref _request, VTable.Request);
 
             long ptr = 0xcccccccc;
 
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool Next()
         {
-            InitDelegate(ref _next, VTable->Next);
+            InitDelegate(ref _next, VTable.Next);
 
             int hr = _next(Self);
             return hr == S_OK;
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
-            InitDelegate(ref _getContext, VTable->GetContext);
+            InitDelegate(ref _getContext, VTable.GetContext);
 
             int hr = _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
             return hr == S_OK;
@@ -66,12 +66,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             byte* outBuffer);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823
-
-    internal struct IXCLRDataStackWalkVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IXCLRDataStackWalkVTable
     {
         public readonly IntPtr GetContext;
         private readonly IntPtr GetContext2;

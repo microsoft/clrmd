@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -17,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_ISOSStackRefEnum, pUnk)
         {
-            ISOSStackRefEnumVTable* vtable = (ISOSStackRefEnumVTable*)_vtable;
-            InitDelegate(ref _next, vtable->Next);
+            ref readonly ISOSStackRefEnumVTable vtable = ref Unsafe.AsRef<ISOSStackRefEnumVTable>(_vtable);
+            InitDelegate(ref _next, vtable.Next);
         }
 
         public int ReadStackReferences(StackRefData[] stackRefs)
@@ -39,12 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             out int pNeeded);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823
-
-    internal struct ISOSStackRefEnumVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ISOSStackRefEnumVTable
     {
         private readonly IntPtr Skip;
         private readonly IntPtr Reset;

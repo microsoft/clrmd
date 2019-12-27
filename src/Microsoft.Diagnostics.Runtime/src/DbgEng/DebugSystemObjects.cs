@@ -3,19 +3,16 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-
     internal unsafe sealed class DebugSystemObjects : CallableCOMWrapper
     {
         internal static readonly Guid IID_DebugSystemObjects3 = new Guid("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
-
-        private IDebugSystemObjects3VTable* VTable => (IDebugSystemObjects3VTable*)_vtable;
 
         public DebugSystemObjects(RefCountedFreeLibrary library, IntPtr pUnk)
             : base(library, IID_DebugSystemObjects3, pUnk)
@@ -23,11 +20,13 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             SuppressRelease();
         }
 
+        private ref readonly IDebugSystemObjects3VTable VTable => ref Unsafe.AsRef<IDebugSystemObjects3VTable>(_vtable);
+
         public IDisposable Enter() => new SystemHolder(this, _systemId);
 
         public uint GetProcessId()
         {
-            InitDelegate(ref _getProcessId, VTable->GetCurrentProcessSystemId);
+            InitDelegate(ref _getProcessId, VTable.GetCurrentProcessSystemId);
 
             using IDisposable holder = Enter();
             int hr = _getProcessId(Self, out uint id);
@@ -36,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private void SetCurrentSystemId(int id)
         {
-            InitDelegate(ref _setSystemId, VTable->SetCurrentSystemId);
+            InitDelegate(ref _setSystemId, VTable.SetCurrentSystemId);
 
             int hr = _setSystemId(Self, id);
             DebugOnly.Assert(hr == S_OK);
@@ -44,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void SetCurrentThread(uint id)
         {
-            InitDelegate(ref _setCurrentThread, VTable->SetCurrentThreadId);
+            InitDelegate(ref _setCurrentThread, VTable.SetCurrentThreadId);
 
             using IDisposable holder = Enter();
             int hr = _setCurrentThread(Self, id);
@@ -53,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int GetNumberThreads()
         {
-            InitDelegate(ref _getNumberThreads, VTable->GetNumberThreads);
+            InitDelegate(ref _getNumberThreads, VTable.GetNumberThreads);
 
             using IDisposable holder = Enter();
             int hr = _getNumberThreads(Self, out int count);
@@ -63,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         internal void Init()
         {
-            InitDelegate(ref _getSystemId, VTable->GetCurrentSystemId);
+            InitDelegate(ref _getSystemId, VTable.GetCurrentSystemId);
             _systemId = _getSystemId(Self, out int id);
         }
 
@@ -75,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             if (count == 0)
                 return Array.Empty<uint>();
 
-            InitDelegate(ref _getThreadIdsByIndex, VTable->GetThreadIdsByIndex);
+            InitDelegate(ref _getThreadIdsByIndex, VTable.GetThreadIdsByIndex);
 
             uint[] result = new uint[count];
             fixed (uint* pResult = result)
@@ -91,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public uint GetThreadIdBySystemId(uint sysId)
         {
-            InitDelegate(ref _getThreadIdBySystemId, VTable->GetThreadIdBySystemId);
+            InitDelegate(ref _getThreadIdBySystemId, VTable.GetThreadIdBySystemId);
 
             using IDisposable holder = Enter();
             int hr = _getThreadIdBySystemId(Self, sysId, out uint result);
@@ -145,12 +144,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         }
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugSystemObjects3VTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugSystemObjects3VTable
     {
         public readonly IntPtr GetEventThread;
         public readonly IntPtr GetEventProcess;

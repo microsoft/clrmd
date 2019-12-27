@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -13,7 +13,11 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static readonly Guid IID_IDebugClient = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
 
-        private IDebugClientVTable* VTable => (IDebugClientVTable*)_vtable;
+        private EndSessionDelegate? _endSession;
+        private DetatchProcessesDelegate? _detatchProcesses;
+        private AttachProcessDelegate? _attachProcess;
+        private OpenDumpFileDelegate? _openDumpFile;
+        private readonly DebugSystemObjects _sys;
 
         public DebugClient(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects system)
             : base(library, IID_IDebugClient, pUnk)
@@ -22,15 +26,11 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             SuppressRelease();
         }
 
-        private EndSessionDelegate? _endSession;
-        private DetatchProcessesDelegate? _detatchProcesses;
-        private AttachProcessDelegate? _attachProcess;
-        private OpenDumpFileDelegate? _openDumpFile;
-        private readonly DebugSystemObjects _sys;
+        private ref readonly IDebugClientVTable VTable => ref Unsafe.AsRef<IDebugClientVTable>(_vtable);
 
         public void EndSession(DebugEnd mode)
         {
-            InitDelegate(ref _endSession, VTable->EndSession);
+            InitDelegate(ref _endSession, VTable.EndSession);
 
             using IDisposable holder = _sys.Enter();
             int hr = _endSession(Self, mode);
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void DetatchProcesses()
         {
-            InitDelegate(ref _detatchProcesses, VTable->DetachProcesses);
+            InitDelegate(ref _detatchProcesses, VTable.DetachProcesses);
 
             using IDisposable holder = _sys.Enter();
             int hr = _detatchProcesses(Self);
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int AttachProcess(uint pid, DebugAttach flags)
         {
-            InitDelegate(ref _attachProcess, VTable->AttachProcess);
+            InitDelegate(ref _attachProcess, VTable.AttachProcess);
             int hr = _attachProcess(Self, 0, pid, flags);
 
             _sys.Init();
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int OpenDumpFile(string dumpFile)
         {
-            InitDelegate(ref _openDumpFile, VTable->OpenDumpFile);
+            InitDelegate(ref _openDumpFile, VTable.OpenDumpFile);
             int hr = _openDumpFile(Self, dumpFile);
 
             _sys.Init();
@@ -74,12 +74,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int OpenDumpFileDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPStr)] string file);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugClientVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugClientVTable
     {
         public readonly IntPtr AttachKernel;
         public readonly IntPtr GetKernelConnectionOptions;

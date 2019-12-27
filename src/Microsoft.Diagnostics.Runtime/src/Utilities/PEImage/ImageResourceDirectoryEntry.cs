@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#pragma warning disable 0649
 #pragma warning disable CA1305 // Specify IFormatProvider
+
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -21,8 +22,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// set to indicate this.  Otherwise the high bit is clear and the offset
     /// field points to a resource data entry.
     /// </summary>
-    internal struct IMAGE_RESOURCE_DIRECTORY_ENTRY
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IMAGE_RESOURCE_DIRECTORY_ENTRY
     {
+        private readonly int _nameOffsetAndFlag;
+        private readonly int _dataOffsetAndFlag;
+
         public bool IsStringName => _nameOffsetAndFlag < 0;
         public int NameOffset => _nameOffsetAndFlag & 0x7FFFFFFF;
 
@@ -30,35 +35,29 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int DataOffset => _dataOffsetAndFlag & 0x7FFFFFFF;
         public int Id => 0xFFFF & _nameOffsetAndFlag;
 
-        private readonly int _nameOffsetAndFlag;
-        private readonly int _dataOffsetAndFlag;
-
-        internal static string GetTypeNameForTypeId(int typeId)
+        internal static string GetTypeNameForTypeId(int typeId) => typeId switch
         {
-            return typeId switch
-            {
-                1 => "Cursor",
-                2 => "BitMap",
-                3 => "Icon",
-                4 => "Menu",
-                5 => "Dialog",
-                6 => "String",
-                7 => "FontDir",
-                8 => "Font",
-                9 => "Accelerator",
-                10 => "RCData",
-                11 => "MessageTable",
-                12 => "GroupCursor",
-                14 => "GroupIcon",
-                16 => "Version",
-                19 => "PlugPlay",
-                20 => "Vxd",
-                21 => "Aniicursor",
-                22 => "Aniicon",
-                23 => "Html",
-                24 => "RT_MANIFEST",
-                _ => typeId.ToString(),
-            };
-        }
+            1 => "Cursor",
+            2 => "BitMap",
+            3 => "Icon",
+            4 => "Menu",
+            5 => "Dialog",
+            6 => "String",
+            7 => "FontDir",
+            8 => "Font",
+            9 => "Accelerator",
+            10 => "RCData",
+            11 => "MessageTable",
+            12 => "GroupCursor",
+            14 => "GroupIcon",
+            16 => "Version",
+            19 => "PlugPlay",
+            20 => "Vxd",
+            21 => "Aniicursor",
+            22 => "Aniicon",
+            23 => "Html",
+            24 => "RT_MANIFEST",
+            _ => typeId.ToString(),
+        };
     }
 }

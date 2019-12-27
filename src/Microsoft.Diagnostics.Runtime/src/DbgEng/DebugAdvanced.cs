@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -12,8 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static readonly Guid IID_IDebugAdvanced = new Guid("f2df5f53-071f-47bd-9de6-5734c3fed689");
 
-        private IDebugAdvancedVTable* VTable => (IDebugAdvancedVTable*)_vtable;
-
         public DebugAdvanced(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, IID_IDebugAdvanced, pUnk)
         {
@@ -21,9 +20,11 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             SuppressRelease();
         }
 
+        private ref readonly IDebugAdvancedVTable VTable => ref Unsafe.AsRef<IDebugAdvancedVTable>(_vtable);
+
         public bool GetThreadContext(Span<byte> context)
         {
-            InitDelegate(ref _getThreadContext, VTable->GetThreadContext);
+            InitDelegate(ref _getThreadContext, VTable.GetThreadContext);
 
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = context)
@@ -37,12 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int GetThreadContextDelegate(IntPtr self, byte* context, int contextSize);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugAdvancedVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugAdvancedVTable
     {
         public readonly IntPtr GetThreadContext;
         public readonly IntPtr SetThreadContext;

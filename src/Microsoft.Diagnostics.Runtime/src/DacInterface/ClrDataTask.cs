@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -12,16 +13,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_IXCLRDataTask = new Guid("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 
-        private ClrDataTaskVTable* VTable => (ClrDataTaskVTable*)_vtable;
-
         public ClrDataTask(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, IID_IXCLRDataTask, pUnk)
         {
         }
 
+        private ref readonly ClrDataTaskVTable VTable => ref Unsafe.AsRef<ClrDataTaskVTable>(_vtable);
+
         public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
         {
-            CreateStackWalkDelegate create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable->CreateStackWalk, typeof(CreateStackWalkDelegate));
+            CreateStackWalkDelegate create = (CreateStackWalkDelegate)Marshal.GetDelegateForFunctionPointer(VTable.CreateStackWalk, typeof(CreateStackWalkDelegate));
             int hr = create(Self, flags, out IntPtr pUnk);
             if (hr != S_OK)
                 return null;
@@ -33,12 +34,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int CreateStackWalkDelegate(IntPtr self, uint flags, out IntPtr stackwalk);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823
-
-    internal struct ClrDataTaskVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ClrDataTaskVTable
     {
         private readonly IntPtr GetProcess;
         private readonly IntPtr GetCurrentAppDomain;

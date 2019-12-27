@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -17,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_ISOSHandleEnum, pUnk)
         {
-            ISOSHandleEnumVTable* vtable = (ISOSHandleEnumVTable*)_vtable;
-            InitDelegate(ref _next, vtable->Next);
+            ref readonly ISOSHandleEnumVTable vtable = ref Unsafe.AsRef<ISOSHandleEnumVTable>(_vtable);
+            InitDelegate(ref _next, vtable.Next);
         }
 
         public int ReadHandles(HandleData[] handles)
@@ -41,12 +42,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             out int pNeeded);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823
-
-    internal struct ISOSHandleEnumVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ISOSHandleEnumVTable
     {
         private readonly IntPtr Skip;
         private readonly IntPtr Reset;

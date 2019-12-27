@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -11,9 +11,11 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugControl : CallableCOMWrapper
     {
+        public const int INITIAL_BREAK = 0x20;
+
         internal static readonly Guid IID_IDebugControl2 = new Guid("d4366723-44df-4bed-8c7e-4c05424f4588");
 
-        private IDebugControlVTable* VTable => (IDebugControlVTable*)_vtable;
+        private readonly DebugSystemObjects _sys;
 
         public DebugControl(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, IID_IDebugControl2, pUnk)
@@ -22,12 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             SuppressRelease();
         }
 
-        public const int INITIAL_BREAK = 0x20;
-        private readonly DebugSystemObjects _sys;
+        private ref readonly IDebugControlVTable VTable => ref Unsafe.AsRef<IDebugControlVTable>(_vtable);
 
         public IMAGE_FILE_MACHINE GetEffectiveProcessorType()
         {
-            InitDelegate(ref _getEffectiveProcessorType, VTable->GetEffectiveProcessorType);
+            InitDelegate(ref _getEffectiveProcessorType, VTable.GetEffectiveProcessorType);
 
             using IDisposable holder = _sys.Enter();
             int hr = _getEffectiveProcessorType(Self, out IMAGE_FILE_MACHINE result);
@@ -39,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public bool IsPointer64Bit()
         {
-            InitDelegate(ref _isPointer64Bit, VTable->IsPointer64Bit);
+            InitDelegate(ref _isPointer64Bit, VTable.IsPointer64Bit);
 
             using IDisposable holder = _sys.Enter();
             int hr = _isPointer64Bit(Self);
@@ -48,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public bool WaitForEvent(uint timeout)
         {
-            InitDelegate(ref _waitForEvent, VTable->WaitForEvent);
+            InitDelegate(ref _waitForEvent, VTable.WaitForEvent);
 
             using IDisposable holder = _sys.Enter();
             return _waitForEvent(Self, 0, timeout) == 0;
@@ -56,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void AddEngineOptions(int options)
         {
-            InitDelegate(ref _addEngineOptions, VTable->AddEngineOptions);
+            InitDelegate(ref _addEngineOptions, VTable.AddEngineOptions);
 
             using IDisposable holder = _sys.Enter();
             int hr = _addEngineOptions(Self, options);
@@ -65,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public DEBUG_FORMAT GetDumpFormat()
         {
-            InitDelegate(ref _getDumpFormat, VTable->GetDumpFormatFlags);
+            InitDelegate(ref _getDumpFormat, VTable.GetDumpFormatFlags);
 
             using IDisposable holder = _sys.Enter();
             int hr = _getDumpFormat(Self, out DEBUG_FORMAT result);
@@ -77,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public DEBUG_CLASS_QUALIFIER GetDebuggeeClassQualifier()
         {
-            InitDelegate(ref _getDebuggeeType, VTable->GetDebuggeeType);
+            InitDelegate(ref _getDebuggeeType, VTable.GetDebuggeeType);
 
             using IDisposable holder = _sys.Enter();
             int hr = _getDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
@@ -106,12 +107,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate int GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-#pragma warning disable IDE0051
-#pragma warning disable CA1823
-
-    internal struct IDebugControlVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IDebugControlVTable
     {
         public readonly IntPtr GetInterrupt;
         public readonly IntPtr SetInterrupt;

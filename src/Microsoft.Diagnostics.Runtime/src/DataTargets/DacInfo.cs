@@ -4,8 +4,6 @@
 
 using System.Collections.Immutable;
 
-#pragma warning disable 0618
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
