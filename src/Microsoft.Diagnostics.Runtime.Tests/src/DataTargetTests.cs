@@ -67,5 +67,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             File.WriteAllText(path, Environment.NewLine);
             _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCrashDump(path));
         }
+
+        [WindowsFact]
+        public void LoadCrashDump_ThrowsInvalidDataExceptionForEmptyFile()
+        {
+            string path = Path.GetTempFileName();
+            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCrashDump(path));
+        }
     }
 }

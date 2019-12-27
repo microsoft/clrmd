@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false, bool considerDependantHandles = true)
         {
             if (Type is null)
-                return Array.Empty<ClrObject>();
+                return Enumerable.Empty<ClrObject>();
 
             return Type.Heap.EnumerateObjectReferences(Address, Type, carefully, considerDependantHandles);
         }
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type is null || !Type.IsException)
                 return default;
 
-            return new ClrException(Helpers!.ExceptionHelpers, null, this);
+            return new ClrException(Helpers.ExceptionHelpers, null, this);
         }
 
         /// <summary>
