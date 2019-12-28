@@ -75,16 +75,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Determines if this instance and another specific <see cref="ClrArray" /> have the same value.
         /// <para>Instances are considered equal when they have same <see cref="Address" />.</para>
         /// </summary>
-        /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
+        /// <param name="other">The <see cref="ClrArray" /> to compare to this instance.</param>
         /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
         public bool Equals(ClrArray other) => this.Address == other.Address;
 
         /// <summary>
         /// Determines whether this instance and a specified object.
         /// </summary>
-        /// <param name="obj">The <see cref="ClrObject" /> to compare to this instance.</param>
+        /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
         /// <returns>
-        /// <c>true</c> if <paramref name="obj" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
+        /// <c>true</c> if <paramref name="other" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
         /// otherwise.
         /// </returns>
         public bool Equals(ClrObject other) => this.Address == other.Address;
