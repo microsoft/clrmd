@@ -195,21 +195,15 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public unsafe bool ReadArray<T>(ulong addr, int count, out T[]? values) where T : unmanaged
+        public unsafe bool ReadArray<T>(ulong address, T[] values) where T : unmanaged
         {
-            Span<byte> buffer = stackalloc byte[count * sizeof(T)];
+            Span<byte> buffer = MemoryMarshal.Cast<T, Byte>(values);
 
-            if (Read(addr, buffer, out int size) && size == buffer.Length)
+            if (Read(address, buffer, out int size) && size == buffer.Length)
             {
-                values = new T[count];
-                for (int i = 0, j = 0; i < buffer.Length; i += sizeof(T), j++)
-                {
-                    values[i] = Unsafe.As<Byte, T>(ref MemoryMarshal.GetReference(buffer.Slice(i, sizeof(T))));
-                }
                 return true;
             }
 
-            values = default;
             return false;
         }
 
