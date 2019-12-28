@@ -245,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 if (entry.BeginAddr <= address && entry.EndAddr >= address)
                 {
-                    vq = new MemoryRegionInfo(entry.BeginAddr, entry.EndAddr - entry.BeginAddr + 1);
+                    vq = new MemoryRegionInfo(entry.BeginAddr, entry.EndAddr - entry.BeginAddr);
                     return true;
                 }
             }
