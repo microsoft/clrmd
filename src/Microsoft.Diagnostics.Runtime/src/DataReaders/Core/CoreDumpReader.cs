@@ -205,8 +205,8 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0, j = 0; i < buffer.Length; i += sizeof(T), j++)
                 {
                     values[i] = Unsafe.As<Byte, T>(ref MemoryMarshal.GetReference(buffer.Slice(i, sizeof(T))));
-                    return true;
                 }
+                return true;
             }
 
             values = default;
