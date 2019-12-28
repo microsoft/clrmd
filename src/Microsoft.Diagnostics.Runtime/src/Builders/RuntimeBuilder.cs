@@ -642,7 +642,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (_stackTrace.IsNull)
                 return ImmutableArray<ClrStackFrame>.Empty;
 
-            int len = _stackTrace.Length;
+            int len = _stackTrace.AsArray().Length;
             if (len == 0)
                 return ImmutableArray<ClrStackFrame>.Empty;
 
