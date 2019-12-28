@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public unsafe bool ReadArray<T>(ulong addr, int count, out T[] values) where T : unmanaged
+        public unsafe bool ReadArray<T>(ulong addr, int count, out T[]? values) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[count * sizeof(T)];
 

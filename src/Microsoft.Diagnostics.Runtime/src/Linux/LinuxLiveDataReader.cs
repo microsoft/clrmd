@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return false;
         }
 
-        public unsafe bool ReadArray<T>(ulong addr, int count, out T[] values) where T : unmanaged
+        public unsafe bool ReadArray<T>(ulong addr, int count, out T[]? values) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[count * sizeof(T)];
 
@@ -243,8 +243,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 for (int i = 0, j = 0; i < buffer.Length; i += sizeof(T), j++)
                 {
                     values[i] = Unsafe.As<Byte, T>(ref MemoryMarshal.GetReference(buffer.Slice(i, sizeof(T))));
-                    return true;
                 }
+                return true;
             }
 
             values = default;

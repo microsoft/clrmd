@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         internal static T[]? GetValuesFromAddress<T>(IDataReader reader, ulong addr, int count) where T : unmanaged
         {
-            if (reader.ReadArray(addr, count, out T[] values))
+            if (reader.ReadArray(addr, count, out T[]? values))
             {
                 return values;
             }
