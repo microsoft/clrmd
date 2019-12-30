@@ -109,6 +109,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (cet == ClrElementType.Unknown)
                 return null;
 
+            if (addr == 0)
+                return null;
+
             return ValueReader.GetValuesFromAddress<T>(DataReader, addr, count);
         }
     }
