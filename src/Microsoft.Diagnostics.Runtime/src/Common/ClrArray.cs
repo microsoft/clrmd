@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrType Type { get; }
 
-        private int length;
+        private int _length;
 
         /// <summary>
         /// Returns the count of elements in this array.
@@ -30,21 +30,21 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (this.length == -1)
+                if (_length == -1)
                 {
-                    this.length = this.Type.ClrObjectHelpers.DataReader.Read<int>(this.Address + (ulong)IntPtr.Size);
+                    _length = Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)IntPtr.Size);
                 }
 
-                return this.length;
+                return _length;
             }
         }
 
         public ClrArray(ulong address, ClrType type)
         {
-            this.Address = address;
-            this.Type = type;
+            Address = address;
+            Type = type;
             // default uninitialized value for size. Will be lazy loaded.
-            this.length = -1;
+            _length = -1;
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException("Cannot read more elements than elements in array.");
             }
 
-            return this.Type.GetArrayElementsValues<T>(this.Address, count);
+            return Type.GetArrayElementsValues<T>(Address, count);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="other">The <see cref="ClrArray" /> to compare to this instance.</param>
         /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
-        public bool Equals(ClrArray other) => this.Address == other.Address;
+        public bool Equals(ClrArray other) => Address == other.Address;
 
         /// <summary>
         /// Determines whether this instance and a specified object.
@@ -87,13 +87,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <c>true</c> if <paramref name="other" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
         /// otherwise.
         /// </returns>
-        public bool Equals(ClrObject other) => this.Address == other.Address;
+        public bool Equals(ClrObject other) => Address == other.Address;
 
         /// <summary>
         /// Returns the hash code for this <see cref="ClrArray" /> based on its <see cref="Address" />.
         /// </summary>
         /// <returns>An <see cref="int" /> hash code for this instance.</returns>
-        public override int GetHashCode() => this.Address.GetHashCode();
+        public override int GetHashCode() => Address.GetHashCode();
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrArray" /> have the same value.
