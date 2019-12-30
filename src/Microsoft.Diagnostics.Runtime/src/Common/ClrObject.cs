@@ -92,20 +92,6 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsArray => GetTypeOrThrow().IsArray;
 
         /// <summary>
-        /// Returns the count of elements in this array, or throws InvalidOperatonException if this object is not an array.
-        /// </summary>
-        public int Length
-        {
-            get
-            {
-                ClrType type = GetTypeOrThrow();
-                if (!type.IsArray)
-                    throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{Type!.Name}'.");
-
-                return type.ClrObjectHelpers.DataReader.Read<int>(Address + (uint)IntPtr.Size);
-            }
-        }
-        /// <summary>
         /// Returns the ComCallableWrapper for the given object.
         /// </summary>
         /// <returns>The ComCallableWrapper associated with the object, null if obj is not a CCW.</returns>
@@ -141,6 +127,21 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             return $"{Type?.Name} {Address:x}";
+        }
+
+        /// <summary>
+        /// returns the object as an array if the object has array type.
+        /// </summary>
+        /// <returns></returns>
+        public ClrArray AsArray()
+        {
+            ClrType type = GetTypeOrThrow();
+            if (!type.IsArray)
+            {
+                throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{Type!.Name}'.");
+            }
+
+            return new ClrArray(this.Address, type);
         }
 
         /// <summary>

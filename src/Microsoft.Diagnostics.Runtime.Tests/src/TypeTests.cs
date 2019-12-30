@@ -635,7 +635,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType type = typesModule.GetTypeByName("Types");
 
             ClrObject obj = type.GetStaticFieldByName("s_array").ReadObject();
-            Assert.Equal(3, obj.Length);
+            Assert.True(obj.IsArray);
+
+            ClrArray arr = obj.AsArray();
+
+            Assert.Equal(3, arr.Length);
         }
 
         [Fact]

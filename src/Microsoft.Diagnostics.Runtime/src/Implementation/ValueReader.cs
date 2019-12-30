@@ -4,6 +4,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -15,6 +16,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static ClrType? _stringType;
         private static ClrInstanceField? _firstChar;
         private static ClrInstanceField? _stringLength;
+
+        internal static T[]? GetValuesFromAddress<T>(IDataReader reader, ulong addr, int count) where T : unmanaged
+        {
+            var values = new T[count];
+            Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
+
+            if (reader.Read(addr, buffer, out int bytesRead) && bytesRead == buffer.Length)
+            {
+                return values;
+            }
+
+            return default;
+        }
 
         internal static object? GetValueAtAddress(ClrHeap heap, IDataReader reader, ClrElementType cet, ulong addr)
         {

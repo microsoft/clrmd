@@ -31,8 +31,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Length_WhenPrimitiveValueTypeArray_ReturnsExpected()
         {
             // Arrange
-            ClrObject intArraySnapshot = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray));
+            ClrArray intArraySnapshot = _arrayHolder
+                .GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.IntArray.Length, intArraySnapshot.Length);
@@ -42,8 +42,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Length_WhenGuidArray_ReturnsExpected()
         {
             // Arrange
-            ClrObject guidArray = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
+            ClrArray guidArray = _arrayHolder
+                .GetObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.GuidArray.Length, guidArray.Length);
@@ -53,8 +53,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Length_WhenDateTimeArray_ReturnsExpected()
         {
             // Arrange
-            ClrObject dateTimeArray = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
+            ClrArray dateTimeArray = _arrayHolder
+                .GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.DateTimeArray.Length, dateTimeArray.Length);
@@ -64,8 +64,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Length_WhenCustomStructArray_ReturnsExpected()
         {
             // Arrange
-            ClrObject customStructArray = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
+            ClrArray customStructArray = _arrayHolder
+                .GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.StructArray.Length, customStructArray.Length);
@@ -75,8 +75,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Length_WhenStringArray_ReturnsExpected()
         {
             // Arrange
-            ClrObject referenceArraySnapshot = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
+            ClrArray referenceArraySnapshot = _arrayHolder
+                .GetObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.StringArray.Length, referenceArraySnapshot.Length);
@@ -86,8 +86,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void Length_WhenReferenceArrayWithBlanks_ReturnsExpected()
         {
             // Arrange
-            ClrObject referenceArraySnapshot = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
+            ClrArray referenceArraySnapshot = _arrayHolder
+                .GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.ReferenceArrayWithBlanks.Length, referenceArraySnapshot.Length);
@@ -316,6 +316,49 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Assert
             Assert.NotEqual(default, structStart);
+        }
+
+        [Fact]
+        public void GetArrayElementsValues_WhenIntArray_GetAllValues()
+        {
+            // Arrange
+            var originalArray = _prototype.IntArray;
+            ClrArray intArraySnapshot = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
+
+            // Act
+            int[] ints = intArraySnapshot.GetContent<int>(intArraySnapshot.Length);
+
+            // Assert
+            Assert.Equal(originalArray, ints);
+        }
+
+        [Fact]
+        public void GetArrayElementsValues_WhenDateTimeArray_GetAllValues()
+        {
+            // Arrange
+            var originalArray = _prototype.DateTimeArray;
+            ClrArray datetimeArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
+
+            // Act
+            DateTime[] datetimes = datetimeArray.GetContent<DateTime>(datetimeArray.Length);
+
+            // Assert
+            Assert.Equal(originalArray, datetimes);
+        }
+
+        [Fact]
+        public void GetArrayElementsValues_WhenDateTimeArray_ReadLessThanAllValues()
+        {
+            // Arrange
+            var originalArray = _prototype.DateTimeArray;
+            ClrArray structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
+            int readLength = originalArray.Length - 2;
+
+            // Act
+            DateTime[] datetimes = structArray.GetContent<DateTime>(readLength);
+
+            // Assert
+            Assert.Equal(originalArray.AsSpan().Slice(0, readLength).ToArray(), datetimes);
         }
     }
 }
