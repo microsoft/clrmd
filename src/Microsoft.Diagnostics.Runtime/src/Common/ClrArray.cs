@@ -71,6 +71,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
         public override bool Equals(object? other)
         {
+            if (other is null)
+                return false;
             if (other is ulong ul)
                 return ul == Address;
             if (other is ClrArray clrArray)
