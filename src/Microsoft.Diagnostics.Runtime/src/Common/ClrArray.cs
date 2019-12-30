@@ -69,7 +69,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="other">The <see cref="ClrArray" /> to compare to this instance.</param>
         /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
-        public override bool Equals(object? other) => other is ClrArray clrArray && this.Address == clrArray.Address;
+        public override bool Equals(object? other)
+        {
+            if (other is ulong ul)
+                return ul == Address;
+            if (other is ClrArray clrArray)
+                return Address == clrArray.Address;
+            if (other is ClrObject clrObject)
+                return Address == clrObject.Address;
+
+            return false;
+        }
 
         /// <summary>
         /// Determines if this instance and another specific <see cref="ClrArray" /> have the same value.
