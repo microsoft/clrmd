@@ -223,18 +223,6 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public unsafe bool ReadArray<T>(ulong address, T[] values) where T : unmanaged
-        {
-            Span<byte> buffer = MemoryMarshal.Cast<T, Byte>(values);
-
-            if (Read(address, buffer, out int size) && size == buffer.Length)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
         public IEnumerable<uint> EnumerateAllThreads()
         {
             Process p = Process.GetProcessById(_pid);

@@ -4,6 +4,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -19,8 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         internal static T[]? GetValuesFromAddress<T>(IDataReader reader, ulong addr, int count) where T : unmanaged
         {
             var values = new T[count];
+            Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
-            if (reader.ReadArray(addr, values))
+            if (reader.Read(addr, buffer, out int bytesRead) && bytesRead == values.Length)
             {
                 return values;
             }

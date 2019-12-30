@@ -42,16 +42,6 @@ namespace Microsoft.Diagnostics.Runtime
         T Read<T>(ulong address) where T : unmanaged;
 
         /// <summary>
-        /// Reads <c>values.Length</c> unmanaged values from the given address into <paramref name="values"/>.
-        /// </summary>
-        /// <typeparam name="T">The type to read.  This may be a struct or primitive type as long as it does
-        /// not managed pointeres.</typeparam>
-        /// <param name="address">The address to read from.</param>
-        /// <param name="values">An array the read values will be written into.</param>
-        /// <returns><see langword="true"/> if <c>values.Length</c> were read; else <see langword="false"/>.</returns>
-        bool ReadArray<T>(ulong address, T[] values) where T : unmanaged;
-
-        /// <summary>
         /// Reads a pointer at the given address.
         /// </summary>
         /// <param name="address">The address to read from.</param>
