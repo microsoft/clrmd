@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             var values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
-            if (reader.Read(addr, buffer, out int bytesRead) && bytesRead == values.Length)
+            if (reader.Read(addr, buffer, out int bytesRead) && bytesRead == buffer.Length)
             {
                 return values;
             }
