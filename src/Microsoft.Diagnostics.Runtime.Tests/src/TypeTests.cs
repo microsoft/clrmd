@@ -671,5 +671,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains(s_two, objs);
             Assert.Contains(s_three, objs);
         }
+
+        [Fact]
+        public void ArrayRankTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
+            ClrType type = typesModule.GetTypeByName("Types");
+
+            ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject().AsArray();
+            ClrArray s_2dArray = type.GetStaticFieldByName("s_2dArray").ReadObject().AsArray();
+
+            Assert.Equal(1, s_array.Rank);
+            Assert.Equal(2, s_2dArray.Rank);
+        }
     }
 }
