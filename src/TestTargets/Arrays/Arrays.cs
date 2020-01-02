@@ -14,7 +14,7 @@ public class Program
 }
 
 /// <summary>
-/// Please keep in sync this content with test class (f.e. ArrayConnection).
+/// Please keep in sync this content with test class (i.e. ArrayConnection).
 /// </summary>
 public class ArraysHolder
 {

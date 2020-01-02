@@ -39,6 +39,15 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public int Rank
+        {
+            get
+            {
+                int rank = (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
+                return rank != 0 ? rank : 1;
+            }
+        }
+
         public ClrArray(ulong address, ClrType type)
         {
             Address = address;
