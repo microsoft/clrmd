@@ -7,12 +7,11 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    // todo: tostring
     internal sealed class ClrmdStackFrame : ClrStackFrame
     {
         private readonly byte[]? _context;
 
-        public ClrThread? Thread { get; }
+        public override ClrThread? Thread { get; }
         public override ReadOnlySpan<byte> Context => _context;
         public override ulong InstructionPointer { get; }
         public override ulong StackPointer { get; }

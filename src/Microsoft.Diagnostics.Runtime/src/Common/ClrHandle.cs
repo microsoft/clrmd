@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return HandleKind + " " + (Object.Type?.Name ?? string.Empty);
+            return $"{HandleKind} @{Address:x12} {Object}";
         }
 
         /// <summary>
