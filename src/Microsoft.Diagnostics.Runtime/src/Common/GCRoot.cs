@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// A delegate for reporting GCRoot progress.
@@ -228,14 +228,42 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private IEnumerable<LinkedList<ClrObject>> PathsTo(
-            ObjectSet seen,
+            ObjectSet deadEnds,
             Dictionary<ulong, LinkedListNode<ClrObject>>? knownEndPoints,
             ClrObject source,
             ulong target,
             bool unique,
             CancellationToken cancelToken)
         {
-            HashSet<ulong> processing = new HashSet<ulong>();
+            /* knownEndPoints: A set of objects that are known to point to the target, once we see one of
+                               these, we can end the search early and return the current path plus the
+                               nodes there.
+
+               deadEnds  When unique == false, these are Objects we've fully processed and know doesn't
+                         point to the target object.  When unique == true, deadEnds are updated to include
+                         objects that other threads are processing, ensuring we don't yield duplicate
+                         roots. Note that we must be careful to ONLY add objects to this list when we are
+                         sure we've exhausted all potential paths because parallel threads use this same
+                         set.
+
+               path: The current path we are considering.  As we walk through objects in the rooting chain,
+                     we will add a new node to this list with the object in question and create a stack of
+                     all objects it points to.  This is a depth-first search, so we will search as deeply
+                     as we can, and pop off objects from path as soon as the stack of references is empty.
+                     If we find that the reference stack is empty and we didn't find the target/known end
+                     point, then we'll mark the object in deadEnds.
+
+               processing: The list of objects we are currently considering on this thread.  Since objects
+                           can contain circular references, we need to know we shouldn't re-consider objects
+                           we encounter while walking objects.
+
+               It's important to note that multiple threads may race and consider the same path at the same
+               time.  This is expected (and similar to how the GC operates).  The thing we have to make sure
+               of is that we only add objects to knownEndPoints/deadEnds when we are 100% sure of the result
+               because it will directly affect other threads walking these paths.
+            */
+
+            HashSet<ulong> processing = new HashSet<ulong>() { source.Address };
             LinkedList<PathEntry> path = new LinkedList<PathEntry>();
 
             if (knownEndPoints != null)
@@ -254,7 +282,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            if (unique && !seen.Add(source.Address))
+            if (unique && !deadEnds.Add(source.Address))
                 yield break;
 
             if (source.Type is null)
@@ -303,7 +331,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // We've exhausted all children and didn't find the target.  Remove this node
                     // and continue.
                     path.RemoveLast();
-                    seen.Add(last.Object.Address);
+                    deadEnds.Add(last.Object.Address);
                     processing.Remove(last.Object.Address);
                 }
                 else
@@ -319,21 +347,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
-                        if (seen.Contains(next.Address))
-                        {
-                            if (knownEndPoints != null)
-                                lock (knownEndPoints)
-                                    if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject> end))
-                                    {
-
-                                        TraceFullPath(path, end);
-                                        yield return GetResult(end);
-
-                                        path.RemoveLast();
-                                    }
-
+                        if (unique ? deadEnds.Add(next.Address) : deadEnds.Contains(next.Address))
                             continue;
-                        }
+
+                        if (knownEndPoints != null)
+                            lock (knownEndPoints)
+                                if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject> end))
+                                {
+
+                                    TraceFullPath(path, end);
+                                    yield return GetResult(end);
+
+                                    path.RemoveLast();
+                                }
 
                         if (!processing.Add(next.Address))
                             continue;
@@ -409,7 +435,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             found = true;
                         }
 
-                        if (!seen.Contains(reference.Address))
+                        if (!deadEnds.Contains(reference.Address))
                         {
                             result ??= new Stack<ClrObject>();
                             result.Push(reference);
@@ -438,10 +464,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             knownEndPoints[address] = node;
                         }
 
-                foreach (var obj in result)
+
+                if (unique)
                 {
-                    seen.Add(obj.Address);
+                    foreach (ClrObject obj in result)
+                    {
+                        deadEnds.Add(obj);
+                    }
                 }
+
 
                 return result;
             }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Text;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     public struct ClrStackRoot : IClrRoot
@@ -20,6 +22,19 @@ namespace Microsoft.Diagnostics.Runtime
             StackFrame = stackFrame;
             IsInterior = interior;
             IsPinned = pinned;
+        }
+
+        public override string ToString()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            ClrThread? thread = StackFrame.Thread;
+            if (thread != null)
+                builder.AppendFormat(null, "Thread {0:x} ", thread.OSThreadId);
+
+            builder.Append(StackFrame);
+            builder.AppendFormat(null, " @{0:x12} {1}", Address, Object);
+            return builder.ToString();
         }
     }
 }

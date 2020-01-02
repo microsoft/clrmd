@@ -13,6 +13,11 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrStackFrame
     {
         /// <summary>
+        /// The thread parent of this frame.  Note that this may be null when inspecting the stack of ClrExceptions.
+        /// </summary>
+        public abstract ClrThread? Thread { get; }
+
+        /// <summary>
         /// Gets this stack frame context.
         /// </summary>
         public abstract ReadOnlySpan<byte> Context { get; }

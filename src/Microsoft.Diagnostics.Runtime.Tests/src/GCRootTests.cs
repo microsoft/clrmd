@@ -163,20 +163,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = gcroot.Heap;
             ulong target = heap.GetObjectsOfType("TargetType").Single();
 
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).ToArray();
-            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+            GCRootsImpl(gcroot, heap, target, parallelism: 1, unique: false);
+            GCRootsImpl(gcroot, heap, target, parallelism: 16, unique: false);
 
-            rootPaths = gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).ToArray();
-            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+            GCRootsImpl(gcroot, heap, target, parallelism: 1, unique: true);
+            GCRootsImpl(gcroot, heap, target, parallelism: 16, unique: true);
+        }
 
-            rootPaths = gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).ToArray();
-            CheckRootPaths(heap, target, rootPaths, mustContainStatic: true);
+        private void GCRootsImpl(GCRoot gcroot, ClrHeap heap, ulong target, int parallelism, bool unique)
+        {
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, unique: unique, parallelism, CancellationToken.None).ToArray();
 
             // In the case where we say we only want unique rooting chains AND we want to look in parallel,
             // we cannot guarantee that we will pick the static roots over the stack ones.  Hence we don't
-            // ensure that the static variable is enumerated.
-            rootPaths = gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).ToArray();
-            CheckRootPaths(heap, target, rootPaths, mustContainStatic: false);
+            // ensure that the static variable is enumerated when unique == true.
+            CheckRootPaths(heap, target, rootPaths, mustContainStatic: !unique);
         }
 
         private void CheckRootPaths(ClrHeap heap, ulong target, GCRootPath[] rootPaths, bool mustContainStatic)
