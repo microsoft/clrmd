@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
-namespace Microsoft.Diagnostics.Runtime.Utilities
+namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// A delegate for reporting GCRoot progress.
