@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(allPdbs[i].Equals(allPdbs[i]));
                 for (int j = i + 1; j < allPdbs.Length; j++)
                 {
-                    if (allPdbs[i].FileName != allPdbs[j].FileName)
+                    if (allPdbs[i].Path != allPdbs[j].Path)
                     {
                         Assert.False(allPdbs[i].Equals(allPdbs[j]));
                         Assert.False(allPdbs[j].Equals(allPdbs[i]));
