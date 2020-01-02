@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     public interface IDataReader : IDisposable, IMemoryReader
     {
         /// <summary>
-        /// Returns whether this data reader is safe to use in parallel from multiple threads.
+        /// Gets a value indicating whether this data reader is safe to use in parallel from multiple threads.
         /// </summary>
         bool IsThreadSafe { get; }
 
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         Architecture Architecture { get; }
 
         /// <summary>
-        /// The ProcessId of the DataTarget.
+        /// Gets the process ID of the DataTarget.
         /// </summary>
         uint ProcessId { get; }
 

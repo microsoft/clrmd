@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public struct ClrDataAddress
     {
         /// <summary>
-        /// Raw value of this address.  May be sign-extended if inspecting a 32bit process.
+        /// Gets raw value of this address.  May be sign-extended if inspecting a 32bit process.
         /// </summary>
         public long Value { get; }
 

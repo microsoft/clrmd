@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrHeap
     {
         /// <summary>
-        /// Returns the runtime associated with this heap.
+        /// Gets the runtime associated with this heap.
         /// </summary>
         public abstract ClrRuntime Runtime { get; }
 
@@ -35,27 +35,27 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IReadOnlyList<ClrSegment> Segments { get; }
 
         /// <summary>
-        /// Returns the ClrType representing free space on the GC heap.
+        /// Gets the <see cref="ClrType"/> representing free space on the GC heap.
         /// </summary>
         public abstract ClrType FreeType { get; }
 
         /// <summary>
-        /// Returns the ClrType representing System.String.
+        /// Gets the <see cref="ClrType"/> representing <see cref="string"/>.
         /// </summary>
         public abstract ClrType StringType { get; }
 
         /// <summary>
-        /// Returns the ClrType representing System.Object.
+        /// Gets the <see cref="ClrType"/> representing <see cref="object"/>.
         /// </summary>
         public abstract ClrType ObjectType { get; }
 
         /// <summary>
-        /// Returns the ClrType representing System.Exception.
+        /// Gets the <see cref="ClrType"/> representing <see cref="System.Exception"/>.
         /// </summary>
         public abstract ClrType ExceptionType { get; }
 
         /// <summary>
-        /// Returns whether the GC heap is in Server mode or not.
+        /// Gets a value indicating whether the GC heap is in Server mode.
         /// </summary>
         public abstract bool IsServer { get; }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets a <see cref="ClrObject"/> for the given address on this heap.
         /// </summary>
         /// <remarks>
-        /// The returned object will have a <c>null</c> <see cref="ClrObject.Type"/> if objRef does not point to
+        /// The returned object will have a <see langword="null"/> <see cref="ClrObject.Type"/> if objRef does not point to
         /// a valid managed object.
         /// </remarks>
         /// <param name="objRef"></param>
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject GetObject(ulong objRef) => new ClrObject(objRef, GetObjectType(objRef));
 
         /// <summary>
-        /// Obtains the type of an object at the given address.  Returns null if objRef does not point to
+        /// Obtains the type of an object at the given address.  Returns <see langword="null"/> if objRef does not point to
         /// a valid managed object.
         /// </summary>
         public abstract ClrType? GetObjectType(ulong objRef);

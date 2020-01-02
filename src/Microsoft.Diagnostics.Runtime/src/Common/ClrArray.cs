@@ -12,19 +12,19 @@ namespace Microsoft.Diagnostics.Runtime
     public struct ClrArray : IEquatable<ClrArray>, IEquatable<ClrObject>
     {
         /// <summary>
-        /// The address of the object.
+        /// Gets the address of the object.
         /// </summary>
         public ulong Address { get; }
 
         /// <summary>
-        /// The type of the object.
+        /// Gets the type of the object.
         /// </summary>
         public ClrType Type { get; }
 
         private int _length;
 
         /// <summary>
-        /// Returns the count of elements in this array.
+        /// Gets the count of elements in this array.
         /// </summary>
         public int Length
         {
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public T[]? GetContent<T>(int count) where T : unmanaged
         {
-            if (count > this.Length)
+            if (count > Length)
             {
                 throw new ArgumentException("Cannot read more elements than elements in array.");
             }
@@ -73,63 +73,58 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Determines if this instance and another specific <see cref="ClrArray" /> have the same value.
-        /// <para>Instances are considered equal when they have same <see cref="Address" />.</para>
+        /// Determines whether this instance and another specific <see cref="ClrArray"/> have the same value.
+        /// <para>Instances are considered equal when they have the same <see cref="Address"/>.</para>
         /// </summary>
-        /// <param name="other">The <see cref="ClrArray" /> to compare to this instance.</param>
-        /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
-        public override bool Equals(object? other)
+        /// <param name="obj">The <see cref="ClrArray"/> to compare to this instance.</param>
+        /// <returns><see langword="true"/> if the <see cref="Address"/> of the parameter is the same as <see cref="Address"/> in this instance; <see langword="false"/> otherwise.</returns>
+        public override bool Equals(object? obj) => obj switch
         {
-            if (other is null)
-                return false;
-            if (other is ulong ul)
-                return ul == Address;
-            if (other is ClrArray clrArray)
-                return Address == clrArray.Address;
-            if (other is ClrObject clrObject)
-                return Address == clrObject.Address;
-
-            return false;
-        }
+            null => false,
+            ulong address => Address == address,
+            ClrArray clrArray => Address == clrArray.Address,
+            ClrObject clrObject => Address == clrObject.Address,
+            _ => false
+        };
 
         /// <summary>
-        /// Determines if this instance and another specific <see cref="ClrArray" /> have the same value.
-        /// <para>Instances are considered equal when they have same <see cref="Address" />.</para>
+        /// Determines whether this instance and another specific <see cref="ClrArray"/> have the same value.
+        /// <para>Instances are considered equal when they have the same <see cref="Address"/>.</para>
         /// </summary>
-        /// <param name="other">The <see cref="ClrArray" /> to compare to this instance.</param>
-        /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
+        /// <param name="other">The <see cref="ClrArray"/> to compare to this instance.</param>
+        /// <returns><see langword="true"/> if the <see cref="Address"/> of the parameter is the same as <see cref="Address"/> in this instance; <see langword="false"/> otherwise.</returns>
         public bool Equals(ClrArray other) => Address == other.Address;
 
         /// <summary>
         /// Determines whether this instance and a specified object.
         /// </summary>
-        /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
+        /// <param name="other">The <see cref="ClrObject"/> to compare to this instance.</param>
         /// <returns>
-        /// <c>true</c> if <paramref name="other" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
+        /// <see langword="true"/> if <paramref name="other"/> is <see cref="ClrObject"/>, and its <see cref="Address"/> is the same as <see cref="Address"/> in this instance; <see langword="false"/>
         /// otherwise.
         /// </returns>
         public bool Equals(ClrObject other) => Address == other.Address;
 
         /// <summary>
-        /// Returns the hash code for this <see cref="ClrArray" /> based on its <see cref="Address" />.
+        /// Returns the hash code for this <see cref="ClrArray"/>.
         /// </summary>
-        /// <returns>An <see cref="int" /> hash code for this instance.</returns>
+        /// <returns>An <see cref="int"/> hash code for this instance.</returns>
         public override int GetHashCode() => Address.GetHashCode();
 
         /// <summary>
-        /// Determines whether two specified <see cref="ClrArray" /> have the same value.
+        /// Determines whether two specified <see cref="ClrArray"/> have the same value.
         /// </summary>
-        /// <param name="left">First <see cref="ClrArray" /> to compare.</param>
-        /// <param name="right">Second <see cref="ClrArray" /> to compare.</param>
-        /// <returns><c>true</c> if <paramref name="left" /> <see cref="Equals(ClrArray)" /> <paramref name="right" />; <c>false</c> otherwise.</returns>
+        /// <param name="left">First <see cref="ClrArray"/> to compare.</param>
+        /// <param name="right">Second <see cref="ClrArray"/> to compare.</param>
+        /// <returns><see langword="true"/> if <paramref name="left"/> <see cref="Equals(ClrArray)"/> <paramref name="right"/>; <see langword="false"/> otherwise.</returns>
         public static bool operator ==(ClrArray left, ClrArray right) => left.Equals(right);
 
         /// <summary>
-        /// Determines whether two specified <see cref="ClrArray" /> have different values.
+        /// Determines whether two specified <see cref="ClrArray"/> have different values.
         /// </summary>
-        /// <param name="left">First <see cref="ClrArray" /> to compare.</param>
-        /// <param name="right">Second <see cref="ClrArray" /> to compare.</param>
-        /// <returns><c>true</c> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <c>false</c> otherwise.</returns>
+        /// <param name="left">First <see cref="ClrArray"/> to compare.</param>
+        /// <param name="right">Second <see cref="ClrArray"/> to compare.</param>
+        /// <returns><see langword="true"/> if the value of <paramref name="left"/> is different from the value of <paramref name="right"/>; <see langword="false"/> otherwise.</returns>
         public static bool operator !=(ClrArray left, ClrArray right) => !(left == right);
     }
 }

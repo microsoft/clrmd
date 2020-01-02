@@ -8,7 +8,7 @@ using System.IO;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Infers clr info from module names, provides corresponding dac details.
+    /// Infers clr info from module names, provides corresponding DAC details.
     /// </summary>
     public static class ClrInfoProvider
     {
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Checks if the provided module corresponds to a supported runtime, gets clr details inferred from the module name.
         /// </summary>
         /// <param name="moduleInfo">Module info.</param>
-        /// <param name="flavor">Clr flavor.</param>
+        /// <param name="flavor">CLR flavor.</param>
         /// <param name="platform">Platform.</param>
         /// <returns>true if module corresponds to a supported runtime.</returns>
         public static bool IsSupportedRuntime(ModuleInfo moduleInfo, out ClrFlavor flavor, out Platform platform)
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the filename of the dac dll according to the specified parameters.
+        /// Returns the file name of the DAC dll according to the specified parameters.
         /// </summary>
         public static string GetDacFileName(ClrFlavor flavor, Platform platform)
         {
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the filename of the dac dll for the requests to the symbol server.
+        /// Returns the file name of the DAC dll for the requests to the symbol server.
         /// </summary>
         public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo version, Platform platform)
         {

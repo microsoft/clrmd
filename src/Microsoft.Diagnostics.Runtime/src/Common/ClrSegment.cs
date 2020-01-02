@@ -14,28 +14,28 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrSegment
     {
         /// <summary>
-        /// The start address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
+        /// Gets the start address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
         /// </summary>
         public abstract ulong Start { get; }
 
         /// <summary>
-        /// The end address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
+        /// Gets the end address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
         /// </summary>
         public abstract ulong End { get; }
 
         /// <summary>
-        /// The number of bytes in the segment.
+        /// Gets the number of bytes in the segment.
         /// </summary>
         public virtual ulong Length => End - Start;
 
         /// <summary>
-        /// The GC heap associated with this segment.  There's only one GCHeap per process, so this is
+        /// Gets the GC heap associated with this segment.  There's only one GCHeap per process, so this is
         /// only a convenience method to keep from having to pass the heap along with a segment.
         /// </summary>
         public abstract ClrHeap Heap { get; }
 
         /// <summary>
-        /// The processor that this heap is affinitized with.  In a workstation GC, there is no processor
+        /// Gets the processor that this heap is affinitized with.  In a workstation GC, there is no processor
         /// affinity (and the return value of this property is undefined).  In a server GC each segment
         /// has a logical processor in the PC associated with it.  This property returns that logical
         /// processor number (starting at 0).
@@ -43,17 +43,17 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int LogicalHeap { get; }
 
         /// <summary>
-        /// The address of the end of memory reserved for the segment, but not committed.
+        /// Gets the address of the end of memory reserved for the segment, but not committed.
         /// </summary>
         public abstract ulong ReservedEnd { get; }
 
         /// <summary>
-        /// The address of the end of memory committed for the segment (this may be longer than Length).
+        /// Gets the address of the end of memory committed for the segment (this may be longer than Length).
         /// </summary>
         public abstract ulong CommittedEnd { get; }
 
         /// <summary>
-        /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
+        /// Gets the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
         public abstract ulong FirstObject { get; }
 
@@ -79,27 +79,27 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong Gen0Start { get; }
 
         /// <summary>
-        /// The length of the gen0 portion of this segment.
+        /// Gets the length of the gen0 portion of this segment.
         /// </summary>
         public abstract ulong Gen0Length { get; }
 
         /// <summary>
-        /// The start of the gen1 portion of this segment.
+        /// Gets the start of the gen1 portion of this segment.
         /// </summary>
         public abstract ulong Gen1Start { get; }
 
         /// <summary>
-        /// The length of the gen1 portion of this segment.
+        /// Gets the length of the gen1 portion of this segment.
         /// </summary>
         public abstract ulong Gen1Length { get; }
 
         /// <summary>
-        /// The start of the gen2 portion of this segment.
+        /// Gets the start of the gen2 portion of this segment.
         /// </summary>
         public abstract ulong Gen2Start { get; }
 
         /// <summary>
-        /// The length of the gen2 portion of this segment.
+        /// Gets the length of the gen2 portion of this segment.
         /// </summary>
         public abstract ulong Gen2Length { get; }
 

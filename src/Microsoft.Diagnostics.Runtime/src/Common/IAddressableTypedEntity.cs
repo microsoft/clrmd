@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         ClrType? Type { get; }
 
         /// <summary>
-        /// Gets the value of a primitive field (f.e. <see cref="int"/>, <see cref="bool"/>).
+        /// Gets the value of a primitive field (i.e. <see cref="int"/>, <see cref="bool"/>).
         /// </summary>
         /// <typeparam name="T">The primitive type of the field.</typeparam>
         /// <param name="fieldName">The name of the field to read value from.</param>

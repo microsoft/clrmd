@@ -18,22 +18,22 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// This is the address of the clr!Module object.
+        /// Gets the address of the clr!Module object.
         /// </summary>
         public abstract ulong Address { get; }
 
         /// <summary>
-        /// Returns the AppDomain parent of this module.
+        /// Gets the AppDomain parent of this module.
         /// </summary>
         public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
-        /// Returns the name of the assembly that this module is defined in.
+        /// Gets the name of the assembly that this module is defined in.
         /// </summary>
         public abstract string? AssemblyName { get; }
 
         /// <summary>
-        /// Returns an identifier to uniquely represent this assembly.  This value is not used by any other
+        /// Gets an identifier to uniquely represent this assembly.  This value is not used by any other
         /// function in ClrMD, but can be used to group modules by their assembly.  (Do not use AssemblyName
         /// for this, as reflection and other special assemblies can share the same name, but actually be
         /// different.)
@@ -41,29 +41,29 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong AssemblyAddress { get; }
 
         /// <summary>
-        /// Returns the name of the module.
+        /// Gets the name of the module.
         /// </summary>
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns true if this module was created through Reflection.Emit (and thus has no associated
+        /// Gets a value indicating whether this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
         /// file).
         /// </summary>
         public abstract bool IsDynamic { get; }
 
         /// <summary>
-        /// Returns true if this module is an actual PEFile on disk.
+        /// Gets a value indicating whether this module is an actual PEFile on disk.
         /// </summary>
         public abstract bool IsPEFile { get; }
 
         /// <summary>
-        /// Returns the filename of where the module was loaded from on disk.  Undefined results if
-        /// IsPEFile returns false.
+        /// Gets the file name of where the module was loaded from on disk.  Undefined results if
+        /// IsPEFile is <see langword="false"/>.
         /// </summary>
         public abstract string? FileName { get; }
 
         /// <summary>
-        /// Returns the base of the image loaded into memory.  This may be 0 if there is not a physical
+        /// Gets the base of the image loaded into memory.  This may be 0 if there is not a physical
         /// file backing it.
         /// </summary>
         public abstract ulong ImageBase { get; }
@@ -71,29 +71,29 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsFileLayout { get; }
 
         /// <summary>
-        /// Returns the size of the image in memory.
+        /// Gets the size of the image in memory.
         /// </summary>
         public abstract ulong Size { get; }
 
         /// <summary>
-        /// The location of metadata for this module in the process's memory.  This is useful if you
+        /// Gets the location of metadata for this module in the process's memory.  This is useful if you
         /// need to manually create IMetaData* objects.
         /// </summary>
         public abstract ulong MetadataAddress { get; }
 
         /// <summary>
-        /// The length of the metadata for this module.
+        /// Gets the length of the metadata for this module.
         /// </summary>
         public abstract ulong MetadataLength { get; }
 
         /// <summary>
-        /// The IMetaDataImport interface for this module.  Note that this API does not provide a
-        /// wrapper for IMetaDataImport.  You will need to wrap the API yourself if you need to use this.
+        /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
+        /// wrapper for <c>IMetaDataImport</c>.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
         public virtual MetadataImport? MetadataImport => null;
 
         /// <summary>
-        /// The debugging attributes for this module.
+        /// Gets the debugging attributes for this module.
         /// </summary>
         public abstract DebuggableAttribute.DebuggingModes DebuggingMode { get; }
 
@@ -107,17 +107,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// Resolves the give metdata token for this module.
         /// </summary>
         /// <param name="typeDefOrRefToken">A typedef or typeref token.</param>
-        /// <returns>The ClrType of the resolved token, null if not found or if a type for the token hasn't been constructed by the runtime.</returns>
+        /// <returns>The ClrType of the resolved token, <see langword="null"/> if not found or if a type for the token hasn't been constructed by the runtime.</returns>
         public abstract ClrType? ResolveToken(uint typeDefOrRefToken);
 
         /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
-        /// the way that the dac handles types.  This function will fail for Generics, and types which have
+        /// the way that the DAC handles types.  This function will fail for Generics, and types which have
         /// never been constructed in the target process.  Please be sure to null-check the return value of
         /// this function.
         /// </summary>
         /// <param name="name">The name of the type.  (This would be the EXACT value returned by ClrType.Name.)</param>
-        /// <returns>The requested ClrType, or null if the type doesn't exist or if the runtime hasn't constructed it.</returns>
+        /// <returns>The requested ClrType, or <see langword="null"/> if the type doesn't exist or if the runtime hasn't constructed it.</returns>
         public abstract ClrType? GetTypeByName(string name);
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the pdb information for this module.
+        /// Gets the PDB information for this module.
         /// </summary>
         public abstract PdbInfo? Pdb { get; }
 

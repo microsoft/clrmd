@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime
     public struct ComInterfaceData
     {
         /// <summary>
-        /// The CLR type this represents.
+        /// Gets the CLR type this represents.
         /// </summary>
         public ClrType? Type { get; }
 
         /// <summary>
-        /// The interface pointer of Type.
+        /// Gets the interface pointer of Type.
         /// </summary>
         public ulong InterfacePointer { get; }
 

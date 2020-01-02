@@ -238,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public unsafe int GetMetadata(
             IntPtr self,
-            string filename,
+            string fileName,
             uint imageTimestamp,
             uint imageSize,
             IntPtr mvid,
@@ -251,7 +251,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (buffer == IntPtr.Zero)
                 return E_INVALIDARG;
 
-            string? filePath = _dataTarget.BinaryLocator.FindBinary(filename, imageTimestamp, imageSize, true);
+            string? filePath = _dataTarget.BinaryLocator.FindBinary(fileName, imageTimestamp, imageSize, true);
             if (filePath is null)
                 return E_FAIL;
 
@@ -287,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMetadataDelegate(
             IntPtr self,
-            [In][MarshalAs(UnmanagedType.LPWStr)] string filename,
+            [In][MarshalAs(UnmanagedType.LPWStr)] string fileName,
             uint imageTimestamp,
             uint imageSize,
             IntPtr mvid,

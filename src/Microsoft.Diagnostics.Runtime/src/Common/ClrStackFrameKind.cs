@@ -20,8 +20,8 @@ namespace Microsoft.Diagnostics.Runtime
         ManagedMethod = 0,
 
         /// <summary>
-        /// Indicates this stack frame is a special stack marker that the Clr runtime leaves on the stack.
-        /// Note that the ClrStackFrame may still have a ClrMethod associated with the marker.
+        /// Indicates this stack frame is a special stack marker that the CLR leaves on the stack.
+        /// Note that the <see cref="ClrStackFrame"/> may still have a <see cref="ClrMethod"/> associated with the marker.
         /// </summary>
         Runtime = 1
     }

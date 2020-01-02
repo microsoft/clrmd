@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// A set of COMIMAGE_FLAGS.
+        /// Gets a set of COMIMAGE_FLAGS.
         /// </summary>
         public COMIMAGE_FLAGS Flags => (COMIMAGE_FLAGS)_header.Flags;
         public ushort MajorRuntimeVersion => _header.MajorRuntimeVersion;
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public IMAGE_DATA_DIRECTORY ExportAddressTableJumps => _header.ExportAddressTableJumps;
 
         /// <summary>
-        /// This is null for ordinary IL images.  NGEN images it points at a CORCOMPILE_HEADER structure.
+        /// This is <see langword="null"/> for ordinary IL images.  NGEN images it points at a CORCOMPILE_HEADER structure.
         /// </summary>
         public IMAGE_DATA_DIRECTORY ManagedNativeHeader => _header.ManagedNativeHeader;
     }

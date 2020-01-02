@@ -10,22 +10,22 @@ namespace Microsoft.Diagnostics.Runtime
     public struct HotColdRegions
     {
         /// <summary>
-        /// Returns the start address of the method's hot region.
+        /// Gets the start address of the method's hot region.
         /// </summary>
         public ulong HotStart { get; }
 
         /// <summary>
-        /// Returns the size of the hot region.
+        /// Gets the size of the hot region.
         /// </summary>
         public uint HotSize { get; }
 
         /// <summary>
-        /// Returns the start address of the method's cold region.
+        /// Gets the start address of the method's cold region.
         /// </summary>
         public ulong ColdStart { get; }
 
         /// <summary>
-        /// Returns the size of the cold region.
+        /// Gets the size of the cold region.
         /// </summary>
         public uint ColdSize { get; }
 

@@ -7,17 +7,17 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents a Clr handle in the target process.
+    /// Represents a CLR handle in the target process.
     /// </summary>
     public abstract class ClrHandle : IClrRoot
     {
         /// <summary>
-        /// The address of the handle itself.  That is, *ulong == Object.
+        /// Gets the address of the handle itself.  That is, *ulong == Object.
         /// </summary>
         public abstract ulong Address { get; }
 
         /// <summary>
-        /// The Object the handle roots.
+        /// Gets the Object the handle roots.
         /// </summary>
         public abstract ClrObject Object { get; }
 
@@ -29,18 +29,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// If this handle is a RefCount handle, this returns the reference count.
         /// RefCount handles with a RefCount > 0 are strong.
-        /// NOTE: v2 CLR CANNOT determine the RefCount.  We always set the RefCount
-        /// to 1 in a v2 query since a strong RefCount handle is the common case.
         /// </summary>
         public abstract uint ReferenceCount { get; }
 
         /// <summary>
-        /// The dependent handle target if this is a dependent handle.
+        /// Gets the dependent handle target if this is a dependent handle.
         /// </summary>
         public abstract ClrObject Dependent { get; }
 
         /// <summary>
-        /// The AppDomain the handle resides in.
+        /// Gets the AppDomain the handle resides in.
         /// </summary>
         public abstract ClrAppDomain AppDomain { get; }
 
@@ -54,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Whether the handle is strong (roots the object) or not.
+        /// Gets a value indicating whether the handle is strong (roots the object).
         /// </summary>
         public bool IsStrong
         {
@@ -81,8 +79,8 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsInterior => false;
 
         /// <summary>
-        /// Whether or not the handle pins the object (doesn't allow the GC to
-        /// relocate it) or not.
+        /// Gets a value indicating whether the handle pins the object (doesn't allow the GC to
+        /// relocate it).
         /// </summary>
         public bool IsPinned => HandleKind == ClrHandleKind.AsyncPinned || HandleKind == ClrHandleKind.Pinned;
     }

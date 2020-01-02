@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Use a simple dump reader to read data out of the crash dump.  This allows processing
         /// multiple dumps (using separate DataTargets) on multiple threads, but the
-        /// DataTarget.DebuggerInterface property will return null.
+        /// DataTarget.DebuggerInterface property will return <see langword="null"/>.
         /// </summary>
         ClrMD
     }

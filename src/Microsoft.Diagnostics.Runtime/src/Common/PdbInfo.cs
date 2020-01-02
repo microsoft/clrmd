@@ -18,17 +18,17 @@ namespace Microsoft.Diagnostics.Runtime
 #nullable restore
     {
         /// <summary>
-        /// The Guid of the PDB.
+        /// Gets the Guid of the PDB.
         /// </summary>
         public Guid Guid { get; }
 
         /// <summary>
-        /// The pdb revision.
+        /// Gets the PDB revision.
         /// </summary>
         public int Revision { get; }
 
         /// <summary>
-        /// The filename of the pdb.
+        /// Gets the file name of the PDB.
         /// </summary>
         public string FileName { get; }
 
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the.
+        /// Override for Equals.  Returns true if the guid, age, and file names equal.  Note that this compares only the.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>

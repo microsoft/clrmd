@@ -17,43 +17,43 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Address { get; }
 
         /// <summary>
-        /// Returns the pointer to the IUnknown representing this CCW.
+        /// Gets the pointer to the IUnknown representing this CCW.
         /// </summary>
         public ulong IUnknown { get; }
 
         /// <summary>
-        /// Returns the external VTable associated with this RCW.  (It's useful to resolve the VTable as a symbol
+        /// Gets the external VTable associated with this RCW.  (It's useful to resolve the VTable as a symbol
         /// which will tell you what the underlying native type is...if you have the symbols for it loaded).
         /// </summary>
         public ulong VTablePointer { get; }
 
         /// <summary>
-        /// Returns the RefCount of the RCW.
+        /// Gets the RefCount of the RCW.
         /// </summary>
         public int RefCount { get; }
 
         /// <summary>
-        /// Returns the managed object associated with this of RCW.
+        /// Gets the managed object associated with this of RCW.
         /// </summary>
         public ulong Object { get; }
 
         /// <summary>
-        /// Returns true if the RCW is disconnected from the underlying COM type.
+        /// Gets a value indicating whether the RCW is disconnected from the underlying COM type.
         /// </summary>
         public bool IsDisconnected { get; }
 
         /// <summary>
-        /// Returns the thread which created this RCW.
+        /// Gets the thread which created this RCW.
         /// </summary>
         public ClrThread? CreatorThread { get; }
 
         /// <summary>
-        /// Returns the internal WinRT object associated with this RCW (if one exists).
+        /// Gets the internal WinRT object associated with this RCW (if one exists).
         /// </summary>
         public ulong WinRTObject { get; }
 
         /// <summary>
-        /// Returns the list of interfaces this RCW implements.
+        /// Gets the list of interfaces this RCW implements.
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 

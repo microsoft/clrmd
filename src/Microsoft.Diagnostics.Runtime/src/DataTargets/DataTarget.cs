@@ -32,14 +32,14 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// The data reader for this instance.
+        /// Gets the data reader for this instance.
         /// </summary>
         public IDataReader DataReader { get; }
 
         public CacheOptions CacheOptions { get; } = new CacheOptions();
 
         /// <summary>
-        /// Instance to manage the symbol path(s).
+        /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
         public IBinaryLocator BinaryLocator
         {
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the list of Clr versions loaded into the process.
+        /// Gets the list of CLR versions loaded into the process.
         /// </summary>
         public ImmutableArray<ClrInfo> ClrVersions => GetOrCreateClrVersions();
 
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         #region Statics
         /// <summary>
-        /// A set of helper functions that are consistently implemented across all platforms.
+        /// Gets a set of helper functions that are consistently implemented across all platforms.
         /// </summary>
         public static PlatformFunctions PlatformFunctions { get; } =
             RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? (PlatformFunctions)new LinuxFunctions() : new WindowsFunctions();
@@ -223,20 +223,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a DataTarget from a coredump.
         /// This method is only supported on Linux.
         /// </summary>
-        /// <param name="filename">The path to a core dump.</param>
+        /// <param name="fileName">The path to a core dump.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="InvalidDataException">
-        /// The file specified by <paramref name="filename"/> is not a coredump.
+        /// The file specified by <paramref name="fileName"/> is not a coredump.
         /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Linux.
         /// </exception>
-        public static DataTarget LoadCoreDump(string filename)
+        public static DataTarget LoadCoreDump(string fileName)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 ThrowPlatformNotSupportedException();
 
-            CoreDumpReader reader = new CoreDumpReader(filename);
+            CoreDumpReader reader = new CoreDumpReader(fileName);
             return new DataTarget(reader)
             {
                 BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
@@ -247,62 +247,62 @@ namespace Microsoft.Diagnostics.Runtime
         /// Passively attaches to a live process.  Note that this method assumes that you have alread suspended
         /// the target process.  It is unsupported to inspect a running process.
         /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A DataTarget instance.</returns>
-        public static DataTarget PassiveAttachToProcess(int pid)
+        public static DataTarget PassiveAttachToProcess(int processId)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: false);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(processId, suspend: false);
                 return new DataTarget(reader)
                 {
                     BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 
-            return new DataTarget(new LiveDataReader(pid, createSnapshot: false));
+            return new DataTarget(new LiveDataReader(processId, createSnapshot: false));
         }
 
         /// <summary>
         /// Attaches to a live process.
         /// </summary>
-        /// <param name="pid">The process ID of the process to suspend and attach to.</param>
+        /// <param name="processId">The ID of the process to suspend and attach to.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="ArgumentException">
-        /// The process specified by <paramref name="pid"/> is not running.
+        /// The process specified by <paramref name="processId"/> is not running.
         /// </exception>
-        public static DataTarget SuspendAndAttachToProcess(int pid)
+        public static DataTarget SuspendAndAttachToProcess(int processId)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader(pid, suspend: true);
+                LinuxLiveDataReader reader = new LinuxLiveDataReader(processId, suspend: true);
                 return new DataTarget(reader)
                 {
                     BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
                 };
             }
 
-            return new DataTarget(new DbgEngDataReader(pid, invasive: false, 5000));
+            return new DataTarget(new DbgEngDataReader(processId, invasive: false, 5000));
         }
 
         /// <summary>
         /// Attaches to a snapshot process (see https://docs.microsoft.com/windows/win32/api/_proc_snap/).
         /// This method is only supported on Windows.
         /// </summary>
-        /// <param name="pid">The process ID of the process to attach to.</param>
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="ArgumentException">
-        /// The process specified by <paramref name="pid"/> is not running.
+        /// The process specified by <paramref name="processId"/> is not running.
         /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
-        public static DataTarget CreateSnapshotAndAttach(int pid)
+        public static DataTarget CreateSnapshotAndAttach(int processId)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 ThrowPlatformNotSupportedException();
 
-            return new DataTarget(new LiveDataReader(pid, createSnapshot: true));
+            return new DataTarget(new LiveDataReader(processId, createSnapshot: true));
         }
 
         [DoesNotReturn]

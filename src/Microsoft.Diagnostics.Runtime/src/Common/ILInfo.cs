@@ -10,22 +10,22 @@ namespace Microsoft.Diagnostics.Runtime
     public class ILInfo
     {
         /// <summary>
-        /// The address in memory of where the IL for a particular method is located.
+        /// Gets the address in memory of where the IL for a particular method is located.
         /// </summary>
         public ulong Address { get; }
 
         /// <summary>
-        /// The length (in bytes) of the IL method body.
+        /// Gets the length (in bytes) of the IL method body.
         /// </summary>
         public int Length { get; }
 
         /// <summary>
-        /// The flags associated with the IL code.
+        /// Gets the flags associated with the IL code.
         /// </summary>
         public uint Flags { get; }
 
         /// <summary>
-        /// The local variable signature token for this IL method.
+        /// Gets the local variable signature token for this IL method.
         /// </summary>
         public uint LocalVarSignatureToken { get; }
 

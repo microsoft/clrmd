@@ -93,14 +93,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         /// <summary>
-        /// Gets the ClrType corresponding to the given MethodTable.
+        /// Gets the <see cref="ClrType"/> corresponding to the given MethodTable.
         /// </summary>
         /// <param name="methodTable">The ClrType.MethodTable for the requested type.</param>
-        /// <returns>A ClrType object, or null if no such type exists.</returns>
+        /// <returns>A ClrType object, or <see langword="null"/> if no such type exists.</returns>
         public override ClrType? GetTypeByMethodTable(ulong methodTable) => _helpers.Factory.GetOrCreateType(methodTable, 0);
 
         /// <summary>
-        /// Flushes the dac cache.  This function MUST be called any time you expect to call the same function
+        /// Flushes the DAC cache.  This function <b>must</b> be called any time you expect to call the same function
         /// but expect different results.  For example, after walking the heap, you need to call Flush before
         /// attempting to walk the heap again.
         /// </summary>
@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // In Desktop CLR, modules in the SharedDomain can potentially also be in every other domain.
             // To prevent duplicates we'll first enumerate all shared modules, then we'll make sure every
             // module we yield return after that isn't in the SharedDomain.
-            // In .Net Core, there's only one AppDomain and no shared domain, so "sharedModules" will always be
+            // In .NET Core, there's only one AppDomain and no shared domain, so "sharedModules" will always be
             // Empty and we'll enumerate everything in the single domain.
 
             ImmutableArray<ClrModule> sharedModules = SharedDomain?.Modules ?? ImmutableArray<ClrModule>.Empty;

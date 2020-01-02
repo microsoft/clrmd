@@ -19,27 +19,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly int _offset;
 
         /// <summary>
-        /// The PEImage containing this ResourceEntry.
+        /// Gets the PEImage containing this ResourceEntry.
         /// </summary>
         public PEImage Image { get; }
 
         /// <summary>
-        /// The parent resource of this ResourceEntry.  Null if and only if this is the root node.
+        /// Gets the parent resource of this ResourceEntry.  Null if and only if this is the root node.
         /// </summary>
         public ResourceEntry? Parent { get; }
 
         /// <summary>
-        /// Resource Name.  May be null if this is the root node.
+        /// Gets resource Name.  May be <see langword="null"/> if this is the root node.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// Returns true if this is a leaf, and contains data.
+        /// Gets a value indicating whether this is a leaf, and contains data.
         /// </summary>
         public bool IsLeaf { get; }
 
         /// <summary>
-        /// Returns the size of data for this node.
+        /// Gets the size of data for this node.
         /// </summary>
         public int Size
         {
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// The number of children this entry contains.
+        /// Gets the number of children this entry contains.
         /// </summary>
         public int Count => Children.Length;
 
@@ -66,11 +66,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Returns the given resource child by name.
         /// </summary>
         /// <param name="name">The name of the child to return.</param>
-        /// <returns>The child in question, or null if none are found with that name.</returns>
+        /// <returns>The child in question, or <see langword="null"/> if none are found with that name.</returns>
         public ResourceEntry this[string name] => Children.SingleOrDefault(c => c.Name == name);
 
         /// <summary>
-        /// The children resources of this ResourceEntry.
+        /// Gets the children resources of this ResourceEntry.
         /// </summary>
         public ImmutableArray<ResourceEntry> Children => GetChildren();
 

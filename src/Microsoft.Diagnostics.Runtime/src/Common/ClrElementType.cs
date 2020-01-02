@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// This is a representation of the metadata element type.  These values
-    /// directly correspond with Clr's CorElementType.
+    /// directly correspond with CLR's CorElementType.
     /// </summary>
     public enum ClrElementType
     {

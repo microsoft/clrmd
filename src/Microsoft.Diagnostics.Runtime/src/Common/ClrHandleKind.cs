@@ -5,7 +5,7 @@
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Types of Clr handles.
+    /// Types of CLR handles.
     /// </summary>
     public enum ClrHandleKind
     {

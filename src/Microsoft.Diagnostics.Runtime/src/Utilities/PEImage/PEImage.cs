@@ -94,71 +94,71 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal int ResourceVirtualAddress => (int)GetDirectory(2).VirtualAddress;
 
         /// <summary>
-        /// Returns the root resource node of this PEImage.
+        /// Gets the root resource node of this PEImage.
         /// </summary>
         public ResourceEntry Resources => _resources.Value;
 
         /// <summary>
-        /// The underlying stream.
+        /// Gets the underlying stream.
         /// </summary>
         public Stream Stream { get; }
 
         /// <summary>
-        /// Returns true if the given Stream contains a valid DOS header and PE signature.
+        /// Gets a value indicating whether the given Stream contains a valid DOS header and PE signature.
         /// </summary>
         public bool IsValid { get; private set; }
 
         /// <summary>
-        /// Returns true if this image is for a 64bit processor.
+        /// Gets a value indicating whether this image is for a 64bit processor.
         /// </summary>
         public bool IsPE64 => OptionalHeader != null && OptionalHeader.Magic != 0x010b;
 
         /// <summary>
-        /// Returns true if this image is managed. (.NET image)
+        /// Gets a value indicating whether this image is managed. (.NET image)
         /// </summary>
         public bool IsManaged => OptionalHeader != null && OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
 
         /// <summary>
-        /// Returns the timestamp that this PE image is indexed under.
+        /// Gets the timestamp that this PE image is indexed under.
         /// </summary>
         public int IndexTimeStamp => (int)(Header?.TimeDateStamp ?? 0);
 
         /// <summary>
-        /// Returns the file size that this PE image is indexed under.
+        /// Gets the file size that this PE image is indexed under.
         /// </summary>
         public int IndexFileSize => (int)(OptionalHeader?.SizeOfImage ?? 0);
 
         /// <summary>
-        /// Returns the managed header information for this image.  Undefined behavior if IsValid is false.
+        /// Gets the managed header information for this image.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public CorHeader? CorHeader => _corHeader.Value;
 
         /// <summary>
-        /// Returns a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is false.
+        /// Gets a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ImageFileHeader? Header => _imageFileHeader.Value;
 
         /// <summary>
-        /// Returns a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is false.
+        /// Gets a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ImageOptionalHeader? OptionalHeader => _imageOptionalHeader.Value;
 
         /// <summary>
-        /// Returns a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is false.
+        /// Gets a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ReadOnlyCollection<SectionHeader> Sections => _sections.Value.AsReadOnly();
 
         /// <summary>
-        /// Enumerates a list of PDBs associated with this PE image.  PE images can contain multiple PDB entries,
+        /// Gets a list of PDBs associated with this PE image.  PE images can contain multiple PDB entries,
         /// but by convention it's usually the last entry that is the most up to date.  Unless you need to enumerate
         /// all PDBs for some reason, you should use DefaultPdb instead.
-        /// Undefined behavior if IsValid is false.
+        /// Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ReadOnlyCollection<PdbInfo> Pdbs => _pdbs.Value.AsReadOnly();
 
         /// <summary>
-        /// Returns the PDB information for this module.  If this image does not contain PDB info (or that information
-        /// wasn't included in Stream) this returns null.  If multiple PDB streams are present, this method returns the
+        /// Gets the PDB information for this module.  If this image does not contain PDB info (or that information
+        /// wasn't included in Stream) this returns <see langword="null"/>.  If multiple PDB streams are present, this method returns the
         /// last entry.
         /// </summary>
         public PdbInfo DefaultPdb => Pdbs.LastOrDefault();
@@ -296,11 +296,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
                         int nameLen = size - 0x18 - 1;
-                        string? filename = ReadString(nameLen);
+                        string? fileName = ReadString(nameLen);
 
-                        if (filename != null)
+                        if (fileName != null)
                         {
-                            PdbInfo pdb = new PdbInfo(filename, guid, age);
+                            PdbInfo pdb = new PdbInfo(fileName, guid, age);
                             result.Add(pdb);
                         }
                     }

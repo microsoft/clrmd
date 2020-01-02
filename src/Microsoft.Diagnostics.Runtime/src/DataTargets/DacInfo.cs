@@ -7,17 +7,17 @@ using System.Collections.Immutable;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the dac dll.
+    /// Represents the DAC dll.
     /// </summary>
     public class DacInfo : ModuleInfo
     {
         /// <summary>
-        /// The platform-agnostic filename of the dac dll.
+        /// Gets the platform-agnostic file name of the DAC dll.
         /// </summary>
         public string PlatformAgnosticFileName { get; }
 
         /// <summary>
-        /// The architecture (x86 or amd64) being targeted.
+        /// Gets the architecture (x86 or amd64) being targeted.
         /// </summary>
         public Architecture TargetArchitecture { get; }
 
@@ -31,10 +31,10 @@ namespace Microsoft.Diagnostics.Runtime
             ulong imgBase,
             uint filesize,
             uint timestamp,
-            string filename,
+            string fileName,
             VersionInfo version,
             ImmutableArray<byte> buildId = default)
-            : base(reader, imgBase, filesize, timestamp, filename, buildId, version)
+            : base(reader, imgBase, filesize, timestamp, fileName, buildId, version)
         {
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;

@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// A wrapper for exception objects which help with common tasks for exception objects.
-    /// Create this using ClrObject.AsException  You may call that when ClrObject.IsException
-    /// returns true.
+    /// Create this using <see cref="ClrObject.AsException"/>. You may call that when <see cref="ClrObject.IsException"/>
+    /// is <see langword="true"/>.
     /// </summary>
     public struct ClrException
     {
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ClrObject _object;
 
         /// <summary>
-        /// The original thread this exception was thrown from.  This may be null if we do not know.
+        /// Gets the original thread this exception was thrown from.  This may be <see langword="null"/> if we do not know.
         /// </summary>
         public ClrThread? Thread { get; }
 
@@ -36,22 +36,22 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the address of the exception object.
+        /// Gets the address of the exception object.
         /// </summary>
         public ulong Address => _object;
 
         /// <summary>
-        /// Returns the ClrType for this exception object.
+        /// Gets the <see cref="ClrType"/> for this exception object.
         /// </summary>
         public ClrType Type => _object.Type!;
 
         /// <summary>
-        /// Returns the exception message.
+        /// Gets the exception message.
         /// </summary>
         public string? Message => _object.GetStringField("_message");
 
         /// <summary>
-        /// Returns the inner exception, if one exists, null otherwise.
+        /// Gets the inner exception, if one exists, <see langword="null"/> otherwise.
         /// </summary>
         public ClrException? Inner
         {
@@ -66,12 +66,12 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns the HRESULT associated with this exception (or S_OK if there isn't one).
+        /// Gets the HRESULT associated with this exception (or S_OK if there isn't one).
         /// </summary>
         public int HResult => _object.GetField<int>("_HResult");
 
         /// <summary>
-        /// Returns the StackTrace for this exception.  Note that this may be empty or partial depending
+        /// Gets the StackTrace for this exception.  Note that this may be empty or partial depending
         /// on the state of the exception in the process.  (It may have never been thrown or we may be in
         /// the middle of constructing the stackwalk.)  This returns an empty list if no stack trace is
         /// associated with this exception object.

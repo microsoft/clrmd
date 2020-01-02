@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an instance of a type which inherits from System.ValueClass.
+    /// Represents an instance of a type which inherits from <see cref="ValueType"/>.
     /// </summary>
     public struct ClrValueType : IAddressableTypedEntity
     {
@@ -15,12 +15,12 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly bool _interior;
 
         /// <summary>
-        /// The address of the object.
+        /// Gets the address of the object.
         /// </summary>
         public ulong Address { get; }
 
         /// <summary>
-        /// The type of the object.
+        /// Gets the type of the object.
         /// </summary>
         public ClrType Type { get; }
 
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
-        /// not exist in the object.  Throws NullReferenceException if IsNull is true.
+        /// not exist in the object.  Throws NullReferenceException if IsNull is <see langword="true"/>.
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <returns>A ClrObject of the given field.</returns>
@@ -98,8 +98,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
         /// will not do type coercion.  This method will throw an ArgumentException if no field matches
-        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
-        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// the given name.  It will throw a NullReferenceException if the target object is <see langword="null"/> (that is,
+        /// if (IsNull returns <see langword="true"/>).  It will throw an InvalidOperationException if the field is not
         /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
         /// the value of this field out of the data target.
         /// </summary>

@@ -10,46 +10,46 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrField
     {
         /// <summary>
-        /// The ClrType containing this field.
+        /// Gets the <see cref="ClrType"/> containing this field.
         /// </summary>
         public abstract ClrType Parent { get; }
 
         /// <summary>
-        /// The name of the field.
+        /// Gets the name of the field.
         /// </summary>
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns the type token of this field.
+        /// Gets the type token of this field.
         /// </summary>
         public abstract uint Token { get; }
 
         /// <summary>
-        /// The type of the field.  Note this property may return null on error.  There is a bug in several versions
+        /// Gets the type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
         public abstract ClrType Type { get; }
 
         /// <summary>
-        /// Returns the element type of this field.  Note that even when Type is null, this should still tell you
+        /// Gets the element type of this field.  Note that even when Type is <see langword="null"/>, this should still tell you
         /// the element type of the field.
         /// </summary>
         public abstract ClrElementType ElementType { get; }
 
         /// <summary>
-        /// Returns true if this field is a primitive (int, float, etc), false otherwise.
+        /// Gets a value indicating whether this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc).
         /// </summary>
-        /// <returns>True if this field is a primitive (int, float, etc), false otherwise.</returns>
+        /// <returns>True if this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
-        /// Returns true if this field is a ValueClass (struct), false otherwise.
+        /// Gets a value indicating whether this field is a value type.
         /// </summary>
-        /// <returns>True if this field is a ValueClass (struct), false otherwise.</returns>
+        /// <returns>True if this field is a value type, false otherwise.</returns>
         public virtual bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
-        /// Returns true if this field is an object reference, false otherwise.
+        /// Gets a value indicating whether this field is an object reference.
         /// </summary>
         /// <returns>True if this field is an object reference, false otherwise.</returns>
         public virtual bool IsObjectReference => ElementType.IsObjectReference();
@@ -60,22 +60,22 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int Size { get; }
 
         /// <summary>
-        /// Returns true if this field is public.
+        /// Gets a value indicating whether this field is public.
         /// </summary>
         public abstract bool IsPublic { get; }
 
         /// <summary>
-        /// Returns true if this field is private.
+        /// Gets a value indicating whether this field is private.
         /// </summary>
         public abstract bool IsPrivate { get; }
 
         /// <summary>
-        /// Returns true if this field is internal.
+        /// Gets a value indicating whether this field is internal.
         /// </summary>
         public abstract bool IsInternal { get; }
 
         /// <summary>
-        /// Returns true if this field is protected.
+        /// Gets a value indicating whether this field is protected.
         /// </summary>
         public abstract bool IsProtected { get; }
 

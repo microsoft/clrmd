@@ -65,19 +65,19 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// The address of the object.
+        /// Gets the address of the object.
         /// </summary>
         public ulong Address { get; }
 
         /// <summary>
-        /// The type of the object.
+        /// Gets the type of the object.
         /// </summary>
         public ClrType? Type { get; }
 
         public bool IsValidObject => Address != 0 && Type != null;
 
         /// <summary>
-        /// Returns if the object value is null.
+        /// Returns if the object value is <see langword="null"/>.
         /// </summary>
         public bool IsNull => Address == 0;
 
@@ -87,14 +87,14 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Size => GetTypeOrThrow().Heap.GetObjectSize(Address, GetTypeOrThrow());
 
         /// <summary>
-        /// Returns whether this object is an array or not.
+        /// Gets a value indicating whether this object is an array.
         /// </summary>
         public bool IsArray => GetTypeOrThrow().IsArray;
 
         /// <summary>
         /// Returns the ComCallableWrapper for the given object.
         /// </summary>
-        /// <returns>The ComCallableWrapper associated with the object, null if obj is not a CCW.</returns>
+        /// <returns>The ComCallableWrapper associated with the object, <see langword="null"/> if obj is not a CCW.</returns>
         public ComCallableWrapper? AsComCallableWrapper()
         {
             if (IsNull || !IsValidObject)
@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the RuntimeCallableWrapper for the given object.
         /// </summary>
-        /// <returns>The RuntimeCallableWrapper associated with the object, null if obj is not a RCW.</returns>
+        /// <returns>The RuntimeCallableWrapper associated with the object, <see langword="null"/> if obj is not a RCW.</returns>
         public RuntimeCallableWrapper? AsRuntimeCallableWrapper()
         {
             if (IsNull || !IsValidObject)
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns true if this object possibly contians GC pointers.
+        /// Gets a value indicating whether this object possibly contians GC pointers.
         /// </summary>
         public bool ContainsPointers => Type != null && Type.ContainsPointers;
 
@@ -160,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
-        /// not exist in the object.  Throws NullReferenceException if IsNull is true.
+        /// not exist in the object.  Throws NullReferenceException if IsNull is <see langword="true"/>.
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <returns>A ClrObject of the given field.</returns>
@@ -248,8 +248,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
         /// will not do type coercion.  This method will throw an ArgumentException if no field matches
-        /// the given name.  It will throw a NullReferenceException if the target object is null (that is,
-        /// if (IsNull returns true).  It will throw an InvalidOperationException if the field is not
+        /// the given name.  It will throw a NullReferenceException if the target object is <see langword="null"/> (that is,
+        /// if IsNull is <see langword="true"/>).  It will throw an InvalidOperationException if the field is not
         /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
         /// the value of this field out of the data target.
         /// </summary>
@@ -305,7 +305,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <para>Instances are considered equal when they have same <see cref="Address" />.</para>
         /// </summary>
         /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
-        /// <returns><c>true</c> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <c>false</c> otherwise.</returns>
+        /// <returns><see langword="true"/> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <see langword="false"/> otherwise.</returns>
         public bool Equals(ClrObject other) => Address == other.Address;
 
         /// <summary>
@@ -313,7 +313,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">The <see cref="ClrObject" /> to compare to this instance.</param>
         /// <returns>
-        /// <c>true</c> if <paramref name="obj" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <c>false</c>
+        /// <see langword="true"/> if <paramref name="obj" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <see langword="false"/>
         /// otherwise.
         /// </returns>
         public override bool Equals(object? obj) => obj is ClrObject other && Equals(other);
@@ -334,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
         /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
-        /// <returns><c>true</c> if <paramref name="left" /> <see cref="Equals(ClrObject)" /> <paramref name="right" />; <c>false</c> otherwise.</returns>
+        /// <returns><see langword="true"/> if <paramref name="left" /> <see cref="Equals(ClrObject)" /> <paramref name="right" />; <see langword="false"/> otherwise.</returns>
         public static bool operator ==(ClrObject left, ClrObject right) => left.Equals(right);
 
         /// <summary>
@@ -342,7 +342,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="left">First <see cref="ClrObject" /> to compare.</param>
         /// <param name="right">Second <see cref="ClrObject" /> to compare.</param>
-        /// <returns><c>true</c> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <c>false</c> otherwise.</returns>
+        /// <returns><see langword="true"/> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <see langword="false"/> otherwise.</returns>
         public static bool operator !=(ClrObject left, ClrObject right) => !(left == right);
 
         private ClrType GetTypeOrThrow()

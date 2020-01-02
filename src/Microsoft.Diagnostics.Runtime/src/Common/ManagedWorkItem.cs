@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ManagedWorkItem
     {
         /// <summary>
-        /// The object address of this entry.
+        /// Gets the object address of this entry.
         /// </summary>
         public abstract ulong Object { get; }
 
         /// <summary>
-        /// The type of Object.
+        /// Gets the type of Object.
         /// </summary>
         public abstract ClrType Type { get; }
     }
