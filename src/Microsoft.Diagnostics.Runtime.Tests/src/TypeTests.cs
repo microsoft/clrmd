@@ -683,9 +683,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject().AsArray();
             ClrArray s_2dArray = type.GetStaticFieldByName("s_2dArray").ReadObject().AsArray();
+            ClrArray s_5dArray = type.GetStaticFieldByName("s_5dArray").ReadObject().AsArray();
 
             Assert.Equal(1, s_array.Rank);
             Assert.Equal(2, s_2dArray.Rank);
+            Assert.Equal(5, s_5dArray.Rank);
         }
     }
 }

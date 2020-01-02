@@ -10,6 +10,7 @@ class Types
 
     static object[] s_array = new object[] { s_one, s_two, s_three };
     static object[,] s_2dArray = new object[0, 0];
+    static object[,,,,] s_5dArray = new object[2, 4, 6, 8, 10];
 
     static Foo s_foo = new Foo();
     static List<int> s_list = new List<int>();
