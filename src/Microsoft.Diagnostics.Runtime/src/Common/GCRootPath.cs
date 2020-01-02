@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -25,6 +26,17 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Root = root;
             Path = path;
+        }
+
+        public override string ToString()
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.AppendFormat(null, "{0} {1}", Root.RootKind, Root.Object);
+
+            foreach (ClrObject obj in Path)
+                builder.AppendFormat(null, " -> {0}", obj);
+
+            return builder.ToString();
         }
     }
 }
