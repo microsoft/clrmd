@@ -75,10 +75,14 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 DataReader.Dispose();
 
-                foreach (PEImage? img in _pefileCache.Values)
-                    img?.Stream.Dispose();
+                lock (_pefileCache)
+                {
+                    foreach (PEImage? img in _pefileCache.Values)
+                        img?.Stream.Dispose();
 
-                _pefileCache.Clear();
+                    _pefileCache.Clear();
+                }
+
                 _disposed = true;
             }
         }
@@ -91,8 +95,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            if (_pefileCache.TryGetValue(fileName, out PEImage? result))
-                return result;
+            PEImage? result;
+
+            lock (_pefileCache)
+            {
+                if (_pefileCache.TryGetValue(fileName, out result))
+                    return result;
+            }
 
             Stream stream = File.OpenRead(fileName);
             result = new PEImage(stream);
@@ -103,8 +112,17 @@ namespace Microsoft.Diagnostics.Runtime
                 result = null;
             }
 
-            _pefileCache[fileName] = result;
-            return result;
+            lock (_pefileCache)
+            {
+                // We may have raced with another thread and that thread put a value here first
+                if (_pefileCache.TryGetValue(fileName, out PEImage? cached) && cached != null)
+                {
+                    result?.Dispose(); // We don't need this instance now.
+                    return cached;
+                }
+
+                return _pefileCache[fileName] = result;
+            }
         }
 
         [Conditional("DEBUG")]

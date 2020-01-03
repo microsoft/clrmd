@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             ModuleInfo clrModule = dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
 
-            PEImage img = clrModule.GetPEImage();
+            using PEImage img = clrModule.GetPEImage();
             Assert.NotNull(img);
 
             FileVersionInfo fileVersion = img.GetFileVersionInfo();
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             ClrInfo clr = dt.ClrVersions.Single();
-            PEImage image = clr.ModuleInfo.GetPEImage();
+            using PEImage image = clr.ModuleInfo.GetPEImage();
             ResourceEntry entry = image.Resources;
             WalkEntry(entry);
         }
