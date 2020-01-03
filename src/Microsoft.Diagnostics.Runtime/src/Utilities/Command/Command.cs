@@ -408,6 +408,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return s_pathExts;
             }
         }
+
         private static string[]? s_pathExts;
         private static string[] Paths
         {
@@ -417,6 +418,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return s_paths;
             }
         }
+
         private static string[]? s_paths;
 
         /* called data comes to either StdErr or Stdout */

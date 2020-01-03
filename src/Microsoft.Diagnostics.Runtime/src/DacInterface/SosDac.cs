@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             if (ip == 0)
             {
-                codeHeaderData = new CodeHeaderData();
+                codeHeaderData = default;
                 return false;
             }
 
@@ -606,7 +606,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             if (address == 0)
             {
-                data = new ThreadData();
+                data = default;
                 return false;
             }
 

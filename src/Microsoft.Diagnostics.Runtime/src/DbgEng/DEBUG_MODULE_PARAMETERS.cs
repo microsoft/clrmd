@@ -23,4 +23,3 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public fixed ulong Reserved[2];
     }
 }
-

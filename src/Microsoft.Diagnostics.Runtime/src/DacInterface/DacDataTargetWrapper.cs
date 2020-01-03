@@ -151,7 +151,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return E_NOTIMPL;
                 }
 
-
                 string? filePath = string.IsNullOrEmpty(info.FileName) ? null :
                     _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
 

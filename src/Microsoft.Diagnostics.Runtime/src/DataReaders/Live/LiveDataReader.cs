@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
                 version = new VersionInfo(major, minor, revision, patch);
             else
-                version = new VersionInfo();
+                version = default;
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
@@ -232,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
-            MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
+            MEMORY_BASIC_INFORMATION mem = default;
             IntPtr ptr = address.AsIntPtr();
 
             int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));

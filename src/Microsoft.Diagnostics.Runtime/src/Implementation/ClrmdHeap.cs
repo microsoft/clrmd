@@ -5,7 +5,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -55,7 +54,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _steps = new HeapWalkStep[bufferSize];
         }
 
-
         public override ClrRuntime Runtime { get; }
 
         public override bool CanWalkHeap { get; }
@@ -93,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     if (_fqRoots != null)
                         return _fqRoots;
-                    
+
                     Initialize();
                     return _fqRoots!;
                 }
@@ -173,11 +171,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             lock (_sync)
             {
-                _helpers.CreateSegments(this,
-                                        out IReadOnlyList<ClrSegment> segments,
-                                        out IReadOnlyList<AllocationContext> allocContext,
-                                        out IReadOnlyList<FinalizerQueueSegment> fqRoots,
-                                        out IReadOnlyList<FinalizerQueueSegment> fqObjects);
+                _helpers.CreateSegments(
+                    this,
+                    out IReadOnlyList<ClrSegment> segments,
+                    out IReadOnlyList<AllocationContext> allocContext,
+                    out IReadOnlyList<FinalizerQueueSegment> fqRoots,
+                    out IReadOnlyList<FinalizerQueueSegment> fqObjects);
 
                 // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
                 if (segments.Count > 0 && segments[0].Start > segments[segments.Count - 1].Start)
@@ -266,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size * 2]);
                     else
                         memoryReader!.ReadDword(obj + (uint)IntPtr.Size, out count);
-                    
+
                     // Strings in v4+ contain a trailing null terminator not accounted for.
                     if (StringType == type)
                         count++;
@@ -280,8 +279,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 size = Align(size, large);
                 if (size < minObjSize)
                     size = minObjSize;
-
-
 
                 obj += size;
                 while (!large && AllocationContext.TryGetValue(obj, out ulong nextObj))
@@ -404,7 +401,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (StringType == type)
                     count++;
 
-                size = count * (ulong)type.ComponentSize + (ulong)(type.StaticSize);
+                size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
             }
 
             uint minSize = (uint)IntPtr.Size * 3;

@@ -7,7 +7,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal sealed class SegmentBuilder :ISegmentBuilder
+    internal sealed class SegmentBuilder : ISegmentBuilder
     {
         private SegmentData _segment;
         private ulong _heapAllocated;

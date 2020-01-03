@@ -103,9 +103,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-
-
-
         bool IHeapHelpers.CreateSegments(
             ClrHeap clrHeap,
             out IReadOnlyList<ClrSegment> segments,
@@ -582,7 +579,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             FlushDac();
             _heap.ClearCachedData();
 
-
             lock (_types)
                 _types.Clear();
 
@@ -616,7 +612,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
             // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
             // entered a special context.
-
 
             _library.DacDataTarget.EnterMagicCallbackContext();
             try
@@ -862,6 +857,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     {
                         TryGetComponentType(result, obj);
                     }
+
                     return result;
                 }
             }

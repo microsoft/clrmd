@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (nativeLibraryType != null)
             {
                 // .NET Core 3.0+
-                 var loadLibrary = (Func<string, IntPtr>?)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
+                var loadLibrary = (Func<string, IntPtr>?)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
                 if (loadLibrary != null)
                 {
                     _loadLibrary = loadLibrary;
@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 // skip bits like "-beta"
-                if ('0' <= span[i]  && span[i] <= '9')
+                if ('0' <= span[i] && span[i] <= '9')
                     curr = curr * 10 + (span[i] - '0');
 
                 // In this case I don't know what we are parsing but it's not a version

@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return _notes;
             }
         }
+
         public ImmutableArray<ElfProgramHeader> ProgramHeaders
         {
             get

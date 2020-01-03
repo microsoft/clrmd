@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -160,9 +159,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             IReadOnlyList<(ulong, uint)> map;
             if ((typeDefOrRefToken & 0x02000000) != 0)
-                map = (_typeDefMap ??= _helpers.GetSortedTypeDefMap(this));
+                map = _typeDefMap ??= _helpers.GetSortedTypeDefMap(this);
             else if ((typeDefOrRefToken & 0x01000000) != 0)
-                map = (_typeRefMap ??= _helpers.GetSortedTypeRefMap(this));
+                map = _typeRefMap ??= _helpers.GetSortedTypeRefMap(this);
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
 

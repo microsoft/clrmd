@@ -96,10 +96,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     type = elfauxv32.Type;
                     value = elfauxv32.Value;
                 }
+
                 if (type == (ulong)ElfAuxvType.Null)
                 {
                     break;
                 }
+
                 _auxvEntries.Add(type, value);
             }
         }

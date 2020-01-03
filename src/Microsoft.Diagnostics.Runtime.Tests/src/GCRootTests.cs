@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests

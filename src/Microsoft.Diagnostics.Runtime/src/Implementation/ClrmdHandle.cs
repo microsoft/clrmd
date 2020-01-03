@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (kind == ClrHandleKind.Dependent)
                 throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdDependentHandle)} instead.");
-            
+
             if (kind == ClrHandleKind.RefCount)
                 throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdRefCountHandle)} instead.");
 
@@ -32,7 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Address = address;
             Object = obj;
             HandleKind = kind;
-
 
         }
     }

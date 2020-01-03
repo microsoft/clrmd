@@ -150,7 +150,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="obj">A string object.</param>
         public static explicit operator string?(ClrObject obj) => obj.AsString();
 
-
         /// <summary>
         /// Returns <see cref="Address"/> sweetening obj to pointer move.
         /// <Para>Example: ulong address = clrObject</Para>
@@ -276,7 +275,6 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
             if (!type.IsString)
                 throw new InvalidOperationException($"Object {Address:x} is not a string, actual type: {Type?.Name ?? "null"}.");
-
 
             return ValueReader.GetStringContents(type, Helpers.DataReader, Address, maxLength);
         }

@@ -143,7 +143,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual bool IsClassConstructor => Name == ".cctor";
 
-
         public override bool Equals(object? obj) => Equals(obj as ClrMethod);
 
         public bool Equals(ClrMethod? other)

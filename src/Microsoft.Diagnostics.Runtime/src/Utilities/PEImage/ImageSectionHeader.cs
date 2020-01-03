@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
         }
+
         public fixed byte NameBytes[8];
         public uint VirtualSize;
         public uint VirtualAddress;

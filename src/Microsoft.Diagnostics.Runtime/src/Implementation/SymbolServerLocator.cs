@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 string[] split = entry.Split('*');
                 string location = split[split.Length - 1];
-                
+
                 string? cache = null;
                 if (split.Length > 1)
                 {
@@ -64,7 +64,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             Directory.CreateDirectory(_cache);
         }
-
 
         public string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
             => FindBinaryAsync(fileName, buildTimeStamp, imageSize, checkProperties).Result;
@@ -244,7 +243,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-
         private static void Trace(string msg)
         {
             System.Diagnostics.Trace.WriteLine(msg);
@@ -305,7 +303,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-
 #pragma warning disable CA1308 // Normalize strings to uppercase, symbol server expects lowercase
         private static string GetIndexPath(string fileName, uint buildTimeStamp, uint imageSize)
         {
@@ -314,12 +311,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
-        struct SymbolPathEntry
+        private struct SymbolPathEntry
         {
             public string? Cache { get; }
             public string Location { get; }
             public bool IsHttp => Location.StartsWith("http:") || Location.StartsWith("https:");
-            public bool IsLocal => !IsHttp && !new Uri(Location).IsUnc; 
+            public bool IsLocal => !IsHttp && !new Uri(Location).IsUnc;
 
             public SymbolPathEntry(string? cache, string location)
             {

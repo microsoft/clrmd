@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong GetObjectSize(ulong objRef, ClrType type);
 
         /// <summary>
-        /// Enumerates all objects that the given object references.  This method is meant for internal use to 
+        /// Enumerates all objects that the given object references.  This method is meant for internal use to
         /// implement ClrObject.EnumerateReferences, which you should use instead of calling this directly.
         /// </summary>
         /// <param name="obj">The object in question.</param>

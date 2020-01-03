@@ -272,4 +272,3 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetSourceEntryBySourceEntry;
     }
 }
-

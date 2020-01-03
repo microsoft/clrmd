@@ -60,7 +60,6 @@ namespace Microsoft.Diagnostics.Runtime
             return EnumerateGCRoots(target, true, cancellationToken);
         }
 
-
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancellationToken = default)
         {
             return EnumerateGCRoots(target, unique, Environment.ProcessorCount, cancellationToken);
@@ -92,7 +91,6 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
             };
-
 
             if (!parallel)
             {
@@ -132,7 +130,6 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0; i < threads.Length; i++)
                     queue.Add(null);
 
-
                 int count = 0;
 
                 // Worker threads end when they have run out of roots to process.  While we are waiting for them to exit, yield return
@@ -157,7 +154,6 @@ namespace Microsoft.Diagnostics.Runtime
                 // results queue one last time.
                 while (results.TryDequeue(out GCRootPath result))
                     yield return result;
-
 
                 if (count != processedObjects.Count)
                 {
@@ -464,7 +460,6 @@ namespace Microsoft.Diagnostics.Runtime
                             knownEndPoints[address] = node;
                         }
 
-
                 if (unique)
                 {
                     foreach (ClrObject obj in result)
@@ -472,7 +467,6 @@ namespace Microsoft.Diagnostics.Runtime
                         deadEnds.Add(obj);
                     }
                 }
-
 
                 return result;
             }

@@ -24,13 +24,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
             if (!string.IsNullOrWhiteSpace(sympath))
                 _locator = new SymbolServerLocator(sympath);
-            
         }
 
         public string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
         {
             string? localBinary = FindLocalBinary(fileName);
-            return localBinary?? _locator?.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
+            return localBinary ?? _locator?.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
         }
 
         public Task<string?> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
