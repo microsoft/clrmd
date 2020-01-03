@@ -165,10 +165,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 PEImage? peimage = _dataTarget.LoadPEImage(filePath);
                 if (peimage != null)
                 {
-                    DebugOnly.Assert(peimage.IsValid);
-                    int rva = checked((int)(address - info.ImageBase));
-                    bytesRead = peimage.Read(rva, span);
-                    return S_OK;
+                    lock (peimage)
+                    {
+                        DebugOnly.Assert(peimage.IsValid);
+                        int rva = checked((int)(address - info.ImageBase));
+                        bytesRead = peimage.Read(rva, span);
+                        return S_OK;
+                    }
                 }
             }
 
@@ -257,28 +260,35 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
             PEImage? peimage = _dataTarget.LoadPEImage(filePath);
-            if (peimage is null || peimage.CorHeader is null)
+            if (peimage is null)
                 return E_FAIL;
 
-            DebugOnly.Assert(peimage.IsValid);
-
-            uint rva = mdRva;
-            uint size = bufferSize;
-            if (rva == 0)
+            lock (peimage)
             {
-                IMAGE_DATA_DIRECTORY metadata = peimage.CorHeader.Metadata;
-                if (metadata.VirtualAddress == 0)
+                CorHeader? corHeader = peimage.CorHeader;
+                if (corHeader is null)
                     return E_FAIL;
 
-                rva = metadata.VirtualAddress;
-                size = Math.Min(bufferSize, metadata.Size);
-            }
+                DebugOnly.Assert(peimage.IsValid);
 
-            checked
-            {
-                int read = peimage.Read((int)rva, new Span<byte>(buffer.ToPointer(), (int)size));
-                if (pDataSize != null)
-                    *pDataSize = read;
+                uint rva = mdRva;
+                uint size = bufferSize;
+                if (rva == 0)
+                {
+                    IMAGE_DATA_DIRECTORY metadata = corHeader.Metadata;
+                    if (metadata.VirtualAddress == 0)
+                        return E_FAIL;
+
+                    rva = metadata.VirtualAddress;
+                    size = Math.Min(bufferSize, metadata.Size);
+                }
+
+                checked
+                {
+                    int read = peimage.Read((int)rva, new Span<byte>(buffer.ToPointer(), (int)size));
+                    if (pDataSize != null)
+                        *pDataSize = read;
+                }
             }
 
             return S_OK;

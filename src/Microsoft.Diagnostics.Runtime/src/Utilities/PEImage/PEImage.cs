@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A class to read information out of PE images (dll/exe).
     /// </summary>
-    public unsafe class PEImage
+    public sealed unsafe class PEImage : IDisposable
     {
         private const ushort ExpectedDosHeaderMagic = 0x5A4D;   // MZ
         private const int PESignatureOffsetLocation = 0x3C;
@@ -90,6 +90,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _pdbs = new Lazy<List<PdbInfo>>(ReadPdbs);
             _resources = new Lazy<ResourceEntry>(CreateResourceRoot);
         }
+
+        public void Dispose() { }
 
         internal int ResourceVirtualAddress => (int)GetDirectory(2).VirtualAddress;
 

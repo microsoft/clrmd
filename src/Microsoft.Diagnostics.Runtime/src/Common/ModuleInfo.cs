@@ -13,8 +13,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ModuleInfo
     {
-        private PEImage? _image;
         private readonly IDataReader _dataReader;
+        private bool? _isManaged;
         private VersionInfo? _version;
 
         /// <summary>
@@ -44,12 +44,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public PEImage? GetPEImage()
         {
-            if (_image != null)
-                return _image;
-
             try
             {
-                return _image = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
+                PEImage img = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
+                if (!_isManaged.HasValue)
+                    _isManaged = img.IsManaged;
+
+                return img;
             }
             catch
             {
@@ -65,14 +66,44 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a value indicating whether the module is managed.
         /// </summary>
-        public bool IsManaged => GetPEImage()?.IsManaged ?? false;
+        public bool IsManaged
+        {
+            get
+            {
+                if (!_isManaged.HasValue)
+                {
+                    // this can assign _isManaged
+                    using PEImage? img = GetPEImage();
+
+                    if (!_isManaged.HasValue)
+                        _isManaged = img?.IsManaged ?? false;
+                }
+
+                return _isManaged.Value;
+            }
+        }
 
         public override string? ToString() => FileName;
 
         /// <summary>
         /// Gets the PDB associated with this module.
         /// </summary>
-        public PdbInfo? Pdb => GetPEImage()?.DefaultPdb;
+        public PdbInfo? Pdb
+        {
+            get
+            {
+                using PEImage? img = GetPEImage();
+                if (img != null)
+                {
+                    if (!_isManaged.HasValue)
+                        _isManaged = img.IsManaged;
+
+                    return img.DefaultPdb;
+                }
+
+                return null;
+            }
+        }
 
         /// <summary>
         /// Gets the version information for this file.
