@@ -55,18 +55,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="target">The target object to search for GC rooting.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken = default)
         {
             return EnumerateGCRoots(target, true, cancelToken);
         }
 
 
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken = default)
         {
             return EnumerateGCRoots(target, unique, Environment.ProcessorCount, cancelToken);
         }
 
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, CancellationToken cancelToken = default)
         {
             return EnumerateGCRoots(target, unique, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancelToken);
         }
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="roots">The roots to consider.  You can pass ClrMD.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancelToken = default)
         {
             if (roots is null)
                 throw new ArgumentNullException(nameof(roots));
@@ -203,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="target">The object we are searching for.</param>
         /// <param name="cancelToken">A cancellation token to stop searching.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
+        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken = default)
         {
             return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
         }
@@ -216,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="unique">Whether to only enumerate fully unique paths.</param>
         /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
+        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken = default)
         {
             return PathsTo(
                 new ObjectSet(Heap),
