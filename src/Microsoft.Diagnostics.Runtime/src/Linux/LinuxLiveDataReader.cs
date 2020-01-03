@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         try
                         {
                             using FileStream stream = File.OpenRead(entry.FilePath);
-                            PEImage pe = new PEImage(stream);
+                            using PEImage pe = new PEImage(stream);
                             if (pe.IsValid)
                             {
                                 filesize = (uint)pe.IndexFileSize;
