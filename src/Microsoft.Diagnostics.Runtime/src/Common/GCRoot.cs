@@ -53,22 +53,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.  Note this function only returns paths that are fully unique.
         /// </summary>
         /// <param name="target">The target object to search for GC rooting.</param>
-        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
+        /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancellationToken = default)
         {
-            return EnumerateGCRoots(target, true, cancelToken);
+            return EnumerateGCRoots(target, true, cancellationToken);
         }
 
 
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancellationToken = default)
         {
-            return EnumerateGCRoots(target, unique, Environment.ProcessorCount, cancelToken);
+            return EnumerateGCRoots(target, unique, Environment.ProcessorCount, cancellationToken);
         }
 
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, CancellationToken cancelToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, CancellationToken cancellationToken = default)
         {
-            return EnumerateGCRoots(target, unique, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancelToken);
+            return EnumerateGCRoots(target, unique, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancellationToken);
         }
 
         /// <summary>
@@ -79,9 +79,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="maxDegreeOfParallelism">The number of threads this class is allowed to use to calculate the result.
         /// Setting this to 1 will cause the algorithm to run on the current thread.</param>
         /// <param name="roots">The roots to consider.  You can pass ClrMD.</param>
-        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
+        /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancelToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancellationToken = default)
         {
             if (roots is null)
                 throw new ArgumentNullException(nameof(roots));
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ObjectSet processedObjects = new ObjectSet(Heap);
                 foreach (IClrRoot root in roots)
                 {
-                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, unique, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, unique, cancellationToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath(root, path.ToImmutableArray());
 
@@ -121,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime
                 Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
                 for (int i = 0; i < threads.Length; i++)
                 {
-                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all: true, unique, cancelToken)) { Name = "GCRoot Worker Thread" };
+                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all: true, unique, cancellationToken)) { Name = "GCRoot Worker Thread" };
                     threads[i].Start();
                 }
 
@@ -175,15 +175,15 @@ namespace Microsoft.Diagnostics.Runtime
             ulong target,
             bool all,
             bool unique,
-            CancellationToken cancelToken)
+            CancellationToken cancellationToken)
         {
             IClrRoot? root;
             while ((root = queue.Take()) != null)
             {
-                if (cancelToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                     break;
 
-                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancelToken))
+                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancellationToken))
                 {
                     if (path != null)
                     {
@@ -201,11 +201,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
-        /// <param name="cancelToken">A cancellation token to stop searching.</param>
+        /// <param name="cancellationToken">A cancellation token to stop searching.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken = default)
+        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancellationToken = default)
         {
-            return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
+            return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancellationToken).FirstOrDefault();
         }
 
         /// <summary>
@@ -214,9 +214,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
         /// <param name="unique">Whether to only enumerate fully unique paths.</param>
-        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
+        /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken = default)
+        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancellationToken = default)
         {
             return PathsTo(
                 new ObjectSet(Heap),
@@ -224,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime
                 new ClrObject(source, Heap.GetObjectType(source)),
                 target,
                 unique,
-                cancelToken);
+                cancellationToken);
         }
 
         private IEnumerable<LinkedList<ClrObject>> PathsTo(
@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject source,
             ulong target,
             bool unique,
-            CancellationToken cancelToken)
+            CancellationToken cancellationToken)
         {
             /* knownEndPoints: A set of objects that are known to point to the target, once we see one of
                                these, we can end the search early and return the current path plus the
@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             while (path.Count > 0)
             {
-                if (cancelToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                     yield break;
 
                 TraceFullPath(null, path);
@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime
                     // we can't get an object's type...inconsistent heap happens sometimes).
                     do
                     {
-                        if (cancelToken.IsCancellationRequested)
+                        if (cancellationToken.IsCancellationRequested)
                             yield break;
 
                         ClrObject next = last.Todo.Pop();
@@ -421,7 +421,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     foreach (ClrObject reference in obj.EnumerateReferences(true))
                     {
-                        cancelToken.ThrowIfCancellationRequested();
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (!unique && end == null && knownEndPoints != null)
                         {
                             lock (knownEndPoints)
