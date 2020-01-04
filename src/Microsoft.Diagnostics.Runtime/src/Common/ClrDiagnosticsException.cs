@@ -23,21 +23,23 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets exception kind
+        /// Gets exception kind.
         /// </summary>
         public ClrDiagnosticsExceptionKind Kind { get; }
 
         protected ClrDiagnosticsException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            if (info is null) throw new ArgumentNullException(nameof(info));
+            if (info is null)
+                throw new ArgumentNullException(nameof(info));
 
             Kind = (ClrDiagnosticsExceptionKind)info.GetValue(nameof(Kind), typeof(ClrDiagnosticsExceptionKind));
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            if (info is null) throw new ArgumentNullException(nameof(info));
+            if (info is null)
+                throw new ArgumentNullException(nameof(info));
 
             info.AddValue(nameof(Kind), Kind, typeof(ClrDiagnosticsExceptionKind));
             base.GetObjectData(info, context);

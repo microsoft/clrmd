@@ -176,13 +176,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         #region Floating point registers
 
-        //[Register(RegisterType.FloatPoint)]
-        //[FieldOffset(0x100)]
-        //public XmmSaveArea FltSave;
+        // [Register(RegisterType.FloatPoint)]
+        // [FieldOffset(0x100)]
+        // public XmmSaveArea FltSave;
 
-        //[Register(RegisterType.FloatPoint)]
-        //[FieldOffset(0x300)]
-        //public VectorRegisterArea VectorRegisters;
+        // [Register(RegisterType.FloatPoint)]
+        // [FieldOffset(0x300)]
+        // public VectorRegisterArea VectorRegisters;
 
         #endregion
 

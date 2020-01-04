@@ -350,7 +350,6 @@ namespace Microsoft.Diagnostics.Runtime
                             lock (knownEndPoints)
                                 if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject> end))
                                 {
-
                                     TraceFullPath(path, end);
                                     yield return GetResult(end);
 
@@ -406,8 +405,8 @@ namespace Microsoft.Diagnostics.Runtime
                 out LinkedListNode<ClrObject>? end)
             {
                 // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
-                //DebugOnly.Assert(obj.Type != null);
-                //DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
+                // DebugOnly.Assert(obj.Type != null);
+                // DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
                 Stack<ClrObject>? result = null;
 

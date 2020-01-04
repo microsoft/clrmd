@@ -41,7 +41,11 @@ namespace Microsoft.Diagnostics.Runtime
                 var freeLibrary = (Action<IntPtr>?)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
                 if (freeLibrary != null)
                 {
-                    _freeLibrary = ptr => { freeLibrary(ptr); return true; };
+                    _freeLibrary = ptr =>
+                    {
+                        freeLibrary(ptr);
+                        return true;
+                    };
                 }
 
                 var tryGetExport = (TryGetExport?)nativeLibraryType.GetMethod("TryGetExport", new Type[] { typeof(IntPtr), typeof(string), typeof(IntPtr).MakeByRefType() })
@@ -75,7 +79,8 @@ namespace Microsoft.Diagnostics.Runtime
                         useGlibcDl = true;
                     }
                     catch (DllNotFoundException)
-                    { }
+                    {
+                    }
                 }
 
                 if (useGlibcDl)

@@ -151,7 +151,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         for (; ; )
                         {
                             m = new Regex(@"%(\w+)%").Match(value, startAt);
-                            if (!m.Success) break;
+                            if (!m.Success)
+                                break;
 
                             string varName = m.Groups[1].Value;
                             string varValue;
@@ -240,9 +241,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 Process.WaitForExit(Options.timeoutMSec);
                 waitReturned = true;
-                //  TODO : HACK we see to have a race in the async process stuff
-                //  If you do Run("cmd /c set") you get truncated output at the
-                //  Looks like the problem in the framework.
+                // TODO : HACK we see to have a race in the async process stuff
+                // If you do Run("cmd /c set") you get truncated output at the
+                // Looks like the problem in the framework.
                 for (int i = 0; i < 10; i++)
                     Thread.Sleep(1);
             }

@@ -125,8 +125,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private readonly DebugSystemObjects _sys;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base,
-                                    [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? Buffer, int BufferSize, out int NameSize);
+        private delegate int GetModuleNameStringWideDelegate(
+            IntPtr self, DebugModuleName Which, int Index, ulong Base, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? Buffer, int BufferSize, out int NameSize);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetNumberModulesDelegate(IntPtr self, out int count, out int unloaded);

@@ -64,7 +64,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrRuntime CreateRuntime(string dacFilename, bool ignoreMismatch = false)
         {
-            if (string.IsNullOrEmpty(dacFilename)) throw new ArgumentNullException(nameof(dacFilename));
+            if (string.IsNullOrEmpty(dacFilename))
+                throw new ArgumentNullException(nameof(dacFilename));
 
             if (!File.Exists(dacFilename))
                 throw new FileNotFoundException(dacFilename);

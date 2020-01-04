@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
-            //todo: remove?
+            // todo: remove?
             if (_baseArrayOffset == 0)
             {
                 ClrType? componentType = ComponentType;

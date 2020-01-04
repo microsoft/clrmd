@@ -168,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr EnumTask;
         private readonly IntPtr EndEnumTasks;
 
-        //(uint id, [Out, MarshalAs(UnmanagedType.IUnknown)] out object task);
+        // (uint id, [Out, MarshalAs(UnmanagedType.IUnknown)] out object task);
         public readonly IntPtr GetTaskByOSThreadID;
 
         private readonly IntPtr GetTaskByUniqueID;
@@ -191,13 +191,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr EndEnumModules;
         private readonly IntPtr GetModuleByAddress;
 
-        //(ulong address, [In, MarshalAs(UnmanagedType.Interface)] object appDomain, out ulong handle);
+        // (ulong address, [In, MarshalAs(UnmanagedType.Interface)] object appDomain, out ulong handle);
         public readonly IntPtr StartEnumMethodInstancesByAddress;
 
-        //(ref ulong handle, [Out, MarshalAs(UnmanagedType.Interface)] out object method);
+        // (ref ulong handle, [Out, MarshalAs(UnmanagedType.Interface)] out object method);
         public readonly IntPtr EnumMethodInstanceByAddress;
 
-        //(ulong handle);
+        // (ulong handle);
         public readonly IntPtr EndEnumMethodInstancesByAddress;
         private readonly IntPtr GetDataByAddress;
         private readonly IntPtr GetExceptionStateByExceptionRecord;

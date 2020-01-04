@@ -18,10 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 {
     internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, IModuleHelpers, IMethodHelpers, IClrObjectHelpers, IFieldHelpers,
                                          IAppDomainHelpers, IThreadHelpers, IExceptionHelpers, IHeapHelpers
-
     {
         private bool _disposed;
-        private readonly ClrInfo _clrinfo;
+        private readonly ClrInfo _clrInfo;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
@@ -53,14 +52,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public RuntimeBuilder(ClrInfo clr, DacLibrary library, SOSDac sos)
         {
-            _clrinfo = clr;
+            _clrInfo = clr;
             _library = library;
             _sos = sos;
             _options = clr.DataTarget.CacheOptions;
 
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
-            DataReader = _clrinfo.DataTarget.DataReader;
+            DataReader = _clrInfo.DataTarget.DataReader;
 
             int version = 0;
             if (_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)

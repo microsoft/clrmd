@@ -153,7 +153,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong il = _helpers.GetILForModule(module.Address, rva);
             if (il != 0)
             {
-
                 if (dataReader.Read(il, out byte b))
                 {
                     bool isTinyHeader = (b & (IMAGE_COR_ILMETHOD.FormatMask >> 1)) == IMAGE_COR_ILMETHOD.TinyFormat;
