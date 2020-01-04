@@ -43,10 +43,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                int rank = (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
+                int rank = MultiDimensionalRank;
                 return rank != 0 ? rank : 1;
             }
         }
+
+        private int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
 
         public ClrArray(ulong address, ClrType type)
         {
@@ -70,6 +72,18 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             return Type.GetArrayElementsValues<T>(Address, count);
+        }
+
+        public int GetLength(int dimension)
+        {
+            int rank = MultiDimensionalRank;
+            if (rank == 0 && dimension == 0)
+                return Length;
+
+            if ((uint)dimension >= rank)
+                throw new ArgumentOutOfRangeException(nameof(dimension));
+
+            return Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(dimension * sizeof(int)));
         }
 
         /// <summary>

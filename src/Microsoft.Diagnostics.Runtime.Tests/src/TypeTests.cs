@@ -689,5 +689,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(2, s_2dArray.Rank);
             Assert.Equal(5, s_5dArray.Rank);
         }
+
+        [Fact]
+        public void ArrayMultiDimensionalLengthTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
+            ClrType type = typesModule.GetTypeByName("Types");
+
+            ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject().AsArray();
+            ClrArray s_5dArray = type.GetStaticFieldByName("s_5dArray").ReadObject().AsArray();
+
+            Assert.Equal(3, s_array.GetLength(0));
+
+            Assert.Equal(2, s_5dArray.GetLength(0));
+            Assert.Equal(4, s_5dArray.GetLength(1));
+            Assert.Equal(6, s_5dArray.GetLength(2));
+            Assert.Equal(8, s_5dArray.GetLength(3));
+            Assert.Equal(10, s_5dArray.GetLength(4));
+        }
     }
 }
