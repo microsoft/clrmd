@@ -127,6 +127,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An <see cref="int"/> hash code for this instance.</returns>
         public override int GetHashCode() => Address.GetHashCode();
 
+        public int GetLowerBound(int dimension) => throw new NotImplementedException(nameof(GetLowerBound) + nameof(dimension));
+
+        public int GetUpperBound(int dimension) => throw new NotImplementedException(nameof(GetUpperBound) + nameof(dimension));
+
+        // -or- GetValue
+        public T ReadValue<T>(int index) where T : unmanaged => throw new NotImplementedException(nameof(ReadValue) + nameof(index));
+
+        // -or- GetValue
+        public T ReadValue<T>(params int[] indices) where T : unmanaged => throw new NotImplementedException(nameof(ReadValue) + nameof(indices));
+
+        // -or- ReadObjectValue
+        public ClrObject ReadValueAsObject(int index) => throw new NotImplementedException(nameof(ReadValueAsObject) + nameof(index));
+
+        // -or- ReadObjectValue
+        public ClrObject ReadValueAsObject(params int[] indices) => throw new NotImplementedException(nameof(ReadValueAsObject) + nameof(indices));
+
         /// <summary>
         /// Determines whether two specified <see cref="ClrArray"/> have the same value.
         /// </summary>
