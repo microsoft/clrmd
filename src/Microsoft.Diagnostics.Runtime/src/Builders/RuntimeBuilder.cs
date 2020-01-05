@@ -566,7 +566,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                                 yield return new ClrmdRefCountHandle(domain, handles[i].Handle, clrObj, refCount);
                                 break;
-
                         }
                     }
                 }

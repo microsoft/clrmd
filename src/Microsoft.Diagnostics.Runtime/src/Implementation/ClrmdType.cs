@@ -332,7 +332,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 return methods;
             }
-
         }
 
         // TODO: remove

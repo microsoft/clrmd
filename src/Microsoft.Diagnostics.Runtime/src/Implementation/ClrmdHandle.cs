@@ -32,7 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Address = address;
             Object = obj;
             HandleKind = kind;
-
         }
     }
 }
