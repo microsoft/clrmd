@@ -5,13 +5,7 @@
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net471;netcoreapp2.1</TargetFrameworks>
     <NoWarn>1591;1701</NoWarn>
     <IsPackable>true</IsPackable>
-    <Description>.</Description>
-    <PackageReleaseNotes></PackageReleaseNotes>
-    <PackageTags></PackageTags>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\..\eng\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
-    <RepositoryUrl>https://github.com/Microsoft/clrmd</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 

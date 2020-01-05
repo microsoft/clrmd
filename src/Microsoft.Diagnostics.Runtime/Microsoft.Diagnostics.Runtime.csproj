@@ -6,13 +6,7 @@
     <NoWarn>1591;1701</NoWarn>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    <Description>ClrMD is a set of advanced APIs for programmatically inspecting a crash dump of a .NET program much in the same way that the SOS Debugging Extensions (SOS) do. This allows you to write automated crash analysis for your applications as well as automate many common debugger tasks. In addition to reading crash dumps ClrMD also allows supports attaching to live processes.</Description>
-    <PackageReleaseNotes></PackageReleaseNotes>
-    <PackageTags></PackageTags>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\..\eng\Microsoft.Diagnostics.Runtime.snk</AssemblyOriginatorKeyFile>
-    <RepositoryUrl>https://github.com/Microsoft/clrmd</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <CodeAnalysisRuleSet>CodeAnalysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>

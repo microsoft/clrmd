@@ -2,7 +2,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     
     <!-- 
       We would need to download 32bit dotnet cli, which would add extra time to PR runs 
@@ -12,20 +11,25 @@
 
     <NoWarn>1701;1702;1705;1591;436</NoWarn>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <None Include="..\TestTargets\*\*.cs">
       <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.6.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.6.0" />
   </ItemGroup>
+
   <Target Name="BuildTargets" AfterTargets="Build">
     <MSBuild Projects="..\TestTargets\TestTargets.proj" />
   </Target>
+
 </Project>
