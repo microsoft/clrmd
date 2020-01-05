@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
     /// <param name="processed">The total number of objects processed.</param>
-    public delegate void GCRootProgressEvent(GCRoot source, int processed);
+    public delegate void GCRootProgressUpdatedEventHandler(GCRoot source, int processed);
 
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// the number of objects processed will ever reach the total number of objects on the heap.  That's because there
         /// will be garbage objects on the heap we can't reach.
         /// </summary>
-        public event GCRootProgressEvent? ProgressUpdate;
+        public event GCRootProgressUpdatedEventHandler? ProgressUpdated;
 
         /// <summary>
         /// Gets the heap that's associated with this GCRoot instance.
@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (count != processedObjects.Count)
                     {
                         count = processedObjects.Count;
-                        ProgressUpdate?.Invoke(this, count);
+                        ProgressUpdated?.Invoke(this, count);
                     }
                 }
             }
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (count != processedObjects.Count)
                     {
                         count = processedObjects.Count;
-                        ProgressUpdate?.Invoke(this, count);
+                        ProgressUpdated?.Invoke(this, count);
                     }
                 }
 
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (count != processedObjects.Count)
                 {
                     count = processedObjects.Count;
-                    ProgressUpdate?.Invoke(this, count);
+                    ProgressUpdated?.Invoke(this, count);
                 }
             }
         }

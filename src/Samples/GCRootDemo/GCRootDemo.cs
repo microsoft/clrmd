@@ -47,7 +47,7 @@ namespace GCRootDemo
                 * to allow you to report to the user a rough percentage of how far along things are (such as a progress
                 * bar or console output).
                 */
-            gcroot.ProgressUpdate += delegate (GCRoot source, long current, long total)
+            gcroot.ProgressUpdated += delegate (GCRoot source, long current, long total)
             {
                 // Note that sometimes we don't know how many total items will be processed in the current
                 // phase.  In that case, total will be -1.  (For example, we don't know the total number
