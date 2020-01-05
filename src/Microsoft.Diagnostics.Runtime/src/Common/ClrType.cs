@@ -33,12 +33,12 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract uint MetadataToken { get; }
 
         /// <summary>
-        /// Types have names.
+        /// Gets the name of this type.
         /// </summary>
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Returns true if the type <b>can</b> contain references to other objects.  This is used in optimizations
+        /// Gets a value indicating whether the type <b>can</b> contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.
         /// </summary>
         public virtual bool ContainsPointers => true;
@@ -107,22 +107,22 @@ namespace Microsoft.Diagnostics.Runtime
 
         // Visibility:
         /// <summary>
-        /// Returns true if this type is marked Public.
+        /// Gets a value indicating whether this type is marked Public.
         /// </summary>
         public abstract bool IsPublic { get; }
 
         /// <summary>
-        /// Returns true if this type is marked Private.
+        /// Gets a value indicating whether this type is marked Private.
         /// </summary>
         public abstract bool IsPrivate { get; }
 
         /// <summary>
-        /// Returns true if this type is accessible only by items in its own assembly.
+        /// Gets a value indicating whether this type is accessible only by items in its own assembly.
         /// </summary>
         public abstract bool IsInternal { get; }
 
         /// <summary>
-        /// Returns true if this nested type is accessible only by subtypes of its outer type.
+        /// Gets a value indicating whether this nested type is accessible only by subtypes of its outer type.
         /// </summary>
         public abstract bool IsProtected { get; }
 

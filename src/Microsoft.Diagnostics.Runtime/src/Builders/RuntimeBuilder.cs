@@ -700,7 +700,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             bool sorted = true;
             _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
             {
-                result.Add(ValueTuple.Create(mt, token));
+                result.Add((mt, token));
                 if (sorted && lastToken > token)
                     sorted = false;
             });

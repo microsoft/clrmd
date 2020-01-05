@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrException? CurrentException { get; }
 
         /// <summary>
-        /// Returns true if an abort was requested for this thread (such as Thread.Abort, or AppDomain unload).
+        /// Gets a value indicating whether an abort was requested for this thread (such as <see cref="System.Threading.Thread.Abort()"/>, or <see cref="System.AppDomain.Unload"/>).
         /// </summary>
         public abstract bool IsAbortRequested { get; }
 

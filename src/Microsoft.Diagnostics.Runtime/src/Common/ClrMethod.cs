@@ -78,58 +78,58 @@ namespace Microsoft.Diagnostics.Runtime
 
         // Visibility:
         /// <summary>
-        /// Returns if this method is public.
+        /// Gets a value indicating whether this method is public.
         /// </summary>
         public abstract bool IsPublic { get; }
 
         /// <summary>
-        /// Returns if this method is private.
+        /// Gets a value indicating whether this method is private.
         /// </summary>
         public abstract bool IsPrivate { get; }
 
         /// <summary>
-        /// Returns if this method is internal.
+        /// Gets a value indicating whether this method is internal.
         /// </summary>
         public abstract bool IsInternal { get; }
 
         /// <summary>
-        /// Returns if this method is protected.
+        /// Gets a value indicating whether this method is protected.
         /// </summary>
         public abstract bool IsProtected { get; }
 
         // Attributes:
         /// <summary>
-        /// Returns if this method is static.
+        /// Gets a value indicating whether this method is static.
         /// </summary>
         public abstract bool IsStatic { get; }
 
         /// <summary>
-        /// Returns if this method is final.
+        /// Gets a value indicating whether this method is final.
         /// </summary>
         public abstract bool IsFinal { get; }
 
         /// <summary>
-        /// Returns if this method is a PInvoke.
+        /// Gets a value indicating whether this method is a P/Invoke.
         /// </summary>
         public abstract bool IsPInvoke { get; }
 
         /// <summary>
-        /// Returns if this method is a special method.
+        /// Gets a value indicating whether this method is a special method.
         /// </summary>
         public abstract bool IsSpecialName { get; }
 
         /// <summary>
-        /// Returns if this method is runtime special method.
+        /// Gets a value indicating whether this method is a runtime special method.
         /// </summary>
         public abstract bool IsRTSpecialName { get; }
 
         /// <summary>
-        /// Returns if this method is virtual.
+        /// Gets a value indicating whether this method is virtual.
         /// </summary>
         public abstract bool IsVirtual { get; }
 
         /// <summary>
-        /// Returns if this method is abstract.
+        /// Gets a value indicating whether this method is abstract.
         /// </summary>
         public abstract bool IsAbstract { get; }
 
