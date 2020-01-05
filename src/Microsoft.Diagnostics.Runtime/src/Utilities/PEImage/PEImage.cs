@@ -21,7 +21,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int PESignatureOffsetLocation = 0x3C;
         private const uint ExpectedPESignature = 0x00004550;    // PE00
 
-        private readonly PEReader _reader = null!;
         private readonly bool _isVirtual;
         private int _offset = 0;
 
@@ -76,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (isVirtual)
                 options |= PEStreamOptions.IsLoadedImage;
 
-            _reader = new PEReader(stream, options);
+            Reader = new PEReader(stream, options);
         }
 
         internal int ResourceVirtualAddress => PEHeader?.ResourceTableDirectory.RelativeVirtualAddress ?? 0;
@@ -151,6 +150,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public PdbInfo DefaultPdb => Pdbs.LastOrDefault();
 
+        public PEReader Reader { get; } = null!;
+
         public void Dispose()
         {
             Dispose(true);
@@ -164,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (disposing)
                 {
                     if (IsValid)
-                        _reader.Dispose();
+                        Reader.Dispose();
                 }
 
                 _disposed = true;
@@ -272,20 +273,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private CoffHeader? ReadCoffHeader() => !IsValid ? null : _reader.PEHeaders.CoffHeader;
+        private CoffHeader? ReadCoffHeader() => !IsValid ? null : Reader.PEHeaders.CoffHeader;
 
-        private PEHeader? ReadPEHeader() => !IsValid ? null : _reader.PEHeaders.PEHeader;
+        private PEHeader? ReadPEHeader() => !IsValid ? null : Reader.PEHeaders.PEHeader;
 
-        private CorHeader? ReadCorHeader() => !IsValid ? null : _reader.PEHeaders.CorHeader;
+        private CorHeader? ReadCorHeader() => !IsValid ? null : Reader.PEHeaders.CorHeader;
 
-        private ImmutableArray<SectionHeader> ReadSections() => !IsValid ? default : _reader.PEHeaders.SectionHeaders;
+        private ImmutableArray<SectionHeader> ReadSections() => !IsValid ? default : Reader.PEHeaders.SectionHeaders;
 
         private ImmutableArray<PdbInfo> ReadPdbs()
         {
             if (!IsValid)
                 return default;
 
-            ImmutableArray<DebugDirectoryEntry> debugDirectories = _reader.ReadDebugDirectory();
+            ImmutableArray<DebugDirectoryEntry> debugDirectories = Reader.ReadDebugDirectory();
             if (debugDirectories.IsEmpty)
                 return ImmutableArray<PdbInfo>.Empty;
 
@@ -295,7 +296,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (entry.Type == DebugDirectoryEntryType.CodeView)
                 {
-                    CodeViewDebugDirectoryData data = _reader.ReadCodeViewDebugDirectoryData(entry);
+                    CodeViewDebugDirectoryData data = Reader.ReadCodeViewDebugDirectoryData(entry);
                     PdbInfo pdb = new PdbInfo(data.Path, data.Guid, data.Age);
                     result.Add(pdb);
                 }
