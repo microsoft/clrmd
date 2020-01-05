@@ -885,7 +885,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            CCWBuilder builder = new CCWBuilder(_sos, this);
+            CcwBuilder builder = new CcwBuilder(_sos, this);
             if (!builder.Init(obj))
                 return null;
 
@@ -896,7 +896,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            RCWBuilder builder = new RCWBuilder(_sos, this);
+            RcwBuilder builder = new RcwBuilder(_sos, this);
             if (!builder.Init(obj))
                 return null;
 

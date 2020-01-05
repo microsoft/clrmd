@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct CCWData
+    public readonly struct CcwData
     {
         public readonly ClrDataAddress OuterIUnknown;
         public readonly ClrDataAddress ManagedObject;

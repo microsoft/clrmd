@@ -8,13 +8,13 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal class CCWBuilder : ICCWData
+    internal class RcwBuilder : IRcwData
     {
-        private CCWData _ccwData;
+        private RcwData _rcwData;
         private readonly SOSDac _sos;
         private readonly RuntimeBuilder _builder;
 
-        public CCWBuilder(SOSDac sos, RuntimeBuilder builder)
+        public RcwBuilder(SOSDac sos, RuntimeBuilder builder)
         {
             _sos = sos;
             _builder = builder;
@@ -25,25 +25,25 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (!_sos.GetObjectData(obj, out V45ObjectData data))
                 return false;
 
-            if (data.CCW == 0)
+            if (data.RCW == 0)
                 return false;
 
-            Address = data.CCW;
-            return _sos.GetCCWData(data.CCW, out _ccwData);
+            Address = data.RCW;
+            return _sos.GetRCWData(data.RCW, out _rcwData);
         }
 
         public ulong Address { get; private set; }
 
-        ulong ICCWData.Address => _ccwData.CCWAddress;
-        ulong ICCWData.IUnknown => _ccwData.OuterIUnknown;
-        ulong ICCWData.Object => _ccwData.ManagedObject;
-        ulong ICCWData.Handle => _ccwData.Handle;
-        int ICCWData.RefCount => _ccwData.RefCount + _ccwData.JupiterRefCount;
-        int ICCWData.JupiterRefCount => _ccwData.JupiterRefCount;
+        ulong IRcwData.IUnknown => _rcwData.IUnknownPointer;
+        ulong IRcwData.VTablePointer => _rcwData.VTablePointer;
+        int IRcwData.RefCount => _rcwData.RefCount;
+        ulong IRcwData.ManagedObject => _rcwData.ManagedObject;
+        bool IRcwData.Disconnected => _rcwData.IsDisconnected != 0;
+        ulong IRcwData.CreatorThread => _rcwData.CreatorThread;
 
-        ImmutableArray<ComInterfaceData> ICCWData.GetInterfaces()
+        ImmutableArray<ComInterfaceData> IRcwData.GetInterfaces()
         {
-            COMInterfacePointerData[]? ifs = _sos.GetCCWInterfaces(Address, _ccwData.InterfaceCount);
+            COMInterfacePointerData[]? ifs = _sos.GetRCWInterfaces(Address, _rcwData.InterfaceCount);
             if (ifs is null)
                 return ImmutableArray<ComInterfaceData>.Empty;
 
