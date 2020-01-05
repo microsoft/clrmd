@@ -68,9 +68,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public T[]? GetContent<T>(int count) where T : unmanaged
         {
-            if (count > Length)
+            if ((uint)count > Length)
             {
-                throw new ArgumentException("Cannot read more elements than elements in array.");
+                throw new ArgumentOutOfRangeException(nameof(count));
             }
 
             return Type.GetArrayElementsValues<T>(Address, count);
