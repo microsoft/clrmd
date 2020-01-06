@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
-    <IsPackable>false</IsPackable>
     
     <!-- 
       We would need to download 32bit dotnet cli, which would add extra time to PR runs 
