@@ -131,17 +131,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int GetUpperBound(int dimension) => throw new NotImplementedException(nameof(GetUpperBound) + nameof(dimension));
 
-        // -or- GetValue
-        public T ReadValue<T>(int index) where T : unmanaged => throw new NotImplementedException(nameof(ReadValue) + nameof(index));
+        public T GetValue<T>(int index) where T : unmanaged => throw new NotImplementedException(nameof(GetValue) + nameof(index));
 
-        // -or- GetValue
-        public T ReadValue<T>(params int[] indices) where T : unmanaged => throw new NotImplementedException(nameof(ReadValue) + nameof(indices));
+        public T GetValue<T>(params int[] indices) where T : unmanaged => throw new NotImplementedException(nameof(GetValue) + nameof(indices));
 
-        // -or- ReadObjectValue
-        public ClrObject ReadValueAsObject(int index) => throw new NotImplementedException(nameof(ReadValueAsObject) + nameof(index));
+        public ClrObject GetObjectValue(int index) => throw new NotImplementedException(nameof(GetObjectValue) + nameof(index));
 
-        // -or- ReadObjectValue
-        public ClrObject ReadValueAsObject(params int[] indices) => throw new NotImplementedException(nameof(ReadValueAsObject) + nameof(indices));
+        public ClrObject GetObjectValue(params int[] indices) => throw new NotImplementedException(nameof(GetObjectValue) + nameof(indices));
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrArray"/> have the same value.
