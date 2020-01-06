@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net471;netcoreapp2.1</TargetFrameworks>
@@ -34,4 +35,5 @@
     <PackageReference Include="System.Memory" Version="4.5.3" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.6.0" />
   </ItemGroup>
+
 </Project>

@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net471;netcoreapp2.1</TargetFrameworks>
@@ -27,4 +28,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
+
 </Project>
