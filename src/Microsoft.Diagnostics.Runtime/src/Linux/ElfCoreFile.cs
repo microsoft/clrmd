@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly Reader _reader;
         private ImmutableArray<ElfLoadedImage> _loadedImages;
         private readonly Dictionary<ulong, ulong> _auxvEntries = new Dictionary<ulong, ulong>();
-        private ELFVirtualAddressSpace? _virtualAddressSpace;
+        private ElfVirtualAddressSpace? _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
 
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int ReadMemory(long address, Span<byte> buffer)
         {
-            _virtualAddressSpace ??= new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
+            _virtualAddressSpace ??= new ElfVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
             return _virtualAddressSpace.Read(address, buffer);
         }
 
@@ -96,10 +96,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     type = elfauxv32.Type;
                     value = elfauxv32.Value;
                 }
+
                 if (type == (ulong)ElfAuxvType.Null)
                 {
                     break;
                 }
+
                 _auxvEntries.Add(type, value);
             }
         }

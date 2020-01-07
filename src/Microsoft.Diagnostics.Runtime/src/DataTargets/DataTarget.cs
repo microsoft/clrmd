@@ -49,7 +49,6 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     string symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
                     _locator = new Implementation.SymbolServerLocator(symPath);
-
                 }
 
                 return _locator;
@@ -87,23 +86,23 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal PEImage? LoadPEImage(string fileName)
+        internal PEImage? LoadPEImage(string path)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (string.IsNullOrEmpty(fileName))
+            if (string.IsNullOrEmpty(path))
                 return null;
 
             PEImage? result;
 
             lock (_pefileCache)
             {
-                if (_pefileCache.TryGetValue(fileName, out result))
+                if (_pefileCache.TryGetValue(path, out result))
                     return result;
             }
 
-            Stream stream = File.OpenRead(fileName);
+            Stream stream = File.OpenRead(path);
             result = new PEImage(stream);
 
             if (!result.IsValid)
@@ -115,13 +114,13 @@ namespace Microsoft.Diagnostics.Runtime
             lock (_pefileCache)
             {
                 // We may have raced with another thread and that thread put a value here first
-                if (_pefileCache.TryGetValue(fileName, out PEImage? cached) && cached != null)
+                if (_pefileCache.TryGetValue(path, out PEImage? cached) && cached != null)
                 {
                     result?.Dispose(); // We don't need this instance now.
                     return cached;
                 }
 
-                return _pefileCache[fileName] = result;
+                return _pefileCache[path] = result;
             }
         }
 
@@ -221,40 +220,40 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a DataTarget from a crash dump.
         /// This method is only supported on Windows.
         /// </summary>
-        /// <param name="fileName">The crash dump's file name.</param>
+        /// <param name="path">The path to a crash dump.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="InvalidDataException">
-        /// The file specified by <paramref name="fileName"/> is not a crash dump.
+        /// The file specified by <paramref name="path"/> is not a crash dump.
         /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
-        public static DataTarget LoadCrashDump(string fileName)
+        public static DataTarget LoadCrashDump(string path)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 ThrowPlatformNotSupportedException();
 
-            return new DataTarget(new DbgEngDataReader(fileName));
+            return new DataTarget(new DbgEngDataReader(path));
         }
 
         /// <summary>
         /// Creates a DataTarget from a coredump.
         /// This method is only supported on Linux.
         /// </summary>
-        /// <param name="fileName">The path to a core dump.</param>
+        /// <param name="path">The path to a core dump.</param>
         /// <returns>A DataTarget instance.</returns>
         /// <exception cref="InvalidDataException">
-        /// The file specified by <paramref name="fileName"/> is not a coredump.
+        /// The file specified by <paramref name="path"/> is not a coredump.
         /// </exception>
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Linux.
         /// </exception>
-        public static DataTarget LoadCoreDump(string fileName)
+        public static DataTarget LoadCoreDump(string path)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 ThrowPlatformNotSupportedException();
 
-            CoreDumpReader reader = new CoreDumpReader(fileName);
+            CoreDumpReader reader = new CoreDumpReader(path);
             return new DataTarget(reader)
             {
                 BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())

@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (nativeLibraryType != null)
             {
                 // .NET Core 3.0+
-                 var loadLibrary = (Func<string, IntPtr>?)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
+                var loadLibrary = (Func<string, IntPtr>?)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
                 if (loadLibrary != null)
                 {
                     _loadLibrary = loadLibrary;
@@ -41,7 +41,11 @@ namespace Microsoft.Diagnostics.Runtime
                 var freeLibrary = (Action<IntPtr>?)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
                 if (freeLibrary != null)
                 {
-                    _freeLibrary = ptr => { freeLibrary(ptr); return true; };
+                    _freeLibrary = ptr =>
+                    {
+                        freeLibrary(ptr);
+                        return true;
+                    };
                 }
 
                 var tryGetExport = (TryGetExport?)nativeLibraryType.GetMethod("TryGetExport", new Type[] { typeof(IntPtr), typeof(string), typeof(IntPtr).MakeByRefType() })
@@ -75,7 +79,8 @@ namespace Microsoft.Diagnostics.Runtime
                         useGlibcDl = true;
                     }
                     catch (DllNotFoundException)
-                    { }
+                    {
+                    }
                 }
 
                 if (useGlibcDl)
@@ -165,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 // skip bits like "-beta"
-                if ('0' <= span[i]  && span[i] <= '9')
+                if ('0' <= span[i] && span[i] <= '9')
                     curr = curr * 10 + (span[i] - '0');
 
                 // In this case I don't know what we are parsing but it's not a version

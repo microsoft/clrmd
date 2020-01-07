@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
             _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, delegate (ModuleInfo a, ModuleInfo b) { return a.ImageBase.CompareTo(b.ImageBase); });
+            Array.Sort(_modules, (left, right) => left.ImageBase.CompareTo(right.ImageBase));
 
             VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
@@ -150,7 +150,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
                     return E_NOTIMPL;
                 }
-
 
                 string? filePath = string.IsNullOrEmpty(info.FileName) ? null :
                     _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);

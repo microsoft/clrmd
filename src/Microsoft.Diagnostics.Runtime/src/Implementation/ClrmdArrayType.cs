@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -31,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
-            //todo: remove?
+            // todo: remove?
             if (_baseArrayOffset == 0)
             {
                 ClrType? componentType = ComponentType;

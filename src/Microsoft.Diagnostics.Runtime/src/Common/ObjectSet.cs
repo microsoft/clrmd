@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            seg = new HeapHashSegment();
+            seg = default;
             return false;
         }
 

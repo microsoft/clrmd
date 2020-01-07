@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        public RuntimeCallableWrapper(ClrRuntime runtime, IRCWData data)
+        public RuntimeCallableWrapper(ClrRuntime runtime, IRcwData data)
         {
             if (data is null)
                 throw new System.ArgumentNullException(nameof(data));

@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
     /// <param name="processed">The total number of objects processed.</param>
-    public delegate void GCRootProgressEvent(GCRoot source, int processed);
+    public delegate void GCRootProgressUpdatedEventHandler(GCRoot source, int processed);
 
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// the number of objects processed will ever reach the total number of objects on the heap.  That's because there
         /// will be garbage objects on the heap we can't reach.
         /// </summary>
-        public event GCRootProgressEvent? ProgressUpdate;
+        public event GCRootProgressUpdatedEventHandler? ProgressUpdated;
 
         /// <summary>
         /// Gets the heap that's associated with this GCRoot instance.
@@ -59,7 +59,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return EnumerateGCRoots(target, true, cancellationToken);
         }
-
 
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancellationToken = default)
         {
@@ -93,7 +92,6 @@ namespace Microsoft.Diagnostics.Runtime
                 { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
             };
 
-
             if (!parallel)
             {
                 int count = 0;
@@ -108,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (count != processedObjects.Count)
                     {
                         count = processedObjects.Count;
-                        ProgressUpdate?.Invoke(this, count);
+                        ProgressUpdated?.Invoke(this, count);
                     }
                 }
             }
@@ -132,7 +130,6 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0; i < threads.Length; i++)
                     queue.Add(null);
 
-
                 int count = 0;
 
                 // Worker threads end when they have run out of roots to process.  While we are waiting for them to exit, yield return
@@ -149,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (count != processedObjects.Count)
                     {
                         count = processedObjects.Count;
-                        ProgressUpdate?.Invoke(this, count);
+                        ProgressUpdated?.Invoke(this, count);
                     }
                 }
 
@@ -158,11 +155,10 @@ namespace Microsoft.Diagnostics.Runtime
                 while (results.TryDequeue(out GCRootPath result))
                     yield return result;
 
-
                 if (count != processedObjects.Count)
                 {
                     count = processedObjects.Count;
-                    ProgressUpdate?.Invoke(this, count);
+                    ProgressUpdated?.Invoke(this, count);
                 }
             }
         }
@@ -354,7 +350,6 @@ namespace Microsoft.Diagnostics.Runtime
                             lock (knownEndPoints)
                                 if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject> end))
                                 {
-
                                     TraceFullPath(path, end);
                                     yield return GetResult(end);
 
@@ -410,8 +405,8 @@ namespace Microsoft.Diagnostics.Runtime
                 out LinkedListNode<ClrObject>? end)
             {
                 // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
-                //DebugOnly.Assert(obj.Type != null);
-                //DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
+                // DebugOnly.Assert(obj.Type != null);
+                // DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
                 Stack<ClrObject>? result = null;
 
@@ -464,7 +459,6 @@ namespace Microsoft.Diagnostics.Runtime
                             knownEndPoints[address] = node;
                         }
 
-
                 if (unique)
                 {
                     foreach (ClrObject obj in result)
@@ -472,7 +466,6 @@ namespace Microsoft.Diagnostics.Runtime
                         deadEnds.Add(obj);
                     }
                 }
-
 
                 return result;
             }

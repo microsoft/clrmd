@@ -23,6 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public short MinorVersion;
         public ushort NumberOfNamedEntries;
         public ushort NumberOfIdEntries;
-        //  IMAGE_RESOURCE_DIRECTORY_ENTRY DirectoryEntries[];
+        // IMAGE_RESOURCE_DIRECTORY_ENTRY DirectoryEntries[];
     }
 }

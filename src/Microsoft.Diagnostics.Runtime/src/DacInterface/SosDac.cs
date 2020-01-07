@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             if (ip == 0)
             {
-                codeHeaderData = new CodeHeaderData();
+                codeHeaderData = default;
                 return false;
             }
 
@@ -333,14 +333,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        public bool GetCCWData(ulong ccw, out CCWData data)
+        public bool GetCCWData(ulong ccw, out CcwData data)
         {
             InitDelegate(ref _getCCWData, VTable.GetCCWData);
             int hr = _getCCWData(Self, ccw, out data);
             return SUCCEEDED(hr);
         }
 
-        public bool GetRCWData(ulong rcw, out RCWData data)
+        public bool GetRCWData(ulong rcw, out RcwData data)
         {
             InitDelegate(ref _getRCWData, VTable.GetRCWData);
             int hr = _getRCWData(Self, rcw, out data);
@@ -606,7 +606,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             if (address == 0)
             {
-                data = new ThreadData();
+                data = default;
                 return false;
             }
 
@@ -844,10 +844,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int DacGetObjectData(IntPtr self, ulong addr, out V45ObjectData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCCWData(IntPtr self, ulong addr, out CCWData data);
+        private delegate int DacGetCCWData(IntPtr self, ulong addr, out CcwData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetRCWData(IntPtr self, ulong addr, out RCWData data);
+        private delegate int DacGetRCWData(IntPtr self, ulong addr, out RcwData data);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetWorkRequestData(IntPtr self, ulong addr, out WorkRequestData data);

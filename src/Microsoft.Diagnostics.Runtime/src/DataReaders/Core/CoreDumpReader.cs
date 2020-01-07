@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Runtime
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
 
-        public CoreDumpReader(string fileName)
+        public CoreDumpReader(string path)
         {
-            _source = fileName;
-            _stream = File.OpenRead(fileName);
+            _source = path;
+            _stream = File.OpenRead(path);
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;

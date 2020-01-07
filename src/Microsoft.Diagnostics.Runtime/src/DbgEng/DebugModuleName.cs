@@ -13,4 +13,3 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         MappedImage,
     }
 }
-

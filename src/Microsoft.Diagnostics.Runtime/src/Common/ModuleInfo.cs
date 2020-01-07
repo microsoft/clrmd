@@ -128,8 +128,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a ModuleInfo object with an IDataReader instance.  This is used when
         /// lazily evaluating VersionInfo.
         /// </summary>
-        public ModuleInfo(IDataReader reader, ulong imgBase, uint filesize, uint timestamp, string? fileName,
-            ImmutableArray<byte> buildId = default, VersionInfo? version = null)
+        public ModuleInfo(
+            IDataReader reader,
+            ulong imgBase,
+            uint filesize,
+            uint timestamp,
+            string? fileName,
+            ImmutableArray<byte> buildId = default,
+            VersionInfo? version = null)
         {
             _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
             ImageBase = imgBase;

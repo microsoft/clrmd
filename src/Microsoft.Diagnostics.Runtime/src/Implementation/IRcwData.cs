@@ -6,14 +6,15 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ICCWData
+    public interface IRcwData
     {
         ulong Address { get; }
         ulong IUnknown { get; }
-        ulong Object { get; }
-        ulong Handle { get; }
+        ulong VTablePointer { get; }
         int RefCount { get; }
-        int JupiterRefCount { get; }
+        ulong ManagedObject { get; }
+        bool Disconnected { get; }
+        ulong CreatorThread { get; }
 
         ImmutableArray<ComInterfaceData> GetInterfaces();
     }

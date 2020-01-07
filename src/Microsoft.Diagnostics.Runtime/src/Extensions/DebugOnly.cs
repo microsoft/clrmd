@@ -19,7 +19,6 @@ namespace Microsoft.Diagnostics.Runtime
                 Fail(msg);
         }
 
-
         [Conditional("DEBUG")]
         public static void Fail(string message)
         {
@@ -32,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed class AssertionException : Exception
     {
         public AssertionException(string msg)
-            : base (msg)
+            : base(msg)
         {
         }
     }

@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// A representation of CLR's CLRDATA_ADDRESS, which is a signed 64bit integer.
     /// Unfortuantely this can cause issues when inspecting 32bit processes, since
     /// if the highest bit is set the value will be sign-extended.  This struct is
-    /// meant to 
+    /// meant to
     /// </summary>
     [DebuggerDisplay("{AsUInt64()}")]
     public struct ClrDataAddress

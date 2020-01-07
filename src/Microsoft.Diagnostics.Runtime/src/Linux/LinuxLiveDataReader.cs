@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
@@ -114,6 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 {
                     continue;
                 }
+
                 if (!result.Exists(module => module.FileName == entry.FilePath))
                 {
                     uint filesize = 0;
@@ -142,6 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     result.Add(moduleInfo);
                 }
             }
+
             return result;
         }
 
@@ -182,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (read < 0)
                 {
                     bytesRead = 0;
-                    return (Marshal.GetLastWin32Error()) switch
+                    return Marshal.GetLastWin32Error() switch
                     {
                         EPERM => throw new UnauthorizedAccessException(),
                         ESRCH => throw new InvalidOperationException("The process has exited"),
@@ -249,6 +251,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     return true;
                 }
             }
+
             vq = default;
             return false;
         }
@@ -316,6 +319,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 return 0;
             }
+
             ulong endAddress = address + (ulong)bytesRequested - 1;
             int startIndex = -1;
             for (int i = 0; i < _memoryMapEntries.Count; i++)
@@ -326,10 +330,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     startIndex = i;
                 }
             }
+
             if (startIndex < 0)
             {
                 return 0;
             }
+
             int endIndex = _memoryMapEntries.Count - 1;
             for (int i = startIndex; i < _memoryMapEntries.Count; i++)
             {
@@ -342,6 +348,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     break;
                 }
             }
+
             int readableBytesCount = 0;
             ulong offset = address - _memoryMapEntries[startIndex].BeginAddr;
             for (int i = startIndex; i <= endIndex; i++)
@@ -358,8 +365,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     bytesRequested -= (int)regionSize;
                     readableBytesCount += (int)regionSize;
                 }
+
                 offset = 0;
             }
+
             return readableBytesCount;
         }
 
@@ -375,6 +384,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 {
                     break;
                 }
+
                 string address, permission, path;
                 string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 5)
@@ -390,6 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     // Unknown data format
                     continue;
                 }
+
                 address = parts[0];
                 permission = parts[1];
                 string[] addressBeginEnd = address.Split('-');

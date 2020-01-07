@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             PdbInfo imgPdb = img.DefaultPdb;
             Assert.NotNull(imgPdb);
-            Assert.NotNull(imgPdb.FileName);
+            Assert.NotNull(imgPdb.Path);
         }
 
         [FrameworkFact]
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                     PdbInfo imgPdb = img.DefaultPdb;
                     Assert.NotNull(imgPdb);
-                    Assert.NotNull(imgPdb.FileName);
+                    Assert.NotNull(imgPdb.Path);
                 }
             }
         }

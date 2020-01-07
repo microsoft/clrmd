@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -28,16 +27,16 @@ namespace Microsoft.Diagnostics.Runtime
         public int Revision { get; }
 
         /// <summary>
-        /// Gets the file name of the PDB.
+        /// Gets the path to the PDB.
         /// </summary>
-        public string FileName { get; }
+        public string Path { get; }
 
         /// <summary>
         /// Creates an instance of the PdbInfo class with the corresponding properties initialized.
         /// </summary>
-        public PdbInfo(string fileName, Guid guid, int rev)
+        public PdbInfo(string path, Guid guid, int rev)
         {
-            FileName = fileName;
+            Path = path;
             Guid = guid;
             Revision = rev;
         }
@@ -68,8 +67,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (Revision == other.Revision && Guid == other.Guid)
             {
-                string thisFileName = Path.GetFileName(FileName);
-                string otherFileName = Path.GetFileName(other.FileName);
+                string thisFileName = System.IO.Path.GetFileName(Path);
+                string otherFileName = System.IO.Path.GetFileName(other.Path);
                 return thisFileName.Equals(otherFileName, StringComparison.OrdinalIgnoreCase);
             }
 
@@ -82,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>Printing friendly version.</returns>
         public override string ToString()
         {
-            return $"{Guid} {Revision} {FileName}";
+            return $"{Guid} {Revision} {Path}";
         }
 
         public static bool operator ==(PdbInfo? left, PdbInfo? right)

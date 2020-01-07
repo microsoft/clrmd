@@ -541,6 +541,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 pDataOut = byte0;
                 pDataLen = 1;
             }
+
             // Medium.
             else if ((byte0 & 0xC0) == 0x80) // 10?? ????
             {

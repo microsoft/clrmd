@@ -18,10 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 {
     internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, IModuleHelpers, IMethodHelpers, IClrObjectHelpers, IFieldHelpers,
                                          IAppDomainHelpers, IThreadHelpers, IExceptionHelpers, IHeapHelpers
-
     {
         private bool _disposed;
-        private readonly ClrInfo _clrinfo;
+        private readonly ClrInfo _clrInfo;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
@@ -53,14 +52,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public RuntimeBuilder(ClrInfo clr, DacLibrary library, SOSDac sos)
         {
-            _clrinfo = clr;
+            _clrInfo = clr;
             _library = library;
             _sos = sos;
             _options = clr.DataTarget.CacheOptions;
 
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
-            DataReader = _clrinfo.DataTarget.DataReader;
+            DataReader = _clrInfo.DataTarget.DataReader;
 
             int version = 0;
             if (_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
@@ -102,9 +101,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 _library.Dispose();
             }
         }
-
-
-
 
         bool IHeapHelpers.CreateSegments(
             ClrHeap clrHeap,
@@ -570,7 +566,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                                 yield return new ClrmdRefCountHandle(domain, handles[i].Handle, clrObj, refCount);
                                 break;
-
                         }
                     }
                 }
@@ -581,7 +576,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             FlushDac();
             _heap.ClearCachedData();
-
 
             lock (_types)
                 _types.Clear();
@@ -616,7 +610,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
             // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
             // entered a special context.
-
 
             _library.DacDataTarget.EnterMagicCallbackContext();
             try
@@ -707,7 +700,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             bool sorted = true;
             _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
             {
-                result.Add(ValueTuple.Create(mt, token));
+                result.Add((mt, token));
                 if (sorted && lastToken > token)
                     sorted = false;
             });
@@ -862,6 +855,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     {
                         TryGetComponentType(result, obj);
                     }
+
                     return result;
                 }
             }
@@ -891,7 +885,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            CCWBuilder builder = new CCWBuilder(_sos, this);
+            CcwBuilder builder = new CcwBuilder(_sos, this);
             if (!builder.Init(obj))
                 return null;
 
@@ -902,7 +896,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            RCWBuilder builder = new RCWBuilder(_sos, this);
+            RcwBuilder builder = new RcwBuilder(_sos, this);
             if (!builder.Init(obj))
                 return null;
 

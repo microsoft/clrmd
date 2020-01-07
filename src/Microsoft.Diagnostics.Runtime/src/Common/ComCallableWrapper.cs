@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        public ComCallableWrapper(ICCWData data)
+        public ComCallableWrapper(ICcwData data)
         {
             if (data is null)
                 throw new System.ArgumentNullException(nameof(data));

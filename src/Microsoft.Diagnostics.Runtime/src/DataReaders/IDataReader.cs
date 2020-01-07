@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         uint ProcessId { get; }
 
         /// <summary>
-        /// Returns true if the data target is a minidump which might not contain full heap data.
+        /// Gets a value indicating whether the data target contains full heap data.
         /// </summary>
         bool IsFullMemoryAvailable { get; }
 

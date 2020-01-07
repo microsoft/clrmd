@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return new SymbolServerLocator($"srv*{Helpers.TestWorkingDirectory}*http://msdl.microsoft.com/download/symbols");
         }
 
-        [Fact(Skip ="Touches network, don't run regularly.")]
+        [Fact(Skip = "Touches network, don't run regularly.")]
         public void FindBinaryNegativeTest()
         {
             IBinaryLocator _locator = GetLocator();

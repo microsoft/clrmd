@@ -332,13 +332,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 return methods;
             }
-
         }
 
-        //TODO: remove
+        // TODO: remove
         public override ClrStaticField? GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
 
-        //TODO: remove
+        // TODO: remove
         public override ClrInstanceField? GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");

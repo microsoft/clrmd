@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return _notes;
             }
         }
+
         public ImmutableArray<ElfProgramHeader> ProgramHeaders
         {
             get
@@ -105,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void CreateVirtualAddressReader()
         {
-            _virtualAddressReader ??= new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
+            _virtualAddressReader ??= new Reader(new ElfVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
         }
 
         private void LoadNotes()

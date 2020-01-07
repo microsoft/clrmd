@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _helpers = data.Helpers;
 
-            // Must be the last use of 'data' in this constructor. 
+            // Must be the last use of 'data' in this constructor.
             _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
             if (ElementType == ClrElementType.Class && _type != null)
                 ElementType = _type.ElementType;
@@ -108,6 +108,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return (_attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Assembly;
             }
         }
+
         public override bool IsProtected
         {
             get

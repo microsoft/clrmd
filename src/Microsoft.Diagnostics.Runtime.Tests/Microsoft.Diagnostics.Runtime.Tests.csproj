@@ -1,31 +1,28 @@
-﻿<!-- Copyright (c)  Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information. -->
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    
-    <!-- 
-      We would need to download 32bit dotnet cli, which would add extra time to PR runs 
-      Testing 64bit only on Desktop sufficiently covers our interop code paths.  
-    -->
-    <TestArchitectures Condition="'$(TargetFramework)' == 'net46'">x64;x86</TestArchitectures>
-
     <NoWarn>1701;1702;1705;1591;436</NoWarn>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <None Include="..\TestTargets\*\*.cs">
       <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.6.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.6.0" />
   </ItemGroup>
+
   <Target Name="BuildTargets" AfterTargets="Build">
     <MSBuild Projects="..\TestTargets\TestTargets.proj" />
   </Target>
+
 </Project>
