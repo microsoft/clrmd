@@ -185,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return _elementType = ClrElementType.String;
 
             if (ComponentSize > 0)
-                return _elementType = ClrElementType.SZArray;
+                return _elementType = StaticSize > (uint)(3 * IntPtr.Size) ? ClrElementType.Array : ClrElementType.SZArray;
 
             ClrType? baseType = BaseType;
             if (baseType is null || baseType == Heap.ObjectType)
