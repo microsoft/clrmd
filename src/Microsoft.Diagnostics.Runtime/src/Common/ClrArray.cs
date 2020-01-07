@@ -255,6 +255,12 @@ namespace Microsoft.Diagnostics.Runtime
             return Type.Heap.GetObject(address);
         }
 
+        // |<-------------------------- Type.StaticSize -------------------------->|
+        // |                                                                       |
+        // [    nint    ||       nint       ||  nint  || int[rank] |   int[rank]   ||          ]
+        // [ sync block || Type.MethodTable || Length || GetLength | GetLowerBound || elements ]
+        //                 ^
+        //                 | Address
         private int GetMultiDimensionalBound(int offset) =>
             Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
 
