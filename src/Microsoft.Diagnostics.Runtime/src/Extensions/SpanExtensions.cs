@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static unsafe ulong AsPointer(this Span<byte> span)
         {
             DebugOnly.Assert(span.Length >= IntPtr.Size);
-            DebugOnly.Assert((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span)) % IntPtr.Size == 0);
+            DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % IntPtr.Size == 0);
             return IntPtr.Size == 4
                 ? Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span))
                 : Unsafe.As<byte, ulong>(ref MemoryMarshal.GetReference(span));
@@ -39,14 +39,14 @@ namespace Microsoft.Diagnostics.Runtime
         public static unsafe int AsInt32(this Span<byte> span)
         {
             DebugOnly.Assert(span.Length >= sizeof(int));
-            DebugOnly.Assert((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span)) % sizeof(int) == 0);
+            DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(int) == 0);
             return Unsafe.As<byte, int>(ref MemoryMarshal.GetReference(span));
         }
 
         public static unsafe uint AsUInt32(this Span<byte> span)
         {
             DebugOnly.Assert(span.Length >= sizeof(uint));
-            DebugOnly.Assert((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span)) % sizeof(uint) == 0);
+            DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(uint) == 0);
             return Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span));
         }
     }
