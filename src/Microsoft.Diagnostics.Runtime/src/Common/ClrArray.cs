@@ -231,19 +231,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrObject GetObjectValue(int index)
         {
-            ulong address = GetValue<UIntPtr>(index).ToUInt64();
             if (!Type.IsObjectReference)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException($"{Type} does not contain object references.");
 
+            ulong address = GetValue<UIntPtr>(index).ToUInt64();
             return Type.Heap.GetObject(address);
         }
 
         public ClrObject GetObjectValue(params int[] indices)
         {
-            ulong address = GetValue<UIntPtr>(indices).ToUInt64();
             if (!Type.IsObjectReference)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException($"{Type} does not contain object references.");
 
+            ulong address = GetValue<UIntPtr>(indices).ToUInt64();
             return Type.Heap.GetObject(address);
         }
 
