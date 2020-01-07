@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
             return length + lowerBound - 1;
         }
 
-        public T GetValue<T>(int index) where T : unmanaged
+        public unsafe T GetValue<T>(int index) where T : unmanaged
         {
             if (Rank != 1)
                 throw new ArgumentException("Array was not a one-dimensional array.");
@@ -177,11 +177,15 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            int valueByteOffset = dataByteOffset + valueOffset * Type.ComponentSize;
+            int elementSize = Type.ComponentSize;
+            if (sizeof(T) != elementSize)
+                throw new ArgumentException("Array element was not of the expected size.");
+
+            int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
         }
 
-        public T GetValue<T>(params int[] indices) where T : unmanaged
+        public unsafe T GetValue<T>(params int[] indices) where T : unmanaged
         {
             if (indices is null)
                 throw new ArgumentNullException(nameof(indices));
@@ -225,7 +229,11 @@ namespace Microsoft.Diagnostics.Runtime
                 dataByteOffset += 2 * sizeof(int) * rank;
             }
 
-            int valueByteOffset = dataByteOffset + valueOffset * Type.ComponentSize;
+            int elementSize = Type.ComponentSize;
+            if (sizeof(T) != elementSize)
+                throw new ArgumentException("Array element was not of the expected size.");
+
+            int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
         }
 
