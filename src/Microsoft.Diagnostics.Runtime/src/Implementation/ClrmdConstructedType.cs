@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrType? BaseType => null;
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
         public override object? GetArrayElementValue(ulong objRef, int index) => null;
-        public override T[]? GetArrayElementsValues<T>(ulong objRef, int count) => null;
+        public override T[]? GetArrayElementValues<T>(ulong objRef, int count) => null;
         public override int StaticSize => IntPtr.Size;
         public override GCDesc GCDesc => default;
         public override uint MetadataToken => 0;

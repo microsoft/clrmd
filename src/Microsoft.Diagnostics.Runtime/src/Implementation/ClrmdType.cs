@@ -343,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
         public override object? GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
-        public override T[]? GetArrayElementsValues<T>(ulong objRef, int count) => throw new InvalidOperationException($"{Name} is not an array.");
+        public override T[]? GetArrayElementValues<T>(ulong objRef, int count) => throw new InvalidOperationException($"{Name} is not an array.");
 
         // convenience function for testing
         public static string? FixGenerics(string? name) => RuntimeBuilder.FixGenerics(name);
