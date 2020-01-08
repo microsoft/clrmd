@@ -138,10 +138,10 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
             if (!type.IsArray)
             {
-                throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{Type!.Name}'.");
+                throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{type.Name}'.");
             }
 
-            return new ClrArray(this.Address, type);
+            return new ClrArray(Address, type);
         }
 
         /// <summary>

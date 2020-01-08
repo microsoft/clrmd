@@ -710,5 +710,63 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(8, s_5dArray.GetLength(3));
             Assert.Equal(10, s_5dArray.GetLength(4));
         }
+
+        [Fact]
+        public void ArrayGetObjectValue()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
+            ClrType type = typesModule.GetTypeByName("Types");
+
+            ClrArray s_szObjArray = type.GetStaticFieldByName("s_szObjArray").ReadObject().AsArray();
+            ClrArray s_mdObjArray = type.GetStaticFieldByName("s_mdObjArray").ReadObject().AsArray();
+            ClrArray s_2dObjArray = type.GetStaticFieldByName("s_2dObjArray").ReadObject().AsArray();
+
+            Assert.Equal(1, s_szObjArray.Rank);
+            Assert.Equal(1, s_mdObjArray.Rank);
+            Assert.Equal(2, s_2dObjArray.Rank);
+
+            Assert.Equal(ClrElementType.SZArray, s_szObjArray.Type.ElementType);
+            Assert.Equal(ClrElementType.Array, s_mdObjArray.Type.ElementType);
+            Assert.Equal(ClrElementType.Array, s_2dObjArray.Type.ElementType);
+
+            Assert.Equal(s_szObjArray.Address, s_szObjArray.GetObjectValue(1).Address);
+            Assert.Equal(s_mdObjArray.Address, s_mdObjArray.GetObjectValue(2).Address);
+
+            Assert.Equal(s_szObjArray.Address, s_szObjArray.GetObjectValue(new[] { 1 }).Address);
+            Assert.Equal(s_mdObjArray.Address, s_mdObjArray.GetObjectValue(new[] { 2 }).Address);
+            Assert.Equal(s_2dObjArray.Address, s_2dObjArray.GetObjectValue(1, 2).Address);
+        }
+
+        [Fact]
+        public void ArrayGetValue()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
+            ClrType type = typesModule.GetTypeByName("Types");
+
+            ClrArray s_szIntArray = type.GetStaticFieldByName("s_szIntArray").ReadObject().AsArray();
+            ClrArray s_mdIntArray = type.GetStaticFieldByName("s_mdIntArray").ReadObject().AsArray();
+            ClrArray s_2dIntArray = type.GetStaticFieldByName("s_2dIntArray").ReadObject().AsArray();
+
+            Assert.Equal(1, s_szIntArray.Rank);
+            Assert.Equal(1, s_mdIntArray.Rank);
+            Assert.Equal(2, s_2dIntArray.Rank);
+
+            Assert.Equal(ClrElementType.SZArray, s_szIntArray.Type.ElementType);
+            Assert.Equal(ClrElementType.Array, s_mdIntArray.Type.ElementType);
+            Assert.Equal(ClrElementType.Array, s_2dIntArray.Type.ElementType);
+
+            Assert.Equal(42, s_szIntArray.GetValue<int>(1));
+            Assert.Equal(42, s_mdIntArray.GetValue<int>(2));
+
+            Assert.Equal(42, s_szIntArray.GetValue<int>(new[] { 1 }));
+            Assert.Equal(42, s_mdIntArray.GetValue<int>(new[] { 2 }));
+            Assert.Equal(42, s_2dIntArray.GetValue<int>(1, 2));
+        }
     }
 }

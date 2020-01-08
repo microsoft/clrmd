@@ -50,6 +50,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        private bool IsMultiDimensional => Type.StaticSize > (uint)(3 * IntPtr.Size);
+
         private int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
 
         public ClrArray(ulong address, ClrType type)
@@ -61,31 +63,19 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets <paramref name="count"/> value elements from the array.
+        /// Gets <paramref name="count"/> element values from the array.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="count"></param>
         /// <returns></returns>
-        public T[]? GetContent<T>(int count) where T : unmanaged
+        public T[]? GetValues<T>(int count) where T : unmanaged
         {
-            if (count > Length)
+            if ((uint)count > Length)
             {
-                throw new ArgumentException("Cannot read more elements than elements in array.");
+                throw new ArgumentOutOfRangeException(nameof(count));
             }
 
-            return Type.GetArrayElementsValues<T>(Address, count);
-        }
-
-        public int GetLength(int dimension)
-        {
-            int rank = MultiDimensionalRank;
-            if (rank == 0 && dimension == 0)
-                return Length;
-
-            if ((uint)dimension >= rank)
-                throw new ArgumentOutOfRangeException(nameof(dimension));
-
-            return Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(dimension * sizeof(int)));
+            return Type.GetArrayElementValues<T>(Address, count);
         }
 
         /// <summary>
@@ -126,6 +116,153 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>An <see cref="int"/> hash code for this instance.</returns>
         public override int GetHashCode() => Address.GetHashCode();
+
+        public int GetLength(int dimension)
+        {
+            int rank = MultiDimensionalRank;
+            if (rank == 0 && dimension == 0)
+                return Length;
+
+            if ((uint)dimension >= rank)
+                throw new ArgumentOutOfRangeException(nameof(dimension));
+
+            return GetMultiDimensionalBound(dimension);
+        }
+
+        public int GetLowerBound(int dimension)
+        {
+            int rank = MultiDimensionalRank;
+            if (rank == 0 && dimension == 0)
+                return 0;
+
+            if ((uint)dimension >= rank)
+                throw new ArgumentOutOfRangeException(nameof(dimension));
+
+            return GetMultiDimensionalBound(rank + dimension);
+        }
+
+        public int GetUpperBound(int dimension)
+        {
+            int rank = MultiDimensionalRank;
+            if (rank == 0 && dimension == 0)
+                return Length - 1;
+
+            if ((uint)dimension >= rank)
+                throw new ArgumentOutOfRangeException(nameof(dimension));
+
+            int length = GetMultiDimensionalBound(dimension);
+            int lowerBound = GetMultiDimensionalBound(rank + dimension);
+            return length + lowerBound - 1;
+        }
+
+        public unsafe T GetValue<T>(int index) where T : unmanaged
+        {
+            if (Rank != 1)
+                throw new ArgumentException("Array was not a one-dimensional array.");
+
+            int valueOffset = index;
+            int dataByteOffset = 2 * IntPtr.Size;
+
+            if (IsMultiDimensional)
+            {
+                valueOffset -= GetMultiDimensionalBound(1);
+                if ((uint)valueOffset >= GetMultiDimensionalBound(0))
+                    throw new ArgumentOutOfRangeException(nameof(index));
+
+                dataByteOffset += 2 * sizeof(int);
+            }
+            else
+            {
+                if ((uint)valueOffset >= Length)
+                    throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            int elementSize = Type.ComponentSize;
+            if (sizeof(T) != elementSize)
+                throw new ArgumentException("Array element was not of the expected size.");
+
+            int valueByteOffset = dataByteOffset + valueOffset * elementSize;
+            return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
+        }
+
+        public unsafe T GetValue<T>(params int[] indices) where T : unmanaged
+        {
+            if (indices is null)
+                throw new ArgumentNullException(nameof(indices));
+
+            int rank = Rank;
+            if (rank != indices.Length)
+                throw new ArgumentException("Indices length does not match the array rank.");
+
+            int valueOffset = 0;
+            int dataByteOffset = 2 * IntPtr.Size;
+
+            if (rank == 1)
+            {
+                if (IsMultiDimensional)
+                {
+                    valueOffset = indices[0] - GetMultiDimensionalBound(1);
+                    if ((uint)valueOffset >= GetMultiDimensionalBound(0))
+                        throw new ArgumentOutOfRangeException(nameof(indices));
+
+                    dataByteOffset += 2 * sizeof(int);
+                }
+                else
+                {
+                    valueOffset = indices[0];
+                    if ((uint)valueOffset >= Length)
+                        throw new ArgumentOutOfRangeException(nameof(indices));
+                }
+            }
+            else
+            {
+                for (int dimension = 0; dimension < rank; dimension++)
+                {
+                    int currentValueOffset = indices[dimension] - GetMultiDimensionalBound(rank + dimension);
+                    if ((uint)currentValueOffset >= GetMultiDimensionalBound(dimension))
+                        throw new ArgumentOutOfRangeException(nameof(indices));
+
+                    valueOffset *= GetMultiDimensionalBound(dimension);
+                    valueOffset += currentValueOffset;
+                }
+
+                dataByteOffset += 2 * sizeof(int) * rank;
+            }
+
+            int elementSize = Type.ComponentSize;
+            if (sizeof(T) != elementSize)
+                throw new ArgumentException("Array element was not of the expected size.");
+
+            int valueByteOffset = dataByteOffset + valueOffset * elementSize;
+            return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
+        }
+
+        public ClrObject GetObjectValue(int index)
+        {
+            if (!Type.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain object references.");
+
+            ulong address = GetValue<UIntPtr>(index).ToUInt64();
+            return Type.Heap.GetObject(address);
+        }
+
+        public ClrObject GetObjectValue(params int[] indices)
+        {
+            if (!Type.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain object references.");
+
+            ulong address = GetValue<UIntPtr>(indices).ToUInt64();
+            return Type.Heap.GetObject(address);
+        }
+
+        // |<-------------------------- Type.StaticSize -------------------------->|
+        // |                                                                       |
+        // [    nint    ||       nint       ||  nint  || int[rank] |   int[rank]   ||          ]
+        // [ sync block || Type.MethodTable || Length || GetLength | GetLowerBound || elements ]
+        //                 ^
+        //                 | Address
+        private int GetMultiDimensionalBound(int offset) =>
+            Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrArray"/> have the same value.

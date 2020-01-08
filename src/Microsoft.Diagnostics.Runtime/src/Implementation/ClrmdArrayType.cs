@@ -57,8 +57,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override object? GetArrayElementValue(ulong objRef, int index)
         {
-            ulong addr = GetArrayElementAddress(objRef, index);
-            if (addr == 0)
+            ulong address = GetArrayElementAddress(objRef, index);
+            if (address == 0)
                 return null;
 
             ClrType? componentType = ComponentType;
@@ -81,14 +81,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return null;
 
             if (cet == ClrElementType.String)
-                addr = DataReader.ReadPointer(addr);
+                address = DataReader.ReadPointer(address);
 
-            return ValueReader.GetValueAtAddress(Heap, DataReader, cet, addr);
+            return ValueReader.GetValueAtAddress(Heap, DataReader, cet, address);
         }
 
-        public override T[]? GetArrayElementsValues<T>(ulong objRef, int count)
+        public override T[]? GetArrayElementValues<T>(ulong objRef, int count)
         {
-            ulong addr = GetArrayElementAddress(objRef, 0);
+            ulong address = GetArrayElementAddress(objRef, 0);
             ClrType? componentType = ComponentType;
             ClrElementType cet;
             if (componentType != null)
@@ -108,10 +108,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (cet == ClrElementType.Unknown)
                 return null;
 
-            if (addr == 0)
+            if (address == 0)
                 return null;
 
-            return ValueReader.GetValuesFromAddress<T>(DataReader, addr, count);
+            return ValueReader.GetValuesFromAddress<T>(DataReader, address, count);
         }
     }
 }

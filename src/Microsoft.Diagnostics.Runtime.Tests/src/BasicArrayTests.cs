@@ -326,7 +326,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrArray intArraySnapshot = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
 
             // Act
-            int[] ints = intArraySnapshot.GetContent<int>(intArraySnapshot.Length);
+            int[] ints = intArraySnapshot.GetValues<int>(intArraySnapshot.Length);
 
             // Assert
             Assert.Equal(originalArray, ints);
@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrArray datetimeArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act
-            DateTime[] datetimes = datetimeArray.GetContent<DateTime>(datetimeArray.Length);
+            DateTime[] datetimes = datetimeArray.GetValues<DateTime>(datetimeArray.Length);
 
             // Assert
             Assert.Equal(originalArray, datetimes);
@@ -355,7 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             int readLength = originalArray.Length - 2;
 
             // Act
-            DateTime[] datetimes = structArray.GetContent<DateTime>(readLength);
+            DateTime[] datetimes = structArray.GetValues<DateTime>(readLength);
 
             // Assert
             Assert.Equal(originalArray.AsSpan().Slice(0, readLength).ToArray(), datetimes);
