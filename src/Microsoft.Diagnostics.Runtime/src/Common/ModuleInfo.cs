@@ -25,12 +25,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the file size of the image.
         /// </summary>
-        public uint FileSize { get; }
+        public int FileSize { get; }
 
         /// <summary>
         /// Gets the build timestamp of the image.
         /// </summary>
-        public uint TimeStamp { get; }
+        public int TimeStamp { get; }
 
         /// <summary>
         /// Gets the file name of the module on disk.
@@ -131,8 +131,8 @@ namespace Microsoft.Diagnostics.Runtime
         public ModuleInfo(
             IDataReader reader,
             ulong imgBase,
-            uint filesize,
-            uint timestamp,
+            int filesize,
+            int timestamp,
             string? fileName,
             ImmutableArray<byte> buildId = default,
             VersionInfo? version = null)

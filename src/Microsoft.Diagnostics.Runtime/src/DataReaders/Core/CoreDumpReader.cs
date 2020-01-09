@@ -103,14 +103,14 @@ namespace Microsoft.Diagnostics.Runtime
             ElfFile? file = image.Open();
 
             VersionInfo version;
-            uint filesize = (uint)image.Size;
-            uint timestamp = 0;
+            int filesize = (int)image.Size;
+            int timestamp = 0;
 
             if (file is null)
             {
                 using PEImage pe = image.OpenAsPEImage();
-                filesize = (uint)pe.IndexFileSize;
-                timestamp = (uint)pe.IndexTimeStamp;
+                filesize = pe.IndexFileSize;
+                timestamp = pe.IndexTimeStamp;
                 version = pe.GetFileVersionInfo()?.VersionInfo ?? default;
             }
             else

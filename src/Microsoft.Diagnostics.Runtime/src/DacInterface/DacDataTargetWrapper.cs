@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 int i = (min + max) / 2;
                 ModuleInfo curr = _modules[i];
 
-                if (curr.ImageBase <= address && address < curr.ImageBase + curr.FileSize)
+                if (curr.ImageBase <= address && address < curr.ImageBase + (ulong)curr.FileSize)
                     return curr;
 
                 if (curr.ImageBase < address)
@@ -241,8 +241,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public unsafe int GetMetadata(
             IntPtr self,
             string fileName,
-            uint imageTimestamp,
-            uint imageSize,
+            int imageTimestamp,
+            int imageSize,
             IntPtr mvid,
             uint mdRva,
             uint flags,
@@ -297,8 +297,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetMetadataDelegate(
             IntPtr self,
             [In][MarshalAs(UnmanagedType.LPWStr)] string fileName,
-            uint imageTimestamp,
-            uint imageSize,
+            int imageTimestamp,
+            int imageSize,
             IntPtr mvid,
             uint mdRva,
             uint flags,
