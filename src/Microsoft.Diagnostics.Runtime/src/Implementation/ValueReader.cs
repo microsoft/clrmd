@@ -206,12 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!reader.Read(dataAddress, buffer, out int count))
                     return null;
 
-#if NETCOREAPP
                 return Encoding.Unicode.GetString(buffer.Slice(0, count));
-#else
-                fixed (byte* bufferPtr = buffer)
-                    return Encoding.Unicode.GetString(bufferPtr, count);
-#endif
             }
             finally
             {

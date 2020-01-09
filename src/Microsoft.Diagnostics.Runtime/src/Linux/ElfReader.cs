@@ -90,12 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (buffer[read - 1] == '\0')
                     read--;
 
-#if NETCOREAPP
                 return Encoding.ASCII.GetString(buffer.Slice(0, read));
-#else
-                fixed (byte* bufferPtr = buffer)
-                    return Encoding.ASCII.GetString(bufferPtr, read);
-#endif
             }
             finally
             {

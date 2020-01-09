@@ -487,12 +487,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (skipNull)
                     needed--;
 
-#if NETCOREAPP
                 return Encoding.Unicode.GetString(buffer.Slice(0, needed * sizeof(char)));
-#else
-                fixed (byte* bufferPtr = buffer)
-                    return Encoding.Unicode.GetString(bufferPtr, needed * sizeof(char));
-#endif
             }
             finally
             {
@@ -525,12 +520,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (len >= 0)
                     needed = len;
 
-#if NETCOREAPP
                 return Encoding.ASCII.GetString(buffer.Slice(0, needed));
-#else
-                fixed (byte* bufferPtr = buffer)
-                    return Encoding.ASCII.GetString(bufferPtr, needed);
-#endif
             }
             finally
             {
