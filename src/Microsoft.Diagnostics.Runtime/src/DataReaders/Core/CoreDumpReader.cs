@@ -153,6 +153,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
         {
+            if (address > long.MaxValue)
+            {
+                bytesRead = 0;
+                return false;
+            }
+
             bytesRead = _core.ReadMemory((long)address, buffer);
             return bytesRead > 0;
         }
