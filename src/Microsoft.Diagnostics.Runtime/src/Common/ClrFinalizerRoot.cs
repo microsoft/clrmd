@@ -20,5 +20,10 @@ namespace Microsoft.Diagnostics.Runtime
             Address = address;
             Object = obj;
         }
+
+        public override string ToString()
+        {
+            return $"FinalizationHandle @{Address:x12} {Object}";
+        }
     }
 }
