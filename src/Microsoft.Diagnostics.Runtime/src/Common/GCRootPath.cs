@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a path of objects from a root to an object.
     /// </summary>
-    public struct GCRootPath
+    public readonly struct GCRootPath
     {
         /// <summary>
         /// Gets the location that roots the object.
@@ -31,10 +31,10 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendFormat(null, "{0} @{1:x12}", Root.RootKind, Root.Address);
+            builder.Append($"{Root.RootKind} @{Root.Address:x12}");
 
             foreach (ClrObject obj in Path)
-                builder.AppendFormat(null, " -> {0}", obj);
+                builder.Append($" -> {obj}");
 
             return builder.ToString();
         }

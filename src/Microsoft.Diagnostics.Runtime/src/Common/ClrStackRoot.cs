@@ -30,10 +30,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrThread? thread = StackFrame.Thread;
             if (thread != null)
-                builder.AppendFormat(null, "Thread {0:x} ", thread.OSThreadId);
+                builder.Append($"Thread {thread.OSThreadId:x} ");
 
             builder.Append(StackFrame);
-            builder.AppendFormat(null, " @{0:x12} {1}", Address, Object);
+            builder.Append($" @{Address:x12} {Object}");
             return builder.ToString();
         }
     }
