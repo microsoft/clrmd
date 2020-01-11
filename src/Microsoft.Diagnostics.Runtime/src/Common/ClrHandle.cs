@@ -64,6 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
                     case ClrHandleKind.WeakLong:
                     case ClrHandleKind.WeakShort:
                     case ClrHandleKind.Dependent:
+                    case ClrHandleKind.WeakWinRT:
                         return false;
 
                     default:
