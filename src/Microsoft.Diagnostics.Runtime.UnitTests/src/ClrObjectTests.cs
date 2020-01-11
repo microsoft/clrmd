@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
         }
 
         [Theory, AutoNSubstituteData]
-        public void GetObjectField_WhenNullObject_ThrowsNullReference(string fieldName)
+        public void GetObjectField_WhenNullObject_ThrowsInvalidOperationException(string fieldName)
         {
             // Arrange
             var nullObject = new ClrObject(0, type: null);
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             Action locateFieldFromNullObject = () => nullObject.GetObjectField(fieldName);
 
             // Assert
-            locateFieldFromNullObject.Should().Throw<NullReferenceException>();
+            locateFieldFromNullObject.Should().Throw<InvalidOperationException>();
         }
 
         [Theory, AutoNSubstituteData]

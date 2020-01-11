@@ -158,11 +158,12 @@ namespace Microsoft.Diagnostics.Runtime
         public static implicit operator ulong(ClrObject clrObject) => clrObject.Address;
 
         /// <summary>
-        /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
-        /// not exist in the object.  Throws NullReferenceException if IsNull is <see langword="true"/>.
+        /// Gets the given object reference field from this ClrObject.
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <returns>A ClrObject of the given field.</returns>
+        /// <exception cref="ArgumentException">The given field does not exist in the object.</exception>
+        /// <exception cref="InvalidOperationException"><see cref="IsNull"/> is <see langword="true"/>.</exception>
         public ClrObject GetObjectField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
@@ -246,17 +247,22 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
-        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
-        /// the given name.  It will throw a NullReferenceException if the target object is <see langword="null"/> (that is,
-        /// if IsNull is <see langword="true"/>).  It will throw an InvalidOperationException if the field is not
-        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
-        /// the value of this field out of the data target.
+        /// will not do type coercion.
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <param name="maxLength">The maximum length of the string returned.  Warning: If the DataTarget
         /// being inspected has corrupted or an inconsistent heap state, the length of a string may be
         /// incorrect, leading to OutOfMemory and other failures.</param>
         /// <returns>The value of the given field.</returns>
+        /// <exception cref="ArgumentException">No field matches the given name.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The target object is <see langword="null"/> (that is, <see cref="IsNull"/> is <see langword="true"/>).
+        /// -or-
+        /// The field is not of the correct type.
+        /// </exception>
+        /// <exception cref="MemoryReadException">
+        /// There was an error reading the value of this field out of the data target.
+        /// </exception>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
@@ -284,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
 
             if (IsNull)
-                throw new NullReferenceException();
+                throw new InvalidOperationException();
 
             ClrInstanceField? field = type.GetFieldByName(fieldName);
             if (field is null)
@@ -346,7 +352,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrType GetTypeOrThrow()
         {
             if (IsNull)
-                throw new NullReferenceException("Object is null.");
+                throw new InvalidOperationException("Object is null.");
 
             if (!IsValidObject)
                 throw new InvalidOperationException($"Object {Address:x} is corrupted, could not determine type.");
