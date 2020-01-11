@@ -4,13 +4,13 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdRefCountHandle : ClrHandle
+    public sealed class ClrmdRefCountedHandle : ClrHandle
     {
         public override ulong Address { get; }
 
         public override ClrObject Object { get; }
 
-        public override ClrHandleKind HandleKind => ClrHandleKind.RefCount;
+        public override ClrHandleKind HandleKind => ClrHandleKind.RefCounted;
 
         public override uint ReferenceCount { get; }
 
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrAppDomain AppDomain { get; }
 
-        public ClrmdRefCountHandle(ClrAppDomain parent, ulong address, ClrObject obj, uint refCount)
+        public ClrmdRefCountedHandle(ClrAppDomain parent, ulong address, ClrObject obj, uint refCount)
         {
             Address = address;
             Object = obj;

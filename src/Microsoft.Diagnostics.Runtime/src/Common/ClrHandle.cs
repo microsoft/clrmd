@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 switch (HandleKind)
                 {
-                    case ClrHandleKind.RefCount:
+                    case ClrHandleKind.RefCounted:
                         return ReferenceCount > 0;
 
                     case ClrHandleKind.WeakLong:

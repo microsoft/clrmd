@@ -25,8 +25,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (kind == ClrHandleKind.Dependent)
                 throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdDependentHandle)} instead.");
 
-            if (kind == ClrHandleKind.RefCount)
-                throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdRefCountHandle)} instead.");
+            if (kind == ClrHandleKind.RefCounted)
+                throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdRefCountedHandle)} instead.");
 
             AppDomain = parent;
             Address = address;
