@@ -49,6 +49,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                         position += bytesReadRange;
                         bytesRead += bytesReadRange;
+                        if (bytesReadRange < bytesToReadRange)
+                            goto done;
+
                         break;
                     }
                 }
