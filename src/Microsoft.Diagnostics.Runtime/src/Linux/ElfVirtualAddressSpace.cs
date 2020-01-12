@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             Length = segments.Max(s => s.VirtualAddress + s.VirtualSize);
             // FileSize == 0 means the segment isn't backed by any data
-            _segments = segments.Where((programHeader) => programHeader.FileSize > 0).ToArray();
+            _segments = segments.Where(programHeader => programHeader.FileSize > 0).ToArray();
             _addressSpace = addressSpace;
         }
 
@@ -33,8 +33,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 int i = 0;
                 for (; i < _segments.Length; i++)
                 {
-                    long virtualAddress = _segments[i].VirtualAddress;
-                    long virtualSize = _segments[i].VirtualSize;
+                    ElfProgramHeader segment = _segments[i];
+                    long virtualAddress = segment.VirtualAddress;
+                    long virtualSize = segment.VirtualSize;
 
                     long upperAddress = virtualAddress + virtualSize;
                     if (virtualAddress <= position && position < upperAddress)
@@ -43,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         long segmentOffset = position - virtualAddress;
 
                         Span<byte> slice = buffer.Slice(bytesRead, bytesToReadRange);
-                        int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, slice);
+                        int bytesReadRange = segment.AddressSpace.Read(segmentOffset, slice);
                         if (bytesReadRange == 0)
                             goto done;
 
