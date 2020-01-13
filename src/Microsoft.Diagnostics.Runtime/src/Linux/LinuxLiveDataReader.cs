@@ -327,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             int startIndex = -1;
             for (int i = 0; i < _memoryMapEntries.Count; i++)
             {
-                var entry = _memoryMapEntries[i];
+                MemoryMapEntry entry = _memoryMapEntries[i];
                 ulong entryBeginAddr = entry.BeginAddr;
                 ulong entryEndAddr = entry.EndAddr;
                 if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable())
@@ -353,7 +353,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             for (int i = startIndex + 1; i < _memoryMapEntries.Count; i++)
             {
-                var entry = _memoryMapEntries[i];
+                MemoryMapEntry entry = _memoryMapEntries[i];
                 ulong entryBeginAddr = entry.BeginAddr;
                 ulong entryEndAddr = entry.EndAddr;
                 if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable())
