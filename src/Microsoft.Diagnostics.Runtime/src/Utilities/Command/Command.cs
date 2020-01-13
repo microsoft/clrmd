@@ -162,14 +162,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             }
                             else
                             {
-                                varValue = Environment.GetEnvironmentVariable(varName);
-                                varValue ??= string.Empty;
+                                varValue = Environment.GetEnvironmentVariable(varName) ?? string.Empty;
                             }
 
                             // replace this instance of the variable with its definition.
                             int varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
                             int varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
-                            value = value.Substring(0, varStart) + varValue + value.Substring(varEnd, value.Length - varEnd);
+                            value = value.Substring(0, varStart) + varValue + value.Substring(varEnd);
                             startAt = varStart + varValue.Length;
                         }
                     }
@@ -405,7 +404,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                s_pathExts ??= Environment.GetEnvironmentVariable("PATHEXT").Split(';');
+                s_pathExts ??= Environment.GetEnvironmentVariable("PATHEXT")!.Split(';');
                 return s_pathExts;
             }
         }
@@ -415,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                s_paths ??= Environment.GetEnvironmentVariable("PATH").Split(';');
+                s_paths ??= Environment.GetEnvironmentVariable("PATH")!.Split(';');
                 return s_paths;
             }
         }

@@ -379,7 +379,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             using StreamReader reader = new StreamReader(mapsFilePath);
             while (true)
             {
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
                 if (string.IsNullOrEmpty(line))
                 {
                     break;
@@ -397,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
                 else
                 {
-                    // Unknown data format
+                    DebugOnly.Fail("Unknown data format");
                     continue;
                 }
 

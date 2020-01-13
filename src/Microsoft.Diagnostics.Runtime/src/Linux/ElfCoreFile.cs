@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     string path = Encoding.ASCII.GetString(bytes, start, end - start);
                     start = end + 1;
 
-                    if (!lookup.TryGetValue(path, out ElfLoadedImage image))
+                    if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
                         image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
 
                     image.AddTableEntryPointers(fileTable[i]);

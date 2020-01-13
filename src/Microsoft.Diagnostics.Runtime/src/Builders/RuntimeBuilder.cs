@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -190,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private ClrModule GetModule(ulong addr)
         {
-            _modules.TryGetValue(addr, out ClrModule module);
+            _modules.TryGetValue(addr, out ClrModule? module);
             return module;
         }
 
@@ -199,7 +200,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             CheckDisposed();
             lock (_modules)
             {
-                if (_modules.TryGetValue(addr, out ClrModule result))
+                if (_modules.TryGetValue(addr, out ClrModule? result))
                     return result;
 
                 if (_moduleBuilder.Init(addr))
@@ -459,7 +460,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             lock (_domains)
             {
-                if (_domains.TryGetValue(domain, out ClrAppDomain result))
+                if (_domains.TryGetValue(domain, out ClrAppDomain? result))
                     return result;
 
                 builder ??= new AppDomainBuilder(_sos, this);
@@ -675,11 +676,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     yield return GetOrCreateModule(domain, module);
         }
 
-        public ClrType TryGetType(ulong mt)
+        public ClrType? TryGetType(ulong mt)
         {
             lock (_types)
             {
-                _types.TryGetValue(mt, out ClrType result);
+                _types.TryGetValue(mt, out ClrType? result);
                 return result;
             }
         }
@@ -811,7 +812,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return null;
 
             {
-                ClrType result = TryGetType(mt);
+                ClrType? result = TryGetType(mt);
                 if (result != null)
                 {
                     if (obj != 0 && result.ComponentType is null && result.IsArray && result is ClrmdArrayType type)
@@ -1225,6 +1226,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return true;
         }
 
+        [return: NotNullIfNotNull("name")]
         public static string? FixGenerics(string? name)
         {
             if (name == null || name.IndexOf("[[") == -1)

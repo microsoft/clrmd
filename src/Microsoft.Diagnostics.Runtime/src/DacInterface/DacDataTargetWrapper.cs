@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             foreach (ModuleInfo module in _modules)
             {
-                string moduleName = Path.GetFileNameWithoutExtension(module.FileName);
+                string? moduleName = Path.GetFileNameWithoutExtension(module.FileName);
                 if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase))
                 {
                     baseAddress = module.ImageBase;
@@ -144,15 +144,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             ModuleInfo? info = GetModule(address);
             if (info != null)
             {
-                if (Path.GetExtension(info.FileName).Equals(".so", StringComparison.OrdinalIgnoreCase))
+                string? filePath = null;
+                if (!string.IsNullOrEmpty(info.FileName))
                 {
-                    // TODO
-                    Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
-                    return E_NOTIMPL;
-                }
+                    if (info.FileName!.EndsWith(".so", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // TODO
+                        Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
+                        return E_NOTIMPL;
+                    }
 
-                string? filePath = string.IsNullOrEmpty(info.FileName) ? null :
-                    _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+                }
 
                 if (filePath is null)
                 {
