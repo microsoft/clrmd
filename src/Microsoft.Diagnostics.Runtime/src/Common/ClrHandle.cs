@@ -41,15 +41,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ClrAppDomain AppDomain { get; }
 
         /// <summary>
-        /// ToString override.
-        /// </summary>
-        /// <returns></returns>
-        public override string ToString()
-        {
-            return $"{HandleKind} @{Address:x12} {Object}";
-        }
-
-        /// <summary>
         /// Gets a value indicating whether the handle is strong (roots the object).
         /// </summary>
         public bool IsStrong
@@ -82,5 +73,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// relocate it).
         /// </summary>
         public bool IsPinned => HandleKind == ClrHandleKind.AsyncPinned || HandleKind == ClrHandleKind.Pinned;
+
+        /// <summary>
+        /// ToString override.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString() => $"{HandleKind.GetName()} @{Address:x12} {Object}";
     }
 }
