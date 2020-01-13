@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
-            builder.Append($"{Root.RootKind} @{Root.Address:x12}");
+            builder.Append($"{Root.RootKind.GetName()} @{Root.Address:x12}");
 
             foreach (ClrObject obj in Path)
                 builder.Append($" -> {obj}");
