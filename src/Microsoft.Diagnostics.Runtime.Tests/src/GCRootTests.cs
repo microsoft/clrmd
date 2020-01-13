@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (GCRootPath rootPath in rootPaths)
             {
-                if (rootPath.Root.RootKind == ClrRootKind.PinningHandle)
+                if (rootPath.Root.RootKind == ClrRootKind.PinnedHandle)
                     hasStatic = true;
                 else if (rootPath.Root.RootKind == ClrRootKind.Stack)
                     hasThread = true;
