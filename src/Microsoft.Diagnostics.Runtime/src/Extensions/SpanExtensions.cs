@@ -3,15 +3,21 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+#if !NETCOREAPP
 using System.Buffers;
 using System.IO;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if !NETCOREAPP
+using System.Text;
+#endif
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal static class SpanExtensions
     {
+#if !NETCOREAPP
         public static int Read(this Stream stream, Span<byte> span)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(span.Length);
@@ -26,6 +32,17 @@ namespace Microsoft.Diagnostics.Runtime
                 ArrayPool<byte>.Shared.Return(buffer);
             }
         }
+#endif
+
+#if !NETCOREAPP
+        public static unsafe string GetString(this Encoding encoding, ReadOnlySpan<byte> bytes)
+        {
+            fixed (byte* bytesPtr = bytes)
+            {
+                return encoding.GetString(bytesPtr, bytes.Length);
+            }
+        }
+#endif
 
         public static unsafe ulong AsPointer(this Span<byte> span)
         {
