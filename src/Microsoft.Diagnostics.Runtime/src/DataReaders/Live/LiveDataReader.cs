@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
                 DebugOnly.Assert(res != 0);
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
-                GetFileProperties(baseAddr, out uint filesize, out uint timestamp);
+                GetFileProperties(baseAddr, out int filesize, out int timestamp);
 
                 string fileName = sb.ToString();
                 ModuleInfo module = new ModuleInfo(this, baseAddr, filesize, timestamp, fileName);
@@ -256,7 +256,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return GetThreadContext(thread.DangerousGetHandle(), new IntPtr(ptr));
         }
 
-        private void GetFileProperties(ulong moduleBase, out uint filesize, out uint timestamp)
+        private void GetFileProperties(ulong moduleBase, out int filesize, out int timestamp)
         {
             filesize = 0;
             timestamp = 0;
@@ -280,10 +280,10 @@ namespace Microsoft.Diagnostics.Runtime
                         const int timeDataOffset = 4;
                         const int imageSizeOffset = 0x4c;
                         if (Read(moduleBase + sigOffset + (ulong)sigLength + timeDataOffset, buffer, out read) && read == buffer.Length)
-                            timestamp = buffer.AsUInt32();
+                            timestamp = buffer.AsInt32();
 
                         if (Read(moduleBase + sigOffset + (ulong)sigLength + imageSizeOffset, buffer, out read) && read == buffer.Length)
-                            filesize = buffer.AsUInt32();
+                            filesize = buffer.AsInt32();
                     }
                 }
             }

@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Gets the timestamp that this PE image is indexed under.
         /// </summary>
-        public int IndexTimeStamp => (int)(Header?.TimeDateStamp ?? 0);
+        public int IndexTimeStamp => Header?.TimeDateStamp ?? 0;
 
         /// <summary>
         /// Gets the file size that this PE image is indexed under.

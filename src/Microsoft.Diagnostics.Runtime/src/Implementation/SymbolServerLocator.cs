@@ -65,10 +65,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Directory.CreateDirectory(_cache);
         }
 
-        public string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
+        public string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
             => FindBinaryAsync(fileName, buildTimeStamp, imageSize, checkProperties).Result;
 
-        public Task<string?> FindBinaryAsync(string path, uint buildTimeStamp, uint imageSize, bool checkProperties)
+        public Task<string?> FindBinaryAsync(string path, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string fileName = Path.GetFileName(path);
 
@@ -248,7 +248,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             System.Diagnostics.Trace.WriteLine(msg);
         }
 
-        private bool CheckLocalFile(string indexPath, string fullPath, uint buildTimeStamp, uint imageSize, bool checkProperties, out Task<string?>? result)
+        private bool CheckLocalFile(string indexPath, string fullPath, int buildTimeStamp, int imageSize, bool checkProperties, out Task<string?>? result)
         {
             // The path we found on disk may still be in the process of being copied from a remote source.
             // This could have come from another thread calling FindBinaryAsync in parallel.  Therefore we
@@ -272,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     using PEImage img = new PEImage(fs);
                     unchecked
                     {
-                        found = img.IndexFileSize == imageSize && (uint)img.IndexTimeStamp == buildTimeStamp;
+                        found = img.IndexFileSize == imageSize && img.IndexTimeStamp == buildTimeStamp;
                     }
                 }
 
@@ -304,10 +304,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
 #pragma warning disable CA1308 // Normalize strings to uppercase, symbol server expects lowercase
-        private static string GetIndexPath(string fileName, uint buildTimeStamp, uint imageSize)
+        private static string GetIndexPath(string fileName, int buildTimeStamp, int imageSize)
         {
             fileName = Path.GetFileName(fileName).ToLowerInvariant();
-            return $"{fileName}\\{buildTimeStamp:x}{imageSize:x}\\{fileName}";
+            return $"{fileName}\\{unchecked((uint)buildTimeStamp):x}{unchecked((uint)imageSize):x}\\{fileName}";
         }
 #pragma warning restore CA1308 // Normalize strings to uppercase
 

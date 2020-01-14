@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Gets the low 32 bits of the time stamp of the image. This represents the date and time the image was created by the linker. The value is represented in the number of seconds elapsed since midnight (00:00:00), January 1, 1970, Universal Coordinated Time, according to the system clock.
         /// </summary>
-        public uint TimeDateStamp => _header.TimeDateStamp;
+        public int TimeDateStamp => _header.TimeDateStamp;
 
         /// <summary>
         /// Gets the size of the optional header, in bytes. This value should be 0 for object files.

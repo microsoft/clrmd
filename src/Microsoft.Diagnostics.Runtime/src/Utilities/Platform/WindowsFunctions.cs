@@ -4,6 +4,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -70,10 +71,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (!NativeMethods.VerQueryValue(data, "\\", out IntPtr ptr, out len))
                         return false;
 
-                    minor = (ushort)Marshal.ReadInt16(ptr, 8);
-                    major = (ushort)Marshal.ReadInt16(ptr, 10);
-                    patch = (ushort)Marshal.ReadInt16(ptr, 12);
-                    revision = (ushort)Marshal.ReadInt16(ptr, 14);
+                    DebugOnly.Assert(unchecked((int)ptr.ToInt64()) % sizeof(ushort) == 0);
+
+                    minor = Unsafe.Read<ushort>((ptr + 8).ToPointer());
+                    major = Unsafe.Read<ushort>((ptr + 10).ToPointer());
+                    patch = Unsafe.Read<ushort>((ptr + 12).ToPointer());
+                    revision = Unsafe.Read<ushort>((ptr + 14).ToPointer());
 
                     return true;
                 }

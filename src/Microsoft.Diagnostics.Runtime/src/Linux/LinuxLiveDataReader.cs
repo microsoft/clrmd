@@ -117,8 +117,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                 if (!result.Exists(module => module.FileName == entry.FilePath))
                 {
-                    uint filesize = 0;
-                    uint timestamp = 0;
+                    int filesize = 0;
+                    int timestamp = 0;
                     VersionInfo? version = null;
 
                     if (File.Exists(entry.FilePath))
@@ -129,8 +129,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                             using PEImage pe = new PEImage(stream);
                             if (pe.IsValid)
                             {
-                                filesize = (uint)pe.IndexFileSize;
-                                timestamp = (uint)pe.IndexTimeStamp;
+                                filesize = pe.IndexFileSize;
+                                timestamp = pe.IndexTimeStamp;
                                 version = pe.GetFileVersionInfo()?.VersionInfo;
                             }
                         }

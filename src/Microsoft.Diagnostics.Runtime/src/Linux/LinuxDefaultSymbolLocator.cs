@@ -26,13 +26,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _locator = new SymbolServerLocator(sympath);
         }
 
-        public string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
+        public string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string? localBinary = FindLocalBinary(fileName);
             return localBinary ?? _locator?.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
         }
 
-        public Task<string?> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
+        public Task<string?> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string? localBinary = FindLocalBinary(fileName);
             if (localBinary != null)

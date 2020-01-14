@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         public ushort Machine;
         public ushort NumberOfSections;
-        public uint TimeDateStamp;
+        public int TimeDateStamp;
         public uint PointerToSymbolTable;
         public uint NumberOfSymbols;
         public ushort SizeOfOptionalHeader;

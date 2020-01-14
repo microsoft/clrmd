@@ -37,6 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// Returns the value of this address and un-sign extends the value if appropriate.
         /// </summary>
         /// <returns>The value of this address and un-sign extends the value if appropriate.</returns>
-        private ulong AsUInt64() => IntPtr.Size == 4 ? (uint)Value : (ulong)Value;
+        private ulong AsUInt64() => IntPtr.Size == 4 ? unchecked((uint)Value) : unchecked((ulong)Value);
     }
 }
