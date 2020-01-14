@@ -189,10 +189,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        private ClrModule GetModule(ulong addr)
+        private ClrModule? GetModule(ulong addr)
         {
-            _modules.TryGetValue(addr, out ClrModule? module);
-            return module;
+            lock (_modules)
+            {
+                _modules.TryGetValue(addr, out ClrModule? module);
+                return module;
+            }
         }
 
         public ClrModule GetOrCreateModule(ClrAppDomain domain, ulong addr)
@@ -790,7 +793,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (typeData.ParentMethodTable != 0 && !_types.TryGetValue(typeData.ParentMethodTable, out baseType))
                 throw new InvalidOperationException($"Base type for '{kind}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
 
-            ClrModule module = GetModule(typeData.Module);
+            ClrModule? module = GetModule(typeData.Module);
             ClrmdType result;
             if (typeData.ComponentSize == 0)
                 result = new ClrmdType(heap, baseType, module, typeData);
@@ -829,7 +832,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 ClrType? baseType = GetOrCreateType(heap, typeData.ParentMethodTable, 0);
 
-                ClrModule module = GetModule(typeData.Module);
+                ClrModule? module = GetModule(typeData.Module);
                 if (typeData.ComponentSize == 0)
                 {
                     ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
