@@ -125,7 +125,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     {
                         try
                         {
+#pragma warning disable CA2000 // Dispose objects before losing scope
                             using FileStream stream = File.OpenRead(entry.FilePath);
+#pragma warning restore CA2000 // Dispose objects before losing scope
                             using PEImage pe = new PEImage(stream);
                             if (pe.IsValid)
                             {
