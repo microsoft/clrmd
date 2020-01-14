@@ -49,6 +49,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         SizedRef = 8,
 
+        /// <summary>
+        /// Weak WinRT handle.
+        /// </summary>
         WeakWinRT = 9,
     }
 }
