@@ -225,9 +225,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<uint> EnumerateAllThreads()
         {
-            Process p = Process.GetProcessById(_pid);
-            foreach (ProcessThread thread in p.Threads)
-                yield return (uint)thread.Id;
+            using Process process = Process.GetProcessById(_pid);
+            ProcessThreadCollection threads = process.Threads;
+            for (int i = 0; i < threads.Count; i++)
+                yield return (uint)threads[i].Id;
         }
 
         public bool QueryMemory(ulong address, out MemoryRegionInfo vq)

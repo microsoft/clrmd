@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -188,10 +189,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        private ClrModule GetModule(ulong addr)
+        private ClrModule? GetModule(ulong addr)
         {
-            _modules.TryGetValue(addr, out ClrModule module);
-            return module;
+            lock (_modules)
+            {
+                _modules.TryGetValue(addr, out ClrModule? module);
+                return module;
+            }
         }
 
         public ClrModule GetOrCreateModule(ClrAppDomain domain, ulong addr)
@@ -199,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             CheckDisposed();
             lock (_modules)
             {
-                if (_modules.TryGetValue(addr, out ClrModule result))
+                if (_modules.TryGetValue(addr, out ClrModule? result))
                     return result;
 
                 if (_moduleBuilder.Init(addr))
@@ -459,7 +463,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             lock (_domains)
             {
-                if (_domains.TryGetValue(domain, out ClrAppDomain result))
+                if (_domains.TryGetValue(domain, out ClrAppDomain? result))
                     return result;
 
                 builder ??= new AppDomainBuilder(_sos, this);
@@ -675,11 +679,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     yield return GetOrCreateModule(domain, module);
         }
 
-        public ClrType TryGetType(ulong mt)
+        public ClrType? TryGetType(ulong mt)
         {
             lock (_types)
             {
-                _types.TryGetValue(mt, out ClrType result);
+                _types.TryGetValue(mt, out ClrType? result);
                 return result;
             }
         }
@@ -789,7 +793,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (typeData.ParentMethodTable != 0 && !_types.TryGetValue(typeData.ParentMethodTable, out baseType))
                 throw new InvalidOperationException($"Base type for '{kind}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
 
-            ClrModule module = GetModule(typeData.Module);
+            ClrModule? module = GetModule(typeData.Module);
             ClrmdType result;
             if (typeData.ComponentSize == 0)
                 result = new ClrmdType(heap, baseType, module, typeData);
@@ -811,7 +815,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return null;
 
             {
-                ClrType result = TryGetType(mt);
+                ClrType? result = TryGetType(mt);
                 if (result != null)
                 {
                     if (obj != 0 && result.ComponentType is null && result.IsArray && result is ClrmdArrayType type)
@@ -828,7 +832,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 ClrType? baseType = GetOrCreateType(heap, typeData.ParentMethodTable, 0);
 
-                ClrModule module = GetModule(typeData.Module);
+                ClrModule? module = GetModule(typeData.Module);
                 if (typeData.ComponentSize == 0)
                 {
                     ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
@@ -1225,6 +1229,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return true;
         }
 
+        [return: NotNullIfNotNull("name")]
         public static string? FixGenerics(string? name)
         {
             if (name == null || name.IndexOf("[[") == -1)

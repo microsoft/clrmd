@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             InitThreads();
 
-            if (_threads!.TryGetValue(threadID, out IElfPRStatus status))
+            if (_threads!.TryGetValue(threadID, out IElfPRStatus? status))
                 return status.CopyContext(contextFlags, context);
 
             return false;

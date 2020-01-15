@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
                         Type? underlying = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
                         if (underlying != null)
                         {
-                            object o = Marshal.PtrToStructure(ppValue, underlying);
+                            object o = Marshal.PtrToStructure(ppValue, underlying)!;
                             values.Add((name, o));
                         }
                         else

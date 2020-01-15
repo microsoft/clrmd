@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public LinuxDefaultSymbolLocator(IEnumerable<string> modules)
         {
             _modules = modules;
-            string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+            string? sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
             if (!string.IsNullOrWhiteSpace(sympath))
                 _locator = new SymbolServerLocator(sympath);
         }
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             string name = Path.GetFileName(fileName);
             foreach (var m in _modules)
             {
-                string path = Path.Combine(Path.GetDirectoryName(m), name);
+                string path = Path.Combine(Path.GetDirectoryName(m)!, name);
                 if (File.Exists(path))
                     return path;
             }

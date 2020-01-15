@@ -17,10 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly SymbolPathEntry[] _paths;
         private readonly Dictionary<string, Task<string?>> _queries = new Dictionary<string, Task<string?>>();
 
-        public SymbolServerLocator(string symbolServer)
+        public SymbolServerLocator(string? symbolServer)
         {
-            if (symbolServer is null)
-                symbolServer = string.Empty;
+            symbolServer ??= string.Empty;
 
             string[] entries = symbolServer.Split(';');
 
@@ -154,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Task<string?> rawFileDownload = GetPhysicalFileFromServerAsync(server, indexPath, fullDestPath);
 
             // Last, check for a redirection link.
-            string filePtrSigPath = Path.Combine(Path.GetDirectoryName(indexPath), "file.ptr");
+            string filePtrSigPath = Path.Combine(Path.GetDirectoryName(indexPath)!, "file.ptr");
             Task<string?> filePtrDownload = GetPhysicalFileFromServerAsync(server, filePtrSigPath, fullDestPath, true);
 
             // Handle compressed download.

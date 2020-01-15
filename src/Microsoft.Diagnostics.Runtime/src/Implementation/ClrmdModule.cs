@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             foreach ((ulong mt, uint _) in EnumerateTypeDefToMethodTableMap())
             {
-                ClrType type = _helpers.TryGetType(mt);
+                ClrType? type = _helpers.TryGetType(mt);
                 if (type is null)
                 {
                     lookup.Add(mt);

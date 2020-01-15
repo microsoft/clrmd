@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_locator is null)
                 {
-                    string symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+                    string? symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
                     _locator = new Implementation.SymbolServerLocator(symPath);
                 }
 
@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
 
                 string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName), dacFileName);
+                string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName)!, dacFileName);
 
                 if (platform == Platform.Linux)
                 {
