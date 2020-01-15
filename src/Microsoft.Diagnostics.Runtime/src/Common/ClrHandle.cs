@@ -78,6 +78,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// ToString override.
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => $"{HandleKind.GetName()} @{Address:x12} {Object}";
+        public override string ToString() => $"{HandleKind.GetName()} @{Address:x12} -> {Object}";
     }
 }

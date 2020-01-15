@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
                 builder.Append($"Thread {thread.OSThreadId:x} ");
 
             builder.Append(StackFrame);
-            builder.Append($" @{Address:x12} {Object}");
+            builder.Append($" @{Address:x12} -> {Object}");
             return builder.ToString();
         }
     }
