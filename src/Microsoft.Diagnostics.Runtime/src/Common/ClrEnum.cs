@@ -41,8 +41,8 @@ namespace Microsoft.Diagnostics.Runtime
         public T GetEnumValue<T>(string name) where T : unmanaged
         {
             object? value = _values.Single(v => v.Item1 == name).Item2;
-            if (value == null)
-                throw new NullReferenceException($"Enum {Type.Name} had null '{name}' value.");
+            if (value is null)
+                throw new InvalidOperationException($"Enum {Type.Name} had null '{name}' value.");
 
             return (T)value;
         }

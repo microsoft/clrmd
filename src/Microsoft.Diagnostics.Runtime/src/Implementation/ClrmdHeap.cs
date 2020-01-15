@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrmdHeap(ClrRuntime runtime, IHeapBuilder heapBuilder)
         {
             if (heapBuilder is null)
-                throw new NullReferenceException(nameof(heapBuilder));
+                throw new ArgumentNullException(nameof(heapBuilder));
 
             _helpers = heapBuilder.HeapHelpers;
 

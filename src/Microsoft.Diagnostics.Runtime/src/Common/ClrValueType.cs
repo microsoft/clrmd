@@ -34,11 +34,15 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the given object reference field from this ClrObject.  Throws ArgumentException if the given field does
-        /// not exist in the object.  Throws NullReferenceException if IsNull is <see langword="true"/>.
+        /// Gets the given object reference field from this ClrObject.
         /// </summary>
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <returns>A ClrObject of the given field.</returns>
+        /// <exception cref="ArgumentException">
+        /// The given field does not exist in the object.
+        /// -or-
+        /// The given field was not an object reference.
+        /// </exception>
         public ClrObject GetObjectField(string fieldName)
         {
             ClrInstanceField? field = Type.GetFieldByName(fieldName);
@@ -97,17 +101,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
-        /// will not do type coercion.  This method will throw an ArgumentException if no field matches
-        /// the given name.  It will throw a NullReferenceException if the target object is <see langword="null"/> (that is,
-        /// if (IsNull returns <see langword="true"/>).  It will throw an InvalidOperationException if the field is not
-        /// of the correct type.  Lastly, it will throw a MemoryReadException if there was an error reading
-        /// the value of this field out of the data target.
+        /// will not do type coercion.
         /// </summary>
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <param name="maxLength">The maximum length of the string returned.  Warning: If the DataTarget
         /// being inspected has corrupted or an inconsistent heap state, the length of a string may be
         /// incorrect, leading to OutOfMemory and other failures.</param>
         /// <returns>The value of the given field.</returns>
+        /// <exception cref="ArgumentException">No field matches the given name.</exception>
+        /// <exception cref="InvalidOperationException">The field is not a string.</exception>
+        /// <exception cref="MemoryReadException">There was an error reading the value of this field out of the data target.</exception>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
