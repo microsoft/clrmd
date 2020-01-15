@@ -16,6 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHandleKind.Dependent => "dependent handle",
             ClrHandleKind.AsyncPinned => "async pinned handle",
             ClrHandleKind.SizedRef => "sized ref handle",
+            ClrHandleKind.WeakWinRT => "weak WinRT handle",
             _ => "unknown handle"
         };
     }
