@@ -21,6 +21,6 @@ namespace Microsoft.Diagnostics.Runtime
             Object = obj;
         }
 
-        public override string ToString() => $"finalization handle @{Address:x12} {Object}";
+        public override string ToString() => $"finalization root @{Address:x12} {Object}";
     }
 }

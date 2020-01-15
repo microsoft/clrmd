@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static string GetName(this ClrRootKind kind) => kind switch
         {
             ClrRootKind.None => "none",
-            ClrRootKind.FinalizerQueue => "finalization handle",
+            ClrRootKind.FinalizerQueue => "finalization root",
             ClrRootKind.StrongHandle => "strong handle",
             ClrRootKind.PinnedHandle => "pinned handle",
             ClrRootKind.Stack => "stack root",
