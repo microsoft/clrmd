@@ -331,8 +331,5 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DllImport("kernel32")]
         private static extern int GetProcessId(IntPtr hObject);
-
-        [DllImport("kernel32.dll")]
-        internal static extern int ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, IntPtr lpBuffer, IntPtr dwSize, out IntPtr lpNumberOfBytesRead);
     }
 }
