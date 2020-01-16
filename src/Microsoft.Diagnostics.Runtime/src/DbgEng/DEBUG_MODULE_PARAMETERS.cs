@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     public unsafe struct DEBUG_MODULE_PARAMETERS
     {
         public ulong Base;
-        public uint Size;
-        public uint TimeDateStamp;
+        public int Size;
+        public int TimeDateStamp;
         public uint Checksum;
         public uint Flags;
         public uint SymbolType;

@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -23,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         private const string c_coreDacFileName = c_coreDacFileNameBase + ".dll";
         private const string c_linuxCoreDacFileName = "libmscordaccore.so";
 
-        private static bool TryGetModuleName(ModuleInfo moduleInfo, out string moduleName)
+        private static bool TryGetModuleName(ModuleInfo moduleInfo, [NotNullWhen(true)] out string? moduleName)
         {
             moduleName = Path.GetFileNameWithoutExtension(moduleInfo.FileName);
             if (moduleName is null)

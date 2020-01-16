@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (info is null)
                 throw new ArgumentNullException(nameof(info));
 
-            Kind = (ClrDiagnosticsExceptionKind)info.GetValue(nameof(Kind), typeof(ClrDiagnosticsExceptionKind));
+            Kind = (ClrDiagnosticsExceptionKind)info.GetValue(nameof(Kind), typeof(ClrDiagnosticsExceptionKind))!;
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

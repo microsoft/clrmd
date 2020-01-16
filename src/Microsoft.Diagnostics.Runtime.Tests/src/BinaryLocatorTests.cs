@@ -15,8 +15,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class BinaryLocatorTests
     {
         public static readonly string WellKnownDac = "mscordacwks_X86_X86_4.6.96.00.dll";
-        public static readonly uint WellKnownDacTimeStamp = 0x55b96946;
-        public static readonly uint WellKnownDacImageSize = 0x006a8000;
+        public static readonly int WellKnownDacTimeStamp = 0x55b96946;
+        public static readonly int WellKnownDacImageSize = 0x006a8000;
 
         public static readonly string WellKnownNativePdb = "clr.pdb";
         public static readonly Guid WellKnownNativePdbGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");

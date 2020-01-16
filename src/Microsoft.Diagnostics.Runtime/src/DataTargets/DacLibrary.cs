@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (pUnknown == IntPtr.Zero)
                 return null;
 
-            T t = (T)Activator.CreateInstance(typeof(T), this, pUnknown);
+            T t = (T)Activator.CreateInstance(typeof(T), this, pUnknown)!;
             return t;
         }
 

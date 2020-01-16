@@ -41,9 +41,9 @@ jobs:
         - _OfficialBuildIdArgs: /p:OfficialBuildId=$(Build.BuildNumber)
       strategy:
         matrix:
-          build_debug:
+          debug:
             _BuildConfig: Debug
-          build_release:
+          release:
             _BuildConfig: Release
       steps:
       - script: eng\common\cibuild.cmd

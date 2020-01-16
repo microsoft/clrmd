@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         MetadataImport? GetMetadataImport(ClrModule module);
         IReadOnlyList<(ulong, uint)> GetSortedTypeDefMap(ClrModule module);
         IReadOnlyList<(ulong, uint)> GetSortedTypeRefMap(ClrModule module);
-        ClrType TryGetType(ulong mt);
+        ClrType? TryGetType(ulong mt);
         string? GetTypeName(ulong mt);
     }
 }

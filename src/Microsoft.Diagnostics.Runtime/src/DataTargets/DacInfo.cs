@@ -29,8 +29,8 @@ namespace Microsoft.Diagnostics.Runtime
             string agnosticName,
             Architecture targetArch,
             ulong imgBase,
-            uint filesize,
-            uint timestamp,
+            int filesize,
+            int timestamp,
             string fileName,
             VersionInfo version,
             ImmutableArray<byte> buildId = default)

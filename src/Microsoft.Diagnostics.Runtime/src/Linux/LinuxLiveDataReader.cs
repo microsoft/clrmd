@@ -117,20 +117,22 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                 if (!result.Exists(module => module.FileName == entry.FilePath))
                 {
-                    uint filesize = 0;
-                    uint timestamp = 0;
+                    int filesize = 0;
+                    int timestamp = 0;
                     VersionInfo? version = null;
 
                     if (File.Exists(entry.FilePath))
                     {
                         try
                         {
+#pragma warning disable CA2000 // Dispose objects before losing scope
                             using FileStream stream = File.OpenRead(entry.FilePath);
+#pragma warning restore CA2000 // Dispose objects before losing scope
                             using PEImage pe = new PEImage(stream);
                             if (pe.IsValid)
                             {
-                                filesize = (uint)pe.IndexFileSize;
-                                timestamp = (uint)pe.IndexTimeStamp;
+                                filesize = pe.IndexFileSize;
+                                timestamp = pe.IndexTimeStamp;
                                 version = pe.GetFileVersionInfo()?.VersionInfo;
                             }
                         }
@@ -379,7 +381,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             using StreamReader reader = new StreamReader(mapsFilePath);
             while (true)
             {
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
                 if (string.IsNullOrEmpty(line))
                 {
                     break;
@@ -397,7 +399,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
                 else
                 {
-                    // Unknown data format
+                    DebugOnly.Fail("Unknown data format");
                     continue;
                 }
 

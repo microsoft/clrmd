@@ -12,9 +12,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class LinuxFunctions : PlatformFunctions
     {
-        private const string LibDlGlibc = "libdl.so.2";
-        private const string LibDl = "libdl.so";
-
         private static readonly byte[] s_versionString = Encoding.ASCII.GetBytes("@(#)Version ");
         private static readonly int s_versionLength = s_versionString.Length;
 
@@ -24,78 +21,53 @@ namespace Microsoft.Diagnostics.Runtime
 
         private delegate bool TryGetExport(IntPtr handle, string name, out IntPtr address);
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public LinuxFunctions()
-#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         {
-            Type nativeLibraryType = Type.GetType("System.Runtime.InteropServices.NativeLibrary, System.Runtime.InteropServices", throwOnError: false);
-            if (nativeLibraryType != null)
+#if NETCOREAPP3_1
+            _loadLibrary = NativeLibrary.Load;
+            _freeLibrary = handle =>
             {
-                // .NET Core 3.0+
-                var loadLibrary = (Func<string, IntPtr>?)nativeLibraryType.GetMethod("Load", new Type[] { typeof(string) })?.CreateDelegate(typeof(Func<string, IntPtr>));
-                if (loadLibrary != null)
-                {
-                    _loadLibrary = loadLibrary;
-                }
-
-                var freeLibrary = (Action<IntPtr>?)nativeLibraryType.GetMethod("Free", new Type[] { typeof(IntPtr) })?.CreateDelegate(typeof(Action<IntPtr>));
-                if (freeLibrary != null)
-                {
-                    _freeLibrary = ptr =>
-                    {
-                        freeLibrary(ptr);
-                        return true;
-                    };
-                }
-
-                var tryGetExport = (TryGetExport?)nativeLibraryType.GetMethod("TryGetExport", new Type[] { typeof(IntPtr), typeof(string), typeof(IntPtr).MakeByRefType() })
-                    ?.CreateDelegate(typeof(TryGetExport));
-                if (tryGetExport != null)
-                {
-                    _getExport = (IntPtr handle, string name) =>
-                    {
-                        tryGetExport(handle, name, out IntPtr address);
-                        return address;
-                    };
-                }
+                NativeLibrary.Free(handle);
+                return true;
+            };
+            _getExport = (handle, name) =>
+            {
+                _ = NativeLibrary.TryGetExport(handle, name, out IntPtr address);
+                return address;
+            };
+#else
+            // On glibc based Linux distributions, 'libdl.so' is a symlink provided by development packages.
+            // To work on production machines, we fall back to 'libdl.so.2' which is the actual library name.
+            bool useGlibcDl = false;
+            try
+            {
+                dlopen("/", 0);
             }
-
-            if (_loadLibrary is null ||
-                _freeLibrary is null ||
-                _getExport is null)
+            catch (DllNotFoundException)
             {
-                // On glibc based Linux distributions, 'libdl.so' is a symlink provided by development packages.
-                // To work on production machines, we fall back to 'libdl.so.2' which is the actual library name.
-                bool useGlibcDl = false;
                 try
                 {
-                    dlopen("/", 0);
+                    dlopen_glibc("/", 0);
+                    useGlibcDl = true;
                 }
                 catch (DllNotFoundException)
                 {
-                    try
-                    {
-                        dlopen_glibc("/", 0);
-                        useGlibcDl = true;
-                    }
-                    catch (DllNotFoundException)
-                    {
-                    }
-                }
-
-                if (useGlibcDl)
-                {
-                    _loadLibrary = fileName => dlopen_glibc(fileName, RTLD_NOW);
-                    _freeLibrary = ptr => dlclose_glibc(ptr) == 0;
-                    _getExport = dlsym_glibc;
-                }
-                else
-                {
-                    _loadLibrary = fileName => dlopen(fileName, RTLD_NOW);
-                    _freeLibrary = ptr => dlclose(ptr) == 0;
-                    _getExport = dlsym;
                 }
             }
+
+            if (useGlibcDl)
+            {
+                _loadLibrary = fileName => dlopen_glibc(fileName, RTLD_NOW);
+                _freeLibrary = ptr => dlclose_glibc(ptr) == 0;
+                _getExport = dlsym_glibc;
+            }
+            else
+            {
+                _loadLibrary = fileName => dlopen(fileName, RTLD_NOW);
+                _freeLibrary = ptr => dlclose(ptr) == 0;
+                _getExport = dlsym;
+            }
+#endif
         }
 
         internal static void GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
@@ -304,6 +276,12 @@ namespace Microsoft.Diagnostics.Runtime
         public override IntPtr GetProcAddress(IntPtr module, string method)
             => _getExport(module, method);
 
+#if !NETCOREAPP3_1
+        private const string LibDlGlibc = "libdl.so.2";
+        private const string LibDl = "libdl.so";
+
+        private const int RTLD_NOW = 2;
+
         [DllImport(LibDlGlibc, EntryPoint = nameof(dlopen))]
         private static extern IntPtr dlopen_glibc(string fileName, int flags);
 
@@ -315,14 +293,15 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DllImport(LibDl)]
         private static extern IntPtr dlopen(string fileName, int flags);
+
         [DllImport(LibDl)]
         private static extern int dlclose(IntPtr module);
+
         [DllImport(LibDl)]
         private static extern IntPtr dlsym(IntPtr handle, string symbol);
+#endif
 
         [DllImport("libc")]
         public static extern int symlink(string file, string symlink);
-
-        private const int RTLD_NOW = 2;
     }
 }

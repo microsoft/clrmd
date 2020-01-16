@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 lock (knownEndPoints)
                 {
-                    if (knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject> ending))
+                    if (knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject>? ending))
                     {
                         if (!unique || ending.Value.Address == target)
                         {
@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime
                     yield break;
 
                 TraceFullPath(null, path);
-                PathEntry last = path.Last.Value;
+                PathEntry last = path.Last!.Value;
 
                 if (last.Todo.Count == 0)
                 {
@@ -348,7 +348,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (knownEndPoints != null)
                             lock (knownEndPoints)
-                                if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject> end))
+                                if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject>? end))
                                 {
                                     TraceFullPath(path, end);
                                     yield return GetResult(end);
@@ -449,8 +449,10 @@ namespace Microsoft.Diagnostics.Runtime
                     result.AddLast(end.Value);
 
                 if (knownEndPoints != null)
+                {
                     lock (knownEndPoints)
-                        for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
+                    {
+                        for (LinkedListNode<ClrObject>? node = result.First; node != null; node = node.Next)
                         {
                             ulong address = node.Value.Address;
                             if (knownEndPoints.ContainsKey(address))
@@ -458,6 +460,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                             knownEndPoints[address] = node;
                         }
+                    }
+                }
 
                 if (unique)
                 {
@@ -489,8 +493,8 @@ namespace Microsoft.Diagnostics.Runtime
         private static List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
             List<string> list = new List<string>();
-            for (; tmp != null; tmp = tmp.Next)
-                list.Add(tmp.Value.ToString());
+            for (LinkedListNode<ClrObject>? node = tmp; node != null; node = node.Next)
+                list.Add(node.Value.ToString());
 
             return list;
         }

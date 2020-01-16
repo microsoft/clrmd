@@ -103,14 +103,14 @@ namespace Microsoft.Diagnostics.Runtime
             ElfFile? file = image.Open();
 
             VersionInfo version;
-            uint filesize = (uint)image.Size;
-            uint timestamp = 0;
+            int filesize = (int)image.Size;
+            int timestamp = 0;
 
             if (file is null)
             {
                 using PEImage pe = image.OpenAsPEImage();
-                filesize = (uint)pe.IndexFileSize;
-                timestamp = (uint)pe.IndexTimeStamp;
+                filesize = pe.IndexFileSize;
+                timestamp = pe.IndexTimeStamp;
                 version = pe.GetFileVersionInfo()?.VersionInfo ?? default;
             }
             else
@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             InitThreads();
 
-            if (_threads!.TryGetValue(threadID, out IElfPRStatus status))
+            if (_threads!.TryGetValue(threadID, out IElfPRStatus? status))
                 return status.CopyContext(contextFlags, context);
 
             return false;
@@ -153,6 +153,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
         {
+            if (address > long.MaxValue)
+            {
+                bytesRead = 0;
+                return false;
+            }
+
             bytesRead = _core.ReadMemory((long)address, buffer);
             return bytesRead > 0;
         }

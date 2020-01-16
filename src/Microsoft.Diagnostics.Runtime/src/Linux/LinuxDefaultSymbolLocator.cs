@@ -21,18 +21,18 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public LinuxDefaultSymbolLocator(IEnumerable<string> modules)
         {
             _modules = modules;
-            string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+            string? sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
             if (!string.IsNullOrWhiteSpace(sympath))
                 _locator = new SymbolServerLocator(sympath);
         }
 
-        public string? FindBinary(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
+        public string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string? localBinary = FindLocalBinary(fileName);
             return localBinary ?? _locator?.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
         }
 
-        public Task<string?> FindBinaryAsync(string fileName, uint buildTimeStamp, uint imageSize, bool checkProperties)
+        public Task<string?> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string? localBinary = FindLocalBinary(fileName);
             if (localBinary != null)
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             string name = Path.GetFileName(fileName);
             foreach (var m in _modules)
             {
-                string path = Path.Combine(Path.GetDirectoryName(m), name);
+                string path = Path.Combine(Path.GetDirectoryName(m)!, name);
                 if (File.Exists(path))
                     return path;
             }

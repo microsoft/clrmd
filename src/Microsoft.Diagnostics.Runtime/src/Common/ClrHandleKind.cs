@@ -47,6 +47,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Strong handle used internally for book keeping.
         /// </summary>
-        SizedRef = 8
+        SizedRef = 8,
+
+        /// <summary>
+        /// Weak WinRT handle.
+        /// </summary>
+        WeakWinRT = 9,
     }
 }
