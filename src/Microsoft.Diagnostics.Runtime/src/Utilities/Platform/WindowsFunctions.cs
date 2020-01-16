@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             [DllImport(Kernel32LibraryName)]
             [return: MarshalAs(UnmanagedType.Bool)]
-            public static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool isWow64);
+            public static extern bool IsWow64Process(IntPtr hProcess, out bool isWow64);
 
             [DllImport(VersionLibraryName)]
             public static extern bool GetFileVersionInfo(string sFileName, int handle, int size, byte* infoBuffer);

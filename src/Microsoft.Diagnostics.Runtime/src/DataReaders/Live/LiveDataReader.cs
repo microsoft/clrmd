@@ -302,9 +302,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DllImport("psapi.dll", SetLastError = true)]
         [PreserveSig]
-        public static extern uint GetModuleFileNameExA([In] IntPtr hProcess, [In] IntPtr hModule, [Out] StringBuilder lpFilename, [In][MarshalAs(UnmanagedType.U4)] int nSize);
+        public static extern uint GetModuleFileNameExA(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
 
-        [DllImport(Kernel32LibraryName, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(Kernel32LibraryName)]
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
