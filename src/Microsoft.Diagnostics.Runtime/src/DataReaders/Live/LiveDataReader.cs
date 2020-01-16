@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 fixed (byte* ptr = buffer)
                 {
-                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out IntPtr read);
+                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, new IntPtr(buffer.Length), out IntPtr read);
                     bytesRead = (int)read;
                     return res != 0;
                 }
@@ -308,7 +308,7 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr hProcess,
             IntPtr lpBaseAddress,
             byte* lpBuffer,
-            int dwSize,
+            IntPtr dwSize,
             out IntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -333,6 +333,6 @@ namespace Microsoft.Diagnostics.Runtime
         private static extern int GetProcessId(IntPtr hObject);
 
         [DllImport("kernel32.dll")]
-        internal static extern int ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, IntPtr lpBuffer, int dwSize, out int lpNumberOfBytesRead);
+        internal static extern int ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, IntPtr lpBuffer, IntPtr dwSize, out IntPtr lpNumberOfBytesRead);
     }
 }
