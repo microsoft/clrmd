@@ -231,12 +231,11 @@ namespace Microsoft.Diagnostics.Runtime
                 yield return (uint)threads[i].Id;
         }
 
-        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
+        public unsafe bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
-            MEMORY_BASIC_INFORMATION mem = default;
             IntPtr ptr = address.AsIntPtr();
 
-            int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
+            int res = VirtualQueryEx(_process, ptr, out MEMORY_BASIC_INFORMATION mem, new IntPtr(sizeof(MEMORY_BASIC_INFORMATION)));
             if (res == 0)
             {
                 vq = default;
@@ -312,7 +311,7 @@ namespace Microsoft.Diagnostics.Runtime
             out IntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, ref MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
+        internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
 
         [DllImport("kernel32.dll")]
         private static extern bool GetThreadContext(IntPtr hThread, IntPtr lpContext);
