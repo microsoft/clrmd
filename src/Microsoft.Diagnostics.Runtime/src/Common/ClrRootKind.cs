@@ -26,9 +26,9 @@ namespace Microsoft.Diagnostics.Runtime
         StrongHandle = 2,
 
         /// <summary>
-        /// The root is a strong pinning handle.
+        /// The root is a strong pinned handle.
         /// </summary>
-        PinningHandle = 3,
+        PinnedHandle = 3,
 
         /// <summary>
         /// The root is on the stack of a thread.  This is usually a is a local variable
@@ -37,14 +37,14 @@ namespace Microsoft.Diagnostics.Runtime
         Stack = 4,
 
         /// <summary>
-        /// The root is a refcount handle.
+        /// The root is a ref counted handle.
         /// </summary>
-        RefCountHandle = 5,
+        RefCountedHandle = 5,
 
         /// <summary>
-        /// The root is an async IO (strong) pinning handle.
+        /// The root is an async IO (strong) pinned handle.
         /// </summary>
-        AsyncPinningHandle = 7,
+        AsyncPinnedHandle = 7,
 
         /// <summary>
         /// The root is a SizedRef handle.

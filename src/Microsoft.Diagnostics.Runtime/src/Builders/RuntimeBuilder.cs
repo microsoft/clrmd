@@ -544,7 +544,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                                 yield return new ClrmdDependentHandle(domain, handles[i].Handle, clrObj, dependent);
                                 break;
 
-                            case ClrHandleKind.RefCount:
+                            case ClrHandleKind.RefCounted:
                                 uint refCount = 0;
 
                                 if (handles[i].IsPegged != 0)
@@ -568,7 +568,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                                     }
                                 }
 
-                                yield return new ClrmdRefCountHandle(domain, handles[i].Handle, clrObj, refCount);
+                                yield return new ClrmdRefCountedHandle(domain, handles[i].Handle, clrObj, refCount);
                                 break;
                         }
                     }

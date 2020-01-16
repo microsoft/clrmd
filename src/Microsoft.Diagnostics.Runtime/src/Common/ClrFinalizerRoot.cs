@@ -20,5 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
             Address = address;
             Object = obj;
         }
+
+        public override string ToString() => $"finalization root @{Address:x12} -> {Object}";
     }
 }

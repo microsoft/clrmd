@@ -23,10 +23,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrmdHandle(ClrAppDomain parent, ulong address, ClrObject obj, ClrHandleKind kind)
         {
             if (kind == ClrHandleKind.Dependent)
-                throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdDependentHandle)} instead.");
+                throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a dependent handle, use {nameof(ClrmdDependentHandle)} instead.");
 
-            if (kind == ClrHandleKind.RefCount)
-                throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a DependentHandle, use {nameof(ClrmdRefCountHandle)} instead.");
+            if (kind == ClrHandleKind.RefCounted)
+                throw new InvalidOperationException($"{nameof(ClrmdHandle)} cannot represent a ref counted handle, use {nameof(ClrmdRefCountedHandle)} instead.");
 
             AppDomain = parent;
             Address = address;

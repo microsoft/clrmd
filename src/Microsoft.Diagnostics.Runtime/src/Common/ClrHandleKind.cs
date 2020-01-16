@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// RefCounted handle (strong when the reference count is greater than 0).
         /// </summary>
-        RefCount = 5,
+        RefCounted = 5,
 
         /// <summary>
         /// A weak handle which may keep its "secondary" object alive if the "target" object is also alive.

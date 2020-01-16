@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool CanRead => true;
         public override bool CanSeek => true;
-        public override bool CanWrite => true;
+        public override bool CanWrite => false;
 
         public override void Flush()
         {
