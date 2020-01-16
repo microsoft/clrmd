@@ -289,10 +289,12 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        private const string Kernel32LibraryName = "kernel32.dll";
+
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
         private static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport("psapi.dll", SetLastError = true)]
@@ -302,7 +304,7 @@ namespace Microsoft.Diagnostics.Runtime
         [PreserveSig]
         public static extern uint GetModuleFileNameExA([In] IntPtr hProcess, [In] IntPtr hModule, [Out] StringBuilder lpFilename, [In][MarshalAs(UnmanagedType.U4)] int nSize);
 
-        [DllImport("kernel32.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport(Kernel32LibraryName, CallingConvention = CallingConvention.StdCall)]
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
@@ -310,25 +312,25 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr dwSize,
             out IntPtr lpNumberOfBytesRead);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
         internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
 
-        [DllImport("kernel32.dll")]
+        [DllImport(Kernel32LibraryName)]
         private static extern bool GetThreadContext(IntPtr hThread, IntPtr lpContext);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
         private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, out IntPtr SnapshotHandle);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int PssFreeSnapshot(IntPtr ProcessHandle, IntPtr SnapshotHandle);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int PssQuerySnapshot(IntPtr SnapshotHandle, PSS_QUERY_INFORMATION_CLASS InformationClass, out IntPtr Buffer, int BufferLength);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int GetProcessId(IntPtr hObject);
     }
 }

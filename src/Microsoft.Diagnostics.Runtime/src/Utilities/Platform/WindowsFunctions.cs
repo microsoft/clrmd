@@ -100,6 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal static class NativeMethods
         {
             private const string Kernel32LibraryName = "kernel32.dll";
+            private const string VersionLibraryName = "version.dll";
 
             public const int PROCESS_QUERY_INFORMATION = 0x0400;
 
@@ -138,22 +139,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 LoadWithAlteredSearchPath = 0x00000008
             }
 
-            [DllImport("kernel32.dll")]
+            [DllImport(Kernel32LibraryName)]
             [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool isWow64);
 
-            [DllImport("version.dll")]
+            [DllImport(VersionLibraryName)]
             public static extern bool GetFileVersionInfo(string sFileName, int handle, int size, byte* infoBuffer);
 
-            [DllImport("version.dll")]
+            [DllImport(VersionLibraryName)]
             public static extern int GetFileVersionInfoSize(string sFileName, out int handle);
 
-            [DllImport("version.dll")]
+            [DllImport(VersionLibraryName)]
             public static extern bool VerQueryValue(byte* pBlock, string pSubBlock, out IntPtr val, out int len);
 
             public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
 
-            [DllImport("kernel32.dll")]
+            [DllImport(Kernel32LibraryName)]
             public static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
         }
 
