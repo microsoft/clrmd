@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetOffset(
-            [In] ulong Offset);
+            ulong Offset);
 
         [PreserveSig]
         int GetDataParameters(
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetDataParameters(
-            [In] uint Size,
+            uint Size,
             [In] DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
 
         [PreserveSig]
@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetPassCount(
-            [In] uint Count);
+            uint Count);
 
         [PreserveSig]
         int GetCurrentPassCount(
@@ -81,12 +81,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetMatchThreadId(
-            [In] uint Thread);
+            uint Thread);
 
         [PreserveSig]
         int GetCommand(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint CommandSize);
 
         [PreserveSig]
@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetOffsetExpression(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint ExpressionSize);
 
         [PreserveSig]

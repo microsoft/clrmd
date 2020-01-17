@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int GetKernelConnectionOptions(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint OptionsSize);
 
         [PreserveSig]
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int StartProcessServer(
             [In] DEBUG_CLASS Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Options,
-            [In] IntPtr Reserved);
+            IntPtr Reserved);
 
         [PreserveSig]
         new int ConnectProcessServer(
@@ -43,53 +43,53 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int DisconnectProcessServer(
-            [In] ulong Server);
+            ulong Server);
 
         [PreserveSig]
         new int GetRunningProcessSystemIds(
-            [In] ulong Server,
+            ulong Server,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
-            [In] uint Count,
+            uint Count,
             out uint ActualCount);
 
         [PreserveSig]
         new int GetRunningProcessSystemIdByExecutableName(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
             out uint Id);
 
         [PreserveSig]
         new int GetRunningProcessDescription(
-            [In] ulong Server,
-            [In] uint SystemId,
+            ulong Server,
+            uint SystemId,
             [In] DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
-            [In] int ExeNameSize,
+            int ExeNameSize,
             out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
-            [In] int DescriptionSize,
+            int DescriptionSize,
             out uint ActualDescriptionSize);
 
         [PreserveSig]
         new int AttachProcess(
-            [In] ulong Server,
-            [In] uint ProcessID,
+            ulong Server,
+            uint ProcessID,
             [In] DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         new int CreateProcess(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS Flags);
 
         [PreserveSig]
         new int CreateProcessAndAttach(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS Flags,
-            [In] uint ProcessId,
+            uint ProcessId,
             [In] DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int ConnectSession(
             [In] DEBUG_CONNECT_SESSION Flags,
-            [In] uint HistoryLimit);
+            uint HistoryLimit);
 
         [PreserveSig]
         new int StartServer(
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int DispatchCallbacks(
-            [In] uint Timeout);
+            uint Timeout);
 
         [PreserveSig]
         new int ExitDispatch(
@@ -208,12 +208,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetOutputWidth(
-            [In] uint Columns);
+            uint Columns);
 
         [PreserveSig]
         new int GetOutputLinePrefix(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint PrefixSize);
 
         [PreserveSig]
@@ -223,13 +223,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int GetIdentity(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint IdentitySize);
 
         [PreserveSig]
         new int OutputIdentity(
             [In] DEBUG_OUTCTL OutputControl,
-            [In] uint Flags,
+            uint Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         /* GetEventCallbacks could a conversion thunk from the debugger engine so we can't specify a specific interface */
@@ -263,11 +263,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int EndProcessServer(
-            [In] ulong Server);
+            ulong Server);
 
         [PreserveSig]
         new int WaitForProcessServerEnd(
-            [In] uint Timeout);
+            uint Timeout);
 
         [PreserveSig]
         new int IsKernelDebuggerEnabled();
@@ -285,35 +285,35 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetRunningProcessSystemIdByExecutableNameWide(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPWStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
             out uint Id);
 
         [PreserveSig]
         new int GetRunningProcessDescriptionWide(
-            [In] ulong Server,
-            [In] uint SystemId,
+            ulong Server,
+            uint SystemId,
             [In] DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder ExeName,
-            [In] int ExeNameSize,
+            int ExeNameSize,
             out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Description,
-            [In] int DescriptionSize,
+            int DescriptionSize,
             out uint ActualDescriptionSize);
 
         [PreserveSig]
         new int CreateProcessWide(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPWStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS CreateFlags);
 
         [PreserveSig]
         new int CreateProcessAndAttachWide(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPWStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS CreateFlags,
-            [In] uint ProcessId,
+            uint ProcessId,
             [In] DEBUG_ATTACH AttachFlags);
 
         /* IDebugClient4 */
@@ -321,12 +321,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int OpenDumpFileWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string FileName,
-            [In] ulong FileHandle);
+            ulong FileHandle);
 
         [PreserveSig]
         int WriteDumpFileWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string DumpFile,
-            [In] ulong FileHandle,
+            ulong FileHandle,
             [In] DEBUG_DUMP Qualifier,
             [In] DEBUG_FORMAT FormatFlags,
             [In][MarshalAs(UnmanagedType.LPWStr)] string Comment);
@@ -334,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int AddDumpInformationFileWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string FileName,
-            [In] ulong FileHandle,
+            ulong FileHandle,
             [In] DEBUG_DUMP_FILE Type);
 
         [PreserveSig]
@@ -343,18 +343,18 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetDumpFile(
-            [In] uint Index,
+            uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint NameSize,
             out ulong Handle,
             out uint Type);
 
         [PreserveSig]
         int GetDumpFileWide(
-            [In] uint Index,
+            uint Index,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint NameSize,
             out ulong Handle,
             out uint Type);

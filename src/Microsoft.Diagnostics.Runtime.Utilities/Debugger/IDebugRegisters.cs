@@ -18,9 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetDescription(
-            [In] uint Register,
+            uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] int NameBufferSize,
+            int NameBufferSize,
             out uint NameSize,
             out DEBUG_REGISTER_DESCRIPTION Desc);
 
@@ -31,27 +31,27 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetValue(
-            [In] uint Register,
+            uint Register,
             out DEBUG_VALUE Value);
 
         [PreserveSig]
         int SetValue(
-            [In] uint Register,
+            uint Register,
             [In] ref DEBUG_VALUE Value);
 
         [PreserveSig]
         int GetValues( //FIX ME!!! This needs to be tested
-            [In] uint Count,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_VALUE[] Values);
 
         [PreserveSig]
         int SetValues(
-            [In] uint Count,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
 
         [PreserveSig]

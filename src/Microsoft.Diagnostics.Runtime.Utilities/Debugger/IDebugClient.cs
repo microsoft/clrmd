@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetKernelConnectionOptions(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint OptionsSize);
 
         [PreserveSig]
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int StartProcessServer(
             [In] DEBUG_CLASS Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Options,
-            [In] IntPtr Reserved);
+            IntPtr Reserved);
 
         [PreserveSig]
         int ConnectProcessServer(
@@ -43,53 +43,53 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int DisconnectProcessServer(
-            [In] ulong Server);
+            ulong Server);
 
         [PreserveSig]
         int GetRunningProcessSystemIds(
-            [In] ulong Server,
+            ulong Server,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
-            [In] uint Count,
+            uint Count,
             out uint ActualCount);
 
         [PreserveSig]
         int GetRunningProcessSystemIdByExecutableName(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
             out uint Id);
 
         [PreserveSig]
         int GetRunningProcessDescription(
-            [In] ulong Server,
-            [In] uint SystemId,
+            ulong Server,
+            uint SystemId,
             [In] DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
-            [In] int ExeNameSize,
+            int ExeNameSize,
             out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
-            [In] int DescriptionSize,
+            int DescriptionSize,
             out uint ActualDescriptionSize);
 
         [PreserveSig]
         int AttachProcess(
-            [In] ulong Server,
-            [In] uint ProcessID,
+            ulong Server,
+            uint ProcessID,
             [In] DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         int CreateProcess(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS Flags);
 
         [PreserveSig]
         int CreateProcessAndAttach(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
             [In] DEBUG_CREATE_PROCESS Flags,
-            [In] uint ProcessId,
+            uint ProcessId,
             [In] DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ConnectSession(
             [In] DEBUG_CONNECT_SESSION Flags,
-            [In] uint HistoryLimit);
+            uint HistoryLimit);
 
         [PreserveSig]
         int StartServer(
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int DispatchCallbacks(
-            [In] uint Timeout);
+            uint Timeout);
 
         [PreserveSig]
         int ExitDispatch(
@@ -208,12 +208,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetOutputWidth(
-            [In] uint Columns);
+            uint Columns);
 
         [PreserveSig]
         int GetOutputLinePrefix(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint PrefixSize);
 
         [PreserveSig]
@@ -223,13 +223,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetIdentity(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint IdentitySize);
 
         [PreserveSig]
         int OutputIdentity(
             [In] DEBUG_OUTCTL OutputControl,
-            [In] uint Flags,
+            uint Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         /* GetEventCallbacks could a conversion thunk from the debugger engine so we can't specify a specific interface */

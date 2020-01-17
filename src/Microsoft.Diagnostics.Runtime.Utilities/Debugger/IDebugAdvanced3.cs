@@ -16,13 +16,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         /* IDebugAdvanced */
         [PreserveSig]
         new int GetThreadContext(
-            [In] IntPtr Context,
-            [In] int ContextSize);
+            IntPtr Context,
+            int ContextSize);
 
         [PreserveSig]
         new int SetThreadContext(
-            [In] IntPtr Context,
-            [In] int ContextSize);
+            IntPtr Context,
+            int ContextSize);
 
         /* IDebugAdvanced2 */
 
@@ -31,58 +31,58 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] DEBUG_REQUEST Request,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] inBuffer,
-            [In] int InBufferSize,
+            int InBufferSize,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] outBuffer,
-            [In] int OutBufferSize,
+            int OutBufferSize,
             out int OutSize);
 
         [PreserveSig]
         new int GetSourceFileInformation(
             [In] DEBUG_SRCFILE Which,
             [In][MarshalAs(UnmanagedType.LPStr)] string SourceFile,
-            [In] ulong Arg64,
-            [In] uint Arg32,
+            ulong Arg64,
+            uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int InfoSize);
 
         [PreserveSig]
         new int FindSourceFileAndToken(
-            [In] uint StartElement,
-            [In] ulong ModAddr,
+            uint StartElement,
+            ulong ModAddr,
             [In][MarshalAs(UnmanagedType.LPStr)] string File,
             [In] DEBUG_FIND_SOURCE Flags,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] int FileTokenSize,
+            int FileTokenSize,
             out int FoundElement,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int FoundSize);
 
         [PreserveSig]
         new int GetSymbolInformation(
             [In] DEBUG_SYMINFO Which,
-            [In] ulong Arg64,
-            [In] uint Arg32,
+            ulong Arg64,
+            uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int InfoSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder StringBuffer,
-            [In] int StringBufferSize,
+            int StringBufferSize,
             out int StringSize);
 
         [PreserveSig]
         new int GetSystemObjectInformation(
             [In] DEBUG_SYSOBJINFO Which,
-            [In] ulong Arg64,
-            [In] uint Arg32,
+            ulong Arg64,
+            uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int InfoSize);
 
         /* IDebugAdvanced3 */
@@ -91,38 +91,38 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetSourceFileInformationWide(
             [In] DEBUG_SRCFILE Which,
             [In][MarshalAs(UnmanagedType.LPWStr)] string SourceFile,
-            [In] ulong Arg64,
-            [In] uint Arg32,
+            ulong Arg64,
+            uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int InfoSize);
 
         [PreserveSig]
         int FindSourceFileAndTokenWide(
-            [In] uint StartElement,
-            [In] ulong ModAddr,
+            uint StartElement,
+            ulong ModAddr,
             [In][MarshalAs(UnmanagedType.LPWStr)] string File,
             [In] DEBUG_FIND_SOURCE Flags,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] int FileTokenSize,
+            int FileTokenSize,
             out int FoundElement,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int FoundSize);
 
         [PreserveSig]
         int GetSymbolInformationWide(
             [In] DEBUG_SYMINFO Which,
-            [In] ulong Arg64,
-            [In] uint Arg32,
+            ulong Arg64,
+            uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int InfoSize,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder StringBuffer,
-            [In] int StringBufferSize,
+            int StringBufferSize,
             out int StringSize);
     }
 }

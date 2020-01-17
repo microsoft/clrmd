@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetOffset(
-            [In] ulong Offset);
+            ulong Offset);
 
         [PreserveSig]
         new int GetDataParameters(
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetDataParameters(
-            [In] uint Size,
+            uint Size,
             [In] DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
 
         [PreserveSig]
@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetPassCount(
-            [In] uint Count);
+            uint Count);
 
         [PreserveSig]
         new int GetCurrentPassCount(
@@ -81,12 +81,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetMatchThreadId(
-            [In] uint Thread);
+            uint Thread);
 
         [PreserveSig]
         new int GetCommand(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint CommandSize);
 
         [PreserveSig]
@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int GetOffsetExpression(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint ExpressionSize);
 
         [PreserveSig]
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetCommandWide(
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint CommandSize);
 
         [PreserveSig]
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetOffsetExpressionWide(
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint ExpressionSize);
 
         [PreserveSig]

@@ -20,76 +20,76 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugBreakpoint2 Bp,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int Exception(
             [In] ref EXCEPTION_RECORD64 Exception,
-            [In] uint FirstChance,
+            uint FirstChance,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int CreateThread(
-            [In] ulong Handle,
-            [In] ulong DataOffset,
-            [In] ulong StartOffset,
+            ulong Handle,
+            ulong DataOffset,
+            ulong StartOffset,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int ExitThread(
-            [In] uint ExitCode,
+            uint ExitCode,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int CreateProcess(
-            [In] ulong ImageFileHandle,
-            [In] ulong Handle,
-            [In] ulong BaseOffset,
-            [In] uint ModuleSize,
+            ulong ImageFileHandle,
+            ulong Handle,
+            ulong BaseOffset,
+            uint ModuleSize,
             [In][MarshalAs(UnmanagedType.LPWStr)] string ModuleName,
             [In][MarshalAs(UnmanagedType.LPWStr)] string ImageName,
-            [In] uint CheckSum,
-            [In] uint TimeDateStamp,
-            [In] ulong InitialThreadHandle,
-            [In] ulong ThreadDataOffset,
-            [In] ulong StartOffset,
+            uint CheckSum,
+            uint TimeDateStamp,
+            ulong InitialThreadHandle,
+            ulong ThreadDataOffset,
+            ulong StartOffset,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int ExitProcess(
-            [In] uint ExitCode,
+            uint ExitCode,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int LoadModule(
-            [In] ulong ImageFileHandle,
-            [In] ulong BaseOffset,
-            [In] uint ModuleSize,
+            ulong ImageFileHandle,
+            ulong BaseOffset,
+            uint ModuleSize,
             [In][MarshalAs(UnmanagedType.LPWStr)] string ModuleName,
             [In][MarshalAs(UnmanagedType.LPWStr)] string ImageName,
-            [In] uint CheckSum,
-            [In] uint TimeDateStamp,
+            uint CheckSum,
+            uint TimeDateStamp,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int UnloadModule(
             [In][MarshalAs(UnmanagedType.LPWStr)] string ImageBaseName,
-            [In] ulong BaseOffset,
+            ulong BaseOffset,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int SystemError(
-            [In] uint Error,
-            [In] uint Level,
+            uint Error,
+            uint Level,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int SessionStatus(
@@ -98,20 +98,20 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ChangeDebuggeeState(
             [In] DEBUG_CDS Flags,
-            [In] ulong Argument,
+            ulong Argument,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int ChangeEngineState(
             [In] DEBUG_CES Flags,
-            [In] ulong Argument,
+            ulong Argument,
             [In] DEBUG_EVENT_CONTEXT* Context,
-            [In] uint ContextSize);
+            uint ContextSize);
 
         [PreserveSig]
         int ChangeSymbolState(
             [In] DEBUG_CSS Flags,
-            [In] ulong Argument);
+            ulong Argument);
     }
 }

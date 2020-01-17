@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int Output2(
             [In] DEBUG_OUTCB Which,
             [In] DEBUG_OUTCBF Flags,
-            [In] ulong Arg,
+            ulong Arg,
             [In][MarshalAs(UnmanagedType.LPWStr)] string Text);
     }
 }

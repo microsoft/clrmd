@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetCurrentThreadId(
-            [In] uint Id);
+            uint Id);
 
         [PreserveSig]
         int GetCurrentProcessId(
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetCurrentProcessId(
-            [In] uint Id);
+            uint Id);
 
         [PreserveSig]
         int GetNumberThreads(
@@ -47,8 +47,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetThreadIdsByIndex(
-            [In] uint Start,
-            [In] uint Count,
+            uint Start,
+            uint Count,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
             [Out][MarshalAs(UnmanagedType.LPArray)]
@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetThreadIdByProcessor(
-            [In] uint Processor,
+            uint Processor,
             out uint Id);
 
         [PreserveSig]
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetThreadIdByDataOffset(
-            [In] ulong Offset,
+            ulong Offset,
             out uint Id);
 
         [PreserveSig]
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetThreadIdByTeb(
-            [In] ulong Offset,
+            ulong Offset,
             out uint Id);
 
         [PreserveSig]
@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetThreadIdBySystemId(
-            [In] uint SysId,
+            uint SysId,
             out uint Id);
 
         [PreserveSig]
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetThreadIdByHandle(
-            [In] ulong Handle,
+            ulong Handle,
             out uint Id);
 
         [PreserveSig]
@@ -101,8 +101,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetProcessIdsByIndex(
-            [In] uint Start,
-            [In] uint Count,
+            uint Start,
+            uint Count,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
             [Out][MarshalAs(UnmanagedType.LPArray)]
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetProcessIdByDataOffset(
-            [In] ulong Offset,
+            ulong Offset,
             out uint Id);
 
         [PreserveSig]
@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetProcessIdByPeb(
-            [In] ulong Offset,
+            ulong Offset,
             out uint Id);
 
         [PreserveSig]
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetProcessIdBySystemId(
-            [In] uint SysId,
+            uint SysId,
             out uint Id);
 
         [PreserveSig]
@@ -141,13 +141,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetProcessIdByHandle(
-            [In] ulong Handle,
+            ulong Handle,
             out uint Id);
 
         [PreserveSig]
         int GetCurrentProcessExecutableName(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint ExeSize);
     }
 }

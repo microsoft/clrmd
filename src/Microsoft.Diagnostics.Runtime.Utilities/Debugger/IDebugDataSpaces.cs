@@ -16,145 +16,145 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadVirtual(
-            [In] ulong Offset,
+            ulong Offset,
             [Out]
             IntPtr buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out int BytesRead);
 
         [PreserveSig]
         int WriteVirtual(
-            [In] ulong Offset,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int SearchVirtual(
-            [In] ulong Offset,
-            [In] ulong Length,
+            ulong Offset,
+            ulong Length,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] pattern,
-            [In] uint PatternSize,
-            [In] uint PatternGranularity,
+            uint PatternSize,
+            uint PatternGranularity,
             out ulong MatchOffset);
 
         [PreserveSig]
         int ReadVirtualUncached(
-            [In] ulong Offset,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteVirtualUncached(
-            [In] ulong Offset,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadPointersVirtual(
-            [In] uint Count,
-            [In] ulong Offset,
+            uint Count,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
             ulong[] Ptrs);
 
         [PreserveSig]
         int WritePointersVirtual(
-            [In] uint Count,
-            [In] ulong Offset,
+            uint Count,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray)] ulong[] Ptrs);
 
         [PreserveSig]
         int ReadPhysical(
-            [In] ulong Offset,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WritePhysical(
-            [In] ulong Offset,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadControl(
-            [In] uint Processor,
-            [In] ulong Offset,
+            uint Processor,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteControl(
-            [In] uint Processor,
-            [In] ulong Offset,
+            uint Processor,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadIo(
             [In] INTERFACE_TYPE InterfaceType,
-            [In] uint BusNumber,
-            [In] uint AddressSpace,
-            [In] ulong Offset,
+            uint BusNumber,
+            uint AddressSpace,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteIo(
             [In] INTERFACE_TYPE InterfaceType,
-            [In] uint BusNumber,
-            [In] uint AddressSpace,
-            [In] ulong Offset,
+            uint BusNumber,
+            uint AddressSpace,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadMsr(
-            [In] uint Msr,
+            uint Msr,
             out ulong MsrValue);
 
         [PreserveSig]
         int WriteMsr(
-            [In] uint Msr,
-            [In] ulong MsrValue);
+            uint Msr,
+            ulong MsrValue);
 
         [PreserveSig]
         int ReadBusData(
             [In] BUS_DATA_TYPE BusDataType,
-            [In] uint BusNumber,
-            [In] uint SlotNumber,
-            [In] uint Offset,
+            uint BusNumber,
+            uint SlotNumber,
+            uint Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteBusData(
             [In] BUS_DATA_TYPE BusDataType,
-            [In] uint BusNumber,
-            [In] uint SlotNumber,
-            [In] uint Offset,
+            uint BusNumber,
+            uint SlotNumber,
+            uint Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
@@ -162,19 +162,19 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadDebuggerData(
-            [In] uint Index,
+            uint Index,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint DataSize);
 
         [PreserveSig]
         int ReadProcessorSystemData(
-            [In] uint Processor,
+            uint Processor,
             [In] DEBUG_DATA Index,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint BufferSize,
+            uint BufferSize,
             out uint DataSize);
     }
 
@@ -187,132 +187,132 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadVirtual(
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteVirtual(
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int SearchVirtual(
-            [In] ulong Offset,
-            [In] ulong Length,
-            [In] IntPtr pattern,
-            [In] uint PatternSize,
-            [In] uint PatternGranularity,
+            ulong Offset,
+            ulong Length,
+            IntPtr pattern,
+            uint PatternSize,
+            uint PatternGranularity,
             out ulong MatchOffset);
 
         [PreserveSig]
         int ReadVirtualUncached(
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteVirtualUncached(
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadPointersVirtual(
-            [In] uint Count,
-            [In] ulong Offset,
+            uint Count,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
             ulong[] Ptrs);
 
         [PreserveSig]
         int WritePointersVirtual(
-            [In] uint Count,
-            [In] ulong Offset,
+            uint Count,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray)] ulong[] Ptrs);
 
         [PreserveSig]
         int ReadPhysical(
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WritePhysical(
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadControl(
-            [In] uint Processor,
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] int BufferSize,
+            uint Processor,
+            ulong Offset,
+            IntPtr buffer,
+            int BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteControl(
-            [In] uint Processor,
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] int BufferSize,
+            uint Processor,
+            ulong Offset,
+            IntPtr buffer,
+            int BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadIo(
             [In] INTERFACE_TYPE InterfaceType,
-            [In] uint BusNumber,
-            [In] uint AddressSpace,
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            uint BusNumber,
+            uint AddressSpace,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteIo(
             [In] INTERFACE_TYPE InterfaceType,
-            [In] uint BusNumber,
-            [In] uint AddressSpace,
-            [In] ulong Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            uint BusNumber,
+            uint AddressSpace,
+            ulong Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
         int ReadMsr(
-            [In] uint Msr,
+            uint Msr,
             out ulong MsrValue);
 
         [PreserveSig]
         int WriteMsr(
-            [In] uint Msr,
-            [In] ulong MsrValue);
+            uint Msr,
+            ulong MsrValue);
 
         [PreserveSig]
         int ReadBusData(
             [In] BUS_DATA_TYPE BusDataType,
-            [In] uint BusNumber,
-            [In] uint SlotNumber,
-            [In] uint Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            uint BusNumber,
+            uint SlotNumber,
+            uint Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesRead);
 
         [PreserveSig]
         int WriteBusData(
             [In] BUS_DATA_TYPE BusDataType,
-            [In] uint BusNumber,
-            [In] uint SlotNumber,
-            [In] uint Offset,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            uint BusNumber,
+            uint SlotNumber,
+            uint Offset,
+            IntPtr buffer,
+            uint BufferSize,
             out uint BytesWritten);
 
         [PreserveSig]
@@ -320,17 +320,17 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadDebuggerData(
-            [In] uint Index,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            uint Index,
+            IntPtr buffer,
+            uint BufferSize,
             out uint DataSize);
 
         [PreserveSig]
         int ReadProcessorSystemData(
-            [In] uint Processor,
+            uint Processor,
             [In] DEBUG_DATA Index,
-            [In] IntPtr buffer,
-            [In] uint BufferSize,
+            IntPtr buffer,
+            uint BufferSize,
             out uint DataSize);
     }
 }

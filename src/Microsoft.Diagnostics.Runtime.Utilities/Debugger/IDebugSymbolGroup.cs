@@ -29,42 +29,42 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int RemoveSymbolsByIndex(
-            [In] uint Index);
+            uint Index);
 
         [PreserveSig]
         int GetSymbolName(
-            [In] uint Index,
+            uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
+            int BufferSize,
             out uint NameSize);
 
         [PreserveSig]
         int GetSymbolParameters(
-            [In] uint Start,
-            [In] uint Count,
+            uint Start,
+            uint Count,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_SYMBOL_PARAMETERS[] Params);
 
         [PreserveSig]
         int ExpandSymbol(
-            [In] uint Index,
+            uint Index,
             [In][MarshalAs(UnmanagedType.Bool)] bool Expand);
 
         [PreserveSig]
         int OutputSymbols(
             [In] DEBUG_OUTCTL OutputControl,
             [In] DEBUG_OUTPUT_SYMBOLS Flags,
-            [In] uint Start,
-            [In] uint Count);
+            uint Start,
+            uint Count);
 
         [PreserveSig]
         int WriteSymbol(
-            [In] uint Index,
+            uint Index,
             [In][MarshalAs(UnmanagedType.LPStr)] string Value);
 
         [PreserveSig]
         int OutputAsType(
-            [In] uint Index,
+            uint Index,
             [In][MarshalAs(UnmanagedType.LPStr)] string Type);
     }
 }
