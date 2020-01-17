@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return LoadLibraryEx(lpFileName, 0, LoadLibraryFlags.NoFlags);
             }
 
-            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            [DllImport(Kernel32LibraryName, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "LoadLibraryExW")]
             public static extern IntPtr LoadLibraryEx(string fileName, int hFile, LoadLibraryFlags dwFlags);
 
             [Flags]
@@ -143,13 +143,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool IsWow64Process(IntPtr hProcess, out bool isWow64);
 
-            [DllImport(VersionLibraryName)]
+            [DllImport(VersionLibraryName, CharSet = CharSet.Unicode, EntryPoint = "GetFileVersionInfoW")]
             public static extern bool GetFileVersionInfo(string sFileName, int handle, int size, byte* infoBuffer);
 
-            [DllImport(VersionLibraryName)]
+            [DllImport(VersionLibraryName, CharSet = CharSet.Unicode, EntryPoint = "GetFileVersionInfoSizeW")]
             public static extern int GetFileVersionInfoSize(string sFileName, out int handle);
 
-            [DllImport(VersionLibraryName)]
+            [DllImport(VersionLibraryName, CharSet = CharSet.Unicode, EntryPoint = "VerQueryValueW")]
             public static extern bool VerQueryValue(byte* pBlock, string pSubBlock, out IntPtr val, out int len);
 
             public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;

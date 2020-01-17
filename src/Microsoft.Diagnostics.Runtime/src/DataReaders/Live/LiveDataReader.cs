@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 StringBuilder sb = new StringBuilder(1024);
-                uint res = GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
+                uint res = GetModuleFileNameEx(_process, ptr, sb, sb.Capacity);
                 DebugOnly.Assert(res != 0);
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
             StringBuilder fileName = new StringBuilder(1024);
-            uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
+            uint res = GetModuleFileNameEx(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
             DebugOnly.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
@@ -300,9 +300,9 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport("psapi.dll", SetLastError = true)]
         public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
-        [DllImport("psapi.dll", SetLastError = true)]
+        [DllImport("psapi.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "GetModuleFileNameExW")]
         [PreserveSig]
-        public static extern uint GetModuleFileNameExA(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
+        public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
 
         [DllImport(Kernel32LibraryName)]
         private static extern int ReadProcessMemory(
