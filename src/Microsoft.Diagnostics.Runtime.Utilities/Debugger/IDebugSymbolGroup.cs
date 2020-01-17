@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int AddSymbol(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [In][Out] ref uint Index);
+            ref uint Index);
 
         [PreserveSig]
         int RemoveSymbolByName(

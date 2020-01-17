@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int AddSymbol(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [In][Out] ref uint Index);
+            ref uint Index);
 
         [PreserveSig]
         new int RemoveSymbolByName(
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int AddSymbolWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [In][Out] ref uint Index);
+            ref uint Index);
 
         [PreserveSig]
         int RemoveSymbolByNameWide(

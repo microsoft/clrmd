@@ -432,13 +432,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetWindbgExtensionApis32(
-            [In][Out] ref WINDBG_EXTENSION_APIS Api);
+            ref WINDBG_EXTENSION_APIS Api);
 
         /* Must be In and Out as the nSize member has to be initialized */
 
         [PreserveSig]
         int GetWindbgExtensionApis64(
-            [In][Out] ref WINDBG_EXTENSION_APIS Api);
+            ref WINDBG_EXTENSION_APIS Api);
 
         /* Must be In and Out as the nSize member has to be initialized */
 
