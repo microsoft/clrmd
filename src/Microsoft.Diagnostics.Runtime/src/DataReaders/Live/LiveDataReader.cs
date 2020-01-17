@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _pid = processId;
             }
 
-            _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
+            _process = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
 
             if (_process == IntPtr.Zero)
             {
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 if (_process != IntPtr.Zero)
-                    CloseHandle(_process);
+                    WindowsFunctions.NativeMethods.CloseHandle(_process);
 
                 _disposed = true;
             }
@@ -290,12 +290,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         private const string Kernel32LibraryName = "kernel32.dll";
-
-        [DllImport(Kernel32LibraryName, SetLastError = true)]
-        public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
-
-        [DllImport(Kernel32LibraryName, SetLastError = true)]
-        private static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport("psapi.dll", SetLastError = true)]
         public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
