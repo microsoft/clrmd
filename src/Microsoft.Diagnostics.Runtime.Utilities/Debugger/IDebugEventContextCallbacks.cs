@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         int GetInterestMask(
-            [Out] out DEBUG_EVENT Mask);
+            out DEBUG_EVENT Mask);
 
         [PreserveSig]
         int Breakpoint(

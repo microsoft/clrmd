@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetKernelConnectionOptions(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint OptionsSize);
+            out uint OptionsSize);
 
         [PreserveSig]
         int SetKernelConnectionOptions(
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ConnectProcessServer(
             [In][MarshalAs(UnmanagedType.LPStr)] string RemoteOptions,
-            [Out] out ulong Server);
+            out ulong Server);
 
         [PreserveSig]
         int DisconnectProcessServer(
@@ -51,14 +51,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
             [In] uint Count,
-            [Out] out uint ActualCount);
+            out uint ActualCount);
 
         [PreserveSig]
         int GetRunningProcessSystemIdByExecutableName(
             [In] ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
-            [Out] out uint Id);
+            out uint Id);
 
         [PreserveSig]
         int GetRunningProcessDescription(
@@ -67,10 +67,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
             [In] int ExeNameSize,
-            [Out] out uint ActualExeNameSize,
+            out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
             [In] int DescriptionSize,
-            [Out] out uint ActualDescriptionSize);
+            out uint ActualDescriptionSize);
 
         [PreserveSig]
         int AttachProcess(
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetProcessOptions(
-            [Out] out DEBUG_PROCESS Options);
+            out DEBUG_PROCESS Options);
 
         [PreserveSig]
         int AddProcessOptions(
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetExitCode(
-            [Out] out uint Code);
+            out uint Code);
 
         [PreserveSig]
         int DispatchCallbacks(
@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOutputCallbacks(
-            [Out] out IDebugOutputCallbacks Callbacks);
+            out IDebugOutputCallbacks Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
@@ -184,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOutputMask(
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int SetOutputMask(
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetOtherOutputMask(
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugClient Client,
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int SetOtherOutputMask(
@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOutputWidth(
-            [Out] out uint Columns);
+            out uint Columns);
 
         [PreserveSig]
         int SetOutputWidth(
@@ -214,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetOutputLinePrefix(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint PrefixSize);
+            out uint PrefixSize);
 
         [PreserveSig]
         int SetOutputLinePrefix(
@@ -224,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetIdentity(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint IdentitySize);
+            out uint IdentitySize);
 
         [PreserveSig]
         int OutputIdentity(
@@ -236,7 +236,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetEventCallbacks(
-            [Out] out IDebugEventCallbacks Callbacks);
+            out IDebugEventCallbacks Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 

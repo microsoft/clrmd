@@ -14,25 +14,25 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         int GetNumberRegisters(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         int GetDescription(
             [In] uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
+            out uint NameSize,
+            out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         int GetIndexByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         int GetValue(
             [In] uint Register,
-            [Out] out DEBUG_VALUE Value);
+            out DEBUG_VALUE Value);
 
         [PreserveSig]
         int SetValue(
@@ -61,14 +61,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetInstructionOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetStackOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetFrameOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
     }
 }

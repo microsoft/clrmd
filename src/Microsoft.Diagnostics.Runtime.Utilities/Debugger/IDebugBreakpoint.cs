@@ -16,12 +16,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetId(
-            [Out] out uint Id);
+            out uint Id);
 
         [PreserveSig]
         int GetType(
-            [Out] out DEBUG_BREAKPOINT_TYPE BreakType,
-            [Out] out uint ProcType);
+            out DEBUG_BREAKPOINT_TYPE BreakType,
+            out uint ProcType);
 
         //FIX ME!!! Should try and get an enum for this
         [PreserveSig]
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetFlags(
-            [Out] out DEBUG_BREAKPOINT_FLAG Flags);
+            out DEBUG_BREAKPOINT_FLAG Flags);
 
         [PreserveSig]
         int AddFlags(
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int SetOffset(
@@ -55,8 +55,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetDataParameters(
-            [Out] out uint Size,
-            [Out] out DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
+            out uint Size,
+            out DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
 
         [PreserveSig]
         int SetDataParameters(
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetPassCount(
-            [Out] out uint Count);
+            out uint Count);
 
         [PreserveSig]
         int SetPassCount(
@@ -73,11 +73,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetCurrentPassCount(
-            [Out] out uint Count);
+            out uint Count);
 
         [PreserveSig]
         int GetMatchThreadId(
-            [Out] out uint Id);
+            out uint Id);
 
         [PreserveSig]
         int SetMatchThreadId(
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetCommand(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint CommandSize);
+            out uint CommandSize);
 
         [PreserveSig]
         int SetCommand(
@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetOffsetExpression(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint ExpressionSize);
+            out uint ExpressionSize);
 
         [PreserveSig]
         int SetOffsetExpression(
@@ -105,6 +105,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetParameters(
-            [Out] out DEBUG_BREAKPOINT_PARAMETERS Params);
+            out DEBUG_BREAKPOINT_PARAMETERS Params);
     }
 }

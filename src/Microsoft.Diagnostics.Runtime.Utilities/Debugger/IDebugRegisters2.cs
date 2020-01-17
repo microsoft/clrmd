@@ -14,25 +14,25 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         new int GetNumberRegisters(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetDescription(
             [In] uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
+            out uint NameSize,
+            out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         new int GetIndexByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         new int GetValue(
             [In] uint Register,
-            [Out] out DEBUG_VALUE Value);
+            out DEBUG_VALUE Value);
 
         [PreserveSig]
         new int SetValue(
@@ -61,15 +61,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetInstructionOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         new int GetStackOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         new int GetFrameOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         /* IDebugRegisters2 */
 
@@ -78,17 +78,17 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Register,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
+            out uint NameSize,
+            out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         int GetIndexByNameWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         int GetNumberPseudoRegisters(
-            [Out] out uint Number
+            out uint Number
         );
 
         [PreserveSig]
@@ -96,9 +96,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong TypeModule,
-            [Out] out uint TypeId
+            out uint NameSize,
+            out ulong TypeModule,
+            out uint TypeId
         );
 
         [PreserveSig]
@@ -106,21 +106,21 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Register,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong TypeModule,
-            [Out] out uint TypeId
+            out uint NameSize,
+            out ulong TypeModule,
+            out uint TypeId
         );
 
         [PreserveSig]
         int GetPseudoIndexByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint Index
+            out uint Index
         );
 
         [PreserveSig]
         int GetPseudoIndexByNameWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [Out] out uint Index
+            out uint Index
         );
 
         [PreserveSig]
@@ -171,19 +171,19 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetInstructionOffset2(
             [In] uint Source,
-            [Out] out ulong Offset
+            out ulong Offset
         );
 
         [PreserveSig]
         int GetStackOffset2(
             [In] uint Source,
-            [Out] out ulong Offset
+            out ulong Offset
         );
 
         [PreserveSig]
         int GetFrameOffset2(
             [In] uint Source,
-            [Out] out ulong Offset
+            out ulong Offset
         );
     }
 }

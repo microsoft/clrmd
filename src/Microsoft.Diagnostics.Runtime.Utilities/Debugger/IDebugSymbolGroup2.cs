@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNumberSymbols(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int AddSymbol(
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         new int GetSymbolParameters(
@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int WriteSymbolWide(
@@ -100,47 +100,47 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int GetSymbolTypeNameWide(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int GetSymbolSize(
             [In] uint Index,
-            [Out] out uint Size);
+            out uint Size);
 
         [PreserveSig]
         int GetSymbolOffset(
             [In] uint Index,
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetSymbolRegister(
             [In] uint Index,
-            [Out] out uint Register);
+            out uint Register);
 
         [PreserveSig]
         int GetSymbolValueText(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int GetSymbolValueTextWide(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int GetSymbolEntryInformation(
             [In] uint Index,
-            [Out] out DEBUG_SYMBOL_ENTRY Info);
+            out DEBUG_SYMBOL_ENTRY Info);
     }
 }

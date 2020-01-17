@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] outBuffer,
             [In] int OutBufferSize,
-            [Out] out int OutSize);
+            out int OutSize);
 
         [PreserveSig]
         new int GetSourceFileInformation(
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out int InfoSize);
+            out int InfoSize);
 
         [PreserveSig]
         new int FindSourceFileAndToken(
@@ -57,10 +57,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] int FileTokenSize,
-            [Out] out int FoundElement,
+            out int FoundElement,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out int FoundSize);
+            out int FoundSize);
 
         [PreserveSig]
         new int GetSymbolInformation(
@@ -70,10 +70,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out int InfoSize,
+            out int InfoSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder StringBuffer,
             [In] int StringBufferSize,
-            [Out] out int StringSize);
+            out int StringSize);
 
         [PreserveSig]
         new int GetSystemObjectInformation(
@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out int InfoSize);
+            out int InfoSize);
 
         /* IDebugAdvanced3 */
 
@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out int InfoSize);
+            out int InfoSize);
 
         [PreserveSig]
         int FindSourceFileAndTokenWide(
@@ -107,10 +107,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] int FileTokenSize,
-            [Out] out int FoundElement,
+            out int FoundElement,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out int FoundSize);
+            out int FoundSize);
 
         [PreserveSig]
         int GetSymbolInformationWide(
@@ -120,9 +120,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out int InfoSize,
+            out int InfoSize,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder StringBuffer,
             [In] int StringBufferSize,
-            [Out] out int StringSize);
+            out int StringSize);
     }
 }

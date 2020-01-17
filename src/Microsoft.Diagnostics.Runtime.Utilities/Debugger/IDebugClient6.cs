@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetKernelConnectionOptions(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint OptionsSize);
+            out uint OptionsSize);
 
         [PreserveSig]
         new int SetKernelConnectionOptions(
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int ConnectProcessServer(
             [In][MarshalAs(UnmanagedType.LPStr)] string RemoteOptions,
-            [Out] out ulong Server);
+            out ulong Server);
 
         [PreserveSig]
         new int DisconnectProcessServer(
@@ -51,14 +51,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
             [In] uint Count,
-            [Out] out uint ActualCount);
+            out uint ActualCount);
 
         [PreserveSig]
         new int GetRunningProcessSystemIdByExecutableName(
             [In] ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
-            [Out] out uint Id);
+            out uint Id);
 
         [PreserveSig]
         new int GetRunningProcessDescription(
@@ -67,10 +67,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
             [In] int ExeNameSize,
-            [Out] out uint ActualExeNameSize,
+            out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
             [In] int DescriptionSize,
-            [Out] out uint ActualDescriptionSize);
+            out uint ActualDescriptionSize);
 
         [PreserveSig]
         new int AttachProcess(
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetProcessOptions(
-            [Out] out DEBUG_PROCESS Options);
+            out DEBUG_PROCESS Options);
 
         [PreserveSig]
         new int AddProcessOptions(
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetExitCode(
-            [Out] out uint Code);
+            out uint Code);
 
         [PreserveSig]
         new int DispatchCallbacks(
@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetOutputCallbacks(
-            [Out] out IDebugOutputCallbacks Callbacks);
+            out IDebugOutputCallbacks Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
@@ -184,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetOutputMask(
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         new int SetOutputMask(
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetOtherOutputMask(
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugClient Client,
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         new int SetOtherOutputMask(
@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetOutputWidth(
-            [Out] out uint Columns);
+            out uint Columns);
 
         [PreserveSig]
         new int SetOutputWidth(
@@ -214,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetOutputLinePrefix(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint PrefixSize);
+            out uint PrefixSize);
 
         [PreserveSig]
         new int SetOutputLinePrefix(
@@ -224,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetIdentity(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint IdentitySize);
+            out uint IdentitySize);
 
         [PreserveSig]
         new int OutputIdentity(
@@ -236,7 +236,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetEventCallbacks(
-            [Out] out IDebugEventCallbacks Callbacks);
+            out IDebugEventCallbacks Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
@@ -288,7 +288,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] ulong Server,
             [In][MarshalAs(UnmanagedType.LPWStr)] string ExeName,
             [In] DEBUG_GET_PROC Flags,
-            [Out] out uint Id);
+            out uint Id);
 
         [PreserveSig]
         new int GetRunningProcessDescriptionWide(
@@ -297,10 +297,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder ExeName,
             [In] int ExeNameSize,
-            [Out] out uint ActualExeNameSize,
+            out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Description,
             [In] int DescriptionSize,
-            [Out] out uint ActualDescriptionSize);
+            out uint ActualDescriptionSize);
 
         [PreserveSig]
         new int CreateProcessWide(
@@ -339,25 +339,25 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNumberDumpFiles(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetDumpFile(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong Handle,
-            [Out] out uint Type);
+            out uint NameSize,
+            out ulong Handle,
+            out uint Type);
 
         [PreserveSig]
         new int GetDumpFileWide(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong Handle,
-            [Out] out uint Type);
+            out uint NameSize,
+            out ulong Handle,
+            out uint Type);
 
         /* IDebugClient5 */
 
@@ -370,7 +370,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetKernelConnectionOptionsWide(
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint OptionsSize);
+            out uint OptionsSize);
 
         [PreserveSig]
         new int SetKernelConnectionOptionsWide(
@@ -385,7 +385,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int ConnectProcessServerWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string RemoteOptions,
-            [Out] out ulong Server);
+            out ulong Server);
 
         [PreserveSig]
         new int StartServerWide(
@@ -401,7 +401,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetOutputCallbacksWide(
-            [Out] out IDebugOutputCallbacksWide Callbacks);
+            out IDebugOutputCallbacksWide Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
@@ -413,7 +413,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetOutputLinePrefixWide(
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint PrefixSize);
+            out uint PrefixSize);
 
         [PreserveSig]
         new int SetOutputLinePrefixWide(
@@ -423,7 +423,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetIdentityWide(
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint IdentitySize);
+            out uint IdentitySize);
 
         [PreserveSig]
         new int OutputIdentityWide(
@@ -435,7 +435,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetEventCallbacksWide(
-            [Out] out IDebugEventCallbacksWide Callbacks);
+            out IDebugEventCallbacksWide Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
@@ -486,12 +486,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int PushOutputLinePrefix(
             [In][MarshalAs(UnmanagedType.LPStr)] string NewPrefix,
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         new int PushOutputLinePrefixWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string NewPrefix,
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         new int PopOutputLinePrefix(
@@ -499,22 +499,22 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNumberInputCallbacks(
-            [Out] out uint Count);
+            out uint Count);
 
         [PreserveSig]
         new int GetNumberOutputCallbacks(
-            [Out] out uint Count);
+            out uint Count);
 
         [PreserveSig]
         new int GetNumberEventCallbacks(
             [In] DEBUG_EVENT Flags,
-            [Out] out uint Count);
+            out uint Count);
 
         [PreserveSig]
         new int GetQuitLockString(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint StringSize);
+            out uint StringSize);
 
         [PreserveSig]
         new int SetQuitLockString(
@@ -524,7 +524,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetQuitLockStringWide(
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint StringSize);
+            out uint StringSize);
 
         [PreserveSig]
         new int SetQuitLockStringWide(

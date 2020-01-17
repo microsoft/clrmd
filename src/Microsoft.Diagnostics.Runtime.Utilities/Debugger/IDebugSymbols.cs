@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetSymbolOptions(
-            [Out] out SYMOPT Options);
+            out SYMOPT Options);
 
         [PreserveSig]
         int AddSymbolOptions(
@@ -36,13 +36,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong Displacement);
+            out uint NameSize,
+            out ulong Displacement);
 
         [PreserveSig]
         int GetOffsetByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Symbol,
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetNearNameByOffset(
@@ -50,47 +50,47 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] int Delta,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong Displacement);
+            out uint NameSize,
+            out ulong Displacement);
 
         [PreserveSig]
         int GetLineByOffset(
             [In] ulong Offset,
-            [Out] out uint Line,
+            out uint Line,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder FileBuffer,
             [In] int FileBufferSize,
-            [Out] out uint FileSize,
-            [Out] out ulong Displacement);
+            out uint FileSize,
+            out ulong Displacement);
 
         [PreserveSig]
         int GetOffsetByLine(
             [In] uint Line,
             [In][MarshalAs(UnmanagedType.LPStr)] string File,
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetNumberModules(
-            [Out] out uint Loaded,
-            [Out] out uint Unloaded);
+            out uint Loaded,
+            out uint Unloaded);
 
         [PreserveSig]
         int GetModuleByIndex(
             [In] uint Index,
-            [Out] out ulong Base);
+            out ulong Base);
 
         [PreserveSig]
         int GetModuleByModuleName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
             [In] uint StartIndex,
-            [Out] out uint Index,
-            [Out] out ulong Base);
+            out uint Index,
+            out ulong Base);
 
         [PreserveSig]
         int GetModuleByOffset(
             [In] ulong Offset,
             [In] uint StartIndex,
-            [Out] out uint Index,
-            [Out] out ulong Base);
+            out uint Index,
+            out ulong Base);
 
         [PreserveSig]
         int GetModuleNames(
@@ -98,13 +98,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] ulong Base,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ImageNameBuffer,
             [In] int ImageNameBufferSize,
-            [Out] out uint ImageNameSize,
+            out uint ImageNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ModuleNameBuffer,
             [In] int ModuleNameBufferSize,
-            [Out] out uint ModuleNameSize,
+            out uint ModuleNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder LoadedImageNameBuffer,
             [In] int LoadedImageNameBufferSize,
-            [Out] out uint LoadedImageNameSize);
+            out uint LoadedImageNameSize);
 
         [PreserveSig]
         int GetModuleParameters(
@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetSymbolModule(
             [In][MarshalAs(UnmanagedType.LPStr)] string Symbol,
-            [Out] out ulong Base);
+            out ulong Base);
 
         [PreserveSig]
         int GetTypeName(
@@ -125,38 +125,38 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint TypeId,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
             [In] int NameBufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int GetTypeId(
             [In] ulong Module,
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint TypeId);
+            out uint TypeId);
 
         [PreserveSig]
         int GetTypeSize(
             [In] ulong Module,
             [In] uint TypeId,
-            [Out] out uint Size);
+            out uint Size);
 
         [PreserveSig]
         int GetFieldOffset(
             [In] ulong Module,
             [In] uint TypeId,
             [In][MarshalAs(UnmanagedType.LPStr)] string Field,
-            [Out] out uint Offset);
+            out uint Offset);
 
         [PreserveSig]
         int GetSymbolTypeId(
             [In][MarshalAs(UnmanagedType.LPStr)] string Symbol,
-            [Out] out uint TypeId,
-            [Out] out ulong Module);
+            out uint TypeId,
+            out ulong Module);
 
         [PreserveSig]
         int GetOffsetTypeId(
             [In] ulong Offset,
-            [Out] out uint TypeId,
-            [Out] out ulong Module);
+            out uint TypeId,
+            out ulong Module);
 
         [PreserveSig]
         int ReadTypedDataVirtual(
@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] Buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         int WriteTypedDataVirtual(
@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint TypeId,
             [In] IntPtr Buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         int OutputTypedDataVirtual(
@@ -192,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint TypeId,
             [In] IntPtr Buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         int WriteTypedDataPhysical(
@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint TypeId,
             [In] IntPtr Buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         int OutputTypedDataPhysical(
@@ -213,8 +213,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetScope(
-            [Out] out ulong InstructionOffset,
-            [Out] out DEBUG_STACK_FRAME ScopeFrame,
+            out ulong InstructionOffset,
+            out DEBUG_STACK_FRAME ScopeFrame,
             [In] IntPtr ScopeContext,
             [In] uint ScopeContextSize);
 
@@ -244,15 +244,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int StartSymbolMatch(
             [In][MarshalAs(UnmanagedType.LPStr)] string Pattern,
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         int GetNextSymbolMatch(
             [In] ulong Handle,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint MatchSize,
-            [Out] out ulong Offset);
+            out uint MatchSize,
+            out ulong Offset);
 
         [PreserveSig]
         int EndSymbolMatch(
@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetSymbolPath(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint PathSize);
+            out uint PathSize);
 
         [PreserveSig]
         int SetSymbolPath(
@@ -280,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetImagePath(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint PathSize);
+            out uint PathSize);
 
         [PreserveSig]
         int SetImagePath(
@@ -294,14 +294,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetSourcePath(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint PathSize);
+            out uint PathSize);
 
         [PreserveSig]
         int GetSourcePathElement(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint ElementSize);
+            out uint ElementSize);
 
         [PreserveSig]
         int SetSourcePath(
@@ -316,10 +316,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint StartElement,
             [In][MarshalAs(UnmanagedType.LPStr)] string File,
             [In] DEBUG_FIND_SOURCE Flags,
-            [Out] out uint FoundElement,
+            out uint FoundElement,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint FoundSize);
+            out uint FoundSize);
 
         [PreserveSig]
         int GetSourceFileLineOffsets(
@@ -327,6 +327,6 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray)]
             ulong[] Buffer,
             [In] int BufferLines,
-            [Out] out uint FileLines);
+            out uint FileLines);
     }
 }

@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetInterestMask(
-            [Out] out DEBUG_OUTCBI Mask);
+            out DEBUG_OUTCBI Mask);
 
         [PreserveSig]
         int Output2(

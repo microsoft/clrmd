@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetNumberSymbols(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         int AddSymbol(
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint NameSize);
+            out uint NameSize);
 
         [PreserveSig]
         int GetSymbolParameters(

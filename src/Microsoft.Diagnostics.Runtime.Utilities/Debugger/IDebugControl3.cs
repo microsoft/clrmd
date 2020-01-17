@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetInterruptTimeout(
-            [Out] out uint Seconds);
+            out uint Seconds);
 
         [PreserveSig]
         new int SetInterruptTimeout(
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetLogFile(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint FileSize,
+            out uint FileSize,
             [Out][MarshalAs(UnmanagedType.Bool)] out bool Append);
 
         [PreserveSig]
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetLogMask(
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         new int SetLogMask(
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int Input(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint InputSize);
+            out uint InputSize);
 
         [PreserveSig]
         new int ReturnInput(
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetPromptText(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint TextSize);
+            out uint TextSize);
 
         [PreserveSig]
         new int OutputCurrentState(
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNotifyEventHandle(
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         new int SetNotifyEventHandle(
@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int Assemble(
             [In] ulong Offset,
             [In][MarshalAs(UnmanagedType.LPStr)] string Instr,
-            [Out] out ulong EndOffset);
+            out ulong EndOffset);
 
         [PreserveSig]
         new int Disassemble(
@@ -133,19 +133,19 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] DEBUG_DISASM Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint DisassemblySize,
-            [Out] out ulong EndOffset);
+            out uint DisassemblySize,
+            out ulong EndOffset);
 
         [PreserveSig]
         new int GetDisassembleEffectiveOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         new int OutputDisassembly(
             [In] DEBUG_OUTCTL OutputControl,
             [In] ulong Offset,
             [In] DEBUG_DISASM Flags,
-            [Out] out ulong EndOffset);
+            out ulong EndOffset);
 
         [PreserveSig]
         new int OutputDisassemblyLines(
@@ -154,9 +154,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint TotalLines,
             [In] ulong Offset,
             [In] DEBUG_DISASM Flags,
-            [Out] out uint OffsetLine,
-            [Out] out ulong StartOffset,
-            [Out] out ulong EndOffset,
+            out uint OffsetLine,
+            out ulong StartOffset,
+            out ulong EndOffset,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             ulong[] LineOffsets);
 
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetNearInstruction(
             [In] ulong Offset,
             [In] int Delta,
-            [Out] out ulong NearOffset);
+            out ulong NearOffset);
 
         [PreserveSig]
         new int GetStackTrace(
@@ -174,11 +174,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_STACK_FRAME[] Frames,
             [In] int FrameSize,
-            [Out] out uint FramesFilled);
+            out uint FramesFilled);
 
         [PreserveSig]
         new int GetReturnOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         new int OutputStackTrace(
@@ -189,20 +189,20 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetDebuggeeType(
-            [Out] out DEBUG_CLASS Class,
-            [Out] out DEBUG_CLASS_QUALIFIER Qualifier);
+            out DEBUG_CLASS Class,
+            out DEBUG_CLASS_QUALIFIER Qualifier);
 
         [PreserveSig]
         new int GetActualProcessorType(
-            [Out] out IMAGE_FILE_MACHINE Type);
+            out IMAGE_FILE_MACHINE Type);
 
         [PreserveSig]
         new int GetExecutingProcessorType(
-            [Out] out IMAGE_FILE_MACHINE Type);
+            out IMAGE_FILE_MACHINE Type);
 
         [PreserveSig]
         new int GetNumberPossibleExecutingProcessorTypes(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetPossibleExecutingProcessorTypes(
@@ -213,39 +213,39 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNumberProcessors(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetSystemVersion(
-            [Out] out uint PlatformId,
-            [Out] out uint Major,
-            [Out] out uint Minor,
+            out uint PlatformId,
+            out uint Major,
+            out uint Minor,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ServicePackString,
             [In] int ServicePackStringSize,
-            [Out] out uint ServicePackStringUsed,
-            [Out] out uint ServicePackNumber,
+            out uint ServicePackStringUsed,
+            out uint ServicePackNumber,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder BuildString,
             [In] int BuildStringSize,
-            [Out] out uint BuildStringUsed);
+            out uint BuildStringUsed);
 
         [PreserveSig]
         new int GetPageSize(
-            [Out] out uint Size);
+            out uint Size);
 
         [PreserveSig]
         new int IsPointer64Bit();
 
         [PreserveSig]
         new int ReadBugCheckData(
-            [Out] out uint Code,
-            [Out] out ulong Arg1,
-            [Out] out ulong Arg2,
-            [Out] out ulong Arg3,
-            [Out] out ulong Arg4);
+            out uint Code,
+            out ulong Arg1,
+            out ulong Arg2,
+            out ulong Arg3,
+            out ulong Arg4);
 
         [PreserveSig]
         new int GetNumberSupportedProcessorTypes(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetSupportedProcessorTypes(
@@ -259,14 +259,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] IMAGE_FILE_MACHINE Type,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder FullNameBuffer,
             [In] int FullNameBufferSize,
-            [Out] out uint FullNameSize,
+            out uint FullNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder AbbrevNameBuffer,
             [In] int AbbrevNameBufferSize,
-            [Out] out uint AbbrevNameSize);
+            out uint AbbrevNameSize);
 
         [PreserveSig]
         new int GetEffectiveProcessorType(
-            [Out] out IMAGE_FILE_MACHINE Type);
+            out IMAGE_FILE_MACHINE Type);
 
         [PreserveSig]
         new int SetEffectiveProcessorType(
@@ -274,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetExecutionStatus(
-            [Out] out DEBUG_STATUS Status);
+            out DEBUG_STATUS Status);
 
         [PreserveSig]
         new int SetExecutionStatus(
@@ -282,7 +282,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetCodeLevel(
-            [Out] out DEBUG_LEVEL Level);
+            out DEBUG_LEVEL Level);
 
         [PreserveSig]
         new int SetCodeLevel(
@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetEngineOptions(
-            [Out] out DEBUG_ENGOPT Options);
+            out DEBUG_ENGOPT Options);
 
         [PreserveSig]
         new int AddEngineOptions(
@@ -306,8 +306,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetSystemErrorControl(
-            [Out] out ERROR_LEVEL OutputLevel,
-            [Out] out ERROR_LEVEL BreakLevel);
+            out ERROR_LEVEL OutputLevel,
+            out ERROR_LEVEL BreakLevel);
 
         [PreserveSig]
         new int SetSystemErrorControl(
@@ -319,7 +319,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Slot,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint MacroSize);
+            out uint MacroSize);
 
         [PreserveSig]
         new int SetTextMacro(
@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetRadix(
-            [Out] out uint Radix);
+            out uint Radix);
 
         [PreserveSig]
         new int SetRadix(
@@ -338,14 +338,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int Evaluate(
             [In][MarshalAs(UnmanagedType.LPStr)] string Expression,
             [In] DEBUG_VALUE_TYPE DesiredType,
-            [Out] out DEBUG_VALUE Value,
-            [Out] out uint RemainderIndex);
+            out DEBUG_VALUE Value,
+            out uint RemainderIndex);
 
         [PreserveSig]
         new int CoerceValue(
             [In] DEBUG_VALUE In,
             [In] DEBUG_VALUE_TYPE OutType,
-            [Out] out DEBUG_VALUE Out);
+            out DEBUG_VALUE Out);
 
         [PreserveSig]
         new int CoerceValues(
@@ -369,7 +369,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNumberBreakpoints(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetBreakpointByIndex(
@@ -407,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int AddExtension(
             [In][MarshalAs(UnmanagedType.LPStr)] string Path,
             [In] uint Flags,
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         new int RemoveExtension(
@@ -416,7 +416,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int GetExtensionByPath(
             [In][MarshalAs(UnmanagedType.LPStr)] string Path,
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         new int CallExtension(
@@ -428,7 +428,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int GetExtensionFunction(
             [In] ulong Handle,
             [In][MarshalAs(UnmanagedType.LPStr)] string FuncName,
-            [Out] out IntPtr Function);
+            out IntPtr Function);
 
         [PreserveSig]
         new int GetWindbgExtensionApis32(
@@ -444,23 +444,23 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetNumberEventFilters(
-            [Out] out uint SpecificEvents,
-            [Out] out uint SpecificExceptions,
-            [Out] out uint ArbitraryExceptions);
+            out uint SpecificEvents,
+            out uint SpecificExceptions,
+            out uint ArbitraryExceptions);
 
         [PreserveSig]
         new int GetEventFilterText(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint TextSize);
+            out uint TextSize);
 
         [PreserveSig]
         new int GetEventFilterCommand(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint CommandSize);
+            out uint CommandSize);
 
         [PreserveSig]
         new int SetEventFilterCommand(
@@ -485,7 +485,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint ArgumentSize);
+            out uint ArgumentSize);
 
         [PreserveSig]
         new int SetSpecificEventFilterArgument(
@@ -510,7 +510,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint CommandSize);
+            out uint CommandSize);
 
         [PreserveSig]
         new int SetExceptionFilterSecondCommand(
@@ -524,21 +524,21 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetLastEventInformation(
-            [Out] out DEBUG_EVENT Type,
-            [Out] out uint ProcessId,
-            [Out] out uint ThreadId,
+            out DEBUG_EVENT Type,
+            out uint ProcessId,
+            out uint ThreadId,
             [In] IntPtr ExtraInformation,
             [In] uint ExtraInformationSize,
-            [Out] out uint ExtraInformationUsed,
+            out uint ExtraInformationUsed,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
             [In] int DescriptionSize,
-            [Out] out uint DescriptionUsed);
+            out uint DescriptionUsed);
 
         /* IDebugControl3 */
 
         [PreserveSig]
         int GetAssemblyOptions(
-            [Out] out DEBUG_ASMOPT Options);
+            out DEBUG_ASMOPT Options);
 
         [PreserveSig]
         int AddAssemblyOptions(
@@ -554,7 +554,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetExpressionSyntax(
-            [Out] out DEBUG_EXPR Flags);
+            out DEBUG_EXPR Flags);
 
         [PreserveSig]
         int SetExpressionSyntax(
@@ -566,21 +566,21 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetNumberExpressionSyntaxes(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         int GetExpressionSyntaxNames(
             [In] uint Index,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder FullNameBuffer,
             [In] int FullNameBufferSize,
-            [Out] out uint FullNameSize,
+            out uint FullNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder AbbrevNameBuffer,
             [In] int AbbrevNameBufferSize,
-            [Out] out uint AbbrevNameSize);
+            out uint AbbrevNameSize);
 
         [PreserveSig]
         int GetNumberEvents(
-            [Out] out uint Events);
+            out uint Events);
 
         [PreserveSig]
         int GetEventIndexDescription(
@@ -588,16 +588,16 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In] DEBUG_EINDEX Which,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             [In] int BufferSize,
-            [Out] out uint DescSize);
+            out uint DescSize);
 
         [PreserveSig]
         int GetCurrentEventIndex(
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         int SetNextEventIndex(
             [In] DEBUG_EINDEX Relation,
             [In] uint Value,
-            [Out] out uint NextIndex);
+            out uint NextIndex);
     }
 }

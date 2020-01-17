@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out]
             IntPtr buffer,
             [In] int BufferSize,
-            [Out] out int BytesRead);
+            out int BytesRead);
 
         [PreserveSig]
         new int WriteVirtual(
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         new int SearchVirtual(
@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             byte[] pattern,
             [In] uint PatternSize,
             [In] uint PatternGranularity,
-            [Out] out ulong MatchOffset);
+            out ulong MatchOffset);
 
         [PreserveSig]
         new int ReadVirtualUncached(
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteVirtualUncached(
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadPointersVirtual(
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         new int WritePhysical(
@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadControl(
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteControl(
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] int BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadIo(
@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteIo(
@@ -123,12 +123,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadMsr(
             [In] uint Msr,
-            [Out] out ulong MsrValue);
+            out ulong MsrValue);
 
         [PreserveSig]
         new int WriteMsr(
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteBusData(
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            out uint BytesWritten);
 
         [PreserveSig]
         new int CheckLowMemory();
@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint DataSize);
+            out uint DataSize);
 
         [PreserveSig]
         new int ReadProcessorSystemData(
@@ -175,14 +175,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint DataSize);
+            out uint DataSize);
 
         /* IDebugDataSpaces2 */
 
         [PreserveSig]
         new int VirtualToPhysical(
             [In] ulong Virtual,
-            [Out] out ulong Physical);
+            out ulong Physical);
 
         [PreserveSig]
         new int GetVirtualTranslationPhysicalOffsets(
@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray)]
             ulong[] Offsets,
             [In] uint OffsetsSize,
-            [Out] out uint Levels);
+            out uint Levels);
 
         [PreserveSig]
         new int ReadHandleData(
@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint DataSize);
+            out uint DataSize);
 
         [PreserveSig]
         new int FillVirtual(
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] uint PatternSize,
-            [Out] out uint Filled);
+            out uint Filled);
 
         [PreserveSig]
         new int FillPhysical(
@@ -217,19 +217,19 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] uint PatternSize,
-            [Out] out uint Filled);
+            out uint Filled);
 
         [PreserveSig]
         new int QueryVirtual(
             [In] ulong Offset,
-            [Out] out MEMORY_BASIC_INFORMATION64 Info);
+            out MEMORY_BASIC_INFORMATION64 Info);
 
         /* IDebugDataSpaces3 */
 
         [PreserveSig]
         int ReadImageNtHeaders(
             [In] ulong ImageBase,
-            [Out] out IMAGE_NT_HEADERS64 Headers);
+            out IMAGE_NT_HEADERS64 Headers);
 
         [PreserveSig]
         int ReadTagged(
@@ -239,17 +239,17 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             [In] uint BufferSize,
-            [Out] out uint TotalSize);
+            out uint TotalSize);
 
         [PreserveSig]
         int StartEnumTagged(
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         int GetNextTagged(
             [In] ulong Handle,
-            [Out] out Guid Tag,
-            [Out] out uint Size);
+            out Guid Tag,
+            out uint Size);
 
         [PreserveSig]
         int EndEnumTagged(
