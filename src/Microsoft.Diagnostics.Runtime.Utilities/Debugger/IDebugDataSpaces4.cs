@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int ReadIo(
-            [In] INTERFACE_TYPE InterfaceType,
+            INTERFACE_TYPE InterfaceType,
             uint BusNumber,
             uint AddressSpace,
             ulong Offset,
@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int WriteIo(
-            [In] INTERFACE_TYPE InterfaceType,
+            INTERFACE_TYPE InterfaceType,
             uint BusNumber,
             uint AddressSpace,
             ulong Offset,
@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int ReadBusData(
-            [In] BUS_DATA_TYPE BusDataType,
+            BUS_DATA_TYPE BusDataType,
             uint BusNumber,
             uint SlotNumber,
             uint Offset,
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int WriteBusData(
-            [In] BUS_DATA_TYPE BusDataType,
+            BUS_DATA_TYPE BusDataType,
             uint BusNumber,
             uint SlotNumber,
             uint Offset,
@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int ReadProcessorSystemData(
             uint Processor,
-            [In] DEBUG_DATA Index,
+            DEBUG_DATA Index,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             uint BufferSize,
@@ -196,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int ReadHandleData(
             ulong Handle,
-            [In] DEBUG_HANDLE_DATA_TYPE DataType,
+            DEBUG_HANDLE_DATA_TYPE DataType,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             uint BufferSize,
@@ -260,8 +260,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOffsetInformation(
-            [In] DEBUG_DATA_SPACE Space,
-            [In] DEBUG_OFFSINFO Which,
+            DEBUG_DATA_SPACE Space,
+            DEBUG_OFFSINFO Which,
             ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
@@ -284,7 +284,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int SearchVirtual2(
             ulong Offset,
             ulong Length,
-            [In] DEBUG_VSEARCH Flags,
+            DEBUG_VSEARCH Flags,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
             uint PatternSize,
@@ -303,7 +303,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int ReadMultiByteStringVirtualWide(
             ulong Offset,
             uint MaxBytes,
-            [In] CODE_PAGE CodePage,
+            CODE_PAGE CodePage,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
             uint BufferSize,
             out uint StringBytes);
@@ -312,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int ReadUnicodeStringVirtual(
             ulong Offset,
             uint MaxBytes,
-            [In] CODE_PAGE CodePage,
+            CODE_PAGE CodePage,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             uint BufferSize,
             out uint StringBytes);
@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ReadPhysical2(
             ulong Offset,
-            [In] DEBUG_PHYSICAL Flags,
+            DEBUG_PHYSICAL Flags,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             uint BufferSize,
@@ -337,7 +337,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int WritePhysical2(
             ulong Offset,
-            [In] DEBUG_PHYSICAL Flags,
+            DEBUG_PHYSICAL Flags,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             uint BufferSize,

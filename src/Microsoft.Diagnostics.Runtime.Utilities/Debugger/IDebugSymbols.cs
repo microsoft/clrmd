@@ -21,15 +21,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int AddSymbolOptions(
-            [In] SYMOPT Options);
+            SYMOPT Options);
 
         [PreserveSig]
         int RemoveSymbolOptions(
-            [In] SYMOPT Options);
+            SYMOPT Options);
 
         [PreserveSig]
         int SetSymbolOptions(
-            [In] SYMOPT Options);
+            SYMOPT Options);
 
         [PreserveSig]
         int GetNameByOffset(
@@ -179,11 +179,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputTypedDataVirtual(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             ulong Offset,
             ulong Module,
             uint TypeId,
-            [In] DEBUG_TYPEOPTS Flags);
+            DEBUG_TYPEOPTS Flags);
 
         [PreserveSig]
         int ReadTypedDataPhysical(
@@ -205,11 +205,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputTypedDataPhysical(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             ulong Offset,
             ulong Module,
             uint TypeId,
-            [In] DEBUG_TYPEOPTS Flags);
+            DEBUG_TYPEOPTS Flags);
 
         [PreserveSig]
         int GetScope(
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetScopeSymbolGroup(
-            [In] DEBUG_SCOPE_GROUP Flags,
+            DEBUG_SCOPE_GROUP Flags,
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugSymbolGroup Update,
             [Out][MarshalAs(UnmanagedType.Interface)]
@@ -315,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int FindSourceFile(
             uint StartElement,
             [In][MarshalAs(UnmanagedType.LPStr)] string File,
-            [In] DEBUG_FIND_SOURCE Flags,
+            DEBUG_FIND_SOURCE Flags,
             out uint FoundElement,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             int BufferSize,

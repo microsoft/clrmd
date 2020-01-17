@@ -52,8 +52,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputSymbols(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_OUTPUT_SYMBOLS Flags,
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTPUT_SYMBOLS Flags,
             uint Start,
             uint Count);
 

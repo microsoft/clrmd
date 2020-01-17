@@ -56,8 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OutputRegisters(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_REGISTERS Flags);
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_REGISTERS Flags);
 
         [PreserveSig]
         new int GetInstructionOffset(
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetValues2(
-            [In] DEBUG_REGSRC Source,
+            DEBUG_REGSRC Source,
             uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
             uint Start,

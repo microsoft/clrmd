@@ -35,15 +35,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int AddFlags(
-            [In] DEBUG_BREAKPOINT_FLAG Flags);
+            DEBUG_BREAKPOINT_FLAG Flags);
 
         [PreserveSig]
         new int RemoveFlags(
-            [In] DEBUG_BREAKPOINT_FLAG Flags);
+            DEBUG_BREAKPOINT_FLAG Flags);
 
         [PreserveSig]
         new int SetFlags(
-            [In] DEBUG_BREAKPOINT_FLAG Flags);
+            DEBUG_BREAKPOINT_FLAG Flags);
 
         [PreserveSig]
         new int GetOffset(
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int SetDataParameters(
             uint Size,
-            [In] DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
+            DEBUG_BREAKPOINT_ACCESS_TYPE AccessType);
 
         [PreserveSig]
         new int GetPassCount(

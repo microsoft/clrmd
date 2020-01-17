@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadIo(
-            [In] INTERFACE_TYPE InterfaceType,
+            INTERFACE_TYPE InterfaceType,
             uint BusNumber,
             uint AddressSpace,
             ulong Offset,
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int WriteIo(
-            [In] INTERFACE_TYPE InterfaceType,
+            INTERFACE_TYPE InterfaceType,
             uint BusNumber,
             uint AddressSpace,
             ulong Offset,
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadBusData(
-            [In] BUS_DATA_TYPE BusDataType,
+            BUS_DATA_TYPE BusDataType,
             uint BusNumber,
             uint SlotNumber,
             uint Offset,
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int WriteBusData(
-            [In] BUS_DATA_TYPE BusDataType,
+            BUS_DATA_TYPE BusDataType,
             uint BusNumber,
             uint SlotNumber,
             uint Offset,
@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ReadProcessorSystemData(
             uint Processor,
-            [In] DEBUG_DATA Index,
+            DEBUG_DATA Index,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
             uint BufferSize,
@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadIo(
-            [In] INTERFACE_TYPE InterfaceType,
+            INTERFACE_TYPE InterfaceType,
             uint BusNumber,
             uint AddressSpace,
             ulong Offset,
@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int WriteIo(
-            [In] INTERFACE_TYPE InterfaceType,
+            INTERFACE_TYPE InterfaceType,
             uint BusNumber,
             uint AddressSpace,
             ulong Offset,
@@ -297,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int ReadBusData(
-            [In] BUS_DATA_TYPE BusDataType,
+            BUS_DATA_TYPE BusDataType,
             uint BusNumber,
             uint SlotNumber,
             uint Offset,
@@ -307,7 +307,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int WriteBusData(
-            [In] BUS_DATA_TYPE BusDataType,
+            BUS_DATA_TYPE BusDataType,
             uint BusNumber,
             uint SlotNumber,
             uint Offset,
@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int ReadProcessorSystemData(
             uint Processor,
-            [In] DEBUG_DATA Index,
+            DEBUG_DATA Index,
             IntPtr buffer,
             uint BufferSize,
             out uint DataSize);

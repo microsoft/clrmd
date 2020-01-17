@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int AttachKernel(
-            [In] DEBUG_ATTACH Flags,
+            DEBUG_ATTACH Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string ConnectOptions);
 
         [PreserveSig]
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int StartProcessServer(
-            [In] DEBUG_CLASS Flags,
+            DEBUG_CLASS Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Options,
             IntPtr Reserved);
 
@@ -57,14 +57,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int GetRunningProcessSystemIdByExecutableName(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
-            [In] DEBUG_GET_PROC Flags,
+            DEBUG_GET_PROC Flags,
             out uint Id);
 
         [PreserveSig]
         int GetRunningProcessDescription(
             ulong Server,
             uint SystemId,
-            [In] DEBUG_PROC_DESC Flags,
+            DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
             int ExeNameSize,
             out uint ActualExeNameSize,
@@ -76,21 +76,21 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int AttachProcess(
             ulong Server,
             uint ProcessID,
-            [In] DEBUG_ATTACH AttachFlags);
+            DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         int CreateProcess(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
-            [In] DEBUG_CREATE_PROCESS Flags);
+            DEBUG_CREATE_PROCESS Flags);
 
         [PreserveSig]
         int CreateProcessAndAttach(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
-            [In] DEBUG_CREATE_PROCESS Flags,
+            DEBUG_CREATE_PROCESS Flags,
             uint ProcessId,
-            [In] DEBUG_ATTACH AttachFlags);
+            DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         int GetProcessOptions(
@@ -98,15 +98,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int AddProcessOptions(
-            [In] DEBUG_PROCESS Options);
+            DEBUG_PROCESS Options);
 
         [PreserveSig]
         int RemoveProcessOptions(
-            [In] DEBUG_PROCESS Options);
+            DEBUG_PROCESS Options);
 
         [PreserveSig]
         int SetProcessOptions(
-            [In] DEBUG_PROCESS Options);
+            DEBUG_PROCESS Options);
 
         [PreserveSig]
         int OpenDumpFile(
@@ -115,11 +115,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int WriteDumpFile(
             [In][MarshalAs(UnmanagedType.LPStr)] string DumpFile,
-            [In] DEBUG_DUMP Qualifier);
+            DEBUG_DUMP Qualifier);
 
         [PreserveSig]
         int ConnectSession(
-            [In] DEBUG_CONNECT_SESSION Flags,
+            DEBUG_CONNECT_SESSION Flags,
             uint HistoryLimit);
 
         [PreserveSig]
@@ -128,9 +128,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputServer(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPStr)] string Machine,
-            [In] DEBUG_SERVERS Flags);
+            DEBUG_SERVERS Flags);
 
         [PreserveSig]
         int TerminateProcesses();
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int EndSession(
-            [In] DEBUG_END Flags);
+            DEBUG_END Flags);
 
         [PreserveSig]
         int GetExitCode(
@@ -188,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetOutputMask(
-            [In] DEBUG_OUTPUT Mask);
+            DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int GetOtherOutputMask(
@@ -200,7 +200,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int SetOtherOutputMask(
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugClient Client,
-            [In] DEBUG_OUTPUT Mask);
+            DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int GetOutputWidth(
@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputIdentity(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             uint Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 

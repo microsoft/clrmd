@@ -75,21 +75,21 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SessionStatus(
-            [In] DEBUG_SESSION Status);
+            DEBUG_SESSION Status);
 
         [PreserveSig]
         int ChangeDebuggeeState(
-            [In] DEBUG_CDS Flags,
+            DEBUG_CDS Flags,
             ulong Argument);
 
         [PreserveSig]
         int ChangeEngineState(
-            [In] DEBUG_CES Flags,
+            DEBUG_CES Flags,
             ulong Argument);
 
         [PreserveSig]
         int ChangeSymbolState(
-            [In] DEBUG_CSS Flags,
+            DEBUG_CSS Flags,
             ulong Argument);
     }
 }

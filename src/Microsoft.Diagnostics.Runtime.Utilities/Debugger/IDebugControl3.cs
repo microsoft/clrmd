@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetInterrupt(
-            [In] DEBUG_INTERRUPT Flags);
+            DEBUG_INTERRUPT Flags);
 
         [PreserveSig]
         new int GetInterruptTimeout(
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetLogMask(
-            [In] DEBUG_OUTPUT Mask);
+            DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         new int Input(
@@ -65,36 +65,36 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int Output(
-            [In] DEBUG_OUTPUT Mask,
+            DEBUG_OUTPUT Mask,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         [PreserveSig]
         new int OutputVaList( /* THIS SHOULD NEVER BE CALLED FROM C# */
-            [In] DEBUG_OUTPUT Mask,
+            DEBUG_OUTPUT Mask,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format,
             IntPtr va_list_Args);
 
         [PreserveSig]
         new int ControlledOutput(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_OUTPUT Mask,
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTPUT Mask,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         [PreserveSig]
         new int ControlledOutputVaList( /* THIS SHOULD NEVER BE CALLED FROM C# */
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_OUTPUT Mask,
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTPUT Mask,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format,
             IntPtr va_list_Args);
 
         [PreserveSig]
         new int OutputPrompt(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         [PreserveSig]
         new int OutputPromptVaList( /* THIS SHOULD NEVER BE CALLED FROM C# */
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format,
             IntPtr va_list_Args);
 
@@ -106,12 +106,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OutputCurrentState(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_CURRENT Flags);
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_CURRENT Flags);
 
         [PreserveSig]
         new int OutputVersionInformation(
-            [In] DEBUG_OUTCTL OutputControl);
+            DEBUG_OUTCTL OutputControl);
 
         [PreserveSig]
         new int GetNotifyEventHandle(
@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int Disassemble(
             ulong Offset,
-            [In] DEBUG_DISASM Flags,
+            DEBUG_DISASM Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             int BufferSize,
             out uint DisassemblySize,
@@ -142,18 +142,18 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OutputDisassembly(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             ulong Offset,
-            [In] DEBUG_DISASM Flags,
+            DEBUG_DISASM Flags,
             out ulong EndOffset);
 
         [PreserveSig]
         new int OutputDisassemblyLines(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             uint PreviousLines,
             uint TotalLines,
             ulong Offset,
-            [In] DEBUG_DISASM Flags,
+            DEBUG_DISASM Flags,
             out uint OffsetLine,
             out ulong StartOffset,
             out ulong EndOffset,
@@ -182,10 +182,10 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OutputStackTrace(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_STACK_FRAME[] Frames,
             int FramesSize,
-            [In] DEBUG_STACK Flags);
+            DEBUG_STACK Flags);
 
         [PreserveSig]
         new int GetDebuggeeType(
@@ -256,7 +256,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetProcessorTypeNames(
-            [In] IMAGE_FILE_MACHINE Type,
+            IMAGE_FILE_MACHINE Type,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder FullNameBuffer,
             int FullNameBufferSize,
             out uint FullNameSize,
@@ -270,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetEffectiveProcessorType(
-            [In] IMAGE_FILE_MACHINE Type);
+            IMAGE_FILE_MACHINE Type);
 
         [PreserveSig]
         new int GetExecutionStatus(
@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetExecutionStatus(
-            [In] DEBUG_STATUS Status);
+            DEBUG_STATUS Status);
 
         [PreserveSig]
         new int GetCodeLevel(
@@ -286,7 +286,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetCodeLevel(
-            [In] DEBUG_LEVEL Level);
+            DEBUG_LEVEL Level);
 
         [PreserveSig]
         new int GetEngineOptions(
@@ -294,15 +294,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int AddEngineOptions(
-            [In] DEBUG_ENGOPT Options);
+            DEBUG_ENGOPT Options);
 
         [PreserveSig]
         new int RemoveEngineOptions(
-            [In] DEBUG_ENGOPT Options);
+            DEBUG_ENGOPT Options);
 
         [PreserveSig]
         new int SetEngineOptions(
-            [In] DEBUG_ENGOPT Options);
+            DEBUG_ENGOPT Options);
 
         [PreserveSig]
         new int GetSystemErrorControl(
@@ -311,8 +311,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int SetSystemErrorControl(
-            [In] ERROR_LEVEL OutputLevel,
-            [In] ERROR_LEVEL BreakLevel);
+            ERROR_LEVEL OutputLevel,
+            ERROR_LEVEL BreakLevel);
 
         [PreserveSig]
         new int GetTextMacro(
@@ -337,14 +337,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         new int Evaluate(
             [In][MarshalAs(UnmanagedType.LPStr)] string Expression,
-            [In] DEBUG_VALUE_TYPE DesiredType,
+            DEBUG_VALUE_TYPE DesiredType,
             out DEBUG_VALUE Value,
             out uint RemainderIndex);
 
         [PreserveSig]
         new int CoerceValue(
-            [In] DEBUG_VALUE In,
-            [In] DEBUG_VALUE_TYPE OutType,
+            DEBUG_VALUE In,
+            DEBUG_VALUE_TYPE OutType,
             out DEBUG_VALUE Out);
 
         [PreserveSig]
@@ -357,15 +357,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int Execute(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPStr)] string Command,
-            [In] DEBUG_EXECUTE Flags);
+            DEBUG_EXECUTE Flags);
 
         [PreserveSig]
         new int ExecuteCommandFile(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandFile,
-            [In] DEBUG_EXECUTE Flags);
+            DEBUG_EXECUTE Flags);
 
         [PreserveSig]
         new int GetNumberBreakpoints(
@@ -393,7 +393,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int AddBreakpoint(
-            [In] DEBUG_BREAKPOINT_TYPE Type,
+            DEBUG_BREAKPOINT_TYPE Type,
             uint DesiredId,
             [Out][MarshalAs(UnmanagedType.Interface)]
             out IDebugBreakpoint Bp);
@@ -519,7 +519,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int WaitForEvent(
-            [In] DEBUG_WAIT Flags,
+            DEBUG_WAIT Flags,
             uint Timeout);
 
         [PreserveSig]
@@ -542,15 +542,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int AddAssemblyOptions(
-            [In] DEBUG_ASMOPT Options);
+            DEBUG_ASMOPT Options);
 
         [PreserveSig]
         int RemoveAssemblyOptions(
-            [In] DEBUG_ASMOPT Options);
+            DEBUG_ASMOPT Options);
 
         [PreserveSig]
         int SetAssemblyOptions(
-            [In] DEBUG_ASMOPT Options);
+            DEBUG_ASMOPT Options);
 
         [PreserveSig]
         int GetExpressionSyntax(
@@ -558,7 +558,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetExpressionSyntax(
-            [In] DEBUG_EXPR Flags);
+            DEBUG_EXPR Flags);
 
         [PreserveSig]
         int SetExpressionSyntaxByName(
@@ -585,7 +585,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetEventIndexDescription(
             uint Index,
-            [In] DEBUG_EINDEX Which,
+            DEBUG_EINDEX Which,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             int BufferSize,
             out uint DescSize);
@@ -596,7 +596,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int SetNextEventIndex(
-            [In] DEBUG_EINDEX Relation,
+            DEBUG_EINDEX Relation,
             uint Value,
             out uint NextIndex);
     }

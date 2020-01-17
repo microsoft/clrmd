@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int Request(
-            [In] DEBUG_REQUEST Request,
+            DEBUG_REQUEST Request,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] inBuffer,
             int InBufferSize,
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetSourceFileInformation(
-            [In] DEBUG_SRCFILE Which,
+            DEBUG_SRCFILE Which,
             [In][MarshalAs(UnmanagedType.LPStr)] string SourceFile,
             ulong Arg64,
             uint Arg32,
@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             uint StartElement,
             ulong ModAddr,
             [In][MarshalAs(UnmanagedType.LPStr)] string File,
-            [In] DEBUG_FIND_SOURCE Flags,
+            DEBUG_FIND_SOURCE Flags,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
             int FileTokenSize,
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetSymbolInformation(
-            [In] DEBUG_SYMINFO Which,
+            DEBUG_SYMINFO Which,
             ulong Arg64,
             uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetSystemObjectInformation(
-            [In] DEBUG_SYSOBJINFO Which,
+            DEBUG_SYSOBJINFO Which,
             ulong Arg64,
             uint Arg32,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]

@@ -56,8 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputRegisters(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_REGISTERS Flags);
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_REGISTERS Flags);
 
         [PreserveSig]
         int GetInstructionOffset(

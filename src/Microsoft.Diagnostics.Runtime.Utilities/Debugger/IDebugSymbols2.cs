@@ -21,15 +21,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int AddSymbolOptions(
-            [In] SYMOPT Options);
+            SYMOPT Options);
 
         [PreserveSig]
         new int RemoveSymbolOptions(
-            [In] SYMOPT Options);
+            SYMOPT Options);
 
         [PreserveSig]
         new int SetSymbolOptions(
-            [In] SYMOPT Options);
+            SYMOPT Options);
 
         [PreserveSig]
         new int GetNameByOffset(
@@ -179,11 +179,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OutputTypedDataVirtual(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             ulong Offset,
             ulong Module,
             uint TypeId,
-            [In] DEBUG_TYPEOPTS Flags);
+            DEBUG_TYPEOPTS Flags);
 
         [PreserveSig]
         new int ReadTypedDataPhysical(
@@ -205,11 +205,11 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int OutputTypedDataPhysical(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             ulong Offset,
             ulong Module,
             uint TypeId,
-            [In] DEBUG_TYPEOPTS Flags);
+            DEBUG_TYPEOPTS Flags);
 
         [PreserveSig]
         new int GetScope(
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int GetScopeSymbolGroup(
-            [In] DEBUG_SCOPE_GROUP Flags,
+            DEBUG_SCOPE_GROUP Flags,
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugSymbolGroup Update,
             [Out][MarshalAs(UnmanagedType.Interface)]
@@ -315,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         new int FindSourceFile(
             uint StartElement,
             [In][MarshalAs(UnmanagedType.LPStr)] string File,
-            [In] DEBUG_FIND_SOURCE Flags,
+            DEBUG_FIND_SOURCE Flags,
             out uint FoundElement,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
             int BufferSize,
@@ -343,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetModuleNameString(
-            [In] DEBUG_MODNAME Which,
+            DEBUG_MODNAME Which,
             uint Index,
             ulong Base,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
@@ -374,14 +374,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int AddTypeOptions(
-            [In] DEBUG_TYPEOPTS Options);
+            DEBUG_TYPEOPTS Options);
 
         [PreserveSig]
         int RemoveTypeOptions(
-            [In] DEBUG_TYPEOPTS Options);
+            DEBUG_TYPEOPTS Options);
 
         [PreserveSig]
         int SetTypeOptions(
-            [In] DEBUG_TYPEOPTS Options);
+            DEBUG_TYPEOPTS Options);
     }
 }
