@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int Exception(
-            [In] ref EXCEPTION_RECORD64 Exception,
+            in EXCEPTION_RECORD64 Exception,
             uint FirstChance,
             [In] DEBUG_EVENT_CONTEXT* Context,
             uint ContextSize);

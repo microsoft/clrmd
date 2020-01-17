@@ -447,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int CreateProcess2(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
-            [In] ref DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
+            in DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
             uint OptionsBufferSize,
             [In][MarshalAs(UnmanagedType.LPStr)] string InitialDirectory,
             [In][MarshalAs(UnmanagedType.LPStr)] string Environment);
@@ -456,7 +456,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int CreateProcess2Wide(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPWStr)] string CommandLine,
-            [In] ref DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
+            in DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
             uint OptionsBufferSize,
             [In][MarshalAs(UnmanagedType.LPWStr)] string InitialDirectory,
             [In][MarshalAs(UnmanagedType.LPWStr)] string Environment);
@@ -465,7 +465,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int CreateProcessAndAttach2(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
-            [In] ref DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
+            in DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
             uint OptionsBufferSize,
             [In][MarshalAs(UnmanagedType.LPStr)] string InitialDirectory,
             [In][MarshalAs(UnmanagedType.LPStr)] string Environment,
@@ -476,7 +476,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int CreateProcessAndAttach2Wide(
             ulong Server,
             [In][MarshalAs(UnmanagedType.LPWStr)] string CommandLine,
-            [In] ref DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
+            in DEBUG_CREATE_PROCESS_OPTIONS OptionsBuffer,
             uint OptionsBufferSize,
             [In][MarshalAs(UnmanagedType.LPWStr)] string InitialDirectory,
             [In][MarshalAs(UnmanagedType.LPWStr)] string Environment,
