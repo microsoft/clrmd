@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             [DllImport(Kernel32LibraryName, SetLastError = true)]
             public static extern bool CloseHandle(IntPtr hObject);
 
-            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            [DllImport("psapi.dll", SetLastError = true)]
             public static extern unsafe bool EnumProcesses(int[] lpidProcess, int cb, out int lpcbNeeded);
 
             [DllImport(Kernel32LibraryName)]
