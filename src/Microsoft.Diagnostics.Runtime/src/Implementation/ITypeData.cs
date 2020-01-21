@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         bool IsShared { get; }
         bool ContainsPointers { get; }
-        uint Token { get; }
+        int Token { get; }
         ulong MethodTable { get; }
         // Currently no runtime emits this, but opportunistically I'd like to see it work.
         ulong ComponentMethodTable { get; }

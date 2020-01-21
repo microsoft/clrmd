@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override int Size => ClrmdField.GetSize(Type, ElementType);
 
-        public override uint Token { get; }
+        public override int Token { get; }
         public override int Offset { get; }
 
         public override ClrType Parent { get; }

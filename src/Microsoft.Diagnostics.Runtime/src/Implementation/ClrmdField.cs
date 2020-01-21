@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override int Size => GetSize(Type, ElementType);
 
-        public override uint Token { get; }
+        public override int Token { get; }
         public override int Offset { get; }
 
         public override ClrType Parent { get; }
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     if (module != null)
                     {
-                        ClrType? innerType = factory.GetOrCreateTypeFromToken(module, (uint)token);
+                        ClrType? innerType = factory.GetOrCreateTypeFromToken(module, token);
                         if (innerType is null)
                             innerType = factory.GetOrCreateBasicType(type);
 
@@ -227,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         sigParser.GetToken(out token);
 
                     if (token != 0 && module != null)
-                        result = factory.GetOrCreateTypeFromToken(module, (uint)token);
+                        result = factory.GetOrCreateTypeFromToken(module, token);
 
                     if (result is null)
                         result = factory.GetOrCreateBasicType((ClrElementType)etype);
@@ -259,7 +259,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     sigParser.GetToken(out token);
 
                 if (token != 0 && module != null)
-                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, (uint)token));
+                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, token));
                 else
                     clrmdType.SetComponentType(factory.GetOrCreateBasicType((ClrElementType)etype));
             }

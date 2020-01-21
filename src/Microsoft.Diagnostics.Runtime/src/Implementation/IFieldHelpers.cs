@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
-        bool ReadProperties(ClrType parentType, uint token, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser);
+        bool ReadProperties(ClrType parentType, int token, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser);
         ulong GetStaticFieldAddress(ClrStaticField field, ClrAppDomain? appDomain);
     }
 }

@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the metadata token of this type.
         /// </summary>
-        public abstract uint MetadataToken { get; }
+        public abstract int MetadataToken { get; }
 
         /// <summary>
         /// Gets the name of this type.

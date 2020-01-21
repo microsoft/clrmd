@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly MethodAttributes _attrs;
 
         public override ulong MethodDesc { get; }
-        public override uint MetadataToken { get; }
+        public override int MetadataToken { get; }
         public override ClrType Type { get; }
         public override string? Signature
         {
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (mdImport is null)
                 return null;
 
-            uint rva = mdImport.GetRva((int)MetadataToken);
+            uint rva = mdImport.GetRva(MetadataToken);
 
             ulong il = _helpers.GetILForModule(module.Address, rva);
             if (il != 0)

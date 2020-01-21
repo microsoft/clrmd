@@ -352,7 +352,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             dt.CacheOptions.CacheTypes = false;
 
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            foreach ((ulong mt, uint _) in runtime.BaseClassLibrary.EnumerateTypeDefToMethodTableMap())
+            foreach ((ulong mt, int _) in runtime.BaseClassLibrary.EnumerateTypeDefToMethodTableMap())
             {
                 ClrType type = runtime.GetTypeByMethodTable(mt);
                 if (type != null && type.IsPrimitive)
