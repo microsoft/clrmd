@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _pid = processId;
             }
 
-            _process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
+            _process = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
 
             if (_process == IntPtr.Zero)
             {
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 if (_process != IntPtr.Zero)
-                    CloseHandle(_process);
+                    WindowsFunctions.NativeMethods.CloseHandle(_process);
 
                 _disposed = true;
             }
@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 StringBuilder sb = new StringBuilder(1024);
-                uint res = GetModuleFileNameExA(_process, ptr, sb, sb.Capacity);
+                uint res = GetModuleFileNameEx(_process, ptr, sb, sb.Capacity);
                 DebugOnly.Assert(res != 0);
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void GetVersionInfo(ulong addr, out VersionInfo version)
         {
             StringBuilder fileName = new StringBuilder(1024);
-            uint res = GetModuleFileNameExA(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
+            uint res = GetModuleFileNameEx(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
             DebugOnly.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 fixed (byte* ptr = buffer)
                 {
-                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, buffer.Length, out IntPtr read);
+                    int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, new IntPtr(buffer.Length), out IntPtr read);
                     bytesRead = (int)read;
                     return res != 0;
                 }
@@ -231,12 +231,11 @@ namespace Microsoft.Diagnostics.Runtime
                 yield return (uint)threads[i].Id;
         }
 
-        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
+        public unsafe bool QueryMemory(ulong address, out MemoryRegionInfo vq)
         {
-            MEMORY_BASIC_INFORMATION mem = default;
             IntPtr ptr = address.AsIntPtr();
 
-            int res = VirtualQueryEx(_process, ptr, ref mem, new IntPtr(Marshal.SizeOf(mem)));
+            int res = VirtualQueryEx(_process, ptr, out MEMORY_BASIC_INFORMATION mem, new IntPtr(sizeof(MEMORY_BASIC_INFORMATION)));
             if (res == 0)
             {
                 vq = default;
@@ -290,49 +289,42 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool CloseHandle(IntPtr hObject);
+        private const string Kernel32LibraryName = "kernel32.dll";
 
         [DllImport("psapi.dll", SetLastError = true)]
         public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
-        [DllImport("psapi.dll", SetLastError = true)]
+        [DllImport("psapi.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "GetModuleFileNameExW")]
         [PreserveSig]
-        public static extern uint GetModuleFileNameExA([In] IntPtr hProcess, [In] IntPtr hModule, [Out] StringBuilder lpFilename, [In][MarshalAs(UnmanagedType.U4)] int nSize);
+        public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
 
-        [DllImport("kernel32.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport(Kernel32LibraryName)]
         private static extern int ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
             byte* lpBuffer,
-            int dwSize,
+            IntPtr dwSize,
             out IntPtr lpNumberOfBytesRead);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, ref MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
+        internal static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, IntPtr dwLength);
 
-        [DllImport("kernel32.dll")]
+        [DllImport(Kernel32LibraryName)]
         private static extern bool GetThreadContext(IntPtr hThread, IntPtr lpContext);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
         private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, out IntPtr SnapshotHandle);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int PssFreeSnapshot(IntPtr ProcessHandle, IntPtr SnapshotHandle);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int PssQuerySnapshot(IntPtr SnapshotHandle, PSS_QUERY_INFORMATION_CLASS InformationClass, out IntPtr Buffer, int BufferLength);
 
-        [DllImport("kernel32")]
+        [DllImport(Kernel32LibraryName)]
         private static extern int GetProcessId(IntPtr hObject);
-
-        [DllImport("kernel32.dll")]
-        internal static extern int ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, IntPtr lpBuffer, int dwSize, out int lpNumberOfBytesRead);
     }
 }

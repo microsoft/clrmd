@@ -94,12 +94,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public override IntPtr LoadLibrary(string lpFileName)
         {
-            return NativeMethods.LoadLibraryEx(lpFileName, 0, NativeMethods.LoadLibraryFlags.NoFlags);
+            return NativeMethods.LoadLibrary(lpFileName);
         }
 
         internal static class NativeMethods
         {
             private const string Kernel32LibraryName = "kernel32.dll";
+            private const string VersionLibraryName = "version.dll";
 
             public const int PROCESS_QUERY_INFORMATION = 0x0400;
 
@@ -109,51 +110,30 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             [DllImport(Kernel32LibraryName, SetLastError = true)]
             public static extern bool CloseHandle(IntPtr hObject);
 
-            [DllImport(Kernel32LibraryName, SetLastError = true)]
+            [DllImport("psapi.dll", SetLastError = true)]
             public static extern unsafe bool EnumProcesses(int[] lpidProcess, int cb, out int lpcbNeeded);
-
-            public const uint FILE_MAP_READ = 4;
 
             [DllImport(Kernel32LibraryName)]
             [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool FreeLibrary(IntPtr hModule);
 
-            public static IntPtr LoadLibrary(string lpFileName)
-            {
-                return LoadLibraryEx(lpFileName, 0, LoadLibraryFlags.NoFlags);
-            }
+            [DllImport(Kernel32LibraryName, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "LoadLibraryW")]
+            public static extern IntPtr LoadLibrary(string lpLibFileName);
 
-            [DllImport(Kernel32LibraryName, SetLastError = true)]
-            public static extern IntPtr LoadLibraryEx(string fileName, int hFile, LoadLibraryFlags dwFlags);
-
-            [Flags]
-            public enum LoadLibraryFlags : uint
-            {
-                NoFlags = 0x00000000,
-                DontResolveDllReferences = 0x00000001,
-                LoadIgnoreCodeAuthzLevel = 0x00000010,
-                LoadLibraryAsDatafile = 0x00000002,
-                LoadLibraryAsDatafileExclusive = 0x00000040,
-                LoadLibraryAsImageResource = 0x00000020,
-                LoadWithAlteredSearchPath = 0x00000008
-            }
-
-            [DllImport("kernel32.dll")]
+            [DllImport(Kernel32LibraryName)]
             [return: MarshalAs(UnmanagedType.Bool)]
-            public static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool isWow64);
+            public static extern bool IsWow64Process(IntPtr hProcess, out bool isWow64);
 
-            [DllImport("version.dll")]
+            [DllImport(VersionLibraryName, CharSet = CharSet.Unicode, EntryPoint = "GetFileVersionInfoW")]
             public static extern bool GetFileVersionInfo(string sFileName, int handle, int size, byte* infoBuffer);
 
-            [DllImport("version.dll")]
+            [DllImport(VersionLibraryName, CharSet = CharSet.Unicode, EntryPoint = "GetFileVersionInfoSizeW")]
             public static extern int GetFileVersionInfoSize(string sFileName, out int handle);
 
-            [DllImport("version.dll")]
+            [DllImport(VersionLibraryName, CharSet = CharSet.Unicode, EntryPoint = "VerQueryValueW")]
             public static extern bool VerQueryValue(byte* pBlock, string pSubBlock, out IntPtr val, out int len);
 
-            public static short IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
-
-            [DllImport("kernel32.dll")]
+            [DllImport(Kernel32LibraryName)]
             public static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
         }
 
