@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type token of this field.
         /// </summary>
-        public abstract uint Token { get; }
+        public abstract int Token { get; }
 
         /// <summary>
         /// Gets the type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions

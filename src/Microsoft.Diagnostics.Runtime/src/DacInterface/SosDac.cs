@@ -676,7 +676,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
+        public delegate void ModuleMapTraverse(int index, ulong methodTable, IntPtr token);
 
         public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
@@ -732,7 +732,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
         }
 
-        public ulong GetMethodDescFromToken(ulong module, uint token)
+        public ulong GetMethodDescFromToken(ulong module, int token)
         {
             InitDelegate(ref _getMethodDescFromToken, VTable.GetMethodDescFromToken);
 
@@ -744,7 +744,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ClrDataAddress methodDesc);
+        private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, int token, out ClrDataAddress methodDesc);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[]? rejitData, out int needed);

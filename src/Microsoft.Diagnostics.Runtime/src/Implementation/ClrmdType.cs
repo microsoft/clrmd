@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return _gcDesc = new GCDesc(buffer);
         }
 
-        public override uint MetadataToken { get; }
+        public override int MetadataToken { get; }
 
         public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters()
         {
@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (import is null)
                 yield break;
 
-            foreach (int token in import.EnumerateGenericParams((int)MetadataToken))
+            foreach (int token in import.EnumerateGenericParams(MetadataToken))
                 if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
                     yield return new ClrGenericParameter(token, index, attributes, name);
         }
@@ -359,7 +359,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return;
             }
 
-            if (!import.GetTypeDefAttributes((int)MetadataToken, out _attributes) || _attributes == 0)
+            if (!import.GetTypeDefAttributes(MetadataToken, out _attributes) || _attributes == 0)
                 _attributes = (TypeAttributes)0x70000000;
         }
 

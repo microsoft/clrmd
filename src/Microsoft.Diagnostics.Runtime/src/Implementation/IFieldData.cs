@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IFieldHelpers Helpers { get; }
 
         ClrElementType ElementType { get; }
-        uint Token { get; }
+        int Token { get; }
         int Offset { get; }
         ulong TypeMethodTable { get; }
     }

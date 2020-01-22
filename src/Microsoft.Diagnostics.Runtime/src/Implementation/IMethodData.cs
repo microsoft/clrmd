@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IMethodHelpers Helpers { get; }
 
         ulong MethodDesc { get; }
-        uint Token { get; }
+        int Token { get; }
         MethodCompilationType CompilationType { get; }
         ulong HotStart { get; }
         uint HotSize { get; }

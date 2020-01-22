@@ -101,14 +101,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
         /// </summary>
         /// <returns>An enumeration of (ulong methodTable, uint typeDef).</returns>
-        public abstract IEnumerable<(ulong, uint)> EnumerateTypeDefToMethodTableMap();
+        public abstract IEnumerable<(ulong, int)> EnumerateTypeDefToMethodTableMap();
 
         /// <summary>
         /// Resolves the give metdata token for this module.
         /// </summary>
         /// <param name="typeDefOrRefToken">A typedef or typeref token.</param>
         /// <returns>The ClrType of the resolved token, <see langword="null"/> if not found or if a type for the token hasn't been constructed by the runtime.</returns>
-        public abstract ClrType? ResolveToken(uint typeDefOrRefToken);
+        public abstract ClrType? ResolveToken(int typeDefOrRefToken);
 
         /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to

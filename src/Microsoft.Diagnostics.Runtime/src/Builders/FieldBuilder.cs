@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ClrElementType ElementType => (ClrElementType)_fieldData.ElementType;
 
-        public uint Token => _fieldData.FieldToken;
+        public int Token => (int)_fieldData.FieldToken;
 
         public int Offset => (int)_fieldData.Offset;
 

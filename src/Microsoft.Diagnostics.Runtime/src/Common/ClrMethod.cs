@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the metadata token of the current method.
         /// </summary>
-        public abstract uint MetadataToken { get; }
+        public abstract int MetadataToken { get; }
 
         /// <summary>
         /// Gets the enclosing type of this method.

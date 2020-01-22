@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ITypeHelpers Helpers => _helpers!;
         public bool IsShared => _mtData.Shared != 0;
-        public uint Token => _mtData.Token;
+        public int Token => (int)_mtData.Token;
         public ulong MethodTable { get; private set; }
         public ulong ComponentMethodTable => 0;
         public int BaseSize => (int)_mtData.BaseSize;

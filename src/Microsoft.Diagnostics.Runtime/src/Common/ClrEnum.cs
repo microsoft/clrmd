@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
             List<(string, object?)> values = new List<(string, object?)>();
             elementType = ClrElementType.Unknown;
 
-            foreach (uint token in import.EnumerateFields((int)Type.MetadataToken))
+            foreach (int token in import.EnumerateFields(Type.MetadataToken))
             {
                 if (import.GetFieldProps(token, out string? name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
                 {

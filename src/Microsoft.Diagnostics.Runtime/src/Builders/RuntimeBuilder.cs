@@ -692,14 +692,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         // construct the type.  This will alleviate a lot of needless memory usage when we do something like
         // search all modules for a named type we never find.
         string? IModuleHelpers.GetTypeName(ulong mt) => FixGenerics(_sos.GetMethodTableName(mt));
-        IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
-        IReadOnlyList<(ulong, uint)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
+        IReadOnlyList<(ulong, int)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
+        IReadOnlyList<(ulong, int)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
-        private IReadOnlyList<(ulong, uint)> GetSortedMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
+        private IReadOnlyList<(ulong, int)> GetSortedMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
         {
             CheckDisposed();
 
-            List<(ulong, uint)> result = new List<(ulong, uint)>();
+            List<(ulong, int)> result = new List<(ulong, int)>();
             uint lastToken = 0;
             bool sorted = true;
             _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
@@ -731,7 +731,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 ClrModule bcl = GetOrCreateRuntime().BaseClassLibrary;
                 if (bcl != null && bcl.MetadataImport != null)
                 {
-                    foreach ((ulong mt, uint token) in bcl.EnumerateTypeDefToMethodTableMap())
+                    foreach ((ulong mt, int _) in bcl.EnumerateTypeDefToMethodTableMap())
                     {
                         string? name = _sos.GetMethodTableName(mt);
                         ClrElementType type = name switch
@@ -865,7 +865,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        public ClrType? GetOrCreateTypeFromToken(ClrModule module, uint token) => module.ResolveToken(token);
+        public ClrType? GetOrCreateTypeFromToken(ClrModule module, int token) => module.ResolveToken(token);
 
         public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdConstructedType(innerType, ranks, pointer: false) : null;
         public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdConstructedType(innerType, depth, pointer: true) : null;
@@ -1063,7 +1063,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result.MoveToImmutable();
         }
 
-        bool IFieldHelpers.ReadProperties(ClrType type, uint fieldToken, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
+        bool IFieldHelpers.ReadProperties(ClrType type, int fieldToken, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
         {
             CheckDisposed();
 
@@ -1123,9 +1123,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        private bool IsInitialized(in DomainLocalModuleData data, uint token)
+        private bool IsInitialized(in DomainLocalModuleData data, int token)
         {
-            ulong flagsAddr = data.ClassData + (token & ~0x02000000u) - 1;
+            ulong flagsAddr = data.ClassData + (uint)(token & ~0x02000000u) - 1;
             if (!DataReader.Read(flagsAddr, out byte flags))
                 return false;
 

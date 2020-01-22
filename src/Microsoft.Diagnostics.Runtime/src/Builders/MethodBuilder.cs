@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ObjectPool<MethodBuilder>? Owner { get; set; }
         public IMethodHelpers Helpers => _helpers!;
 
-        public uint Token => _mdData.MDToken;
+        public int Token => (int)_mdData.MDToken;
 
         public ulong MethodDesc { get; private set; }
         public MethodCompilationType CompilationType => (MethodCompilationType)_codeHeaderData.JITType;

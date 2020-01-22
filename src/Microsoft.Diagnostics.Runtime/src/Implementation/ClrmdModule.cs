@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
-        private IReadOnlyList<(ulong, uint)>? _typeDefMap;
-        private IReadOnlyList<(ulong, uint)>? _typeRefMap;
+        private IReadOnlyList<(ulong, int)>? _typeDefMap;
+        private IReadOnlyList<(ulong, int)>? _typeRefMap;
 
         public override ClrAppDomain AppDomain { get; }
         public override string? Name { get; }
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (int)DebuggableAttribute.DebuggingModes.None;
         }
 
-        public override IEnumerable<(ulong, uint)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
+        public override IEnumerable<(ulong, int)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
 
         public override ClrType? GetTypeByName(string name)
         {
@@ -124,11 +124,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (name.Length == 0)
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
-            IReadOnlyList<(ulong, uint)> typeDefMap = _helpers.GetSortedTypeDefMap(this);
+            IReadOnlyList<(ulong, int)> typeDefMap = _helpers.GetSortedTypeDefMap(this);
 
             List<ulong> lookup = new List<ulong>(Math.Min(256, typeDefMap.Count));
 
-            foreach ((ulong mt, uint _) in EnumerateTypeDefToMethodTableMap())
+            foreach ((ulong mt, int _) in EnumerateTypeDefToMethodTableMap())
             {
                 ClrType? type = _helpers.TryGetType(mt);
                 if (type is null)
@@ -151,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override ClrType? ResolveToken(uint typeDefOrRefToken)
+        public override ClrType? ResolveToken(int typeDefOrRefToken)
         {
             ClrHeap? heap = AppDomain?.Runtime?.Heap;
             if (heap is null)
                 return null;
 
-            IReadOnlyList<(ulong, uint)> map;
+            IReadOnlyList<(ulong, int)> map;
             if ((typeDefOrRefToken & 0x02000000) != 0)
                 map = _typeDefMap ??= _helpers.GetSortedTypeDefMap(this);
             else if ((typeDefOrRefToken & 0x01000000) != 0)
@@ -165,13 +165,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
 
-            int index = map.Search(typeDefOrRefToken & ~0xff000000, CompareTo);
+            int index = map.Search(typeDefOrRefToken & (int)~0xff000000, CompareTo);
             if (index == -1)
                 return null;
 
             return _helpers.Factory.GetOrCreateType(map[index].Item1, 0);
         }
 
-        private static int CompareTo((ulong, uint) entry, uint token) => entry.Item2.CompareTo(token);
+        private static int CompareTo((ulong, int) entry, int token) => entry.Item2.CompareTo(token);
     }
 }

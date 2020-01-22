@@ -40,12 +40,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly IMetaDataImportVTable VTable => ref Unsafe.AsRef<IMetaDataImportVTable>(_vtable);
 
-        public IEnumerable<uint> EnumerateInterfaceImpls(uint token)
+        public IEnumerable<int> EnumerateInterfaceImpls(int token)
         {
             InitDelegate(ref _enumInterfaceImpls, VTable.EnumInterfaceImpls);
 
             IntPtr handle = IntPtr.Zero;
-            uint[] tokens = ArrayPool<uint>.Shared.Rent(32);
+            int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
             {
                 int hr;
@@ -58,11 +58,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (handle != IntPtr.Zero)
                     CloseEnum(handle);
 
-                ArrayPool<uint>.Shared.Return(tokens);
+                ArrayPool<int>.Shared.Return(tokens);
             }
         }
 
-        public MethodAttributes GetMethodAttributes(uint token)
+        public MethodAttributes GetMethodAttributes(int token)
         {
             InitDelegate(ref _getMethodProps, VTable.GetMethodProps);
 
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        public bool GetFieldProps(uint token, out string? name, out FieldAttributes attrs, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue)
+        public bool GetFieldProps(int token, out string? name, out FieldAttributes attrs, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue)
         {
             InitDelegate(ref _getFieldProps, VTable.GetFieldProps);
 
@@ -137,12 +137,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return false;
         }
 
-        public IEnumerable<uint> EnumerateFields(int token)
+        public IEnumerable<int> EnumerateFields(int token)
         {
             InitDelegate(ref _enumFields, VTable.EnumFields);
 
             IntPtr handle = IntPtr.Zero;
-            uint[] tokens = ArrayPool<uint>.Shared.Rent(32);
+            int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
             {
                 int hr;
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (handle != IntPtr.Zero)
                     CloseEnum(handle);
 
-                ArrayPool<uint>.Shared.Return(tokens);
+                ArrayPool<int>.Shared.Return(tokens);
             }
         }
 
@@ -254,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int CloseEnumDelegate(IntPtr self, IntPtr e);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int EnumInterfaceImplsDelegate(IntPtr self, ref IntPtr phEnum, uint td, [Out] uint[] rImpls, int cMax, out int pCount);
+        private delegate int EnumInterfaceImplsDelegate(IntPtr self, ref IntPtr phEnum, int td, [Out] int[] rImpls, int cMax, out int pCount);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetInterfaceImplPropsDelegate(IntPtr self, int mdImpl, out int mdClass, out int mdIFace);
@@ -279,7 +279,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             out int ptkExtends);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int EnumFieldsDelegate(IntPtr self, ref IntPtr phEnum, int cl, uint[] mdFieldDef, int cMax, out int pcTokens);
+        private delegate int EnumFieldsDelegate(IntPtr self, ref IntPtr phEnum, int cl, int[] mdFieldDef, int cMax, out int pcTokens);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetRVADelegate(IntPtr self, int token, out uint pRva, out uint flags);
@@ -287,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodPropsDelegate(
             IntPtr self,
-            uint md,
+            int md,
             out int pClass,
             StringBuilder? szMethod,
             int cchMethod,
@@ -304,7 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetFieldPropsDelegate(
             IntPtr self,
-            uint mb,
+            int mb,
             out int mdTypeDef,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szField,
             int cchField,

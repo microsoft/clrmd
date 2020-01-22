@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
-        ClrType? GetOrCreateTypeFromToken(ClrModule module, uint token);
+        ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
         ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
         ClrMethod? CreateMethodFromHandle(ulong methodHandle);
     }

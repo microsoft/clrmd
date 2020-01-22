@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override T[]? GetArrayElementValues<T>(ulong objRef, int count) => null;
         public override int StaticSize => IntPtr.Size;
         public override GCDesc GCDesc => default;
-        public override uint MetadataToken => 0;
+        public override int MetadataToken => 0;
         public override bool IsArray => !IsPointer;
         public override int ComponentSize => IntPtr.Size;
     }
