@@ -13,15 +13,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public sealed class SymbolServerLocator : IBinaryLocator
     {
+        public string SymbolPath { get; }
+
         private readonly string _cache = string.Empty;
         private readonly SymbolPathEntry[] _paths;
         private readonly Dictionary<string, Task<string?>> _queries = new Dictionary<string, Task<string?>>();
 
-        public SymbolServerLocator(string? symbolServer)
+        public SymbolServerLocator(string? symbolPath)
         {
-            symbolServer ??= string.Empty;
+            symbolPath ??= string.Empty;
 
-            string[] entries = symbolServer.Split(';');
+            SymbolPath = symbolPath;
+
+            string[] entries = symbolPath.Split(';');
 
             List<SymbolPathEntry> paths = new List<SymbolPathEntry>(8);
             foreach (string entry in entries)
