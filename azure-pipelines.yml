@@ -25,10 +25,10 @@ jobs:
     jobs:
     - job: Windows_NT
       pool:
-        ${{ if or(eq(variables['System.TeamProject'], 'public'), in(variables['Build.Reason'], 'PullRequest')) }}:
+        ${{ if eq(variables['System.TeamProject'], 'public') }}:
           name: NetCorePublic-Pool
           queue: BuildPool.Windows.10.Amd64.VS2017.Open
-        ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
+        ${{ if eq(variables['System.TeamProject'], 'internal') }}:
           name: NetCoreInternal-Pool
           queue: BuildPool.Windows.10.Amd64.VS2017
       variables:
@@ -79,8 +79,12 @@ jobs:
           summaryFileLocation: '$(Build.SourcesDirectory)\src\*\coverage.cobertura.xml'
     - job: Linux
       pool:
-        name: NetCorePublic-Pool
-        queue: BuildPool.Ubuntu.1604.Amd64.Open
+        ${{ if eq(variables['System.TeamProject'], 'public') }}:
+          name: NetCorePublic-Pool
+          queue: BuildPool.Ubuntu.1604.Amd64.Open
+        ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+          name: NetCoreInternal-Pool
+          queue: BuildPool.Ubuntu.1604.Amd64
       strategy:
         matrix:
           debug:
