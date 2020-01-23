@@ -163,7 +163,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
                         image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
 
-                    ElfProgramHeader? programHeader = ElfFile.ProgramHeaders.FirstOrDefault(s => (ulong)s.VirtualAddress == fileTable[i].Start);
+                    ulong fileStart = fileTable[i].Start;
+                    ElfProgramHeader? programHeader = ElfFile.ProgramHeaders.FirstOrDefault(
+                        s => (ulong)s.VirtualAddress <= fileStart && fileStart < (ulong)s.VirtualAddress + (ulong)s.VirtualSize);
                     bool isExecutable = programHeader?.IsExecutable ?? false;
 
                     image.AddTableEntryPointers(fileTable[i], isExecutable);
