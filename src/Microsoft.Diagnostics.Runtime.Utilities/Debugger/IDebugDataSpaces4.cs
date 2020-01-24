@@ -17,330 +17,330 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         new int ReadVirtual(
-            [In] ulong Offset,
+            ulong Offset,
             [Out]
             IntPtr buffer,
-            [In] int BufferSize,
-            [Out] out int BytesRead);
+            int BufferSize,
+            out int BytesRead);
 
         [PreserveSig]
         new int WriteVirtual(
-            [In] ulong Offset,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            uint BufferSize,
+            out uint BytesWritten);
 
         [PreserveSig]
         new int SearchVirtual(
-            [In] ulong Offset,
-            [In] ulong Length,
+            ulong Offset,
+            ulong Length,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] pattern,
-            [In] uint PatternSize,
-            [In] uint PatternGranularity,
-            [Out] out ulong MatchOffset);
+            uint PatternSize,
+            uint PatternGranularity,
+            out ulong MatchOffset);
 
         [PreserveSig]
         new int ReadVirtualUncached(
-            [In] ulong Offset,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            uint BufferSize,
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteVirtualUncached(
-            [In] ulong Offset,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            uint BufferSize,
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadPointersVirtual(
-            [In] uint Count,
-            [In] ulong Offset,
+            uint Count,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
             ulong[] Ptrs);
 
         [PreserveSig]
         new int WritePointersVirtual(
-            [In] uint Count,
-            [In] ulong Offset,
+            uint Count,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray)] ulong[] Ptrs);
 
         [PreserveSig]
         new int ReadPhysical(
-            [In] ulong Offset,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            uint BufferSize,
+            out uint BytesRead);
 
         [PreserveSig]
         new int WritePhysical(
-            [In] ulong Offset,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            uint BufferSize,
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadControl(
-            [In] uint Processor,
-            [In] ulong Offset,
+            uint Processor,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] int BufferSize,
-            [Out] out uint BytesRead);
+            int BufferSize,
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteControl(
-            [In] uint Processor,
-            [In] ulong Offset,
+            uint Processor,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] int BufferSize,
-            [Out] out uint BytesWritten);
+            int BufferSize,
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadIo(
-            [In] INTERFACE_TYPE InterfaceType,
-            [In] uint BusNumber,
-            [In] uint AddressSpace,
-            [In] ulong Offset,
+            INTERFACE_TYPE InterfaceType,
+            uint BusNumber,
+            uint AddressSpace,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            uint BufferSize,
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteIo(
-            [In] INTERFACE_TYPE InterfaceType,
-            [In] uint BusNumber,
-            [In] uint AddressSpace,
-            [In] ulong Offset,
+            INTERFACE_TYPE InterfaceType,
+            uint BusNumber,
+            uint AddressSpace,
+            ulong Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            uint BufferSize,
+            out uint BytesWritten);
 
         [PreserveSig]
         new int ReadMsr(
-            [In] uint Msr,
-            [Out] out ulong MsrValue);
+            uint Msr,
+            out ulong MsrValue);
 
         [PreserveSig]
         new int WriteMsr(
-            [In] uint Msr,
-            [In] ulong MsrValue);
+            uint Msr,
+            ulong MsrValue);
 
         [PreserveSig]
         new int ReadBusData(
-            [In] BUS_DATA_TYPE BusDataType,
-            [In] uint BusNumber,
-            [In] uint SlotNumber,
-            [In] uint Offset,
+            BUS_DATA_TYPE BusDataType,
+            uint BusNumber,
+            uint SlotNumber,
+            uint Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            uint BufferSize,
+            out uint BytesRead);
 
         [PreserveSig]
         new int WriteBusData(
-            [In] BUS_DATA_TYPE BusDataType,
-            [In] uint BusNumber,
-            [In] uint SlotNumber,
-            [In] uint Offset,
+            BUS_DATA_TYPE BusDataType,
+            uint BusNumber,
+            uint SlotNumber,
+            uint Offset,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 5)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            uint BufferSize,
+            out uint BytesWritten);
 
         [PreserveSig]
         new int CheckLowMemory();
 
         [PreserveSig]
         new int ReadDebuggerData(
-            [In] uint Index,
+            uint Index,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint DataSize);
+            uint BufferSize,
+            out uint DataSize);
 
         [PreserveSig]
         new int ReadProcessorSystemData(
-            [In] uint Processor,
-            [In] DEBUG_DATA Index,
+            uint Processor,
+            DEBUG_DATA Index,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint DataSize);
+            uint BufferSize,
+            out uint DataSize);
 
         /* IDebugDataSpaces2 */
 
         [PreserveSig]
         new int VirtualToPhysical(
-            [In] ulong Virtual,
-            [Out] out ulong Physical);
+            ulong Virtual,
+            out ulong Physical);
 
         [PreserveSig]
         new int GetVirtualTranslationPhysicalOffsets(
-            [In] ulong Virtual,
+            ulong Virtual,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             ulong[] Offsets,
-            [In] uint OffsetsSize,
-            [Out] out uint Levels);
+            uint OffsetsSize,
+            out uint Levels);
 
         [PreserveSig]
         new int ReadHandleData(
-            [In] ulong Handle,
-            [In] DEBUG_HANDLE_DATA_TYPE DataType,
+            ulong Handle,
+            DEBUG_HANDLE_DATA_TYPE DataType,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint DataSize);
+            uint BufferSize,
+            out uint DataSize);
 
         [PreserveSig]
         new int FillVirtual(
-            [In] ulong Start,
-            [In] uint Size,
+            ulong Start,
+            uint Size,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint PatternSize,
-            [Out] out uint Filled);
+            uint PatternSize,
+            out uint Filled);
 
         [PreserveSig]
         new int FillPhysical(
-            [In] ulong Start,
-            [In] uint Size,
+            ulong Start,
+            uint Size,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint PatternSize,
-            [Out] out uint Filled);
+            uint PatternSize,
+            out uint Filled);
 
         [PreserveSig]
         new int QueryVirtual(
-            [In] ulong Offset,
-            [Out] out MEMORY_BASIC_INFORMATION64 Info);
+            ulong Offset,
+            out MEMORY_BASIC_INFORMATION64 Info);
 
         /* IDebugDataSpaces3 */
 
         [PreserveSig]
         new int ReadImageNtHeaders(
-            [In] ulong ImageBase,
-            [Out] out IMAGE_NT_HEADERS64 Headers);
+            ulong ImageBase,
+            out IMAGE_NT_HEADERS64 Headers);
 
         [PreserveSig]
         new int ReadTagged(
             [In][MarshalAs(UnmanagedType.LPStruct)]
             Guid Tag,
-            [In] uint Offset,
+            uint Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint TotalSize);
+            uint BufferSize,
+            out uint TotalSize);
 
         [PreserveSig]
         new int StartEnumTagged(
-            [Out] out ulong Handle);
+            out ulong Handle);
 
         [PreserveSig]
         new int GetNextTagged(
-            [In] ulong Handle,
-            [Out] out Guid Tag,
-            [Out] out uint Size);
+            ulong Handle,
+            out Guid Tag,
+            out uint Size);
 
         [PreserveSig]
         new int EndEnumTagged(
-            [In] ulong Handle);
+            ulong Handle);
 
         /* IDebugDataSpaces4 */
 
         [PreserveSig]
         int GetOffsetInformation(
-            [In] DEBUG_DATA_SPACE Space,
-            [In] DEBUG_OFFSINFO Which,
-            [In] ulong Offset,
+            DEBUG_DATA_SPACE Space,
+            DEBUG_OFFSINFO Which,
+            ulong Offset,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint InfoSize);
+            uint BufferSize,
+            out uint InfoSize);
 
         [PreserveSig]
         int GetNextDifferentlyValidOffsetVirtual(
-            [In] ulong Offset,
-            [Out] out ulong NextOffset);
+            ulong Offset,
+            out ulong NextOffset);
 
         [PreserveSig]
         int GetValidRegionVirtual(
-            [In] ulong Base,
-            [In] uint Size,
-            [Out] out ulong ValidBase,
-            [Out] out uint ValidSize);
+            ulong Base,
+            uint Size,
+            out ulong ValidBase,
+            out uint ValidSize);
 
         [PreserveSig]
         int SearchVirtual2(
-            [In] ulong Offset,
-            [In] ulong Length,
-            [In] DEBUG_VSEARCH Flags,
+            ulong Offset,
+            ulong Length,
+            DEBUG_VSEARCH Flags,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
             byte[] buffer,
-            [In] uint PatternSize,
-            [In] uint PatternGranularity,
-            [Out] out ulong MatchOffset);
+            uint PatternSize,
+            uint PatternGranularity,
+            out ulong MatchOffset);
 
         [PreserveSig]
         int ReadMultiByteStringVirtual(
-            [In] ulong Offset,
-            [In] uint MaxBytes,
+            ulong Offset,
+            uint MaxBytes,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] uint BufferSize,
-            [Out] out uint StringBytes);
+            uint BufferSize,
+            out uint StringBytes);
 
         [PreserveSig]
         int ReadMultiByteStringVirtualWide(
-            [In] ulong Offset,
-            [In] uint MaxBytes,
-            [In] CODE_PAGE CodePage,
+            ulong Offset,
+            uint MaxBytes,
+            CODE_PAGE CodePage,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
-            [In] uint BufferSize,
-            [Out] out uint StringBytes);
+            uint BufferSize,
+            out uint StringBytes);
 
         [PreserveSig]
         int ReadUnicodeStringVirtual(
-            [In] ulong Offset,
-            [In] uint MaxBytes,
-            [In] CODE_PAGE CodePage,
+            ulong Offset,
+            uint MaxBytes,
+            CODE_PAGE CodePage,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] uint BufferSize,
-            [Out] out uint StringBytes);
+            uint BufferSize,
+            out uint StringBytes);
 
         [PreserveSig]
         int ReadUnicodeStringVirtualWide(
-            [In] ulong Offset,
-            [In] uint MaxBytes,
+            ulong Offset,
+            uint MaxBytes,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer,
-            [In] uint BufferSize,
-            [Out] out uint StringBytes);
+            uint BufferSize,
+            out uint StringBytes);
 
         [PreserveSig]
         int ReadPhysical2(
-            [In] ulong Offset,
-            [In] DEBUG_PHYSICAL Flags,
+            ulong Offset,
+            DEBUG_PHYSICAL Flags,
             [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesRead);
+            uint BufferSize,
+            out uint BytesRead);
 
         [PreserveSig]
         int WritePhysical2(
-            [In] ulong Offset,
-            [In] DEBUG_PHYSICAL Flags,
+            ulong Offset,
+            DEBUG_PHYSICAL Flags,
             [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
             byte[] buffer,
-            [In] uint BufferSize,
-            [Out] out uint BytesWritten);
+            uint BufferSize,
+            out uint BytesWritten);
     }
 }

@@ -18,20 +18,20 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         /// </summary>
         [PreserveSig]
         new int Output(
-            [In] DEBUG_OUTPUT Mask,
+            DEBUG_OUTPUT Mask,
             [In][MarshalAs(UnmanagedType.LPStr)] string Text);
 
         /* IDebugOutputCallbacks2 */
 
         [PreserveSig]
         int GetInterestMask(
-            [Out] out DEBUG_OUTCBI Mask);
+            out DEBUG_OUTCBI Mask);
 
         [PreserveSig]
         int Output2(
-            [In] DEBUG_OUTCB Which,
-            [In] DEBUG_OUTCBF Flags,
-            [In] ulong Arg,
+            DEBUG_OUTCB Which,
+            DEBUG_OUTCBF Flags,
+            ulong Arg,
             [In][MarshalAs(UnmanagedType.LPWStr)] string Text);
     }
 }

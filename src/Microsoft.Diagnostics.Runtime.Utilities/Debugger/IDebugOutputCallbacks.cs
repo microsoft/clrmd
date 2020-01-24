@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         int Output(
-            [In] DEBUG_OUTPUT Mask,
+            DEBUG_OUTPUT Mask,
             [In][MarshalAs(UnmanagedType.LPStr)] string Text);
     }
 }

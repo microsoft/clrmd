@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         int StartInput(
-            [In] uint BufferSize);
+            uint BufferSize);
 
         [PreserveSig]
         int EndInput();

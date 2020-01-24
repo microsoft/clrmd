@@ -14,176 +14,176 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         new int GetNumberRegisters(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         new int GetDescription(
-            [In] uint Register,
+            uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
+            int NameBufferSize,
+            out uint NameSize,
+            out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         new int GetIndexByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         new int GetValue(
-            [In] uint Register,
-            [Out] out DEBUG_VALUE Value);
+            uint Register,
+            out DEBUG_VALUE Value);
 
         [PreserveSig]
         new int SetValue(
-            [In] uint Register,
-            [In] ref DEBUG_VALUE Value);
+            uint Register,
+            in DEBUG_VALUE Value);
 
         [PreserveSig]
         new int GetValues( //FIX ME!!! This needs to be tested
-            [In] uint Count,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_VALUE[] Values);
 
         [PreserveSig]
         new int SetValues(
-            [In] uint Count,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
 
         [PreserveSig]
         new int OutputRegisters(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_REGISTERS Flags);
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_REGISTERS Flags);
 
         [PreserveSig]
         new int GetInstructionOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         new int GetStackOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         new int GetFrameOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         /* IDebugRegisters2 */
 
         [PreserveSig]
         int GetDescriptionWide(
-            [In] uint Register,
+            uint Register,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
-            [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
+            int NameBufferSize,
+            out uint NameSize,
+            out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         int GetIndexByNameWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         int GetNumberPseudoRegisters(
-            [Out] out uint Number
+            out uint Number
         );
 
         [PreserveSig]
         int GetPseudoDescription(
-            [In] uint Register,
+            uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong TypeModule,
-            [Out] out uint TypeId
+            int NameBufferSize,
+            out uint NameSize,
+            out ulong TypeModule,
+            out uint TypeId
         );
 
         [PreserveSig]
         int GetPseudoDescriptionWide(
-            [In] uint Register,
+            uint Register,
             [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder NameBuffer,
-            [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out ulong TypeModule,
-            [Out] out uint TypeId
+            int NameBufferSize,
+            out uint NameSize,
+            out ulong TypeModule,
+            out uint TypeId
         );
 
         [PreserveSig]
         int GetPseudoIndexByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint Index
+            out uint Index
         );
 
         [PreserveSig]
         int GetPseudoIndexByNameWide(
             [In][MarshalAs(UnmanagedType.LPWStr)] string Name,
-            [Out] out uint Index
+            out uint Index
         );
 
         [PreserveSig]
         int GetPseudoValues(
-            [In] uint Source,
-            [In] uint Count,
+            uint Source,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_VALUE[] Values
         );
 
         [PreserveSig]
         int SetPseudoValues(
-            [In] uint Source,
-            [In] uint Count,
+            uint Source,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
         );
 
         [PreserveSig]
         int GetValues2(
-            [In] DEBUG_REGSRC Source,
-            [In] uint Count,
+            DEBUG_REGSRC Source,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_VALUE[] Values
         );
 
         [PreserveSig]
         int SetValues2(
-            [In] uint Source,
-            [In] uint Count,
+            uint Source,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values
         );
 
         [PreserveSig]
         int OutputRegisters2(
-            [In] uint OutputControl,
-            [In] uint Source,
-            [In] uint Flags
+            uint OutputControl,
+            uint Source,
+            uint Flags
         );
 
         [PreserveSig]
         int GetInstructionOffset2(
-            [In] uint Source,
-            [Out] out ulong Offset
+            uint Source,
+            out ulong Offset
         );
 
         [PreserveSig]
         int GetStackOffset2(
-            [In] uint Source,
-            [Out] out ulong Offset
+            uint Source,
+            out ulong Offset
         );
 
         [PreserveSig]
         int GetFrameOffset2(
-            [In] uint Source,
-            [Out] out ulong Offset
+            uint Source,
+            out ulong Offset
         );
     }
 }

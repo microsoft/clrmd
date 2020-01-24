@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         int GetInterestMask(
-            [Out] out DEBUG_EVENT Mask);
+            out DEBUG_EVENT Mask);
 
         [PreserveSig]
         int Breakpoint(
@@ -22,74 +22,74 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int Exception(
-            [In] ref EXCEPTION_RECORD64 Exception,
-            [In] uint FirstChance);
+            in EXCEPTION_RECORD64 Exception,
+            uint FirstChance);
 
         [PreserveSig]
         int CreateThread(
-            [In] ulong Handle,
-            [In] ulong DataOffset,
-            [In] ulong StartOffset);
+            ulong Handle,
+            ulong DataOffset,
+            ulong StartOffset);
 
         [PreserveSig]
         int ExitThread(
-            [In] uint ExitCode);
+            uint ExitCode);
 
         [PreserveSig]
         int CreateProcess(
-            [In] ulong ImageFileHandle,
-            [In] ulong Handle,
-            [In] ulong BaseOffset,
-            [In] uint ModuleSize,
+            ulong ImageFileHandle,
+            ulong Handle,
+            ulong BaseOffset,
+            uint ModuleSize,
             [In][MarshalAs(UnmanagedType.LPStr)] string ModuleName,
             [In][MarshalAs(UnmanagedType.LPStr)] string ImageName,
-            [In] uint CheckSum,
-            [In] uint TimeDateStamp,
-            [In] ulong InitialThreadHandle,
-            [In] ulong ThreadDataOffset,
-            [In] ulong StartOffset);
+            uint CheckSum,
+            uint TimeDateStamp,
+            ulong InitialThreadHandle,
+            ulong ThreadDataOffset,
+            ulong StartOffset);
 
         [PreserveSig]
         int ExitProcess(
-            [In] uint ExitCode);
+            uint ExitCode);
 
         [PreserveSig]
         int LoadModule(
-            [In] ulong ImageFileHandle,
-            [In] ulong BaseOffset,
-            [In] uint ModuleSize,
+            ulong ImageFileHandle,
+            ulong BaseOffset,
+            uint ModuleSize,
             [In][MarshalAs(UnmanagedType.LPStr)] string ModuleName,
             [In][MarshalAs(UnmanagedType.LPStr)] string ImageName,
-            [In] uint CheckSum,
-            [In] uint TimeDateStamp);
+            uint CheckSum,
+            uint TimeDateStamp);
 
         [PreserveSig]
         int UnloadModule(
             [In][MarshalAs(UnmanagedType.LPStr)] string ImageBaseName,
-            [In] ulong BaseOffset);
+            ulong BaseOffset);
 
         [PreserveSig]
         int SystemError(
-            [In] uint Error,
-            [In] uint Level);
+            uint Error,
+            uint Level);
 
         [PreserveSig]
         int SessionStatus(
-            [In] DEBUG_SESSION Status);
+            DEBUG_SESSION Status);
 
         [PreserveSig]
         int ChangeDebuggeeState(
-            [In] DEBUG_CDS Flags,
-            [In] ulong Argument);
+            DEBUG_CDS Flags,
+            ulong Argument);
 
         [PreserveSig]
         int ChangeEngineState(
-            [In] DEBUG_CES Flags,
-            [In] ulong Argument);
+            DEBUG_CES Flags,
+            ulong Argument);
 
         [PreserveSig]
         int ChangeSymbolState(
-            [In] DEBUG_CSS Flags,
-            [In] ulong Argument);
+            DEBUG_CSS Flags,
+            ulong Argument);
     }
 }

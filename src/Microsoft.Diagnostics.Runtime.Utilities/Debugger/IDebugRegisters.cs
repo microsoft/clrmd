@@ -14,61 +14,61 @@ namespace Microsoft.Diagnostics.Runtime.Interop
     {
         [PreserveSig]
         int GetNumberRegisters(
-            [Out] out uint Number);
+            out uint Number);
 
         [PreserveSig]
         int GetDescription(
-            [In] uint Register,
+            uint Register,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder NameBuffer,
-            [In] int NameBufferSize,
-            [Out] out uint NameSize,
-            [Out] out DEBUG_REGISTER_DESCRIPTION Desc);
+            int NameBufferSize,
+            out uint NameSize,
+            out DEBUG_REGISTER_DESCRIPTION Desc);
 
         [PreserveSig]
         int GetIndexByName(
             [In][MarshalAs(UnmanagedType.LPStr)] string Name,
-            [Out] out uint Index);
+            out uint Index);
 
         [PreserveSig]
         int GetValue(
-            [In] uint Register,
-            [Out] out DEBUG_VALUE Value);
+            uint Register,
+            out DEBUG_VALUE Value);
 
         [PreserveSig]
         int SetValue(
-            [In] uint Register,
-            [In] ref DEBUG_VALUE Value);
+            uint Register,
+            in DEBUG_VALUE Value);
 
         [PreserveSig]
         int GetValues( //FIX ME!!! This needs to be tested
-            [In] uint Count,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             DEBUG_VALUE[] Values);
 
         [PreserveSig]
         int SetValues(
-            [In] uint Count,
+            uint Count,
             [In][MarshalAs(UnmanagedType.LPArray)] uint[] Indices,
-            [In] uint Start,
+            uint Start,
             [In][MarshalAs(UnmanagedType.LPArray)] DEBUG_VALUE[] Values);
 
         [PreserveSig]
         int OutputRegisters(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] DEBUG_REGISTERS Flags);
+            DEBUG_OUTCTL OutputControl,
+            DEBUG_REGISTERS Flags);
 
         [PreserveSig]
         int GetInstructionOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetStackOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
 
         [PreserveSig]
         int GetFrameOffset(
-            [Out] out ulong Offset);
+            out ulong Offset);
     }
 }

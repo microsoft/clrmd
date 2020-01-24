@@ -17,14 +17,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int AttachKernel(
-            [In] DEBUG_ATTACH Flags,
+            DEBUG_ATTACH Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string ConnectOptions);
 
         [PreserveSig]
         int GetKernelConnectionOptions(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
-            [Out] out uint OptionsSize);
+            int BufferSize,
+            out uint OptionsSize);
 
         [PreserveSig]
         int SetKernelConnectionOptions(
@@ -32,81 +32,81 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int StartProcessServer(
-            [In] DEBUG_CLASS Flags,
+            DEBUG_CLASS Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Options,
-            [In] IntPtr Reserved);
+            IntPtr Reserved);
 
         [PreserveSig]
         int ConnectProcessServer(
             [In][MarshalAs(UnmanagedType.LPStr)] string RemoteOptions,
-            [Out] out ulong Server);
+            out ulong Server);
 
         [PreserveSig]
         int DisconnectProcessServer(
-            [In] ulong Server);
+            ulong Server);
 
         [PreserveSig]
         int GetRunningProcessSystemIds(
-            [In] ulong Server,
+            ulong Server,
             [Out][MarshalAs(UnmanagedType.LPArray)]
             uint[] Ids,
-            [In] uint Count,
-            [Out] out uint ActualCount);
+            uint Count,
+            out uint ActualCount);
 
         [PreserveSig]
         int GetRunningProcessSystemIdByExecutableName(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string ExeName,
-            [In] DEBUG_GET_PROC Flags,
-            [Out] out uint Id);
+            DEBUG_GET_PROC Flags,
+            out uint Id);
 
         [PreserveSig]
         int GetRunningProcessDescription(
-            [In] ulong Server,
-            [In] uint SystemId,
-            [In] DEBUG_PROC_DESC Flags,
+            ulong Server,
+            uint SystemId,
+            DEBUG_PROC_DESC Flags,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder ExeName,
-            [In] int ExeNameSize,
-            [Out] out uint ActualExeNameSize,
+            int ExeNameSize,
+            out uint ActualExeNameSize,
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Description,
-            [In] int DescriptionSize,
-            [Out] out uint ActualDescriptionSize);
+            int DescriptionSize,
+            out uint ActualDescriptionSize);
 
         [PreserveSig]
         int AttachProcess(
-            [In] ulong Server,
-            [In] uint ProcessID,
-            [In] DEBUG_ATTACH AttachFlags);
+            ulong Server,
+            uint ProcessID,
+            DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         int CreateProcess(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
-            [In] DEBUG_CREATE_PROCESS Flags);
+            DEBUG_CREATE_PROCESS Flags);
 
         [PreserveSig]
         int CreateProcessAndAttach(
-            [In] ulong Server,
+            ulong Server,
             [In][MarshalAs(UnmanagedType.LPStr)] string CommandLine,
-            [In] DEBUG_CREATE_PROCESS Flags,
-            [In] uint ProcessId,
-            [In] DEBUG_ATTACH AttachFlags);
+            DEBUG_CREATE_PROCESS Flags,
+            uint ProcessId,
+            DEBUG_ATTACH AttachFlags);
 
         [PreserveSig]
         int GetProcessOptions(
-            [Out] out DEBUG_PROCESS Options);
+            out DEBUG_PROCESS Options);
 
         [PreserveSig]
         int AddProcessOptions(
-            [In] DEBUG_PROCESS Options);
+            DEBUG_PROCESS Options);
 
         [PreserveSig]
         int RemoveProcessOptions(
-            [In] DEBUG_PROCESS Options);
+            DEBUG_PROCESS Options);
 
         [PreserveSig]
         int SetProcessOptions(
-            [In] DEBUG_PROCESS Options);
+            DEBUG_PROCESS Options);
 
         [PreserveSig]
         int OpenDumpFile(
@@ -115,12 +115,12 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int WriteDumpFile(
             [In][MarshalAs(UnmanagedType.LPStr)] string DumpFile,
-            [In] DEBUG_DUMP Qualifier);
+            DEBUG_DUMP Qualifier);
 
         [PreserveSig]
         int ConnectSession(
-            [In] DEBUG_CONNECT_SESSION Flags,
-            [In] uint HistoryLimit);
+            DEBUG_CONNECT_SESSION Flags,
+            uint HistoryLimit);
 
         [PreserveSig]
         int StartServer(
@@ -128,9 +128,9 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int OutputServer(
-            [In] DEBUG_OUTCTL OutputControl,
+            DEBUG_OUTCTL OutputControl,
             [In][MarshalAs(UnmanagedType.LPStr)] string Machine,
-            [In] DEBUG_SERVERS Flags);
+            DEBUG_SERVERS Flags);
 
         [PreserveSig]
         int TerminateProcesses();
@@ -140,15 +140,15 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int EndSession(
-            [In] DEBUG_END Flags);
+            DEBUG_END Flags);
 
         [PreserveSig]
         int GetExitCode(
-            [Out] out uint Code);
+            out uint Code);
 
         [PreserveSig]
         int DispatchCallbacks(
-            [In] uint Timeout);
+            uint Timeout);
 
         [PreserveSig]
         int ExitDispatch(
@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOutputCallbacks(
-            [Out] out IDebugOutputCallbacks Callbacks);
+            out IDebugOutputCallbacks Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
@@ -184,37 +184,37 @@ namespace Microsoft.Diagnostics.Runtime.Interop
 
         [PreserveSig]
         int GetOutputMask(
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int SetOutputMask(
-            [In] DEBUG_OUTPUT Mask);
+            DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int GetOtherOutputMask(
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugClient Client,
-            [Out] out DEBUG_OUTPUT Mask);
+            out DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int SetOtherOutputMask(
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugClient Client,
-            [In] DEBUG_OUTPUT Mask);
+            DEBUG_OUTPUT Mask);
 
         [PreserveSig]
         int GetOutputWidth(
-            [Out] out uint Columns);
+            out uint Columns);
 
         [PreserveSig]
         int SetOutputWidth(
-            [In] uint Columns);
+            uint Columns);
 
         [PreserveSig]
         int GetOutputLinePrefix(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
-            [Out] out uint PrefixSize);
+            int BufferSize,
+            out uint PrefixSize);
 
         [PreserveSig]
         int SetOutputLinePrefix(
@@ -223,20 +223,20 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         [PreserveSig]
         int GetIdentity(
             [Out][MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-            [In] int BufferSize,
-            [Out] out uint IdentitySize);
+            int BufferSize,
+            out uint IdentitySize);
 
         [PreserveSig]
         int OutputIdentity(
-            [In] DEBUG_OUTCTL OutputControl,
-            [In] uint Flags,
+            DEBUG_OUTCTL OutputControl,
+            uint Flags,
             [In][MarshalAs(UnmanagedType.LPStr)] string Format);
 
         /* GetEventCallbacks could a conversion thunk from the debugger engine so we can't specify a specific interface */
 
         [PreserveSig]
         int GetEventCallbacks(
-            [Out] out IDebugEventCallbacks Callbacks);
+            out IDebugEventCallbacks Callbacks);
 
         /* We may have to pass a debugger engine conversion thunk back in so we can't specify a specific interface */
 
