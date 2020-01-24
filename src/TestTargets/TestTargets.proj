@@ -9,8 +9,6 @@
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <CscPath32>C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe</CscPath32>
     <CscPath64>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath64>
-    <CdbPath32 Condition="'$(CdbPath32)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\cdb.exe</CdbPath32>
-    <CdbPath64 Condition="'$(CdbPath64)' == ''">C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe</CdbPath64>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
@@ -58,8 +56,6 @@
 
     <Error Condition="!Exists('$(CscPath32)')" Text="csc.exe (x86) ($(CscPath32)) not found." />
     <Error Condition="!Exists('$(CscPath64)')" Text="csc.exe (x64) ($(CscPath64)) not found." />
-    <Error Condition="!Exists('$(CdbPath32)')" Text="cdb.exe (x86) ($(CdbPath32)) not found. Please install Debugging Tools for Windows, see https://docs.microsoft.com/windows-hardware/drivers/debugger/." />
-    <Error Condition="!Exists('$(CdbPath64)')" Text="cdb.exe (x64) ($(CdbPath64)) not found. Please install Debugging Tools for Windows, see https://docs.microsoft.com/windows-hardware/drivers/debugger/." />
 
   </Target>
 
@@ -87,6 +83,11 @@
 
   </Target>
 
+  <UsingTask
+    Condition="'$(OS)' == 'Windows_NT'"
+    TaskName="Microsoft.Diagnostics.Runtime.Tests.Tasks.Dump"
+    AssemblyFile="..\..\artifacts\bin\TestTasks\$(Configuration)\netcoreapp3.1\TestTasks.dll" />
+
   <Target
     Condition="'$(OS)' == 'Windows_NT'"
     Name="DumpWindows"
@@ -97,8 +98,8 @@
     <Delete Files="%(TargetExes32.FullDumpPath);%(TargetExes32.MiniDumpPath)" />
     <Delete Files="%(TargetExes64.FullDumpPath);%(TargetExes64.MiniDumpPath)" />
 
-    <Exec Command='"$(CdbPath32)" -g -G -c ".dump /ma %(TargetExes32.FullDumpPath);.dump /m %(TargetExes32.MiniDumpPath);q" %(TargetExes32.Identity)' />
-    <Exec Command='"$(CdbPath64)" -g -G -c ".dump /ma %(TargetExes64.FullDumpPath);.dump /m %(TargetExes64.MiniDumpPath);q" %(TargetExes64.Identity)' />
+    <Dump ExePath="%(TargetExes32.Identity)" FullDumpPath="%(TargetExes32.FullDumpPath)" MiniDumpPath="%(TargetExes32.MiniDumpPath)" />
+    <Dump ExePath="%(TargetExes64.Identity)" FullDumpPath="%(TargetExes64.FullDumpPath)" MiniDumpPath="%(TargetExes64.MiniDumpPath)" />
 
   </Target>
 
@@ -112,10 +113,8 @@
     <Delete Files="$(BinDir32)Types_svr.dmp" />
     <Delete Files="$(BinDir64)Types_svr.dmp" />
 
-    <SetEnvironmentVariable Variable="COMPlus_BuildFlavor" Value="SVR" />
-    <Exec Command='"$(CdbPath32)" -g -G -c ".dump /ma $(BinDir32)Types_svr.dmp;q" $(BinDir32)Types.exe' />
-    <Exec Command='"$(CdbPath64)" -g -G -c ".dump /ma $(BinDir64)Types_svr.dmp;q" $(BinDir64)Types.exe' />
-    <SetEnvironmentVariable Variable="COMPlus_BuildFlavor" />
+    <Dump ExePath="$(BinDir32)Types.exe" FullDumpPath="$(BinDir32)Types_svr.dmp" IsServerGC="true" />
+    <Dump ExePath="$(BinDir64)Types.exe" FullDumpPath="$(BinDir64)Types_svr.dmp" IsServerGC="true" />
 
   </Target>
 

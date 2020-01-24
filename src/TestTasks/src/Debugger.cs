@@ -1,10 +1,14 @@
-﻿using Microsoft.Diagnostics.Runtime.Interop;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Interop;
 
-namespace Microsoft.Diagnostics.Runtime.Tests
+namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 {
     internal enum ExceptionTypes : uint
     {
@@ -19,9 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
         private readonly Dictionary<string, string> _environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        public void SetEnvironmentVariable(string key, string value)
+        public void SetEnvironmentVariable(string variable, string value)
         {
-            _environment[key] = value;
+            _environment[variable] = value;
         }
 
         public unsafe Debugger LaunchProcess(string commandLine, string workingDirectory)
@@ -79,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
                 string value = _environment[key];
-                if (value.Length > 0 && value.Contains(' ') && value[0] != '"' && value[value.Length - 1] != '"')
+                if (value.Length > 0 && value.Contains(' ') && value[0] != '"' && value[^1] != '"')
                     value = '"' + value + '"';
 
                 sb.Append(value);
