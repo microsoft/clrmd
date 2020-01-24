@@ -1,14 +1,12 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.Interop;
+﻿using Microsoft.Diagnostics.Runtime.Interop;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    enum ExceptionTypes : uint
+    internal enum ExceptionTypes : uint
     {
         AV = 0xC0000005,
         StackOverflow = 0xC00000FD,
@@ -17,16 +15,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         Break = 0x80000003
     }
 
-    class DebuggerStartInfo
+    internal class DebuggerStartInfo
     {
-        Dictionary<string, string> m_environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public void SetEnvironmentVariable(string key, string value)
         {
-            m_environment[key] = value;
+            _environment[key] = value;
         }
 
-        public Debugger LaunchProcess(string commandLine, string workingDirectory)
+        public unsafe Debugger LaunchProcess(string commandLine, string workingDirectory)
         {
             IDebugClient5 client = CreateIDebugClient();
             IDebugControl control = (IDebugControl)client;
@@ -37,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string env = GetEnvironment();
             DEBUG_CREATE_PROCESS_OPTIONS options = new DEBUG_CREATE_PROCESS_OPTIONS();
             options.CreateFlags = (DEBUG_CREATE_PROCESS)1;
-            int hr = client.CreateProcessAndAttach2(0, commandLine, options, (uint)Marshal.SizeOf(typeof(DEBUG_CREATE_PROCESS_OPTIONS)), workingDirectory, env, 0, DEBUG_ATTACH.DEFAULT);
+            int hr = client.CreateProcessAndAttach2(0, commandLine, options, (uint)sizeof(DEBUG_CREATE_PROCESS_OPTIONS), workingDirectory, env, 0, DEBUG_ATTACH.DEFAULT);
 
             if (hr < 0)
                 throw new Exception(Debugger.GetExceptionString("IDebugClient::CreateProcessAndAttach2", hr));
@@ -56,13 +54,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         #region Private Helpers
         [DllImport("dbgeng.dll")]
-        static extern int DebugCreate(in Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
+        private static extern int DebugCreate(in Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
 
-        static IDebugClient5 CreateIDebugClient()
+        private static IDebugClient5 CreateIDebugClient()
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            object obj;
-            int hr = DebugCreate(guid, out obj);
+            int hr = DebugCreate(guid, out object obj);
             if (hr < 0)
                 throw new Exception(Debugger.GetExceptionString("DebugCreate", hr));
 
@@ -71,64 +68,65 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private string GetEnvironment()
         {
-            if (m_environment.Count == 0)
+            if (_environment.Count == 0)
                 return null;
 
             StringBuilder sb = new StringBuilder();
-            foreach (string key in m_environment.Keys)
+            foreach (string key in _environment.Keys)
             {
                 sb.Append(key);
                 sb.Append("=");
 
 
-                string value = m_environment[key];
+                string value = _environment[key];
                 if (value.Length > 0 && value.Contains(' ') && value[0] != '"' && value[value.Length - 1] != '"')
                     value = '"' + value + '"';
 
                 sb.Append(value);
-                sb.Append((char)0);
+                sb.Append('\0');
             }
 
-            sb.Append((char)0);
+            sb.Append('\0');
             return sb.ToString();
         }
         #endregion
     }
 
-    class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
+    internal class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
     {
         #region Fields
-        DEBUG_OUTPUT _outputMask;
-        StringBuilder _output = new StringBuilder();
-        bool m_exited, _processing;
+        private DEBUG_OUTPUT _outputMask;
+        private readonly StringBuilder _output = new StringBuilder();
+        private bool _exited;
+        private bool _processing;
 
-        IDebugClient5 _client;
-        IDebugControl _control;
+        private readonly IDebugClient5 _client;
+        private readonly IDebugControl _control;
         #endregion
 
         #region Events
-        public delegate void ModuleEventHandler(Debugger dbg, ModuleEventArgs args);
+        public delegate void ModuleEventHandler(Debugger debugger, ModuleEventArgs args);
         public event ModuleEventHandler ModuleLoadEvent;
         public event ModuleEventHandler ModuleUnloadEvent;
 
-        public delegate void CreateThreadEventHandler(Debugger dbg, CreateThreadArgs args);
+        public delegate void CreateThreadEventHandler(Debugger debugger, CreateThreadArgs args);
         public event CreateThreadEventHandler ThreadCreateEvent;
 
-        public delegate void ExitThreadEventHandler(Debugger dbg, int exitCode);
+        public delegate void ExitThreadEventHandler(Debugger debugger, int exitCode);
         public event ExitThreadEventHandler ExitThreadEvent;
 
-        public delegate void ExceptionEventHandler(Debugger dbg, EXCEPTION_RECORD64 ex);
+        public delegate void ExceptionEventHandler(Debugger debugger, EXCEPTION_RECORD64 ex);
         public event ExceptionEventHandler FirstChanceExceptionEvent;
         public event ExceptionEventHandler SecondChanceExceptionEvent;
 
-        public delegate void CreateProcessEventHandler(Debugger dbg, CreateProcessArgs args);
+        public delegate void CreateProcessEventHandler(Debugger debugger, CreateProcessArgs args);
         public event CreateProcessEventHandler CreateProcessEvent;
 
-        public delegate void ExitProcessEventHandler(Debugger dbg, int exitCode);
+        public delegate void ExitProcessEventHandler(Debugger debugger, int exitCode);
         public event ExitProcessEventHandler ExitProcessEvent;
         #endregion
 
-        public IDebugClient5 Client { get { return _client; } }
+        public IDebugClient5 Client => _client;
 
         public Debugger(IDebugClient5 client, IDebugControl control)
         {
@@ -144,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (_processing)
                 throw new InvalidOperationException("Cannot call ProcessEvents reentrantly.");
 
-            if (m_exited)
+            if (_exited)
                 return DEBUG_STATUS.NO_DEBUGGEE;
 
             _processing = true;
@@ -159,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public void TerminateProcess()
         {
-            m_exited = true;
+            _exited = true;
             _client.EndSession(DEBUG_END.ACTIVE_TERMINATE);
         }
 
@@ -175,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 int hr = _control.CallExtension(handle, command, args);
                 if (hr < 0)
-                    _output.Append(string.Format("Command encountered an error.  HRESULT={0:X8}", hr));
+                    _output.Append($"Command encountered an error.  HRESULT={hr:X8}");
 
                 result = _output.ToString();
             }
@@ -199,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 int hr = _control.Execute(DEBUG_OUTCTL.ALL_CLIENTS, cmd, DEBUG_EXECUTE.DEFAULT);
                 if (hr < 0)
-                    _output.Append(string.Format("Command encountered an error.  HRESULT={0:X8}", hr));
+                    _output.Append($"Command encountered an error.  HRESULT={hr:X8}");
 
                 result = _output.ToString();
             }
@@ -223,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 int hr = _control.ExecuteCommandFile(DEBUG_OUTCTL.ALL_CLIENTS, script, DEBUG_EXECUTE.DEFAULT);
                 if (hr < 0)
-                    _output.Append(string.Format("Script encountered an error.  HRESULT={0:X8}", hr));
+                    _output.Append($"Script encountered an error.  HRESULT={hr:X8}");
 
                 result = _output.ToString();
             }
@@ -262,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         internal static string GetExceptionString(string name, int hr)
         {
-            return string.Format("{0} failed with hresult={1:X8}", name, hr);
+            return $"{name} failed with hresult={hr:X8}";
         }
         #endregion
 
@@ -304,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ExitProcessEvent?.Invoke(this, (int)ExitCode);
 
-            m_exited = true;
+            _exited = true;
             return (int)DEBUG_STATUS.BREAK;
         }
 
@@ -376,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         #endregion
     }
 
-    class ModuleEventArgs
+    internal class ModuleEventArgs
     {
         public ulong ImageFileHandle;
         public ulong BaseOffset;
@@ -404,7 +402,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
     }
 
-    class CreateThreadArgs
+    internal class CreateThreadArgs
     {
         public ulong Handle;
         public ulong DataOffset;
@@ -418,7 +416,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
     }
 
-    class CreateProcessArgs
+    internal class CreateProcessArgs
     {
         public ulong ImageFileHandle;
         public ulong Handle;
