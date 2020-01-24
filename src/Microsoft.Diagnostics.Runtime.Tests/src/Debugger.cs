@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string env = GetEnvironment();
             DEBUG_CREATE_PROCESS_OPTIONS options = new DEBUG_CREATE_PROCESS_OPTIONS();
             options.CreateFlags = (DEBUG_CREATE_PROCESS)1;
-            int hr = client.CreateProcessAndAttach2(0, commandLine, ref options, (uint)Marshal.SizeOf(typeof(DEBUG_CREATE_PROCESS_OPTIONS)), workingDirectory, env, 0, DEBUG_ATTACH.DEFAULT);
+            int hr = client.CreateProcessAndAttach2(0, commandLine, options, (uint)Marshal.SizeOf(typeof(DEBUG_CREATE_PROCESS_OPTIONS)), workingDirectory, env, 0, DEBUG_ATTACH.DEFAULT);
 
             if (hr < 0)
                 throw new Exception(Debugger.GetExceptionString("IDebugClient::CreateProcessAndAttach2", hr));
@@ -56,13 +56,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         #region Private Helpers
         [DllImport("dbgeng.dll")]
-        static extern int DebugCreate(ref Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
+        static extern int DebugCreate(in Guid InterfaceId, [MarshalAs(UnmanagedType.IUnknown)] out object Interface);
 
         static IDebugClient5 CreateIDebugClient()
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
             object obj;
-            int hr = DebugCreate(ref guid, out obj);
+            int hr = DebugCreate(guid, out obj);
             if (hr < 0)
                 throw new Exception(Debugger.GetExceptionString("DebugCreate", hr));
 
@@ -104,7 +104,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         IDebugClient5 _client;
         IDebugControl _control;
-        private DataTarget _dataTarget;
         #endregion
 
         #region Events
@@ -130,17 +129,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         #endregion
 
         public IDebugClient5 Client { get { return _client; } }
-
-        public DataTarget DataTarget
-        {
-            get
-            {
-                if (_dataTarget == null)
-                    _dataTarget = DataTarget.CreateFromDebuggerInterface(_client);
-
-                return _dataTarget;
-            }
-        }
 
         public Debugger(IDebugClient5 client, IDebugControl control)
         {
@@ -334,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return 0;
         }
 
-        public int Exception(ref EXCEPTION_RECORD64 Exception, uint FirstChance)
+        public int Exception(in EXCEPTION_RECORD64 Exception, uint FirstChance)
         {
             ((FirstChance == 1) ? FirstChanceExceptionEvent : SecondChanceExceptionEvent)?.Invoke(this, Exception);
 
