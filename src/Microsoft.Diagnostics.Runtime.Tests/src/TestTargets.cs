@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types"));
         private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains"));
         private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue"));
-        private static readonly Lazy<TestTarget> _spin = new Lazy<TestTarget>(() => new TestTarget("Spin"));
+        private static readonly Lazy<TestTarget> _byReference = new Lazy<TestTarget>(() => new TestTarget("ByReference"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget FinalizationQueue => _finalizationQueue.Value;
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
-        public static TestTarget Spin => _spin.Value;
+        public static TestTarget ByReference => _byReference.Value;
     }
 
     public class TestTarget

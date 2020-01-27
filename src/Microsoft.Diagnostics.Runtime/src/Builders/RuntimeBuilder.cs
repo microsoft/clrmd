@@ -247,13 +247,25 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
                     bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
 
-                    ClrObject obj;
-                    ClrType? type = heap?.GetObjectType(refs[i].Object); // Will fail in the interior case
+                    ulong objRef = refs[i].Object;
+                    ClrType? type = heap?.GetObjectType(objRef); // will fail in the interior case
 
+                    // by reference
+                    if (type is null && interior)
+                    {
+                        objRef = DataReader.ReadPointer(objRef);
+                        type = heap?.GetObjectType(objRef);
+
+                        // value type
+                        if (type is null)
+                            continue;
+                    }
+
+                    ClrObject obj;
                     if (type != null)
-                        obj = new ClrObject(refs[i].Object, type);
+                        obj = new ClrObject(objRef, type);
                     else
-                        obj = new ClrObject(refs[i].Object, null);
+                        obj = new ClrObject(objRef, null);
 
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     frame ??= new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
