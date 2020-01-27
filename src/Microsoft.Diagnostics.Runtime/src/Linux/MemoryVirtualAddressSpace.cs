@@ -4,6 +4,7 @@
 
 #if !NET45
 using System;
+using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -22,7 +23,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int Read(long position, byte[] buffer, int bufferOffset, int count)
         {
-            _dataReader.ReadMemory((ulong)position, buffer, bufferOffset, out int read);
+            Debug.Assert(bufferOffset == 0);
+            _dataReader.ReadMemory((ulong)position, buffer, count, out int read);
             return read;
         }
     }
