@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
     <NoWarn>1701;1702;1705;1591;436</NoWarn>
   </PropertyGroup>
 
@@ -21,7 +21,12 @@
     <PackageReference Include="AutoFixture.Xunit2" Version="4.6.0" />
   </ItemGroup>
 
-  <Target Name="BuildTargets" AfterTargets="Build">
+  <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildTargetsWindows" AfterTargets="Build">
+    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTasks\TestTasks.csproj" />
+    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTargets\TestTargets.proj" />
+  </Target>
+
+  <Target Condition="'$(OS)' == 'Unix'" Name="BuildTargetsLinux" AfterTargets="Build">
     <MSBuild Projects="..\TestTargets\TestTargets.proj" />
   </Target>
 
