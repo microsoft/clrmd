@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ulong Start => _segment.Start;
 
-        public ulong End => IsEphemeralSegment ? _heapAllocated : _segment.Allocated;
+        public ulong End => IsEphemeralSegment ? _heapAllocated : (ulong)_segment.Allocated;
 
         public ulong ReservedEnd => _segment.Reserved;
 
