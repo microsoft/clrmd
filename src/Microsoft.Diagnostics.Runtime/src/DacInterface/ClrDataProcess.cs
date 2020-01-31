@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return res;
         }
 
-        public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ulong addr)
+        public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ClrDataAddress addr)
         {
             InitDelegate(ref _startEnum, VTable.StartEnumMethodInstancesByAddress);
             InitDelegate(ref _enum, VTable.EnumMethodInstanceByAddress);
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
-            int hr = _startEnum(Self, addr, IntPtr.Zero, out ulong handle);
+            int hr = _startEnum(Self, addr, IntPtr.Zero, out ClrDataAddress handle);
             if (hr != S_OK)
                 return result;
 
@@ -136,13 +136,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int StartEnumMethodInstancesByAddressDelegate(IntPtr self, ulong address, IntPtr appDomain, out ulong handle);
+        private delegate int StartEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress address, IntPtr appDomain, out ClrDataAddress handle);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int EnumMethodInstanceByAddressDelegate(IntPtr self, ref ulong handle, out IntPtr method);
+        private delegate int EnumMethodInstanceByAddressDelegate(IntPtr self, ref ClrDataAddress handle, out IntPtr method);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int EndEnumMethodInstancesByAddressDelegate(IntPtr self, ulong handle);
+        private delegate int EndEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress handle);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int RequestDelegate(
