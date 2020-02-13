@@ -125,20 +125,14 @@ namespace Microsoft.Diagnostics.Runtime
 
             EnumProcessModules(_process, null, 0, out uint needed);
 
-            IntPtr[] modules = new IntPtr[needed / 4];
-            uint size = (uint)modules.Length * sizeof(uint);
+            IntPtr[] modules = new IntPtr[needed / IntPtr.Size];
 
-            if (!EnumProcessModules(_process, modules, size, out _))
+            if (!EnumProcessModules(_process, modules, needed, out _))
                 throw new ClrDiagnosticsException("Unable to get process modules.", ClrDiagnosticsExceptionKind.DataRequestError);
 
             for (int i = 0; i < modules.Length; i++)
             {
                 IntPtr ptr = modules[i];
-
-                if (ptr == IntPtr.Zero)
-                {
-                    break;
-                }
 
                 StringBuilder sb = new StringBuilder(1024);
                 uint res = GetModuleFileNameEx(_process, ptr, sb, sb.Capacity);
