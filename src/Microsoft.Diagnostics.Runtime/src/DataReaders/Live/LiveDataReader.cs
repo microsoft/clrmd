@@ -285,11 +285,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         private const string Kernel32LibraryName = "kernel32.dll";
 
-        [DllImport("psapi.dll", SetLastError = true)]
+        [DllImport(Kernel32LibraryName, SetLastError = true, EntryPoint = "K32EnumProcessModules")]
         public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
-        [DllImport("psapi.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "GetModuleFileNameExW")]
-        [PreserveSig]
+        [DllImport(Kernel32LibraryName, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "K32GetModuleFileNameExW")]
         public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
 
         [DllImport(Kernel32LibraryName)]
