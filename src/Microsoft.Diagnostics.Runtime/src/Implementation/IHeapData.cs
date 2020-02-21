@@ -4,10 +4,10 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IHeapBuilder
+    public interface IHeapData
     {
         IHeapHelpers HeapHelpers { get; }
-        public bool IsServer { get; }
+        bool IsServer { get; }
         int LogicalHeapCount { get; }
 
         ulong ArrayMethodTable { get; }

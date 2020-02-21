@@ -148,23 +148,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsServer { get; }
 
-        public ClrmdHeap(ClrRuntime runtime, IHeapBuilder heapBuilder)
+        public ClrmdHeap(ClrRuntime runtime, IHeapData data)
         {
-            if (heapBuilder is null)
-                throw new ArgumentNullException(nameof(heapBuilder));
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
 
-            _helpers = heapBuilder.HeapHelpers;
+            _helpers = data.HeapHelpers;
 
             Runtime = runtime;
-            CanWalkHeap = heapBuilder.CanWalkHeap;
-            IsServer = heapBuilder.IsServer;
-            LogicalHeapCount = heapBuilder.LogicalHeapCount;
+            CanWalkHeap = data.CanWalkHeap;
+            IsServer = data.IsServer;
+            LogicalHeapCount = data.LogicalHeapCount;
 
             // Prepopulate a few important method tables.  This should never fail.
-            FreeType = _helpers.Factory.CreateSystemType(this, heapBuilder.FreeMethodTable, "Free");
-            ObjectType = _helpers.Factory.CreateSystemType(this, heapBuilder.ObjectMethodTable, "System.Object");
-            StringType = _helpers.Factory.CreateSystemType(this, heapBuilder.StringMethodTable, "System.String");
-            ExceptionType = _helpers.Factory.CreateSystemType(this, heapBuilder.ExceptionMethodTable, "System.Exception");
+            FreeType = _helpers.Factory.CreateSystemType(this, data.FreeMethodTable, "Free");
+            ObjectType = _helpers.Factory.CreateSystemType(this, data.ObjectMethodTable, "System.Object");
+            StringType = _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String");
+            ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
         }
 
         private IReadOnlyList<ClrSegment> Initialize()
@@ -179,7 +179,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
                 if (segments.Count > 0 && segments[0].Start > segments[segments.Count - 1].Start)
-                    throw new InvalidOperationException("IHeapBuilder returned segments out of order.");
+                    throw new InvalidOperationException("IHeapData returned segments out of order.");
 
                 _fqRoots = fqRoots;
                 _fqObjects = fqObjects;
