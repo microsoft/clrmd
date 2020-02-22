@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(vtable->Release, typeof(ReleaseDelegate));
+            ReleaseDelegate release = Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(vtable->Release);
             return release(pUnk);
         }
     }
