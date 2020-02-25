@@ -8,11 +8,11 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal sealed class HeapBuilder : IHeapBuilder
+    internal sealed class HeapBuilder : IHeapData
     {
         private readonly CommonMethodTables _mts;
 
-        #region IHeapBuilder
+        #region IHeapData
         public IHeapHelpers HeapHelpers { get; }
 
         public bool IsServer { get; }

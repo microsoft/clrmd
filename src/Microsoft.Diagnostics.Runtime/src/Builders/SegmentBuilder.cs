@@ -7,7 +7,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal sealed class SegmentBuilder : ISegmentBuilder
+    internal sealed class SegmentBuilder : ISegmentData
     {
         private SegmentData _segment;
         private ulong _heapAllocated;
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _sos.GetSegmentData(address, out _segment);
         }
 
-        #region ISegmentBuilder
+        #region ISegmentData
         public int LogicalHeap { get; set; }
 
         public ulong Start => _segment.Start;

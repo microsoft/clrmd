@@ -9,29 +9,29 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public class ClrmdSegment : ClrSegment
     {
-        public ClrmdSegment(ClrHeap clrHeap, ISegmentBuilder builder)
+        public ClrmdSegment(ClrHeap clrHeap, ISegmentData data)
         {
-            if (builder is null)
-                throw new ArgumentNullException(nameof(builder));
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
 
             Heap = clrHeap;
 
-            LogicalHeap = builder.LogicalHeap;
-            Start = builder.Start;
-            End = builder.End;
+            LogicalHeap = data.LogicalHeap;
+            Start = data.Start;
+            End = data.End;
 
-            IsLargeObjectSegment = builder.IsLargeObjectSegment;
-            IsEphemeralSegment = builder.IsEphemeralSegment;
+            IsLargeObjectSegment = data.IsLargeObjectSegment;
+            IsEphemeralSegment = data.IsEphemeralSegment;
 
-            ReservedEnd = builder.ReservedEnd;
-            CommittedEnd = builder.CommitedEnd;
+            ReservedEnd = data.ReservedEnd;
+            CommittedEnd = data.CommitedEnd;
 
-            Gen0Start = builder.Gen0Start;
-            Gen0Length = builder.Gen0Length;
-            Gen1Start = builder.Gen1Start;
-            Gen1Length = builder.Gen1Length;
-            Gen2Start = builder.Gen2Start;
-            Gen2Length = builder.Gen2Length;
+            Gen0Start = data.Gen0Start;
+            Gen0Length = data.Gen0Length;
+            Gen1Start = data.Gen1Start;
+            Gen1Length = data.Gen1Length;
+            Gen2Start = data.Gen2Start;
+            Gen2Length = data.Gen2Length;
         }
 
         public override ClrHeap Heap { get; }
