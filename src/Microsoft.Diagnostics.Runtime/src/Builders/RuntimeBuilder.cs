@@ -334,8 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     byte[]? contextCopy = null;
                     if (includeContext)
                     {
-                        contextCopy = new byte[contextSize];
-                        Buffer.BlockCopy(context, 0, contextCopy, 0, contextSize);
+                        contextCopy = context.AsSpan(0, contextSize).ToArray();
                     }
 
                     ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);

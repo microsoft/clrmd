@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int AddRef()
         {
-            _addRef ??= (AddRefDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->AddRef, typeof(AddRefDelegate));
+            _addRef ??= Marshal.GetDelegateForFunctionPointer<AddRefDelegate>(_unknownVTable->AddRef);
 
             int count = _addRef(Self);
             return count;
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
-            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
+            QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(tbl->QueryInterface);
             int hr = queryInterface(pUnknown, desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
             {
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 throw new InvalidCastException($"{GetType().FullName}.QueryInterface({desiredInterface}) failed, hr=0x{hr:x}");
             }
 
-            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
+            ReleaseDelegate release = Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(tbl->Release);
             int count = release(pUnknown);
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int Release()
         {
-            _release ??= (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
+            _release ??= Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(_unknownVTable->Release);
 
             int count = _release(Self);
             return count;
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public IntPtr QueryInterface(in Guid riid)
         {
-            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
+            QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(_unknownVTable->QueryInterface);
 
             int hr = queryInterface(Self, riid, out IntPtr unk);
             return hr == S_OK ? unk : IntPtr.Zero;
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (t != null)
                 return;
 
-            t = (T)Marshal.GetDelegateForFunctionPointer(entry, typeof(T));
+            t = Marshal.GetDelegateForFunctionPointer<T>(entry);
 
 #if DEBUG
             if (t.Method.GetParameters().First().ParameterType != typeof(IntPtr))

@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (dllMain == IntPtr.Zero)
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
-                DllMain main = (DllMain)Marshal.GetDelegateForFunctionPointer(dllMain, typeof(DllMain));
+                DllMain main = Marshal.GetDelegateForFunctionPointer<DllMain>(dllMain);
                 main(dacLibrary, 1, IntPtr.Zero);
             }
 
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
 
-            CreateDacInstance func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
+            CreateDacInstance func = Marshal.GetDelegateForFunctionPointer<CreateDacInstance>(addr);
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
             int res = func(guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
