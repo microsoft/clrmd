@@ -2,25 +2,101 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Utilities.Pdb;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Linux;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class CoreDumpReader : IDataReader2
     {
+        private class CoreModuleInfo : ModuleInfo
+        {
+            internal readonly ElfFile _elfFile;
+            private readonly PEImage _pe;
+
+            public CoreModuleInfo(IDataReader reader, ElfLoadedImage image)
+                : base(reader)
+            {
+                Debug.Assert(reader != null);
+                _elfFile = image.Open();
+
+                uint fileSize = (uint)image.Size;
+                uint timeStamp = 0;
+
+                if (_elfFile == null)
+                {
+                    PEImage pe = image.OpenAsPEImage();
+                    if (pe.IsValid)
+                    {
+                        _pe = pe;
+                        fileSize = (uint)pe.IndexFileSize;
+                        timeStamp = (uint)pe.IndexTimeStamp;
+                    }
+                }
+                else
+                {
+                    BuildId = _elfFile.BuildId;
+
+                    // This keeps InitData from trying to open a Elf image as a PE image
+                    _initialized = true;
+                }
+
+                FileName = image.Path;
+                ImageBase = (ulong)image.BaseAddress;
+                FileSize = fileSize;
+                TimeStamp = timeStamp;
+            }
+
+            protected override void InitVersion(out VersionInfo version)
+            {
+                if (_elfFile != null)
+                {
+                    LinuxFunctions.GetVersionInfo(_dataReader, ImageBase, _elfFile, out version);
+                }
+                else
+                {
+                    version = default;
+
+                    if (_pe != null)
+                    {
+                        // First try getting the version resource with the "file" module layout (isVirtual == false)
+                        Utilities.FileVersionInfo fileVersion = _pe.GetFileVersionInfo();
+                        if (fileVersion != null)
+                        {
+                            version = fileVersion.VersionInfo;
+                        }
+                        else
+                        {
+                            // If that fails, now try getting the version with the "loaded" layout (isVirtual == true)
+                            PEImage image = GetPEImage();
+                            if (image != null && image.IsValid)
+                            {
+                                fileVersion = image.GetFileVersionInfo();
+                                if (fileVersion != null)
+                                {
+                                    version = fileVersion.VersionInfo;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private readonly string _source;
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
         private readonly int _pointerSize;
         private readonly Architecture _architecture;
         private Dictionary<uint, IElfPRStatus> _threads;
-        private List<ModuleInfo> _modules;
+        private List<CoreModuleInfo> _modules;
         private readonly byte[] _buffer = new byte[512];
 
         public CoreDumpReader(string filename)
@@ -82,6 +158,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IList<ModuleInfo> EnumerateModules()
         {
+            // Only return the native elf modules
+            return EnumerateAllModules().Where((module) => module._elfFile != null).Cast<ModuleInfo>().ToList();
+        }
+
+        private IList<CoreModuleInfo> EnumerateAllModules()
+        {
             if (_modules == null)
             {
                 // Need to filter out non-modules like the interpreter (named something 
@@ -89,42 +171,17 @@ namespace Microsoft.Diagnostics.Runtime
                 // memory range overlaps with actual modules.
                 ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 
-                _modules = new List<ModuleInfo>(_core.LoadedImages.Count);
-                foreach (ElfLoadedImage img in _core.LoadedImages)
-                    if ((ulong)img.BaseAddress != interpreter && !img.Path.StartsWith("/dev"))
-                        _modules.Add(CreateModuleInfo(img));
+                _modules = new List<CoreModuleInfo>();
+                foreach (ElfLoadedImage image in _core.LoadedImages)
+                {
+                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev"))
+                    {
+                        _modules.Add(new CoreModuleInfo(this, image));
+                    }
+                }
             }
 
             return _modules;
-        }
-
-        private ModuleInfo CreateModuleInfo(ElfLoadedImage img)
-        {
-            ElfFile file = img.Open();
-            
-            VersionInfo? version = null;
-            uint fileSize = (uint)img.Size;
-            uint timeStamp = 0;
-            
-            if (file is null)
-            {
-                PEImage pe = img.OpenAsPEImage();
-                fileSize = (uint)pe.IndexFileSize;
-                timeStamp = (uint)pe.IndexTimeStamp;
-                version = pe.GetFileVersionInfo()?.VersionInfo;
-            }
-
-            ModuleInfo result = new ModuleInfo(this, version)
-            {
-                FileName = img.Path,
-                ImageBase = (ulong)img.BaseAddress,
-                BuildId = file?.BuildId,
-                IsManaged = file == null,
-                FileSize = fileSize,
-                TimeStamp = timeStamp,
-            };
-
-            return result;
         }
 
         public void Flush()
@@ -177,12 +234,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
-            ElfFile file = image.Open();
-            if (file != null)
-                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
-            else
-                version = default;
+            version = default;
+
+            ModuleInfo moduleInfo = EnumerateAllModules().FirstOrDefault(module => module.ImageBase == baseAddress);
+            if (moduleInfo != null)
+            {
+                version = moduleInfo.Version;
+            }
         }
 
         public uint ReadDwordUnsafe(ulong addr)

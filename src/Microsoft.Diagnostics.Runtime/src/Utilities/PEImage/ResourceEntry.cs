@@ -11,6 +11,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class ResourceEntry
     {
+        const int MaxPath = 1024;
+
         private static readonly ResourceEntry[] s_emptyChildren = new ResourceEntry[0];
         private ResourceEntry[] _children;
         private readonly int _offset;
@@ -138,10 +140,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 IMAGE_RESOURCE_DIRECTORY_ENTRY entry = Image.Read<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset);
                 string name;
-                if (this == root)
-                    name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
-                else
+                if (entry.IsStringName)
                     name = GetName(ref entry, resourceStartFileOffset);
+                else
+                    name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
 
                 result[i] = new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset);
             }
@@ -158,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             for (int i = 0; i < len; i++)
             {
                 char c = (char)Image.Read<ushort>(ref offset);
-                if (c == 0)
+                if (c == 0 || i > MaxPath)
                     break;
 
                 sb.Append(c);
