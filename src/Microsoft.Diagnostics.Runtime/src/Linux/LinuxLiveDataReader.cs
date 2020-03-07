@@ -268,7 +268,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 Architecture.Arm => sizeof(RegSetArm),
                 Architecture.Arm64 => sizeof(RegSetArm64),
-                _ => sizeof(RegSetX64),
+                Architecture.Amd64 => sizeof(RegSetX64),
+                _ => sizeof(RegSetX86),
             };
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
@@ -279,12 +280,21 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, new IntPtr(data));
                 }
 
-                if (Architecture == Architecture.Arm)
-                    Unsafe.As<byte, RegSetArm>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
-                else if (Architecture == Architecture.Arm64)
-                    Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
-                else
-                    Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                switch (Architecture)
+                {
+                    case Architecture.Arm:
+                        Unsafe.As<byte, RegSetArm>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case Architecture.Arm64:
+                        Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case Architecture.Amd64:
+                        Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    default:
+                        Unsafe.As<byte, RegSetX86>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                }
             }
             finally
             {
