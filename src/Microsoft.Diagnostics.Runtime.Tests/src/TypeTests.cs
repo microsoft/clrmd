@@ -509,6 +509,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void CorElementType()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrType classType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
+            ClrType arrayType = runtime.BaseClassLibrary.GetTypeByName("System.Array");
+
+            Assert.Equal(ClrElementType.Class, classType.ElementType);
+            Assert.Equal(ClrElementType.Class, arrayType.ElementType);
+        }
+
+        [Fact]
         public void GenericTypeTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
@@ -749,9 +762,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrArray s_szIntArray = type.GetStaticFieldByName("s_szIntArray").ReadObject().AsArray();
-            ClrArray s_mdIntArray = type.GetStaticFieldByName("s_mdIntArray").ReadObject().AsArray();
-            ClrArray s_2dIntArray = type.GetStaticFieldByName("s_2dIntArray").ReadObject().AsArray();
+            ClrArray s_szIntArray = type.GetStaticFieldByName("s_szIntArray").ReadObject().AsArray(); // System.Int32[]
+            ClrArray s_mdIntArray = type.GetStaticFieldByName("s_mdIntArray").ReadObject().AsArray(); // System.Int32[*]
+            ClrArray s_2dIntArray = type.GetStaticFieldByName("s_2dIntArray").ReadObject().AsArray(); // System.Int32[,]
 
             Assert.Equal(1, s_szIntArray.Rank);
             Assert.Equal(1, s_mdIntArray.Rank);
