@@ -750,7 +750,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                             "System.IntPtr" => ClrElementType.NativeInt,
                             "System.UIntPtr" => ClrElementType.NativeUInt,
                             "System.ValueType" => ClrElementType.Struct,
-                            "System.Array" => ClrElementType.SZArray,
                             _ => ClrElementType.Unknown,
                         };
 
