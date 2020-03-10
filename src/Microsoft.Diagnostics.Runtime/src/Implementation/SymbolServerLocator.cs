@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         return result!;
 
                     // if it's just some file on disk, check the properties
-                    fullPath = Path.Combine(entry.Cache, fileName);
+                    fullPath = Path.Combine(entry.Location, fileName);
                     if (CheckLocalFile(indexPath, fullPath, buildTimeStamp, imageSize, checkProperties, out result))
                         return result!;
                 }
