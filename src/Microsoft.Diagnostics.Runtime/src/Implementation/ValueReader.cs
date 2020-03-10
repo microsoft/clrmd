@@ -192,6 +192,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong data = _firstChar.GetAddress(strAddr);
 
             length = Math.Min(length, maxLen);
+            if (length == 0)
+            {
+                return string.Empty;
+            }
             return ReadString(reader, data, length);
         }
 
