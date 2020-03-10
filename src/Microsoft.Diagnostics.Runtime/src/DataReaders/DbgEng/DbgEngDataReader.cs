@@ -271,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Read(ulong address, Span<byte> buffer, out int read)
         {
             read = _spaces.ReadVirtual(address, buffer);
-            return read == buffer.Length;
+            return read > 0;
         }
 
         public ulong ReadPointer(ulong address)

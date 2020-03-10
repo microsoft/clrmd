@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
 
                 bytesRead = read;
-                return true;
+                return read > 0;
             }
         }
 
