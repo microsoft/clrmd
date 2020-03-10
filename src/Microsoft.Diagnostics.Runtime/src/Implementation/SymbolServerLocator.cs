@@ -103,7 +103,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 if (!entry.IsHttp)
                 {
+                    // Don't check the properties if it's in the right index location
                     fullPath = Path.Combine(entry.Location, indexPath);
+                    if (CheckLocalFile(indexPath, fullPath, buildTimeStamp, imageSize, checkProperties, out result))
+                        return result!;
+
+                    // if it's just some file on disk, check the properties
+                    fullPath = Path.Combine(entry.Location, fileName);
                     if (CheckLocalFile(indexPath, fullPath, buildTimeStamp, imageSize, checkProperties, out result))
                         return result!;
                 }
