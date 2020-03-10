@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     else
                     {
-                        dacLocation = dacFileName;
+                        dacLocation = null;
                     }
                 }
                 else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
