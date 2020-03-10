@@ -270,6 +270,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool Read(ulong address, Span<byte> buffer, out int read)
         {
+            DebugOnly.Assert(!buffer.IsEmpty);
             read = _spaces.ReadVirtual(address, buffer);
             return read > 0;
         }
