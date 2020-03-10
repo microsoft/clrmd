@@ -39,10 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
         private bool _hasMethods;
         private bool? _runtimeType;
         private EnumData _enumData;
-        private bool _notRCW;
-        private bool _checkedIfIsRCW;
-        private bool _checkedIfIsCCW;
-        private bool _notCCW;
 
         public override ulong MethodTable
         {
@@ -221,25 +217,19 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         public override bool IsCCW(ulong obj)
         {
-            if (_checkedIfIsCCW)
-                return !_notCCW;
+            if (IsFree)
+                return false;
 
             // The dac cannot report this information prior to v4.5.
             if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
                 return false;
 
             IObjectData data = DesktopHeap.GetObjectData(obj);
-            _notCCW = !(data != null && data.CCW != 0);
-            _checkedIfIsCCW = true;
-
-            return !_notCCW;
+            return data != null && data.CCW != 0;
         }
 
         public override CcwData GetCCWData(ulong obj)
         {
-            if (_notCCW)
-                return null;
-
             // The dac cannot report this information prior to v4.5.
             if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
                 return null;
@@ -253,41 +243,28 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (ccw != null)
                     result = new DesktopCCWData(DesktopHeap, data.CCW, ccw);
             }
-            else if (!_checkedIfIsCCW)
-            {
-                _notCCW = true;
-            }
 
-            _checkedIfIsCCW = true;
             return result;
         }
 
         public override bool IsRCW(ulong obj)
         {
-            if (_checkedIfIsRCW)
-                return !_notRCW;
+            if (IsFree)
+                return false;
 
             // The dac cannot report this information prior to v4.5.
             if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
                 return false;
 
             IObjectData data = DesktopHeap.GetObjectData(obj);
-            _notRCW = !(data != null && data.RCW != 0);
-            _checkedIfIsRCW = true;
-
-            return !_notRCW;
+            return data != null && data.RCW != 0;
         }
 
         public override RcwData GetRCWData(ulong obj)
         {
-            // Most types can't possibly be RCWs.  
-            if (_notRCW)
-                return null;
-
             // The dac cannot report this information prior to v4.5.
             if (DesktopHeap.DesktopRuntime.CLRVersion != DesktopVersion.v45)
             {
-                _notRCW = true;
                 return null;
             }
 
@@ -300,12 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                 if (rcw != null)
                     result = new DesktopRCWData(DesktopHeap, data.RCW, rcw);
             }
-            else if (!_checkedIfIsRCW) // If the first time fails, we assume that all instances of this type can't be RCWs.
-            {
-                _notRCW = true; // TODO FIX NOW review.  We really want to simply ask the runtime... 
-            }
 
-            _checkedIfIsRCW = true;
             return result;
         }
 
