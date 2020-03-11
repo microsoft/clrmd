@@ -37,6 +37,9 @@ namespace Microsoft.Diagnostics.Runtime
 #if !NETCOREAPP
         public static unsafe string GetString(this Encoding encoding, ReadOnlySpan<byte> bytes)
         {
+            if (bytes.IsEmpty)
+                return string.Empty;
+
             fixed (byte* bytesPtr = bytes)
             {
                 return encoding.GetString(bytesPtr, bytes.Length);
