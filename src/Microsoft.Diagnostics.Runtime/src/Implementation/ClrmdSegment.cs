@@ -11,8 +11,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public class ClrmdSegment : ClrSegment
     {
+        const int MarkerCount = 16;
+
         private readonly IHeapHelpers _helpers;
         private readonly ClrmdHeap _clrmdHeap;
+        private readonly ulong[] _markers;
 
         public ClrmdSegment(ClrmdHeap heap, IHeapHelpers helpers, ISegmentData data)
         {
@@ -41,6 +44,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Gen1Length = data.Gen1Length;
             Gen2Start = data.Gen2Start;
             Gen2Length = data.Gen2Length;
+
+            _markers = new ulong[MarkerCount];
         }
 
         public override ClrHeap Heap => _clrmdHeap;
@@ -107,6 +112,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     break;
                 }
 
+                int marker = GetMarkerIndex(obj);
+                if (marker != -1 && _markers[marker] == 0)
+                    _markers[marker] = obj;
+
                 ClrObject result = new ClrObject(obj, type);
                 yield return result;
 
@@ -143,8 +152,69 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ArrayPool<byte>.Shared.Return(buffer);
         }
 
+        private int GetMarkerIndex(ulong obj)
+        {
+            if (obj <= FirstObjectAddress)
+                return -1;
 
-        public override ulong NextObject(ulong addr)
+            if (obj >= End)
+                return _markers.Length - 1;
+
+            ulong step = Length / ((uint)_markers.Length + 2);
+
+            ulong offset = obj - FirstObjectAddress;
+            int index = (int)(offset / step) - 1;
+
+            if (index == _markers.Length)
+                index = _markers.Length - 1;
+
+            return index;
+        }
+
+        public override ulong GetPreviousObjectAddress(ulong addr)
+        {
+            if (addr < FirstObjectAddress || addr >= CommittedEnd)
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedEnd:x}] does not contain address {addr:x}");
+
+            if (addr == FirstObjectAddress)
+                return 0;
+
+            // Default to the start of the segment
+            ulong prevAddr = FirstObjectAddress;
+
+            // Look for markers that are closer to the address.  We keep the size of _markers small so a linear walk
+            // should be roughly as fast as a binary search.
+            foreach (ulong marker in _markers)
+            {
+                // Markers can be 0 even when _markers was fully intialized by a full heap walk.  This is because parts of
+                // the ephemeral GC heap may be not in use (allocation contexts) or when objects on the large object heap
+                // are so big that there's simply not a valid object starting point in that range.
+                if (marker != 0)
+                {
+                    if (marker >= addr)
+                        break;
+
+                    prevAddr = marker;
+                }
+            }
+
+            // Linear walk from the last known good previous address to the one we are looking for.
+            // This could take a while if we don't know a close enough address.
+            ulong curr = prevAddr;
+            while (curr != 0 && curr <= addr)
+            {
+                ulong next = GetNextObjectAddress(curr);
+
+                if (next >= addr)
+                    return curr;
+
+                curr = next;
+            }
+
+            return 0;
+        }
+
+        public override ulong GetNextObjectAddress(ulong addr)
         {
             if (addr == 0)
                 return 0;
@@ -188,6 +258,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (obj >= End)
                 return 0;
+
+            int marker = GetMarkerIndex(obj);
+            if (marker != -1 && _markers[marker] == 0)
+                _markers[marker] = obj;
 
             return obj;
         }
