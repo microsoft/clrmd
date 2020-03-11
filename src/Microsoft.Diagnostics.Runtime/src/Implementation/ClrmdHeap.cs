@@ -200,14 +200,74 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment seg)
+        public ulong NextObject(ClrSegment seg, ulong addr)
         {
+            if (seg is null)
+                throw new ArgumentNullException(nameof(seg));
+
+            if (addr == 0)
+                return 0;
+
+            if (addr < seg.FirstObjectAddress || addr >= seg.CommittedEnd)
+                throw new InvalidOperationException($"Segment [{seg.FirstObjectAddress:x},{seg.CommittedEnd:x}] does not contain object {addr:x}");
+
+            bool large = seg.IsLargeObjectSegment;
+            uint minObjSize = (uint)IntPtr.Size * 3;
+            IMemoryReader memoryReader = _helpers.DataReader;
+            ulong mt = memoryReader.ReadPointer(addr);
+
+            ClrType? type = _helpers.Factory.GetOrCreateType(this, mt, addr);
+            if (type is null)
+                return 0;
+
+            ulong size;
+            if (type.ComponentSize == 0)
+            {
+                size = (uint)type.StaticSize;
+            }
+            else
+            {
+                uint count = memoryReader.Read<uint>(addr + (uint)IntPtr.Size);
+
+                // Strings in v4+ contain a trailing null terminator not accounted for.
+                if (StringType == type)
+                    count++;
+
+                size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
+            }
+
+            size = Align(size, large);
+            if (size < minObjSize)
+                size = minObjSize;
+
+            ulong obj = addr + size;
+            while (!large && AllocationContext.TryGetValue(obj, out ulong nextObj))
+            {
+                nextObj += Align(minObjSize, large);
+
+                if (obj >= nextObj || obj >= seg.End)
+                    return 0;
+
+                obj = nextObj;
+            }
+
+            if (obj >= seg.End)
+                return 0;
+
+            return obj;
+        }
+
+        public IEnumerable<ClrObject> EnumerateObjects(ClrSegment seg)
+        {
+            if (seg is null)
+                throw new ArgumentNullException(nameof(seg));
+
             bool large = seg.IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
 
             bool logging = _steps != null;
 
-            ulong obj = seg.FirstObject;
+            ulong obj = seg.FirstObjectAddress;
 
             IDataReader dataReader = _helpers.DataReader;
 
@@ -237,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         break;
                 }
 
-                ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
+                ClrType? type = _helpers.Factory.GetOrCreateType(this, mt, obj);
                 if (type is null)
                 {
                     if (logging)
@@ -349,7 +409,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Segments is null || Segments.Count == 0)
                 return null;
 
-            if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count - 1].End)
+            if (Segments[0].FirstObjectAddress <= objRef && objRef < Segments[Segments.Count - 1].End)
             {
                 // Start the segment search where you where last
                 int curIdx = _lastSegmentIndex;

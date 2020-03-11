@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
-        public abstract ulong FirstObject { get; }
+        public abstract ulong FirstObjectAddress { get; }
 
         /// <summary>
         /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
@@ -107,6 +107,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects on the segment.
         /// </summary>
         public abstract IEnumerable<ClrObject> EnumerateObjects();
+
+        /// <summary>
+        /// Returns the object after the given object.
+        /// </summary>
+        /// <param name="obj">A valid object address that resides on this segment.</param>
+        /// <returns>The next object on this segment, or 0 if <paramref name="obj"/> is the last object in the segment.</returns>
+        public abstract ulong NextObject(ulong obj);
 
         /// <summary>
         /// Returns the generation of an object in this segment.

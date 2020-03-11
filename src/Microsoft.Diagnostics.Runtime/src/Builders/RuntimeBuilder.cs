@@ -184,7 +184,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
             {
-                segments.Add(new ClrmdSegment(clrHeap, segBuilder));
+                // Unfortunately ClrmdSegment is tightly coupled to ClrmdHeap to make implementation vastly simpler and it can't
+                // be used with any generic ClrHeap.  There should be no way that this runtime builder ever mismatches the two
+                // so this cast will always succeed.
+                segments.Add(new ClrmdSegment((ClrmdHeap)clrHeap, segBuilder));
                 address = segBuilder.Next;
             }
         }

@@ -9,12 +9,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public class ClrmdSegment : ClrSegment
     {
-        public ClrmdSegment(ClrHeap clrHeap, ISegmentData data)
+        private readonly ClrmdHeap _clrmdHeap;
+
+        public ClrmdSegment(ClrmdHeap heap, ISegmentData data)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
-            Heap = clrHeap;
+            _clrmdHeap = heap;
 
             LogicalHeap = data.LogicalHeap;
             Start = data.Start;
@@ -34,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Gen2Length = data.Gen2Length;
         }
 
-        public override ClrHeap Heap { get; }
+        public override ClrHeap Heap => _clrmdHeap;
 
         public override int LogicalHeap { get; }
         public override ulong Start { get; }
@@ -53,8 +55,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong Gen2Start { get; }
         public override ulong Gen2Length { get; }
 
-        public override IEnumerable<ClrObject> EnumerateObjects() => ((ClrmdHeap)Heap).EnumerateObjects(this);
+        public override IEnumerable<ClrObject> EnumerateObjects() => _clrmdHeap.EnumerateObjects(this);
 
-        public override ulong FirstObject => Gen2Start < End ? Gen2Start : 0;
+        public override ulong NextObject(ulong obj) => _clrmdHeap.NextObject(this, obj);
+
+        public override ulong FirstObjectAddress => Gen2Start < End ? Gen2Start : 0;
     }
 }
