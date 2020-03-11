@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
                 if (hr == E_INVALIDARG || hr == HRESULT_FROM_NT(STATUS_MAPPED_FILE_SIZE_ZERO))
-                    throw new InvalidDataException("The file is not a crash dump");
+                    throw new InvalidDataException($"'{dumpFile}' is not a crash dump.");
 
                 var kind = (uint)hr == 0x80004005 ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
                 throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: 0x{hr:x8}", kind, hr).AddData("DumpFile", dumpFile);
@@ -92,9 +92,9 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
                 if (!WindowsFunctions.IsProcessRunning(processId))
-                    throw new ArgumentException("The process is not running");
+                    throw new ArgumentException($"Process {processId} is not running.");
 
-                throw new ClrDiagnosticsException($"Could not attach to process {processId:X}, HRESULT: 0x{hr:x8}", ClrDiagnosticsExceptionKind.DebuggerError, hr);
+                throw new ArgumentException($"Could not attach to process {processId}, HRESULT: 0x{hr:x}");
             }
         }
 

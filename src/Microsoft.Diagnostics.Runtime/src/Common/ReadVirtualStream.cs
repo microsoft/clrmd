@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        public override long Length => throw new NotImplementedException();
+        public override long Length => throw new NotSupportedException($"Cannot get Length from a {nameof(ReadVirtualStream)}.");
 
         public override long Position
         {
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"Cannot write to a {nameof(ReadVirtualStream)}.");
         }
     }
 }
