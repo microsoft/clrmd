@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong addr = field.GetAddress(Address, _interior);
             if (!DataReader.ReadPointer(addr, out ulong obj))
-                throw new MemoryReadException(addr);
+                return default;
 
             return heap.GetObject(obj);
         }
@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Field '{Type.Name}.{fieldName}' is not a ValueClass.");
 
             if (field.Type is null)
-                throw new Exception("Field does not have an associated class.");
+                throw new InvalidOperationException("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address, _interior);
             return new ClrValueType(addr, field.Type, true);
@@ -110,12 +110,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value of the given field.</returns>
         /// <exception cref="ArgumentException">No field matches the given name.</exception>
         /// <exception cref="InvalidOperationException">The field is not a string.</exception>
-        /// <exception cref="MemoryReadException">There was an error reading the value of this field out of the data target.</exception>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             if (!DataReader.ReadPointer(address, out ulong str))
-                throw new MemoryReadException(address);
+                return null;
 
             if (str == 0)
                 return null;

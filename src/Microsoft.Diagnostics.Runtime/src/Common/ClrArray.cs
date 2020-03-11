@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe T GetValue<T>(int index) where T : unmanaged
         {
             if (Rank != 1)
-                throw new ArgumentException("Array was not a one-dimensional array.");
+                throw new ArgumentException($"Array {Address:x} was not a one-dimensional array.  Type: {Type?.Name ?? "null"}");
 
             int valueOffset = index;
             int dataByteOffset = 2 * IntPtr.Size;
@@ -179,7 +179,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int elementSize = Type.ComponentSize;
             if (sizeof(T) != elementSize)
-                throw new ArgumentException("Array element was not of the expected size.");
+                throw new ArgumentException($"{nameof(T)} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
@@ -192,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int rank = Rank;
             if (rank != indices.Length)
-                throw new ArgumentException("Indices length does not match the array rank.");
+                throw new ArgumentException($"Indices length does not match the array rank. Array {Address:x} Rank = {rank}, {nameof(indices)} Rank = {indices.Length}");
 
             int valueOffset = 0;
             int dataByteOffset = 2 * IntPtr.Size;
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int elementSize = Type.ComponentSize;
             if (sizeof(T) != elementSize)
-                throw new ArgumentException("Array element was not of the expected size.");
+                throw new ArgumentException($"{nameof(T)} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);

@@ -14,6 +14,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
+        private const string RuntimeType = "System.RuntimeType";
+
         private IClrObjectHelpers Helpers => GetTypeOrThrow().ClrObjectHelpers;
 
         /// <summary>
@@ -178,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong addr = field.GetAddress(Address);
             if (!type.ClrObjectHelpers.DataReader.ReadPointer(addr, out ulong obj))
-                throw new MemoryReadException(addr);
+                return default;
 
             return heap.GetObject(obj);
         }
@@ -199,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
 
             if (field.Type is null)
-                throw new Exception("Field does not have an associated class.");
+                throw new InvalidOperationException("Field does not have an associated class.");
 
             ulong addr = field.GetAddress(Address);
             return new ClrValueType(addr, field.Type, true);
@@ -224,13 +226,13 @@ namespace Microsoft.Diagnostics.Runtime
             return (T)value;
         }
 
-        public bool IsRuntimeType => Type?.Name == "System.RuntimeType";
+        public bool IsRuntimeType => Type?.Name == RuntimeType;
         public ClrType? AsRuntimeType()
         {
             ClrType type = GetTypeOrThrow();
 
             if (!IsRuntimeType)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException($"Object {Address:x} is of type '{Type?.Name ?? "null" }', expected '{RuntimeType}'.");
 
             ClrInstanceField? field = type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
             if (field is null)
@@ -260,15 +262,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// -or-
         /// The field is not of the correct type.
         /// </exception>
-        /// <exception cref="MemoryReadException">
-        /// There was an error reading the value of this field out of the data target.
-        /// </exception>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
             IDataReader dataReader = Helpers.DataReader;
             if (!dataReader.ReadPointer(address, out ulong strPtr))
-                throw new MemoryReadException(address);
+                return null;
 
             if (strPtr == 0)
                 return null;
@@ -290,7 +289,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
 
             if (IsNull)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException($"Cannot get field from null object.");
 
             ClrInstanceField? field = type.GetFieldByName(fieldName);
             if (field is null)
