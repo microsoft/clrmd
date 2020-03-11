@@ -36,7 +36,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             int size = Unsafe.SizeOf<T>();
             T result;
-            DataSource.Read(position, new Span<byte>(&result, size));
+            int read = DataSource.Read(position, new Span<byte>(&result, size));
+            if (read != size)
+                throw new IOException();
+                
             return result;
         }
 
