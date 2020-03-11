@@ -58,6 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool CanWalkHeap { get; }
 
+
         private Dictionary<ulong, ulong> AllocationContext
         {
             get
@@ -200,164 +201,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ulong NextObject(ClrSegment seg, ulong addr)
+        public ulong SkipAllocationContext(ClrSegment seg, ulong obj, ulong mt, Action<ulong, ulong, int, int, uint>? callback)
         {
             if (seg is null)
                 throw new ArgumentNullException(nameof(seg));
 
-            if (addr == 0)
-                return 0;
+            if (seg.IsLargeObjectSegment)
+                return obj;
 
-            if (addr < seg.FirstObjectAddress || addr >= seg.CommittedEnd)
-                throw new InvalidOperationException($"Segment [{seg.FirstObjectAddress:x},{seg.CommittedEnd:x}] does not contain object {addr:x}");
-
-            bool large = seg.IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
-            IMemoryReader memoryReader = _helpers.DataReader;
-            ulong mt = memoryReader.ReadPointer(addr);
-
-            ClrType? type = _helpers.Factory.GetOrCreateType(this, mt, addr);
-            if (type is null)
-                return 0;
-
-            ulong size;
-            if (type.ComponentSize == 0)
+            while (AllocationContext.TryGetValue(obj, out ulong nextObj))
             {
-                size = (uint)type.StaticSize;
-            }
-            else
-            {
-                uint count = memoryReader.Read<uint>(addr + (uint)IntPtr.Size);
-
-                // Strings in v4+ contain a trailing null terminator not accounted for.
-                if (StringType == type)
-                    count++;
-
-                size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
-            }
-
-            size = Align(size, large);
-            if (size < minObjSize)
-                size = minObjSize;
-
-            ulong obj = addr + size;
-            while (!large && AllocationContext.TryGetValue(obj, out ulong nextObj))
-            {
-                nextObj += Align(minObjSize, large);
+                nextObj += Align(minObjSize, seg.IsLargeObjectSegment);
 
                 if (obj >= nextObj || obj >= seg.End)
                     return 0;
 
+                // Only if there's data corruption:
+                if (obj >= nextObj || obj >= seg.End)
+                {
+                    callback?.Invoke(obj, mt, int.MinValue + 2, -1, 0);
+                    return 0;
+                }
+
                 obj = nextObj;
             }
 
-            if (obj >= seg.End)
-                return 0;
-
             return obj;
-        }
-
-        public IEnumerable<ClrObject> EnumerateObjects(ClrSegment seg)
-        {
-            if (seg is null)
-                throw new ArgumentNullException(nameof(seg));
-
-            bool large = seg.IsLargeObjectSegment;
-            uint minObjSize = (uint)IntPtr.Size * 3;
-
-            bool logging = _steps != null;
-
-            ulong obj = seg.FirstObjectAddress;
-
-            IDataReader dataReader = _helpers.DataReader;
-
-            using MemoryReader? memoryReader = !large ? new MemoryReader(dataReader, 0x10000) : null;
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(IntPtr.Size * 2 + sizeof(uint));
-
-            // The large object heap
-            if (!large)
-                memoryReader!.EnsureRangeInCache(obj);
-
-            while (obj < seg.CommittedEnd)
-            {
-                ulong mt;
-                if (large)
-                {
-                    if (!dataReader.Read(obj, buffer, out int read) || read != buffer.Length)
-                        break;
-
-                    if (IntPtr.Size == 4)
-                        mt = Unsafe.As<byte, uint>(ref buffer[0]);
-                    else
-                        mt = Unsafe.As<byte, ulong>(ref buffer[0]);
-                }
-                else
-                {
-                    if (!memoryReader!.ReadPtr(obj, out mt))
-                        break;
-                }
-
-                ClrType? type = _helpers.Factory.GetOrCreateType(this, mt, obj);
-                if (type is null)
-                {
-                    if (logging)
-                        WriteHeapStep(obj, mt, int.MinValue + 1, -1, 0);
-
-                    break;
-                }
-
-                ClrObject result = new ClrObject(obj, type);
-                yield return result;
-
-                ulong size;
-                if (type.ComponentSize == 0)
-                {
-                    size = (uint)type.StaticSize;
-
-                    if (logging)
-                        WriteHeapStep(obj, mt, type.StaticSize, -1, 0);
-                }
-                else
-                {
-                    uint count;
-                    if (large)
-                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size * 2]);
-                    else
-                        memoryReader!.ReadDword(obj + (uint)IntPtr.Size, out count);
-
-                    // Strings in v4+ contain a trailing null terminator not accounted for.
-                    if (StringType == type)
-                        count++;
-
-                    size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
-
-                    if (logging)
-                        WriteHeapStep(obj, mt, type.StaticSize, type.ComponentSize, count);
-                }
-
-                size = Align(size, large);
-                if (size < minObjSize)
-                    size = minObjSize;
-
-                obj += size;
-                while (!large && AllocationContext.TryGetValue(obj, out ulong nextObj))
-                {
-                    nextObj += Align(minObjSize, large);
-
-                    // Only if there's data corruption:
-                    if (obj >= nextObj || obj >= seg.End)
-                    {
-                        if (logging)
-                            WriteHeapStep(obj, mt, int.MinValue + 2, -1, count: 0);
-
-                        yield break;
-                    }
-
-                    obj = nextObj;
-                }
-            }
-
-            ArrayPool<byte>.Shared.Return(buffer);
         }
 
         private static void WriteHeapStep(ulong obj, ulong mt, int baseSize, int componentSize, uint count)
@@ -376,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             };
         }
 
-        public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => EnumerateObjects(s));
+        public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => s.EnumerateObjects());
 
         internal static ulong Align(ulong size, bool large)
         {

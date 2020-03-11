@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -158,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        private static void ProcessHeap(
+        private void ProcessHeap(
             SegmentBuilder segBuilder,
             ClrHeap clrHeap,
             in HeapDetails heap,
@@ -177,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
         }
 
-        private static void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
@@ -187,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 // Unfortunately ClrmdSegment is tightly coupled to ClrmdHeap to make implementation vastly simpler and it can't
                 // be used with any generic ClrHeap.  There should be no way that this runtime builder ever mismatches the two
                 // so this cast will always succeed.
-                segments.Add(new ClrmdSegment((ClrmdHeap)clrHeap, segBuilder));
+                segments.Add(new ClrmdSegment((ClrmdHeap)clrHeap, this, segBuilder));
                 address = segBuilder.Next;
             }
         }
