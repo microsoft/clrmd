@@ -156,9 +156,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
 
-        public bool Read(ulong address, Span<byte> span, out int bytesRead)
+        public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
         {
-            return ReadMemoryReadv(address, span, out bytesRead);
+            DebugOnly.Assert(!buffer.IsEmpty);
+            return ReadMemoryReadv(address, buffer, out bytesRead);
         }
 
         private unsafe bool ReadMemoryReadv(ulong address, Span<byte> buffer, out int bytesRead)
@@ -195,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
 
                 bytesRead = read;
-                return true;
+                return read > 0;
             }
         }
 

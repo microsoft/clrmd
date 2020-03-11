@@ -163,6 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
         {
+            DebugOnly.Assert(!buffer.IsEmpty);
             try
             {
                 fixed (byte* ptr = buffer)
