@@ -86,7 +86,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (isVirtual)
                 _virtualAddressReader = reader;
 
-            ElfHeaderCommon common = reader.Read<ElfHeaderCommon>(position);
+            ElfHeaderCommon common;
+            try
+            {
+                common = reader.Read<ElfHeaderCommon>(position);
+            }
+            catch (IOException e)
+            {
+                throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.", e);
+            }
+
             Header = common.GetHeader(reader, position)!;
             if (Header is null)
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
