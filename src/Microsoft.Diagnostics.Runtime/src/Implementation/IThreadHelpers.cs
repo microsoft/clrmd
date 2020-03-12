@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
         IExceptionHelpers ExceptionHelpers { get; }
 
-        IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread);
+        IEnumerable<IClrStackRoot> EnumerateStackRoots(ClrThread thread);
         IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext);
     }
 }

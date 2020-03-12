@@ -10,7 +10,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -224,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 throw new ObjectDisposedException(nameof(ClrRuntime));
         }
 
-        IEnumerable<ClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
+        IEnumerable<IClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
         {
             CheckDisposed();
 
@@ -235,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(2048).ToArray();
 
             ClrAppDomain domain = thread.CurrentAppDomain;
-            ClrHeap? heap = thread.Runtime?.Heap;
+            ClrHeap heap = thread.Runtime?.Heap ?? GetOrCreateHeap();
             StackRefData[] refs = new StackRefData[1024];
 
             const int GCInteriorFlag = 1;
@@ -251,19 +250,30 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
                     bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
 
-                    ClrObject obj;
-                    ClrType? type = heap?.GetObjectType(refs[i].Object); // Will fail in the interior case
-
-                    if (type != null)
-                        obj = new ClrObject(refs[i].Object, type);
-                    else
-                        obj = new ClrObject(refs[i].Object, null);
-
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     frame ??= new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
 
-                    if (interior || type != null)
-                        yield return new ClrStackRoot(refs[i].Address, obj, frame, interior, pinned);
+                    if (interior)
+                    {
+                        // Check if the value lives on the heap.
+                        ulong obj = refs[i].Object;
+                        ClrSegment? segment = heap.GetSegmentByAddress(obj);
+
+                        // If not, this may be a pointer to an object.
+                        if (segment is null && DataReader.ReadPointer(obj, out obj))
+                            segment = heap.GetSegmentByAddress(obj);
+
+                        // Only yield return if we find a valid object on the heap
+                        if (!(segment is null))
+                            yield return new ClrStackInteriorRoot(segment, refs[i].Address, obj, frame, pinned);
+                    }
+                    else
+                    {
+                        // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
+                        // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
+                        ClrObject obj = new ClrObject(refs[i].Object, heap.GetObjectType(refs[i].Object));
+                        yield return new ClrStackRoot(refs[i].Address, obj, frame, pinned);
+                    }
                 }
             }
         }

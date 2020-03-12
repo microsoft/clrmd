@@ -6,21 +6,20 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public struct ClrStackRoot : IClrRoot
+    public struct ClrStackRoot : IClrStackRoot
     {
         public ulong Address { get; }
         public ClrObject Object { get; }
         public ClrStackFrame StackFrame { get; }
         public ClrRootKind RootKind => ClrRootKind.Stack;
-        public bool IsInterior { get; }
+        public bool IsInterior => false;
         public bool IsPinned { get; }
 
-        public ClrStackRoot(ulong address, ClrObject obj, ClrStackFrame stackFrame, bool interior, bool pinned)
+        public ClrStackRoot(ulong address, ClrObject obj, ClrStackFrame stackFrame, bool pinned)
         {
             Address = address;
             Object = obj;
             StackFrame = stackFrame;
-            IsInterior = interior;
             IsPinned = pinned;
         }
 
