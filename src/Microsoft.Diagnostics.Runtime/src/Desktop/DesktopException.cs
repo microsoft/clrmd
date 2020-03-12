@@ -54,6 +54,8 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
                 ulong ex = (ulong)inner;
                 BaseDesktopHeapType type = (BaseDesktopHeapType)_type.DesktopHeap.GetObjectType(ex);
+                if (type == null)
+                    return null;
 
                 return new DesktopException(ex, type);
             }
