@@ -58,6 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool CanWalkHeap { get; }
 
+
         private Dictionary<ulong, ulong> AllocationContext
         {
             get
@@ -200,104 +201,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment seg)
+        public ulong SkipAllocationContext(ClrSegment seg, ulong obj, ulong mt, Action<ulong, ulong, int, int, uint>? callback)
         {
-            bool large = seg.IsLargeObjectSegment;
+            if (seg is null)
+                throw new ArgumentNullException(nameof(seg));
+
+            if (seg.IsLargeObjectSegment)
+                return obj;
+
             uint minObjSize = (uint)IntPtr.Size * 3;
-
-            bool logging = _steps != null;
-
-            ulong obj = seg.FirstObject;
-
-            IDataReader dataReader = _helpers.DataReader;
-
-            using MemoryReader? memoryReader = !large ? new MemoryReader(dataReader, 0x10000) : null;
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(IntPtr.Size * 2 + sizeof(uint));
-
-            // The large object heap
-            if (!large)
-                memoryReader!.EnsureRangeInCache(obj);
-
-            while (obj < seg.CommittedEnd)
+            while (AllocationContext.TryGetValue(obj, out ulong nextObj))
             {
-                ulong mt;
-                if (large)
-                {
-                    if (!dataReader.Read(obj, buffer, out int read) || read != buffer.Length)
-                        break;
+                nextObj += Align(minObjSize, seg.IsLargeObjectSegment);
 
-                    if (IntPtr.Size == 4)
-                        mt = Unsafe.As<byte, uint>(ref buffer[0]);
-                    else
-                        mt = Unsafe.As<byte, ulong>(ref buffer[0]);
-                }
-                else
+                if (obj >= nextObj || obj >= seg.End)
+                    return 0;
+
+                // Only if there's data corruption:
+                if (obj >= nextObj || obj >= seg.End)
                 {
-                    if (!memoryReader!.ReadPtr(obj, out mt))
-                        break;
+                    callback?.Invoke(obj, mt, int.MinValue + 2, -1, 0);
+                    return 0;
                 }
 
-                ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
-                if (type is null)
-                {
-                    if (logging)
-                        WriteHeapStep(obj, mt, int.MinValue + 1, -1, 0);
-
-                    break;
-                }
-
-                ClrObject result = new ClrObject(obj, type);
-                yield return result;
-
-                ulong size;
-                if (type.ComponentSize == 0)
-                {
-                    size = (uint)type.StaticSize;
-
-                    if (logging)
-                        WriteHeapStep(obj, mt, type.StaticSize, -1, 0);
-                }
-                else
-                {
-                    uint count;
-                    if (large)
-                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size * 2]);
-                    else
-                        memoryReader!.ReadDword(obj + (uint)IntPtr.Size, out count);
-
-                    // Strings in v4+ contain a trailing null terminator not accounted for.
-                    if (StringType == type)
-                        count++;
-
-                    size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
-
-                    if (logging)
-                        WriteHeapStep(obj, mt, type.StaticSize, type.ComponentSize, count);
-                }
-
-                size = Align(size, large);
-                if (size < minObjSize)
-                    size = minObjSize;
-
-                obj += size;
-                while (!large && AllocationContext.TryGetValue(obj, out ulong nextObj))
-                {
-                    nextObj += Align(minObjSize, large);
-
-                    // Only if there's data corruption:
-                    if (obj >= nextObj || obj >= seg.End)
-                    {
-                        if (logging)
-                            WriteHeapStep(obj, mt, int.MinValue + 2, -1, count: 0);
-
-                        yield break;
-                    }
-
-                    obj = nextObj;
-                }
+                obj = nextObj;
             }
 
-            ArrayPool<byte>.Shared.Return(buffer);
+            return obj;
         }
 
         private static void WriteHeapStep(ulong obj, ulong mt, int baseSize, int componentSize, uint count)
@@ -316,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             };
         }
 
-        public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => EnumerateObjects(s));
+        public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => s.EnumerateObjects());
 
         internal static ulong Align(ulong size, bool large)
         {
@@ -349,7 +279,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Segments is null || Segments.Count == 0)
                 return null;
 
-            if (Segments[0].FirstObject <= objRef && objRef < Segments[Segments.Count - 1].End)
+            if (Segments[0].FirstObjectAddress <= objRef && objRef < Segments[Segments.Count - 1].End)
             {
                 // Start the segment search where you where last
                 int curIdx = _lastSegmentIndex;

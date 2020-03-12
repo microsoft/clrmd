@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return result;
         }
 
-        private static void ProcessHeap(
+        private void ProcessHeap(
             SegmentBuilder segBuilder,
             ClrHeap clrHeap,
             in HeapDetails heap,
@@ -177,14 +177,17 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
         }
 
-        private static void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
 
             while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
             {
-                segments.Add(new ClrmdSegment(clrHeap, segBuilder));
+                // Unfortunately ClrmdSegment is tightly coupled to ClrmdHeap to make implementation vastly simpler and it can't
+                // be used with any generic ClrHeap.  There should be no way that this runtime builder ever mismatches the two
+                // so this cast will always succeed.
+                segments.Add(new ClrmdSegment((ClrmdHeap)clrHeap, this, segBuilder));
                 address = segBuilder.Next;
             }
         }
@@ -220,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 throw new ObjectDisposedException(nameof(ClrRuntime));
         }
 
-        IEnumerable<ClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
+        IEnumerable<IClrStackRoot> IThreadHelpers.EnumerateStackRoots(ClrThread thread)
         {
             CheckDisposed();
 
@@ -231,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(2048).ToArray();
 
             ClrAppDomain domain = thread.CurrentAppDomain;
-            ClrHeap? heap = thread.Runtime?.Heap;
+            ClrHeap heap = thread.Runtime?.Heap ?? GetOrCreateHeap();
             StackRefData[] refs = new StackRefData[1024];
 
             const int GCInteriorFlag = 1;
@@ -247,19 +250,30 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
                     bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
 
-                    ClrObject obj;
-                    ClrType? type = heap?.GetObjectType(refs[i].Object); // Will fail in the interior case
-
-                    if (type != null)
-                        obj = new ClrObject(refs[i].Object, type);
-                    else
-                        obj = new ClrObject(refs[i].Object, null);
-
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     frame ??= new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
 
-                    if (interior || type != null)
-                        yield return new ClrStackRoot(refs[i].Address, obj, frame, interior, pinned);
+                    if (interior)
+                    {
+                        // Check if the value lives on the heap.
+                        ulong obj = refs[i].Object;
+                        ClrSegment? segment = heap.GetSegmentByAddress(obj);
+
+                        // If not, this may be a pointer to an object.
+                        if (segment is null && DataReader.ReadPointer(obj, out obj))
+                            segment = heap.GetSegmentByAddress(obj);
+
+                        // Only yield return if we find a valid object on the heap
+                        if (!(segment is null))
+                            yield return new ClrStackInteriorRoot(segment, refs[i].Address, obj, frame, pinned);
+                    }
+                    else
+                    {
+                        // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
+                        // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
+                        ClrObject obj = new ClrObject(refs[i].Object, heap.GetObjectType(refs[i].Object));
+                        yield return new ClrStackRoot(refs[i].Address, obj, frame, pinned);
+                    }
                 }
             }
         }

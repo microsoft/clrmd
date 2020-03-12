@@ -36,6 +36,74 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void SegmentEnumeration()
+        {
+            // Simply test that we can enumerate the heap.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ClrObject[] objs = heap.EnumerateObjects().ToArray();
+
+            // Enumerating each segment and then each object on each segment should produce
+            // the same enumeration as ClrHeap.EnumerateObjects().
+            int index = 0;
+            foreach (ClrSegment seg in heap.Segments)
+            {
+                foreach (ClrObject obj in seg.EnumerateObjects())
+                {
+                    Assert.Equal(objs[index], obj);
+                    index++;
+                }
+            }
+
+            ClrSegment large = heap.Segments.Single(s => s.IsLargeObjectSegment);
+            large.EnumerateObjects().ToArray();
+
+            Assert.Equal(objs.Length, index);
+        }
+
+
+        [Fact]
+        public void NextObject()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            foreach (ClrSegment seg in heap.Segments)
+            {
+                ulong nextObj = seg.GetNextObjectAddress(seg.FirstObjectAddress);
+                foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
+                {
+                    Assert.Equal(nextObj, obj.Address);
+                    nextObj = seg.GetNextObjectAddress(obj);
+                }
+            }
+        }
+
+        [Fact]
+        public void PrevObject()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            foreach (ClrSegment seg in heap.Segments)
+            {
+                ClrObject prev = heap.GetObject(seg.FirstObjectAddress);
+                Assert.Equal(0ul, seg.GetPreviousObjectAddress(prev));
+
+                foreach (ClrObject curr in seg.EnumerateObjects().Skip(1))
+                {
+                    Assert.Equal(prev.Address, seg.GetPreviousObjectAddress(curr));
+
+                    prev = curr;
+                }
+            }
+        }
+
+        [Fact]
         public void HeapEnumerationWhileClearingCache()
         {
             // Simply test that we can enumerate the heap.
