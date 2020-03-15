@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return default;
             }
 
-            return new VersionInfo(major, minor, rev, patch);
+            return new VersionInfo(major, minor, rev, patch, true);
         }
 
         internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)

@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                 int patch = Unsafe.As<byte, ushort>(ref buffer[12]);
                 int revision = Unsafe.As<byte, ushort>(ref buffer[14]);
 
-                return new VersionInfo(major, minor, revision, patch);
+                return new VersionInfo(major, minor, revision, patch, true);
             }
             finally
             {
