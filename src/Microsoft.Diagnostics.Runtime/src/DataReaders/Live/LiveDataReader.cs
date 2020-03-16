@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime
             DebugOnly.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
-                version = new VersionInfo(major, minor, revision, patch);
+                version = new VersionInfo(major, minor, revision, patch, true);
             else
                 version = default;
         }

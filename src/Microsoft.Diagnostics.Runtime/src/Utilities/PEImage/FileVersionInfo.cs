@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int patch = MemoryMarshal.Read<ushort>(asBytes.Slice(16));
             int revision = MemoryMarshal.Read<ushort>(asBytes.Slice(18));
 
-            return new VersionInfo(major, minor, revision, patch);
+            return new VersionInfo(major, minor, revision, patch, true);
         }
 
         private static string? GetDataString(ReadOnlySpan<char> dataAsString, ReadOnlySpan<char> fileVersionKey)

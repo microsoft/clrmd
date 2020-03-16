@@ -31,8 +31,30 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public readonly int Patch { get; }
 
-        internal VersionInfo(int major, int minor, int revision, int patch)
+        public VersionInfo(int major, int minor, int revision, int patch)
         {
+            if (major < 0)
+                throw new ArgumentOutOfRangeException(nameof(major));
+
+            if (minor < 0)
+                throw new ArgumentOutOfRangeException(nameof(minor));
+
+            if (revision < 0)
+                throw new ArgumentOutOfRangeException(nameof(revision));
+
+            if (patch < 0)
+                throw new ArgumentOutOfRangeException(nameof(patch));
+
+            Major = major;
+            Minor = minor;
+            Revision = revision;
+            Patch = patch;
+        }
+
+        internal VersionInfo(int major, int minor, int revision, int patch, bool skipChecks)
+        {
+            _ = skipChecks;
+
             Major = major;
             Minor = minor;
             Revision = revision;
