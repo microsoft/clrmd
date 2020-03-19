@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -165,8 +165,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(2, types.Length);
             Assert.NotSame(types[0], types[1]);
 
-
-
             ClrType[] typesFromModule = (from module in runtime.EnumerateModules()
                                          let name = Path.GetFileNameWithoutExtension(module.FileName)
                                          where name.Equals("sharedlibrary", StringComparison.OrdinalIgnoreCase)
@@ -190,7 +188,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Get new types
             runtime.FlushCachedData();
-
 
             ClrType[] newTypes = (from module in runtime.EnumerateModules()
                                   let name = Path.GetFileNameWithoutExtension(module.FileName)
@@ -370,7 +367,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
-
 
         [Fact]
         public void InnerStructSizeTest()

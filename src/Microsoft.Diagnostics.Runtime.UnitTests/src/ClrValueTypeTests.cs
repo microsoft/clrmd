@@ -44,7 +44,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
             areSame.Should().BeFalse();
         }
 
-
         [Theory, AutoNSubstituteData]
         public void GetValueTypeField_WhenFieldFound_ReturnsField(ClrValueType target, [Frozen]ClrType structType, ClrValueType someStruct, ClrInstanceField structValueField)
         {

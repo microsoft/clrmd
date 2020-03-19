@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -27,23 +26,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(imgPdb.Path);
         }
 
-        [FrameworkFact]
+        [WindowsFact]
         public void WindowsNativePdbTest()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                // Load Windows' ntdll.dll
-                var dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
-                using (var winFileStream = new FileStream(dllFileName, FileMode.Open, FileAccess.Read))
-                {
-                    PEImage img = new PEImage(winFileStream);
-                    Assert.NotNull(img);
+            // Load Windows' ntdll.dll
+            var dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
+            using var winFileStream = new FileStream(dllFileName, FileMode.Open, FileAccess.Read);
+            PEImage img = new PEImage(winFileStream);
+            Assert.NotNull(img);
 
-                    PdbInfo imgPdb = img.DefaultPdb;
-                    Assert.NotNull(imgPdb);
-                    Assert.NotNull(imgPdb.Path);
-                }
-            }
+            PdbInfo imgPdb = img.DefaultPdb;
+            Assert.NotNull(imgPdb);
+            Assert.NotNull(imgPdb.Path);
         }
     }
 }

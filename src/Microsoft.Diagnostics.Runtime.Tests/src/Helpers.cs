@@ -28,7 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (type != null)
                     yield return type;
             }
-
         }
 
         public static IEnumerable<ClrModule> EnumerateModules(this ClrRuntime runtime) => runtime.AppDomains.SelectMany(ad => ad.Modules);

@@ -56,7 +56,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(prototype.SomeEnum, enumValue);
         }
 
-
         [Fact]
         public void GetStringField_WhenStringField_ReturnsPointerToObject()
         {

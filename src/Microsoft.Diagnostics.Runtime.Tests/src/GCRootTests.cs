@@ -216,7 +216,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).Count());
             Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).Count());
 
-
             Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).Count());
             Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
         }

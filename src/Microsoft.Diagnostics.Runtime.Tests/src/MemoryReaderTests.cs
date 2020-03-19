@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 HashSet<ulong> seen = new HashSet<ulong>() { 0 };
                 List<ClrObject> firstSeenObjectOfType = new List<ClrObject>();
 
-                // We will search for method tables so make sure we 
+                // We will search for method tables so make sure we
                 foreach (ClrObject obj in segment.EnumerateObjects())
                     if (seen.Add(obj.Type.MethodTable))
                         firstSeenObjectOfType.Add(obj);

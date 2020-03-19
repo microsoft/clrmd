@@ -71,15 +71,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEqual(systemDomain.Address, sharedDomain.Address);
 
             Assert.Equal(2, runtime.AppDomains.Length);
-            ClrAppDomain AppDomainsExe = runtime.AppDomains[0];
-            Assert.Equal("AppDomains.exe", AppDomainsExe.Name);
-            Assert.Equal(1, AppDomainsExe.Id);
-            Assert.NotNull(AppDomainsExe.Runtime);
+            ClrAppDomain appDomainsExe = runtime.AppDomains[0];
+            Assert.Equal("AppDomains.exe", appDomainsExe.Name);
+            Assert.Equal(1, appDomainsExe.Id);
+            Assert.NotNull(appDomainsExe.Runtime);
 
-            ClrAppDomain NestedExceptionExe = runtime.AppDomains[1];
-            Assert.Equal("Second AppDomain", NestedExceptionExe.Name);
-            Assert.Equal(2, NestedExceptionExe.Id);
-            Assert.NotNull(NestedExceptionExe.Runtime);
+            ClrAppDomain nestedExceptionExe = runtime.AppDomains[1];
+            Assert.Equal("Second AppDomain", nestedExceptionExe.Name);
+            Assert.Equal(2, nestedExceptionExe.Id);
+            Assert.NotNull(nestedExceptionExe.Runtime);
         }
 
         [FrameworkFact]
