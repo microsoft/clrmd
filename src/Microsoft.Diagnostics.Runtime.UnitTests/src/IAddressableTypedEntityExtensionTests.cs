@@ -28,7 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
                 .And.ParamName.Should().Be(nameof(entity));
         }
 
-
         [Theory, AutoNSubstituteData]
         public void GetFieldFrom_WhenStructureHasStructureField_ReturnsField(ClrValueType target, [Frozen]ClrType structType, ClrValueType rawStruct, ClrInstanceField structValueField)
         {

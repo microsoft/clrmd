@@ -10,13 +10,12 @@ namespace Microsoft.Diagnostics.Runtime.UnitTests
 {
     public class AutoNSubstituteDataAttribute : AutoDataAttribute
     {
-        public AutoNSubstituteDataAttribute() :
-          base(() => new Fixture().Customize(
-              new CompositeCustomization(
-                  new ClrMDEntitiesCustomization(),
-                  new AutoNSubstituteCustomization())))
+        public AutoNSubstituteDataAttribute()
+            : base(() => new Fixture().Customize(
+                new CompositeCustomization(
+                    new ClrMDEntitiesCustomization(),
+                    new AutoNSubstituteCustomization())))
         {
         }
-
     }
 }

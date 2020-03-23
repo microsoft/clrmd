@@ -30,19 +30,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact(Skip = "Touches network, don't run regularly.")]
         public void FindBinaryNegativeTest()
         {
-            IBinaryLocator _locator = GetLocator();
-            string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
+            IBinaryLocator locator = GetLocator();
+            string dac = locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false);
             Assert.Null(dac);
         }
 
         [Fact(Skip = "Touches network, don't run regularly.")]
         public async Task FindBinaryAsyncNegativeTest()
         {
-            IBinaryLocator _locator = GetLocator();
+            IBinaryLocator locator = GetLocator();
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false));
+                tasks.Add(locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp + 1, WellKnownDacImageSize + 1, false));
 
             // Ensure we got the same answer for everything.
             foreach (Task<string> task in tasks)
@@ -55,8 +55,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact(Skip = "Touches network, don't run regularly.")]
         public void FindBinaryTest()
         {
-            IBinaryLocator _locator = GetLocator();
-            string dac = _locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
+            IBinaryLocator locator = GetLocator();
+            string dac = locator.FindBinary(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
             Assert.NotNull(dac);
             Assert.True(File.Exists(dac));
         }
@@ -64,12 +64,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact(Skip = "Touches network, don't run regularly.")]
         public async Task FindBinaryAsyncTest()
         {
-            IBinaryLocator _locator = GetLocator();
-            Task<string> first = _locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
+            IBinaryLocator locator = GetLocator();
+            Task<string> first = locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false);
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < 10; i++)
-                tasks.Add(_locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false));
+                tasks.Add(locator.FindBinaryAsync(WellKnownDac, WellKnownDacTimeStamp, WellKnownDacImageSize, false));
 
             string dac = await first;
 

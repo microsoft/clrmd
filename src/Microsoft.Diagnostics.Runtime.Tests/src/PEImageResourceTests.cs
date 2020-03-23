@@ -40,7 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             WalkEntry(entry);
         }
 
-
         private static void WalkEntry(ResourceEntry entry, int depth = 0)
         {
             foreach (var child in entry.Children)
@@ -62,7 +61,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
-
 
         [StructLayout(LayoutKind.Sequential)]
         private struct ClrDebugResource

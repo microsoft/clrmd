@@ -6,7 +6,6 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 #pragma warning disable CA1721 // Property names should not match get methods
 

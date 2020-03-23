@@ -224,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             DataReader.ReadPointer(elementAddress, out var actualValue);
 
-            string actual = (string)(new ClrObject(actualValue, _heap.GetObjectType(actualValue)));
+            string actual = (string)new ClrObject(actualValue, _heap.GetObjectType(actualValue));
 
             // Assert
             Assert.Equal(originalArray[index], actual);
@@ -261,7 +261,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Assert
             Assert.NotEqual(default, elementAddress);
         }
-
 
         [Theory, AutoData]
         public void GetArrayElementAddress_WhenCustomStructArray_GetsStructStartPos(int seed)

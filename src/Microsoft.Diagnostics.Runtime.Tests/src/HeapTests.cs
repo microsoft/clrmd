@@ -63,7 +63,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(objs.Length, index);
         }
 
-
         [Fact]
         public void NextObject()
         {
@@ -113,7 +112,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject[] objects = heap.EnumerateObjects().ToArray();
             Assert.NotEmpty(objects);
 
-
             int i = 0;
             foreach (ClrObject obj in heap.EnumerateObjects())
             {
@@ -126,7 +124,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 i++;
             }
         }
-
 
         [Fact]
         public void ServerSegmentTests()

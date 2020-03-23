@@ -30,9 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(method, method2);
             Assert.Same(method, method2);
 
-
             string signature1 = method.Signature;
             string signature2 = method2.Signature;
+
             Assert.NotNull(signature1);
             Assert.Equal(signature1, signature2);
 
@@ -49,7 +49,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-
             ClrModule module = runtime.GetModule("sharedlibrary.dll");
             ClrType type = module.GetTypeByName("Foo");
             ClrMethod method = type.GetMethod("Bar");
@@ -59,9 +58,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(method, method2);
             Assert.NotSame(method, method2);
 
-
             string signature1 = method.Signature;
             string signature2 = method2.Signature;
+
             Assert.NotNull(signature1);
             Assert.Equal(signature1, signature2);
 
@@ -75,9 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(method.Signature);
             Assert.Same(method2.Signature, method.Signature);
             Assert.Same(method.Signature, string.Intern(method.Signature));
-
         }
-
 
         [Fact]
         public void TypeCachingTest()

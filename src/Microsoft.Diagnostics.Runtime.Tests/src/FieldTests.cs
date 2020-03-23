@@ -22,7 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             CheckField(foo, "i", ClrElementType.Int32, "System.Int32", 4);
 
-
             CheckField(foo, "s", ClrElementType.String, "System.String", IntPtr.Size);
             CheckField(foo, "b", ClrElementType.Boolean, "System.Boolean", 1);
             CheckField(foo, "f", ClrElementType.Float, "System.Single", 4);
