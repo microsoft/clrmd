@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return false;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
 
         [StructLayout(LayoutKind.Sequential)]

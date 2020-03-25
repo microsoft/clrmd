@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr >= S_OK ? read : 0;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int Next(
             IntPtr self,
             int count,

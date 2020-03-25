@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int Next(
             IntPtr self,
             int count,

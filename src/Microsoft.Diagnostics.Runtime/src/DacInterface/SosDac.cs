@@ -675,7 +675,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             TypeRefToMethodTable
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         public delegate void ModuleMapTraverse(int index, ulong methodTable, IntPtr token);
 
         public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
@@ -687,7 +687,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         public delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
 
         public bool TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
@@ -740,139 +740,139 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? (ulong)md : 0ul;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ClrDataAddress module, int token, out ClrDataAddress methodDesc);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetMethodDescDataDelegate(IntPtr self, ClrDataAddress md, ulong ip, out MethodDescData data, int count, [Out] RejitData[]? rejitData, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetIntPtr(IntPtr self, out IntPtr data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetAddrWithArg(IntPtr self, ClrDataAddress arg, out ClrDataAddress data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetAddrWithArgs(IntPtr self, ClrDataAddress arg, uint id, out ClrDataAddress data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetUInt(IntPtr self, out uint data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetIntPtrWithArg(IntPtr self, uint addr, out IntPtr data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetThreadData(IntPtr self, ClrDataAddress addr, [Out] out ThreadData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetHeapDetailsWithArg(IntPtr self, ClrDataAddress addr, out HeapDetails data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetHeapDetails(IntPtr self, out HeapDetails data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetAddrArray(IntPtr self, int count, [Out] ClrDataAddress[] values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetAddrArrayWithArg(IntPtr self, ClrDataAddress arg, int count, [Out] ClrDataAddress[]? values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetCharArrayWithArg(IntPtr self, ClrDataAddress arg, int count, byte* values, [Out] out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetByteArrayWithArg(IntPtr self, ClrDataAddress arg, int count, byte* values, [Out] out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetAssemblyData(IntPtr self, ClrDataAddress in1, ClrDataAddress in2, out AssemblyData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetADStoreData(IntPtr self, out AppDomainStoreData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetGCInfoData(IntPtr self, out GCInfo data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetCommonMethodTables(IntPtr self, out CommonMethodTables data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetThreadPoolData(IntPtr self, out ThreadPoolData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetThreadStoreData(IntPtr self, out ThreadStoreData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetMTData(IntPtr self, ClrDataAddress addr, out MethodTableData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetModuleData(IntPtr self, ClrDataAddress addr, out ModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetSegmentData(IntPtr self, ClrDataAddress addr, out SegmentData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetAppDomainData(IntPtr self, ClrDataAddress addr, out AppDomainData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerInfo data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetSyncBlockData(IntPtr self, int index, out SyncBlockData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetCodeHeaderData(IntPtr self, ClrDataAddress addr, out CodeHeaderData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetFieldInfo(IntPtr self, ClrDataAddress addr, out V4FieldInfo data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetFieldData(IntPtr self, ClrDataAddress addr, out FieldData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetObjectData(IntPtr self, ClrDataAddress addr, out V45ObjectData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetCCWData(IntPtr self, ClrDataAddress addr, out CcwData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetRCWData(IntPtr self, ClrDataAddress addr, out RcwData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetWorkRequestData(IntPtr self, ClrDataAddress addr, out WorkRequestData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetLocalModuleData(IntPtr self, ClrDataAddress addr, out DomainLocalModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ClrDataAddress data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetCodeHeaps(IntPtr self, ClrDataAddress addr, int count, [Out] JitCodeHeapInfo[]? values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetCOMPointers(IntPtr self, ClrDataAddress addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ClrDataAddress appDomainAddr, int moduleID, out DomainLocalModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetThreadLocalModuleData(IntPtr self, ClrDataAddress addr, uint id, out ThreadLocalModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacTraverseLoaderHeap(IntPtr self, ClrDataAddress addr, IntPtr callback);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacTraverseStubHeap(IntPtr self, ClrDataAddress addr, int type, IntPtr callback);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacTraverseModuleMap(IntPtr self, int type, ClrDataAddress addr, IntPtr callback, IntPtr param);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[]? jitManagers, out int pNeeded);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetModuleDelegate(IntPtr self, ClrDataAddress addr, out IntPtr iunk);
     }
 
