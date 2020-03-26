@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -53,14 +54,33 @@ namespace Microsoft.Diagnostics.Runtime
             if (_context != null)
                 return;
 
+#if !NET45
+            var arch = RuntimeInformation.ProcessArchitecture;
+            if (arch == System.Runtime.InteropServices.Architecture.Arm)
+            {
+                _ipOffset = 64;
+                _spOffset = 56;
+                _context = new byte[416];
+                _contextFlags = 0;
+            }
+            else if (arch == System.Runtime.InteropServices.Architecture.Arm64)
+            {
+                _ipOffset = 264;
+                _spOffset = 256;
+                _context = new byte[912];
+                _contextFlags = 0;
+            }
+            else if (arch == System.Runtime.InteropServices.Architecture.X86)
+#else
             if (IntPtr.Size == 4)
+#endif
             {
                 _ipOffset = 184;
                 _spOffset = 196;
                 _context = new byte[716];
                 _contextFlags = 0x1003f;
             }
-            else
+            else // X64
             {
                 _ipOffset = 248;
                 _spOffset = 152;
