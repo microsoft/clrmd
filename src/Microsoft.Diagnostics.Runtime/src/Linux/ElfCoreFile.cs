@@ -34,6 +34,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                     case ElfMachine.EM_AARCH64:
                         return r.ReadContents<ElfPRStatusArm64>(0);
+
+                    case ElfMachine.EM_386:
+                        return r.ReadContents<ElfPRStatusX86>(0);
                 }
                 throw new NotSupportedException($"Invalid architecture {architecture}");
             });
