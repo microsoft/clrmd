@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? map : null;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetILAddressMapDelegate(
             IntPtr self,
             uint mapLen,

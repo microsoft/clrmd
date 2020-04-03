@@ -50,13 +50,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int NextDelegate(IntPtr self);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int RequestDelegate(
             IntPtr self,
             uint reqCode,

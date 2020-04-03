@@ -135,16 +135,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return result;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int StartEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress address, IntPtr appDomain, out ClrDataAddress handle);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int EnumMethodInstanceByAddressDelegate(IntPtr self, ref ClrDataAddress handle, out IntPtr method);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int EndEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress handle);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int RequestDelegate(
             IntPtr self,
             uint reqCode,
@@ -153,10 +153,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int outBufferSize,
             byte* outBuffer);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int FlushDelegate(IntPtr self);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int GetTaskByOSThreadIDDelegate(IntPtr self, uint id, out IntPtr pUnknownTask);
     }
 
