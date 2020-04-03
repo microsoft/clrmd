@@ -34,7 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return SUCCEEDED(hr);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetMethodTableCollectibleData(IntPtr self, ulong addr, out MethodTableCollectibleData data);
     }
 

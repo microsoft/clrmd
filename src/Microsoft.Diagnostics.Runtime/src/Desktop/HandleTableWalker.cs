@@ -58,7 +58,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             Handles = new List<ClrHandle>();
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int VISITHANDLEV4(ulong HandleAddr, ulong HandleValue, int HandleType, uint ulRefCount, ulong appDomainPtr, IntPtr token);
 
         private int VisitHandleV4(ulong addr, ulong obj, int hndType, uint refCnt, ulong appDomain, IntPtr unused)
@@ -68,7 +67,6 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
             return AddHandle(addr, obj, hndType, refCnt, 0, appDomain);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int VISITHANDLEV2(ulong HandleAddr, ulong HandleValue, int HandleType, ulong appDomainPtr, IntPtr token);
 
         private int VisitHandleV2(ulong addr, ulong obj, int hndType, ulong appDomain, IntPtr unused)
