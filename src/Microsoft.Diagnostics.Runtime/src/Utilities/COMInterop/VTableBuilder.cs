@@ -43,6 +43,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (func.Method.GetParameters().First().ParameterType != typeof(IntPtr))
                     throw new InvalidOperationException();
+
+                object[] attrs = func.GetType().GetCustomAttributes(typeof(UnmanagedFunctionPointerAttribute), false);
+                if (attrs.Length > 0 && ((UnmanagedFunctionPointerAttribute)attrs[0]).CallingConvention != CallingConvention.Winapi)
+                    throw new InvalidOperationException();
             }
 
             _delegates.Add(func);
