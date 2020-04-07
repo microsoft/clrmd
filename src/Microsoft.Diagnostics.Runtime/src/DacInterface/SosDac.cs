@@ -440,6 +440,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetMethodTableData(ulong addr, out MethodTableData data)
         {
+            // If the 2nd bit is set it means addr is actually a TypeHandle (which GetMethodTable does not support).
+            if ((addr & 2) == 2)
+            {
+                data = default;
+                return false;
+            }
+
             InitDelegate(ref _getMethodTableData, VTable.GetMethodTableData);
             int hr = _getMethodTableData(Self, addr, out data);
             return SUCCEEDED(hr);
