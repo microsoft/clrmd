@@ -241,6 +241,9 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
 
         internal override IMethodTableData GetMethodTableData(ulong addr)
         {
+            if ((addr & 2) == 2)
+                return null;
+
             if (_sos.GetMethodTableData(addr, out MethodTableData data))
                 return data;
 
