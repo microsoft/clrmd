@@ -46,10 +46,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (func.Method.GetParameters().First().ParameterType != typeof(IntPtr))
                     throw new InvalidOperationException();
-
-                object[] attrs = func.GetType().GetCustomAttributes(false);
-                if (attrs.Count(c => c is UnmanagedFunctionPointerAttribute) != 1)
-                    throw new InvalidOperationException();
             }
 
             _delegates.Add(func);
