@@ -136,5 +136,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// the heap may be in an inconsistent state.)
         /// </param>
         public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles);
+
+
+        /// <summary>
+        /// Enumerates all objects that the given object references.  This method is meant for internal use to
+        /// implement ClrObject.EnumerateReferencesWithFields, which you should use instead of calling this directly.
+        /// </summary>
+        /// <param name="obj">The object in question.</param>
+        /// <param name="type">The type of the object.</param>
+        /// <param name="considerDependantHandles">Whether to consider dependant handle mappings.</param>
+        /// <param name="carefully">
+        /// Whether to bounds check along the way (useful in cases where
+        /// the heap may be in an inconsistent state.)
+        /// </param>
+        public abstract IEnumerable<ClrFieldReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles);
     }
 }
