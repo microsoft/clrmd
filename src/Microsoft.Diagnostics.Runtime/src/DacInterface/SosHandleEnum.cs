@@ -13,8 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_ISOSHandleEnum = new Guid("3E269830-4A2B-4301-8EE2-D6805B29B2FA");
 
-        private readonly Next _next;
-
         public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_ISOSHandleEnum, pUnk)
         {
@@ -29,17 +27,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             fixed (HandleData* ptr = handles)
             {
-                int hr = _next(Self, handles.Length, ptr, out int read);
-                return hr >= S_OK ? read : 0;
+                HResult hr = _next(Self, handles.Length, ptr, out int read);
+                return hr ? read : 0;
             }
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int Next(
-            IntPtr self,
-            int count,
-            HandleData* handles,
-            out int pNeeded);
+        private readonly Next _next;
+        private delegate HResult Next(IntPtr self, int count, HandleData* handles, out int pNeeded);
     }
 
     [StructLayout(LayoutKind.Sequential)]

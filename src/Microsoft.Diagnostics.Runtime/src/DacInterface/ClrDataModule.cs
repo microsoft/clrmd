@@ -15,8 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private static readonly Guid IID_IXCLRDataModule = new Guid("88E32849-0A0A-4cb0-9022-7CD2E9E139E2");
 
-        private RequestDelegate? _request;
-
         public ClrDataModule(DacLibrary library, IntPtr pUnknown)
             : base(library?.OwningLibrary, IID_IXCLRDataModule, pUnknown)
         {
@@ -24,20 +22,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly IClrDataModuleVTable VTable => ref Unsafe.AsRef<IClrDataModuleVTable>(_vtable);
 
-        public bool GetModuleData(out ExtendedModuleData data)
+        public HResult GetModuleData(out ExtendedModuleData data)
         {
             InitDelegate(ref _request, VTable.Request);
 
+            HResult hr;
             fixed (void* dataPtr = &data)
-                if (SUCCEEDED(_request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr)))
-                    return true;
+            {
+                hr = _request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
+                if (!hr)
+                    data = default;
 
-            data = default;
-            return false;
+                return hr;
+            }
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
+        private RequestDelegate? _request;
+        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
 
         [StructLayout(LayoutKind.Sequential)]
         private readonly struct IClrDataModuleVTable

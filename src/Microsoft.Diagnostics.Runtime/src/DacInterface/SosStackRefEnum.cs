@@ -13,7 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_ISOSStackRefEnum = new Guid("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
 
-        private readonly Next _next;
 
         public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_ISOSStackRefEnum, pUnk)
@@ -27,17 +26,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (stackRefs is null)
                 throw new ArgumentNullException(nameof(stackRefs));
 
-            int hr = _next(Self, stackRefs.Length, stackRefs, out int read);
-            return hr >= S_OK ? read : 0;
+            HResult hr = _next(Self, stackRefs.Length, stackRefs, out int read);
+            return hr ? read : 0;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int Next(
-            IntPtr self,
-            int count,
-            [Out][MarshalAs(UnmanagedType.LPArray)]
-            StackRefData[] stackRefs,
-            out int pNeeded);
+        private readonly Next _next;
+        private delegate int Next(IntPtr self, int count, [Out][MarshalAs(UnmanagedType.LPArray)] StackRefData[] stackRefs, out int pNeeded);
     }
 
     [StructLayout(LayoutKind.Sequential)]

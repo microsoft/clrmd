@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public void SetMagicCallback(Action flushCallback) => _callback = flushCallback;
 
-        public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
+        public HResult GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
             machineType = _dataReader.Architecture switch
             {
@@ -73,7 +73,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 Architecture.Arm64 => IMAGE_FILE_MACHINE.ARM64,
                 _ => IMAGE_FILE_MACHINE.UNKNOWN,
             };
-            return S_OK;
+
+            return HResult.S_OK;
         }
 
         private ModuleInfo? GetModule(ulong address)
@@ -97,13 +98,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public int GetPointerSize(IntPtr self, out int pointerSize)
+        public HResult GetPointerSize(IntPtr self, out int pointerSize)
         {
             pointerSize = _dataReader.PointerSize;
-            return S_OK;
+            return HResult.S_OK;
         }
 
-        public int GetImageBase(IntPtr self, string imagePath, out ulong baseAddress)
+        public HResult GetImageBase(IntPtr self, string imagePath, out ulong baseAddress)
         {
             imagePath = Path.GetFileNameWithoutExtension(imagePath);
 
@@ -113,15 +114,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase))
                 {
                     baseAddress = module.ImageBase;
-                    return S_OK;
+                    return HResult.S_OK;
                 }
             }
 
             baseAddress = 0;
-            return E_FAIL;
+            return HResult.E_FAIL;
         }
 
-        public int ReadVirtual(IntPtr _, ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
+        public HResult ReadVirtual(IntPtr _, ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             ulong address = cda;
             Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
@@ -131,13 +132,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 // See comment in RuntimeBuilder.FlushDac
                 _callback?.Invoke();
                 bytesRead = 0;
-                return E_FAIL;
+                return HResult.E_FAIL;
             }
 
             if (_dataReader.Read(address, span, out int read))
             {
                 bytesRead = read;
-                return S_OK;
+                return HResult.S_OK;
             }
 
             bytesRead = 0;
@@ -151,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     {
                         // TODO
                         Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
-                        return E_NOTIMPL;
+                        return HResult.E_NOTIMPL;
                     }
 
                     filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
@@ -160,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (filePath is null)
                 {
                     bytesRead = 0;
-                    return E_FAIL;
+                    return HResult.E_FAIL;
                 }
 
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
@@ -172,23 +173,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         DebugOnly.Assert(peimage.IsValid);
                         int rva = checked((int)(address - info.ImageBase));
                         bytesRead = peimage.Read(rva, span);
-                        return S_OK;
+                        return HResult.S_OK;
                     }
                 }
             }
 
-            return E_FAIL;
+            return HResult.E_FAIL;
         }
 
-        public int WriteVirtual(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
+        public HResult WriteVirtual(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
         {
             // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
             bytesWritten = bytesRequested;
-            return S_OK;
+            return HResult.S_OK;
         }
 
         public void SetNextCurrentThreadId(uint? threadId)
         {
+            // TODO: Remove?
             _nextThreadId = threadId;
         }
 
@@ -197,51 +199,51 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _nextTLSValue = value;
         }
 
-        public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
+        public HResult GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
             if (_nextTLSValue is ulong nextTLSValue)
             {
                 value = nextTLSValue;
-                return S_OK;
+                return HResult.S_OK;
             }
 
             value = 0;
-            return E_FAIL;
+            return HResult.E_FAIL;
         }
 
-        public int SetTLSValue(IntPtr self, uint threadID, uint index, ClrDataAddress value)
+        public HResult SetTLSValue(IntPtr self, uint threadID, uint index, ClrDataAddress value)
         {
-            return E_FAIL;
+            return HResult.E_FAIL;
         }
 
-        public int GetCurrentThreadID(IntPtr self, out uint threadID)
+        public HResult GetCurrentThreadID(IntPtr self, out uint threadID)
         {
             if (_nextThreadId is uint nextThreadId)
             {
                 threadID = nextThreadId;
-                return S_OK;
+                return HResult.S_OK;
             }
 
             threadID = 0;
-            return E_FAIL;
+            return HResult.E_FAIL;
         }
 
-        public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context)
+        public HResult GetThreadContext(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context)
         {
             Span<byte> span = new Span<byte>(context.ToPointer(), contextSize);
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
-                return S_OK;
+                return HResult.S_OK;
 
-            return E_FAIL;
+            return HResult.E_FAIL;
         }
 
-        public int Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
+        public HResult Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
         {
             outBuffer = IntPtr.Zero;
-            return E_NOTIMPL;
+            return HResult.E_NOTIMPL;
         }
 
-        public unsafe int GetMetadata(
+        public unsafe HResult GetMetadata(
             IntPtr self,
             string fileName,
             int imageTimestamp,
@@ -254,22 +256,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int* pDataSize)
         {
             if (buffer == IntPtr.Zero)
-                return E_INVALIDARG;
+                return HResult.E_INVALIDARG;
 
             string? filePath = _dataTarget.BinaryLocator.FindBinary(fileName, imageTimestamp, imageSize, true);
             if (filePath is null)
-                return E_FAIL;
+                return HResult.E_FAIL;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
             PEImage? peimage = _dataTarget.LoadPEImage(filePath);
             if (peimage is null)
-                return E_FAIL;
+                return HResult.E_FAIL;
 
             lock (peimage)
             {
                 CorHeader? corHeader = peimage.CorHeader;
                 if (corHeader is null)
-                    return E_FAIL;
+                    return HResult.E_FAIL;
 
                 DebugOnly.Assert(peimage.IsValid);
 
@@ -279,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 {
                     IMAGE_DATA_DIRECTORY metadata = corHeader.Metadata;
                     if (metadata.VirtualAddress == 0)
-                        return E_FAIL;
+                        return HResult.E_FAIL;
 
                     rva = metadata.VirtualAddress;
                     size = Math.Min(bufferSize, metadata.Size);
@@ -293,86 +295,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 }
             }
 
-            return S_OK;
+            return HResult.S_OK;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetMetadataDelegate(
-            IntPtr self,
-            [In][MarshalAs(UnmanagedType.LPWStr)] string fileName,
-            int imageTimestamp,
-            int imageSize,
-            IntPtr mvid,
-            uint mdRva,
-            uint flags,
-            uint bufferSize,
-            IntPtr buffer,
-            int* dataSize);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetPointerSizeDelegate(IntPtr self, out int pointerSize);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int ReadVirtualDelegate(
-            IntPtr self,
-            ClrDataAddress address,
-            IntPtr buffer,
-            int bytesRequested,
-            out int bytesRead);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int WriteVirtualDelegate(
-            IntPtr self,
-            ClrDataAddress address,
-            IntPtr buffer,
-            uint bytesRequested,
-            out uint bytesWritten);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetTLSValueDelegate(
-            IntPtr self,
-            uint threadID,
-            uint index,
-            out ulong value);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int SetTLSValueDelegate(
-            IntPtr self,
-            uint threadID,
-            uint index,
-            ClrDataAddress value);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetThreadContextDelegate(
-            IntPtr self,
-            uint threadID,
-            uint contextFlags,
-            int contextSize,
-            IntPtr context);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int SetThreadContextDelegate(
-            IntPtr self,
-            uint threadID,
-            uint contextSize,
-            IntPtr context);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int RequestDelegate(
-            IntPtr self,
-            uint reqCode,
-            uint inBufferSize,
-            IntPtr inBuffer,
-            IntPtr outBufferSize,
-            out IntPtr outBuffer);
+        private delegate HResult GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
+                                                     IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
+        private delegate HResult GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
+        private delegate HResult GetPointerSizeDelegate(IntPtr self, out int pointerSize);
+        private delegate HResult GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
+        private delegate HResult ReadVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, int bytesRequested, out int bytesRead);
+        private delegate HResult WriteVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten);
+        private delegate HResult GetTLSValueDelegate(IntPtr self, uint threadID, uint index, out ulong value);
+        private delegate HResult SetTLSValueDelegate(IntPtr self, uint threadID, uint index, ClrDataAddress value);
+        private delegate HResult GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
+        private delegate HResult GetThreadContextDelegate(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context);
+        private delegate HResult SetThreadContextDelegate(IntPtr self, uint threadID, uint contextSize, IntPtr context);
+        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer);
     }
 }

@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             DataReader = _clrInfo.DataTarget.DataReader;
 
             int version = 0;
-            if (_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))) != 0)
+            if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.  Failed to request DacVersion.");
 
             if (version != 9)

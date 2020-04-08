@@ -13,10 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static readonly Guid IID_IDebugClient = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
 
-        private EndSessionDelegate? _endSession;
-        private DetatchProcessesDelegate? _detatchProcesses;
-        private AttachProcessDelegate? _attachProcess;
-        private OpenDumpFileDelegate? _openDumpFile;
         private readonly DebugSystemObjects _sys;
 
         public DebugClient(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects system)
@@ -46,32 +42,33 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             DebugOnly.Assert(hr == 0);
         }
 
-        public int AttachProcess(uint pid, DebugAttach flags)
+        public HResult AttachProcess(uint pid, DebugAttach flags)
         {
             InitDelegate(ref _attachProcess, VTable.AttachProcess);
-            int hr = _attachProcess(Self, 0, pid, flags);
+            HResult hr = _attachProcess(Self, 0, pid, flags);
 
             _sys.Init();
             return hr;
         }
 
-        public int OpenDumpFile(string dumpFile)
+        public HResult OpenDumpFile(string dumpFile)
         {
             InitDelegate(ref _openDumpFile, VTable.OpenDumpFile);
-            int hr = _openDumpFile(Self, dumpFile);
+            HResult hr = _openDumpFile(Self, dumpFile);
 
             _sys.Init();
             return hr;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int EndSessionDelegate(IntPtr self, DebugEnd mode);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DetatchProcessesDelegate(IntPtr self);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int AttachProcessDelegate(IntPtr self, ulong server, uint pid, DebugAttach AttachFlags);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int OpenDumpFileDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPStr)] string file);
+        private EndSessionDelegate? _endSession;
+        private DetatchProcessesDelegate? _detatchProcesses;
+        private AttachProcessDelegate? _attachProcess;
+        private OpenDumpFileDelegate? _openDumpFile;
+
+        private delegate HResult EndSessionDelegate(IntPtr self, DebugEnd mode);
+        private delegate HResult DetatchProcessesDelegate(IntPtr self);
+        private delegate HResult AttachProcessDelegate(IntPtr self, ulong server, uint pid, DebugAttach AttachFlags);
+        private delegate HResult OpenDumpFileDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPStr)] string file);
     }
 
     [StructLayout(LayoutKind.Sequential)]

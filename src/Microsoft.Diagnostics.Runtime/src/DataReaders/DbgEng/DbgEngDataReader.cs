@@ -76,19 +76,19 @@ namespace Microsoft.Diagnostics.Runtime
             DebugAttach attach = invasive ? DebugAttach.Default : DebugAttach.NonInvasive;
             _control.AddEngineOptions(DebugControl.INITIAL_BREAK);
 
-            int hr = _client.AttachProcess((uint)processId, attach);
+            HResult hr = _client.AttachProcess((uint)processId, attach);
 
-            if (hr == 0)
-                hr = _control.WaitForEvent(msecTimeout) ? 0 : -1;
+            if (hr)
+                hr = _control.WaitForEvent(msecTimeout);
 
-            if (hr == 1)
+            if (hr == HResult.S_FALSE)
             {
                 throw new TimeoutException("Break in did not occur within the allotted timeout.");
             }
 
             if (hr != 0)
             {
-                if ((uint)hr == 0xd00000bb)
+                if ((uint)hr.Value == 0xd00000bb)
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
 
                 if (!WindowsFunctions.IsProcessRunning(processId))
