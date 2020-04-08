@@ -14,6 +14,8 @@
 
 [latest-build]: https://dev.azure.com/dnceng/public/_build/latest?definitionId=255
 
+Latest package is available from Azure DevOps public feed: `https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json` ([browse](https://dev.azure.com/dnceng/public/_packaging?_a=feed&feed=dotnet-tools)).
+
 `Microsoft.Diagnostics.Runtime.dll` (nicknamed "CLR MD") is a process and crash
 dump introspection library. This allows you to write tools and debugger plugins
 which can do thing similar to SOS and PSSCOR.

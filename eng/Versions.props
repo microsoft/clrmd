@@ -5,5 +5,7 @@
     <VersionPrefix>2.0.0</VersionPrefix>
     <PreReleaseVersionLabel>beta</PreReleaseVersionLabel>
     <AutoGenerateAssemblyVersion>true</AutoGenerateAssemblyVersion>
+
+    <UsingToolNetFrameworkReferenceAssemblies>true</UsingToolNetFrameworkReferenceAssemblies>
   </PropertyGroup>
 </Project>
