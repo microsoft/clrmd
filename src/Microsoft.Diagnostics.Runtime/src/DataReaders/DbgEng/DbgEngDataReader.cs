@@ -48,23 +48,23 @@ namespace Microsoft.Diagnostics.Runtime
 
             IntPtr pClient = CreateIDebugClient();
             CreateClient(pClient);
-            int hr = _client.OpenDumpFile(dumpFile);
+            HResult hr = _client.OpenDumpFile(dumpFile);
             if (hr != 0)
             {
-                const int E_INVALIDARG = unchecked((int)0x80070057);
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
-                if (hr == E_INVALIDARG || hr == HRESULT_FROM_NT(STATUS_MAPPED_FILE_SIZE_ZERO))
+                if (hr == HResult.E_INVALIDARG || hr == HRESULT_FROM_NT(STATUS_MAPPED_FILE_SIZE_ZERO))
                     throw new InvalidDataException($"'{dumpFile}' is not a crash dump.");
 
-                var kind = (uint)hr == 0x80004005 ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
-                throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: 0x{hr:x8}", kind, hr).AddData("DumpFile", dumpFile);
+                var kind = hr == HResult.E_FAIL ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
+                throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", kind, hr).AddData("DumpFile", dumpFile);
 
                 static int HRESULT_FROM_NT(int status) => status | 0x10000000;
             }
 
             // This actually "attaches" to the crash dump.
-            bool result = _control.WaitForEvent(0xffffffff);
+            HResult result = _control.WaitForEvent(0xffffffff);
+            _systemObjects.Init();
             DebugOnly.Assert(result);
         }
 

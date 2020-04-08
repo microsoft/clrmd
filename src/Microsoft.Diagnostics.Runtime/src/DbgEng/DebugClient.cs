@@ -54,10 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public HResult OpenDumpFile(string dumpFile)
         {
             InitDelegate(ref _openDumpFile, VTable.OpenDumpFile);
-            HResult hr = _openDumpFile(Self, dumpFile);
-
-            _sys.Init();
-            return hr;
+            return _openDumpFile(Self, dumpFile);
         }
 
         private EndSessionDelegate? _endSession;
