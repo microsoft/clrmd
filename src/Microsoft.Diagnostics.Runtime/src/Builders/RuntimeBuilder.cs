@@ -353,7 +353,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                     ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
                     yield return frame;
-                } while (stackwalk.Next());
+                } while (stackwalk.Next().IsOK);
             }
             finally
             {
