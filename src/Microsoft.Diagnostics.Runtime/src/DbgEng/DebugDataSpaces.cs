@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = buffer)
             {
-                _readVirtual(Self, address, ptr, buffer.Length, out int read);
+                HResult hr = _readVirtual(Self, address, ptr, buffer.Length, out int read);
                 return read;
             }
         }
