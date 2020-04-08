@@ -27,9 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private Action? _callback;
         private volatile int _callbackContext;
 
-        private uint? _nextThreadId;
-        private ulong? _nextTLSValue;
-
         public IntPtr IDacDataTarget { get; }
 
         public DacDataTargetWrapper(DataTarget dataTarget)
@@ -188,25 +185,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.S_OK;
         }
 
-        public void SetNextCurrentThreadId(uint? threadId)
-        {
-            // TODO: Remove?
-            _nextThreadId = threadId;
-        }
-
-        internal void SetNextTLSValue(ulong? value)
-        {
-            _nextTLSValue = value;
-        }
-
         public HResult GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
-            if (_nextTLSValue is ulong nextTLSValue)
-            {
-                value = nextTLSValue;
-                return HResult.S_OK;
-            }
-
             value = 0;
             return HResult.E_FAIL;
         }
@@ -218,12 +198,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetCurrentThreadID(IntPtr self, out uint threadID)
         {
-            if (_nextThreadId is uint nextThreadId)
-            {
-                threadID = nextThreadId;
-                return HResult.S_OK;
-            }
-
             threadID = 0;
             return HResult.E_FAIL;
         }
