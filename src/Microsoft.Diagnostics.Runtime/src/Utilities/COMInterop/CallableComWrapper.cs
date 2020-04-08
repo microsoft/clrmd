@@ -97,6 +97,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 #if DEBUG
             if (t.Method.GetParameters().First().ParameterType != typeof(IntPtr))
                 throw new InvalidOperationException();
+
+            object[] attrs = typeof(T).GetCustomAttributes(typeof(UnmanagedFunctionPointerAttribute), false);
+            if (attrs.Length > 0 && ((UnmanagedFunctionPointerAttribute)attrs[0]).CallingConvention != CallingConvention.Winapi)
+                throw new InvalidOperationException();
 #endif
         }
 

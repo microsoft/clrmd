@@ -29,7 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return new ClrStackWalk(library, pUnk);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CreateStackWalkDelegate(IntPtr self, uint flags, out IntPtr stackwalk);
     }
 

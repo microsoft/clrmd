@@ -675,7 +675,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             TypeRefToMethodTable
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
 
         public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
@@ -687,7 +686,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
 
         public bool TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
@@ -732,136 +730,92 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr == S_OK ? md : 0;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[] rejitData, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetIntPtr(IntPtr self, out IntPtr data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetUlongWithArg(IntPtr self, ulong arg, out ulong data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetUlongWithArgs(IntPtr self, ulong arg, uint id, out ulong data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetUInt(IntPtr self, out uint data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetIntPtrWithArg(IntPtr self, uint addr, out IntPtr data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetThreadData(IntPtr self, ulong addr, [Out] out ThreadData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetHeapDetailsWithArg(IntPtr self, ulong addr, out HeapDetails data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetHeapDetails(IntPtr self, out HeapDetails data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetUlongArray(IntPtr self, int count, [Out] ulong[] values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ulong[] values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out AssemblyData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetADStoreData(IntPtr self, out AppDomainStoreData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetGCInfoData(IntPtr self, out GCInfo data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCommonMethodTables(IntPtr self, out CommonMethodTables data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetThreadPoolData(IntPtr self, out ThreadPoolData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetThreadStoreData(IntPtr self, out ThreadStoreData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetMTData(IntPtr self, ulong addr, out MethodTableData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetModuleData(IntPtr self, ulong addr, out ModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetSegmentData(IntPtr self, ulong addr, out SegmentData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetAppDomainData(IntPtr self, ulong addr, out AppDomainData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetJitManagerInfo(IntPtr self, ulong addr, out JitManagerInfo data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetSyncBlockData(IntPtr self, int index, out SyncBlockData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCodeHeaderData(IntPtr self, ulong addr, out CodeHeaderData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetFieldInfo(IntPtr self, ulong addr, out V4FieldInfo data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetFieldData(IntPtr self, ulong addr, out FieldData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetObjectData(IntPtr self, ulong addr, out V45ObjectData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCCWData(IntPtr self, ulong addr, out CCWData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetRCWData(IntPtr self, ulong addr, out RCWData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetWorkRequestData(IntPtr self, ulong addr, out WorkRequestData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetLocalModuleData(IntPtr self, ulong addr, out DomainLocalModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ulong data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] JitCodeHeapInfo[] values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetCOMPointers(IntPtr self, ulong addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ulong appDomainAddr, int moduleID, out DomainLocalModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetThreadLocalModuleData(IntPtr self, ulong addr, uint id, out ThreadLocalModuleData data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacTraverseLoaderHeap(IntPtr self, ulong addr, IntPtr callback);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacTraverseStubHeap(IntPtr self, ulong addr, int type, IntPtr callback);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacTraverseModuleMap(IntPtr self, int type, ulong addr, IntPtr callback, IntPtr param);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[] jitManagers, out int pNeeded);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMetaDataImportDelegate(IntPtr self, ulong addr, out IntPtr iunk);
     }
 
