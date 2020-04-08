@@ -74,7 +74,7 @@ stages:
         steps:
         - checkout: self
           clean: true
-        - script: eng\cibuild.cmd -configuration $(_BuildConfig) -prepareMachine $(_BuildArgs)
+        - script: eng\common\cibuild.cmd -configuration $(_BuildConfig) -prepareMachine $(_BuildArgs)
           displayName: Build and Test
         - script: .dotnet\dotnet.exe tool run reportgenerator
             -reports:$(Build.SourcesDirectory)\src\*\coverage.cobertura.xml
@@ -113,7 +113,7 @@ stages:
         steps:
         - checkout: self
           clean: true
-        - script: eng/cibuild.sh --configuration $(_BuildConfig) --prepareMachine
+        - script: eng/common/cibuild.sh --configuration $(_BuildConfig) --prepareMachine
           displayName: Build and Test
         - script: .dotnet/dotnet tool run reportgenerator
             -reports:$(Build.SourcesDirectory)/src/*/coverage.cobertura.xml
