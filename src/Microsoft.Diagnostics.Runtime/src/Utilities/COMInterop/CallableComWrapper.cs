@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private static void InitDelegateWorker<T>([NotNull] ref T? t, IntPtr entry)
             where T : Delegate
         {
-            DebugOnly.Assert(t != null);
+            DebugOnly.Assert(t == null);
 
             t = Marshal.GetDelegateForFunctionPointer<T>(entry);
 
