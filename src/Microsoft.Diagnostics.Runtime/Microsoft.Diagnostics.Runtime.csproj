@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net471</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net471</TargetFrameworks>
     <NoWarn>1591;1701</NoWarn>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
