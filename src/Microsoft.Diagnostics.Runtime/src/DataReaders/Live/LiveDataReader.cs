@@ -121,14 +121,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
-            List<ModuleInfo> result = new List<ModuleInfo>();
-
             EnumProcessModules(_process, null, 0, out uint needed);
 
             IntPtr[] modules = new IntPtr[needed / IntPtr.Size];
 
             if (!EnumProcessModules(_process, modules, needed, out _))
                 throw new InvalidOperationException("Unable to get process modules.");
+
+            List<ModuleInfo> result = new List<ModuleInfo>(modules.Length);
 
             for (int i = 0; i < modules.Length; i++)
             {
