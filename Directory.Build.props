@@ -2,6 +2,12 @@
 <Project>
   <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+    <Coverage>true</Coverage>
+    <!-- Workaround for tonerdo/coverlet#363 -->
+    <DeterministicSourcePaths>false</DeterministicSourcePaths>
+  </PropertyGroup>
+
   <PropertyGroup>
     <LangVersion>Latest</LangVersion>
     <Features>strict</Features>
