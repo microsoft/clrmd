@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns true if this reference came from a LoaderAllocator handle (e.g. collectable types).
+        /// Returns true if this reference came from a LoaderAllocator handle (e.g. collectible types).
         /// </summary>
         public bool IsLoaderAllocator => LoaderAllocator != 0;
 
