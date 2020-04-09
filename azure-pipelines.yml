@@ -74,6 +74,8 @@ stages:
         steps:
         - checkout: self
           clean: true
+        - script: eng\common\cibuild.cmd -configuration $(_BuildConfig) -prepareMachine $(_BuildArgs)	
+          displayName: Build and Test
 
       - job: Linux
         displayName: 'Linux'
