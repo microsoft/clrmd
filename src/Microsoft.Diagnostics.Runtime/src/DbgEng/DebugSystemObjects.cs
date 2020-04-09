@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private ref readonly IDebugSystemObjects3VTable VTable => ref Unsafe.AsRef<IDebugSystemObjects3VTable>(_vtable);
 
-        public IDisposable Enter() => new SystemHolder(this, _systemId);
+        public IDisposable Enter() => new SystemHolder();
 
         public uint GetProcessId()
         {
@@ -121,16 +121,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private class SystemHolder : IDisposable
         {
             private static readonly object _sync = new object();
-            private static int _current = -1;
 
-            public SystemHolder(DebugSystemObjects sysObjs, int id)
+            public SystemHolder()
             {
                 Monitor.Enter(_sync);
-                if (id != -1 && _current != id)
-                {
-                    _current = id;
-                    sysObjs.SetCurrentSystemId(id);
-                }
             }
 
             public void Dispose()
