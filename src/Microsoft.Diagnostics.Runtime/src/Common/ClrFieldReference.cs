@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrInstanceField? Field { get; }
 
         /// <summary>
-        /// If this reference came from a CollectableType, it means there's a collectable type which keeps this object alive.
+        /// If this reference came from a collectible type, it means there's a collectible type which keeps this object alive.
         /// In that case, the <see cref="LoaderAllocator"/> property contains the address of the loader allocator's handle.
         /// </summary>
         public ulong LoaderAllocator
