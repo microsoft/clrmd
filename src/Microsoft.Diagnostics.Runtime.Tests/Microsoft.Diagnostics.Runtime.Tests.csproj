@@ -22,8 +22,8 @@
   </ItemGroup>
 
   <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildTargetsWindows" BeforeTargets="AfterBuild">
-    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTasks\TestTasks.csproj" />
-    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTargets\TestTargets.proj" />
+    <Exec Command="dotnet.exe build --no-restore -c $(Configuration) ..\TestTasks\TestTasks.csproj" />
+    <Exec Command="dotnet.exe build --no-restore -c $(Configuration) ..\TestTargets\TestTargets.proj" />
   </Target>
 
   <Target Condition="'$(OS)' == 'Unix'" Name="BuildTargetsLinux" BeforeTargets="AfterBuild">
