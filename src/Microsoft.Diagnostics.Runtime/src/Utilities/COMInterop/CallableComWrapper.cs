@@ -5,6 +5,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 #pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
@@ -86,20 +87,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(_unknownVTable->QueryInterface);
 
-            int hr = queryInterface(Self, riid, out IntPtr unk);
-            return hr == S_OK ? unk : IntPtr.Zero;
+            HResult hr = queryInterface(Self, riid, out IntPtr unk);
+            return hr.IsOK ? unk : IntPtr.Zero;
         }
 
-        protected static bool SUCCEEDED(int hresult)
-        {
-            return hresult >= 0;
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static void InitDelegate<T>([NotNull] ref T? t, IntPtr entry)
             where T : Delegate
         {
             if (t != null)
                 return;
+
+            InitDelegateWorker(ref t, entry);
+        }
+
+        private static void InitDelegateWorker<T>([NotNull] ref T? t, IntPtr entry)
+            where T : Delegate
+        {
+            DebugOnly.Assert(t == null);
 
             t = Marshal.GetDelegateForFunctionPointer<T>(entry);
 

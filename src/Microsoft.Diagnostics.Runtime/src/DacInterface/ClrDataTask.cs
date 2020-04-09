@@ -23,15 +23,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
         {
             CreateStackWalkDelegate create = Marshal.GetDelegateForFunctionPointer<CreateStackWalkDelegate>(VTable.CreateStackWalk);
-            int hr = create(Self, flags, out IntPtr pUnk);
-            if (hr != S_OK)
+            if (!create(Self, flags, out IntPtr pUnk))
                 return null;
 
+            GC.KeepAlive(create);
             return new ClrStackWalk(library, pUnk);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int CreateStackWalkDelegate(IntPtr self, uint flags, out IntPtr stackwalk);
+        private delegate HResult CreateStackWalkDelegate(IntPtr self, uint flags, out IntPtr stackwalk);
     }
 
     [StructLayout(LayoutKind.Sequential)]

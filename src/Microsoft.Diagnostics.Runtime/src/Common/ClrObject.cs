@@ -358,7 +358,7 @@ namespace Microsoft.Diagnostics.Runtime
             return Address.GetHashCode();
         }
 
-        public bool Equals(IAddressableTypedEntity entity) => entity is ClrObject other && Equals(other);
+        public bool Equals(IAddressableTypedEntity? entity) => entity is ClrObject other && Equals(other);
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrObject" /> have the same value.

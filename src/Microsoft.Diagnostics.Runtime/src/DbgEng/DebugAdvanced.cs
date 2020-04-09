@@ -22,20 +22,19 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private ref readonly IDebugAdvancedVTable VTable => ref Unsafe.AsRef<IDebugAdvancedVTable>(_vtable);
 
-        public bool GetThreadContext(Span<byte> context)
+        public HResult GetThreadContext(Span<byte> context)
         {
             InitDelegate(ref _getThreadContext, VTable.GetThreadContext);
 
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = context)
-                return _getThreadContext(Self, ptr, context.Length) >= 0;
+                return _getThreadContext(Self, ptr, context.Length);
         }
 
-        private GetThreadContextDelegate? _getThreadContext;
         private readonly DebugSystemObjects _sys;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetThreadContextDelegate(IntPtr self, byte* context, int contextSize);
+        private GetThreadContextDelegate? _getThreadContext;
+        private delegate HResult GetThreadContextDelegate(IntPtr self, byte* context, int contextSize);
     }
 
     [StructLayout(LayoutKind.Sequential)]

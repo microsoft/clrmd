@@ -29,13 +29,13 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getModuleNameStringWide, VTable.GetModuleNameStringWide);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
-            if (hr < 0)
+            HResult hr = _getModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
+            if (!hr)
                 return null;
 
             StringBuilder sb = new StringBuilder(needed);
             hr = _getModuleNameStringWide(Self, which, index, imageBase, sb, sb.Capacity, out _);
-            if (hr != 0)
+            if (!hr)
                 return null;
 
             return sb.ToString();
@@ -46,8 +46,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getNumberModules, VTable.GetNumberModules);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getNumberModules(Self, out int count, out _);
-            return hr == 0 ? count : 0;
+            HResult hr = _getNumberModules(Self, out int count, out _);
+            return hr ? count : 0;
         }
 
         public ulong GetModuleByIndex(int i)
@@ -55,11 +55,11 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getModuleByIndex, VTable.GetModuleByIndex);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getModuleByIndex(Self, i, out ulong imageBase);
-            return hr == S_OK ? imageBase : 0;
+            HResult hr = _getModuleByIndex(Self, i, out ulong imageBase);
+            return hr ? imageBase : 0;
         }
 
-        public bool GetModuleParameters(ulong[] bases, out DEBUG_MODULE_PARAMETERS[] parameters)
+        public HResult GetModuleParameters(ulong[] bases, out DEBUG_MODULE_PARAMETERS[] parameters)
         {
             InitDelegate(ref _getModuleParameters, VTable.GetModuleParameters);
 
@@ -69,8 +69,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             fixed (DEBUG_MODULE_PARAMETERS* pParams = parameters)
             {
                 using IDisposable holder = _sys.Enter();
-                int hr = _getModuleParameters(Self, bases.Length, pBases, 0, pParams);
-                return hr == S_OK;
+                HResult hr = _getModuleParameters(Self, bases.Length, pBases, 0, pParams);
+                return hr;
             }
         }
 
@@ -81,8 +81,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             byte* item = stackalloc byte[3] { (byte)'\\', (byte)'\\', 0 };
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getModuleVersionInformation(Self, index, imgBase, item, null, 0, out int needed);
-            if (hr < 0)
+            HResult hr = _getModuleVersionInformation(Self, index, imgBase, item, null, 0, out int needed);
+            if (!hr)
                 return default;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                 fixed (byte* pBuffer = buffer)
                     hr = _getModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out needed);
 
-                if (hr < 0)
+                if (!hr)
                     return default;
 
                 int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
@@ -107,13 +107,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             }
         }
 
-        public bool GetModuleByOffset(ulong address, int index, out int outIndex, out ulong imgBase)
+        public HResult GetModuleByOffset(ulong address, int index, out int outIndex, out ulong imgBase)
         {
             InitDelegate(ref _getModuleByOffset, VTable.GetModuleByOffset);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getModuleByOffset(Self, address, index, out outIndex, out imgBase);
-            return hr == S_OK;
+            return _getModuleByOffset(Self, address, index, out outIndex, out imgBase);
         }
 
         private GetModuleByOffsetDelegate? _getModuleByOffset;
@@ -124,24 +123,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetModuleNameStringWideDelegate? _getModuleNameStringWide;
         private readonly DebugSystemObjects _sys;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetModuleNameStringWideDelegate(
-            IntPtr self, DebugModuleName Which, int Index, ulong Base, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? Buffer, int BufferSize, out int NameSize);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetNumberModulesDelegate(IntPtr self, out int count, out int unloaded);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetModuleByIndexDelegate(IntPtr self, int index, out ulong imageBase);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetModuleParametersDelegate(IntPtr self, int count, ulong* bases, int start, DEBUG_MODULE_PARAMETERS* parameters);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetModuleVersionInformationDelegate(IntPtr self, int index, ulong baseAddress, byte* item, byte* buffer, int bufferSize, out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetModuleByOffsetDelegate(IntPtr self, ulong offset, int index, out int outIndex, out ulong imgBase);
+        private delegate HResult GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? Buffer, int BufferSize, out int NameSize);
+        private delegate HResult GetNumberModulesDelegate(IntPtr self, out int count, out int unloaded);
+        private delegate HResult GetModuleByIndexDelegate(IntPtr self, int index, out ulong imageBase);
+        private delegate HResult GetModuleParametersDelegate(IntPtr self, int count, ulong* bases, int start, DEBUG_MODULE_PARAMETERS* parameters);
+        private delegate HResult GetModuleVersionInformationDelegate(IntPtr self, int index, ulong baseAddress, byte* item, byte* buffer, int bufferSize, out int needed);
+        private delegate HResult GetModuleByOffsetDelegate(IntPtr self, ulong offset, int index, out int outIndex, out ulong imgBase);
     }
 
     [StructLayout(LayoutKind.Sequential)]

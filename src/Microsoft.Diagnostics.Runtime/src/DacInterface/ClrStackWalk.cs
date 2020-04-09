@@ -13,10 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
-        private RequestDelegate? _request;
-        private NextDelegate? _next;
-        private GetContextDelegate? _getContext;
-
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
         {
@@ -30,40 +26,30 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             long ptr = 0xcccccccc;
 
-            int hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
-            return hr == S_OK ? new ClrDataAddress(ptr) : default;
+            HResult hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
+            return hr ? new ClrDataAddress(ptr) : default;
         }
 
-        public bool Next()
+        public HResult Next()
         {
             InitDelegate(ref _next, VTable.Next);
 
-            int hr = _next(Self);
-            return hr == S_OK;
+            return _next(Self);
         }
 
-        public bool GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
+        public HResult GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
             InitDelegate(ref _getContext, VTable.GetContext);
-
-            int hr = _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
-            return hr == S_OK;
+            return _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
+        private RequestDelegate? _request;
+        private NextDelegate? _next;
+        private GetContextDelegate? _getContext;
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int NextDelegate(IntPtr self);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int RequestDelegate(
-            IntPtr self,
-            uint reqCode,
-            uint inBufferSize,
-            byte* inBuffer,
-            uint outBufferSize,
-            byte* outBuffer);
+        private delegate HResult GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
+        private delegate HResult NextDelegate(IntPtr self);
+        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, byte* inBuffer, uint outBufferSize, byte* outBuffer);
     }
 
     [StructLayout(LayoutKind.Sequential)]

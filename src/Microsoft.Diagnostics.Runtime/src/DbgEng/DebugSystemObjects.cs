@@ -29,25 +29,27 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getProcessId, VTable.GetCurrentProcessSystemId);
 
             using IDisposable holder = Enter();
-            int hr = _getProcessId(Self, out uint id);
-            return hr == S_OK ? id : 0;
+            HResult hr = _getProcessId(Self, out uint id);
+            return hr ? id : 0;
         }
 
-        private void SetCurrentSystemId(int id)
+        private HResult SetCurrentSystemId(int id)
         {
             InitDelegate(ref _setSystemId, VTable.SetCurrentSystemId);
 
-            int hr = _setSystemId(Self, id);
-            DebugOnly.Assert(hr == S_OK);
+            HResult hr = _setSystemId(Self, id);
+            DebugOnly.Assert(hr);
+            return hr;
         }
 
-        public void SetCurrentThread(uint id)
+        public HResult SetCurrentThread(uint id)
         {
             InitDelegate(ref _setCurrentThread, VTable.SetCurrentThreadId);
 
             using IDisposable holder = Enter();
-            int hr = _setCurrentThread(Self, id);
-            DebugOnly.Assert(hr == S_OK);
+            HResult hr = _setCurrentThread(Self, id);
+            DebugOnly.Assert(hr);
+            return hr;
         }
 
         public int GetNumberThreads()
@@ -55,15 +57,17 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getNumberThreads, VTable.GetNumberThreads);
 
             using IDisposable holder = Enter();
-            int hr = _getNumberThreads(Self, out int count);
-            DebugOnly.Assert(hr == S_OK);
+            HResult hr = _getNumberThreads(Self, out int count);
+            DebugOnly.Assert(hr);
             return count;
         }
 
         internal void Init()
         {
             InitDelegate(ref _getSystemId, VTable.GetCurrentSystemId);
-            _systemId = _getSystemId(Self, out int id);
+            HResult hr = _getSystemId(Self, out int id);
+            DebugOnly.Assert(hr);
+            _systemId = id;
         }
 
         public uint[] GetThreadIds()
@@ -79,12 +83,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             uint[] result = new uint[count];
             fixed (uint* pResult = result)
             {
-                int hr = _getThreadIdsByIndex(Self, 0, count, null, pResult);
-                if (hr != S_OK)
-                    return Array.Empty<uint>();
-                DebugOnly.Assert(hr == S_OK);
+                if (_getThreadIdsByIndex(Self, 0, count, null, pResult))
+                    return result;
 
-                return result;
+                return Array.Empty<uint>();
             }
         }
 
@@ -93,10 +95,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getThreadIdBySystemId, VTable.GetThreadIdBySystemId);
 
             using IDisposable holder = Enter();
-            int hr = _getThreadIdBySystemId(Self, sysId, out uint result);
-            DebugOnly.Assert(hr == S_OK);
+            HResult hr = _getThreadIdBySystemId(Self, sysId, out uint result);
+            DebugOnly.Assert(hr);
             return result;
         }
+
+        private int _systemId = -1;
 
         private GetCurrentProcessSystemIdDelegate? _getProcessId;
         private GetCurrentSystemIdDelegate? _getSystemId;
@@ -105,22 +109,14 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetNumberThreadsDelegate? _getNumberThreads;
         private GetThreadIdsByIndexDelegate? _getThreadIdsByIndex;
         private GetThreadIdBySystemIdDelegate? _getThreadIdBySystemId;
-        private int _systemId = -1;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetCurrentProcessSystemIdDelegate(IntPtr self, out uint pid);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetCurrentSystemIdDelegate(IntPtr self, out int id);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int SetCurrentSystemIdDelegate(IntPtr self, int id);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int SetCurrentThreadIdDelegate(IntPtr self, uint id);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetNumberThreadsDelegate(IntPtr self, out int count);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetThreadIdsByIndexDelegate(IntPtr self, int start, int count, int* ids, uint* systemIds);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetThreadIdBySystemIdDelegate(IntPtr self, uint sysId, out uint id);
+        private delegate HResult GetCurrentProcessSystemIdDelegate(IntPtr self, out uint pid);
+        private delegate HResult GetCurrentSystemIdDelegate(IntPtr self, out int id);
+        private delegate HResult SetCurrentSystemIdDelegate(IntPtr self, int id);
+        private delegate HResult SetCurrentThreadIdDelegate(IntPtr self, uint id);
+        private delegate HResult GetNumberThreadsDelegate(IntPtr self, out int count);
+        private delegate HResult GetThreadIdsByIndexDelegate(IntPtr self, int start, int count, int* ids, uint* systemIds);
+        private delegate HResult GetThreadIdBySystemIdDelegate(IntPtr self, uint sysId, out uint id);
 
         private class SystemHolder : IDisposable
         {

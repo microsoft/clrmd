@@ -25,12 +25,12 @@
   </ItemGroup>
 
 <!--
-  <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildTargetsWindows" AfterTargets="Build">
+  <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildTargetsWindows" BeforeTargets="AfterBuild">
     <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTasks\TestTasks.csproj" />
     <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTargets\TestTargets.proj" />
   </Target>
 
-  <Target Condition="'$(OS)' == 'Unix'" Name="BuildTargetsLinux" AfterTargets="Build">
+  <Target Condition="'$(OS)' == 'Unix'" Name="BuildTargetsLinux" BeforeTargets="AfterBuild">
     <MSBuild Projects="..\TestTargets\TestTargets.proj" />
   </Target>
 
