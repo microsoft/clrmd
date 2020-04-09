@@ -28,26 +28,24 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = buffer)
             {
-                _readVirtual(Self, address, ptr, buffer.Length, out int read);
+                HResult hr = _readVirtual(Self, address, ptr, buffer.Length, out int read);
                 return read;
             }
         }
 
-        public bool QueryVirtual(ulong address, out MEMORY_BASIC_INFORMATION64 info)
+        public HResult QueryVirtual(ulong address, out MEMORY_BASIC_INFORMATION64 info)
         {
             InitDelegate(ref _queryVirtual, VTable.QueryVirtual);
             using IDisposable holder = _sys.Enter();
-            return _queryVirtual(Self, address, out info) >= 0;
+            return _queryVirtual(Self, address, out info);
         }
 
         private ReadVirtualDelegate? _readVirtual;
         private QueryVirtualDelegate? _queryVirtual;
         private readonly DebugSystemObjects _sys;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int ReadVirtualDelegate(IntPtr self, ulong address, byte* buffer, int size, out int read);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
+        private delegate HResult ReadVirtualDelegate(IntPtr self, ulong address, byte* buffer, int size, out int read);
+        private delegate HResult QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }
 
     [StructLayout(LayoutKind.Sequential)]

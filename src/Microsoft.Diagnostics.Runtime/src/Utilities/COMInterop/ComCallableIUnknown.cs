@@ -93,17 +93,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _delegates.AddRange(keepAlive);
         }
 
-        private int QueryInterfaceImpl(IntPtr self, in Guid guid, out IntPtr ptr)
+        private HResult QueryInterfaceImpl(IntPtr _, in Guid guid, out IntPtr ptr)
         {
             if (_interfaces.TryGetValue(guid, out IntPtr value))
             {
                 Interlocked.Increment(ref _refCount);
                 ptr = value;
-                return S_OK;
+                return HResult.S_OK;
             }
 
             ptr = IntPtr.Zero;
-            return E_NOINTERFACE;
+            return HResult.E_NOINTERFACE;
         }
 
         private int ReleaseImpl(IntPtr self)

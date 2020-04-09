@@ -16,14 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public unsafe class ClrDataProcess : CallableCOMWrapper
     {
         private static readonly Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-
-        private FlushDelegate? _flush;
-        private GetTaskByOSThreadIDDelegate? _getTask;
-        private RequestDelegate? _request;
-        private StartEnumMethodInstancesByAddressDelegate? _startEnum;
-        private EnumMethodInstanceByAddressDelegate? _enum;
-        private EndEnumMethodInstancesByAddressDelegate? _endEnum;
-
         private readonly DacLibrary _library;
 
         public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
@@ -80,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _flush(Self);
         }
 
-        public int Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
+        public HResult Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
         {
             InitDelegate(ref _request, VTable.Request);
 
@@ -93,8 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTask, VTable.GetTaskByOSThreadID);
 
-            int hr = _getTask(Self, id, out IntPtr pUnkTask);
-            if (hr != S_OK)
+            if (!_getTask(Self, id, out IntPtr pUnkTask))
                 return null;
 
             using ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask);
@@ -118,13 +109,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
-            int hr = _startEnum(Self, addr, IntPtr.Zero, out ClrDataAddress handle);
-            if (hr != S_OK)
+            if (!_startEnum(Self, addr, IntPtr.Zero, out ClrDataAddress handle))
                 return result;
 
             try
             {
-                while ((hr = _enum(Self, ref handle, out IntPtr method)) == S_OK)
+                while (_enum(Self, ref handle, out IntPtr method))
                     result.Add(new ClrDataMethod(_library, method));
             }
             finally
@@ -135,29 +125,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return result;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int StartEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress address, IntPtr appDomain, out ClrDataAddress handle);
+        private FlushDelegate? _flush;
+        private GetTaskByOSThreadIDDelegate? _getTask;
+        private RequestDelegate? _request;
+        private StartEnumMethodInstancesByAddressDelegate? _startEnum;
+        private EnumMethodInstanceByAddressDelegate? _enum;
+        private EndEnumMethodInstancesByAddressDelegate? _endEnum;
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int EnumMethodInstanceByAddressDelegate(IntPtr self, ref ClrDataAddress handle, out IntPtr method);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int EndEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress handle);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int RequestDelegate(
-            IntPtr self,
-            uint reqCode,
-            int inBufferSize,
-            byte* inBuffer,
-            int outBufferSize,
-            byte* outBuffer);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int FlushDelegate(IntPtr self);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetTaskByOSThreadIDDelegate(IntPtr self, uint id, out IntPtr pUnknownTask);
+        private delegate HResult StartEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress address, IntPtr appDomain, out ClrDataAddress handle);
+        private delegate HResult EnumMethodInstanceByAddressDelegate(IntPtr self, ref ClrDataAddress handle, out IntPtr method);
+        private delegate HResult EndEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress handle);
+        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, byte* inBuffer, int outBufferSize, byte* outBuffer);
+        private delegate HResult FlushDelegate(IntPtr self);
+        private delegate HResult GetTaskByOSThreadIDDelegate(IntPtr self, uint id, out IntPtr pUnknownTask);
     }
 
     [StructLayout(LayoutKind.Sequential)]

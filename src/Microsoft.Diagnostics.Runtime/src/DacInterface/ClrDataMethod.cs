@@ -26,23 +26,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getILAddressMap, VTable.GetILAddressMap);
 
-            int hr = _getILAddressMap(Self, 0, out uint needed, null);
-            if (hr != S_OK)
+            HResult hr = _getILAddressMap(Self, 0, out uint needed, null);
+            if (!hr)
                 return null;
 
             ILToNativeMap[] map = new ILToNativeMap[needed];
             hr = _getILAddressMap(Self, needed, out needed, map);
 
-            return hr == S_OK ? map : null;
+            return hr ? map : null;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int GetILAddressMapDelegate(
-            IntPtr self,
-            uint mapLen,
-            out uint mapNeeded,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-            ILToNativeMap[]? map);
+        private delegate HResult GetILAddressMapDelegate(IntPtr self, uint mapLen, out uint mapNeeded, [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] ILToNativeMap[]? map);
     }
 
     [StructLayout(LayoutKind.Sequential)]

@@ -47,21 +47,20 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return hr == 0;
         }
 
-        public bool WaitForEvent(uint timeout)
+        public HResult WaitForEvent(uint timeout)
         {
             InitDelegate(ref _waitForEvent, VTable.WaitForEvent);
 
             using IDisposable holder = _sys.Enter();
-            return _waitForEvent(Self, 0, timeout) == 0;
+            return _waitForEvent(Self, 0, timeout);
         }
 
-        public void AddEngineOptions(int options)
+        public HResult AddEngineOptions(int options)
         {
             InitDelegate(ref _addEngineOptions, VTable.AddEngineOptions);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _addEngineOptions(Self, options);
-            DebugOnly.Assert(hr == 0);
+            return _addEngineOptions(Self, options);
         }
 
         public DEBUG_FORMAT GetDumpFormat()
@@ -69,8 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getDumpFormat, VTable.GetDumpFormatFlags);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getDumpFormat(Self, out DEBUG_FORMAT result);
-            if (hr == 0)
+            HResult hr = _getDumpFormat(Self, out DEBUG_FORMAT result);
+            if (hr)
                 return result;
 
             return DEBUG_FORMAT.DEFAULT;
@@ -81,8 +80,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             InitDelegate(ref _getDebuggeeType, VTable.GetDebuggeeType);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _getDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
-            DebugOnly.Assert(hr == 0);
+            HResult hr = _getDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
+            DebugOnly.Assert(hr.IsOK);
             return result;
         }
 
@@ -93,18 +92,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetDebuggeeTypeDelegate? _getDebuggeeType;
         private GetDumpFormatFlagsDelegate? _getDumpFormat;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetEffectiveProcessorTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE Type);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int IsPointer64BitDelegate(IntPtr self);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int WaitForEventDelegate(IntPtr self, int flags, uint timeout);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int AddEngineOptionsDelegate(IntPtr self, int options);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetDebuggeeTypeDelegate(IntPtr self, out uint cls, out DEBUG_CLASS_QUALIFIER qualifier);
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
+        private delegate HResult GetEffectiveProcessorTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE Type);
+        private delegate HResult IsPointer64BitDelegate(IntPtr self);
+        private delegate HResult WaitForEventDelegate(IntPtr self, int flags, uint timeout);
+        private delegate HResult AddEngineOptionsDelegate(IntPtr self, int options);
+        private delegate HResult GetDebuggeeTypeDelegate(IntPtr self, out uint cls, out DEBUG_CLASS_QUALIFIER qualifier);
+        private delegate HResult GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
 
     [StructLayout(LayoutKind.Sequential)]
