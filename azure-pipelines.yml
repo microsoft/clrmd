@@ -74,22 +74,6 @@ stages:
         steps:
         - checkout: self
           clean: true
-        - script: eng\common\cibuild.cmd -configuration $(_BuildConfig) -prepareMachine $(_BuildArgs)
-          displayName: Build and Test
-        - script: .dotnet\dotnet.exe tool run reportgenerator
-            -reports:$(Build.SourcesDirectory)\src\*\coverage.cobertura.xml
-            -targetdir:$(Build.SourcesDirectory)\artifacts\coverage
-          displayName: Generate Code Coverage Reports
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Code Coverage Reports
-          inputs:
-            pathToPublish: '$(Build.SourcesDirectory)\artifacts\coverage'
-            artifactName: Coverage_$(Agent.Os)_$(Agent.JobName)
-        - task: PublishCodeCoverageResults@1
-          displayName: Publish Code Coverage
-          inputs:
-            codeCoverageTool: cobertura
-            summaryFileLocation: '$(Build.SourcesDirectory)\src\*\coverage.cobertura.xml'
 
       - job: Linux
         displayName: 'Linux'
@@ -115,20 +99,6 @@ stages:
           clean: true
         - script: eng/common/cibuild.sh --configuration $(_BuildConfig) --prepareMachine
           displayName: Build and Test
-        - script: .dotnet/dotnet tool run reportgenerator
-            -reports:$(Build.SourcesDirectory)/src/*/coverage.cobertura.xml
-            -targetdir:$(Build.SourcesDirectory)/artifacts/coverage
-          displayName: Generate Code Coverage Reports
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Code Coverage Reports
-          inputs:
-            pathToPublish: '$(Build.SourcesDirectory)/artifacts/coverage'
-            artifactName: Coverage_$(Agent.Os)_$(Agent.JobName)
-        - task: PublishCodeCoverageResults@1
-          displayName: Publish Code Coverage
-          inputs:
-            codeCoverageTool: cobertura
-            summaryFileLocation: '$(Build.SourcesDirectory)/src/*/coverage.cobertura.xml'
 
 - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
   - template: eng\common\templates\post-build\post-build.yml
