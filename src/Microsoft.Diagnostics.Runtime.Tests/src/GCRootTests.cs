@@ -14,20 +14,64 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class GCRootTests
     {
         [Fact]
+        public void TestEnumerateRefsWithFields()
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ClrObject singleRef = FindSingleRefPointingToTarget(heap);
+            ClrFieldReference fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: true).Single();
+
+            Assert.True(fieldRef.IsDepenendentHandle);
+            Assert.False(fieldRef.IsLoaderAllocator);
+            Assert.False(fieldRef.IsField);
+
+            singleRef = FindSingleRefPointingToType(heap, "TripleRef");
+            fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: false).Single();
+
+            Assert.False(fieldRef.IsDepenendentHandle);
+            Assert.False(fieldRef.IsLoaderAllocator);
+            Assert.True(fieldRef.IsField);
+        }
+
+        private ClrObject FindSingleRefPointingToTarget(ClrHeap heap)
+        {
+            foreach (ClrObject obj in heap.EnumerateObjects().Where(o => o.Type.Name == "SingleRef"))
+            {
+                foreach (ClrObject reference in obj.EnumerateReferences(considerDependantHandles: true))
+                    if (reference.Type.Name == "TargetType")
+                        return obj;
+            }
+
+            throw new InvalidOperationException("Did not find a SingleRef pointing to a TargetType");
+        }
+
+        private ClrObject FindSingleRefPointingToType(ClrHeap heap, string targetTypeName)
+        {
+            foreach (ClrObject obj in heap.EnumerateObjects().Where(o => o.Type.Name == "SingleRef"))
+            {
+                ClrObject item1 = obj.GetObjectField("Item1");
+                if (item1.Type?.Name == targetTypeName)
+                    return obj;
+            }
+
+            throw new InvalidOperationException($"Did not find a SingleRef pointing to a {targetTypeName}.");
+        }
+
+
+        [Fact]
         public void EnumerateGCRefs()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ClrObject obj = heap.GetObjectsOfType("DoubleRef").Single();
-            Assert.False(obj.IsNull);
+            ClrObject doubleRef = heap.GetObjectsOfType("DoubleRef").Single();
+            Assert.False(doubleRef.IsNull);
 
-            ValidateRefs(obj.EnumerateReferences().ToArray());
-        }
+            ClrObject[] refs = doubleRef.EnumerateReferences().ToArray();
 
-        private void ValidateRefs(ClrObject[] refs)
-        {
             // Should contain one SingleRef and one TripleRef object.
             Assert.Equal(2, refs.Length);
 

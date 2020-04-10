@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject Object { get; }
 
         /// <summary>
-        /// The offset into the containing object this address is found at.  Only valid if <see cref="IsObjectInterior"/> is true.
+        /// The offset into the containing object this address is found at.  Only valid if <see cref="IsField"/> is true.
         /// </summary>
         public int Offset
         {
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The field this object was contained in.  This property may be null if metadata is not available, if
         /// this reference came from a dependent handle/loader allocator, or if this came from an array.
-        /// Only valid to call if <see cref="IsObjectInterior"/> is true.
+        /// Only valid to call if <see cref="IsField"/> is true.
         /// </summary>
         public ClrInstanceField? Field { get; }
 
@@ -74,9 +74,9 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsDepenendentHandle => (_offsetOrHandle & DependentFlag) == DependentFlag;
 
         /// <summary>
-        /// Returns true if this reference came from a field in another object.
+        /// Returns true if this reference came from a field (or array element) in another object.
         /// </summary>
-        public bool IsObjectInterior => LoaderAllocator == 0;
+        public bool IsField => (_offsetOrHandle & OffsetFlag) == OffsetFlag;
 
         /// <summary>
         /// Create a field reference from a dependent handle value.  We do not keep track of the dependent handle it came from
