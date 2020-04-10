@@ -11,7 +11,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         const ulong OffsetFlag = 8000000000000000ul;
         const ulong DependentFlag = 4000000000000000ul;
-        const ulong ValueMask = ~(OffsetFlag | DependentFlag);
 
         private readonly ulong _offsetOrHandle;
 
