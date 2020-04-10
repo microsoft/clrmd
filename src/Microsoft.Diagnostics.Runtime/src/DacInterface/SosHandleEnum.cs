@@ -20,10 +20,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _next, vtable.Next);
         }
 
-        public int ReadHandles(HandleData[] handles)
+        public int ReadHandles(Span<HandleData> handles)
         {
-            if (handles is null)
-                throw new ArgumentNullException(nameof(handles));
+            if (handles.IsEmpty)
+                throw new ArgumentException(null, nameof(handles));
 
             fixed (HandleData* ptr = handles)
             {

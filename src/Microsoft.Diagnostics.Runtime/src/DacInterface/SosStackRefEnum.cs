@@ -21,17 +21,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _next, vtable.Next);
         }
 
-        public int ReadStackReferences(StackRefData[] stackRefs)
+        public int ReadStackReferences(Span<StackRefData> stackRefs)
         {
-            if (stackRefs is null)
-                throw new ArgumentNullException(nameof(stackRefs));
+            if (stackRefs.IsEmpty)
+                throw new ArgumentException(null, nameof(stackRefs));
 
-            HResult hr = _next(Self, stackRefs.Length, stackRefs, out int read);
-            return hr ? read : 0;
+            fixed (StackRefData* ptr = stackRefs)
+            {
+                HResult hr = _next(Self, stackRefs.Length, ptr, out int read);
+                return hr ? read : 0;
+            }
         }
 
         private readonly Next _next;
-        private delegate int Next(IntPtr self, int count, [Out][MarshalAs(UnmanagedType.LPArray)] StackRefData[] stackRefs, out int pNeeded);
+        private delegate int Next(IntPtr self, int count, StackRefData* stackRefs, out int pNeeded);
     }
 
     [StructLayout(LayoutKind.Sequential)]
