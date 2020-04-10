@@ -22,7 +22,9 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private ref readonly IDebugSystemObjects3VTable VTable => ref Unsafe.AsRef<IDebugSystemObjects3VTable>(_vtable);
 
+#pragma warning disable CA1822
         public IDisposable Enter() => new SystemHolder();
+#pragma warning restore CA1822
 
         public uint GetProcessId()
         {
