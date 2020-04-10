@@ -64,6 +64,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.False(fieldRef.IsDepenendentHandle);
             Assert.True(fieldRef.IsField);
+            Assert.NotNull(fieldRef.Field);
+            Assert.Equal("Item1", fieldRef.Field.Name);
         }
 
         private ClrObject FindSingleRefPointingToTarget(ClrHeap heap)
