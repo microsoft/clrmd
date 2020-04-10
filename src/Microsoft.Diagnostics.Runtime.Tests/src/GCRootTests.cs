@@ -13,6 +13,39 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class GCRootTests
     {
+
+        [Fact]
+        public void TestEnumerateRefsWithFieldsArrayFieldValues()
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            foreach (ClrObject obj in heap.EnumerateObjects())
+            {
+                foreach (ClrFieldReference reference in obj.EnumerateReferencesWithFields(carefully: false, considerDependantHandles: false))
+                {
+                    if (obj.IsArray)
+                    {
+                        // Ensure we didn't try to set .Field if it's an array reference
+                        Assert.True(reference.IsArrayElement);
+                        Assert.False(reference.IsDepenendentHandle);
+                        Assert.False(reference.IsField);
+                        Assert.Null(reference.Field);
+                    }
+                    else
+                    {
+                        // Ensure that we always have a .Field when it's a field reference
+                        Assert.False(reference.IsArrayElement);
+                        Assert.False(reference.IsDepenendentHandle);
+                        Assert.True(reference.IsField);
+                        Assert.NotNull(reference.Field);
+                    }
+                }
+            }
+        }
+
+
         [Fact]
         public void TestEnumerateRefsWithFields()
         {
@@ -24,14 +57,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrFieldReference fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: true).Single();
 
             Assert.True(fieldRef.IsDepenendentHandle);
-            Assert.False(fieldRef.IsLoaderAllocator);
             Assert.False(fieldRef.IsField);
 
             singleRef = FindSingleRefPointingToType(heap, "TripleRef");
             fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: false).Single();
 
             Assert.False(fieldRef.IsDepenendentHandle);
-            Assert.False(fieldRef.IsLoaderAllocator);
             Assert.True(fieldRef.IsField);
         }
 

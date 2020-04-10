@@ -431,16 +431,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
             }
 
-            if (type.IsCollectible)
-            {
-                ulong la = _helpers.DataReader.ReadPointer(type.LoaderAllocatorHandle);
-                if (la != 0)
-                {
-                    ClrObject target = new ClrObject(la, GetObjectType(la));
-                    yield return ClrFieldReference.CreateFromLoaderAllocatorHandle(target, type.LoaderAllocatorHandle);
-                }
-            }
-
             if (type.ContainsPointers)
             {
                 GCDesc gcdesc = type.GCDesc;
@@ -457,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
                     {
                         ClrObject target = new ClrObject(reference, GetObjectType(reference));
-                        yield return ClrFieldReference.CreateFromField(target, type, offset);
+                        yield return ClrFieldReference.CreateFromFieldOrArray(target, type, offset);
                     }
                 }
             }
