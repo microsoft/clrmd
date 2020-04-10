@@ -208,9 +208,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     if (module != null)
                     {
-                        ClrType? innerType = factory.GetOrCreateTypeFromToken(module, token);
-                        if (innerType is null)
+                        ClrType? innerType;
+                        if (type.IsPrimitive())
+                        {
                             innerType = factory.GetOrCreateBasicType(type);
+                        }
+                        else
+                        {
+                            innerType = factory.GetOrCreateTypeFromToken(module, token);
+
+                            // Fallback just in case 
+                            if (innerType is null)
+                                innerType = factory.GetOrCreateBasicType(type);
+                        }
+                        
 
                         result = factory.GetOrCreatePointerType(innerType, 1);
                     }
