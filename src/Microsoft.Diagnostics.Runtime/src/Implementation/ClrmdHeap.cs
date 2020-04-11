@@ -397,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override IEnumerable<ClrFieldReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        public override IEnumerable<ClrReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -425,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         {
                             ulong dependantObj = dependent[index++].Item2;
                             ClrObject target = new ClrObject(dependantObj, GetObjectType(dependantObj));
-                            yield return ClrFieldReference.CreateFromDependentHandle(target);
+                            yield return ClrReference.CreateFromDependentHandle(target);
                         }
                     }
                 }
@@ -447,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
                     {
                         ClrObject target = new ClrObject(reference, GetObjectType(reference));
-                        yield return ClrFieldReference.CreateFromFieldOrArray(target, type, offset);
+                        yield return ClrReference.CreateFromFieldOrArray(target, type, offset);
                     }
                 }
             }

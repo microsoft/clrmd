@@ -63,10 +63,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// Checking dependent handles does come at a performance penalty but will give you the true reference chain as the
         /// GC sees it.</param>
         /// <returns>An enumeration of object references.</returns>
-        public IEnumerable<ClrFieldReference> EnumerateReferencesWithFields(bool carefully = false, bool considerDependantHandles = true)
+        public IEnumerable<ClrReference> EnumerateReferencesWithFields(bool carefully = false, bool considerDependantHandles = true)
         {
             if (Type is null)
-                return Enumerable.Empty<ClrFieldReference>();
+                return Enumerable.Empty<ClrReference>();
 
             return Type.Heap.EnumerateReferencesWithFields(Address, Type, carefully, considerDependantHandles);
         }
