@@ -35,6 +35,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all objects that this object references.
         /// </summary>
+        /// <param name="carefully">Only returns pointers which lie on the managed heap.  In very rare cases it's possible to
+        /// create a crash dump where the GC was in the middle of updating data structures, or to create a crash dump of a process
+        /// with heap corruption.  In those cases, setting carefully=true would ensure we would not enumerate those bad references.
+        /// Note that setting carefully=true will cause a small performance penalty.</param>
+        /// <param name="considerDependantHandles">Setting this to true will have ClrMD check for dependent handle references.
+        /// Checking dependent handles does come at a performance penalty but will give you the true reference chain as the
+        /// GC sees it.</param>
         /// <returns>An enumeration of object references.</returns>
         public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false, bool considerDependantHandles = true)
         {
@@ -43,6 +50,27 @@ namespace Microsoft.Diagnostics.Runtime
 
             return Type.Heap.EnumerateObjectReferences(Address, Type, carefully, considerDependantHandles);
         }
+
+        /// <summary>
+        /// Enumerates all objects that this object references.  This method also enumerates the field (or handle) that this
+        /// reference comes from.
+        /// </summary>
+        /// <param name="carefully">Only returns pointers which lie on the managed heap.  In very rare cases it's possible to
+        /// create a crash dump where the GC was in the middle of updating data structures, or to create a crash dump of a process
+        /// with heap corruption.  In those cases, setting carefully=true would ensure we would not enumerate those bad references.
+        /// Note that setting carefully=true will cause a small performance penalty.</param>
+        /// <param name="considerDependantHandles">Setting this to true will have ClrMD check for dependent handle references.
+        /// Checking dependent handles does come at a performance penalty but will give you the true reference chain as the
+        /// GC sees it.</param>
+        /// <returns>An enumeration of object references.</returns>
+        public IEnumerable<ClrFieldReference> EnumerateReferencesWithFields(bool carefully = false, bool considerDependantHandles = true)
+        {
+            if (Type is null)
+                return Enumerable.Empty<ClrFieldReference>();
+
+            return Type.Heap.EnumerateReferencesWithFields(Address, Type, carefully, considerDependantHandles);
+        }
+
 
         public T ReadBoxed<T>() where T : unmanaged
         {

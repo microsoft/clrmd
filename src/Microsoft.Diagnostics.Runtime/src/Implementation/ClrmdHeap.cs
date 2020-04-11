@@ -397,6 +397,63 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+        public override IEnumerable<ClrFieldReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        {
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (considerDependantHandles)
+            {
+                var dependent = _dependentHandles;
+                if (dependent is null)
+                {
+                    dependent = _helpers.EnumerateDependentHandleLinks().ToArray();
+                    Array.Sort(dependent, (x, y) => x.Item1.CompareTo(y.Item1));
+
+                    _dependentHandles = dependent;
+                }
+
+                if (dependent.Length > 0)
+                {
+                    int index = dependent.Search(obj, (x, y) => x.Item1.CompareTo(y));
+                    if (index != -1)
+                    {
+                        while (index >= 1 && dependent[index - 1].Item1 == obj)
+                            index--;
+
+                        while (index < dependent.Length && dependent[index].Item1 == obj)
+                        {
+                            ulong dependantObj = dependent[index++].Item2;
+                            ClrObject target = new ClrObject(dependantObj, GetObjectType(dependantObj));
+                            yield return ClrFieldReference.CreateFromDependentHandle(target);
+                        }
+                    }
+                }
+            }
+
+            if (type.ContainsPointers)
+            {
+                GCDesc gcdesc = type.GCDesc;
+                if (!gcdesc.IsEmpty)
+                {
+                    ulong size = GetObjectSize(obj, type);
+                    if (carefully)
+                    {
+                        ClrSegment? seg = GetSegmentByAddress(obj);
+                        if (seg is null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
+                            yield break;
+                    }
+
+                    foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
+                    {
+                        ClrObject target = new ClrObject(reference, GetObjectType(reference));
+                        yield return ClrFieldReference.CreateFromFieldOrArray(target, type, offset);
+                    }
+                }
+            }
+        }
+
+
         public override IEnumerable<IClrRoot> EnumerateRoots()
         {
             // Handle table

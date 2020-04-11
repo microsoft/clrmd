@@ -153,6 +153,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrType? ResolveToken(int typeDefOrRefToken)
         {
+            if (typeDefOrRefToken == 0)
+                return null;
+
             ClrHeap? heap = AppDomain?.Runtime?.Heap;
             if (heap is null)
                 return null;

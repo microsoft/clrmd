@@ -13,6 +13,86 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class GCRootTests
     {
+
+        [Fact]
+        public void TestEnumerateRefsWithFieldsArrayFieldValues()
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            foreach (ClrObject obj in heap.EnumerateObjects())
+            {
+                foreach (ClrFieldReference reference in obj.EnumerateReferencesWithFields(carefully: false, considerDependantHandles: false))
+                {
+                    if (obj.IsArray)
+                    {
+                        // Ensure we didn't try to set .Field if it's an array reference
+                        Assert.True(reference.IsArrayElement);
+                        Assert.False(reference.IsDepenendentHandle);
+                        Assert.False(reference.IsField);
+                        Assert.Null(reference.Field);
+                    }
+                    else
+                    {
+                        // Ensure that we always have a .Field when it's a field reference
+                        Assert.False(reference.IsArrayElement);
+                        Assert.False(reference.IsDepenendentHandle);
+                        Assert.True(reference.IsField);
+                        Assert.NotNull(reference.Field);
+                    }
+                }
+            }
+        }
+
+
+        [Fact]
+        public void TestEnumerateRefsWithFields()
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ClrObject singleRef = FindSingleRefPointingToTarget(heap);
+            ClrFieldReference fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: true).Single();
+
+            Assert.True(fieldRef.IsDepenendentHandle);
+            Assert.False(fieldRef.IsField);
+
+            singleRef = FindSingleRefPointingToType(heap, "TripleRef");
+            fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: false).Single();
+
+            Assert.False(fieldRef.IsDepenendentHandle);
+            Assert.True(fieldRef.IsField);
+            Assert.NotNull(fieldRef.Field);
+            Assert.Equal("Item1", fieldRef.Field.Name);
+        }
+
+        private ClrObject FindSingleRefPointingToTarget(ClrHeap heap)
+        {
+            foreach (ClrObject obj in heap.EnumerateObjects().Where(o => o.Type.Name == "SingleRef"))
+            {
+                foreach (ClrObject reference in obj.EnumerateReferences(considerDependantHandles: true))
+                    if (reference.Type.Name == "TargetType")
+                        return obj;
+            }
+
+            throw new InvalidOperationException("Did not find a SingleRef pointing to a TargetType");
+        }
+
+        private ClrObject FindSingleRefPointingToType(ClrHeap heap, string targetTypeName)
+        {
+            foreach (ClrObject obj in heap.EnumerateObjects().Where(o => o.Type.Name == "SingleRef"))
+            {
+                ClrObject item1 = obj.GetObjectField("Item1");
+                if (item1.Type?.Name == targetTypeName)
+                    return obj;
+            }
+
+            throw new InvalidOperationException($"Did not find a SingleRef pointing to a {targetTypeName}.");
+        }
+
+
         [Fact]
         public void EnumerateGCRefs()
         {
@@ -20,14 +100,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ClrObject obj = heap.GetObjectsOfType("DoubleRef").Single();
-            Assert.False(obj.IsNull);
+            ClrObject doubleRef = heap.GetObjectsOfType("DoubleRef").Single();
+            Assert.False(doubleRef.IsNull);
 
-            ValidateRefs(obj.EnumerateReferences().ToArray());
-        }
+            ClrObject[] refs = doubleRef.EnumerateReferences().ToArray();
 
-        private void ValidateRefs(ClrObject[] refs)
-        {
             // Should contain one SingleRef and one TripleRef object.
             Assert.Equal(2, refs.Length);
 
