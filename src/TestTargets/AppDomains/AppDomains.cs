@@ -13,8 +13,9 @@ class Program
         if (codebase.StartsWith("file://"))
             codebase = codebase.Substring(8).Replace('/', '\\');
 
-        AppDomain domain = AppDomain.CreateDomain("Second AppDomain");
+        SharedStaticTest.Value = 2;
 
+        AppDomain domain = AppDomain.CreateDomain("Second AppDomain");
         domain.ExecuteAssembly(Path.Combine(Path.GetDirectoryName(codebase), "NestedException.exe"));
 
         while (true)

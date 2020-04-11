@@ -2,6 +2,11 @@
 #pragma warning disable 0169
 #pragma warning disable 0414
 
+public static class SharedStaticTest
+{
+    public static int Value;
+}
+
 public class Foo
 {
     int i = 42;

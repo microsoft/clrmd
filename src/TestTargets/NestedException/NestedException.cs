@@ -5,6 +5,7 @@ class Program
 {
     public static void Main(string[] args)
     {
+        SharedStaticTest.Value = 42;
         Foo foo = new Foo();
         Outer();    /* seq */
         GC.KeepAlive(foo);
