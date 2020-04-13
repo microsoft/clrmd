@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrObject obj in heap.EnumerateObjects())
             {
-                foreach (ClrFieldReference reference in obj.EnumerateReferencesWithFields(carefully: false, considerDependantHandles: false))
+                foreach (ClrReference reference in obj.EnumerateReferencesWithFields(carefully: false, considerDependantHandles: false))
                 {
                     if (obj.IsArray)
                     {
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             ClrObject singleRef = FindSingleRefPointingToTarget(heap);
-            ClrFieldReference fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: true).Single();
+            ClrReference fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: true).Single();
 
             Assert.True(fieldRef.IsDepenendentHandle);
             Assert.False(fieldRef.IsField);

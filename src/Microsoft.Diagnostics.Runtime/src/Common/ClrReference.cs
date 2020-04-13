@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public struct ClrFieldReference
+    public struct ClrReference
     {
         const ulong OffsetFlag = 8000000000000000ul;
         const ulong DependentFlag = 4000000000000000ul;
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// so we don't accept the value here.
         /// </summary>
         /// <param name="reference">The object referenced.</param>
-        public static ClrFieldReference CreateFromDependentHandle(ClrObject reference) => new ClrFieldReference(reference, null, DependentFlag);
+        public static ClrReference CreateFromDependentHandle(ClrObject reference) => new ClrReference(reference, null, DependentFlag);
 
         /// <summary>
         /// Creates a ClrFieldReference from an actual field.
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="reference">The object referenced.</param>
         /// <param name="containingType">The type of the object which points to <paramref name="reference"/>.</param>
         /// <param name="offset">The offset within the source object where <paramref name="reference"/> was located.</param>
-        public static ClrFieldReference CreateFromFieldOrArray(ClrObject reference, ClrType containingType, int offset)
+        public static ClrReference CreateFromFieldOrArray(ClrObject reference, ClrType containingType, int offset)
         {
             if (containingType == null)
                 throw new ArgumentNullException(nameof(containingType));
@@ -85,11 +85,11 @@ namespace Microsoft.Diagnostics.Runtime
             ClrInstanceField? field = containingType.IsArray ? null : containingType.Fields.First(f => f.Offset <= offset && offset < f.Offset + f.Size);
             unchecked
             {
-                return new ClrFieldReference(reference, field, OffsetFlag | (uint)offset);
+                return new ClrReference(reference, field, OffsetFlag | (uint)offset);
             }
         }
 
-        private ClrFieldReference(ClrObject obj, ClrInstanceField? field, ulong offsetOrHandleValue)
+        private ClrReference(ClrObject obj, ClrInstanceField? field, ulong offsetOrHandleValue)
         {
             _offsetOrHandle = offsetOrHandleValue;
             Object = obj;
