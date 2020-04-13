@@ -10,12 +10,12 @@ namespace Microsoft.Diagnostics.Runtime
     /// Float in X86-specific windows thread context.
     /// </summary>
     [StructLayout(LayoutKind.Explicit, Pack = 1)]
-    public struct Float80
+    public readonly struct Float80
     {
         [FieldOffset(0x0)]
-        public ulong Mantissa;
+        public readonly ulong Mantissa;
 
         [FieldOffset(0x8)]
-        public ushort Exponent;
+        public readonly ushort Exponent;
     }
 }
