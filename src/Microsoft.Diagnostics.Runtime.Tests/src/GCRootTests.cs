@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     {
                         // Ensure we didn't try to set .Field if it's an array reference
                         Assert.True(reference.IsArrayElement);
-                        Assert.False(reference.IsDepenendentHandle);
+                        Assert.False(reference.IsDependentHandle);
                         Assert.False(reference.IsField);
                         Assert.Null(reference.Field);
                     }
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     {
                         // Ensure that we always have a .Field when it's a field reference
                         Assert.False(reference.IsArrayElement);
-                        Assert.False(reference.IsDepenendentHandle);
+                        Assert.False(reference.IsDependentHandle);
                         Assert.True(reference.IsField);
                         Assert.NotNull(reference.Field);
                     }
@@ -56,13 +56,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject singleRef = FindSingleRefPointingToTarget(heap);
             ClrReference fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: true).Single();
 
-            Assert.True(fieldRef.IsDepenendentHandle);
+            Assert.True(fieldRef.IsDependentHandle);
             Assert.False(fieldRef.IsField);
 
             singleRef = FindSingleRefPointingToType(heap, "TripleRef");
             fieldRef = singleRef.EnumerateReferencesWithFields(considerDependantHandles: false).Single();
 
-            Assert.False(fieldRef.IsDepenendentHandle);
+            Assert.False(fieldRef.IsDependentHandle);
             Assert.True(fieldRef.IsField);
             Assert.NotNull(fieldRef.Field);
             Assert.Equal("Item1", fieldRef.Field.Name);

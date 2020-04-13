@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         Passive,
         ActiveTerminate,
-        ActiveDetatch,
+        ActiveDetach,
         EndReentrant,
         EndDisconnect
     }

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ulong ReservedEnd => _segment.Reserved;
 
-        public ulong CommitedEnd => _segment.Committed;
+        public ulong CommittedEnd => _segment.Committed;
 
         public ulong Gen0Start => IsEphemeralSegment ? _ephemGen0Start : End;
 

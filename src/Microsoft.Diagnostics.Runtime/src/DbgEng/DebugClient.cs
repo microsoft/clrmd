@@ -33,12 +33,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             DebugOnly.Assert(hr == 0);
         }
 
-        public void DetatchProcesses()
+        public void DetachProcesses()
         {
-            InitDelegate(ref _detatchProcesses, VTable.DetachProcesses);
+            InitDelegate(ref this._detachProcesses, VTable.DetachProcesses);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _detatchProcesses(Self);
+            int hr = this._detachProcesses(Self);
             DebugOnly.Assert(hr == 0);
         }
 
@@ -58,12 +58,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         }
 
         private EndSessionDelegate? _endSession;
-        private DetatchProcessesDelegate? _detatchProcesses;
+        private DetachProcessesDelegate? _detachProcesses;
         private AttachProcessDelegate? _attachProcess;
         private OpenDumpFileDelegate? _openDumpFile;
 
         private delegate HResult EndSessionDelegate(IntPtr self, DebugEnd mode);
-        private delegate HResult DetatchProcessesDelegate(IntPtr self);
+        private delegate HResult DetachProcessesDelegate(IntPtr self);
         private delegate HResult AttachProcessDelegate(IntPtr self, ulong server, uint pid, DebugAttach AttachFlags);
         private delegate HResult OpenDumpFileDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPStr)] string file);
     }

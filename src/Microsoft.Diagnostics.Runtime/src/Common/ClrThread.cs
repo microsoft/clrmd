@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsUnstarted { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the CLR called <c>CoIntialize</c> for this thread.
+        /// Gets a value indicating whether the CLR called <c>CoInitialize</c> for this thread.
         /// </summary>
         public abstract bool IsCoInitialized { get; }
 

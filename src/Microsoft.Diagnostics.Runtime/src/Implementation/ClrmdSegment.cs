@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IsEphemeralSegment = data.IsEphemeralSegment;
 
             ReservedEnd = data.ReservedEnd;
-            CommittedEnd = data.CommitedEnd;
+            CommittedEnd = data.CommittedEnd;
 
             Gen0Start = data.Gen0Start;
             Gen0Length = data.Gen0Length;
