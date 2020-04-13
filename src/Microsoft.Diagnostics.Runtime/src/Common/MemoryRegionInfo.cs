@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Contains information about a range of memory.
     /// </summary>
-    public struct MemoryRegionInfo
+    public readonly struct MemoryRegionInfo
     {
         /// <summary>
         /// Gets the base address of the allocation.

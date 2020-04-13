@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public struct AllocationContext
+    public readonly struct AllocationContext
     {
         public ulong Pointer { get; }
         public ulong Limit { get; }

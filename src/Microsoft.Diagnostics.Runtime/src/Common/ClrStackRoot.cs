@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public struct ClrStackRoot : IClrStackRoot
+    public readonly struct ClrStackRoot : IClrStackRoot
     {
         public ulong Address { get; }
         public ClrObject Object { get; }

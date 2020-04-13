@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class ImageFileHeader
     {
-        private IMAGE_FILE_HEADER _header;
+        private readonly IMAGE_FILE_HEADER _header;
 
         internal ImageFileHeader(ref IMAGE_FILE_HEADER header)
         {

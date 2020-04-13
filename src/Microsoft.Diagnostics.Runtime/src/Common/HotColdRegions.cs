@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Returns the addresses and sizes of the hot and cold regions of a method.
     /// </summary>
-    public struct HotColdRegions
+    public readonly struct HotColdRegions
     {
         /// <summary>
         /// Gets the start address of the method's hot region.

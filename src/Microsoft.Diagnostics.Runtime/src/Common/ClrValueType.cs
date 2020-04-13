@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an instance of a type which inherits from <see cref="ValueType"/>.
     /// </summary>
-    public struct ClrValueType : IAddressableTypedEntity
+    public readonly struct ClrValueType : IAddressableTypedEntity
     {
         private IDataReader DataReader => GetTypeOrThrow().ClrObjectHelpers.DataReader;
         private readonly bool _interior;

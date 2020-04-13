@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public struct ClrReference
+    public readonly struct ClrReference
     {
         const ulong OffsetFlag = 8000000000000000ul;
         const ulong DependentFlag = 4000000000000000ul;
