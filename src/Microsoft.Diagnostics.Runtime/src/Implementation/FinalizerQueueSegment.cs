@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public struct FinalizerQueueSegment
+    public readonly struct FinalizerQueueSegment
     {
         public ulong Start { get; }
         public ulong End { get; }

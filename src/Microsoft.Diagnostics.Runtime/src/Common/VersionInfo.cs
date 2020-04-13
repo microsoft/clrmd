@@ -14,22 +14,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'A'.
         /// </summary>
-        public readonly int Major { get; }
+        public int Major { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'B'.
         /// </summary>
-        public readonly int Minor { get; }
+        public int Minor { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'C'.
         /// </summary>
-        public readonly int Revision { get; }
+        public int Revision { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'D'.
         /// </summary>
-        public readonly int Patch { get; }
+        public int Patch { get; }
 
         public VersionInfo(int major, int minor, int revision, int patch)
         {

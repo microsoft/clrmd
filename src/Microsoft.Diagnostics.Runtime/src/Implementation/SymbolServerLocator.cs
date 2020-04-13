@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
-        private struct SymbolPathEntry
+        private readonly struct SymbolPathEntry
         {
             public string? Cache { get; }
             public string Location { get; }

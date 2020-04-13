@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public struct GCDesc
+    public readonly struct GCDesc
     {
         private static readonly int s_GCDescSize = IntPtr.Size * 2;
 

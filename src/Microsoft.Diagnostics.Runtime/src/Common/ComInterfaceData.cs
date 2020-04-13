@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// The COM implementation details of a single CCW entry.
     /// </summary>
-    public struct ComInterfaceData
+    public readonly struct ComInterfaceData
     {
         /// <summary>
         /// Gets the CLR type this represents.

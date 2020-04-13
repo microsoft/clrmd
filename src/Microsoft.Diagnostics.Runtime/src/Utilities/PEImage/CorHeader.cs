@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class CorHeader
     {
-        private IMAGE_COR20_HEADER _header;
+        private readonly IMAGE_COR20_HEADER _header;
 
         internal CorHeader(ref IMAGE_COR20_HEADER header)
         {

@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Create this using <see cref="ClrObject.AsException"/>. You may call that when <see cref="ClrObject.IsException"/>
     /// is <see langword="true"/>.
     /// </summary>
-    public struct ClrException
+    public readonly struct ClrException
     {
         private readonly IExceptionHelpers _helpers;
         private readonly ClrObject _object;

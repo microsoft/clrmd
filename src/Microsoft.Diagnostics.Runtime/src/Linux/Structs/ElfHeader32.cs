@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct ElfHeader32 : IElfHeader
+    internal readonly struct ElfHeader32 : IElfHeader
     {
         private readonly ElfHeaderCommon _common;
 

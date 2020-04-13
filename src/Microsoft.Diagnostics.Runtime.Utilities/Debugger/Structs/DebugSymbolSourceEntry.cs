@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Interop
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct DEBUG_SYMBOL_SOURCE_ENTRY
+    public readonly struct DEBUG_SYMBOL_SOURCE_ENTRY
     {
         private readonly ulong _moduleBase;
         private readonly ulong _offset;

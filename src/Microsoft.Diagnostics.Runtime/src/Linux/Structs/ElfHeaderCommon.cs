@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct ElfHeaderCommon
+    internal readonly struct ElfHeaderCommon
     {
         private const int EI_NIDENT = 16;
 

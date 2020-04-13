@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
-    public struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
+    public readonly struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
         private const string RuntimeType = "System.RuntimeType";
 

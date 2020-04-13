@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
             public readonly SampleStruct[] StructArray = new SampleStruct[] { new SampleStruct(5, "Five"), new SampleStruct(10, "Ten") };
         }
 
-        public struct SampleStruct
+        public readonly struct SampleStruct
         {
             public readonly int Number;
             public readonly string ReferenceLoad;
