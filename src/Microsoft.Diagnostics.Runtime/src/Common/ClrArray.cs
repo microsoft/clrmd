@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public int Rank
+        public readonly int Rank
         {
             get
             {
@@ -50,9 +50,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private bool IsMultiDimensional => Type.StaticSize > (uint)(3 * IntPtr.Size);
+        private readonly bool IsMultiDimensional => Type.StaticSize > (uint)(3 * IntPtr.Size);
 
-        private int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
+        private readonly int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
 
         public ClrArray(ulong address, ClrType type)
         {
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">The <see cref="ClrArray"/> to compare to this instance.</param>
         /// <returns><see langword="true"/> if the <see cref="Address"/> of the parameter is the same as <see cref="Address"/> in this instance; <see langword="false"/> otherwise.</returns>
-        public override bool Equals(object? obj) => obj switch
+        public override readonly bool Equals(object? obj) => obj switch
         {
             null => false,
             ulong address => Address == address,
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="other">The <see cref="ClrArray"/> to compare to this instance.</param>
         /// <returns><see langword="true"/> if the <see cref="Address"/> of the parameter is the same as <see cref="Address"/> in this instance; <see langword="false"/> otherwise.</returns>
-        public bool Equals(ClrArray other) => Address == other.Address;
+        public readonly bool Equals(ClrArray other) => Address == other.Address;
 
         /// <summary>
         /// Determines whether this instance and a specified object.
@@ -109,13 +109,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <see langword="true"/> if <paramref name="other"/> is <see cref="ClrObject"/>, and its <see cref="Address"/> is the same as <see cref="Address"/> in this instance; <see langword="false"/>
         /// otherwise.
         /// </returns>
-        public bool Equals(ClrObject other) => Address == other.Address;
+        public readonly bool Equals(ClrObject other) => Address == other.Address;
 
         /// <summary>
         /// Returns the hash code for this <see cref="ClrArray"/>.
         /// </summary>
         /// <returns>An <see cref="int"/> hash code for this instance.</returns>
-        public override int GetHashCode() => Address.GetHashCode();
+        public override readonly int GetHashCode() => Address.GetHashCode();
 
         public int GetLength(int dimension)
         {
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime
             return GetMultiDimensionalBound(dimension);
         }
 
-        public int GetLowerBound(int dimension)
+        public readonly int GetLowerBound(int dimension)
         {
             int rank = MultiDimensionalRank;
             if (rank == 0 && dimension == 0)
@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime
         // [ sync block || Type.MethodTable || Length || GetLength | GetLowerBound || elements ]
         //                 ^
         //                 | Address
-        private int GetMultiDimensionalBound(int offset) =>
+        private readonly int GetMultiDimensionalBound(int offset) =>
             Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
 
         /// <summary>
