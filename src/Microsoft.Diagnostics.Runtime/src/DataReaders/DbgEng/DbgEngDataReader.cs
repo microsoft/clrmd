@@ -366,8 +366,8 @@ namespace Microsoft.Diagnostics.Runtime
             int count = Interlocked.Decrement(ref s_totalInstanceCount);
             if (count == 0 && s_needRelease && disposing)
             {
-                _client.EndSession(DebugEnd.ActiveDetatch);
-                _client.DetatchProcesses();
+                _client.EndSession(DebugEnd.ActiveDetach);
+                _client.DetachProcesses();
             }
 
             // If there are no more debug instances, we can safely reset this variable

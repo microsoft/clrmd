@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong Start { get; }
         ulong End { get; }
         ulong ReservedEnd { get; }
-        ulong CommitedEnd { get; }
+        ulong CommittedEnd { get; }
         ulong Gen0Start { get; }
         ulong Gen0Length { get; }
         ulong Gen1Start { get; }

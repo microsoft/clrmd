@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if this reference came from a dependent handle.
         /// </summary>
-        public bool IsDepenendentHandle => (_offsetOrHandle & DependentFlag) == DependentFlag;
+        public bool IsDependentHandle => (_offsetOrHandle & DependentFlag) == DependentFlag;
 
         /// <summary>
         /// Returns true if this reference came from a field in another object.
