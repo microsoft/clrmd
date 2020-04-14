@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// on Command itself), because it is reasonably common to want to have a set
     /// of options passed to several commands, which is not easily possible otherwise.
     /// </summary>
-    public sealed class CommandOptions
+    internal sealed class CommandOptions
     {
         internal bool noThrow;
         internal bool useShellExecute;

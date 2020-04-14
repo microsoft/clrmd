@@ -31,6 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot"));
         private static readonly Lazy<TestTarget> _gcroot2 = new Lazy<TestTarget>(() => new TestTarget("GCRoot2"));
         private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException"));
+        private static readonly Lazy<TestTarget> _nestedTypes = new Lazy<TestTarget>(() => new TestTarget("NestedTypes"));
         private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles"));
         private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types"));
         private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains"));
@@ -40,6 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
         public static TestTarget NestedException => _nestedException.Value;
+        public static TestTarget NestedTypes => _nestedTypes.Value;
         public static ExceptionTestData NestedExceptionData => new ExceptionTestData();
         public static TestTarget GCHandles => _gcHandles.Value;
         public static TestTarget Types => _types.Value;

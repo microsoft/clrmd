@@ -20,6 +20,45 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
         public static readonly string ModuleName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "types.exe" : "types.dll";
 
+        public static readonly string NestedTypesModuleName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "NestedTypes.exe" : "NestedTypes.dll";
+
+        [Fact]
+        public void TestTypeModifiers()
+        {
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule(NestedTypesModuleName);
+            ClrType program = module.GetTypeByName("Program");
+            Assert.True(program.IsPublic);
+            Assert.False(program.IsAbstract);
+            Assert.False(program.IsSealed);
+
+            ClrType publicClass = module.GetTypeByName("Program+PublicClass");
+            Assert.True(publicClass.IsPublic);
+
+            ClrType privateClass = module.GetTypeByName("Program+PrivateClass");
+            Assert.True(privateClass.IsPrivate);
+
+            ClrType internalClass = module.GetTypeByName("Program+InternalClass");
+            Assert.True(internalClass.IsInternal);
+
+            ClrType protectedClass = module.GetTypeByName("Program+ProtectedClass");
+            Assert.True(protectedClass.IsProtected);
+
+            ClrType abstractClass = module.GetTypeByName("Program+AbstractClass");
+            Assert.True(abstractClass.IsAbstract);
+            Assert.False(abstractClass.IsSealed);
+
+            ClrType sealedClass = module.GetTypeByName("Program+SealedClass");
+            Assert.True(sealedClass.IsSealed);
+            Assert.False(sealedClass.IsAbstract);
+
+            ClrType staticClass = module.GetTypeByName("Program+StaticClass");
+            Assert.True(staticClass.IsAbstract);
+            Assert.True(staticClass.IsSealed);
+        }
+
         [Fact]
         public void IntegerObjectClrType()
         {
