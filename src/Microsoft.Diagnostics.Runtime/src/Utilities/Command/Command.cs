@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -141,39 +142,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (options.environmentVariables != null)
             {
                 // copy over the environment variables to the process startInfo options.
-                foreach (string key in options.environmentVariables.Keys)
+                foreach (KeyValuePair<string, string> pair in options.environmentVariables)
                 {
                     // look for %VAR% strings in the value and subtitute the appropriate environment variable.
-                    string value = options.environmentVariables[key];
+                    string value = pair.Value;
                     if (value != null)
                     {
-                        int startAt = 0;
-                        for (; ; )
-                        {
-                            m = new Regex(@"%(\w+)%").Match(value, startAt);
-                            if (!m.Success)
-                                break;
-
-                            string varName = m.Groups[1].Value;
-                            string varValue;
-                            if (startInfo.EnvironmentVariables.ContainsKey(varName))
-                            {
-                                varValue = startInfo.EnvironmentVariables[varName];
-                            }
-                            else
-                            {
-                                varValue = Environment.GetEnvironmentVariable(varName) ?? string.Empty;
-                            }
-
-                            // replace this instance of the variable with its definition.
-                            int varStart = m.Groups[1].Index - 1; // -1 becasue % chars are not in the group
-                            int varEnd = varStart + m.Groups[1].Length + 2; // +2 because % chars are not in the group
-                            value = value.Substring(0, varStart) + varValue + value.Substring(varEnd);
-                            startAt = varStart + varValue.Length;
-                        }
+                        value = Environment.ExpandEnvironmentVariables(value);
                     }
 
-                    startInfo.EnvironmentVariables[key] = value;
+                    startInfo.EnvironmentVariables[pair.Key] = value;
                 }
             }
 

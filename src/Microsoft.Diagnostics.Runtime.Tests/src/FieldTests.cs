@@ -11,6 +11,50 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class FieldTests
     {
         [Fact]
+        public void TestInstanceFieldModifiers()
+        {
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
+            ClrType program = module.GetTypeByName("Program");
+
+            ClrField publicField = program.GetFieldByName("publicField");
+            Assert.True(publicField.IsPublic);
+
+            ClrField privateField = program.GetFieldByName("privateField");
+            Assert.True(privateField.IsPrivate);
+
+            ClrField internalField = program.GetFieldByName("internalField");
+            Assert.True(internalField.IsInternal);
+
+            ClrField protectedField = program.GetFieldByName("protectedField");
+            Assert.True(protectedField.IsProtected);
+        }
+
+        [Fact]
+        public void TestStaticFieldModifiers()
+        {
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
+            ClrType program = module.GetTypeByName("Program");
+
+            ClrStaticField publicField = program.GetStaticFieldByName("s_publicField");
+            Assert.True(publicField.IsPublic);
+
+            ClrStaticField privateField = program.GetStaticFieldByName("s_privateField");
+            Assert.True(privateField.IsPrivate);
+
+            ClrStaticField internalField = program.GetStaticFieldByName("s_internalField");
+            Assert.True(internalField.IsInternal);
+
+            ClrStaticField protectedField = program.GetStaticFieldByName("s_protectedField");
+            Assert.True(protectedField.IsProtected);
+        }
+
+        [Fact]
         public void InstanceFieldProperties()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
