@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     while (bytes[end] != 0)
                         end++;
 
-                    string path = Encoding.ASCII.GetString(bytes, start, end - start);
+                    string path = Encoding.UTF8.GetString(bytes, start, end - start);
                     start = end + 1;
 
                     if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
