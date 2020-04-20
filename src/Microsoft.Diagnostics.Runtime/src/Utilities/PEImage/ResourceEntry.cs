@@ -69,11 +69,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>The child in question, or <see langword="null"/> if none are found with that name.</returns>
         public ResourceEntry this[string name] => Children.SingleOrDefault(c => c.Name == name);
 
-        /// <summary>
-        /// Gets the children resources of this ResourceEntry.
-        /// </summary>
-        public ImmutableArray<ResourceEntry> Children => GetChildren();
-
         internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {
             Image = image;
@@ -114,36 +109,53 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return read == size ? output : default;
         }
 
-        private ImmutableArray<ResourceEntry> GetChildren()
+
+        /// <summary>
+        /// Gets the children resources of this ResourceEntry.
+        /// </summary>
+        public ImmutableArray<ResourceEntry> Children
         {
-            if (!_children.IsDefault)
-                return _children;
-
-            if (IsLeaf)
-                return _children = ImmutableArray<ResourceEntry>.Empty;
-
-            ResourceEntry root = Image.Resources;
-            int resourceStartFileOffset = root._offset;
-            int offset = _offset;
-            IMAGE_RESOURCE_DIRECTORY hdr = Image.Read<IMAGE_RESOURCE_DIRECTORY>(ref offset);
-
-            int count = hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
-            ImmutableArray<ResourceEntry>.Builder result = ImmutableArray.CreateBuilder<ResourceEntry>(count);
-            result.Count = result.Capacity;
-
-            for (int i = 0; i < count; i++)
+            get
             {
-                IMAGE_RESOURCE_DIRECTORY_ENTRY entry = Image.Read<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset);
-                string name;
-                if (this == root)
-                    name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
-                else
-                    name = GetName(ref entry, resourceStartFileOffset);
+                if (!_children.IsDefault)
+                    return _children;
 
-                result[i] = new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset);
+                if (IsLeaf)
+                    return _children = ImmutableArray<ResourceEntry>.Empty;
+
+                try
+                {
+                    ResourceEntry root = Image.Resources;
+                    int resourceStartFileOffset = root._offset;
+                    int offset = _offset;
+                    IMAGE_RESOURCE_DIRECTORY hdr = Image.Read<IMAGE_RESOURCE_DIRECTORY>(ref offset);
+
+                    int count = hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
+                    ImmutableArray<ResourceEntry>.Builder result = ImmutableArray.CreateBuilder<ResourceEntry>(count);
+                    result.Count = result.Capacity;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        IMAGE_RESOURCE_DIRECTORY_ENTRY entry = Image.Read<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset);
+                        string name;
+                        if (this == root)
+                            name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
+                        else
+                            name = GetName(ref entry, resourceStartFileOffset);
+
+                        result[i] = new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset);
+                    }
+
+                    return _children = result.MoveToImmutable();
+                }
+                catch
+                {
+                    // If there's a bad image we could hit a variety of different failures here, including out of memory or
+                    // under/overflow issues.  We'll just not return anything if we hit an error here since a bad image
+                    // could lead to really unpredictable behavior if we are interpreting random bits of data.
+                    return _children = ImmutableArray<ResourceEntry>.Empty;
+                }
             }
-
-            return _children = result.MoveToImmutable();
         }
 
         private string GetName(ref IMAGE_RESOURCE_DIRECTORY_ENTRY entry, int resourceStartFileOffset)
