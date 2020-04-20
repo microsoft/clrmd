@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public readonly uint HasNativeCode;
         public readonly uint IsDynamic;
-        public readonly short SlotNumber;
+        public readonly ushort SlotNumber;
         public readonly ClrDataAddress NativeCodeAddr;
 
         // Useful for breaking when a method is jitted.

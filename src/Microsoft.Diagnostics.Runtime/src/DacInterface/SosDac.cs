@@ -117,14 +117,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public ulong GetMethodTableSlot(ulong mt, int slot)
+        public ulong GetMethodTableSlot(ulong mt, uint slot)
         {
             if (mt == 0)
                 return 0;
 
             InitDelegate(ref _getMethodTableSlot, VTable.GetMethodTableSlot);
 
-            if (_getMethodTableSlot(Self, mt, (uint)slot, out ClrDataAddress ip))
+            if (_getMethodTableSlot(Self, mt, slot, out ClrDataAddress ip))
                 return ip;
 
             return 0;
@@ -600,7 +600,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _traverseModuleMap, VTable.TraverseModuleMap);
 
-            HResult hr = _traverseModuleMap(Self, (int)mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
+            HResult hr = _traverseModuleMap(Self, mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
             return hr;
         }
@@ -760,7 +760,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate HResult DacGetThreadLocalModuleData(IntPtr self, ClrDataAddress addr, uint id, out ThreadLocalModuleData data);
         private delegate HResult DacTraverseLoaderHeap(IntPtr self, ClrDataAddress addr, IntPtr callback);
         private delegate HResult DacTraverseStubHeap(IntPtr self, ClrDataAddress addr, int type, IntPtr callback);
-        private delegate HResult DacTraverseModuleMap(IntPtr self, int type, ClrDataAddress addr, IntPtr callback, IntPtr param);
+        private delegate HResult DacTraverseModuleMap(IntPtr self, ModuleMapTraverseKind type, ClrDataAddress addr, IntPtr callback, IntPtr param);
         private delegate HResult DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[]? jitManagers, out int pNeeded);
         private delegate HResult GetModuleDelegate(IntPtr self, ClrDataAddress addr, out IntPtr iunk);
     }
