@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private CodeHeaderData _codeHeaderData;
         private IMethodHelpers? _helpers;
 
-        public bool Init(SOSDac sos, ulong mt, int i, IMethodHelpers helpers)
+        public bool Init(SOSDac sos, ulong mt, uint i, IMethodHelpers helpers)
         {
             ulong slot = sos.GetMethodTableSlot(mt, i);
 

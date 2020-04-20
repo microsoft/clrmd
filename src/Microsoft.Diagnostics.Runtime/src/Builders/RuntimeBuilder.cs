@@ -935,7 +935,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             result.Count = result.Capacity;
 
             int curr = 0;
-            for (int i = 0; i < data.NumMethods; i++)
+            for (uint i = 0; i < data.NumMethods; i++)
             {
                 if (builder.Init(_sos, mt, i, this))
                     result[curr++] = new ClrmdMethod(type, builder);
