@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
         /// </summary>
         /// <returns>An enumeration of (ulong methodTable, uint typeDef).</returns>
-        public abstract IEnumerable<(ulong, int)> EnumerateTypeDefToMethodTableMap();
+        public abstract IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap();
 
         /// <summary>
         /// Resolves the give metdata token for this module.

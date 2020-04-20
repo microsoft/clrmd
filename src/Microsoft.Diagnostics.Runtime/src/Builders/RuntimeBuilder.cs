@@ -497,7 +497,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return EnumerateHandleTable(runtime, handles);
         }
 
-        IEnumerable<(ulong, ulong)> IHeapHelpers.EnumerateDependentHandleLinks()
+        IEnumerable<(ulong Source, ulong Target)> IHeapHelpers.EnumerateDependentHandleLinks()
         {
             CheckDisposed();
 
@@ -705,14 +705,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         // construct the type.  This will alleviate a lot of needless memory usage when we do something like
         // search all modules for a named type we never find.
         string? IModuleHelpers.GetTypeName(ulong mt) => FixGenerics(_sos.GetMethodTableName(mt));
-        IReadOnlyList<(ulong, int)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
-        IReadOnlyList<(ulong, int)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
+        IReadOnlyList<(ulong MethodTable, int Token)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
+        IReadOnlyList<(ulong MethodTable, int Token)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
-        private IReadOnlyList<(ulong, int)> GetSortedMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
+        private IReadOnlyList<(ulong MethodTable, int Token)> GetSortedMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
         {
             CheckDisposed();
 
-            List<(ulong, int)> result = new List<(ulong, int)>();
+            List<(ulong MethodTable, int Token)> result = new List<(ulong MethodTable, int Token)>();
             uint lastToken = 0;
             bool sorted = true;
             _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
@@ -723,7 +723,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             });
 
             if (!sorted)
-                result.Sort((x, y) => x.Item2.CompareTo(y.Item2));
+                result.Sort((x, y) => x.Token.CompareTo(y.Token));
 
             return result;
         }

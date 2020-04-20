@@ -274,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return result;
 
                 int count = (int)debugData.Size / sizeof(IMAGE_DEBUG_DIRECTORY);
-                List<Tuple<int, int>> entries = new List<Tuple<int, int>>(count);
+                List<(int Pointer, int Size)> entries = new List<(int Pointer, int Size)>(count);
 
                 SeekTo(offset);
                 for (int i = 0; i < count; i++)
@@ -282,15 +282,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (TryRead(out IMAGE_DEBUG_DIRECTORY directory))
                     {
                         if (directory.Type == IMAGE_DEBUG_TYPE.CODEVIEW && directory.SizeOfData >= sizeof(CV_INFO_PDB70))
-                            entries.Add(Tuple.Create(_virt ? directory.AddressOfRawData : directory.PointerToRawData, directory.SizeOfData));
+                            entries.Add((_virt ? directory.AddressOfRawData : directory.PointerToRawData, directory.SizeOfData));
                     }
                 }
 
-                foreach (Tuple<int, int> tmp in entries.OrderBy(e => e.Item1))
+                foreach ((int ptr, int size) in entries.OrderBy(e => e.Pointer))
                 {
-                    int ptr = tmp.Item1;
-                    int size = tmp.Item2;
-
                     if (TryRead(ptr, out int cvSig) && cvSig == CV_INFO_PDB70.PDB70CvSignature)
                     {
                         Guid guid = Read<Guid>();

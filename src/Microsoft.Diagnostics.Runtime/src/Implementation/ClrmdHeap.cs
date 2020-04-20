@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private volatile IReadOnlyList<ClrSegment>? _segments;
 
         private int _lastSegmentIndex;
-        private volatile (ulong, ulong)[]? _dependentHandles;
+        private volatile (ulong Source, ulong Target)[]? _dependentHandles;
 
         [ThreadStatic]
         private static HeapWalkStep[]? _steps;
@@ -349,22 +349,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (dependent is null)
                 {
                     dependent = _helpers.EnumerateDependentHandleLinks().ToArray();
-                    Array.Sort(dependent, (x, y) => x.Item1.CompareTo(y.Item1));
+                    Array.Sort(dependent, (x, y) => x.Source.CompareTo(y.Source));
 
                     _dependentHandles = dependent;
                 }
 
                 if (dependent.Length > 0)
                 {
-                    int index = dependent.Search(obj, (x, y) => x.Item1.CompareTo(y));
+                    int index = dependent.Search(obj, (x, y) => x.Source.CompareTo(y));
                     if (index != -1)
                     {
-                        while (index >= 1 && dependent[index - 1].Item1 == obj)
+                        while (index >= 1 && dependent[index - 1].Source == obj)
                             index--;
 
-                        while (index < dependent.Length && dependent[index].Item1 == obj)
+                        while (index < dependent.Length && dependent[index].Source == obj)
                         {
-                            ulong dependantObj = dependent[index++].Item2;
+                            ulong dependantObj = dependent[index++].Target;
                             yield return new ClrObject(dependantObj, GetObjectType(dependantObj));
                         }
                     }
@@ -408,22 +408,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (dependent is null)
                 {
                     dependent = _helpers.EnumerateDependentHandleLinks().ToArray();
-                    Array.Sort(dependent, (x, y) => x.Item1.CompareTo(y.Item1));
+                    Array.Sort(dependent, (x, y) => x.Source.CompareTo(y.Source));
 
                     _dependentHandles = dependent;
                 }
 
                 if (dependent.Length > 0)
                 {
-                    int index = dependent.Search(obj, (x, y) => x.Item1.CompareTo(y));
+                    int index = dependent.Search(obj, (x, y) => x.Source.CompareTo(y));
                     if (index != -1)
                     {
-                        while (index >= 1 && dependent[index - 1].Item1 == obj)
+                        while (index >= 1 && dependent[index - 1].Source == obj)
                             index--;
 
-                        while (index < dependent.Length && dependent[index].Item1 == obj)
+                        while (index < dependent.Length && dependent[index].Source == obj)
                         {
-                            ulong dependantObj = dependent[index++].Item2;
+                            ulong dependantObj = dependent[index++].Target;
                             ClrObject target = new ClrObject(dependantObj, GetObjectType(dependantObj));
                             yield return ClrReference.CreateFromDependentHandle(target);
                         }

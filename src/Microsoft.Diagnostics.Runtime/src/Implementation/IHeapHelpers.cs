@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }
 
-        IEnumerable<(ulong, ulong)> EnumerateDependentHandleLinks();
+        IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandleLinks();
         bool CreateSegments(
             ClrHeap clrHeap,
             out IReadOnlyList<ClrSegment> segemnts,
