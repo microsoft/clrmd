@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
-        private IReadOnlyList<(ulong MethodTable, int Token)>? _typeDefMap;
-        private IReadOnlyList<(ulong MethodTable, int Token)>? _typeRefMap;
+        private (ulong MethodTable, int Token)[]? _typeDefMap;
+        private (ulong MethodTable, int Token)[]? _typeRefMap;
 
         public override ClrAppDomain AppDomain { get; }
         public override string? Name { get; }
@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (heap is null)
                 return null;
 
-            IReadOnlyList<(ulong MethodTable, int Token)> map;
+            (ulong MethodTable, int Token)[] map;
             if ((typeDefOrRefToken & 0x02000000) != 0)
                 map = _typeDefMap ??= _helpers.GetSortedTypeDefMap(this);
             else if ((typeDefOrRefToken & 0x01000000) != 0)
