@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 #pragma warning disable CA1721 // Property names should not match get methods
@@ -18,13 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private readonly object _sync = new object();
 
-        private volatile IReadOnlyList<FinalizerQueueSegment>? _fqRoots;
-        private volatile IReadOnlyList<FinalizerQueueSegment>? _fqObjects;
-        private volatile Dictionary<ulong, ulong>? _allocationContext;
-        private volatile IReadOnlyList<ClrSegment>? _segments;
-
-        private int _lastSegmentIndex;
-        private volatile (ulong Source, ulong Target)[]? _dependentHandles;
+        private volatile VolatileHeapData? _volatileHeapData;
 
         [ThreadStatic]
         private static HeapWalkStep[]? _steps;
@@ -58,83 +53,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool CanWalkHeap { get; }
 
 
-        private Dictionary<ulong, ulong> AllocationContext
-        {
-            get
-            {
-                // We never set _allocationContext to null after its been assigned.  This will
-                // always return the latest, non-null value even if we race against another thread
-                // setting it.
+        private Dictionary<ulong, ulong> AllocationContext => GetHeapData().AllocationContext;
 
-                if (_allocationContext != null)
-                    return _allocationContext;
+        private ImmutableArray<FinalizerQueueSegment> FQRoots => GetHeapData().FQRoots;
 
-                lock (_sync)
-                {
-                    if (_allocationContext == null)
-                        Initialize();
+        private ImmutableArray<FinalizerQueueSegment> FQObjects => GetHeapData().FQObjects;
 
-                    return _allocationContext!;
-                }
-            }
-        }
-
-        private IReadOnlyList<FinalizerQueueSegment> FQRoots
-        {
-            get
-            {
-                var roots = _fqRoots;
-                if (roots != null)
-                    return roots;
-
-                lock (_sync)
-                {
-                    if (_fqRoots != null)
-                        return _fqRoots;
-
-                    Initialize();
-                    return _fqRoots!;
-                }
-            }
-        }
-
-        private IReadOnlyList<FinalizerQueueSegment> FQObjects
-        {
-            get
-            {
-                var objs = _fqObjects;
-                if (objs != null)
-                    return objs;
-
-                lock (_sync)
-                {
-                    if (_fqObjects != null)
-                        return _fqObjects;
-
-                    Initialize();
-                    return _fqObjects!;
-                }
-            }
-        }
-
-        public override IReadOnlyList<ClrSegment> Segments
-        {
-            get
-            {
-                IReadOnlyList<ClrSegment>? segments = _segments;
-                if (segments != null)
-                    return segments;
-
-                lock (_sync)
-                {
-                    segments = _segments;
-                    if (segments == null)
-                        segments = Initialize();
-
-                    return segments;
-                }
-            }
-        }
+        public override ImmutableArray<ClrSegment> Segments => GetHeapData().Segments;
 
         public override int LogicalHeapCount { get; }
 
@@ -167,37 +92,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
         }
 
-        private IReadOnlyList<ClrSegment> Initialize()
+        private VolatileHeapData GetHeapData()
         {
+            VolatileHeapData? data = _volatileHeapData;
+            if (data != null)
+                return data;
+
             lock (_sync)
             {
-                _helpers.CreateSegments(this,
-                                        out IReadOnlyList<ClrSegment> segments,
-                                        out IReadOnlyList<AllocationContext> allocContext,
-                                        out IReadOnlyList<FinalizerQueueSegment> fqRoots,
-                                        out IReadOnlyList<FinalizerQueueSegment> fqObjects);
+                data = _volatileHeapData;
+                if (data != null)
+                    return data;
 
-                // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
-                if (segments.Count > 0 && segments[0].Start > segments[segments.Count - 1].Start)
-                    throw new InvalidOperationException("IHeapData returned segments out of order.");
-
-                _fqRoots = fqRoots;
-                _fqObjects = fqObjects;
-                _segments = segments;
-                _allocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
-                return segments;
+                data = new VolatileHeapData(this, _helpers);
+                _volatileHeapData = data;
+                return data;
             }
         }
 
         public void ClearCachedData()
         {
-            lock (_sync)
-            {
-                _segments = null;
-                _fqRoots = null;
-                _fqObjects = null;
-                _dependentHandles = null;
-            }
+            _volatileHeapData = null;
         }
 
         public ulong SkipAllocationContext(ClrSegment seg, ulong obj, ulong mt, Action<ulong, ulong, int, int, uint>? callback)
@@ -275,16 +190,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrSegment? GetSegmentByAddress(ulong objRef)
         {
-            if (Segments is null || Segments.Count == 0)
+            VolatileHeapData data = GetHeapData();
+            ImmutableArray<ClrSegment> segments = data.Segments;
+            if (segments.Length == 0)
                 return null;
 
-            if (Segments[0].FirstObjectAddress <= objRef && objRef < Segments[Segments.Count - 1].End)
+            if (segments[0].FirstObjectAddress <= objRef && objRef < segments[segments.Length - 1].End)
             {
                 // Start the segment search where you where last
-                int curIdx = _lastSegmentIndex;
+                int prevIndex = data.LastSegmentIndex;
+                int curIdx = prevIndex;
                 for (; ; )
                 {
-                    ClrSegment segment = Segments[curIdx];
+                    ClrSegment segment = segments[curIdx];
                     unchecked
                     {
                         long offsetInSegment = (long)(objRef - segment.Start);
@@ -293,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             long intOffsetInSegment = offsetInSegment;
                             if (intOffsetInSegment < (long)segment.Length)
                             {
-                                _lastSegmentIndex = curIdx;
+                                data.LastSegmentIndex = curIdx;
                                 return segment;
                             }
                         }
@@ -301,9 +219,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     // Get the next segment loop until you come back to where you started.
                     curIdx++;
-                    if (curIdx >= Segments.Count)
+                    if (curIdx >= segments.Length)
                         curIdx = 0;
-                    if (curIdx == _lastSegmentIndex)
+                    if (curIdx == prevIndex)
                         break;
                 }
             }
@@ -345,14 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (considerDependantHandles)
             {
-                var dependent = _dependentHandles;
-                if (dependent is null)
-                {
-                    dependent = _helpers.EnumerateDependentHandleLinks().ToArray();
-                    Array.Sort(dependent, (x, y) => x.Source.CompareTo(y.Source));
-
-                    _dependentHandles = dependent;
-                }
+                ImmutableArray<(ulong Source, ulong Target)> dependent = GetHeapData().GetDependentHandles(_helpers);
 
                 if (dependent.Length > 0)
                 {
@@ -404,14 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (considerDependantHandles)
             {
-                var dependent = _dependentHandles;
-                if (dependent is null)
-                {
-                    dependent = _helpers.EnumerateDependentHandleLinks().ToArray();
-                    Array.Sort(dependent, (x, y) => x.Source.CompareTo(y.Source));
-
-                    _dependentHandles = dependent;
-                }
+                ImmutableArray<(ulong Source, ulong Target)> dependent = GetHeapData().GetDependentHandles(_helpers);
 
                 if (dependent.Length > 0)
                 {
@@ -505,6 +409,48 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));
                 }
             }
+        }
+    }
+
+    class VolatileHeapData
+    {
+        private ImmutableArray<(ulong Source, ulong Target)>? _dependentHandles;
+
+        public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }
+        public ImmutableArray<FinalizerQueueSegment> FQObjects { get; }
+        public Dictionary<ulong, ulong> AllocationContext { get; }
+
+        public ImmutableArray<ClrSegment> Segments { get; }
+
+        public int LastSegmentIndex { get; set; }
+
+        public VolatileHeapData(ClrHeap parent, IHeapHelpers _helpers)
+        {
+            _helpers.CreateSegments(parent,
+                                    out ImmutableArray<ClrSegment> segments,
+                                    out ImmutableArray<AllocationContext> allocContext,
+                                    out ImmutableArray<FinalizerQueueSegment> fqRoots,
+                                    out ImmutableArray<FinalizerQueueSegment> fqObjects);
+
+            // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
+            if (segments.Length > 0 && segments[0].Start > segments[segments.Length - 1].Start)
+                Segments = segments.Sort((x, y) => x.Start.CompareTo(y.Start));
+            else
+                Segments = segments;
+
+            FQRoots = fqRoots;
+            FQObjects = fqObjects;
+            AllocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
+        }
+
+        public ImmutableArray<(ulong Source, ulong Target)> GetDependentHandles(IHeapHelpers helpers)
+        {
+            if (_dependentHandles.HasValue)
+                return _dependentHandles.Value;
+
+            var dependentHandles = helpers.EnumerateDependentHandleLinks().OrderBy(x => x.Source).ToImmutableArray();
+            _dependentHandles = dependentHandles;
+            return dependentHandles;
         }
     }
 }

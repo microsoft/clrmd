@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -12,11 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
 
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandleLinks();
-        bool CreateSegments(
-            ClrHeap clrHeap,
-            out IReadOnlyList<ClrSegment> segemnts,
-            out IReadOnlyList<AllocationContext> allocationContexts,
-            out IReadOnlyList<FinalizerQueueSegment> fqRoots,
-            out IReadOnlyList<FinalizerQueueSegment> fqObjects);
+        bool CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segemnts, out ImmutableArray<AllocationContext> allocationContexts,
+                            out ImmutableArray<FinalizerQueueSegment> fqRoots, out ImmutableArray<FinalizerQueueSegment> fqObjects);
     }
 }
