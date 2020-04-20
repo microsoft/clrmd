@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _modules = new List<CoreModuleInfo>();
                 foreach (ElfLoadedImage image in _core.LoadedImages)
                 {
-                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev"))
+                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev/"))
                     {
                         _modules.Add(new CoreModuleInfo(this, image));
                     }

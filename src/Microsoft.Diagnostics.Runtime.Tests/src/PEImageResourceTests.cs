@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(fileVersion.FileVersion);
 
             ClrInfo clrInfo = dt.ClrVersions[0];
-            Assert.True(clrInfo.Version.ToString() == fileVersion.VersionInfo.ToString());
+            Assert.Equal(clrInfo.Version, fileVersion.VersionInfo);
         }
 
         [Fact]
