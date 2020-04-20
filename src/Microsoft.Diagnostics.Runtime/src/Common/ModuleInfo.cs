@@ -104,9 +104,9 @@ namespace Microsoft.Diagnostics.Runtime
             
             try
             {
-                using (ReadVirtualStream stream = new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize))
+                PEImage image = GetPEImage();
+                if (image != null && image.IsValid)
                 {
-                    PEImage image = new PEImage(stream, isVirtual: true);
                     _managed = image.OptionalHeader.ComDescriptorDirectory.VirtualAddress != 0;
                     _pdb = image.DefaultPdb;
                 }
@@ -114,6 +114,11 @@ namespace Microsoft.Diagnostics.Runtime
             catch
             {
             }
+        }
+
+        protected virtual void InitVersion(out VersionInfo version)
+        {
+            _dataReader.GetVersionInfo(ImageBase, out version);
         }
 
         /// <summary>
@@ -126,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_versionInit || _dataReader == null)
                     return _version;
 
-                _dataReader.GetVersionInfo(ImageBase, out _version);
+                InitVersion(out _version);
                 _versionInit = true;
                 return _version;
             }
@@ -162,9 +167,9 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         [NonSerialized]
-        private readonly IDataReader _dataReader;
+        protected readonly IDataReader _dataReader;
         private PdbInfo _pdb;
-        private bool _initialized;
+        protected bool _initialized;
         private bool _managed;
         private VersionInfo _version;
         private bool _versionInit;

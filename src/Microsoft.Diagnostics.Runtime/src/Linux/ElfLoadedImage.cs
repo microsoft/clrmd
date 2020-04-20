@@ -41,10 +41,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return new ElfFile(header, _vaReader, BaseAddress, true);
         }
 
+        /// <summary>
+        /// NOTE: This function will only work on "file" layout PE's in the core dump. 
+        /// </summary>
         public PEImage OpenAsPEImage()
         {
             Stream stream = new ReaderStream(BaseAddress, _vaReader);
-            return new PEImage(stream, isVirtual: true);
+            return new PEImage(stream, isVirtual: false);
         }
 
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
