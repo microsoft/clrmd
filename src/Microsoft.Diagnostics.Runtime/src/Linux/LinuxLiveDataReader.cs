@@ -403,7 +403,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
 
                 string address, permission, path;
-                string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = line.Split(new char[] { ' ' }, 6, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 5)
                 {
                     path = string.Empty;
