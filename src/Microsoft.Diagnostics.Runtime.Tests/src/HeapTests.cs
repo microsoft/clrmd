@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
 
@@ -146,13 +147,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.False(heap.IsServer);
 
-            Assert.True(heap.Segments.Count > 0);
+            Assert.True(heap.Segments.Length > 0);
 
             CheckSorted(heap.Segments);
             CheckSegments(heap);
         }
 
-        private void CheckSorted(IReadOnlyList<ClrSegment> segments)
+        private void CheckSorted(ImmutableArray<ClrSegment> segments)
         {
             ClrSegment last = null;
             foreach (ClrSegment seg in segments)

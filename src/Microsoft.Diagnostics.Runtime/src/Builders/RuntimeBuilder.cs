@@ -103,17 +103,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        bool IHeapHelpers.CreateSegments(
-            ClrHeap clrHeap,
-            out IReadOnlyList<ClrSegment> segments,
-            out IReadOnlyList<AllocationContext> allocationContexts,
-            out IReadOnlyList<FinalizerQueueSegment> fqRoots,
-            out IReadOnlyList<FinalizerQueueSegment> fqObjects)
+        bool IHeapHelpers.CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segments, out ImmutableArray<AllocationContext> allocationContexts,
+                                         out ImmutableArray<FinalizerQueueSegment> fqRoots, out ImmutableArray<FinalizerQueueSegment> fqObjects)
         {
-            List<ClrSegment> segs = new List<ClrSegment>();
-            List<AllocationContext> allocContexts = new List<AllocationContext>();
-            List<FinalizerQueueSegment> finalizerRoots = new List<FinalizerQueueSegment>();
-            List<FinalizerQueueSegment> finalizerObjects = new List<FinalizerQueueSegment>();
+            var segs = ImmutableArray.CreateBuilder<ClrSegment>();
+            var allocContexts = ImmutableArray.CreateBuilder<AllocationContext>();
+            var finalizerRoots = ImmutableArray.CreateBuilder<FinalizerQueueSegment>();
+            var finalizerObjects = ImmutableArray.CreateBuilder<FinalizerQueueSegment>();
 
             ulong next = _firstThread;
             HashSet<ulong> seen = new HashSet<ulong>() { next };  // Ensure we don't hit an infinite loop
@@ -151,10 +147,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             segs.Sort((x, y) => x.Start.CompareTo(y.Start));
 
-            allocationContexts = allocContexts;
-            fqRoots = finalizerRoots;
-            fqObjects = finalizerObjects;
-            segments = segs;
+            allocationContexts = allocContexts.ToImmutable();
+            fqRoots = finalizerRoots.ToImmutable();
+            fqObjects = finalizerObjects.ToImmutable();
+            segments = segs.ToImmutable();
             return result;
         }
 
@@ -162,10 +158,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             SegmentBuilder segBuilder,
             ClrHeap clrHeap,
             in HeapDetails heap,
-            List<AllocationContext> allocationContexts,
-            List<ClrSegment> segments,
-            List<FinalizerQueueSegment> fqRoots,
-            List<FinalizerQueueSegment> fqObjects)
+            ImmutableArray<AllocationContext>.Builder allocationContexts,
+            ImmutableArray<ClrSegment>.Builder segments,
+            ImmutableArray<FinalizerQueueSegment>.Builder fqRoots,
+            ImmutableArray<FinalizerQueueSegment>.Builder fqObjects)
         {
             if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
                 allocationContexts.Add(new AllocationContext(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
@@ -177,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
         }
 
-        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, List<ClrSegment> segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
@@ -497,7 +493,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return EnumerateHandleTable(runtime, handles);
         }
 
-        IEnumerable<(ulong, ulong)> IHeapHelpers.EnumerateDependentHandleLinks()
+        IEnumerable<(ulong Source, ulong Target)> IHeapHelpers.EnumerateDependentHandleLinks()
         {
             CheckDisposed();
 
@@ -705,14 +701,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         // construct the type.  This will alleviate a lot of needless memory usage when we do something like
         // search all modules for a named type we never find.
         string? IModuleHelpers.GetTypeName(ulong mt) => FixGenerics(_sos.GetMethodTableName(mt));
-        IReadOnlyList<(ulong, int)> IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
-        IReadOnlyList<(ulong, int)> IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
+        (ulong MethodTable, int Token)[] IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
+        (ulong MethodTable, int Token)[] IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
-        private IReadOnlyList<(ulong, int)> GetSortedMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
+        private (ulong MethodTable, int Token)[] GetSortedMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
         {
             CheckDisposed();
 
-            List<(ulong, int)> result = new List<(ulong, int)>();
+            List<(ulong MethodTable, int Token)> result = new List<(ulong MethodTable, int Token)>();
             uint lastToken = 0;
             bool sorted = true;
             _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
@@ -723,9 +719,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             });
 
             if (!sorted)
-                result.Sort((x, y) => x.Item2.CompareTo(y.Item2));
+                result.Sort((x, y) => x.Token.CompareTo(y.Token));
 
-            return result;
+            return result.ToArray();
         }
 
         public ClrRuntime GetOrCreateRuntime() => _runtime;

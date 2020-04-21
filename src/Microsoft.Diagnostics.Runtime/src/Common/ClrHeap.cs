@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 #pragma warning disable CA1721 // Property names should not match get methods
@@ -32,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
         /// of increasing object addresses.
         /// </summary>
-        public abstract IReadOnlyList<ClrSegment> Segments { get; }
+        public abstract ImmutableArray<ClrSegment> Segments { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrType"/> representing free space on the GC heap.
@@ -111,9 +112,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The string representation of this heap.</returns>
         public override string ToString()
         {
-            double sizeMb = Segments.Sum(s => (long)s.Length) / 1000000.0;
-            int segCount = Segments != null ? Segments.Count : 0;
-            return $"ClrHeap {sizeMb}mb {segCount} segments";
+            ImmutableArray<ClrSegment> segments = Segments;
+            double sizeMb = segments.Sum(s => (long)s.Length) / 1000000.0;
+            return $"ClrHeap {sizeMb}mb {segments.Length} segments";
         }
 
         /// <summary>

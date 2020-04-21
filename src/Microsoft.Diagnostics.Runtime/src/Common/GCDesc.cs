@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
             _data = data;
         }
 
-        public IEnumerable<(ulong, int)> WalkObject(ulong addr, ulong size, IMemoryReader reader)
+        public IEnumerable<(ulong ReferencedObject, int Offset)> WalkObject(ulong addr, ulong size, IMemoryReader reader)
         {
             if (reader is null)
                 throw new ArgumentNullException(nameof(reader));
