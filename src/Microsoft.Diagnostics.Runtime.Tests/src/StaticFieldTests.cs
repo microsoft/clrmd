@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class StaticFieldTests
     {
-        [Fact]
+        [FrameworkFact]
         public void StaticValueAppDomainTests()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
