@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public IEnumerable<string> GetEnumNames() => _values.Select(v => v.Name);
-        public IEnumerable<(string, object?)> EnumerateValues() => _values;
+        public IEnumerable<(string Name, object? Value)> EnumerateValues() => _values;
 
         private (string Name, object? Value)[] EnumerateValues(MetadataImport import, out ClrElementType elementType)
         {
