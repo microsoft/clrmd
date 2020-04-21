@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
             _heap = heap ?? throw new ArgumentNullException(nameof(heap));
             _minObjSize = IntPtr.Size * 3;
 
-            List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Count);
+            List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Length);
             foreach (ClrSegment seg in _heap.Segments)
             {
                 ulong start = seg.Start;
