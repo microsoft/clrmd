@@ -20,6 +20,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public long FileSize { get; }
 
+        public bool IsExecutable => (_attributes & ElfProgramHeaderAttributes.Executable) != 0;
+
         public bool IsWritable => (_attributes & ElfProgramHeaderAttributes.Writable) != 0;
 
         public ElfProgramHeader(Reader reader, bool is64bit, long headerPositon, long fileOffset, bool isVirtual = false)

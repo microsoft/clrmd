@@ -11,11 +11,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
         private readonly long _baseAddress;
+        private readonly long _length;
         private long _position;
 
-        public ReaderStream(long baseAddress, Reader reader)
+        public ReaderStream(long baseAddress, long length, Reader reader)
         {
             _reader = reader;
+            _length = length;
             _baseAddress = baseAddress;
         }
 
@@ -25,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public override bool CanWrite => false;
 
-        public override long Length => 2048;
+        public override long Length => _length;
 
         public override long Position { get => _position; set => _position = value; }
 
