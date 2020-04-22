@@ -221,11 +221,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public FileVersionInfo? GetFileVersionInfo()
         {
             ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
-            if (versionNode is null || versionNode.Children.Length != 1)
+            if (versionNode is null || versionNode.ChildCount != 1)
                 return null;
 
             versionNode = versionNode.Children[0];
-            if (!versionNode.IsLeaf && versionNode.Children.Length == 1)
+            if (!versionNode.IsLeaf && versionNode.ChildCount == 1)
                 versionNode = versionNode.Children[0];
 
             int size = versionNode.Size;
@@ -265,6 +265,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return default;
 
             return t;
+        }
+
+        internal unsafe bool TryRead<T>(ref int offset, out T result) where T : unmanaged
+        {
+            int size = Unsafe.SizeOf<T>();
+            T t = default;
+
+            SeekTo(offset);
+            int read = _stream.Read(new Span<byte>(&t, size));
+            offset += read;
+            _offset = offset;
+
+            if (read != size)
+            {
+                result = default;
+                return false;
+            }
+
+            result = t;
+            return true;
         }
 
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
