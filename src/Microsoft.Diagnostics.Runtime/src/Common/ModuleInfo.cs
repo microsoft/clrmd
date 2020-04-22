@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Immutable;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -11,11 +10,16 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Provides information about loaded modules in a <see cref="DataTarget"/>.
     /// </summary>
-    public class ModuleInfo
+    public sealed class ModuleInfo
     {
-        private readonly IDataReader _dataReader;
         private bool? _isManaged;
         private VersionInfo? _version;
+        private readonly bool _isVirtual;
+
+        /// <summary>
+        /// The DataTarget which contains this module.
+        /// </summary>
+        public DataTarget DataTarget { get; internal set; }
 
         /// <summary>
         /// Gets the base address of the object.
@@ -23,14 +27,14 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong ImageBase { get; }
 
         /// <summary>
-        /// Gets the file size of the image.
+        /// Gets the specific file size of the image used to index it on the symbol server.
         /// </summary>
-        public int FileSize { get; }
+        public int IndexFileSize { get; }
 
         /// <summary>
-        /// Gets the build timestamp of the image.
+        /// Gets the timestamp of the image used to index it on the symbol server.
         /// </summary>
-        public int TimeStamp { get; }
+        public int IndexTimeStamp { get; }
 
         /// <summary>
         /// Gets the file name of the module on disk.
@@ -46,11 +50,11 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                PEImage img = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, FileSize), isVirtual: true);
+                PEImage image = new PEImage(new ReadVirtualStream(DataTarget.DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: _isVirtual);
                 if (!_isManaged.HasValue)
-                    _isManaged = img.IsManaged;
+                    _isManaged = image.IsManaged;
 
-                return img;
+                return image.IsValid ? image : null;
             }
             catch
             {
@@ -73,10 +77,10 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_isManaged.HasValue)
                 {
                     // this can assign _isManaged
-                    using PEImage? img = GetPEImage();
+                    using PEImage? image = GetPEImage();
 
                     if (!_isManaged.HasValue)
-                        _isManaged = img?.IsManaged ?? false;
+                        _isManaged = image?.IsManaged ?? false;
                 }
 
                 return _isManaged.Value;
@@ -92,13 +96,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                using PEImage? img = GetPEImage();
-                if (img != null)
+                using PEImage? image = GetPEImage();
+                if (image != null)
                 {
                     if (!_isManaged.HasValue)
-                        _isManaged = img.IsManaged;
+                        _isManaged = image.IsManaged;
 
-                    return img.DefaultPdb;
+                    return image.DefaultPdb;
                 }
 
                 return null;
@@ -112,38 +116,36 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_version is VersionInfo version)
-                {
-                    return version;
-                }
+                if (_version.HasValue)
+                    return _version.Value;
 
-                _dataReader.GetVersionInfo(ImageBase, out version);
+                DataTarget.DataReader.GetVersionInfo(ImageBase, out VersionInfo version);
                 _version = version;
-
                 return version;
             }
         }
+
+
+        // DataTarget is one of the few "internal set" properties, and is initialized as soon as DataTarget asks
+        // IDataReader to create ModuleInfo.  So even though we don't set it here, we will immediately set the
+        // value to non-null and never change it.
+
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
         /// <summary>
         /// Creates a ModuleInfo object with an IDataReader instance.  This is used when
         /// lazily evaluating VersionInfo.
         /// </summary>
-        public ModuleInfo(
-            IDataReader reader,
-            ulong imgBase,
-            int filesize,
-            int timestamp,
-            string? fileName,
-            ImmutableArray<byte> buildId = default,
-            VersionInfo? version = null)
+        public ModuleInfo(ulong imgBase, int filesize, int timestamp, string? fileName, bool isVirtual, ImmutableArray<byte> buildId = default, VersionInfo? version = null)
         {
-            _dataReader = reader ?? throw new ArgumentNullException(nameof(reader));
             ImageBase = imgBase;
-            FileSize = filesize;
-            TimeStamp = timestamp;
+            IndexFileSize = filesize;
+            IndexTimeStamp = timestamp;
             FileName = fileName;
+            _isVirtual = isVirtual;
             BuildId = buildId;
             _version = version;
         }
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
     }
 }

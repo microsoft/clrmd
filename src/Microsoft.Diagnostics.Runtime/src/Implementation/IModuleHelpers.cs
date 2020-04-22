@@ -13,8 +13,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IDataReader DataReader { get; }
 
         MetadataImport? GetMetadataImport(ClrModule module);
-        IReadOnlyList<(ulong, int)> GetSortedTypeDefMap(ClrModule module);
-        IReadOnlyList<(ulong, int)> GetSortedTypeRefMap(ClrModule module);
+        (ulong MethodTable, int Token)[] GetSortedTypeDefMap(ClrModule module);
+        (ulong MethodTable, int Token)[] GetSortedTypeRefMap(ClrModule module);
         ClrType? TryGetType(ulong mt);
         string? GetTypeName(ulong mt);
     }

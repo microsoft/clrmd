@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
                 LinuxFunctions.GetVersionInfo(this, (ulong)image.BaseAddress, file, out version);
             }
 
-            return new ModuleInfo(this, (ulong)image.BaseAddress, filesize, timestamp, image.Path, file?.BuildId ?? default, version);
+            return new ModuleInfo((ulong)image.BaseAddress, filesize, timestamp, image.Path, image._containsExecutable, file?.BuildId ?? default, version);
         }
 
         public void FlushCachedData()

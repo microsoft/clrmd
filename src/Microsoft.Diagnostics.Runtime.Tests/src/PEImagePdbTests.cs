@@ -31,8 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Load Windows' ntdll.dll
             var dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
-            using var winFileStream = new FileStream(dllFileName, FileMode.Open, FileAccess.Read);
-            PEImage img = new PEImage(winFileStream);
+            using PEImage img = new PEImage(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
             Assert.NotNull(img);
 
             PdbInfo imgPdb = img.DefaultPdb;

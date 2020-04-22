@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrType Type { get; }
         public ClrElementType ElementType { get; }
 
-        private readonly (string, object?)[] _values;
+        private readonly (string Name, object? Value)[] _values;
 
         public ClrEnum(ClrType type)
         {
@@ -34,25 +34,25 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                _values = Array.Empty<(string, object?)>();
+                _values = Array.Empty<(string Name, object? Value)>();
             }
         }
 
         public T GetEnumValue<T>(string name) where T : unmanaged
         {
-            object? value = _values.Single(v => v.Item1 == name).Item2;
+            object? value = _values.Single(v => v.Name == name).Value;
             if (value is null)
                 throw new InvalidOperationException($"Enum {Type.Name} had null '{name}' value.");
 
             return (T)value;
         }
 
-        public IEnumerable<string> GetEnumNames() => _values.Select(v => v.Item1);
-        public IEnumerable<(string, object?)> EnumerateValues() => _values;
+        public IEnumerable<string> GetEnumNames() => _values.Select(v => v.Name);
+        public IEnumerable<(string Name, object? Value)> EnumerateValues() => _values;
 
-        private (string, object?)[] EnumerateValues(MetadataImport import, out ClrElementType elementType)
+        private (string Name, object? Value)[] EnumerateValues(MetadataImport import, out ClrElementType elementType)
         {
-            List<(string, object?)> values = new List<(string, object?)>();
+            List<(string Name, object? Value)> values = new List<(string Name, object? Value)>();
             elementType = ClrElementType.Unknown;
 
             foreach (int token in import.EnumerateFields(Type.MetadataToken))

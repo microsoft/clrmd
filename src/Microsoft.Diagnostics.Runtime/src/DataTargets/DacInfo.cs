@@ -7,10 +7,16 @@ using System.Collections.Immutable;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the DAC dll.
+    /// This class provides information needed to located the correct CLR diagnostics DLL (this dll
+    /// is called the Debug Access Component (DAC)).
     /// </summary>
-    public class DacInfo : ModuleInfo
+    public sealed class DacInfo
     {
+        /// <summary>
+        /// Gets the platform specific filename of the DAC dll.
+        /// </summary>
+        public string PlatformSpecificFileName { get; }
+
         /// <summary>
         /// Gets the platform-agnostic file name of the DAC dll.
         /// </summary>
@@ -22,22 +28,39 @@ namespace Microsoft.Diagnostics.Runtime
         public Architecture TargetArchitecture { get; }
 
         /// <summary>
+        /// Gets the specific file size of the image used to index it on the symbol server.
+        /// </summary>
+        public int IndexFileSize { get; }
+
+        /// <summary>
+        /// Gets the timestamp of the image used to index it on the symbol server.
+        /// </summary>
+        public int IndexTimeStamp { get; }
+
+        /// <summary>
+        /// Gets the version information for the CLR this dac matches.  The dac will have the
+        /// same version.
+        /// </summary>
+        public VersionInfo Version { get; }
+
+        /// <summary>
+        /// If CLR has a build id on this platform, this property will contain its build id.
+        /// </summary>
+        public ImmutableArray<byte> ClrBuildId { get; }
+
+        /// <summary>
         /// Constructs a DacInfo object with the appropriate properties initialized.
         /// </summary>
-        public DacInfo(
-            IDataReader reader,
-            string agnosticName,
-            Architecture targetArch,
-            ulong imgBase,
-            int filesize,
-            int timestamp,
-            string fileName,
-            VersionInfo version,
-            ImmutableArray<byte> buildId = default)
-            : base(reader, imgBase, filesize, timestamp, fileName, buildId, version)
+        public DacInfo(string specificName, string agnosticName, Architecture targetArch, int filesize, int timestamp,
+                       VersionInfo version, ImmutableArray<byte> clrBuildId)
         {
+            PlatformSpecificFileName = specificName;
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;
+            IndexFileSize = filesize;
+            IndexTimeStamp = timestamp;
+            Version = version;
+            ClrBuildId = clrBuildId;
         }
     }
 }

@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
-        private IReadOnlyList<(ulong, int)>? _typeDefMap;
-        private IReadOnlyList<(ulong, int)>? _typeRefMap;
+        private (ulong MethodTable, int Token)[]? _typeDefMap;
+        private (ulong MethodTable, int Token)[]? _typeRefMap;
 
         public override ClrAppDomain AppDomain { get; }
         public override string? Name { get; }
@@ -68,8 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (_pdb is null)
                 {
-                    using ReadVirtualStream stream = new ReadVirtualStream(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : 0x1000));
-                    using PEImage pefile = new PEImage(stream, !IsFileLayout);
+                    using ReadVirtualStream stream = new ReadVirtualStream(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : int.MaxValue));
+                    using PEImage pefile = new PEImage(stream, leaveOpen: true, isVirtual: !IsFileLayout);
                     if (pefile.IsValid)
                         _pdb = pefile.DefaultPdb;
                 }
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (int)DebuggableAttribute.DebuggingModes.None;
         }
 
-        public override IEnumerable<(ulong, int)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
+        public override IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
 
         public override ClrType? GetTypeByName(string name)
         {
@@ -124,23 +124,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (name.Length == 0)
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
-            IReadOnlyList<(ulong, int)> typeDefMap = _helpers.GetSortedTypeDefMap(this);
-
-            List<ulong> lookup = new List<ulong>(Math.Min(256, typeDefMap.Count));
-
-            foreach ((ulong mt, int _) in EnumerateTypeDefToMethodTableMap())
+            // First, look for already constructed types and see if their name matches.
+            List<ulong> lookup = new List<ulong>(256);
+            foreach ((ulong mt, _) in EnumerateTypeDefToMethodTableMap())
             {
                 ClrType? type = _helpers.TryGetType(mt);
                 if (type is null)
-                {
                     lookup.Add(mt);
-                }
                 else if (type.Name == name)
-                {
                     return type;
-                }
             }
 
+            // Since we didn't find pre-constructed types matching, look up the names for all
+            // remaining types without constructing them until we find the right one.
             foreach (ulong mt in lookup)
             {
                 string? typeName = _helpers.GetTypeName(mt);
@@ -160,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (heap is null)
                 return null;
 
-            IReadOnlyList<(ulong, int)> map;
+            (ulong MethodTable, int Token)[] map;
             if ((typeDefOrRefToken & 0x02000000) != 0)
                 map = _typeDefMap ??= _helpers.GetSortedTypeDefMap(this);
             else if ((typeDefOrRefToken & 0x01000000) != 0)
@@ -172,9 +168,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (index == -1)
                 return null;
 
-            return _helpers.Factory.GetOrCreateType(map[index].Item1, 0);
+            return _helpers.Factory.GetOrCreateType(map[index].MethodTable, 0);
         }
 
-        private static int CompareTo((ulong, int) entry, int token) => entry.Item2.CompareTo(token);
+        private static int CompareTo((ulong MethodTable, int Token) entry, int token) => entry.Token.CompareTo(token);
     }
 }

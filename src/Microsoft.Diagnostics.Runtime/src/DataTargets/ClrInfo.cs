@@ -86,11 +86,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (dac != null && !File.Exists(dac))
                 dac = null;
 
-            if (DacInfo.FileName != null)
-                dac ??= DataTarget.BinaryLocator.FindBinary(DacInfo.FileName, DacInfo.TimeStamp, DacInfo.FileSize, checkProperties: false);
+            if (DacInfo.PlatformSpecificFileName != null)
+                dac ??= DataTarget.BinaryLocator.FindBinary(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
 
             if (!File.Exists(dac))
-                throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.FileName);
+                throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.PlatformSpecificFileName);
 
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
