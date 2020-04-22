@@ -105,32 +105,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int PointerSize => IntPtr.Size;
 
-        public IEnumerable<ModuleInfo> EnumerateModules()
-        {
-            List<ModuleInfo> result = new List<ModuleInfo>();
+        public IEnumerable<ModuleInfo> EnumerateModules() =>
+            from entry in _memoryMapEntries
+            where !string.IsNullOrEmpty(entry.FilePath)
+            group entry by entry.FilePath into image
+            let filePath = image.Key
+            let containsExecutable = image.Any(entry => entry.IsExecutable)
+            let beginAddress = image.Min(entry => entry.BeginAddress)
+            let props = GetPEImageProperties(filePath)
+            select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: default, version: props.Version);
 
-            var moduleEntries = from entry in _memoryMapEntries
-                                where !string.IsNullOrEmpty(entry.FilePath)
-                                group entry by entry.FilePath into g
-                                select new
-                                {
-                                    FilePath = g.Key,
-                                    IsExecutable = g.Any(f => f.IsExecutable),
-                                    BeginAddress = g.Min(f => f.BeginAddress)
-                                };
-
-
-            foreach (var entry in moduleEntries)
-            {
-                (int filesize, int timestamp, VersionInfo version) = GetPEImageProperties(entry.FilePath);
-                result.Add(new ModuleInfo(entry.BeginAddress, filesize, timestamp, entry.FilePath, entry.IsExecutable, buildId: default, version: version));
-            }
-
-            return result;
-        }
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-        private (int filesize, int timestamp, VersionInfo version) GetPEImageProperties(string filePath)
+        private static (int Filesize, int Timestamp, VersionInfo Version) GetPEImageProperties(string filePath)
         {
             if (File.Exists(filePath))
             {
@@ -147,7 +132,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             return (0, 0, default);
         }
-#pragma warning restore CA2000 // Dispose objects before losing scope
 
         public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
