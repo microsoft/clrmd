@@ -76,6 +76,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public bool IsBoxedValue => Type != null && (Type.IsPrimitive || Type.IsValueType);
 
+        /// <summary>
+        /// Reads a boxed primitive value.
+        /// </summary>
+        /// <typeparam name="T">An unmanaged struct or primitive type to read out of the object.</typeparam>
+        /// <returns>The value read.</returns>
         public T ReadBoxedValue<T>() where T : unmanaged
         {
             IClrObjectHelpers? helpers = Helpers;

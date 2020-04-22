@@ -82,6 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var fds = obj.Type.Fields;
 
+            Assert.True(obj.IsBoxedValue);
             int value = obj.ReadBoxedValue<int>();
             Assert.Equal(42, value);
 
