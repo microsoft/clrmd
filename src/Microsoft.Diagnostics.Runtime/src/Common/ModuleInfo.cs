@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_isManaged.HasValue)
                     _isManaged = image.IsManaged;
 
-                return image;
+                return image.IsValid ? image : null;
             }
             catch
             {
@@ -117,9 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_version.HasValue)
-                {
                     return _version.Value;
-                }
 
                 DataTarget.DataReader.GetVersionInfo(ImageBase, out VersionInfo version);
                 _version = version;
