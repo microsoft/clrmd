@@ -3,9 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -17,6 +19,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private ImmutableArray<ResourceEntry> _children;
         private readonly int _offset;
+
+        /// <summary>
+        /// The maximum number of children nodes that ResourceEntry objects will consider.  Note that if a PEImage is
+        /// corrupted or if we read bad data out of the target then we may misinterpret the data we read and spend
+        /// a lot of time enumerating bad resources.  Setting this to int.MaxValue removes this limitation.
+        /// </summary>
+        public static int MaxChildrenCount { get; set; } = 128;
+
+        /// <summary>
+        /// The maximum length ResourceEntry.Name strings we will return.  Note that if a PEImage is
+        /// corrupted or if we read bad data out of the target then we may misinterpret the data we read and spend
+        /// a lot of time enumerating bad resources.  Setting this to int.MaxValue removes this limitation.
+        /// </summary>
+        public static int MaxNameLength { get; set; } = 512;
 
         /// <summary>
         /// Gets the PEImage containing this ResourceEntry.
@@ -51,16 +67,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Gets the number of children this entry contains.
+        /// Gets the number of children this entry contains.  Note that ResourceEntry.Children is capped at
+        /// MaxChildrenCount entries.  This property returns the total number of entries as defined by the
+        /// IMAGE_RESOURCE_DIRECTORY.  That means this number may be larger than Children.Count.
         /// </summary>
-        public int Count => Children.Length;
-
-        /// <summary>
-        /// Returns the i'th child.
-        /// </summary>
-        /// <param name="i">The child to return.</param>
-        /// <returns>The i'th ResourceEntry child.</returns>
-        public ResourceEntry this[int i] => Children[i];
+        public int ChildCount
+        {
+            get
+            {
+                (_, IMAGE_RESOURCE_DIRECTORY hdr) = GetHeader();
+                return hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
+            }
+        }
 
         /// <summary>
         /// Returns the given resource child by name.
@@ -125,25 +143,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 try
                 {
+                    (int offset, IMAGE_RESOURCE_DIRECTORY hdr) = GetHeader();
                     ResourceEntry root = Image.Resources;
                     int resourceStartFileOffset = root._offset;
-                    int offset = _offset;
-                    IMAGE_RESOURCE_DIRECTORY hdr = Image.Read<IMAGE_RESOURCE_DIRECTORY>(ref offset);
 
-                    int count = hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
+                    // Cap the number of entires we inspect
+                    int count = Math.Min(hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries, MaxChildrenCount);
+
                     ImmutableArray<ResourceEntry>.Builder result = ImmutableArray.CreateBuilder<ResourceEntry>(count);
-                    result.Count = result.Capacity;
 
                     for (int i = 0; i < count; i++)
                     {
-                        IMAGE_RESOURCE_DIRECTORY_ENTRY entry = Image.Read<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset);
+                        if (!Image.TryRead<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset, out IMAGE_RESOURCE_DIRECTORY_ENTRY entry))
+                            break;
+
                         string name;
                         if (this == root)
                             name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
                         else
-                            name = GetName(ref entry, resourceStartFileOffset);
+                            name = GetName(entry.NameOffset, resourceStartFileOffset);
 
-                        result[i] = new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset);
+                        result.Add(new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset));
                     }
 
                     return _children = result.MoveToImmutable();
@@ -158,22 +178,44 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private string GetName(ref IMAGE_RESOURCE_DIRECTORY_ENTRY entry, int resourceStartFileOffset)
+        private (int OffsetAfterHeader, IMAGE_RESOURCE_DIRECTORY Header) GetHeader()
         {
-            int offset = resourceStartFileOffset + entry.NameOffset;
+            int offset = _offset;
+
+            if (Image.TryRead<IMAGE_RESOURCE_DIRECTORY>(ref offset, out IMAGE_RESOURCE_DIRECTORY hdr))
+                return (offset, hdr);
+
+            // Returning default will mean that our count will == 0, so we don't have to turn this
+            // into "bool TryGetHeader".
+            return (offset, default);
+        }
+
+        private string GetName(int nameOffset, int resourceStartFileOffset)
+        {
+            int offset = resourceStartFileOffset + nameOffset;
             int len = Image.Read<ushort>(ref offset);
 
-            StringBuilder sb = new StringBuilder(len);
-            for (int i = 0; i < len; i++)
+            // Cap the length of the string we will read
+            len = Math.Min(len, MaxNameLength);
+            if (len == 0)
+                return string.Empty;
+
+            char[] buffer = ArrayPool<char>.Shared.Rent(len);
+            try
             {
-                char c = (char)Image.Read<ushort>(ref offset);
-                if (c == 0)
-                    break;
+                Span<char> span = new Span<char>(buffer, 0, len);
+                int count = Image.Read(offset, MemoryMarshal.AsBytes(span)) >> 1;
 
-                sb.Append(c);
+                int i = 0;
+                while (i < len && buffer[i] != 0)
+                    i++;
+
+                return new string(buffer, 0, i);
             }
-
-            return sb.ToString();
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private void GetDataVaAndSize(out int va, out int size)
