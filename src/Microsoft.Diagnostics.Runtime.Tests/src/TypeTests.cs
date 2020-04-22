@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var fds = obj.Type.Fields;
 
-            int value = obj.ReadBoxed<int>();
+            int value = obj.ReadBoxedValue<int>();
             Assert.Equal(42, value);
 
             Assert.Contains(obj.Address, heap.EnumerateObjects().Select(a => a.Address));

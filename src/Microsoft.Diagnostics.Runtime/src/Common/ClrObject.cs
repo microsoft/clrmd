@@ -71,8 +71,12 @@ namespace Microsoft.Diagnostics.Runtime
             return Type.Heap.EnumerateReferencesWithFields(Address, Type, carefully, considerDependantHandles);
         }
 
+        /// <summary>
+        /// Returns true if this object is a boxed struct or primitive type that 
+        /// </summary>
+        public bool IsBoxedValue => Type != null && (Type.IsPrimitive || Type.IsValueType);
 
-        public T ReadBoxed<T>() where T : unmanaged
+        public T ReadBoxedValue<T>() where T : unmanaged
         {
             IClrObjectHelpers? helpers = Helpers;
             if (helpers is null)
@@ -117,11 +121,6 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Size => GetTypeOrThrow().Heap.GetObjectSize(Address, GetTypeOrThrow());
 
         /// <summary>
-        /// Gets a value indicating whether this object is an array.
-        /// </summary>
-        public bool IsArray => GetTypeOrThrow().IsArray;
-
-        /// <summary>
         /// Returns the ComCallableWrapper for the given object.
         /// </summary>
         /// <returns>The ComCallableWrapper associated with the object, <see langword="null"/> if obj is not a CCW.</returns>
@@ -151,13 +150,9 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ContainsPointers => Type != null && Type.ContainsPointers;
 
         /// <summary>
-        /// ToString override.
+        /// Gets a value indicating whether this object is an array.
         /// </summary>
-        /// <returns></returns>
-        public override string ToString()
-        {
-            return $"{Type?.Name} {Address:x}";
-        }
+        public bool IsArray => GetTypeOrThrow().IsArray;
 
         /// <summary>
         /// returns the object as an array if the object has array type.
@@ -331,6 +326,17 @@ namespace Microsoft.Diagnostics.Runtime
             return address;
         }
 
+        private ClrType GetTypeOrThrow()
+        {
+            if (IsNull)
+                throw new InvalidOperationException("Object is null.");
+
+            if (!IsValidObject)
+                throw new InvalidOperationException($"Object {Address:x} is corrupted, could not determine type.");
+
+            return Type!;
+        }
+
         /// <summary>
         /// Determines if this instance and another specific <see cref="ClrObject" /> have the same value.
         /// <para>Instances are considered equal when they have same <see cref="Address" />.</para>
@@ -376,15 +382,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns><see langword="true"/> if the value of <paramref name="left" /> is different from the value of <paramref name="right" />; <see langword="false"/> otherwise.</returns>
         public static bool operator !=(ClrObject left, ClrObject right) => !(left == right);
 
-        private ClrType GetTypeOrThrow()
+        /// <summary>
+        /// ToString override.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
         {
-            if (IsNull)
-                throw new InvalidOperationException("Object is null.");
-
-            if (!IsValidObject)
-                throw new InvalidOperationException($"Object {Address:x} is corrupted, could not determine type.");
-
-            return Type!;
+            return $"{Type?.Name} {Address:x}";
         }
     }
 }
