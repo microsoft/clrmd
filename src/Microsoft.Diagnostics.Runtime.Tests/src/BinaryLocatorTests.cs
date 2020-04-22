@@ -75,9 +75,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.NotNull(dac);
             Assert.True(File.Exists(dac));
-            using (Stream stream = File.OpenRead(dac))
+            using (PEImage peimage = new PEImage(File.OpenRead(dac)))
             {
-                PEImage peimage = new PEImage(stream);
+                
                 Assert.True(peimage.IsValid);
             }
 

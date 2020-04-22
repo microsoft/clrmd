@@ -136,8 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 try
                 {
-                    using FileStream stream = File.OpenRead(filePath);
-                    using PEImage pe = new PEImage(stream);
+                    using PEImage pe = new PEImage(File.OpenRead(filePath));
                     if (pe.IsValid)
                         return (pe.IndexFileSize, pe.IndexTimeStamp, pe.GetFileVersionInfo()?.VersionInfo ?? default);
                 }

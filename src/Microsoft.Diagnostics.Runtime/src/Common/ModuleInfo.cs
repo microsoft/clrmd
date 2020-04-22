@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                PEImage image = new PEImage(new ReadVirtualStream(DataTarget.DataReader, (long)ImageBase, IndexFileSize), _isVirtual);
+                PEImage image = new PEImage(new ReadVirtualStream(DataTarget.DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: _isVirtual);
                 if (!_isManaged.HasValue)
                     _isManaged = image.IsManaged;
 

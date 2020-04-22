@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
                 lock (_pefileCache)
                 {
                     foreach (PEImage? img in _pefileCache.Values)
-                        img?.Stream.Dispose();
+                        img?.Dispose();
 
                     _pefileCache.Clear();
                 }
@@ -98,14 +98,10 @@ namespace Microsoft.Diagnostics.Runtime
                     return result;
             }
 
-            Stream stream = File.OpenRead(path);
-            result = new PEImage(stream);
+            result = new PEImage(File.OpenRead(path));
 
             if (!result.IsValid)
-            {
-                stream.Dispose();
                 result = null;
-            }
 
             lock (_pefileCache)
             {
