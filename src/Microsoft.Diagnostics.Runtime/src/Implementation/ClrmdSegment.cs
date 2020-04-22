@@ -160,12 +160,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (obj >= End)
                 return _markers.Length - 1;
 
-            ulong step = Length / ((uint)_markers.Length + 2);
+            ulong step = Length / ((uint)_markers.Length + 1);
 
             ulong offset = obj - FirstObjectAddress;
             int index = (int)(offset / step) - 1;
 
-            if (index == _markers.Length)
+            if (index >= _markers.Length)
                 index = _markers.Length - 1;
 
             return index;
