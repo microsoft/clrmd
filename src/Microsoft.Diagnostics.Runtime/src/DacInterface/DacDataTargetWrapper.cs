@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 int i = (min + max) / 2;
                 ModuleInfo curr = _modules[i];
 
-                if (curr.ImageBase <= address && address < curr.ImageBase + (ulong)curr.FileSize)
+                if (curr.ImageBase <= address && address < curr.ImageBase + (ulong)curr.IndexFileSize)
                     return curr;
 
                 if (curr.ImageBase < address)
@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         return HResult.E_NOTIMPL;
                     }
 
-                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.TimeStamp, info.FileSize, true);
+                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
                 }
 
                 if (filePath is null)

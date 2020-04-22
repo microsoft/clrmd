@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly bool _isVirtual;
         private int _offset = 0;
 
+        private readonly Stream _stream;
         private CoffHeader? _coffHeader;
         private PEHeader? _peHeader;
         private CorHeader? _corHeader;
@@ -37,8 +38,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Constructs a PEImage class for a given PE image (dll/exe) on disk.
         /// </summary>
         /// <param name="stream">A Stream that contains a PE image at its 0th offset.  This stream must be seekable.</param>
-        public PEImage(Stream stream)
-            : this(stream, false)
+        /// <param name="leaveOpen">Whether or not to leave the stream open, if this is set to false stream will be
+        /// disposed when this object is.</param>
+        public PEImage(Stream stream, bool leaveOpen = false)
+            : this(stream, leaveOpen, isVirtual: false)
         {
         }
 
@@ -46,32 +49,50 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Constructs a PEImage class for a given PE image (dll/exe) in memory.
         /// </summary>
         /// <param name="stream">A Stream that contains a PE image at its 0th offset.  This stream must be seekable.</param>
+        /// <param name="leaveOpen">Whether or not to leave the stream open, if this is set to false stream will be
+        /// disposed when this object is.</param>
         /// <param name="isVirtual">Whether stream points to a PE image mapped into an address space (such as in a live process or crash dump).</param>
-        public PEImage(Stream stream, bool isVirtual)
+        public PEImage(Stream stream, bool leaveOpen, bool isVirtual)
         {
             _isVirtual = isVirtual;
-            Stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
             if (!stream.CanSeek)
                 throw new ArgumentException($"{nameof(stream)} is not seekable.");
 
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
+            {
+                if (!leaveOpen)
+                    stream.Dispose();
+                
                 return;
+            }
 
             int peHeaderOffset = Read<int>(PESignatureOffsetLocation);
             if (peHeaderOffset == 0)
+            {
+                if (!leaveOpen)
+                    stream.Dispose();
+
                 return;
+            }
 
             uint peSignature = Read<uint>(peHeaderOffset);
             if (peSignature != ExpectedPESignature)
-                return;
+            {
+                if (!leaveOpen)
+                    stream.Dispose();
 
-            IsValid = true;
+                return;
+            }
 
             SeekTo(0);
 
-            PEStreamOptions options = PEStreamOptions.LeaveOpen;
+            PEStreamOptions options = PEStreamOptions.Default;
+            if (leaveOpen)
+                options |= PEStreamOptions.LeaveOpen;
+
             if (isVirtual)
                 options |= PEStreamOptions.IsLoadedImage;
 
@@ -86,14 +107,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ResourceEntry Resources => _resources ??= CreateResourceRoot();
 
         /// <summary>
-        /// Gets the underlying stream.
-        /// </summary>
-        public Stream Stream { get; }
-
-        /// <summary>
         /// Gets a value indicating whether the given Stream contains a valid DOS header and PE signature.
         /// </summary>
-        public bool IsValid { get; }
+        public bool IsValid => Reader != null;
 
         /// <summary>
         /// Gets a value indicating whether this image is for a 64bit processor.
@@ -150,24 +166,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public PdbInfo DefaultPdb => Pdbs.LastOrDefault();
 
-        public PEReader Reader { get; } = null!;
+        public PEReader? Reader { get; }
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
-        {
             if (!_disposed)
             {
-                if (disposing)
-                {
-                    if (IsValid)
-                        Reader.Dispose();
-                }
-
+                Reader?.Dispose();
                 _disposed = true;
             }
         }
@@ -206,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return 0;
 
             SeekTo(offset);
-            return Stream.Read(dest);
+            return _stream.Read(dest);
         }
 
         /// <summary>
@@ -252,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             T t = default;
 
             SeekTo(offset);
-            int read = Stream.Read(new Span<byte>(&t, size));
+            int read = _stream.Read(new Span<byte>(&t, size));
             offset += read;
             _offset = offset;
 
@@ -268,22 +273,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (offset != _offset)
             {
-                Stream.Seek(offset, SeekOrigin.Begin);
+                _stream.Seek(offset, SeekOrigin.Begin);
                 _offset = offset;
             }
         }
 
-        private CoffHeader? ReadCoffHeader() => !IsValid ? null : Reader.PEHeaders.CoffHeader;
+        private CoffHeader? ReadCoffHeader() => Reader?.PEHeaders.CoffHeader;
 
-        private PEHeader? ReadPEHeader() => !IsValid ? null : Reader.PEHeaders.PEHeader;
+        private PEHeader? ReadPEHeader() => Reader?.PEHeaders.PEHeader;
 
-        private CorHeader? ReadCorHeader() => !IsValid ? null : Reader.PEHeaders.CorHeader;
+        private CorHeader? ReadCorHeader() => Reader?.PEHeaders.CorHeader;
 
-        private ImmutableArray<SectionHeader> ReadSections() => !IsValid ? default : Reader.PEHeaders.SectionHeaders;
+        private ImmutableArray<SectionHeader> ReadSections() => Reader?.PEHeaders.SectionHeaders ?? default;
 
         private ImmutableArray<PdbInfo> ReadPdbs()
         {
-            if (!IsValid)
+            if (Reader == null)
                 return default;
 
             ImmutableArray<DebugDirectoryEntry> debugDirectories = Reader.ReadDebugDirectory();

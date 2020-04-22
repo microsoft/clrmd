@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public PEImage OpenAsPEImage()
         {
             Stream stream = new ReaderStream(BaseAddress, Size, _vaReader);
-            return new PEImage(stream, _containsExecutable);
+            return new PEImage(stream, leaveOpen: false, isVirtual: _containsExecutable);
         }
 
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers, bool isExecutable)

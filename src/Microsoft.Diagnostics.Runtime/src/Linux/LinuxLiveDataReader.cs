@@ -105,52 +105,32 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public int PointerSize => IntPtr.Size;
 
-        public IEnumerable<ModuleInfo> EnumerateModules()
+        public IEnumerable<ModuleInfo> EnumerateModules() =>
+            from entry in _memoryMapEntries
+            where !string.IsNullOrEmpty(entry.FilePath)
+            group entry by entry.FilePath into image
+            let filePath = image.Key
+            let containsExecutable = image.Any(entry => entry.IsExecutable)
+            let beginAddress = image.Min(entry => entry.BeginAddress)
+            let props = GetPEImageProperties(filePath)
+            select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: default, version: props.Version);
+
+        private static (int Filesize, int Timestamp, VersionInfo Version) GetPEImageProperties(string filePath)
         {
-            List<ModuleInfo> result = new List<ModuleInfo>();
-            foreach (var entry in _memoryMapEntries)
+            if (File.Exists(filePath))
             {
-                if (string.IsNullOrEmpty(entry.FilePath))
+                try
                 {
-                    continue;
+                    using PEImage pe = new PEImage(File.OpenRead(filePath));
+                    if (pe.IsValid)
+                        return (pe.IndexFileSize, pe.IndexTimeStamp, pe.GetFileVersionInfo()?.VersionInfo ?? default);
                 }
-
-                ModuleInfo? module = result.FirstOrDefault(module => module.FileName == entry.FilePath);
-                if (module is null)
+                catch
                 {
-                    int filesize = 0;
-                    int timestamp = 0;
-                    VersionInfo? version = null;
-
-                    if (File.Exists(entry.FilePath))
-                    {
-                        try
-                        {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                            using FileStream stream = File.OpenRead(entry.FilePath);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-                            using PEImage pe = new PEImage(stream);
-                            if (pe.IsValid)
-                            {
-                                filesize = pe.IndexFileSize;
-                                timestamp = pe.IndexTimeStamp;
-                                version = pe.GetFileVersionInfo()?.VersionInfo;
-                            }
-                        }
-                        catch
-                        {
-                        }
-                    }
-
-                    result.Add(new ModuleInfo(this, entry.BeginAddr, filesize, timestamp, entry.FilePath, entry.IsExecutable, buildId: default, version: version ?? default));
-                }
-                else
-                {
-                    module._isVirtual = module._isVirtual || entry.IsExecutable;
                 }
             }
 
-            return result;
+            return (0, 0, default);
         }
 
         public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
@@ -252,9 +232,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             foreach (var entry in _memoryMapEntries)
             {
-                if (entry.BeginAddr <= address && entry.EndAddr >= address)
+                if (entry.BeginAddress <= address && entry.EndAddress >= address)
                 {
-                    vq = new MemoryRegionInfo(entry.BeginAddr, entry.EndAddr - entry.BeginAddr);
+                    vq = new MemoryRegionInfo(entry.BeginAddress, entry.EndAddress - entry.BeginAddress);
                     return true;
                 }
             }
@@ -345,8 +325,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (int i = 0; i < _memoryMapEntries.Count; i++)
             {
                 MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddr;
-                ulong entryEndAddr = entry.EndAddr;
+                ulong entryBeginAddr = entry.BeginAddress;
+                ulong entryEndAddr = entry.EndAddress;
                 if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
                 {
                     int regionSize = (int)(entryEndAddr - address);
@@ -371,8 +351,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (int i = startIndex + 1; i < _memoryMapEntries.Count; i++)
             {
                 MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddr;
-                ulong entryEndAddr = entry.EndAddr;
+                ulong entryBeginAddr = entry.BeginAddress;
+                ulong entryEndAddr = entry.EndAddress;
                 if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
                 {
                     break;
@@ -427,8 +407,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 string[] addressBeginEnd = address.Split('-');
                 MemoryMapEntry entry = new MemoryMapEntry()
                 {
-                    BeginAddr = Convert.ToUInt64(addressBeginEnd[0], 16),
-                    EndAddr = Convert.ToUInt64(addressBeginEnd[1], 16),
+                    BeginAddress = Convert.ToUInt64(addressBeginEnd[0], 16),
+                    EndAddress = Convert.ToUInt64(addressBeginEnd[1], 16),
                     FilePath = path,
                     Permission = ParsePermission(permission)
                 };
@@ -484,8 +464,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
     internal class MemoryMapEntry
     {
-        public ulong BeginAddr { get; set; }
-        public ulong EndAddr { get; set; }
+        public ulong BeginAddress { get; set; }
+        public ulong EndAddress { get; set; }
         public string? FilePath { get; set; }
         public int Permission { get; set; }
 
