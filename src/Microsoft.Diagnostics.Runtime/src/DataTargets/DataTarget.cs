@@ -14,10 +14,6 @@ using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
-// TODO: remove this after code is cleaned up
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -184,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
                 string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
-                DacInfo dacInfo = new DacInfo(DataReader, dacAgnosticName, arch, 0, module.FileSize, module.TimeStamp, dacRegularName, module.Version);
+                DacInfo dacInfo = new DacInfo(dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
                 versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
             }
 
@@ -204,9 +200,13 @@ namespace Microsoft.Diagnostics.Runtime
                 return _modules;
 
             char[] invalid = Path.GetInvalidPathChars();
-            _modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
-            Array.Sort(_modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
-            return _modules;
+            ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
+            Array.Sort(modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
+
+            foreach (ModuleInfo module in modules)
+                module.DataTarget = this;
+
+            return _modules = modules;
         }
 
         #region Statics

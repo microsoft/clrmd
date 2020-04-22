@@ -108,50 +108,47 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             List<ModuleInfo> result = new List<ModuleInfo>();
-            foreach (var entry in _memoryMapEntries)
+
+            var moduleEntries = from entry in _memoryMapEntries
+                                where !string.IsNullOrEmpty(entry.FilePath)
+                                group entry by entry.FilePath into g
+                                select new
+                                {
+                                    FilePath = g.Key,
+                                    IsExecutable = g.Any(f => f.IsExecutable),
+                                    BeginAddress = g.Min(f => f.BeginAddress)
+                                };
+
+
+            foreach (var entry in moduleEntries)
             {
-                if (string.IsNullOrEmpty(entry.FilePath))
-                {
-                    continue;
-                }
-
-                ModuleInfo? module = result.FirstOrDefault(module => module.FileName == entry.FilePath);
-                if (module is null)
-                {
-                    int filesize = 0;
-                    int timestamp = 0;
-                    VersionInfo? version = null;
-
-                    if (File.Exists(entry.FilePath))
-                    {
-                        try
-                        {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                            using FileStream stream = File.OpenRead(entry.FilePath);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-                            using PEImage pe = new PEImage(stream);
-                            if (pe.IsValid)
-                            {
-                                filesize = pe.IndexFileSize;
-                                timestamp = pe.IndexTimeStamp;
-                                version = pe.GetFileVersionInfo()?.VersionInfo;
-                            }
-                        }
-                        catch
-                        {
-                        }
-                    }
-
-                    result.Add(new ModuleInfo(this, entry.BeginAddr, filesize, timestamp, entry.FilePath, entry.IsExecutable, buildId: default, version: version ?? default));
-                }
-                else
-                {
-                    module._isVirtual = module._isVirtual || entry.IsExecutable;
-                }
+                (int filesize, int timestamp, VersionInfo version) = GetPEImageProperties(entry.FilePath);
+                result.Add(new ModuleInfo(entry.BeginAddress, filesize, timestamp, entry.FilePath, entry.IsExecutable, buildId: default, version: version));
             }
 
             return result;
         }
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+        private (int filesize, int timestamp, VersionInfo version) GetPEImageProperties(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    using FileStream stream = File.OpenRead(filePath);
+                    using PEImage pe = new PEImage(stream);
+                    if (pe.IsValid)
+                        return (pe.IndexFileSize, pe.IndexTimeStamp, pe.GetFileVersionInfo()?.VersionInfo ?? default);
+                }
+                catch
+                {
+                }
+            }
+
+            return (0, 0, default);
+        }
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
         public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
@@ -252,9 +249,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             foreach (var entry in _memoryMapEntries)
             {
-                if (entry.BeginAddr <= address && entry.EndAddr >= address)
+                if (entry.BeginAddress <= address && entry.EndAddress >= address)
                 {
-                    vq = new MemoryRegionInfo(entry.BeginAddr, entry.EndAddr - entry.BeginAddr);
+                    vq = new MemoryRegionInfo(entry.BeginAddress, entry.EndAddress - entry.BeginAddress);
                     return true;
                 }
             }
@@ -345,8 +342,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (int i = 0; i < _memoryMapEntries.Count; i++)
             {
                 MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddr;
-                ulong entryEndAddr = entry.EndAddr;
+                ulong entryBeginAddr = entry.BeginAddress;
+                ulong entryEndAddr = entry.EndAddress;
                 if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
                 {
                     int regionSize = (int)(entryEndAddr - address);
@@ -371,8 +368,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (int i = startIndex + 1; i < _memoryMapEntries.Count; i++)
             {
                 MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddr;
-                ulong entryEndAddr = entry.EndAddr;
+                ulong entryBeginAddr = entry.BeginAddress;
+                ulong entryEndAddr = entry.EndAddress;
                 if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
                 {
                     break;
@@ -427,8 +424,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 string[] addressBeginEnd = address.Split('-');
                 MemoryMapEntry entry = new MemoryMapEntry()
                 {
-                    BeginAddr = Convert.ToUInt64(addressBeginEnd[0], 16),
-                    EndAddr = Convert.ToUInt64(addressBeginEnd[1], 16),
+                    BeginAddress = Convert.ToUInt64(addressBeginEnd[0], 16),
+                    EndAddress = Convert.ToUInt64(addressBeginEnd[1], 16),
                     FilePath = path,
                     Permission = ParsePermission(permission)
                 };
@@ -484,8 +481,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
     internal class MemoryMapEntry
     {
-        public ulong BeginAddr { get; set; }
-        public ulong EndAddr { get; set; }
+        public ulong BeginAddress { get; set; }
+        public ulong EndAddress { get; set; }
         public string? FilePath { get; set; }
         public int Permission { get; set; }
 
