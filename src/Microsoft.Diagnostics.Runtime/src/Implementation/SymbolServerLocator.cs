@@ -37,9 +37,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 string location = split[split.Length - 1];
 
                 string? cache = null;
-                if (split.Length > 1)
+                if (split.Length > 2)
                 {
-                    cache = split[split.Length - 1];
+                    cache = split[split.Length - 2];
 
                     if (cache.Equals("cache", StringComparison.OrdinalIgnoreCase))
                     {
