@@ -304,7 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private CorHeader? ReadCorHeader() => Reader?.PEHeaders.CorHeader;
 
-        private ImmutableArray<SectionHeader> ReadSections() => Reader?.PEHeaders.SectionHeaders ?? default;
+        private ImmutableArray<SectionHeader> ReadSections() => Reader?.PEHeaders.SectionHeaders ?? ImmutableArray<SectionHeader>.Empty;
 
         private ImmutableArray<PdbInfo> ReadPdbs()
         {

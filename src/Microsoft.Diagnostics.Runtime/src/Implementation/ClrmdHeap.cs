@@ -414,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
     class VolatileHeapData
     {
-        private ImmutableArray<(ulong Source, ulong Target)>? _dependentHandles;
+        private ImmutableArray<(ulong Source, ulong Target)> _dependentHandles;
 
         public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }
         public ImmutableArray<FinalizerQueueSegment> FQObjects { get; }
@@ -445,8 +445,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ImmutableArray<(ulong Source, ulong Target)> GetDependentHandles(IHeapHelpers helpers)
         {
-            if (_dependentHandles.HasValue)
-                return _dependentHandles.Value;
+            if (!_dependentHandles.IsDefault)
+                return _dependentHandles;
 
             var dependentHandles = helpers.EnumerateDependentHandleLinks().OrderBy(x => x.Source).ToImmutableArray();
             _dependentHandles = dependentHandles;
