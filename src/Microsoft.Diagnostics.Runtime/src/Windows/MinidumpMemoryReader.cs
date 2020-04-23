@@ -14,8 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class MinidumpMemoryReader : IDisposable, IMemoryReader
     {
-        const int MaxStackAllocBytes = 64;
-
         private readonly MinidumpSegment[] _segments;
         private readonly FileStream _stream;
         private readonly object _sync = new object();
@@ -47,9 +45,21 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public string ReadStringFromRVA(long rva)
+        public int ReadFromRVA(long rva, Span<byte> buffer)
         {
-            // todo: fix this before merging
+            // todo: test bounds
+            lock (_sync)
+            {
+                if (_stream.Length <= rva)
+                    return 0;
+
+                _stream.Position = rva;
+                return _stream.Read(buffer);
+            }
+        }
+
+        public string? ReadCountedUnicode(long rva)
+        {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
             {
@@ -58,7 +68,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 lock (_sync)
                 {
                     _stream.Position = rva;
-                    count = _stream.Read(buffer, 0, buffer.Length);
+
+                    Span<byte> span = new Span<byte>(buffer);
+                    if (_stream.Read(span.Slice(0, sizeof(int))) != sizeof(int))
+                        return null;
+
+                    int len = Unsafe.As<byte, int>(ref buffer[0]);
+                    len = Math.Min(len, buffer.Length);
+
+                    if (len <= 0)
+                        return null;
+
+                    count = _stream.Read(buffer, 0, len);
                 }
 
                 return Encoding.Unicode.GetString(buffer, 0, count);
@@ -139,7 +160,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         int read = _stream.Read(slice);
 
                         bytesRead += read;
+
                         seg = ref _segments[++curr];
+
+                        if (bytesRead < buffer.Length)
+                        {
+
+                        }
                     }
 
                     return true;

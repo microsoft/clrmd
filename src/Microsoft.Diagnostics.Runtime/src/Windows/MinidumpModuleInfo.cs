@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public int SizeOfImage { get; }
         public int DateTimeStamp { get; }
         public FixedFileInfo VersionInfo { get; }
-        public string ModuleName { get; }
+        public string? ModuleName { get; }
 
         public MinidumpModuleInfo(MinidumpMemoryReader reader, in MinidumpModule module)
         {
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             SizeOfImage = module.SizeOfImage;
             DateTimeStamp = module.DateTimeStamp;
             VersionInfo = module.VersionInfo;
-            ModuleName = reader.ReadStringFromRVA(module.ModuleNameRva);
+            ModuleName = reader.ReadCountedUnicode(module.ModuleNameRva);
         }
     }
 }

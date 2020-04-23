@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             return from module in _minidump.EnumerateModuleInfo()
-                   select new ModuleInfo(this, module.BaseOfImage, module.SizeOfImage, module.DateTimeStamp, module.ModuleName, buildId: default, version: module.VersionInfo.AsVersionInfo());
+                   select new ModuleInfo(module.BaseOfImage, module.SizeOfImage, module.DateTimeStamp, module.ModuleName, isVirtual: true, buildId: default, version: module.VersionInfo.AsVersionInfo());
         }
 
         public void FlushCachedData()
@@ -63,42 +63,33 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            throw new NotImplementedException();
+            //todo remove contextFlags, return byte count
+            //todo binary search
+
+            var ctx = _minidump.ContextData.FirstOrDefault(cd => cd.ThreadId == threadID);
+
+            if (ctx.ContextRva == 0 || ctx.ContextBytes == 0)
+                return false;
+
+            return _minidump.MemoryReader.ReadFromRVA(ctx.ContextRva, context) == context.Length;
         }
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            throw new NotImplementedException();
+            version = _minidump.EnumerateModuleInfo().FirstOrDefault(m => m.BaseOfImage == baseAddress)?.VersionInfo.AsVersionInfo() ?? default;
         }
 
         public bool QueryMemory(ulong address, out MemoryRegionInfo info)
         {
-            throw new NotImplementedException();
+            //todo
+            info = default;
+            return false;
         }
 
-        public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Read<T>(ulong address, out T value) where T : unmanaged
-        {
-            throw new NotImplementedException();
-        }
-
-        public T Read<T>(ulong address) where T : unmanaged
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool ReadPointer(ulong address, out ulong value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public ulong ReadPointer(ulong address)
-        {
-            throw new NotImplementedException();
-        }
+        public bool Read(ulong address, Span<byte> buffer, out int bytesRead) => MemoryReader.Read(address, buffer, out bytesRead);
+        public bool Read<T>(ulong address, out T value) where T : unmanaged => MemoryReader.Read(address, out value);
+        public T Read<T>(ulong address) where T : unmanaged => MemoryReader.Read<T>(address);
+        public bool ReadPointer(ulong address, out ulong value) => MemoryReader.ReadPointer(address, out value);
+        public ulong ReadPointer(ulong address) => MemoryReader.ReadPointer(address);
     }
 }

@@ -11,10 +11,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public readonly uint Signature;            /* e.g. 0xfeef04bd */
         public readonly uint StrucVersion;         /* e.g. 0x00000042 = "0.42" */
 
-        public readonly ushort Major;
         public readonly ushort Minor;
-        public readonly ushort Revision;
+        public readonly ushort Major;
         public readonly ushort Patch;
+        public readonly ushort Revision;
 
         public readonly uint ProductVersionMS;     /* e.g. 0x00030010 = "3.10" */
         public readonly uint ProductVersionLS;     /* e.g. 0x00000031 = "0.31" */
@@ -28,6 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public readonly uint FileDateMS;           /* e.g. 0 */
         public readonly uint FileDateLS;           /* e.g. 0 */
 
-        public VersionInfo AsVersionInfo() => new VersionInfo(Major, Minor, Revision, Patch)
+        public VersionInfo AsVersionInfo() => new VersionInfo(Major, Minor, Revision, Patch);
     }
 }
