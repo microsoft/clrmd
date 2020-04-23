@@ -33,13 +33,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (_name != null)
-                    return _name;
+                // Name can't really be string.Empty for a valid type, so we use that as a sentinal for
+                // "we tried to get the type name but it was null" to avoid calling GetTypeName over and
+                // over.
+                if (_name == null)
+                {
+                    if (Helpers.GetTypeName(MethodTable, out string? name) && name != null)
+                        _name = name;
+                    else
+                        _name = string.Empty;
+                }
 
-                if (Helpers.GetTypeName(MethodTable, out string? name))
-                    return _name = FixGenerics(name);
+                if (_name.Length == 0)
+                    return null;
 
-                return FixGenerics(name);
+                return _name;
             }
         }
 
