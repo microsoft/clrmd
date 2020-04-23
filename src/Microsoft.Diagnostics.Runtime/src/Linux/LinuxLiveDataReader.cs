@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -113,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             let containsExecutable = image.Any(entry => entry.IsExecutable)
             let beginAddress = image.Min(entry => entry.BeginAddress)
             let props = GetPEImageProperties(filePath)
-            select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: default, version: props.Version);
+            select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: ImmutableArray<byte>.Empty, version: props.Version);
 
         private static (int Filesize, int Timestamp, VersionInfo Version) GetPEImageProperties(string filePath)
         {
@@ -132,6 +133,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             return (0, 0, default);
         }
+
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
 
         public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
