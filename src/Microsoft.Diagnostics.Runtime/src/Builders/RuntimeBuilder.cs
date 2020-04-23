@@ -1153,8 +1153,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _options.CacheTypeNames != StringCaching.None;
         }
 
-        private static void FixGenerics(StringBuilder result, string name, int start, int len, out int finish)
+        private static void FixGenerics(StringBuilder result, string name, int start, int len, ref int maxDepth, out int finish)
         {
+            if (--maxDepth < 0)
+            {
+                finish = 0;
+                return;
+            }
+
             int i = start;
             while (i < len)
             {
@@ -1184,7 +1190,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         int curr = i;
                         do
                         {
-                            FixGenerics(result, name, curr + 2, end - 1, out int currEnd);
+                            FixGenerics(result, name, curr + 2, end - 1, ref maxDepth, out int currEnd);
+                            if (maxDepth < 0)
+                            {
+                                finish = 0;
+                                return;
+                            }
+
                             curr = FindEnd(name, currEnd) + 1;
 
                             if (curr >= end)
@@ -1243,8 +1255,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (name == null || name.IndexOf("[[") == -1)
                 return name;
 
+            int maxDepth = 64;
             StringBuilder sb = new StringBuilder();
-            FixGenerics(sb, name, 0, name.Length, out _);
+            FixGenerics(sb, name, 0, name.Length, ref maxDepth, out _);
+
+            if (maxDepth < 0)
+                return null;
+
             return sb.ToString();
         }
 

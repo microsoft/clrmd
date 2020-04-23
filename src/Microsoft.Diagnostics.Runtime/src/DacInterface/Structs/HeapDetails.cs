@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         public readonly GenerationData[] GenerationTable;
-        public readonly ulong EphemeralHeapSegment;
+        public readonly ClrDataAddress EphemeralHeapSegment;
 
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
         public readonly ClrDataAddress[] FinalizationFillPointers;

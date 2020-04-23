@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                             break;
 
                         string name;
-                        if (this == root)
+                        if (!entry.IsStringName)
                             name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
                         else
                             name = GetName(entry.NameOffset, resourceStartFileOffset);
