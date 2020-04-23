@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         ref MinidumpSegment seg = ref _segments[curr];
                         ulong offset = currAddress - seg.VirtualAddress;
 
-                        Span<byte> slice = currBuffer.Slice(bytesRead, Math.Min(buffer.Length - bytesRead, (int)(seg.Size - offset)));
+                        Span<byte> slice = buffer.Slice(bytesRead, Math.Min(buffer.Length - bytesRead, (int)(seg.Size - offset)));
                         _stream.Position = (long)(seg.FileOffset + offset);
                         int read = _stream.Read(slice);
                         if (read == 0)
