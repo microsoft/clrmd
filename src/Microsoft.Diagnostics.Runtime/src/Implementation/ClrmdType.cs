@@ -38,10 +38,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // over.
                 if (_name == null)
                 {
-                    if (Helpers.GetTypeName(MethodTable, out string? name) && name != null)
-                        _name = name;
-                    else
-                        _name = string.Empty;
+                    // GetTypeName returns whether the value should be cached or not.
+                    if (!Helpers.GetTypeName(MethodTable, out string? name))
+                        return name;
+
+                    // Cache the result or "string.Empty" for null.
+                    _name = name ?? string.Empty;
                 }
 
                 if (_name.Length == 0)
