@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -82,7 +81,27 @@ namespace Microsoft.Diagnostics.Runtime
             offset -= IntPtr.Size;
             DebugOnly.Assert(offset >= 0);
 
-            ClrInstanceField? field = containingType.IsArray ? null : containingType.Fields.First(f => f.Offset <= offset && offset < f.Offset + f.Size);
+            ClrInstanceField? field = null;
+            foreach (ClrInstanceField curr in containingType.Fields)
+            {
+                // If we found the correct field, stop searching
+                if (curr.Offset <= offset && offset <= curr.Offset + curr.Size)
+                {
+                    field = curr;
+                    break;
+                }
+
+                // Sometimes .Size == 0 if we failed to properly determine the type of the field,
+                // instead search for the field closest to the offset we are searching for.
+                if (curr.Offset <= offset)
+                {
+                    if (field == null)
+                        field = curr;
+                    else if (field.Offset < curr.Offset)
+                        field = curr;
+                }
+            }
+
             unchecked
             {
                 return new ClrReference(reference, field, OffsetFlag | (uint)offset);
