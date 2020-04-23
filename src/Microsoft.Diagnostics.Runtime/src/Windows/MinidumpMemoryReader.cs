@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Buffers;
 using System.IO;
@@ -132,13 +133,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
         {
-            int curr = GetFirstSegment(address);
-            if (curr == -1)
-            {
-                bytesRead = 0;
-                return false;
-            }
-
             lock (_sync)
             {
                 if (_disposed)
@@ -146,27 +140,26 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 try
                 {
-                    ulong currAddress = address;
                     Span<byte> currBuffer = buffer;
                     bytesRead = 0;
 
-                    ref MinidumpSegment seg = ref _segments[curr];
-                    while (bytesRead < buffer.Length && seg.Contains(currAddress))
+                    while (bytesRead < buffer.Length)
                     {
+                        ulong currAddress = address + (uint)bytesRead;
+                        int curr = GetSegmentContaining(currAddress);
+                        if (curr == -1)
+                            break;
+
+                        ref MinidumpSegment seg = ref _segments[curr];
                         ulong offset = currAddress - seg.VirtualAddress;
 
                         Span<byte> slice = currBuffer.Slice(bytesRead, Math.Min(buffer.Length - bytesRead, (int)(seg.Size - offset)));
                         _stream.Position = (long)(seg.FileOffset + offset);
                         int read = _stream.Read(slice);
+                        if (read == 0)
+                            break;
 
                         bytesRead += read;
-
-                        seg = ref _segments[++curr];
-
-                        if (bytesRead < buffer.Length)
-                        {
-
-                        }
                     }
 
                     return true;
@@ -179,11 +172,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        /// <summary>
-        /// Returns the first segment containing address.  It's unclear if a dump would ever come through that could
-        /// contain overlapping segments.
-        /// </summary>
-        private int GetFirstSegment(ulong address)
+        private int IndexOf(ulong end, MinidumpSegment[] segments)
+        {
+            for (int i = 0; i < segments.Length; i++)
+                if (segments[i].Contains(end))
+                    return i;
+
+            return -1;
+        }
+
+        private int GetSegmentContaining(ulong address)
         {
             int result = -1;
             int lower = 0;
@@ -205,9 +203,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 else
                     lower = mid + 1;
             }
-
-            while (result > 0 && _segments[result - 1].Contains(address))
-                result--;
 
             return result;
         }
