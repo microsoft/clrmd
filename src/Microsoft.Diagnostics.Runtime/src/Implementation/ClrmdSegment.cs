@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!large)
                 memoryReader.EnsureRangeInCache(obj);
 
-            while (obj < CommittedEnd)
+            while (obj < End)
             {
                 ulong mt;
                 if (large)
