@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         bytesRead += read;
                     }
 
-                    return true;
+                    return bytesRead > 0;
                 }
                 catch (IOException)
                 {
