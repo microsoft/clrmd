@@ -82,6 +82,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     return result;
 
             // Check all local paths first
+            if (CheckLocalFile(indexPath, path, buildTimeStamp, imageSize, checkProperties, out result))
+                return result!;
+
             string fullPath = Path.Combine(_cache, indexPath);
             if (CheckLocalFile(indexPath, fullPath, buildTimeStamp, imageSize, checkProperties, out result))
                 return result!;
