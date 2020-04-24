@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -83,8 +84,138 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (cet == ClrElementType.String)
                 address = DataReader.ReadPointer(address);
 
-            return ValueReader.GetValueAtAddress(Heap, DataReader, cet, address);
+            return GetValueAtAddress(Heap, DataReader, cet, address);
         }
+
+
+        internal object? GetValueAtAddress(ClrHeap heap, IDataReader reader, ClrElementType cet, ulong addr)
+        {
+            // TODO: delete this, factor GetArrayElementValue into its component types.
+            switch (cet)
+            {
+                case ClrElementType.String:
+                    return Helpers.ClrObjectHelpers.ReadString(addr, 4096);
+
+                case ClrElementType.Class:
+                case ClrElementType.Array:
+                case ClrElementType.SZArray:
+                case ClrElementType.Object:
+                    {
+                        return reader.ReadPointer(addr);
+                    }
+
+                case ClrElementType.Boolean:
+                    {
+                        if (!reader.Read(addr, out byte val))
+                            return null;
+
+                        return val != 0;
+                    }
+
+                case ClrElementType.Int32:
+                    {
+                        if (!reader.Read(addr, out int val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.UInt32:
+                    {
+                        if (!reader.Read(addr, out uint val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.Int64:
+                    {
+                        if (!reader.Read(addr, out long val))
+                            return long.MaxValue;
+
+                        return val;
+                    }
+
+                case ClrElementType.UInt64:
+                    {
+                        if (!reader.Read(addr, out ulong val))
+                            return long.MaxValue;
+
+                        return val;
+                    }
+
+                case ClrElementType.NativeUInt: // native unsigned int
+                case ClrElementType.Pointer:
+                case ClrElementType.FunctionPointer:
+                    {
+                        return reader.ReadPointer(addr);
+                    }
+
+                case ClrElementType.NativeInt: // native int
+                    {
+                        return reader.ReadPointer(addr);
+                    }
+
+                case ClrElementType.Int8:
+                    {
+                        if (!reader.Read(addr, out sbyte val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.UInt8:
+                    {
+                        if (!reader.Read(addr, out byte val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.Float:
+                    {
+                        if (!reader.Read(addr, out float val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.Double: // double
+                    {
+                        if (!reader.Read(addr, out double val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.Int16:
+                    {
+                        if (!reader.Read(addr, out short val))
+                            return null;
+
+                        return val;
+                    }
+
+                case ClrElementType.Char: // u2
+                    {
+                        if (!reader.Read(addr, out ushort val))
+                            return null;
+
+                        return (char)val;
+                    }
+
+                case ClrElementType.UInt16:
+                    {
+                        if (!reader.Read(addr, out ushort val))
+                            return null;
+
+                        return val;
+                    }
+            }
+
+            throw new Exception("Unexpected element type.");
+        }
+
 
         public override T[]? GetArrayElementValues<T>(ulong objRef, int count)
         {
@@ -111,7 +242,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0)
                 return null;
 
-            return ValueReader.GetValuesFromAddress<T>(DataReader, address, count);
+            var values = new T[count];
+            Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
+
+            if (DataReader.Read(address, buffer, out int bytesRead) && bytesRead == buffer.Length)
+            {
+                return values;
+            }
+
+            return default;
         }
     }
 }

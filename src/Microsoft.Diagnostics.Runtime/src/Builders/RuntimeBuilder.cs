@@ -38,6 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ClrmdRuntime _runtime;
         private readonly ClrmdHeap _heap;
 
+        private volatile StringReader? _stringReader;
+
         private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>();
 
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
@@ -588,6 +590,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         void IRuntimeHelpers.FlushCachedData()
         {
             FlushDac();
+
+            _stringReader = null;
             _heap.ClearCachedData();
 
             lock (_types)
@@ -1283,6 +1287,22 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             // todo remove
             _sos.GetObjectData(objRef, out V45ObjectData data);
             return data;
+        }
+
+
+        string? IClrObjectHelpers.ReadString(ulong addr, int maxLength)
+        {
+            if (addr == 0)
+                return null;
+
+            StringReader? reader = _stringReader;
+            if (reader == null)
+            {
+                reader = new StringReader(GetOrCreateHeap().StringType);
+                _stringReader = reader;
+            }
+
+            return reader.ReadString(DataReader, addr, maxLength);
         }
 
         bool IMethodHelpers.GetSignature(ulong methodDesc, out string? signature)

@@ -197,11 +197,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract ulong GetArrayElementAddress(ulong objRef, int index);
 
+
+        // TODO: factor this into string/object/<T>
         /// <summary>
         /// Returns the array element value at the given index.  Returns <see langword="null"/> if the array element is of type
         /// VALUE_CLASS.
         /// </summary>
         public abstract object? GetArrayElementValue(ulong objRef, int index);
+
 
         /// <summary>
         /// Returns multiple consecutive array element values.

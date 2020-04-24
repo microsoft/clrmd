@@ -292,7 +292,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </exception>
         public string? GetStringField(string fieldName, int maxLength = 4096)
         {
-            ulong address = GetFieldAddress(fieldName, ClrElementType.String, out ClrType stringType, "string");
+            ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             IDataReader dataReader = Helpers.DataReader;
             if (!dataReader.ReadPointer(address, out ulong strPtr))
                 return null;
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (strPtr == 0)
                 return null;
 
-            return ValueReader.GetStringContents(stringType, dataReader, strPtr, maxLength);
+            return Helpers.ReadString(strPtr, maxLength);
         }
 
         public string? AsString(int maxLength = 4096)
@@ -309,10 +309,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (!type.IsString)
                 throw new InvalidOperationException($"Object {Address:x} is not a string, actual type: {Type?.Name ?? "null"}.");
 
-            return ValueReader.GetStringContents(type, Helpers.DataReader, Address, maxLength);
+            return Helpers.ReadString(Address, maxLength);
         }
 
-        private ulong GetFieldAddress(string fieldName, ClrElementType element, out ClrType fieldType, string typeName)
+        private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
             ClrType type = GetTypeOrThrow();
 
@@ -327,7 +327,6 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
 
             ulong address = field.GetAddress(Address);
-            fieldType = field.Type;
             return address;
         }
 

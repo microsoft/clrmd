@@ -9,5 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }
         IExceptionHelpers ExceptionHelpers { get; }
+        string? ReadString(ulong addr, int maxLength);
     }
 }
