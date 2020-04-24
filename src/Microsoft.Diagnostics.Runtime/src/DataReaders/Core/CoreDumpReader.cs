@@ -144,19 +144,21 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress)
         {
-            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
-            ElfFile? file = image.Open();
-            return file?.BuildId ?? ImmutableArray<byte>.Empty;
+            return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
         }
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
-            ElfFile? file = image.Open();
+            ElfFile? file = GetElfFile(baseAddress);
             if (file is null)
                 version = default;
             else
                 LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+        }
+
+        private ElfFile? GetElfFile(ulong baseAddress)
+        {
+            return _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress).Open();
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
