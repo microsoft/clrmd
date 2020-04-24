@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             if (type == DEBUG_DUMP.DEFAULT)
                 return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /ma {dump}", DEBUG_EXECUTE.DEFAULT);
 
-            return _client.WriteDumpFile(dump, type);
+            return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /m {dump}", DEBUG_EXECUTE.DEFAULT);
         }
 
         #region Helpers
