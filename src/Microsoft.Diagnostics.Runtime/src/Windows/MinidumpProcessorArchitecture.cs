@@ -17,6 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         Msil = 8,
         Amd64 = 9,
         Ia32OnWin64 = 10,
+        Arm64 = 12,
         Unknown = 0xffff,
     }
 }

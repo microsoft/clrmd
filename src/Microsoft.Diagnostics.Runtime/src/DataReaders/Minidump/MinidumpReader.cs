@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 MinidumpProcessorArchitecture.Amd64 => Architecture.Amd64,
                 MinidumpProcessorArchitecture.Arm => Architecture.Arm,
+                MinidumpProcessorArchitecture.Arm64 => Architecture.Arm64,
                 MinidumpProcessorArchitecture.Intel => Architecture.X86,
                 _ => throw new NotImplementedException($"No support for platform {_minidump.Architecture}"),
             };
@@ -40,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ProcessId => 0;
 
-        public bool IsFullMemoryAvailable => throw new NotImplementedException();
+        public bool IsFullMemoryAvailable => true; // todo remove me
 
         public int PointerSize { get; }
 
@@ -63,11 +64,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            //todo remove contextFlags, return byte count
-            //todo binary search
+            int index = _minidump.ContextData.Search(threadID, (x, y) => x.ThreadId.CompareTo(y));
+            if (index < 0)
+                return false;
 
-            var ctx = _minidump.ContextData.FirstOrDefault(cd => cd.ThreadId == threadID);
-
+            MinidumpContextData ctx = _minidump.ContextData[index];
             if (ctx.ContextRva == 0 || ctx.ContextBytes == 0)
                 return false;
 
