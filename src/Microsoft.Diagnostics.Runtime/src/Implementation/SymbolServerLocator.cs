@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 bool found = true;
                 if (checkProperties)
                 {
-                    using PEImage img = new PEImage(File.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+                    using PEImage img = new PEImage(File.OpenRead(fullPath));
                     unchecked
                     {
                         found = img.IndexFileSize == imageSize && img.IndexTimeStamp == buildTimeStamp;
