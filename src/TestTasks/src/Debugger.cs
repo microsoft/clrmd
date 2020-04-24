@@ -240,7 +240,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 
         public int WriteDumpFile(string dump, DEBUG_DUMP type)
         {
-            return _client.WriteDumpFile(dump, type);
+            // DEBUG_DUMP.DEFAULT emits an older "USERDU64" format dump which conflicts with our minidump reader.
+            if (type == DEBUG_DUMP.DEFAULT)
+                return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /ma {dump}", DEBUG_EXECUTE.DEFAULT);
+
+            return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /m {dump}", DEBUG_EXECUTE.DEFAULT);
         }
 
         #region Helpers

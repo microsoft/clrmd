@@ -229,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 ThrowPlatformNotSupportedException();
 
-            return new DataTarget(new DbgEngDataReader(path));
+            return new DataTarget(new MinidumpReader(path));
         }
 
         /// <summary>
