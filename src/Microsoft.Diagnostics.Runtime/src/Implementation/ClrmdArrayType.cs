@@ -84,11 +84,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (cet == ClrElementType.String)
                 address = DataReader.ReadPointer(address);
 
-            return GetValueAtAddress(Heap, DataReader, cet, address);
+            return GetValueAtAddress(DataReader, cet, address);
         }
 
 
-        internal object? GetValueAtAddress(ClrHeap heap, IDataReader reader, ClrElementType cet, ulong addr)
+        internal object? GetValueAtAddress(IDataReader reader, ClrElementType cet, ulong addr)
         {
             // TODO: delete this, factor GetArrayElementValue into its component types.
             switch (cet)
