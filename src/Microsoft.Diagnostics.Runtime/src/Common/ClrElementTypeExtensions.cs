@@ -11,13 +11,12 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool IsPrimitive(this ClrElementType cet)
         {
             return cet >= ClrElementType.Boolean && cet <= ClrElementType.Double
-                || cet == ClrElementType.NativeInt || cet == ClrElementType.NativeUInt
-                || cet == ClrElementType.Pointer || cet == ClrElementType.FunctionPointer;
+                || cet == ClrElementType.NativeInt || cet == ClrElementType.NativeUInt;
         }
 
         public static bool IsValueType(this ClrElementType cet)
         {
-            return cet == ClrElementType.Struct;
+            return IsPrimitive(cet) || cet == ClrElementType.Struct;
         }
 
         public static bool IsObjectReference(this ClrElementType cet)
