@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Windows;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -94,13 +95,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                DataTarget dataTarget = DataTarget.LoadCrashDump(path);
+                DataTarget dataTarget = DataTarget.LoadDump(path);
                 dataTarget.BinaryLocator = new SymbolServerLocator(string.Empty);
                 return dataTarget;
             }
             else
             {
-                return DataTarget.LoadCoreDump(path);
+                return DataTarget.LoadDump(path);
             }
         }
 

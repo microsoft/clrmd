@@ -41,38 +41,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [WindowsFact]
-        public void LoadCoreDump_ThrowsPlatformNotSupportedException()
-        {
-            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCoreDump(TestTargets.Types.BuildDumpName(GCMode.Workstation, true)));
-        }
-
-        [LinuxFact]
-        public void LoadCrashDump_ThrowsPlatformNotSupportedException()
-        {
-            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.LoadCrashDump(TestTargets.Types.BuildDumpName(GCMode.Workstation, true)));
-        }
-
-        [LinuxFact]
-        public void LoadCoreDump_ThrowsInvalidDataException()
+        public void LoadDump_ThrowsInvalidDataExceptionForEmptyFile()
         {
             string path = Path.GetTempFileName();
-            File.WriteAllText(path, Environment.NewLine);
-            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCoreDump(path));
-        }
-
-        [WindowsFact]
-        public void LoadCrashDump_ThrowsInvalidDataException()
-        {
-            string path = Path.GetTempFileName();
-            File.WriteAllText(path, Environment.NewLine);
-            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCrashDump(path));
-        }
-
-        [WindowsFact]
-        public void LoadCrashDump_ThrowsInvalidDataExceptionForEmptyFile()
-        {
-            string path = Path.GetTempFileName();
-            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadCrashDump(path));
+            _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadDump(path));
         }
     }
 }

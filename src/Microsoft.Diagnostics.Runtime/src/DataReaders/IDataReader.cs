@@ -4,18 +4,30 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// An interface for reading data out of the target process.
     /// </summary>
-    public interface IDataReader : IDisposable, IMemoryReader
+    public interface IDataReader : IMemoryReader
     {
+        /// <summary>
+        /// The name of the target.  This should be a meaningful moniker such as the pid of the target
+        /// process or the path to the dump being read.
+        /// </summary>
+        string DisplayName { get; }
+
         /// <summary>
         /// Gets a value indicating whether this data reader is safe to use in parallel from multiple threads.
         /// </summary>
         bool IsThreadSafe { get; }
+
+        /// <summary>
+        /// The platform that the target process was running on.
+        /// </summary>
+        OSPlatform TargetPlatform { get; }
 
         /// <summary>
         /// Gets the architecture of the target.
@@ -29,17 +41,6 @@ namespace Microsoft.Diagnostics.Runtime
         uint ProcessId { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the data target contains full heap data.
-        /// </summary>
-        bool IsFullMemoryAvailable { get; }
-
-        /// <summary>
-        /// Enumerates the OS thread ID of all threads in the process.
-        /// </summary>
-        /// <returns>An enumeration of all threads in the target process.</returns>
-        IEnumerable<uint> EnumerateAllThreads();
-
-        /// <summary>
         /// Enumerates modules in the target process.
         /// </summary>
         /// <returns>An enumerable of the modules in the target process.</returns>
@@ -50,15 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="baseAddress">The base address of the module to look up.</param>
         /// <param name="version">The version info for the given module.</param>
-        void GetVersionInfo(ulong baseAddress, out VersionInfo version);
-
-        /// <summary>
-        /// Gets information about the given memory range.
-        /// </summary>
-        /// <param name="address">An arbitrary address in the target process.</param>
-        /// <param name="info">The base address and size of the allocation.</param>
-        /// <returns>True if the address was found and vq was filled, false if the address is not valid memory.</returns>
-        bool QueryMemory(ulong address, out MemoryRegionInfo info);
+        bool GetVersionInfo(ulong baseAddress, out VersionInfo version);
 
         /// <summary>
         /// Gets the thread context for the given thread.

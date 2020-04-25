@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
@@ -18,9 +19,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly SymbolServerLocator? _locator;
         private readonly IEnumerable<string> _modules;
 
-        public LinuxDefaultSymbolLocator(IEnumerable<string> modules)
+        public LinuxDefaultSymbolLocator(IDataReader reader)
         {
-            _modules = modules;
+            _modules = reader.EnumerateModules().Where(module => !string.IsNullOrEmpty(module.FileName)).Select(module => module.FileName!);
             string? sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
             if (!string.IsNullOrWhiteSpace(sympath))
                 _locator = new SymbolServerLocator(sympath);

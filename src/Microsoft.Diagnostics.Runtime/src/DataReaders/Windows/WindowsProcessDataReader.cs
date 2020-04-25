@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal unsafe class LiveDataReader : IDataReader
+    internal sealed unsafe class WindowsProcessDataReader : IDataReader, IDisposable
     {
         private bool _disposed = false;
         private readonly int _originalPid;
@@ -25,9 +25,12 @@ namespace Microsoft.Diagnostics.Runtime
         private const int PROCESS_VM_READ = 0x10;
         private const int PROCESS_QUERY_INFORMATION = 0x0400;
 
-        public LiveDataReader(int processId, bool createSnapshot)
+        public string DisplayName => $"pid:{_pid:x}";
+        public OSPlatform TargetPlatform => OSPlatform.Windows;
+
+        public WindowsProcessDataReader(int processId, WindowsProcessDataReaderMode mode)
         {
-            if (createSnapshot)
+            if (mode == WindowsProcessDataReaderMode.Snapshot)
             {
                 _originalPid = processId;
 
@@ -43,9 +46,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _pid = GetProcessId(_cloneHandle);
             }
-            else
+            else if (mode == WindowsProcessDataReaderMode.Passive)
             {
                 _pid = processId;
+            }
+            else
+            {
+                // todo: Fix before checkin
+                throw new NotImplementedException("Process suspend not yet implemented.");
             }
 
             _process = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
@@ -100,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
             GC.SuppressFinalize(this);
         }
 
-        ~LiveDataReader()
+        ~WindowsProcessDataReader()
         {
             Dispose(false);
         }
@@ -108,8 +116,6 @@ namespace Microsoft.Diagnostics.Runtime
         public uint ProcessId => (uint)_pid;
 
         public bool IsThreadSafe => true;
-
-        public bool IsFullMemoryAvailable => true;
 
         public void FlushCachedData()
         {
@@ -149,16 +155,20 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        public void GetVersionInfo(ulong addr, out VersionInfo version)
+        public bool GetVersionInfo(ulong addr, out VersionInfo version)
         {
             StringBuilder fileName = new StringBuilder(1024);
             uint res = GetModuleFileNameEx(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
             DebugOnly.Assert(res != 0);
 
             if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
+            {
                 version = new VersionInfo(major, minor, revision, patch, true);
-            else
-                version = default;
+                return true;
+            }
+
+            version = default;
+            return false;
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
@@ -217,30 +227,7 @@ namespace Microsoft.Diagnostics.Runtime
             value = 0;
             return false;
         }
-
-        public IEnumerable<uint> EnumerateAllThreads()
-        {
-            using Process process = Process.GetProcessById(_pid);
-            ProcessThreadCollection threads = process.Threads;
-            for (int i = 0; i < threads.Count; i++)
-                yield return (uint)threads[i].Id;
-        }
-
-        public unsafe bool QueryMemory(ulong address, out MemoryRegionInfo vq)
-        {
-            IntPtr ptr = address.AsIntPtr();
-
-            int res = VirtualQueryEx(_process, ptr, out MEMORY_BASIC_INFORMATION mem, new IntPtr(sizeof(MEMORY_BASIC_INFORMATION)));
-            if (res == 0)
-            {
-                vq = default;
-                return false;
-            }
-
-            vq = new MemoryRegionInfo(mem.BaseAddress, mem.Size);
-            return true;
-        }
-
+        
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);

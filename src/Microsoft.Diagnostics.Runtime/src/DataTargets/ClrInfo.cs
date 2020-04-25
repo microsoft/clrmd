@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime
                 dac = null;
 
             if (DacInfo.PlatformSpecificFileName != null)
-                dac ??= DataTarget.BinaryLocator.FindBinary(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
+                dac ??= DataTarget.BinaryLocator?.FindBinary(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
 
             if (!File.Exists(dac))
                 throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.PlatformSpecificFileName);

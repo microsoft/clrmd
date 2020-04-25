@@ -5,23 +5,39 @@
 using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class MinidumpReader : IDataReader
+    public sealed class MinidumpReader : IDataReader, IDisposable
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
 
+        public OSPlatform TargetPlatform => OSPlatform.Windows;
+
+        public string DisplayName { get; }
+
         public IMemoryReader MemoryReader => _readerCached ??= _minidump.MemoryReader;
 
         public MinidumpReader(string crashDump)
+            : this(crashDump, File.OpenRead(crashDump ?? throw new ArgumentNullException(nameof(crashDump))))
+        {
+        }
+
+        public MinidumpReader(string crashDump, Stream stream)
         {
             if (crashDump is null)
                 throw new ArgumentNullException(nameof(crashDump));
 
-            _minidump = new Minidump(crashDump);
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+
+            DisplayName = crashDump;
+
+            _minidump = new Minidump(crashDump, stream);
 
             Architecture = _minidump.Architecture switch
             {
@@ -41,8 +57,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public uint ProcessId => 0;
 
-        public bool IsFullMemoryAvailable => true; // todo remove me
-
         public int PointerSize { get; }
 
         public void Dispose()
@@ -50,7 +64,6 @@ namespace Microsoft.Diagnostics.Runtime
             _minidump.Dispose();
         }
 
-        public IEnumerable<uint> EnumerateAllThreads() => _minidump.ContextData.Select(c => c.ThreadId);
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
@@ -75,16 +88,18 @@ namespace Microsoft.Diagnostics.Runtime
             return _minidump.MemoryReader.ReadFromRVA(ctx.ContextRva, context) == context.Length;
         }
 
-        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            version = _minidump.EnumerateModuleInfo().FirstOrDefault(m => m.BaseOfImage == baseAddress)?.VersionInfo.AsVersionInfo() ?? default;
-        }
 
-        public bool QueryMemory(ulong address, out MemoryRegionInfo info)
-        {
-            //todo
-            info = default;
-            return false;
+            MinidumpModuleInfo module = _minidump.EnumerateModuleInfo().FirstOrDefault(m => m.BaseOfImage == baseAddress);
+            if (module == null)
+            {
+                version = default;
+                return false;
+            }
+
+            version = module.VersionInfo.AsVersionInfo();
+            return true;
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead) => MemoryReader.Read(address, buffer, out bytesRead);

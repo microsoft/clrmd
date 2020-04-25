@@ -32,19 +32,29 @@ namespace Microsoft.Diagnostics.Runtime
 
         private List<ModuleInfo>? _modules;
         private int? _pointerSize;
-        private bool? _minidump;
         private Architecture? _architecture;
         private static readonly RefCountedFreeLibrary _library = new RefCountedFreeLibrary(IntPtr.Zero);
+
+        public string DisplayName { get; }
+        public OSPlatform TargetPlatform => OSPlatform.Windows;
 
         ~DbgEngDataReader()
         {
             Dispose(false);
         }
 
+        public DbgEngDataReader(string dumpFile, Stream stream)
+            : this(dumpFile)
+        {
+            stream?.Dispose();
+        }
+
         public DbgEngDataReader(string dumpFile)
         {
             if (!File.Exists(dumpFile))
                 throw new FileNotFoundException(dumpFile);
+
+            DisplayName = dumpFile;
 
             IntPtr pClient = CreateIDebugClient();
             CreateClient(pClient);
@@ -70,6 +80,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DbgEngDataReader(int processId, bool invasive, uint msecTimeout)
         {
+            DisplayName = $"{processId:x}";
+
             IntPtr client = CreateIDebugClient();
             CreateClient(client);
 
@@ -101,26 +113,6 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsThreadSafe => true; // Enforced by Debug* wrappers.
 
         public uint ProcessId => _systemObjects.GetProcessId();
-
-        public bool IsFullMemoryAvailable
-        {
-            get
-            {
-                if (_minidump is bool minidump)
-                    return !minidump;
-
-                DEBUG_CLASS_QUALIFIER qual = _control.GetDebuggeeClassQualifier();
-                if (qual == DEBUG_CLASS_QUALIFIER.USER_WINDOWS_SMALL_DUMP)
-                {
-                    DEBUG_FORMAT flags = _control.GetDumpFormat();
-                    _minidump = minidump = (flags & DEBUG_FORMAT.USER_SMALL_FULL_MEMORY) == 0;
-                    return !minidump;
-                }
-
-                _minidump = false;
-                return true;
-            }
-        }
 
         public Architecture Architecture
         {
@@ -256,18 +248,6 @@ namespace Microsoft.Diagnostics.Runtime
             Interlocked.Increment(ref s_totalInstanceCount);
         }
 
-        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
-        {
-            if (_spaces.QueryVirtual(address, out MEMORY_BASIC_INFORMATION64 mem))
-            {
-                vq = new MemoryRegionInfo(mem.BaseAddress, mem.RegionSize);
-                return true;
-            }
-
-            vq = default;
-            return false;
-        }
-
         public bool Read(ulong address, Span<byte> buffer, out int read)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
@@ -313,14 +293,15 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             version = default;
 
             if (!FindModuleIndex(baseAddress, out int index))
-                return;
+                return false;
 
             version = _symbols.GetModuleVersionInformation(index, baseAddress);
+            return true;
         }
 
         private bool FindModuleIndex(ulong baseAddr, out int index)
@@ -347,8 +328,6 @@ namespace Microsoft.Diagnostics.Runtime
                 nextIndex = index + 1;
             }
         }
-
-        public IEnumerable<uint> EnumerateAllThreads() => _systemObjects.GetThreadIds();
 
         public void Dispose()
         {
