@@ -84,10 +84,10 @@ foreach (ClrInfo version in dataTarget.ClrVersions)
     Console.WriteLine("Found CLR Version: " + version.Version);
 
     // This is the data needed to request the dac from the symbol server:
-    ModuleInfo moduleInfo = version.ModuleInfo;
-    Console.WriteLine("Filesize:  {0:X}", moduleInfo.IndexFileSize);
-    Console.WriteLine("Timestamp: {0:X}", moduleInfo.IndexTimeStamp);
-    Console.WriteLine("Dac File:  {0}", moduleInfo.FileName);
+    DacInfo dacInfo = version.DacInfo;
+    Console.WriteLine("Filesize:  {0:X}", dacInfo.IndexFileSize);
+    Console.WriteLine("Timestamp: {0:X}", dacInfo.IndexTimeStamp);
+    Console.WriteLine("Dac File:  {0}", dacInfo.PlatformSpecificFileName);
 
     // If we just happen to have the correct dac file installed on the machine,
     // the "LocalMatchingDac" property will return its location on disk:
