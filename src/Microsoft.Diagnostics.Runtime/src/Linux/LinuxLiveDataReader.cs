@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             let props = GetPEImageProperties(filePath)
             select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: default, version: props.Version);
 
-        private static (int Filesize, int Timestamp, VersionInfo Version) GetPEImageProperties(string filePath)
+        private static (int Filesize, int Timestamp, VersionInfo? Version) GetPEImageProperties(string filePath)
         {
             if (File.Exists(filePath))
             {
