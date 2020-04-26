@@ -5,6 +5,7 @@
 using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -55,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             return from module in _minidump.EnumerateModuleInfo()
-                   select new ModuleInfo(module.BaseOfImage, module.SizeOfImage, module.DateTimeStamp, module.ModuleName, isVirtual: true, buildId: default, version: module.VersionInfo.AsVersionInfo());
+                   select new ModuleInfo(module.BaseOfImage, module.SizeOfImage, module.DateTimeStamp, module.ModuleName, isVirtual: true, buildId: ImmutableArray<byte>.Empty, version: module.VersionInfo.AsVersionInfo());
         }
 
         public void FlushCachedData()
@@ -74,6 +75,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             return _minidump.MemoryReader.ReadFromRVA(ctx.ContextRva, context) == context.Length;
         }
+
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
 
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {

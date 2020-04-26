@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -118,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
                 LinuxFunctions.GetVersionInfo(this, (ulong)image.BaseAddress, file, out version);
             }
 
-            return new ModuleInfo((ulong)image.BaseAddress, filesize, timestamp, image.Path, image._containsExecutable, file?.BuildId ?? default, version);
+            return new ModuleInfo((ulong)image.BaseAddress, filesize, timestamp, image.Path, image._containsExecutable, default, version);
         }
 
         public void FlushCachedData()
@@ -141,14 +142,23 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
+        {
+            return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+        }
+
         public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            ElfLoadedImage image = _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress);
-            ElfFile? file = image.Open();
+            ElfFile? file = GetElfFile(baseAddress);
             if (file is null)
                 version = default;
             else
                 LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+        }
+
+        private ElfFile? GetElfFile(ulong baseAddress)
+        {
+            return _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress).Open();
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)

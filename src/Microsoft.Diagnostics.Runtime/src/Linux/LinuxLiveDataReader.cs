@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -133,11 +134,31 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return (0, 0, default);
         }
 
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
+        {
+            return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+        }
+
         public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
+            ElfFile? file = GetElfFile(baseAddress);
+            if (file is null)
+                version = default;
+            else
+                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+        }
+
+        private ElfFile? GetElfFile(ulong baseAddress)
+        {
             MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
-            ElfFile file = new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
-            LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            try
+            {
+                return new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+            }
+            catch (InvalidDataException)
+            {
+                return null;
+            }
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
