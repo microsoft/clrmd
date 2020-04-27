@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Windows;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -17,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed unsafe class WindowsProcessDataReader : IDataReader, IDisposable
     {
         private bool _disposed = false;
+        private readonly WindowsThreadSuspender? _suspension;
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;
         private readonly IntPtr _cloneHandle;
@@ -47,14 +49,9 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _pid = GetProcessId(_cloneHandle);
             }
-            else if (mode == WindowsProcessDataReaderMode.Passive)
-            {
-                _pid = processId;
-            }
             else
             {
-                // todo: Fix before checkin
-                throw new NotImplementedException("Process suspend not yet implemented.");
+                _pid = processId;
             }
 
             _process = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
@@ -75,12 +72,17 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
             }
+
+            if (mode == WindowsProcessDataReaderMode.Suspend)
+                _suspension = new WindowsThreadSuspender(_pid);
         }
 
         private void Dispose(bool _)
         {
             if (!_disposed)
             {
+                _suspension?.Dispose();
+
                 if (_originalPid != 0)
                 {
                     int hr = PssFreeSnapshot(Process.GetCurrentProcess().Handle, _snapshotHandle);
@@ -297,7 +299,13 @@ namespace Microsoft.Diagnostics.Runtime
         private static extern bool GetThreadContext(IntPtr hThread, IntPtr lpContext);
 
         [DllImport(Kernel32LibraryName, SetLastError = true)]
-        private static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
+        internal static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
+        
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
+        internal static extern int SuspendThread(IntPtr hThread);
+
+        [DllImport(Kernel32LibraryName, SetLastError = true)]
+        internal static extern int ResumeThread(IntPtr hThread);
 
         [DllImport(Kernel32LibraryName)]
         private static extern int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, out IntPtr SnapshotHandle);
