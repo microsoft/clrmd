@@ -16,7 +16,8 @@ namespace Microsoft.Diagnostics.Runtime
     {
         /// <summary>
         /// The name of the target.  This should be a meaningful moniker such as the pid of the target
-        /// process or the path to the dump being read.
+        /// process or the path to the dump being read.  This is primarily used when debugging to see
+        /// what DataTarget is inspecting.
         /// </summary>
         string DisplayName { get; }
 
@@ -47,6 +48,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumerable of the modules in the target process.</returns>
         IEnumerable<ModuleInfo> EnumerateModules();
 
+        /// <summary>
+        /// Returns the BuildId of a native Elf file.
+        /// </summary>
+        /// <param name="baseAddress"></param>
+        /// <returns></returns>
         ImmutableArray<byte> GetBuildId(ulong baseAddress);
 
         /// <summary>
