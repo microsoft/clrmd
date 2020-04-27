@@ -115,9 +115,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             let containsExecutable = image.Any(entry => entry.IsExecutable)
             let beginAddress = image.Min(entry => entry.BeginAddress)
             let props = GetPEImageProperties(filePath)
-            select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: default, version: props.Version);
+            select new ModuleInfo(beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
 
-        private static (int Filesize, int Timestamp, VersionInfo? Version) GetPEImageProperties(string filePath)
+        private static (int Filesize, int Timestamp) GetPEImageProperties(string filePath)
         {
             if (File.Exists(filePath))
             {
@@ -125,14 +125,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 {
                     using PEImage pe = new PEImage(File.OpenRead(filePath));
                     if (pe.IsValid)
-                        return (pe.IndexFileSize, pe.IndexTimeStamp, pe.GetFileVersionInfo()?.VersionInfo ?? default);
+                        return (pe.IndexFileSize, pe.IndexTimeStamp);
                 }
                 catch
                 {
                 }
             }
 
-            return (0, 0, default);
+            return (0, 0);
         }
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress) => GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
