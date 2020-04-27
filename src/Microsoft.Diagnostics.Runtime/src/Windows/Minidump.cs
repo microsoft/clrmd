@@ -62,6 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 switch (Architecture)
                 {
+                    case MinidumpProcessorArchitecture.Arm64:
                     case MinidumpProcessorArchitecture.Amd64:
                         return 8;
 
