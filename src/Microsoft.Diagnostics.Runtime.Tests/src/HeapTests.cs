@@ -193,5 +193,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(count >= 1);
             }
         }
+
+
+        [WindowsFact]
+        public void DbgEngHeapEnumeration()
+        {
+            // This is more of a test for DbgEngDataReader than it is a test of heap enumeration.
+            // Heap walking is sufficiently complicated to ensure that we didn't break the very
+            // basics of data reading.
+
+            ClrObject[] expectedObjs = GetObjects(TestTargets.Types);
+            Assert.NotEmpty(expectedObjs);
+
+            using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrObject[] objs = runtime.Heap.EnumerateObjects().ToArray();
+
+            Assert.NotEmpty(objs);
+            Assert.Equal(expectedObjs, objs);
+        }
+
+        public ClrObject[] GetObjects(TestTarget target)
+        {
+            // Simply test that we can enumerate the heap.
+            using DataTarget dt = target.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            return runtime.Heap.EnumerateObjects().ToArray();
+        }
     }
 }

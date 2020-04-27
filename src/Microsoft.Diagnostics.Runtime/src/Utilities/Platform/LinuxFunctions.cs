@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
 #endif
         }
 
-        internal static void GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
+        internal static bool GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
         {
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
@@ -78,29 +78,32 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     long loadAddress = programHeader.VirtualAddress;
                     long loadSize = programHeader.VirtualSize;
-                    GetVersionInfo(dataReader, baseAddress + (ulong)loadAddress, (ulong)loadSize, out version);
-                    return;
+                    return GetVersionInfo(dataReader, baseAddress + (ulong)loadAddress, (ulong)loadSize, out version);
                 }
             }
 
             version = default;
+            return false;
         }
 
-        internal static unsafe void GetVersionInfo(IDataReader dataReader, ulong startAddress, ulong size, out VersionInfo version)
+        internal static unsafe bool GetVersionInfo(IDataReader dataReader, ulong startAddress, ulong size, out VersionInfo version)
         {
             version = default;
 
             // (int)size underflow will result in returning 0 here, so this is acceptable
             ulong address = dataReader.SearchMemory(startAddress, (int)size, s_versionString);
             if (address == 0)
-                return;
+                return false;
 
             Span<byte> bytes = stackalloc byte[64];
             if (dataReader.Read(address + (uint)s_versionString.Length, bytes, out int read))
             {
                 bytes = bytes.Slice(0, read);
                 version = ParseAsciiVersion(bytes);
+                return true;
             }
+
+            return false;
         }
 
         private static VersionInfo ParseAsciiVersion(ReadOnlySpan<byte> span)

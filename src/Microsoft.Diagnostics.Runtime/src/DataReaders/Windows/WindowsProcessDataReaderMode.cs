@@ -4,8 +4,10 @@
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal enum ThreadAccess
+    internal enum WindowsProcessDataReaderMode
     {
-        THREAD_ALL_ACCESS = 0x1F03FF
+        Suspend,
+        Snapshot,
+        Passive
     }
 }

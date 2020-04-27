@@ -14,18 +14,20 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoreDumpReader : IDataReader
+    internal class CoreDumpReader : IDataReader, IDisposable
     {
-        private readonly string _source;
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
 
-        public CoreDumpReader(string path)
+        public string DisplayName { get; }
+        public OSPlatform TargetPlatform => OSPlatform.Linux;
+
+        public CoreDumpReader(string path, Stream stream)
         {
-            _source = path;
-            _stream = File.OpenRead(path);
+            DisplayName = path ?? throw new ArgumentNullException(nameof(path));
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
@@ -57,7 +59,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsThreadSafe => false;
-        public bool IsFullMemoryAvailable => true; // TODO
 
         public void Dispose()
         {
@@ -73,12 +74,6 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return uint.MaxValue;
             }
-        }
-
-        public IEnumerable<uint> EnumerateAllThreads()
-        {
-            InitThreads();
-            return _threads!.Keys;
         }
 
         public IEnumerable<ModuleInfo> EnumerateModules()
@@ -147,13 +142,16 @@ namespace Microsoft.Diagnostics.Runtime
             return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
         }
 
-        public void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             ElfFile? file = GetElfFile(baseAddress);
             if (file is null)
+            {
                 version = default;
-            else
-                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+                return false;
+            }
+
+            return LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)
@@ -209,25 +207,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             value = 0;
-            return false;
-        }
-
-        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
-        {
-            long addr = (long)address;
-            foreach (ElfProgramHeader item in _core.ElfFile.ProgramHeaders)
-            {
-                long start = item.VirtualAddress;
-                long end = start + item.VirtualSize;
-
-                if (start <= addr && addr < end)
-                {
-                    vq = new MemoryRegionInfo((ulong)start, (ulong)item.VirtualSize);
-                    return true;
-                }
-            }
-
-            vq = default;
             return false;
         }
 

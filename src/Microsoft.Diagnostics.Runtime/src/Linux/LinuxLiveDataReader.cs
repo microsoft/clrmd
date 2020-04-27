@@ -19,13 +19,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     /// A data reader that targets a Linux process.
     /// The current process must have ptrace access to the target process.
     /// </summary>
-    internal class LinuxLiveDataReader : IDataReader
+    internal class LinuxLiveDataReader : IDataReader, IDisposable
     {
         private List<MemoryMapEntry> _memoryMapEntries;
         private readonly List<uint> _threadIDs = new List<uint>();
 
         private bool _suspended;
         private bool _disposed;
+
+        public string DisplayName => $"pid:{ProcessId:x}";
+        public OSPlatform TargetPlatform => OSPlatform.Linux;
 
         public LinuxLiveDataReader(int processId, bool suspend)
         {
@@ -67,8 +70,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public uint ProcessId { get; private set; }
 
         public bool IsThreadSafe => false;
-
-        public bool IsFullMemoryAvailable => true;
 
         public void Dispose()
         {
@@ -134,18 +135,20 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return (0, 0, default);
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
-        {
-            return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
-        }
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
 
-        public unsafe void GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             ElfFile? file = GetElfFile(baseAddress);
             if (file is null)
+            {
                 version = default;
+                return false;
+            }
             else
-                LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            {
+                return LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            }
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)
@@ -243,27 +246,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return false;
         }
 
-        public IEnumerable<uint> EnumerateAllThreads()
-        {
-            LoadThreads();
-            return _threadIDs;
-        }
-
-        public bool QueryMemory(ulong address, out MemoryRegionInfo vq)
-        {
-            foreach (var entry in _memoryMapEntries)
-            {
-                if (entry.BeginAddress <= address && entry.EndAddress >= address)
-                {
-                    vq = new MemoryRegionInfo(entry.BeginAddress, entry.EndAddress - entry.BeginAddress);
-                    return true;
-                }
-            }
-
-            vq = default;
-            return false;
-        }
-
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
@@ -308,11 +290,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
 
             return true;
-        }
-
-        internal IEnumerable<string> GetModulesFullPath()
-        {
-            return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct()!;
         }
 
         private void LoadThreads()

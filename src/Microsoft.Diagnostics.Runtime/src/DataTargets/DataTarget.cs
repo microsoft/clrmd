@@ -7,10 +7,11 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -21,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable
     {
-        private IBinaryLocator? _locator;
+        private readonly CustomDataTarget _target;
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
@@ -32,44 +33,45 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IDataReader DataReader { get; }
 
-        public CacheOptions CacheOptions { get; } = new CacheOptions();
+        /// <summary>
+        /// The caching options for ClrMD.  This controls what kinds of memory we cache and what values have to be
+        /// recalculated on every call.
+        /// </summary>
+        public CacheOptions CacheOptions { get; }
 
         /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
-        public IBinaryLocator BinaryLocator
-        {
-            get
-            {
-                if (_locator is null)
-                {
-                    string? symPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
-                    _locator = new Implementation.SymbolServerLocator(symPath);
-                }
-
-                return _locator;
-            }
-
-            set => _locator = value;
-        }
+        public IBinaryLocator? BinaryLocator { get => _target.BinaryLocator; set => _target.BinaryLocator = value; }
 
         /// <summary>
         /// Creates a DataTarget from the given reader.
         /// </summary>
-        /// <param name="reader">The data reader to use.</param>
-        public DataTarget(IDataReader reader)
+        /// <param name="customTarget">The custom data target to use.</param>
+        public DataTarget(CustomDataTarget customTarget)
         {
-            DataReader = reader ?? throw new ArgumentNullException(nameof(reader));
+            _target = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
+            DataReader = _target.DataReader;
+            CacheOptions = _target.CacheOptions ?? new CacheOptions();
 
-            DebugOnlyLoadLazyValues();
+            IBinaryLocator? locator = _target.BinaryLocator;
+            if (locator == null)
+            {
+                if (DataReader.TargetPlatform == OSPlatform.Windows)
+                    locator = new SymbolServerLocator();
+                else if (DataReader.TargetPlatform == OSPlatform.Linux)
+                    locator = new LinuxDefaultSymbolLocator(DataReader);
+                else
+                    throw new PlatformNotSupportedException($"ClrMD only supports the Windows and Linux platforms.  TargetPlatform={DataReader.TargetPlatform}");
+            }
+
+            BinaryLocator = locator;
         }
 
         public void Dispose()
         {
             if (!_disposed)
             {
-                DataReader.Dispose();
-
                 lock (_pefileCache)
                 {
                     foreach (PEImage? img in _pefileCache.Values)
@@ -78,6 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _pefileCache.Clear();
                 }
 
+                _target.Dispose();
                 _disposed = true;
             }
         }
@@ -205,105 +208,126 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules = modules;
         }
 
-        #region Statics
         /// <summary>
         /// Gets a set of helper functions that are consistently implemented across all platforms.
         /// </summary>
         public static PlatformFunctions PlatformFunctions { get; } =
             RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? (PlatformFunctions)new LinuxFunctions() : new WindowsFunctions();
 
-        /// <summary>
-        /// Creates a DataTarget from a crash dump.
-        /// This method is only supported on Windows.
-        /// </summary>
-        /// <param name="path">The path to a crash dump.</param>
-        /// <returns>A DataTarget instance.</returns>
-        /// <exception cref="InvalidDataException">
-        /// The file specified by <paramref name="path"/> is not a crash dump.
-        /// </exception>
-        /// <exception cref="PlatformNotSupportedException">
-        /// The current platform is not Windows.
-        /// </exception>
-        public static DataTarget LoadCrashDump(string path)
-        {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                ThrowPlatformNotSupportedException();
-
-            return new DataTarget(new MinidumpReader(path));
-        }
 
         /// <summary>
-        /// Creates a DataTarget from a coredump.
-        /// This method is only supported on Linux.
+        /// Loads a dump file.  Currently supported formats are ELF coredump and Windows Minidump formats.
         /// </summary>
-        /// <param name="path">The path to a core dump.</param>
-        /// <returns>A DataTarget instance.</returns>
-        /// <exception cref="InvalidDataException">
-        /// The file specified by <paramref name="path"/> is not a coredump.
-        /// </exception>
-        /// <exception cref="PlatformNotSupportedException">
-        /// The current platform is not Linux.
-        /// </exception>
-        public static DataTarget LoadCoreDump(string path)
+        /// <param name="filePath">The path to the dump file.</param>
+        /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
+        public static DataTarget LoadDump(string filePath)
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                ThrowPlatformNotSupportedException();
+            if (filePath is null)
+                throw new ArgumentNullException(nameof(filePath));
+            else if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
 
-            CoreDumpReader reader = new CoreDumpReader(path);
-            return new DataTarget(reader)
+            (Stream? stream, DumpFileFormat format) = OpenDump(filePath);
+            try
             {
-                BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
-            };
+#pragma warning disable CA2000 // Dispose objects before losing scope
+                
+                IDataReader reader = format switch
+                {
+                    DumpFileFormat.Minidump => new MinidumpReader(filePath, stream),
+                    DumpFileFormat.ElfCoredump => new CoreDumpReader(filePath, stream),
+
+                    // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
+                    // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
+                    // (at least with the Win10 system32\dbgeng.dll), so we will support this for now.
+                    DumpFileFormat.Userdump64 => new DbgEngDataReader(filePath, stream),
+                    DumpFileFormat.CompressedArchive => throw new InvalidDataException($"File '{filePath}' is a compressed archived instead of a dump file."),
+                    _ => throw new InvalidDataException($"File '{filePath}' is in an unknown or unsupported file format."),
+                };
+
+                stream = null;
+                return new DataTarget(new CustomDataTarget(reader));
+
+#pragma warning restore CA2000 // Dispose objects before losing scope
+            }
+            finally
+            {
+                stream?.Dispose();
+            }
+        }
+
+        private static (Stream stream, DumpFileFormat format) OpenDump(string path)
+        {
+            Stream? stream = File.OpenRead(path);
+            try
+            {
+                Span<byte> span = stackalloc byte[8];
+                if (stream.Read(span) != span.Length)
+                    throw new InvalidDataException($"Unable to load the header of file '{path}'.");
+
+                uint first = Unsafe.As<byte, uint>(ref span[0]);
+                DumpFileFormat format = first switch
+                {
+                    0x504D444D => DumpFileFormat.Minidump,          // MDMP
+                    0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
+                    0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
+                    0x4643534D => DumpFileFormat.CompressedArchive, // CAB
+                    _ => DumpFileFormat.Unknown,
+                };
+
+                if (format == DumpFileFormat.Unknown)
+                {
+                    if (span[0] == 'B' && span[1] == 'Z')           // BZip2
+                        format = DumpFileFormat.CompressedArchive;
+                    else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
+                        format = DumpFileFormat.CompressedArchive;
+                    else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
+                        format = DumpFileFormat.CompressedArchive;
+                }
+
+                stream.Position = 0;
+                var result = (stream, format);
+                stream = null;
+                return result;
+            }
+            finally
+            {
+                stream?.Dispose();
+            }
         }
 
         /// <summary>
-        /// Passively attaches to a live process.  Note that this method assumes that you have alread suspended
-        /// the target process.  It is unsupported to inspect a running process.
+        /// Attaches to a running process.  Note that if <paramref name="suspend"/> is set to false the user
+        /// of ClrMD is still responsible for suspending the process itself.  ClrMD does NOT support inspecting
+        /// a running process and will produce undefined behavior when attempting to do so.
         /// </summary>
-        /// <param name="processId">The ID of the process to attach to.</param>
-        /// <returns>A DataTarget instance.</returns>
-        public static DataTarget PassiveAttachToProcess(int processId)
+        /// <param name="processId">The ID of the process to attach to.</param> 
+        /// <param name="suspend">Whether or not to suspend the process.</param>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
+        public static DataTarget AttachToProcess(int processId, bool suspend)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader(processId, suspend: false);
-                return new DataTarget(reader)
-                {
-                    BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
-                };
+                CustomDataTarget customTarget = new CustomDataTarget(new LinuxLiveDataReader(processId, suspend: suspend));
+                return new DataTarget(customTarget);
             }
 
-            return new DataTarget(new LiveDataReader(processId, createSnapshot: false));
-        }
-
-        /// <summary>
-        /// Attaches to a live process.
-        /// </summary>
-        /// <param name="processId">The ID of the process to suspend and attach to.</param>
-        /// <returns>A DataTarget instance.</returns>
-        /// <exception cref="ArgumentException">
-        /// The process specified by <paramref name="processId"/> is not running.
-        /// </exception>
-        public static DataTarget SuspendAndAttachToProcess(int processId)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                LinuxLiveDataReader reader = new LinuxLiveDataReader(processId, suspend: true);
-                return new DataTarget(reader)
-                {
-                    BinaryLocator = new LinuxDefaultSymbolLocator(reader.GetModulesFullPath())
-                };
+                WindowsProcessDataReaderMode mode = suspend ? WindowsProcessDataReaderMode.Suspend : WindowsProcessDataReaderMode.Passive;
+                CustomDataTarget customTarget = new CustomDataTarget(new WindowsProcessDataReader(processId, mode));
+                return new DataTarget(customTarget);
             }
 
-            return new DataTarget(new DbgEngDataReader(processId, invasive: false, 5000));
+            throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
         }
 
         /// <summary>
-        /// Attaches to a snapshot process (see https://docs.microsoft.com/windows/win32/api/_proc_snap/).
-        /// This method is only supported on Windows.
+        /// Creates a snapshot of a running process and attaches to it.  This method will pause a running process
+        /// 
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
-        /// <returns>A DataTarget instance.</returns>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
         /// <exception cref="ArgumentException">
         /// The process specified by <paramref name="processId"/> is not running.
         /// </exception>
@@ -312,15 +336,35 @@ namespace Microsoft.Diagnostics.Runtime
         /// </exception>
         public static DataTarget CreateSnapshotAndAttach(int processId)
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                ThrowPlatformNotSupportedException();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                CustomDataTarget customTarget = new CustomDataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
+                return new DataTarget(customTarget);
+            }
 
-            return new DataTarget(new LiveDataReader(processId, createSnapshot: true));
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // todo:  Before checkin use Microsoft.Diagnostics.NETCore.Client to create a local dump file to debug
+            }
+
+            throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
         }
 
-        [DoesNotReturn]
-        private static void ThrowPlatformNotSupportedException() =>
-            throw new PlatformNotSupportedException("This method is not supported on this platform.");
-        #endregion
+        /// <summary>
+        /// Creates a DataTarget from an IDebugClient interface.  This allows callers to interop with the DbgEng debugger
+        /// (cdb.exe, windbg.exe, dbgeng.dll).
+        /// </summary>
+        /// <param name="pDebugClient">An IDebugClient interface.</param>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
+        public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException(GetPlatformMessage(nameof(CreateFromDbgEng), RuntimeInformation.OSDescription));
+
+            CustomDataTarget customTarget = new CustomDataTarget(new DbgEngDataReader(pDebugClient));
+            return new DataTarget(customTarget);
+        }
+
+        private static string GetPlatformMessage(string method, string os) => $"{method} is not supported on {os}.";
     }
 }

@@ -62,6 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 switch (Architecture)
                 {
+                    case MinidumpProcessorArchitecture.Arm64:
                     case MinidumpProcessorArchitecture.Amd64:
                         return 8;
 
@@ -75,13 +76,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public Minidump(string crashDump)
+        public Minidump(string crashDump, Stream stream)
         {
             if (!File.Exists(crashDump))
                 throw new FileNotFoundException(crashDump);
 
             _crashDump = crashDump;
-            FileStream stream = File.Open(crashDump, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             // Load header
             MinidumpHeader header = Read<MinidumpHeader>(stream);
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         #region ReadThreadData
-        private async Task<ImmutableArray<MinidumpContextData>> ReadThreadData(FileStream stream)
+        private async Task<ImmutableArray<MinidumpContextData>> ReadThreadData(Stream stream)
         {
             Dictionary<uint, (uint Rva, uint Size)> threadContextLocations = new Dictionary<uint, (uint Rva, uint Size)>();
 
@@ -345,7 +345,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
         #endregion
 
-        private static async Task<T> ReadAsync<T>(FileStream stream, byte[] buffer, long offset)
+        private static async Task<T> ReadAsync<T>(Stream stream, byte[] buffer, long offset)
             where T : unmanaged
         {
             int size = SizeOf<T>();
@@ -365,14 +365,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private static unsafe int SizeOf<T>() where T : unmanaged => sizeof(T);
 
-        private static T Read<T>(FileStream stream, long offset)
+        private static T Read<T>(Stream stream, long offset)
             where T : unmanaged
         {
             stream.Position = offset;
             return Read<T>(stream);
         }
 
-        private static unsafe T Read<T>(FileStream stream)
+        private static unsafe T Read<T>(Stream stream)
             where T: unmanaged
         {
             int size = sizeof(T);
@@ -385,14 +385,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return Unsafe.As<byte, T>(ref buffer[0]);
         }
 
-        private static bool Read<T>(FileStream stream, long offset, T[] array)
+        private static bool Read<T>(Stream stream, long offset, T[] array)
             where T : unmanaged
         {
             stream.Position = offset;
             return Read(stream, array);
         }
 
-        private static unsafe bool Read<T>(FileStream stream, T[] array)
+        private static unsafe bool Read<T>(Stream stream, T[] array)
             where T : unmanaged
         {
             Span<byte> buffer = MemoryMarshal.AsBytes(new Span<T>(array));

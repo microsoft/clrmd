@@ -131,8 +131,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_version.HasValue)
                     return _version.Value;
 
-                DataTarget.DataReader.GetVersionInfo(ImageBase, out VersionInfo version);
-                _version = version;
+                _version = DataTarget.DataReader.GetVersionInfo(ImageBase, out VersionInfo version) ? version : default;
                 return version;
             }
         }

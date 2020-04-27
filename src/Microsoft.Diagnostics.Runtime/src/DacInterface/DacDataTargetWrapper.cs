@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         return HResult.E_NOTIMPL;
                     }
 
-                    filePath = _dataTarget.BinaryLocator.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
+                    filePath = _dataTarget.BinaryLocator?.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
                 }
 
                 if (filePath is null)
@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (buffer == IntPtr.Zero)
                 return HResult.E_INVALIDARG;
 
-            string? filePath = _dataTarget.BinaryLocator.FindBinary(fileName, imageTimestamp, imageSize, true);
+            string? filePath = _dataTarget.BinaryLocator?.FindBinary(fileName, imageTimestamp, imageSize, true);
             if (filePath is null)
                 return HResult.E_FAIL;
 
