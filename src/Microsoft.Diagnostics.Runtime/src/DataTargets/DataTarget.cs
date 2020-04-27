@@ -265,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (stream.Read(span) != span.Length)
                     throw new InvalidDataException($"Unable to load the header of file '{path}'.");
 
-                // todo:  Check for zip, gz, bz2 headers to return "CompressedArchive" for a more meaningful message
+                // todo:  Check for zip, gz, bz2, cab headers to return "CompressedArchive" for a more meaningful message
                 uint first = Unsafe.As<byte, uint>(ref span[0]);
                 DumpFileFormat format = first switch
                 {
