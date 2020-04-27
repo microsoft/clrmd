@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -13,6 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public sealed class ClrmdModule : ClrModule
     {
+        private const int mdtTypeDef = 0x02000000;
+        private const int mdtTypeRef = 0x01000000;
+
         private readonly IModuleHelpers _helpers;
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
@@ -114,7 +118,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (int)DebuggableAttribute.DebuggingModes.None;
         }
 
-        public override IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _helpers.GetSortedTypeDefMap(this);
+        public override IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap()
+        {
+            _typeDefMap ??= _helpers.GetSortedTypeDefMap(this);
+            return _typeDefMap.Select(t => (t.MethodTable, t.Token | mdtTypeDef));
+        }
 
         public override ClrType? GetTypeByName(string name)
         {
@@ -157,9 +165,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return null;
 
             (ulong MethodTable, int Token)[] map;
-            if ((typeDefOrRefToken & 0x02000000) != 0)
+            if ((typeDefOrRefToken & mdtTypeDef) != 0)
                 map = _typeDefMap ??= _helpers.GetSortedTypeDefMap(this);
-            else if ((typeDefOrRefToken & 0x01000000) != 0)
+            else if ((typeDefOrRefToken & mdtTypeRef) != 0)
                 map = _typeRefMap ??= _helpers.GetSortedTypeRefMap(this);
             else
                 throw new NotSupportedException($"ResolveToken does not support this token type: {typeDefOrRefToken:x}");
