@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable
     {
-        private readonly CustomDataTarget _reader;
+        private readonly CustomDataTarget _target;
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
-        public IBinaryLocator? BinaryLocator { get => _reader.BinaryLocator; set => _reader.BinaryLocator = value; }
+        public IBinaryLocator? BinaryLocator { get => _target.BinaryLocator; set => _target.BinaryLocator = value; }
 
         /// <summary>
         /// Creates a DataTarget from the given reader.
@@ -50,11 +50,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="customTarget">The custom data target to use.</param>
         public DataTarget(CustomDataTarget customTarget)
         {
-            _reader = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
-            DataReader = _reader.DataReader;
-            CacheOptions = _reader.CacheOptions ?? new CacheOptions();
+            _target = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
+            DataReader = _target.DataReader;
+            CacheOptions = _target.CacheOptions ?? new CacheOptions();
 
-            IBinaryLocator? locator = _reader.BinaryLocator;
+            IBinaryLocator? locator = _target.BinaryLocator;
             if (locator == null)
             {
                 if (DataReader.TargetPlatform == OSPlatform.Windows)
@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _pefileCache.Clear();
                 }
 
-                _reader.Dispose();
+                _target.Dispose();
                 _disposed = true;
             }
         }
