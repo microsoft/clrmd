@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interop;
 using Microsoft.Diagnostics.Runtime.Windows;
 using Xunit;
 
@@ -118,5 +119,33 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, true));
+
+        public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
+        {
+            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+            int hr = DebugCreate(guid, out IntPtr pDebugClient);
+            if (hr != 0)
+                throw new Exception($"Failed to create DebugClient, hr={hr:x}.");
+
+            IDebugClient client = (IDebugClient)Marshal.GetTypedObjectForIUnknown(pDebugClient, typeof(IDebugClient));
+            IDebugControl control = (IDebugControl)client;
+
+            string dumpPath = BuildDumpName(gc, true);
+            hr = client.OpenDumpFile(dumpPath);
+            if (hr != 0)
+                throw new Exception($"Failed to OpenDumpFile, hr={hr:x}.");
+
+            hr = control.WaitForEvent(DEBUG_WAIT.DEFAULT, 10000);
+
+            if (hr != 0)
+                throw new Exception($"Failed to attach to dump file, hr={hr:x}.");
+
+            Marshal.Release(pDebugClient);
+            return DataTarget.CreateFromDbgEng(pDebugClient);
+        }
+
+
+        [DllImport("dbgeng.dll")]
+        private static extern int DebugCreate(in Guid InterfaceId, out IntPtr pDebugClient);
     }
 }

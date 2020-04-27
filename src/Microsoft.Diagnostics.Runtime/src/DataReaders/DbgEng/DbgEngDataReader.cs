@@ -20,7 +20,6 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed class DbgEngDataReader : IDisposable, IDataReader
     {
         private static int s_totalInstanceCount;
-        private static bool s_needRelease = true; // todo
 
         private DebugClient _client = null!;
         private DebugControl _control = null!;
@@ -48,6 +47,16 @@ namespace Microsoft.Diagnostics.Runtime
             : this(dumpFile)
         {
             stream?.Dispose();
+        }
+
+        public DbgEngDataReader(IntPtr pDebugClient)
+        {
+            if (pDebugClient == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(pDebugClient));
+
+            DisplayName = $"DbgEng, IDebugClient={pDebugClient.ToInt64():x}";
+            CreateClient(pDebugClient);
+            _systemObjects.Init();
         }
 
         public DbgEngDataReader(string dumpFile)
@@ -346,16 +355,11 @@ namespace Microsoft.Diagnostics.Runtime
             _disposed = true;
 
             int count = Interlocked.Decrement(ref s_totalInstanceCount);
-            if (count == 0 && s_needRelease && disposing)
+            if (count == 0 && disposing)
             {
                 _client.EndSession(DebugEnd.ActiveDetach);
                 _client.DetachProcesses();
             }
-
-            // If there are no more debug instances, we can safely reset this variable
-            // and start releasing newly created IDebug objects.
-            if (count == 0)
-                s_needRelease = true;
         }
     }
 }

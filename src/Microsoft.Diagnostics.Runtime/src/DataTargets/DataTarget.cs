@@ -47,10 +47,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Creates a DataTarget from the given reader.
         /// </summary>
-        /// <param name="reader">The data reader to use.</param>
-        public DataTarget(CustomDataTarget reader)
+        /// <param name="customTarget">The custom data target to use.</param>
+        public DataTarget(CustomDataTarget customTarget)
         {
-            _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+            _reader = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
             DataReader = _reader.DataReader;
             CacheOptions = _reader.CacheOptions ?? new CacheOptions();
 
@@ -303,20 +303,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param> 
         /// <param name="suspend">Whether or not to suspend the process.</param>
-        /// <returns>A DataTarget instance.</returns>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
         public static DataTarget AttachToProcess(int processId, bool suspend)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                CustomDataTarget reader = new CustomDataTarget(new LinuxLiveDataReader(processId, suspend: suspend));
-                return new DataTarget(reader);
+                CustomDataTarget customTarget = new CustomDataTarget(new LinuxLiveDataReader(processId, suspend: suspend));
+                return new DataTarget(customTarget);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 WindowsProcessDataReaderMode mode = suspend ? WindowsProcessDataReaderMode.Suspend : WindowsProcessDataReaderMode.Passive;
-                CustomDataTarget reader = new CustomDataTarget(new WindowsProcessDataReader(processId, mode));
-                return new DataTarget(reader);
+                CustomDataTarget customTarget = new CustomDataTarget(new WindowsProcessDataReader(processId, mode));
+                return new DataTarget(customTarget);
             }
 
             throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
@@ -327,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// 
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
-        /// <returns>A DataTarget instance.</returns>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
         /// <exception cref="ArgumentException">
         /// The process specified by <paramref name="processId"/> is not running.
         /// </exception>
@@ -338,8 +338,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                CustomDataTarget reader = new CustomDataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
-                return new DataTarget(reader);
+                CustomDataTarget customTarget = new CustomDataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
+                return new DataTarget(customTarget);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -348,6 +348,21 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
+        }
+
+        /// <summary>
+        /// Creates a DataTarget from an IDebugClient interface.  This allows callers to interop with the DbgEng debugger
+        /// (cdb.exe, windbg.exe, dbgeng.dll).
+        /// </summary>
+        /// <param name="pDebugClient">An IDebugClient interface.</param>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
+        public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException(GetPlatformMessage(nameof(CreateFromDbgEng), RuntimeInformation.OSDescription));
+
+            CustomDataTarget customTarget = new CustomDataTarget(new DbgEngDataReader(pDebugClient));
+            return new DataTarget(customTarget);
         }
 
         private static string GetPlatformMessage(string method, string os) => $"{method} is not supported on {os}.";
