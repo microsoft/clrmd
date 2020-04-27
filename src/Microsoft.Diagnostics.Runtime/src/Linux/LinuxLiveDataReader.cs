@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -116,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             let props = GetPEImageProperties(filePath)
             select new ModuleInfo(beginAddress, props.Filesize, props.Timestamp, filePath, containsExecutable, buildId: default, version: props.Version);
 
-        private static (int Filesize, int Timestamp, VersionInfo Version) GetPEImageProperties(string filePath)
+        private static (int Filesize, int Timestamp, VersionInfo? Version) GetPEImageProperties(string filePath)
         {
             if (File.Exists(filePath))
             {
@@ -134,11 +135,33 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return (0, 0, default);
         }
 
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+
         public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
+            ElfFile? file = GetElfFile(baseAddress);
+            if (file is null)
+            {
+                version = default;
+                return false;
+            }
+            else
+            {
+                return LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            }
+        }
+
+        private ElfFile? GetElfFile(ulong baseAddress)
+        {
             MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
-            ElfFile file = new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
-            return LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            try
+            {
+                return new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+            }
+            catch (InvalidDataException)
+            {
+                return null;
+            }
         }
 
         public bool Read(ulong address, Span<byte> buffer, out int bytesRead)

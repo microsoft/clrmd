@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -148,12 +149,14 @@ namespace Microsoft.Diagnostics.Runtime
                 GetFileProperties(baseAddr, out int filesize, out int timestamp);
 
                 string fileName = sb.ToString();
-                ModuleInfo module = new ModuleInfo(baseAddr, filesize, timestamp, fileName, isVirtual: true);
+                ModuleInfo module = new ModuleInfo(baseAddr, filesize, timestamp, fileName, isVirtual: true, buildId: ImmutableArray<byte>.Empty);
                 result.Add(module);
             }
 
             return result;
         }
+
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
 
         public bool GetVersionInfo(ulong addr, out VersionInfo version)
         {

@@ -104,5 +104,44 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(module.IsDynamic || module.Size > 0);
             }
         }
+
+        [Fact]
+        public void TestTypeMapRoundTrip()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            int badTypes = 0;
+            foreach (ClrModule module in runtime.EnumerateModules())
+            {
+                foreach ((ulong mt, int token) in module.EnumerateTypeDefToMethodTableMap())
+                {
+                    Assert.NotEqual(0, token);
+                    Assert.True((token & 0x02000000) == 0x02000000);
+
+                    ClrType type = runtime.GetTypeByMethodTable(mt);
+                    if (type == null)
+                    {
+                        // We really want to Assert.NotNull(type), but it turns out that one type
+                        // (System.Runtime.Remoting.Proxies.__TransparentProxy) cannot be constructed because
+                        // GetMethodTableData returns null for it.  This is an issue with the dac so we'll
+                        // simply count types that are null and assert there's only one
+
+                        badTypes++;
+
+                        continue;
+                    }
+
+                    Assert.NotNull(type);
+
+                    ClrType typeFromToken = module.ResolveToken(token);
+                    Assert.NotNull(typeFromToken);
+
+                    Assert.Same(type, typeFromToken);
+                }
+            }
+
+            Assert.True(badTypes <= 1);
+        }
     }
 }

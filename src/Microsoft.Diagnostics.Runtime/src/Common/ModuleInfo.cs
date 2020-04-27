@@ -13,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ModuleInfo
     {
         private bool? _isManaged;
+        private ImmutableArray<byte> _buildId;
         private VersionInfo? _version;
         private readonly bool _isVirtual;
 
@@ -65,7 +66,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the Linux BuildId of this module.  This will be <see langword="null"/> if the module does not have a BuildId.
         /// </summary>
-        public ImmutableArray<byte> BuildId { get; }
+        public ImmutableArray<byte> BuildId
+        {
+            get
+            {
+                if (_buildId.IsDefault)
+                {
+                    return _buildId = DataTarget.DataReader.GetBuildId(ImageBase);
+                }
+
+                return _buildId;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether the module is managed.
@@ -142,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime
             IndexTimeStamp = timestamp;
             FileName = fileName;
             _isVirtual = isVirtual;
-            BuildId = buildId;
+            _buildId = buildId;
             _version = version;
         }
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.

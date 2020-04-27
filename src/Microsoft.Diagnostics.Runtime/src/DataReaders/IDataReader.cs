@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -45,6 +46,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>An enumerable of the modules in the target process.</returns>
         IEnumerable<ModuleInfo> EnumerateModules();
+
+        ImmutableArray<byte> GetBuildId(ulong baseAddress);
 
         /// <summary>
         /// Gets the version information for a given module (given by the base address of the module).

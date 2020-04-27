@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -211,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0; i < bases.Length; ++i)
                 {
                     string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
-                    ModuleInfo info = new ModuleInfo(bases[i], mods[i].Size, mods[i].TimeDateStamp, fn, isVirtual: true);
+                    ModuleInfo info = new ModuleInfo(bases[i], mods[i].Size, mods[i].TimeDateStamp, fn, isVirtual: true, buildId: ImmutableArray<byte>.Empty);
                     modules.Add(info);
                 }
             }
@@ -292,6 +293,8 @@ namespace Microsoft.Diagnostics.Runtime
             value = 0;
             return false;
         }
+
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
 
         public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {

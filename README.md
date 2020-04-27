@@ -1,6 +1,7 @@
 # Microsoft.Diagnostics.Runtime
 
-[![ClrMD version](https://img.shields.io/nuget/v/Microsoft.Diagnostics.Runtime.svg)](https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/)
+[![ClrMD release](https://img.shields.io/nuget/v/Microsoft.Diagnostics.Runtime)](https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/)
+[![ClrMD pre-release](https://img.shields.io/nuget/vpre/Microsoft.Diagnostics.Runtime)](https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/)
 
 | |Debug|Release|
 |-|:-:|:-:|
