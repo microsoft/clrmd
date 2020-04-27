@@ -11,31 +11,40 @@ namespace Microsoft.Diagnostics.Runtime
     /// Note that this class will be kept alive by <see cref="DataTarget"/> until <see cref="DataTarget.Dispose"/>
     /// is called.
     /// </summary>
-    public abstract class CustomDataReader : IDisposable
+    public class CustomDataTarget : IDisposable
     {
         /// <summary>
         /// The data reader that ClrMD will use to read data from the target.
         /// </summary>
-        public abstract IDataReader DataReader { get; }
+        public IDataReader DataReader { get; set; }
 
         /// <summary>
         ///  An optional set of cache options.  Returning null from this propery will use ClrMD's default
         ///  cache options.
         /// </summary>
-        public abstract CacheOptions? CacheOptions { get; }
+        public CacheOptions? CacheOptions { get; set; }
 
         /// <summary>
         /// An optional binary locator.  Returning null from this property will use ClrMD's default binary
         /// locator, which uses either <see cref="DefaultSymbolPath"/> (if non null) or the _NT_SYMBOL_PATH (if
         /// <see cref="DefaultSymbolPath"/> is null) environment variable to search for missing binaries.
         /// </summary>
-        public abstract IBinaryLocator? BinaryLocator { get; }
+        public IBinaryLocator? BinaryLocator { get; set; }
 
         /// <summary>
         /// If <see cref="BinaryLocator"/> is null, this path will be used as the symbol path for the default
         /// binary locator.  This property has no effect if <see cref="BinaryLocator"/> is non-null.
         /// </summary>
-        public abstract string? DefaultSymbolPath { get; }
+        public string? DefaultSymbolPath { get; set; }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="reader">A non-null IDataReader.</param>
+        public CustomDataTarget(IDataReader reader)
+        {
+            DataReader = reader ?? throw new ArgumentNullException(nameof(reader));
+        }
 
         /// <summary>
         /// Dispose method.  Called when <see cref="DataTarget.Dispose"/> is called.
@@ -46,9 +55,21 @@ namespace Microsoft.Diagnostics.Runtime
             GC.SuppressFinalize(this);
         }
 
-        ~CustomDataReader() => Dispose(disposing: false);
+        ~CustomDataTarget() => Dispose(disposing: false);
 
-        protected abstract void Dispose(bool disposing);
+        /// <summary>
+        /// Dispose implementation.  The default implementation will call Dispose() on DataReader if
+        /// it implements IDisposable.
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (DataReader is IDisposable disposable)
+                    disposable.Dispose();
+            }
+        }
 
         public override string ToString() => DataReader?.DisplayName ?? GetType().Name;
     }

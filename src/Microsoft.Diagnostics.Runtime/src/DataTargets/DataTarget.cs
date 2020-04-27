@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable
     {
-        private readonly CustomDataReader _reader;
+        private readonly CustomDataTarget _reader;
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a DataTarget from the given reader.
         /// </summary>
         /// <param name="reader">The data reader to use.</param>
-        public DataTarget(CustomDataReader reader)
+        public DataTarget(CustomDataTarget reader)
         {
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
             DataReader = _reader.DataReader;
@@ -246,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime
                 };
 
                 stream = null;
-                return new DataTarget(new DefaultDataReader(reader));
+                return new DataTarget(new CustomDataTarget(reader));
 
 #pragma warning restore CA2000 // Dispose objects before losing scope
             }
@@ -265,16 +265,25 @@ namespace Microsoft.Diagnostics.Runtime
                 if (stream.Read(span) != span.Length)
                     throw new InvalidDataException($"Unable to load the header of file '{path}'.");
 
-                // todo:  Check for zip, gz, bz2, cab headers to return "CompressedArchive" for a more meaningful message
                 uint first = Unsafe.As<byte, uint>(ref span[0]);
                 DumpFileFormat format = first switch
                 {
-                    0x504D444D => DumpFileFormat.Minidump,
-                    0x464c457f => DumpFileFormat.ElfCoredump,
-                    0x52455355 => DumpFileFormat.Userdump64,
+                    0x504D444D => DumpFileFormat.Minidump,          // MDMP
+                    0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
+                    0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
+                    0x4643534D => DumpFileFormat.CompressedArchive, // CAB
                     _ => DumpFileFormat.Unknown,
-
                 };
+
+                if (format == DumpFileFormat.Unknown)
+                {
+                    if (span[0] == 'B' && span[1] == 'Z')           // BZip2
+                        format = DumpFileFormat.CompressedArchive;
+                    else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
+                        format = DumpFileFormat.CompressedArchive;
+                    else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
+                        format = DumpFileFormat.CompressedArchive;
+                }
 
                 stream.Position = 0;
                 var result = (stream, format);
@@ -299,14 +308,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                DefaultDataReader reader = new DefaultDataReader(new LinuxLiveDataReader(processId, suspend: suspend));
+                CustomDataTarget reader = new CustomDataTarget(new LinuxLiveDataReader(processId, suspend: suspend));
                 return new DataTarget(reader);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 WindowsProcessDataReaderMode mode = suspend ? WindowsProcessDataReaderMode.Suspend : WindowsProcessDataReaderMode.Passive;
-                DefaultDataReader reader = new DefaultDataReader(new WindowsProcessDataReader(processId, mode));
+                CustomDataTarget reader = new CustomDataTarget(new WindowsProcessDataReader(processId, mode));
                 return new DataTarget(reader);
             }
 
@@ -329,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                DefaultDataReader reader = new DefaultDataReader(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
+                CustomDataTarget reader = new CustomDataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
                 return new DataTarget(reader);
             }
 
