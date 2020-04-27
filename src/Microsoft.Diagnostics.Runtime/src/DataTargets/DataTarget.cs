@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
-        public IBinaryLocator? BinaryLocator { get; set; }
+        public IBinaryLocator? BinaryLocator { get => _reader.BinaryLocator; set => _reader.BinaryLocator = value; }
 
         /// <summary>
         /// Creates a DataTarget from the given reader.
