@@ -343,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                // todo:  Before checkin use Microsoft.Diagnostics.NETCore.Client to create a local dump file to debug
+                return new DataTarget(LinuxSnapshotTarget.CreateSnapshotFromProcess(processId));
             }
 
             throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
