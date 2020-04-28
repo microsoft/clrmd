@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0; i < bases.Length; ++i)
                 {
                     string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
-                    ModuleInfo info = new ModuleInfo(bases[i], mods[i].Size, mods[i].TimeDateStamp, fn, isVirtual: true, buildId: ImmutableArray<byte>.Empty);
+                    ModuleInfo info = new ModuleInfo(bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, ImmutableArray<byte>.Empty);
                     modules.Add(info);
                 }
             }

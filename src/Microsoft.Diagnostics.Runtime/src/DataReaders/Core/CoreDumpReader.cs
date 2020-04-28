@@ -98,8 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ElfFile? file = image.Open();
 
-            VersionInfo version;
-            int filesize = (int)image.Size;
+            int filesize = 0;
             int timestamp = 0;
 
             if (file is null)
@@ -107,14 +106,10 @@ namespace Microsoft.Diagnostics.Runtime
                 using PEImage pe = image.OpenAsPEImage();
                 filesize = pe.IndexFileSize;
                 timestamp = pe.IndexTimeStamp;
-                version = pe.GetFileVersionInfo()?.VersionInfo ?? default;
-            }
-            else
-            {
-                LinuxFunctions.GetVersionInfo(this, (ulong)image.BaseAddress, file, out version);
             }
 
-            return new ModuleInfo((ulong)image.BaseAddress, filesize, timestamp, image.Path, image._containsExecutable, default, version);
+            // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
+            return new ModuleInfo((ulong)image.BaseAddress, image.Path, image._containsExecutable, filesize, timestamp, buildId: default);
         }
 
         public void FlushCachedData()

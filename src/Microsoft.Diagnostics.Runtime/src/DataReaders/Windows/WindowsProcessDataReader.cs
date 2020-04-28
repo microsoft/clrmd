@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
                 GetFileProperties(baseAddr, out int filesize, out int timestamp);
 
                 string fileName = sb.ToString();
-                ModuleInfo module = new ModuleInfo(baseAddr, filesize, timestamp, fileName, isVirtual: true, buildId: ImmutableArray<byte>.Empty);
+                ModuleInfo module = new ModuleInfo(baseAddr, fileName, true, filesize, timestamp, ImmutableArray<byte>.Empty);
                 result.Add(module);
             }
 
