@@ -286,13 +286,12 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 stream.Position = 0;
-                var result = (stream, format);
-                stream = null;
-                return result;
+                return (stream, format);
             }
-            finally
+            catch
             {
-                stream?.Dispose();
+                stream.Dispose();
+                throw;
             }
         }
 
