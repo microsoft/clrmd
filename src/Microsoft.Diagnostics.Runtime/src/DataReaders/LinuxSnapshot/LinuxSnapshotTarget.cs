@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
-                LinuxSnapshotTarget result = new LinuxSnapshotTarget(new MinidumpReader(dumpPath), pid, dumpPath);
+                LinuxSnapshotTarget result = new LinuxSnapshotTarget(new CoreDumpReader(dumpPath, File.OpenRead(dumpPath)), pid, dumpPath);
                 dumpPath = null;
                 return result;
 #pragma warning restore CA2000 // Dispose objects before losing scope
