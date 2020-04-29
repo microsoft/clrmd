@@ -58,11 +58,18 @@ namespace Microsoft.Diagnostics.Runtime
             if (locator == null)
             {
                 if (DataReader.TargetPlatform == OSPlatform.Windows)
-                    locator = new SymbolServerLocator();
+                {
+                    string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "http://msdl.microsoft.com/download/symbols";
+                    locator = new SymbolServerLocator(sympath);
+                }
                 else if (DataReader.TargetPlatform == OSPlatform.Linux)
+                {
                     locator = new LinuxDefaultSymbolLocator(DataReader);
+                }
                 else
+                {
                     throw new PlatformNotSupportedException($"ClrMD only supports the Windows and Linux platforms.  TargetPlatform={DataReader.TargetPlatform}");
+                }
             }
 
             BinaryLocator = locator;
