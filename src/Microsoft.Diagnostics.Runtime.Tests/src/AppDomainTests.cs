@@ -43,13 +43,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private void AssertModuleDoesntContainDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
             foreach (ClrAppDomain domain in domainList)
-                Assert.DoesNotContain(domain.Modules, m => m.FileName == module.FileName);
+                Assert.DoesNotContain(domain.Modules, m => m.Name == module.Name);
         }
 
         private void AssertModuleContainsDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
             foreach (ClrAppDomain domain in domainList)
-                Assert.Contains(domain.Modules, m => m.FileName == module.FileName);
+                Assert.Contains(domain.Modules, m => m.Name == module.Name);
         }
 
         [FrameworkFact]
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Single(sharedDomain.Modules);
 
                 ClrModule mscorlib = sharedDomain.Modules.Single();
-                Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.FileName), true);
+                Assert.Equal("mscorlib.dll", Path.GetFileName(mscorlib.Name), true);
             }
         }
 
@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(nestedExceptionModules.ContainsKey("appdomains.exe"));
 
             // Ensure that we use the same ClrModule in each AppDomain.
-            Assert.Equal(appDomainsModules["mscorlib.dll"].FileName, nestedExceptionModules["mscorlib.dll"].FileName);
+            Assert.Equal(appDomainsModules["mscorlib.dll"].Name, nestedExceptionModules["mscorlib.dll"].Name);
             Assert.NotEqual(appDomainsModules["sharedlibrary.dll"], nestedExceptionModules["sharedlibrary.dll"]);
         }
 
@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             Dictionary<string, ClrModule> result = new Dictionary<string, ClrModule>(StringComparer.OrdinalIgnoreCase);
             foreach (ClrModule module in domain.Modules)
-                result.Add(Path.GetFileName(module.FileName), module);
+                result.Add(Path.GetFileName(module.Name), module);
 
             return result;
         }

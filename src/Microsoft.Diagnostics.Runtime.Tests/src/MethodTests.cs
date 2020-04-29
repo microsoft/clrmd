@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-                ClrType[] types = runtime.EnumerateModules().Where(m => m.FileName.EndsWith("sharedlibrary.dll", System.StringComparison.OrdinalIgnoreCase)).Select(m => m.GetTypeByName("Foo")).Where(t => t != null).ToArray();
+                ClrType[] types = runtime.EnumerateModules().Where(m => m.Name.EndsWith("sharedlibrary.dll", System.StringComparison.OrdinalIgnoreCase)).Select(m => m.GetTypeByName("Foo")).Where(t => t != null).ToArray();
 
                 Assert.Equal(2, types.Length);
                 methodDescs = types.Select(t => t.Methods.Single(m => m.Name == "Bar")).Select(m => m.MethodDesc).ToArray();

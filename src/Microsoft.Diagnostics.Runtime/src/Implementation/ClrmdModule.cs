@@ -36,7 +36,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MetadataAddress { get; }
         public override ulong MetadataLength { get; }
         public override bool IsDynamic { get; }
-        public override string? FileName => IsPEFile ? Name : null;
         public override MetadataImport? MetadataImport => _metadata ??= _helpers.GetMetadataImport(this);
 
         public ClrmdModule(ClrAppDomain parent, IModuleData data)

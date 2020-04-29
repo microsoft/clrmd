@@ -58,10 +58,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 HashSet<ClrModule> modules = new HashSet<ClrModule>();
                 foreach (ClrModule module in domain.Modules)
                 {
-                    if (Path.GetExtension(module.FileName) == ".nlp")
+                    if (Path.GetExtension(module.Name) == ".nlp")
                         continue;
 
-                    Assert.Contains(Path.GetFileName(module.FileName), expected);
+                    Assert.Contains(Path.GetFileName(module.Name), expected);
                     Assert.DoesNotContain(module, modules);
                     modules.Add(module);
                 }
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (var module in oldModules)
             {
                 _ = module.Name;
-                _ = module.FileName;
+                _ = module.Name;
                 _ = module.AssemblyName;
             }
 
@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             CheckDomainNotSame(oldModule.AppDomain, newModule.AppDomain);
 
-            AssertEqualNotSame(oldModule.FileName, newModule.FileName);
+            AssertEqualNotSame(oldModule.Name, newModule.Name);
             AssertEqualNotSame(oldModule.AssemblyName, newModule.AssemblyName);
         }
 

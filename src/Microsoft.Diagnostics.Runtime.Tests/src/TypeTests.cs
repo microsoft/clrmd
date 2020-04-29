@@ -206,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotSame(types[0], types[1]);
 
             ClrType[] typesFromModule = (from module in runtime.EnumerateModules()
-                                         let name = Path.GetFileNameWithoutExtension(module.FileName)
+                                         let name = Path.GetFileNameWithoutExtension(module.Name)
                                          where name.Equals("sharedlibrary", StringComparison.OrdinalIgnoreCase)
                                          let type = module.GetTypeByName(TypeName)
                                          select type).ToArray();
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             runtime.FlushCachedData();
 
             ClrType[] newTypes = (from module in runtime.EnumerateModules()
-                                  let name = Path.GetFileNameWithoutExtension(module.FileName)
+                                  let name = Path.GetFileNameWithoutExtension(module.Name)
                                   where name.Equals("sharedlibrary", StringComparison.OrdinalIgnoreCase)
                                   let type = module.GetTypeByName(TypeName)
                                   select type).ToArray();
