@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdConstructedType : ClrType
+    public sealed class ClrmdConstructedType : ClrType
     {
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;

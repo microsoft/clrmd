@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-    public class RegisterAttribute : Attribute
+    public sealed class RegisterAttribute : Attribute
     {
         /// <summary>
         /// Gets or sets optional name override

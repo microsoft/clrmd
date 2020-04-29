@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdPrimitiveType : ClrType
+    public sealed class ClrmdPrimitiveType : ClrType
     {
         public ClrmdPrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {

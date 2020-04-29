@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// An entry in the resource table.
     /// </summary>
-    public class ResourceEntry
+    public sealed class ResourceEntry
     {
         private ImmutableArray<ResourceEntry> _children;
         private readonly int _offset;

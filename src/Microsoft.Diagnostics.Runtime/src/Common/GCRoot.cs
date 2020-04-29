@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
     /// </summary>
-    public class GCRoot
+    public sealed class GCRoot
     {
         private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
 

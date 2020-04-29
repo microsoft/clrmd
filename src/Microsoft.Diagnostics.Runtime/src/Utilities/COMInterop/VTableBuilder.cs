@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// Builds an individual VTable for a COM object.
     /// </summary>
-    public unsafe class VTableBuilder
+    public sealed unsafe class VTableBuilder
     {
         private readonly Guid _guid;
         private readonly COMCallableIUnknown _wrapper;

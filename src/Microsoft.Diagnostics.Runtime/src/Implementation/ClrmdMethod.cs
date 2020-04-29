@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdMethod : ClrMethod
+    public sealed class ClrmdMethod : ClrMethod
     {
         private readonly IMethodHelpers _helpers;
         private string? _signature;
