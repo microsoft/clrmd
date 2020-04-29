@@ -37,6 +37,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
+        public string? GetName()
+        {
+            InitDelegate(ref _getName, VTable.GetName);
+
+            HResult hr = _getName(Self, 0, out int nameLength, null);
+            if (!hr)
+                return null;
+
+            string name = new string('\0', nameLength);
+            fixed (char* namePtr = name)
+                hr = _getName(Self, nameLength, out _, namePtr);
+
+            return !hr ? null : name;
+        }
+
+        private GetNameDelegate? _getName;
+        private delegate HResult GetNameDelegate(IntPtr self, int bufLen, out int nameLen, char* name);
+
         private RequestDelegate? _request;
         private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
 
@@ -69,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             private readonly IntPtr StartEnumDataByName;
             private readonly IntPtr EnumDataByName;
             private readonly IntPtr EndEnumDataByName;
-            private readonly IntPtr GetName;
+            public readonly IntPtr GetName;
             private readonly IntPtr GetFileName;
             private readonly IntPtr GetFlags;
             private readonly IntPtr IsSameObject;
