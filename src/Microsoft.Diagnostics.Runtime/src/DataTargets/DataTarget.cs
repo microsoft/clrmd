@@ -151,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime
             ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
-                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var platform))
+                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out OSPlatform platform))
                     continue;
 
                 string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
                 string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName)!, dacFileName);
 
-                if (platform == Platform.Linux)
+                if (platform == OSPlatform.Linux)
                 {
                     if (File.Exists(dacLocation))
                     {

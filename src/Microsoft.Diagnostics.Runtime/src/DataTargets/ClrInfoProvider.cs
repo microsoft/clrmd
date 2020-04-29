@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -43,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="flavor">CLR flavor.</param>
         /// <param name="platform">Platform.</param>
         /// <returns>true if module corresponds to a supported runtime.</returns>
-        public static bool IsSupportedRuntime(ModuleInfo moduleInfo, out ClrFlavor flavor, out Platform platform)
+        public static bool IsSupportedRuntime(ModuleInfo moduleInfo, out ClrFlavor flavor, out OSPlatform platform)
         {
             if (moduleInfo is null)
                 throw new ArgumentNullException(nameof(moduleInfo));
@@ -59,17 +60,17 @@ namespace Microsoft.Diagnostics.Runtime
                 case c_desktopModuleName1:
                 case c_desktopModuleName2:
                     flavor = ClrFlavor.Desktop;
-                    platform = Platform.Windows;
+                    platform = OSPlatform.Windows;
                     return true;
 
                 case c_coreModuleName:
                     flavor = ClrFlavor.Core;
-                    platform = Platform.Windows;
+                    platform = OSPlatform.Windows;
                     return true;
 
                 case c_linuxCoreModuleName:
                     flavor = ClrFlavor.Core;
-                    platform = Platform.Linux;
+                    platform = OSPlatform.Linux;
                     return true;
 
                 default:
@@ -80,9 +81,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the file name of the DAC dll according to the specified parameters.
         /// </summary>
-        public static string GetDacFileName(ClrFlavor flavor, Platform platform)
+        public static string GetDacFileName(ClrFlavor flavor, OSPlatform platform)
         {
-            if (platform == Platform.Linux)
+            if (platform == OSPlatform.Linux)
                 return c_linuxCoreDacFileName;
 
             return flavor == ClrFlavor.Core ? c_coreDacFileName : c_desktopDacFileName;
@@ -91,10 +92,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the file name of the DAC dll for the requests to the symbol server.
         /// </summary>
-        public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo version, Platform platform)
+        public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo version, OSPlatform platform)
         {
             // Linux never has a "long" named DAC
-            if (platform == Platform.Linux)
+            if (platform == OSPlatform.Linux)
                 return c_linuxCoreDacFileName;
 
             var dacNameBase = flavor == ClrFlavor.Core ? c_coreDacFileNameBase : c_desktopDacFileNameBase;
