@@ -141,42 +141,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return _helpers.Factory.GetOrCreateType(mt, objRef);
         }
 
-        public override ClrSegment? GetSegmentByAddress(ulong objRef)
+        public override ClrSegment? GetSegmentByAddress(ulong address)
         {
             VolatileHeapData data = GetHeapData();
             ImmutableArray<ClrSegment> segments = data.Segments;
             if (segments.Length == 0)
                 return null;
 
-            if (segments[0].FirstObjectAddress <= objRef && objRef < segments[segments.Length - 1].End)
+            if (segments[0].FirstObjectAddress <= address && address < segments[segments.Length - 1].End)
             {
-                // Start the segment search where you where last
-                int prevIndex = data.LastSegmentIndex;
-                int curIdx = prevIndex;
-                for (; ; )
-                {
-                    ClrSegment segment = segments[curIdx];
-                    unchecked
-                    {
-                        long offsetInSegment = (long)(objRef - segment.Start);
-                        if (offsetInSegment >= 0)
-                        {
-                            long intOffsetInSegment = offsetInSegment;
-                            if (intOffsetInSegment < (long)segment.Length)
-                            {
-                                data.LastSegmentIndex = curIdx;
-                                return segment;
-                            }
-                        }
-                    }
+                int index = segments.Search(address, (seg, value) => seg.ObjectRange.CompareTo(value));
+                if (index == -1)
+                    return null;
 
-                    // Get the next segment loop until you come back to where you started.
-                    curIdx++;
-                    if (curIdx >= segments.Length)
-                        curIdx = 0;
-                    if (curIdx == prevIndex)
-                        break;
-                }
+                return segments[index];
             }
 
             return null;

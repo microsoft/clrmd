@@ -83,5 +83,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// that the range does not include that address.
         /// </summary>
         public override string ToString() => $"[{Start:x},{End:x})";
+
+        /// <summary>
+        /// CompareTo impelmentation for a single address.
+        /// </summary>
+        public int CompareTo(ulong address)
+        {
+            if (address < Start)
+                return 1;
+
+            if (address >= End)
+                return -1;
+
+            return 0;
+        }
     }
 }
