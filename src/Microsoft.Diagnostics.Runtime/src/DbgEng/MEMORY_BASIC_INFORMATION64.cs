@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct MEMORY_BASIC_INFORMATION64
+    internal struct MEMORY_BASIC_INFORMATION64
     {
         public ulong BaseAddress;
         public ulong AllocationBase;

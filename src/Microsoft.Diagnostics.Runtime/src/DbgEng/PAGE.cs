@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     [Flags]
-    public enum PAGE : uint
+    internal enum PAGE : uint
     {
         NOACCESS = 0x01,
         READONLY = 0x02,

@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     [Flags]
-    public enum DEBUG_FORMAT : uint
+    internal enum DEBUG_FORMAT : uint
     {
         DEFAULT = 0x00000000,
         CAB_SECONDARY_ALL_IMAGES = 0x10000000,

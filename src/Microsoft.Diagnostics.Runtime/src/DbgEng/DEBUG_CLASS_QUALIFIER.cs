@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-    public enum DEBUG_CLASS_QUALIFIER : uint
+    internal enum DEBUG_CLASS_QUALIFIER : uint
     {
         KERNEL_CONNECTION = 0,
         KERNEL_LOCAL = 1,
