@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,6 +33,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             string? localBinary = FindLocalBinary(fileName);
             return localBinary ?? _locator?.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
         }
+
+        public string? FindBinary(string fileName, ImmutableArray<byte> buildId, bool checkProperties = true) => null;
+
+        public Task<string?> FindBinaryAsync(string fileName, ImmutableArray<byte> buildId, bool checkProperties = true) => Task.FromResult<string?>(null);
 
         public Task<string?> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {

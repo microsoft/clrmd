@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -72,6 +73,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             Directory.CreateDirectory(_cache);
         }
+
+        public string? FindBinary(string fileName, ImmutableArray<byte> buildId, bool checkProperties = true) => null;
+
+        public Task<string?> FindBinaryAsync(string fileName, ImmutableArray<byte> buildId, bool checkProperties = true) => Task.FromResult<string?>(null);
 
         public string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
             => FindBinaryAsync(fileName, buildTimeStamp, imageSize, checkProperties).Result;
