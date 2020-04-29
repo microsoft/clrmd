@@ -7,6 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     public interface ISegmentData
     {
         int LogicalHeap { get; }
+        ulong BaseAddress { get; }
         ulong Start { get; }
         ulong End { get; }
         ulong ReservedEnd { get; }

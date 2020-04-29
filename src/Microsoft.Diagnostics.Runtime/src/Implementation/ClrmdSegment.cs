@@ -29,21 +29,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _clrmdHeap = heap;
 
             LogicalHeap = data.LogicalHeap;
-            Start = data.Start;
-            End = data.End;
-
             IsLargeObjectSegment = data.IsLargeObjectSegment;
             IsEphemeralSegment = data.IsEphemeralSegment;
 
-            ReservedEnd = data.ReservedEnd;
-            CommittedEnd = data.CommittedEnd;
+            ObjectRange = new MemoryRange(data.Start, data.End);
+            ReservedMemory = new MemoryRange(data.CommittedEnd, data.ReservedEnd);
+            CommittedMemory = new MemoryRange(data.BaseAddress, data.CommittedEnd);
 
-            Gen0Start = data.Gen0Start;
-            Gen0Length = data.Gen0Length;
-            Gen1Start = data.Gen1Start;
-            Gen1Length = data.Gen1Length;
-            Gen2Start = data.Gen2Start;
-            Gen2Length = data.Gen2Length;
+            Generation0 = MemoryRange.CreateFromLength(data.Gen0Start, data.Gen0Length);
+            Generation1 = MemoryRange.CreateFromLength(data.Gen1Start, data.Gen1Length);
+            Generation2 = MemoryRange.CreateFromLength(data.Gen2Start, data.Gen2Length);
 
             _markers = new ulong[MarkerCount];
         }
@@ -51,22 +46,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrHeap Heap => _clrmdHeap;
 
         public override int LogicalHeap { get; }
-        public override ulong Start { get; }
-        public override ulong End { get; }
 
         public override bool IsLargeObjectSegment { get; }
         public override bool IsEphemeralSegment { get; }
 
-        public override ulong ReservedEnd { get; }
-        public override ulong CommittedEnd { get; }
+        public override MemoryRange ObjectRange { get; }
 
-        public override ulong Gen0Start { get; }
-        public override ulong Gen0Length { get; }
-        public override ulong Gen1Start { get; }
-        public override ulong Gen1Length { get; }
-        public override ulong Gen2Start { get; }
-        public override ulong Gen2Length { get; }
-        public override ulong FirstObjectAddress => Gen2Start < End ? Gen2Start : 0;
+        public override MemoryRange ReservedMemory { get; }
+        
+        public override MemoryRange CommittedMemory { get; }
+
+        public override MemoryRange Generation0 { get; }
+        
+        public override MemoryRange Generation1 { get; }
+        
+        public override MemoryRange Generation2 { get; }
+
+        public override ulong FirstObjectAddress => ObjectRange.Start;
         
         public override IEnumerable<ClrObject> EnumerateObjects()
         {
@@ -84,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!large)
                 memoryReader.EnsureRangeInCache(obj);
 
-            while (obj < End)
+            while (ObjectRange.Contains(obj))
             {
                 ulong mt;
                 if (large)
@@ -166,8 +162,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetPreviousObjectAddress(ulong addr)
         {
-            if (addr < FirstObjectAddress || addr >= CommittedEnd)
-                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedEnd:x}] does not contain address {addr:x}");
+            if (!ObjectRange.Contains(addr))
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain address {addr:x}");
 
             if (addr == FirstObjectAddress)
                 return 0;
@@ -212,8 +208,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (addr == 0)
                 return 0;
 
-            if (addr < FirstObjectAddress || addr >= CommittedEnd)
-                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedEnd:x}] does not contain object {addr:x}");
+            if (!ObjectRange.Contains(addr))
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain object {addr:x}");
 
             bool large = IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;

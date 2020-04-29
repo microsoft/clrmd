@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
@@ -173,13 +172,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotEqual(0ul, seg.End);
                 Assert.True(seg.Start <= seg.End);
 
-                Assert.True(seg.Start < seg.CommittedEnd);
-                Assert.True(seg.CommittedEnd < seg.ReservedEnd);
+                Assert.True(seg.Start < seg.CommittedMemory.End);
+                Assert.True(seg.CommittedMemory.End < seg.ReservedMemory.End);
+                Assert.False(seg.CommittedMemory.Overlaps(seg.ReservedMemory));
+                Assert.True(seg.CommittedMemory.Contains(seg.ObjectRange));
+                
+                if (seg.Generation0.Length > 0)
+                    Assert.True(seg.ObjectRange.Contains(seg.Generation0));
+                
+                if (seg.Generation1.Length > 0)
+                    Assert.True(seg.ObjectRange.Contains(seg.Generation1));
+                
+                if (seg.Generation2.Length > 0)
+                    Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
                 if (!seg.IsEphemeralSegment)
                 {
-                    Assert.Equal(0ul, seg.Gen0Length);
-                    Assert.Equal(0ul, seg.Gen1Length);
+                    Assert.Equal(0ul, seg.Generation0.Length);
+                    Assert.Equal(0ul, seg.Generation1.Length);
                 }
 
                 int count = 0;

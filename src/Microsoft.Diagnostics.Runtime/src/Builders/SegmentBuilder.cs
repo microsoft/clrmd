@@ -34,6 +34,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         #region ISegmentData
         public int LogicalHeap { get; set; }
 
+        public ulong BaseAddress => _segment.Address;
+
         public ulong Start => _segment.Start;
 
         public ulong End => IsEphemeralSegment ? _heapAllocated : (ulong)_segment.Allocated;
