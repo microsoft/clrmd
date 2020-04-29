@@ -67,10 +67,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong Gen2Start { get; }
         public override ulong Gen2Length { get; }
         public override ulong FirstObjectAddress => Gen2Start < End ? Gen2Start : 0;
-
-        public override IEnumerable<ClrObject> EnumerateObjects() => EnumerateObjects(null);
         
-        public IEnumerable<ClrObject> EnumerateObjects(Action<ulong, ulong, int, int, uint>? callback)
+        public override IEnumerable<ClrObject> EnumerateObjects()
         {
             bool large = IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
@@ -107,10 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ClrType? type = _helpers.Factory.GetOrCreateType(_clrmdHeap, mt, obj);
                 if (type is null)
-                {
-                    callback?.Invoke(obj, mt, int.MinValue + 1, -1, 0);
                     break;
-                }
 
                 int marker = GetMarkerIndex(obj);
                 if (marker != -1 && _markers[marker] == 0)
@@ -123,7 +118,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (type.ComponentSize == 0)
                 {
                     size = (uint)type.StaticSize;
-                    callback?.Invoke(obj, mt, type.StaticSize, -1, 0);
                 }
                 else
                 {
@@ -138,7 +132,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         count++;
 
                     size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
-                    callback?.Invoke(obj, mt, type.StaticSize, type.ComponentSize, count);
                 }
 
                 size = ClrmdHeap.Align(size, large);
@@ -146,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     size = minObjSize;
 
                 obj += size;
-                obj = _clrmdHeap.SkipAllocationContext(this, obj, mt, callback);
+                obj = _clrmdHeap.SkipAllocationContext(this, obj);
             }
 
             ArrayPool<byte>.Shared.Return(buffer);
@@ -254,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong obj = addr + size;
 
             if (!large)
-                obj = _clrmdHeap.SkipAllocationContext(this, obj, 0, null); // ignore mt here because it won't be used
+                obj = _clrmdHeap.SkipAllocationContext(this, obj); // ignore mt here because it won't be used
 
             if (obj >= End)
                 return 0;

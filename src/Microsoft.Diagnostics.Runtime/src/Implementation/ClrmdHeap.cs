@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -18,40 +17,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IHeapHelpers _helpers;
 
         private readonly object _sync = new object();
-
         private volatile VolatileHeapData? _volatileHeapData;
-
-        [ThreadStatic]
-        private static HeapWalkStep[]? _steps;
-
-        [ThreadStatic]
-        private static int _step = -1;
-
-        /// <summary>
-        /// This is a circular buffer of steps.
-        /// </summary>
-        public static IReadOnlyList<HeapWalkStep>? Steps => _steps;
-
-        /// <summary>
-        /// Gets the current index into the Steps circular buffer.
-        /// </summary>
-        public static int Step => _step;
-
-        /// <summary>
-        /// Turns on heap walk logging.
-        /// </summary>
-        /// <param name="bufferSize">The number of entries in the heap walk buffer.</param>
-        public static void LogHeapWalkSteps(int bufferSize)
-        {
-            _step = bufferSize - 1;
-            if (_steps is null || _steps.Length != bufferSize)
-                _steps = new HeapWalkStep[bufferSize];
-        }
 
         public override ClrRuntime Runtime { get; }
 
         public override bool CanWalkHeap { get; }
-
 
         private Dictionary<ulong, ulong> AllocationContext => GetHeapData().AllocationContext;
 
@@ -115,49 +85,30 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _volatileHeapData = null;
         }
 
-        public ulong SkipAllocationContext(ClrSegment seg, ulong obj, ulong mt, Action<ulong, ulong, int, int, uint>? callback)
+        public ulong SkipAllocationContext(ClrSegment seg, ulong address)
         {
             if (seg is null)
                 throw new ArgumentNullException(nameof(seg));
 
             if (seg.IsLargeObjectSegment)
-                return obj;
+                return address;
 
             uint minObjSize = (uint)IntPtr.Size * 3;
-            while (AllocationContext.TryGetValue(obj, out ulong nextObj))
+            while (AllocationContext.TryGetValue(address, out ulong nextObj))
             {
                 nextObj += Align(minObjSize, seg.IsLargeObjectSegment);
 
-                if (obj >= nextObj || obj >= seg.End)
+                if (address >= nextObj || address >= seg.End)
                     return 0;
 
                 // Only if there's data corruption:
-                if (obj >= nextObj || obj >= seg.End)
-                {
-                    callback?.Invoke(obj, mt, int.MinValue + 2, -1, 0);
+                if (address >= nextObj || address >= seg.End)
                     return 0;
-                }
 
-                obj = nextObj;
+                address = nextObj;
             }
 
-            return obj;
-        }
-
-        private static void WriteHeapStep(ulong obj, ulong mt, int baseSize, int componentSize, uint count)
-        {
-            if (_steps is null)
-                return;
-
-            _step = (_step + 1) % _steps.Length;
-            _steps[_step] = new HeapWalkStep
-            {
-                Address = obj,
-                MethodTable = mt,
-                BaseSize = baseSize,
-                ComponentSize = componentSize,
-                Count = count
-            };
+            return address;
         }
 
         public override IEnumerable<ClrObject> EnumerateObjects() => Segments.SelectMany(s => s.EnumerateObjects());
@@ -410,47 +361,47 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
             }
         }
-    }
 
-    class VolatileHeapData
-    {
-        private ImmutableArray<(ulong Source, ulong Target)> _dependentHandles;
-
-        public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }
-        public ImmutableArray<FinalizerQueueSegment> FQObjects { get; }
-        public Dictionary<ulong, ulong> AllocationContext { get; }
-
-        public ImmutableArray<ClrSegment> Segments { get; }
-
-        public int LastSegmentIndex { get; set; }
-
-        public VolatileHeapData(ClrHeap parent, IHeapHelpers _helpers)
+        class VolatileHeapData
         {
-            _helpers.CreateSegments(parent,
-                                    out ImmutableArray<ClrSegment> segments,
-                                    out ImmutableArray<AllocationContext> allocContext,
-                                    out ImmutableArray<FinalizerQueueSegment> fqRoots,
-                                    out ImmutableArray<FinalizerQueueSegment> fqObjects);
+            private ImmutableArray<(ulong Source, ulong Target)> _dependentHandles;
 
-            // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
-            if (segments.Length > 0 && segments[0].Start > segments[segments.Length - 1].Start)
-                Segments = segments.Sort((x, y) => x.Start.CompareTo(y.Start));
-            else
-                Segments = segments;
+            public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }
+            public ImmutableArray<FinalizerQueueSegment> FQObjects { get; }
+            public Dictionary<ulong, ulong> AllocationContext { get; }
 
-            FQRoots = fqRoots;
-            FQObjects = fqObjects;
-            AllocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
-        }
+            public ImmutableArray<ClrSegment> Segments { get; }
 
-        public ImmutableArray<(ulong Source, ulong Target)> GetDependentHandles(IHeapHelpers helpers)
-        {
-            if (!_dependentHandles.IsDefault)
-                return _dependentHandles;
+            public int LastSegmentIndex { get; set; }
 
-            var dependentHandles = helpers.EnumerateDependentHandleLinks().OrderBy(x => x.Source).ToImmutableArray();
-            _dependentHandles = dependentHandles;
-            return dependentHandles;
+            public VolatileHeapData(ClrHeap parent, IHeapHelpers _helpers)
+            {
+                _helpers.CreateSegments(parent,
+                                        out ImmutableArray<ClrSegment> segments,
+                                        out ImmutableArray<AllocationContext> allocContext,
+                                        out ImmutableArray<FinalizerQueueSegment> fqRoots,
+                                        out ImmutableArray<FinalizerQueueSegment> fqObjects);
+
+                // Segments must be in sorted order.  We won't check all of them but we will at least check the beginning and end
+                if (segments.Length > 0 && segments[0].Start > segments[segments.Length - 1].Start)
+                    Segments = segments.Sort((x, y) => x.Start.CompareTo(y.Start));
+                else
+                    Segments = segments;
+
+                FQRoots = fqRoots;
+                FQObjects = fqObjects;
+                AllocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
+            }
+
+            public ImmutableArray<(ulong Source, ulong Target)> GetDependentHandles(IHeapHelpers helpers)
+            {
+                if (!_dependentHandles.IsDefault)
+                    return _dependentHandles;
+
+                var dependentHandles = helpers.EnumerateDependentHandleLinks().OrderBy(x => x.Source).ToImmutableArray();
+                _dependentHandles = dependentHandles;
+                return dependentHandles;
+            }
         }
     }
 }
