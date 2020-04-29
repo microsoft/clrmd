@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private int _offset = 0;
 
         private readonly Stream _stream;
+        private readonly PEHeaders? _peHeaders;
         private CoffHeader? _coffHeader;
         private PEHeader? _peHeader;
         private CorHeader? _corHeader;
@@ -96,7 +97,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (isVirtual)
                 options |= PEStreamOptions.IsLoadedImage;
 
-            Reader = new PEReader(stream, options);
+            try
+            {
+                var reader = new PEReader(stream, options);
+                _peHeaders = reader.PEHeaders;
+                Reader = reader;
+            }
+            catch (BadImageFormatException)
+            {
+            }
         }
 
         internal int ResourceVirtualAddress => PEHeader?.ResourceTableDirectory.RelativeVirtualAddress ?? 0;
@@ -298,13 +307,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private CoffHeader? ReadCoffHeader() => Reader?.PEHeaders.CoffHeader;
+        private CoffHeader? ReadCoffHeader() => _peHeaders?.CoffHeader;
 
-        private PEHeader? ReadPEHeader() => Reader?.PEHeaders.PEHeader;
+        private PEHeader? ReadPEHeader() => _peHeaders?.PEHeader;
 
-        private CorHeader? ReadCorHeader() => Reader?.PEHeaders.CorHeader;
+        private CorHeader? ReadCorHeader() => _peHeaders?.CorHeader;
 
-        private ImmutableArray<SectionHeader> ReadSections() => Reader?.PEHeaders.SectionHeaders ?? ImmutableArray<SectionHeader>.Empty;
+        private ImmutableArray<SectionHeader> ReadSections() => _peHeaders?.SectionHeaders ?? ImmutableArray<SectionHeader>.Empty;
 
         private ImmutableArray<PdbInfo> ReadPdbs()
         {
