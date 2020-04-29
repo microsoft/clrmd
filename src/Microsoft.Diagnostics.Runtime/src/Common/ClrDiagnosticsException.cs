@@ -5,7 +5,6 @@
 using System;
 using System.Runtime.Serialization;
 
-#pragma warning disable CA1032 // Implement standard exception constructors
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -15,25 +14,41 @@ namespace Microsoft.Diagnostics.Runtime
     [Serializable]
     public class ClrDiagnosticsException : Exception
     {
-        internal ClrDiagnosticsException(string message, ClrDiagnosticsExceptionKind kind = ClrDiagnosticsExceptionKind.Unknown, int hr = -2146233088)
-            : base(message)
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public ClrDiagnosticsException()
         {
-            Kind = kind;
-            HResult = hr;
         }
 
         /// <summary>
-        /// Gets exception kind.
+        /// Constructor.
         /// </summary>
-        public ClrDiagnosticsExceptionKind Kind { get; }
+        public ClrDiagnosticsException(string message) : base(message)
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public ClrDiagnosticsException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public ClrDiagnosticsException(string message, int hr)
+            : base(message)
+        {
+            HResult = hr;
+        }
 
         protected ClrDiagnosticsException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             if (info is null)
                 throw new ArgumentNullException(nameof(info));
-
-            Kind = (ClrDiagnosticsExceptionKind)info.GetValue(nameof(Kind), typeof(ClrDiagnosticsExceptionKind))!;
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -41,7 +56,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (info is null)
                 throw new ArgumentNullException(nameof(info));
 
-            info.AddValue(nameof(Kind), Kind, typeof(ClrDiagnosticsExceptionKind));
             base.GetObjectData(info, context);
         }
     }
