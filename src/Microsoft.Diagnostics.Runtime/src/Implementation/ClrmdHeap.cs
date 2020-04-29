@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool CanWalkHeap { get; }
 
-        private Dictionary<ulong, ulong> AllocationContext => GetHeapData().AllocationContext;
+        private Dictionary<ulong, ulong> AllocationContexts => GetHeapData().AllocationContext;
 
         private ImmutableArray<FinalizerQueueSegment> FQRoots => GetHeapData().FQRoots;
 
@@ -62,6 +62,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
         }
 
+        public override IEnumerable<MemoryRange> EnumerateAllocationContexts() => AllocationContexts.Select(item => new MemoryRange(item.Key, item.Value));
+
         private VolatileHeapData GetHeapData()
         {
             VolatileHeapData? data = _volatileHeapData;
@@ -94,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return address;
 
             uint minObjSize = (uint)IntPtr.Size * 3;
-            while (AllocationContext.TryGetValue(address, out ulong nextObj))
+            while (AllocationContexts.TryGetValue(address, out ulong nextObj))
             {
                 nextObj += Align(minObjSize, seg.IsLargeObjectSegment);
 
@@ -378,7 +380,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 _helpers.CreateSegments(parent,
                                         out ImmutableArray<ClrSegment> segments,
-                                        out ImmutableArray<AllocationContext> allocContext,
+                                        out ImmutableArray<MemoryRange> allocContext,
                                         out ImmutableArray<FinalizerQueueSegment> fqRoots,
                                         out ImmutableArray<FinalizerQueueSegment> fqObjects);
 
@@ -390,7 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 FQRoots = fqRoots;
                 FQObjects = fqObjects;
-                AllocationContext = allocContext.ToDictionary(k => k.Pointer, v => v.Limit);
+                AllocationContext = allocContext.ToDictionary(k => k.Start, v => v.End);
             }
 
             public ImmutableArray<(ulong Source, ulong Target)> GetDependentHandles(IHeapHelpers helpers)

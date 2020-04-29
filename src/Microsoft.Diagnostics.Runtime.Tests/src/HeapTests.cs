@@ -18,6 +18,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
+            // Ensure that we never find objects within allocation contexts.
+            MemoryRange[] allocationContexts = heap.EnumerateAllocationContexts().ToArray();
+            Assert.NotEmpty(allocationContexts);
+
             bool encounteredFoo = false;
             int count = 0;
             foreach (ClrObject obj in heap.EnumerateObjects())
@@ -29,10 +33,36 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     encounteredFoo = true;
 
                 count++;
+
+                Assert.DoesNotContain(allocationContexts, ac => ac.Contains(obj));
             }
 
             Assert.True(count > 0);
             Assert.True(encounteredFoo);
+        }
+
+        [Fact]
+        public void AllocationContextLocation()
+        {
+            // Simply test that we can enumerate the heap.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            // Ensure that we never find objects within allocation contexts.
+            MemoryRange[] allocationContexts = heap.EnumerateAllocationContexts().ToArray();
+            Assert.NotEmpty(allocationContexts);
+
+            foreach (MemoryRange ac in allocationContexts)
+            {
+                Assert.True(ac.Length > 0);
+
+                ClrSegment seg = heap.GetSegmentByAddress(ac.Start);
+                Assert.NotNull(seg);
+                Assert.Same(seg, heap.GetSegmentByAddress(ac.End - 1));
+
+                Assert.True(seg.ObjectRange.Contains(ac));
+            }
         }
 
         [Fact]

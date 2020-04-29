@@ -27,6 +27,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract bool CanWalkHeap { get; }
 
+        /// <summary>
+        /// Returns the number of logical heaps in the process.
+        /// </summary>
         public abstract int LogicalHeapCount { get; }
 
         /// <summary>
@@ -92,9 +95,9 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<IClrRoot> EnumerateRoots();
 
         /// <summary>
-        /// Returns the GC segment for the given object.
+        /// Returns the GC segment which contains the given address.  This only searches ClrSegment.ObjectRange.
         /// </summary>
-        public abstract ClrSegment? GetSegmentByAddress(ulong objRef);
+        public abstract ClrSegment? GetSegmentByAddress(ulong address);
 
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
@@ -105,6 +108,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
         public abstract IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots();
+
+        /// <summary>
+        /// Enumerates all AllocationContexts for all segments.  Allocation contexts are locations on the GC
+        /// heap which the GC uses to allocate new objects.  These regions of memory do not contain objects.
+        /// AllocationContexts are the reason that you cannot simply enumerate the heap by adding each object's
+        /// size to itself to get the next object on the segment, since if the address is an allocation context
+        /// you will have to skip past it to find the next valid object.
+        /// </summary>
+        /// <returns></returns>
+        public abstract IEnumerable<MemoryRange> EnumerateAllocationContexts();
 
         /// <summary>
         /// Returns a string representation of this heap, including the size and number of segments.
