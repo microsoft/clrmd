@@ -65,8 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         };
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
-        public override object? GetArrayElementValue(ulong objRef, int index) => null;
-        public override T[]? GetArrayElementValues<T>(ulong objRef, int count) => null;
+        public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => null;
 
         public override ClrInstanceField? GetFieldByName(string name) => null;
 
