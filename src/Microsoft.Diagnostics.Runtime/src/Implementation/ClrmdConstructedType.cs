@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsSealed => false;
         public override bool IsShared => false;
         public override bool IsInterface => false;
-        public override ClrInstanceField? GetFieldByName(string name) => null;
+        public override ClrInstanceField? GetInstanceFieldByName(string name) => null;
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
         public override ClrType? BaseType => null;
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
