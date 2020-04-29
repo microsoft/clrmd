@@ -12,16 +12,17 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 {
     internal sealed class StringReader
     {
-        private readonly ClrInstanceField? _firstChar;
-        private readonly ClrInstanceField? _stringLength;
+        private readonly uint _firstChar = (uint)IntPtr.Size + 4;
+        private readonly uint _stringLength = (uint)IntPtr.Size;
 
-        public StringReader(ClrType stringType)
+        public IDataReader DataReader { get; }
+
+        public StringReader(IDataReader reader, ClrType stringType)
         {
             if (!stringType.IsString)
                 throw new InvalidOperationException($"Type {stringType?.Name} is not the string type.");
 
-            _firstChar = stringType.Fields.Where(f => f.Name != null).SingleOrDefault(f => f.Name!.EndsWith("_firstChar"));
-            _stringLength = stringType.Fields.Where(f => f.Name != null).SingleOrDefault(f => f.Name!.EndsWith("_stringLength"));
+            DataReader = reader;
         }
 
         public string? ReadString(IDataReader reader, ulong address, int maxLength)
@@ -29,15 +30,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (address == 0)
                 return null;
 
-            if (_firstChar is null || _stringLength is null)
-                return null;
-
-            int length = _stringLength.Read<int>(address, interior: false);
+            int length = DataReader.Read<int>(address + _stringLength);
             length = Math.Min(length, maxLength);
             if (length == 0)
                 return string.Empty;
 
-            ulong data = _firstChar.GetAddress(address);
+            ulong data = address + _firstChar;
             char[] buffer = ArrayPool<char>.Shared.Rent(length);
             try
             {

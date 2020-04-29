@@ -641,14 +641,137 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
         string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
-
+        
         public IExceptionHelpers ExceptionHelpers => this;
+
+        uint IExceptionHelpers.GetInnerExceptionOffset(ClrType? type)
+        {
+            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_innerException");
+
+            if (field != null && field.Offset >= 0)
+                return (uint)(field.Offset + IntPtr.Size);
+
+            uint result = _runtime.ClrInfo.Flavor switch
+            {
+                ClrFlavor.Core => DataReader.PointerSize switch
+                {
+                    4 => 0xc,
+                    8 => 0x18,
+                    _ => uint.MaxValue
+                },
+
+                ClrFlavor.Desktop => DataReader.PointerSize switch
+                {
+                    4 => 0x14,
+                    8 => 0x28,
+                    _ => uint.MaxValue
+                },
+
+                _ => uint.MaxValue
+            };
+
+            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+        }
+
+        uint IExceptionHelpers.GetHResultOffset(ClrType? type)
+        {
+            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_HResult");
+
+            if (field != null && field.Offset >= 0)
+                return (uint)(field.Offset + IntPtr.Size);
+
+            uint result = _runtime.ClrInfo.Flavor switch
+            {
+                ClrFlavor.Core => DataReader.PointerSize switch
+                {
+                    4 => 0x38,
+                    8 => 0x6c,
+                    _ => uint.MaxValue
+                },
+
+                ClrFlavor.Desktop => DataReader.PointerSize switch
+                {
+                    4 => 0x3c,
+                    8 => 0x84,
+                    _ => uint.MaxValue
+                },
+
+                _ => uint.MaxValue
+            };
+
+            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+        }
+
+        uint IExceptionHelpers.GetMessageOffset(ClrType? type)
+        {
+            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_message");
+
+            if (field != null && field.Offset >= 0)
+                return (uint)(field.Offset + IntPtr.Size);
+
+            uint result = _runtime.ClrInfo.Flavor switch
+            {
+                ClrFlavor.Core => DataReader.PointerSize switch
+                {
+                    4 => 4,
+                    8 => 8,
+                    _ => uint.MaxValue
+                },
+
+                ClrFlavor.Desktop => DataReader.PointerSize switch
+                {
+                    4 => 0xc,
+                    8 => 0x18,
+                    _ => uint.MaxValue
+                },
+
+                _ => uint.MaxValue
+            };
+
+            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+        }
+
+        private uint GetStackTraceOffset(ClrType? type)
+        {
+            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_stackTrace");
+
+            if (field != null && field.Offset >= 0)
+                return (uint)(field.Offset + IntPtr.Size);
+
+            uint result = _runtime.ClrInfo.Flavor switch
+            {
+                ClrFlavor.Core => DataReader.PointerSize switch
+                {
+                    4 => 0x14,
+                    8 => 0x28,
+                    _ => uint.MaxValue
+                },
+
+                ClrFlavor.Desktop => DataReader.PointerSize switch
+                {
+                    4 => 0x1c,
+                    8 => 0x38,
+                    _ => uint.MaxValue
+                },
+
+                _ => uint.MaxValue
+            };
+
+            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+        }
 
         ImmutableArray<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
         {
             CheckDisposed();
 
-            ClrObject _stackTrace = obj.GetObjectField("_stackTrace");
+            uint offset = GetStackTraceOffset(obj.Type);
+            DebugOnly.Assert(offset != uint.MaxValue);
+            if (offset == 0)
+                return ImmutableArray<ClrStackFrame>.Empty;
+
+            ulong address = DataReader.ReadPointer(obj.Address + offset);
+            ClrObject _stackTrace = GetOrCreateHeap().GetObject(address);
+
             if (_stackTrace.IsNull)
                 return ImmutableArray<ClrStackFrame>.Empty;
 
@@ -794,23 +917,23 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ClrType? GetOrCreateType(ulong mt, ulong obj) => mt == 0 ? null : GetOrCreateType(GetOrCreateHeap(), mt, obj);
 
-        public ClrType CreateSystemType(ClrHeap heap, ulong mt, string kind)
+        public ClrType CreateSystemType(ClrHeap heap, ulong mt, string typeName)
         {
             using TypeBuilder typeData = _typeBuilders.Rent();
             if (!typeData.Init(_sos, mt, this))
-                throw new InvalidDataException($"Could not create well known type '{kind}' from MethodTable {mt:x}.");
+                throw new InvalidDataException($"Could not create well known type '{typeName}' from MethodTable {mt:x}.");
 
             ClrType? baseType = null;
 
             if (typeData.ParentMethodTable != 0 && !_types.TryGetValue(typeData.ParentMethodTable, out baseType))
-                throw new InvalidOperationException($"Base type for '{kind}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
+                throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
 
             ClrModule? module = GetModule(typeData.Module);
             ClrmdType result;
             if (typeData.ComponentSize == 0)
-                result = new ClrmdType(heap, baseType, module, typeData);
+                result = new ClrmdType(heap, baseType, module, typeData, typeName);
             else
-                result = new ClrmdArrayType(heap, baseType, module, typeData);
+                result = new ClrmdArrayType(heap, baseType, module, typeData, typeName);
 
             // Regardless of caching options, we always cache important system types and basic types
             lock (_types)
@@ -1298,7 +1421,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             StringReader? reader = _stringReader;
             if (reader == null)
             {
-                reader = new StringReader(GetOrCreateHeap().StringType);
+                reader = new StringReader(DataReader, GetOrCreateHeap().StringType);
                 _stringReader = reader;
             }
 

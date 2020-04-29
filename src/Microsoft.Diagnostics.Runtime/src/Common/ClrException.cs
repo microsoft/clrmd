@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -48,7 +49,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the exception message.
         /// </summary>
-        public string? Message => _object.GetStringField("_message");
+        public string? Message
+        {
+            get
+            {
+                uint offset = _helpers.GetMessageOffset(Type);
+                DebugOnly.Assert(offset != uint.MaxValue);
+                if (offset == 0)
+                    return null;
+
+                ulong address = _helpers.DataReader.ReadPointer(Address + offset);
+                ClrObject obj = Type.Heap.GetObject(address);
+                return obj.AsString();
+            }
+        }
 
         /// <summary>
         /// Gets the inner exception, if one exists, <see langword="null"/> otherwise.
@@ -57,7 +71,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                ClrObject obj = _object.GetObjectField("_innerException");
+                uint offset = _helpers.GetInnerExceptionOffset(Type);
+                DebugOnly.Assert(offset != uint.MaxValue);
+
+                if (offset == 0)
+                    return null;
+
+                ulong address = _helpers.DataReader.ReadPointer(Address + offset);
+                ClrObject obj = Type.Heap.GetObject(address);
                 if (obj.IsNull)
                     return null;
 
@@ -68,7 +89,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the HRESULT associated with this exception (or S_OK if there isn't one).
         /// </summary>
-        public int HResult => _object.GetField<int>("_HResult");
+        public int HResult
+        {
+            get
+            {
+                uint offset = _helpers.GetHResultOffset(Type);
+                DebugOnly.Assert(offset != uint.MaxValue);
+
+                if (offset == 0)
+                    return 0;
+
+                DebugOnly.Assert(offset != uint.MaxValue);
+                return _helpers.DataReader.Read<int>(Address + offset);
+            }
+        }
 
         /// <summary>
         /// Gets the StackTrace for this exception.  Note that this may be empty or partial depending
@@ -77,5 +111,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// associated with this exception object.
         /// </summary>
         public ImmutableArray<ClrStackFrame> StackTrace => _helpers.GetExceptionStackTrace(Thread, _object);
+
+        public override string ToString()
+        {
+            return $"Type: {Type?.Name}\nMessage: {Message}\nStack Trace:\n    " + string.Join("    \n", StackTrace.Select(f => f.ToString()));
+        }
     }
 }
