@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A ClrObject of the given field.</returns>
         /// <exception cref="ArgumentException">The given field does not exist in the object.</exception>
         /// <exception cref="InvalidOperationException"><see cref="IsNull"/> is <see langword="true"/>.</exception>
-        public ClrObject GetObjectField(string fieldName)
+        public ClrObject ReadObjectField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
             ClrInstanceField? field = type.GetFieldByName(fieldName);
@@ -217,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName"></param>
         /// <returns></returns>
-        public ClrValueType GetValueTypeField(string fieldName)
+        public ClrValueType ReadValueTypeField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
 
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <typeparam name="T">The type of the field itself.</typeparam>
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of this field.</returns>
-        public T GetField<T>(string fieldName)
+        public T ReadField<T>(string fieldName)
             where T : unmanaged
         {
             ClrType type = GetTypeOrThrow();
@@ -268,9 +268,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong mt;
             if (field.ElementType == ClrElementType.NativeInt)
-                mt = (ulong)GetField<IntPtr>("m_handle");
+                mt = (ulong)ReadField<IntPtr>("m_handle");
             else
-                mt = (ulong)GetValueTypeField("m_handle").GetField<IntPtr>("m_ptr");
+                mt = (ulong)ReadValueTypeField("m_handle").ReadField<IntPtr>("m_ptr");
 
             return type.ClrObjectHelpers.Factory.GetOrCreateType(mt, 0);
         }
@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// -or-
         /// The field is not of the correct type.
         /// </exception>
-        public string? GetStringField(string fieldName, int maxLength = 4096)
+        public string? ReadStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             IDataReader dataReader = Helpers.DataReader;

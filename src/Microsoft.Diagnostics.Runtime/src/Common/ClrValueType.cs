@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// -or-
         /// The given field was not an object reference.
         /// </exception>
-        public ClrObject GetObjectField(string fieldName)
+        public ClrObject ReadObjectField(string fieldName)
         {
             ClrInstanceField? field = Type.GetFieldByName(fieldName);
             if (field is null)
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <typeparam name="T">The type of the field itself.</typeparam>
         /// <param name="fieldName">The name of the field.</param>
         /// <returns>The value of this field.</returns>
-        public T GetField<T>(string fieldName)
+        public T ReadField<T>(string fieldName)
             where T : unmanaged
         {
             ClrInstanceField? field = Type.GetFieldByName(fieldName);
@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="fieldName"></param>
         /// <returns></returns>
-        public ClrValueType GetValueTypeField(string fieldName)
+        public ClrValueType ReadValueTypeField(string fieldName)
         {
             ClrInstanceField? field = Type.GetFieldByName(fieldName);
             if (field is null)
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value of the given field.</returns>
         /// <exception cref="ArgumentException">No field matches the given name.</exception>
         /// <exception cref="InvalidOperationException">The field is not a string.</exception>
-        public string? GetStringField(string fieldName, int maxLength = 4096)
+        public string? ReadStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             if (!DataReader.ReadPointer(address, out ulong str))

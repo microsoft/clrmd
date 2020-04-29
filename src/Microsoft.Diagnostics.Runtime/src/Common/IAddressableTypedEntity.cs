@@ -23,13 +23,13 @@ namespace Microsoft.Diagnostics.Runtime
         ClrType? Type { get; }
 
         /// <summary>
-        /// Gets the value of a primitive field (i.e. <see cref="int"/>, <see cref="bool"/>).
+        /// Gets the value of a primitive field (i.e. <see cref="int"/>, <see cref="bool"/>) or an unmanaged struct.
         /// </summary>
         /// <typeparam name="T">The primitive type of the field.</typeparam>
         /// <param name="fieldName">The name of the field to read value from.</param>
         /// <returns>The value of the field.</returns>
         /// <exception cref="ArgumentException">Thrown when field was not found by name.</exception>
-        T GetField<T>(string fieldName) where T : unmanaged;
+        T ReadField<T>(string fieldName) where T : unmanaged;
 
         /// <summary>
         /// Gets the <see cref="string"/> value from the entity field.
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="maxLength">The maximum length of the string returned.  Warning: If the DataTarget
         /// being inspected has corrupted or an inconsistent heap state, the length of a string may be
         /// incorrect, leading to OutOfMemory and other failures.</param>
-        string? GetStringField(string fieldName, int maxLength = 4096);
+        string? ReadStringField(string fieldName, int maxLength = 4096);
 
         /// <summary>
         /// Gets the struct field value from the entity field.
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field to get the value for.</param>
         /// <returns>The value of the given field.</returns>
         /// <exception cref="ArgumentException">Thrown when field was not found by name, or found field is not of struct type.</exception>
-        ClrValueType GetValueTypeField(string fieldName);
+        ClrValueType ReadValueTypeField(string fieldName);
 
         /// <summary>
         /// Gets the value of reference field.
@@ -59,6 +59,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field to read value from.</param>
         /// <returns>A <see cref="ClrObject"/> found field points on.</returns>
         /// <exception cref="ArgumentException">Thrown when field was not found by name, or found field is not of reference type.</exception>
-        ClrObject GetObjectField(string fieldName);
+        ClrObject ReadObjectField(string fieldName);
     }
 }

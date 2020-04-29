@@ -476,7 +476,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // this test to fail but the underlying issue would be fixed.
             Assert.Null(componentType);
 
-            ClrObject itemsObj = list.ReadObject().GetObjectField("_items");
+            ClrObject itemsObj = list.ReadObject().ReadObjectField("_items");
 
             // Ensure we are looking at the same ClrType
             if (dt.CacheOptions.CacheTypes)

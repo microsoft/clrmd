@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             ClrArray intArraySnapshot = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.IntArray.Length, intArraySnapshot.Length);
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             ClrArray guidArray = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray)).AsArray();
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.GuidArray.Length, guidArray.Length);
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             ClrArray dateTimeArray = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.DateTimeArray.Length, dateTimeArray.Length);
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             ClrArray customStructArray = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.StructArray.Length, customStructArray.Length);
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             ClrArray referenceArraySnapshot = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.StringArray.Length, referenceArraySnapshot.Length);
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             ClrArray referenceArraySnapshot = _arrayHolder
-                .GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks)).AsArray();
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks)).AsArray();
 
             // Act & Assert
             Assert.Equal(_prototype.ReferenceArrayWithBlanks.Length, referenceArraySnapshot.Length);
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.IntArray;
-            ClrObject intArraySnapshot = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray));
+            ClrObject intArraySnapshot = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.IntArray));
 
             var index = seed % originalArray.Length;
 
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.StringArray;
-            ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
+            ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
 
             var index = seed % originalArray.Length;
 
@@ -131,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementValue_WhenReferenceArray_ReturnsExpectedElement(int setElementIndex)
         {
             // Arrange
-            ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
+            ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act
             ulong actualPointer = (ulong)referenceArray.Type.GetArrayElementValue(referenceArray, setElementIndex);
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementValue_WhenReferenceArrayHasNullElement_ReturnsEmptyObject(int blankElementIndex)
         {
             // Arrange
-            ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
+            ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act
             ulong actualPointer = (ulong)referenceArray.Type.GetArrayElementValue(referenceArray, blankElementIndex);
@@ -160,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.StructArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
 
             var index = seed % originalArray.Length;
 
@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.DateTimeArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
 
             var index = seed % originalArray.Length;
 
@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.GuidArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
 
             var index = seed % originalArray.Length;
 
@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.GuidArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
 
             var index = seed % originalArray.Length;
 
@@ -215,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.StringArray;
-            ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
+            ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
 
             var index = seed % originalArray.Length;
 
@@ -236,7 +236,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenReferenceArray_ReturnsExpectedElement(int setElementIndex)
         {
             // Arrange
-            ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
+            ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, setElementIndex);
@@ -253,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenReferenceArrayHasNullElement_ReturnsNotEmptyPosition(int blankElementIndex)
         {
             // Arrange
-            ClrObject referenceArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
+            ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.ReferenceArrayWithBlanks));
 
             // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, blankElementIndex);
@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.StructArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
 
             var index = seed % originalArray.Length;
 
@@ -283,7 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.StructArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
 
             var index = seed % originalArray.Length;
             var structType = structArray.Type.ComponentType;
@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.DateTimeArray;
-            ClrObject structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
+            ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
 
             var index = seed % originalArray.Length;
 
@@ -322,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.IntArray;
-            ClrArray intArraySnapshot = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
+            ClrArray intArraySnapshot = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
 
             // Act
             int[] ints = intArraySnapshot.GetValues<int>(intArraySnapshot.Length);
@@ -336,7 +336,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.DateTimeArray;
-            ClrArray datetimeArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
+            ClrArray datetimeArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act
             DateTime[] datetimes = datetimeArray.GetValues<DateTime>(datetimeArray.Length);
@@ -350,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Arrange
             var originalArray = _prototype.DateTimeArray;
-            ClrArray structArray = _arrayHolder.GetObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
+            ClrArray structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
             int readLength = originalArray.Length - 2;
 
             // Act
