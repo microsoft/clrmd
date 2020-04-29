@@ -186,8 +186,8 @@ namespace Microsoft.Diagnostics.Runtime
                 string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
-                DacInfo dacInfo = new DacInfo(dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
+                DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
+                versions.Add(new ClrInfo(this, flavor, module, dacInfo));
             }
 
             _clrs = versions.MoveOrCopyToImmutable();

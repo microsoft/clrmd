@@ -13,6 +13,13 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class DacInfo
     {
         /// <summary>
+        /// If a local dac exists on disk that matches this dac, this property will contain its full path.
+        /// In a live debugging scenario this will almost always point to a local dac which can be used to inspect
+        /// the process (unless the user deleted mscordaccore in the .Net Core case).
+        /// </summary>
+        public string? LocalDacPath { get; }
+
+        /// <summary>
         /// Gets the platform specific filename of the DAC dll.
         /// </summary>
         public string PlatformSpecificFileName { get; }
@@ -51,9 +58,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Constructs a DacInfo object with the appropriate properties initialized.
         /// </summary>
-        public DacInfo(string specificName, string agnosticName, Architecture targetArch, int filesize, int timestamp,
-                       VersionInfo version, ImmutableArray<byte> clrBuildId)
+        public DacInfo(string? localPath, string specificName, string agnosticName, Architecture targetArch,
+                       int filesize, int timestamp, VersionInfo version, ImmutableArray<byte> clrBuildId)
         {
+            LocalDacPath = localPath;
             PlatformSpecificFileName = specificName;
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;
