@@ -36,7 +36,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             get
             {
                 if (_moduleData.PEFile != 0)
-                    return _sos.GetPEFileName(_moduleData.PEFile);
+                {
+                    string? str = _sos.GetPEFileName(_moduleData.PEFile);
+                    if (string.IsNullOrWhiteSpace(str))
+                        return null;
+
+                    return str;
+                }
 
                 return null;
             }
@@ -47,7 +53,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             get
             {
                 if (_moduleData.Assembly != 0)
-                    return _sos.GetAssemblyName(_moduleData.Assembly);
+                {
+                    string? str = _sos.GetAssemblyName(_moduleData.Assembly);
+                    if (string.IsNullOrWhiteSpace(str))
+                        return null;
+
+                    return str;
+                }
 
                 return null;
             }

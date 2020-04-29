@@ -57,12 +57,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsPEFile { get; }
 
         /// <summary>
-        /// Gets the file name of where the module was loaded from on disk.  Undefined results if
-        /// IsPEFile is <see langword="false"/>.
-        /// </summary>
-        public abstract string? FileName { get; }
-
-        /// <summary>
         /// Gets the base of the image loaded into memory.  This may be 0 if there is not a physical
         /// file backing it.
         /// </summary>

@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // .NET Core SDK 3.x creates an executable host by default (FDE)
             return runtime.AppDomains.SelectMany(ad => ad.Modules).Single(m => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? m.FileName.EndsWith(".exe") : File.Exists(Path.ChangeExtension(m.FileName, null)));
+                ? m.Name.EndsWith(".exe") : File.Exists(Path.ChangeExtension(m.Name, null)));
         }
 
         public static ClrMethod GetMethod(this ClrType type, string name)
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static ClrModule GetModule(this ClrRuntime runtime, string fileName)
         {
             return (from module in runtime.AppDomains.SelectMany(ad => ad.Modules)
-                    let file = Path.GetFileName(module.FileName)
+                    let file = Path.GetFileName(module.Name)
                     where file.Equals(fileName, StringComparison.OrdinalIgnoreCase)
                     select module).FirstOrDefault();
         }

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrModule[] sharedModules = runtime.EnumerateModules().Where(m => Path.GetFileName(m.FileName).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase)).ToArray();
+            ClrModule[] sharedModules = runtime.EnumerateModules().Where(m => Path.GetFileName(m.Name).Equals("sharedlibrary.dll", StringComparison.OrdinalIgnoreCase)).ToArray();
 
             Assert.Equal(2, sharedModules.Length);
             Assert.NotEqual(sharedModules[0].AppDomain, sharedModules[1].AppDomain);
