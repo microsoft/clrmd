@@ -49,5 +49,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);
         }
+
+
+
+        [Fact]
+        public void MinidumpExceptionPropertiesNoSymbolsTest()
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadMiniDump();
+            dt.BinaryLocator = new NullBinaryLocator();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ExceptionTests.TestProperties(runtime);
+        }
     }
 }

@@ -8,6 +8,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public interface IExceptionHelpers
     {
+        IDataReader DataReader { get; }
         ImmutableArray<ClrStackFrame> GetExceptionStackTrace(ClrThread? thread, ClrObject obj);
+        uint GetInnerExceptionOffset(ClrType type);
+        uint GetHResultOffset(ClrType type);
+        uint GetMessageOffset(ClrType type);
     }
 }

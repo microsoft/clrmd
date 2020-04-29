@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool ContainsPointers { get; }
         public override bool IsShared { get; }
 
-        public ClrmdType(ClrHeap heap, ClrType? baseType, ClrModule? module, ITypeData data)
+        public ClrmdType(ClrHeap heap, ClrType? baseType, ClrModule? module, ITypeData data, string? name = null)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
@@ -86,6 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             StaticSize = data.BaseSize;
             ContainsPointers = data.ContainsPointers;
             IsShared = data.IsShared;
+            _name = name;
 
             // If there are no methods, preempt the expensive work to create methods
             if (data.MethodCount == 0)
