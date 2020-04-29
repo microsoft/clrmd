@@ -28,9 +28,29 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The address of the field's value.</returns>
         public abstract ulong Address { get; }
 
+        /// <summary>
+        /// Reads the value of the field as an unmanaged struct or primitive type.
+        /// </summary>
+        /// <typeparam name="T">An unmanaged struct or primitive type.</typeparam>
+        /// <returns>The value read.</returns>
         public abstract T Read<T>() where T : unmanaged;
+
+        /// <summary>
+        /// Reads teh value of an object field.
+        /// </summary>
+        /// <returns>The value read.</returns>
         public abstract ClrObject ReadObject();
+
+        /// <summary>
+        /// Reads a ValueType struct from the instance field.
+        /// </summary>
+        /// <returns>The value read.</returns>
         public abstract ClrValueType ReadStruct();
+
+        /// <summary>
+        /// Reads a string from the instance field.
+        /// </summary>
+        /// <returns>The value read.</returns>
         public abstract string? ReadString();
     }
 }
