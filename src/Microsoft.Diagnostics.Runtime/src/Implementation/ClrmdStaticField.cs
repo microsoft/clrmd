@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdStaticField : ClrStaticField
+    public sealed class ClrmdStaticField : ClrStaticField
     {
         private ulong _address = ulong.MaxValue - 1;
         private readonly IFieldHelpers _helpers;

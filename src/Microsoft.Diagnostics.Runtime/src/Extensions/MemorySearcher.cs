@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A public extension methods to support searching an IMemoryReader for a given span.
     /// </summary>
-    public static class MemorySearcher
+    internal static class MemorySearcher
     {
         /// <summary>
         /// Searches memory from startAddress to endAddress, looking for the memory specified by `searchFor`.  Note

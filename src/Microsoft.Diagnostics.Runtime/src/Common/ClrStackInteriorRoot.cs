@@ -4,10 +4,10 @@
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class ClrStackInteriorRoot : IClrStackRoot
+    public sealed class ClrStackInteriorRoot : IClrStackRoot
     {
         private ClrObject? _object;
-        private ClrSegment _segment;
+        private readonly ClrSegment _segment;
 
         public ulong Address { get; }
 

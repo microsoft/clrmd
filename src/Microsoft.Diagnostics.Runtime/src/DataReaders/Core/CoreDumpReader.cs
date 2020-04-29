@@ -14,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoreDumpReader : IDataReader, IDisposable
+    internal class CoredumpReader : IDataReader, IDisposable
     {
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Linux;
 
-        public CoreDumpReader(string path, Stream stream)
+        public CoredumpReader(string path, Stream stream)
         {
             DisplayName = path ?? throw new ArgumentNullException(nameof(path));
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));

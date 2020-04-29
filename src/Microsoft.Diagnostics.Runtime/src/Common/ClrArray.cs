@@ -65,17 +65,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets <paramref name="count"/> element values from the array.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="count"></param>
-        /// <returns></returns>
-        public T[]? GetValues<T>(int count) where T : unmanaged
+        public T[]? ReadValues<T>(int start, int count) where T : unmanaged
         {
-            if ((uint)count > Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
+            if (start < 0 || start >= Length)
+                throw new ArgumentOutOfRangeException(nameof(start));
 
-            return Type.GetArrayElementValues<T>(Address, count);
+            if (count < 0 || start + count > Length)
+                throw new ArgumentOutOfRangeException(nameof(count));
+
+            return Type.ReadArrayElements<T>(Address, start, count);
         }
 
         /// <summary>

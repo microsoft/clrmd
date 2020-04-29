@@ -476,7 +476,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // this test to fail but the underlying issue would be fixed.
             Assert.Null(componentType);
 
-            ClrObject itemsObj = list.ReadObject().GetObjectField("_items");
+            ClrObject itemsObj = list.ReadObject().ReadObjectField("_items");
 
             // Ensure we are looking at the same ClrType
             if (dt.CacheOptions.CacheTypes)
@@ -650,10 +650,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = type.GetStaticFieldByName("s_array").ReadObject();
-            ulong s_one = type.GetStaticFieldByName("s_one").ReadObject();
-            ulong s_two = type.GetStaticFieldByName("s_two").ReadObject();
-            ulong s_three = type.GetStaticFieldByName("s_three").ReadObject();
+            ClrObject s_array = type.GetStaticFieldByName("s_array").ReadObject();
+            ClrObject s_one = type.GetStaticFieldByName("s_one").ReadObject();
+            ClrObject s_two = type.GetStaticFieldByName("s_two").ReadObject();
+            ClrObject s_three = type.GetStaticFieldByName("s_three").ReadObject();
 
             ulong[] expected = { s_one, s_two, s_three };
 
@@ -661,8 +661,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.Equal(expected[i], (ulong)arrayType.GetArrayElementValue(s_array, i));
-
                 ulong address = arrayType.GetArrayElementAddress(s_array, i);
                 ulong value = dt.DataReader.ReadPointer(address);
 

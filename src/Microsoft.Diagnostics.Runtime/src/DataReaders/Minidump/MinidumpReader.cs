@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class MinidumpReader : IDataReader, IDisposable
+    internal sealed class MinidumpReader : IDataReader, IDisposable
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;

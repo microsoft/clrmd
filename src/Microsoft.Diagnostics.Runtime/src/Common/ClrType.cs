@@ -197,19 +197,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract ulong GetArrayElementAddress(ulong objRef, int index);
 
-
-        // TODO: factor this into string/object/<T>
-        /// <summary>
-        /// Returns the array element value at the given index.  Returns <see langword="null"/> if the array element is of type
-        /// VALUE_CLASS.
-        /// </summary>
-        public abstract object? GetArrayElementValue(ulong objRef, int index);
-
-
         /// <summary>
         /// Returns multiple consecutive array element values.
         /// </summary>
-        public abstract T[]? GetArrayElementValues<T>(ulong objRef, int count) where T : unmanaged;
+        public abstract T[]? ReadArrayElements<T>(ulong objRef, int start, int count) where T : unmanaged;
 
         /// <summary>
         /// Gets the static size of objects of this type when they are created on the CLR heap.

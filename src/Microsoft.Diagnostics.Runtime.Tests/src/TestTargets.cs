@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return fileName;
         }
 
-        public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
+        public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
 
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, true));
 

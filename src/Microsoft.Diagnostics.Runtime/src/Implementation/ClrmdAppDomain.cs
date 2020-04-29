@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdAppDomain : ClrAppDomain
+    public sealed class ClrmdAppDomain : ClrAppDomain
     {
         private readonly IAppDomainHelpers _helpers;
 

@@ -73,13 +73,10 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
-                if (hr == HResult.E_INVALIDARG || hr == HRESULT_FROM_NT(STATUS_MAPPED_FILE_SIZE_ZERO))
+                if (hr == HResult.E_INVALIDARG || hr == (STATUS_MAPPED_FILE_SIZE_ZERO | 0x10000000))
                     throw new InvalidDataException($"'{dumpFile}' is not a crash dump.");
 
-                var kind = hr == HResult.E_FAIL ? ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat : ClrDiagnosticsExceptionKind.DebuggerError;
-                throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", kind, hr).AddData("DumpFile", dumpFile);
-
-                static int HRESULT_FROM_NT(int status) => status | 0x10000000;
+                throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", hr).AddData("DumpFile", dumpFile);
             }
 
             // This actually "attaches" to the crash dump.

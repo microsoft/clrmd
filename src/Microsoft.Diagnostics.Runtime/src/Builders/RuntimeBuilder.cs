@@ -105,11 +105,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        bool IHeapHelpers.CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segments, out ImmutableArray<AllocationContext> allocationContexts,
+        bool IHeapHelpers.CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segments, out ImmutableArray<MemoryRange> allocationContexts,
                                          out ImmutableArray<FinalizerQueueSegment> fqRoots, out ImmutableArray<FinalizerQueueSegment> fqObjects)
         {
             var segs = ImmutableArray.CreateBuilder<ClrSegment>();
-            var allocContexts = ImmutableArray.CreateBuilder<AllocationContext>();
+            var allocContexts = ImmutableArray.CreateBuilder<MemoryRange>();
             var finalizerRoots = ImmutableArray.CreateBuilder<FinalizerQueueSegment>();
             var finalizerObjects = ImmutableArray.CreateBuilder<FinalizerQueueSegment>();
 
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             while (_sos.GetThreadData(next, out ThreadData thread))
             {
                 if (thread.AllocationContextPointer != 0 && thread.AllocationContextPointer != thread.AllocationContextLimit)
-                    allocContexts.Add(new AllocationContext(thread.AllocationContextPointer, thread.AllocationContextLimit));
+                    allocContexts.Add(new MemoryRange(thread.AllocationContextPointer, thread.AllocationContextLimit));
 
                 next = thread.NextThread;
                 if (next == 0 || !seen.Add(next))
@@ -160,13 +160,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             SegmentBuilder segBuilder,
             ClrHeap clrHeap,
             in HeapDetails heap,
-            ImmutableArray<AllocationContext>.Builder allocationContexts,
+            ImmutableArray<MemoryRange>.Builder allocationContexts,
             ImmutableArray<ClrSegment>.Builder segments,
             ImmutableArray<FinalizerQueueSegment>.Builder fqRoots,
             ImmutableArray<FinalizerQueueSegment>.Builder fqObjects)
         {
             if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
-                allocationContexts.Add(new AllocationContext(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
+                allocationContexts.Add(new MemoryRange(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
 
             fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
             fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));

@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdConstructedType : ClrType
+    public sealed class ClrmdConstructedType : ClrType
     {
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;
@@ -78,8 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
         public override ClrType? BaseType => null;
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
-        public override object? GetArrayElementValue(ulong objRef, int index) => null;
-        public override T[]? GetArrayElementValues<T>(ulong objRef, int count) => null;
+        public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => null;
         public override int StaticSize => IntPtr.Size;
         public override GCDesc GCDesc => default;
         public override int MetadataToken => 0;

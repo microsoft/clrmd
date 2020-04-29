@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public int IsDynamic;
         public int IsInMemory;
-        public int IsFileLayout;
+        public int IsFlatLayout;
         public ClrDataAddress PEFile;
         public ClrDataAddress LoadedPEAddress;
         public ulong LoadedPESize; // size of file on disk

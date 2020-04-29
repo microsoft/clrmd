@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ITypeFactory Factory { get; }
 
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandleLinks();
-        bool CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segemnts, out ImmutableArray<AllocationContext> allocationContexts,
+        bool CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segemnts, out ImmutableArray<MemoryRange> allocationContexts,
                             out ImmutableArray<FinalizerQueueSegment> fqRoots, out ImmutableArray<FinalizerQueueSegment> fqObjects);
     }
 }

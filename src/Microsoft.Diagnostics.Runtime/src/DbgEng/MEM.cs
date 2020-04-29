@@ -7,7 +7,7 @@ using System;
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     [Flags]
-    public enum MEM : uint
+    internal enum MEM : uint
     {
         COMMIT = 0x1000,
         RESERVE = 0x2000,

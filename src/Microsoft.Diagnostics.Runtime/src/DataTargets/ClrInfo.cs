@@ -15,13 +15,12 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public DataTarget DataTarget { get; }
 
-        internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo, string? dacLocation)
+        internal ClrInfo(DataTarget dt, ClrFlavor flavor, ModuleInfo module, DacInfo dacInfo)
         {
             DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
             Flavor = flavor;
             DacInfo = dacInfo ?? throw new ArgumentNullException(nameof(dacInfo));
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
-            LocalMatchingDac = dacLocation;
         }
 
         /// <summary>
@@ -43,12 +42,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets module information about the ClrInstance.
         /// </summary>
         public ModuleInfo ModuleInfo { get; }
-
-        /// <summary>
-        /// Gets the location of the local DAC on your machine which matches this version of Clr, or <see langword="null"/>
-        /// if one could not be found.
-        /// </summary>
-        public string? LocalMatchingDac { get; }
 
         /// <summary>
         /// To string.
@@ -82,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrRuntime CreateRuntime()
         {
-            string? dac = LocalMatchingDac;
+            string? dac = DacInfo.LocalDacPath;
             if (dac != null && !File.Exists(dac))
                 dac = null;
 

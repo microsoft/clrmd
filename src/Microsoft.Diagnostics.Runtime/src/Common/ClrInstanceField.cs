@@ -4,16 +4,42 @@
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    // TODO: remove this class.  ClrInstanceField should be ClrField.  GetValue/GetAddress should be folded elsewhere.
-
     /// <summary>
     /// Represents an instance field of a type.   Fundamentally it respresents a name and a type
     /// </summary>
     public abstract class ClrInstanceField : ClrField
     {
+        /// <summary>
+        /// Reads the value of the field as an unmanaged struct or primitive type.
+        /// </summary>
+        /// <typeparam name="T">An unmanaged struct or primitive type.</typeparam>
+        /// <param name="objRef">The object to read the instance field from.</param>
+        /// <param name="interior">Whether or not the field is interior to a struct.</param>
+        /// <returns>The value read.</returns>
         public abstract T Read<T>(ulong objRef, bool interior) where T : unmanaged;
+
+        /// <summary>
+        /// Reads teh value of an object field.
+        /// </summary>
+        /// <param name="objRef">The object to read the instance field from.</param>
+        /// <param name="interior">Whether or not the field is interior to a struct.</param>
+        /// <returns>The value read.</returns>
         public abstract ClrObject ReadObject(ulong objRef, bool interior);
+
+        /// <summary>
+        /// Reads a ValueType struct from the instance field.
+        /// </summary>
+        /// <param name="objRef">The object to read the instance field from.</param>
+        /// <param name="interior">Whether or not the field is interior to a struct.</param>
+        /// <returns>The value read.</returns>
         public abstract ClrValueType ReadStruct(ulong objRef, bool interior);
+
+        /// <summary>
+        /// Reads a string from the instance field.
+        /// </summary>
+        /// <param name="objRef">The object to read the instance field from.</param>
+        /// <param name="interior">Whether or not the field is interior to a struct.</param>
+        /// <returns>The value read.</returns>
         public abstract string? ReadString(ulong objRef, bool interior);
 
         /// <summary>

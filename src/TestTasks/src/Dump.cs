@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         [Required]
         public string FullDumpPath { get; set; }
 
-        public string MiniDumpPath { get; set; }
+        public string MinidumpPath { get; set; }
 
         public bool IsServerGC { get; set; }
 
@@ -42,9 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
                 {
                     _ = debugger.WriteDumpFile(FullDumpPath, DEBUG_DUMP.DEFAULT);
 
-                    if (MiniDumpPath != null)
+                    if (MinidumpPath != null)
                     {
-                        _ = debugger.WriteDumpFile(MiniDumpPath, DEBUG_DUMP.SMALL);
+                        _ = debugger.WriteDumpFile(MinidumpPath, DEBUG_DUMP.SMALL);
                     }
                 }
             };

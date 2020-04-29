@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdSegment : ClrSegment
+    public sealed class ClrmdSegment : ClrSegment
     {
         const int MarkerCount = 16;
 
@@ -29,21 +29,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _clrmdHeap = heap;
 
             LogicalHeap = data.LogicalHeap;
-            Start = data.Start;
-            End = data.End;
-
             IsLargeObjectSegment = data.IsLargeObjectSegment;
             IsEphemeralSegment = data.IsEphemeralSegment;
 
-            ReservedEnd = data.ReservedEnd;
-            CommittedEnd = data.CommittedEnd;
+            ObjectRange = new MemoryRange(data.Start, data.End);
+            ReservedMemory = new MemoryRange(data.CommittedEnd, data.ReservedEnd);
+            CommittedMemory = new MemoryRange(data.BaseAddress, data.CommittedEnd);
 
-            Gen0Start = data.Gen0Start;
-            Gen0Length = data.Gen0Length;
-            Gen1Start = data.Gen1Start;
-            Gen1Length = data.Gen1Length;
-            Gen2Start = data.Gen2Start;
-            Gen2Length = data.Gen2Length;
+            Generation0 = MemoryRange.CreateFromLength(data.Gen0Start, data.Gen0Length);
+            Generation1 = MemoryRange.CreateFromLength(data.Gen1Start, data.Gen1Length);
+            Generation2 = MemoryRange.CreateFromLength(data.Gen2Start, data.Gen2Length);
 
             _markers = new ulong[MarkerCount];
         }
@@ -51,26 +46,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrHeap Heap => _clrmdHeap;
 
         public override int LogicalHeap { get; }
-        public override ulong Start { get; }
-        public override ulong End { get; }
 
         public override bool IsLargeObjectSegment { get; }
         public override bool IsEphemeralSegment { get; }
 
-        public override ulong ReservedEnd { get; }
-        public override ulong CommittedEnd { get; }
+        public override MemoryRange ObjectRange { get; }
 
-        public override ulong Gen0Start { get; }
-        public override ulong Gen0Length { get; }
-        public override ulong Gen1Start { get; }
-        public override ulong Gen1Length { get; }
-        public override ulong Gen2Start { get; }
-        public override ulong Gen2Length { get; }
-        public override ulong FirstObjectAddress => Gen2Start < End ? Gen2Start : 0;
-
-        public override IEnumerable<ClrObject> EnumerateObjects() => EnumerateObjects(null);
+        public override MemoryRange ReservedMemory { get; }
         
-        public IEnumerable<ClrObject> EnumerateObjects(Action<ulong, ulong, int, int, uint>? callback)
+        public override MemoryRange CommittedMemory { get; }
+
+        public override MemoryRange Generation0 { get; }
+        
+        public override MemoryRange Generation1 { get; }
+        
+        public override MemoryRange Generation2 { get; }
+
+        public override ulong FirstObjectAddress => ObjectRange.Start;
+        
+        public override IEnumerable<ClrObject> EnumerateObjects()
         {
             bool large = IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
@@ -86,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!large)
                 memoryReader.EnsureRangeInCache(obj);
 
-            while (obj < End)
+            while (ObjectRange.Contains(obj))
             {
                 ulong mt;
                 if (large)
@@ -107,10 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ClrType? type = _helpers.Factory.GetOrCreateType(_clrmdHeap, mt, obj);
                 if (type is null)
-                {
-                    callback?.Invoke(obj, mt, int.MinValue + 1, -1, 0);
                     break;
-                }
 
                 int marker = GetMarkerIndex(obj);
                 if (marker != -1 && _markers[marker] == 0)
@@ -123,7 +114,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (type.ComponentSize == 0)
                 {
                     size = (uint)type.StaticSize;
-                    callback?.Invoke(obj, mt, type.StaticSize, -1, 0);
                 }
                 else
                 {
@@ -138,7 +128,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         count++;
 
                     size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
-                    callback?.Invoke(obj, mt, type.StaticSize, type.ComponentSize, count);
                 }
 
                 size = ClrmdHeap.Align(size, large);
@@ -146,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     size = minObjSize;
 
                 obj += size;
-                obj = _clrmdHeap.SkipAllocationContext(this, obj, mt, callback);
+                obj = _clrmdHeap.SkipAllocationContext(this, obj);
             }
 
             ArrayPool<byte>.Shared.Return(buffer);
@@ -173,8 +162,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetPreviousObjectAddress(ulong addr)
         {
-            if (addr < FirstObjectAddress || addr >= CommittedEnd)
-                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedEnd:x}] does not contain address {addr:x}");
+            if (!ObjectRange.Contains(addr))
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain address {addr:x}");
 
             if (addr == FirstObjectAddress)
                 return 0;
@@ -219,8 +208,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (addr == 0)
                 return 0;
 
-            if (addr < FirstObjectAddress || addr >= CommittedEnd)
-                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedEnd:x}] does not contain object {addr:x}");
+            if (!ObjectRange.Contains(addr))
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain object {addr:x}");
 
             bool large = IsLargeObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
@@ -254,7 +243,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong obj = addr + size;
 
             if (!large)
-                obj = _clrmdHeap.SkipAllocationContext(this, obj, 0, null); // ignore mt here because it won't be used
+                obj = _clrmdHeap.SkipAllocationContext(this, obj); // ignore mt here because it won't be used
 
             if (obj >= End)
                 return 0;

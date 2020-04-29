@@ -37,6 +37,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns this exception's ClrObject representation.
+        /// </summary>
+        public ClrObject AsObject() => _object;
+
+        /// <summary>
         /// Gets the address of the exception object.
         /// </summary>
         public ulong Address => _object;

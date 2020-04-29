@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
             int res = func(guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
             if (res != 0)
-                throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", ClrDiagnosticsExceptionKind.DacError, res);
+                throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
 
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }

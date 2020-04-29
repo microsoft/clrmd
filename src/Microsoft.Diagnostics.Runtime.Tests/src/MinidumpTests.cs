@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpCallstackTest()
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMiniDump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrThread thread = runtime.GetMainThread();
 
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpExceptionPropertiesTest()
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMiniDump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);
         }
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpExceptionPropertiesNoSymbolsTest()
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMiniDump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
             dt.BinaryLocator = new NullBinaryLocator();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);

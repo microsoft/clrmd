@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             ClrInfo info = dt.ClrVersions.Single();
-            string dac = info.LocalMatchingDac;
+            string dac = info.DacInfo.LocalDacPath;
 
             Assert.NotNull(dac);
 

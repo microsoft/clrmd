@@ -355,8 +355,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrInstanceField? GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
-        public override object? GetArrayElementValue(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
-        public override T[]? GetArrayElementValues<T>(ulong objRef, int count) => throw new InvalidOperationException($"{Name} is not an array.");
+        public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => throw new InvalidOperationException($"{Name} is not an array.");
 
         // convenience function for testing
         public static string? FixGenerics(string? name) => RuntimeBuilder.FixGenerics(name);

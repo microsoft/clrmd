@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
+                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", errno);
                 }
 
                 _suspended = true;
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", ClrDiagnosticsExceptionKind.DebuggerError, errno);
+                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
                 }
 
                 _suspended = false;

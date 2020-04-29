@@ -151,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime
             ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
-                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out var platform))
+                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out OSPlatform platform))
                     continue;
 
                 string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
                 string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName)!, dacFileName);
 
-                if (platform == Platform.Linux)
+                if (platform == OSPlatform.Linux)
                 {
                     if (File.Exists(dacLocation))
                     {
@@ -186,8 +186,8 @@ namespace Microsoft.Diagnostics.Runtime
                 string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
-                DacInfo dacInfo = new DacInfo(dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo, dacLocation));
+                DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
+                versions.Add(new ClrInfo(this, flavor, module, dacInfo));
             }
 
             _clrs = versions.MoveOrCopyToImmutable();
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime
                 IDataReader reader = format switch
                 {
                     DumpFileFormat.Minidump => new MinidumpReader(filePath, stream),
-                    DumpFileFormat.ElfCoredump => new CoreDumpReader(filePath, stream),
+                    DumpFileFormat.ElfCoredump => new CoredumpReader(filePath, stream),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format

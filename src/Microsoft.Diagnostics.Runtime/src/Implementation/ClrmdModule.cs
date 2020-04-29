@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong Address { get; }
         public override bool IsPEFile { get; }
         public override ulong ImageBase { get; }
-        public override bool IsFileLayout { get; }
+        public override ModuleLayout Layout { get; }
         public override ulong Size { get; }
         public override ulong MetadataAddress { get; }
         public override ulong MetadataLength { get; }
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Address = data.Address;
             IsPEFile = data.IsPEFile;
             ImageBase = data.ILImageBase;
-            IsFileLayout = data.IsFileLayout;
+            Layout = data.IsFlatLayout ? ModuleLayout.Flat : ModuleLayout.Unknown;
             Size = data.Size;
             MetadataAddress = data.MetadataStart;
             MetadataLength = data.MetadataLength;
@@ -71,8 +71,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (_pdb is null)
                 {
+                    // Not correct, but as close as we can get until we add more information to the dac.
+                    bool virt = Layout != ModuleLayout.Flat;
+
                     using ReadVirtualStream stream = new ReadVirtualStream(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : int.MaxValue));
-                    using PEImage pefile = new PEImage(stream, leaveOpen: true, isVirtual: !IsFileLayout);
+                    using PEImage pefile = new PEImage(stream, leaveOpen: true, isVirtual: virt);
                     if (pefile.IsValid)
                         _pdb = pefile.DefaultPdb;
                 }

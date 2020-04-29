@@ -14,25 +14,30 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrSegment
     {
         /// <summary>
-        /// Gets the start address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
-        /// </summary>
-        public abstract ulong Start { get; }
-
-        /// <summary>
-        /// Gets the end address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
-        /// </summary>
-        public abstract ulong End { get; }
-
-        /// <summary>
-        /// Gets the number of bytes in the segment.
-        /// </summary>
-        public virtual ulong Length => End - Start;
-
-        /// <summary>
         /// Gets the GC heap associated with this segment.  There's only one GCHeap per process, so this is
         /// only a convenience method to keep from having to pass the heap along with a segment.
         /// </summary>
         public abstract ClrHeap Heap { get; }
+
+        /// <summary>
+        /// The memory range of the segment on which objects are allocated.  All objects in this segment fall within this range.
+        /// </summary>
+        public abstract MemoryRange ObjectRange { get; }
+
+        /// <summary>
+        /// Gets the start address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Start"/>.
+        /// </summary>
+        public virtual ulong Start => ObjectRange.Start;
+
+        /// <summary>
+        /// Gets the end address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
+        /// </summary>
+        public virtual ulong End => ObjectRange.End;
+
+        /// <summary>
+        /// Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
+        /// </summary>
+        public virtual ulong Length => ObjectRange.Length;
 
         /// <summary>
         /// Gets the processor that this heap is affinitized with.  In a workstation GC, there is no processor
@@ -43,14 +48,14 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int LogicalHeap { get; }
 
         /// <summary>
-        /// Gets the address of the end of memory reserved for the segment, but not committed.
+        /// Gets the range of memory reserved (but not commited) for this segment.
         /// </summary>
-        public abstract ulong ReservedEnd { get; }
+        public abstract MemoryRange ReservedMemory { get; }
 
         /// <summary>
-        /// Gets the address of the end of memory committed for the segment (this may be longer than Length).
+        /// Gets the range of memory committed for the segment (this may be larger than MemoryRange).
         /// </summary>
-        public abstract ulong CommittedEnd { get; }
+        public abstract MemoryRange CommittedMemory { get; }
 
         /// <summary>
         /// Gets the first object on this segment or 0 if this segment contains no objects.
@@ -71,37 +76,19 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsEphemeralSegment { get; }
 
         /// <summary>
-        /// Ephemeral heap sements have geneation 0 and 1 in them.  Gen 1 is always above Gen 2 and
-        /// Gen 0 is above Gen 1.  This property tell where Gen 0 start in memory.   Note that
-        /// if this is not an Ephemeral segment, then this will return End (which makes Gen 0 empty
-        /// for this segment).
+        /// The memory range for Generation 0 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
-        public abstract ulong Gen0Start { get; }
+        public abstract MemoryRange Generation0 { get; }
 
         /// <summary>
-        /// Gets the length of the gen0 portion of this segment.
+        /// The memory range for Generation 1 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
-        public abstract ulong Gen0Length { get; }
+        public abstract MemoryRange Generation1 { get; }
 
         /// <summary>
-        /// Gets the start of the gen1 portion of this segment.
+        /// The memory range for Generation e on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
-        public abstract ulong Gen1Start { get; }
-
-        /// <summary>
-        /// Gets the length of the gen1 portion of this segment.
-        /// </summary>
-        public abstract ulong Gen1Length { get; }
-
-        /// <summary>
-        /// Gets the start of the gen2 portion of this segment.
-        /// </summary>
-        public abstract ulong Gen2Start { get; }
-
-        /// <summary>
-        /// Gets the length of the gen2 portion of this segment.
-        /// </summary>
-        public abstract ulong Gen2Length { get; }
+        public abstract MemoryRange Generation2 { get; }
 
         /// <summary>
         /// Enumerates all objects on the segment.
@@ -114,7 +101,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="obj">A valid object address that resides on this segment.</param>
         /// <returns>The next object on this segment, or 0 if <paramref name="obj"/> is the last object on the segment.</returns>
         public abstract ulong GetNextObjectAddress(ulong obj);
-
 
         /// <summary>
         /// Returns the object before the given object.  Note that this function may take a while because in the worst case
@@ -134,14 +120,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </returns>
         public virtual int GetGeneration(ulong obj)
         {
-            if (Gen0Start <= obj && obj < Gen0Start + Gen0Length)
-                return 0;
+            if (Generation2.Contains(obj))
+                return 2;
 
-            if (Gen1Start <= obj && obj < Gen1Start + Gen1Length)
+            if (Generation1.Contains(obj))
                 return 1;
 
-            if (Gen2Start <= obj && obj < Gen2Start + Gen2Length)
-                return 2;
+            if (Generation0.Contains(obj))
+                return 0;
 
             return -1;
         }

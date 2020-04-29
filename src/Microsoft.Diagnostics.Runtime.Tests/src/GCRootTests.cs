@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             foreach (ClrObject obj in heap.EnumerateObjects().Where(o => o.Type.Name == "SingleRef"))
             {
-                ClrObject item1 = obj.GetObjectField("Item1");
+                ClrObject item1 = obj.ReadObjectField("Item1");
                 if (item1.Type?.Name == targetTypeName)
                     return obj;
             }
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType mainType = module.GetTypeByName("GCRootTarget");
 
             ClrObject obj = mainType.GetStaticObjectValue("TheRoot");
-            obj = obj.GetObjectField("Item1");
+            obj = obj.ReadObjectField("Item1");
 
             Assert.Equal("System.Object[]", obj.Type.Name);
 

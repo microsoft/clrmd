@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            bool actual = _primitiveCarrier.GetField<bool>(nameof(prototype.TrueBool));
+            bool actual = _primitiveCarrier.ReadField<bool>(nameof(prototype.TrueBool));
 
             // Assert
             Assert.True(actual);
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            long actual = _primitiveCarrier.GetField<long>(nameof(prototype.OneLargerMaxInt));
+            long actual = _primitiveCarrier.ReadField<long>(nameof(prototype.OneLargerMaxInt));
 
             // Assert
             Assert.Equal(prototype.OneLargerMaxInt, actual);
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            ClrObjectConnection.EnumType enumValue = _primitiveCarrier.GetField<ClrObjectConnection.EnumType>(nameof(prototype.SomeEnum));
+            ClrObjectConnection.EnumType enumValue = _primitiveCarrier.ReadField<ClrObjectConnection.EnumType>(nameof(prototype.SomeEnum));
 
             // Assert
             Assert.Equal(prototype.SomeEnum, enumValue);
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            string text = _primitiveCarrier.GetStringField(nameof(prototype.HelloWorldString));
+            string text = _primitiveCarrier.ReadStringField(nameof(prototype.HelloWorldString));
 
             // Assert
             Assert.Equal(prototype.HelloWorldString, text);
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            void readDifferentFieldTypeAsString() => _primitiveCarrier.GetStringField(nameof(prototype.SomeEnum));
+            void readDifferentFieldTypeAsString() => _primitiveCarrier.ReadStringField(nameof(prototype.SomeEnum));
 
             // Assert
             Assert.Throws<InvalidOperationException>(readDifferentFieldTypeAsString);
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            ClrObject textPointer = _primitiveCarrier.GetObjectField(nameof(prototype.HelloWorldString));
+            ClrObject textPointer = _primitiveCarrier.ReadObjectField(nameof(prototype.HelloWorldString));
 
             // Assert
             Assert.Equal(prototype.HelloWorldString, (string)textPointer);
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            ClrObject referenceFieldValue = _primitiveCarrier.GetObjectField(nameof(prototype.SamplePointer));
+            ClrObject referenceFieldValue = _primitiveCarrier.ReadObjectField(nameof(prototype.SamplePointer));
 
             // Assert
             Assert.Equal("SamplePointerType", referenceFieldValue.Type.Name);
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            void readNonExistingField() => _primitiveCarrier.GetObjectField("nonExistingField");
+            void readNonExistingField() => _primitiveCarrier.ReadObjectField("nonExistingField");
 
             // Assert
             Assert.Throws<ArgumentException>(readNonExistingField);
@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            ClrValueType birthday = _primitiveCarrier.GetValueTypeField(nameof(prototype.Birthday));
+            ClrValueType birthday = _primitiveCarrier.ReadValueTypeField(nameof(prototype.Birthday));
 
             // Assert
             Assert.Equal(typeof(DateTime).FullName, birthday.Type.Name);
@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             var prototype = _connection.Prototype;
 
             // Act
-            ClrValueType sampleGuid = _primitiveCarrier.GetValueTypeField(nameof(prototype.SampleGuid));
+            ClrValueType sampleGuid = _primitiveCarrier.ReadValueTypeField(nameof(prototype.SampleGuid));
 
             // Assert
             Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);

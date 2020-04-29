@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Returns information about the IL for a method.
     /// </summary>
-    public class ILInfo
+    public sealed class ILInfo
     {
         /// <summary>
         /// Gets the address in memory of where the IL for a particular method is located.

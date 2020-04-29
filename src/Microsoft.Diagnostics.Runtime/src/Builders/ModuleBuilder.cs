@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ulong MetadataStart => _moduleData.MetadataStart;
         public ulong MetadataLength => _moduleData.MetadataSize;
 
-        public bool IsFileLayout { get; private set; }
+        public bool IsFlatLayout { get; private set; }
         public ulong Size { get; private set; }
 
         public string? Name
@@ -78,12 +78,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             using ClrDataModule? dataModule = _sos.GetClrDataModule(address);
             if (dataModule != null && dataModule.GetModuleData(out ExtendedModuleData data))
             {
-                IsFileLayout = data.IsFileLayout != 0;
+                IsFlatLayout = data.IsFlatLayout != 0;
                 Size = data.LoadedPESize;
             }
             else
             {
-                IsFileLayout = false;
+                IsFlatLayout = false;
                 Size = 0;
             }
 

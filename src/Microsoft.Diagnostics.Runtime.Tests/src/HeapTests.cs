@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
@@ -19,6 +18,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
+            // Ensure that we never find objects within allocation contexts.
+            MemoryRange[] allocationContexts = heap.EnumerateAllocationContexts().ToArray();
+            Assert.NotEmpty(allocationContexts);
+
             bool encounteredFoo = false;
             int count = 0;
             foreach (ClrObject obj in heap.EnumerateObjects())
@@ -30,10 +33,36 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     encounteredFoo = true;
 
                 count++;
+
+                Assert.DoesNotContain(allocationContexts, ac => ac.Contains(obj));
             }
 
             Assert.True(count > 0);
             Assert.True(encounteredFoo);
+        }
+
+        [Fact]
+        public void AllocationContextLocation()
+        {
+            // Simply test that we can enumerate the heap.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            // Ensure that we never find objects within allocation contexts.
+            MemoryRange[] allocationContexts = heap.EnumerateAllocationContexts().ToArray();
+            Assert.NotEmpty(allocationContexts);
+
+            foreach (MemoryRange ac in allocationContexts)
+            {
+                Assert.True(ac.Length > 0);
+
+                ClrSegment seg = heap.GetSegmentByAddress(ac.Start);
+                Assert.NotNull(seg);
+                Assert.Same(seg, heap.GetSegmentByAddress(ac.End - 1));
+
+                Assert.True(seg.ObjectRange.Contains(ac));
+            }
         }
 
         [Fact]
@@ -173,13 +202,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotEqual(0ul, seg.End);
                 Assert.True(seg.Start <= seg.End);
 
-                Assert.True(seg.Start < seg.CommittedEnd);
-                Assert.True(seg.CommittedEnd < seg.ReservedEnd);
+                Assert.True(seg.Start < seg.CommittedMemory.End);
+                Assert.True(seg.CommittedMemory.End < seg.ReservedMemory.End);
+                Assert.False(seg.CommittedMemory.Overlaps(seg.ReservedMemory));
+                Assert.True(seg.CommittedMemory.Contains(seg.ObjectRange));
+                
+                if (seg.Generation0.Length > 0)
+                    Assert.True(seg.ObjectRange.Contains(seg.Generation0));
+                
+                if (seg.Generation1.Length > 0)
+                    Assert.True(seg.ObjectRange.Contains(seg.Generation1));
+                
+                if (seg.Generation2.Length > 0)
+                    Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
                 if (!seg.IsEphemeralSegment)
                 {
-                    Assert.Equal(0ul, seg.Gen0Length);
-                    Assert.Equal(0ul, seg.Gen1Length);
+                    Assert.Equal(0ul, seg.Generation0.Length);
+                    Assert.Equal(0ul, seg.Generation1.Length);
                 }
 
                 int count = 0;
