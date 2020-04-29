@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime
                 IDataReader reader = format switch
                 {
                     DumpFileFormat.Minidump => new MinidumpReader(filePath, stream),
-                    DumpFileFormat.ElfCoredump => new CoreDumpReader(filePath, stream),
+                    DumpFileFormat.ElfCoredump => new CoredumpReader(filePath, stream),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
