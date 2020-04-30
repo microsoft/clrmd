@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </exception>
         public ClrObject ReadObjectField(string fieldName)
         {
-            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            ClrInstanceField? field = Type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
         public T ReadField<T>(string fieldName)
             where T : unmanaged
         {
-            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            ClrInstanceField? field = Type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public ClrValueType ReadValueTypeField(string fieldName)
         {
-            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            ClrInstanceField? field = Type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 
@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
-            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            ClrInstanceField? field = Type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{Type.Name}' does not contain a field named '{fieldName}'");
 

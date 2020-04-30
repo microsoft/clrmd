@@ -197,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject ReadObjectField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            ClrInstanceField? field = type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
 
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            ClrInstanceField? field = type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
@@ -246,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : unmanaged
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            ClrInstanceField? field = type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
@@ -319,7 +319,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new InvalidOperationException($"Cannot get field from null object.");
 
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            ClrInstanceField? field = type.GetInstanceFieldByName(fieldName);
             if (field is null)
                 throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
