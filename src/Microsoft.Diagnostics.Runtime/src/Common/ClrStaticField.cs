@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns whether this static field has been initialized in a particular AppDomain
         /// or not.  If a static variable has not been initialized, then its class constructor
-        /// may have not been run yet.  Calling GetFieldValue on an uninitialized static
+        /// may have not been run yet.  Calling any of the Read* methods on an uninitialized static
         /// will result in returning either NULL or a value of 0.
         /// </summary>
         /// <param name="appDomain">The AppDomain to see if the variable has been initialized.</param>
