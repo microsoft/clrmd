@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int elementSize = Type.ComponentSize;
             if (sizeof(T) != elementSize)
-                throw new ArgumentException($"{nameof(T)} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
+                throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
@@ -229,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int elementSize = Type.ComponentSize;
             if (sizeof(T) != elementSize)
-                throw new ArgumentException($"{nameof(T)} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
+                throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
