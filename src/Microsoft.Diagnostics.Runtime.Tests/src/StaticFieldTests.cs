@@ -29,8 +29,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(staticType2);
             Assert.NotEqual(staticType1, staticType2);
 
-            int value2 = staticType1.StaticFields.Single().Read<int>();
-            int value42 = staticType2.StaticFields.Single().Read<int>();
+            int value2 = staticType1.StaticFields.Single().Read<int>(staticType1.Module.AppDomain);
+            int value42 = staticType2.StaticFields.Single().Read<int>(staticType2.Module.AppDomain);
 
             if (value2 > value42)
             {

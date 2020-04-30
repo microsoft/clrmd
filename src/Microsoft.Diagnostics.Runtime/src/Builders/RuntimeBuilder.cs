@@ -208,9 +208,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     return result;
 
                 if (_moduleBuilder.Init(addr))
-                    return _modules[addr] = new ClrmdModule(domain, _moduleBuilder);
+                    result = _modules[addr] = new ClrmdModule(domain, _moduleBuilder);
+                else
+                    result = _modules[addr] = new ClrmdModule(domain, this, addr);
 
-                return _modules[addr] = new ClrmdModule(domain, this, addr);
+                return result;
             }
         }
 

@@ -80,9 +80,10 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsProtected { get; }
 
         /// <summary>
-        /// If the field has a well defined offset from the base of the object, return it (otherwise -1).
+        /// For instance fields, this is the offset of the field within the object.
+        /// For static fields this is the offset within the block of memory allocated for the module's static fields.
         /// </summary>
-        public virtual int Offset => -1;
+        public abstract int Offset { get; }
 
         /// <summary>
         /// Returns a string representation of this object.
