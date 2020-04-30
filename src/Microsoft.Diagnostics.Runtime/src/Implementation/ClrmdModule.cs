@@ -17,7 +17,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;
 
+        private readonly IModuleData? _data;
         private readonly IModuleHelpers _helpers;
+        private string? _simpleName;
+        private string? _assemblyName;
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
@@ -26,7 +29,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrAppDomain AppDomain { get; }
         public override string? Name { get; }
-        public override string? AssemblyName { get; }
+        public override string? SimpleName => _simpleName ??= _data?.SimpleName;
+        public override string? AssemblyName => _assemblyName ??= _data?.AssemblyName;
         public override ulong AssemblyAddress { get; }
         public override ulong Address { get; }
         public override bool IsPEFile { get; }
@@ -43,10 +47,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
+            _data = data;
             _helpers = data.Helpers;
             AppDomain = parent;
             Name = data.Name;
-            AssemblyName = data.AssemblyName;
             AssemblyAddress = data.AssemblyAddress;
             Address = data.Address;
             IsPEFile = data.IsPEFile;

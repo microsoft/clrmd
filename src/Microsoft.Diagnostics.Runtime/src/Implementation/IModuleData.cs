@@ -16,6 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong Size { get; }
         ulong MetadataStart { get; }
         string? Name { get; }
+        string? SimpleName { get; }
         string? AssemblyName { get; }
         ulong MetadataLength { get; }
         bool IsReflection { get; }

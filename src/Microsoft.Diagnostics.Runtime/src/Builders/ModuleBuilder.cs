@@ -48,6 +48,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
+        public string? SimpleName { get; private set; }
+
         public string? AssemblyName
         {
             get
@@ -85,6 +87,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 IsFlatLayout = false;
                 Size = 0;
+            }
+
+            if (dataModule != null)
+            {
+                SimpleName = dataModule.GetName();
+            }
+            else
+            {
+                SimpleName = null;
             }
 
             return true;
