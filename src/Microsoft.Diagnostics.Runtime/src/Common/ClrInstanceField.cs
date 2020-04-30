@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract T Read<T>(ulong objRef, bool interior) where T : unmanaged;
 
         /// <summary>
-        /// Reads teh value of an object field.
+        /// Reads the value of an object field.
         /// </summary>
         /// <param name="objRef">The object to read the instance field from.</param>
         /// <param name="interior">Whether or not the field is interior to a struct.</param>

@@ -65,12 +65,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
+            ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule module = runtime.GetModule(ModuleName);
             ClrType typesType = module.GetTypeByName("Types");
             ClrStaticField field = typesType.GetStaticFieldByName("s_i");
 
-            ClrObject obj = field.ReadObject();
+            ClrObject obj = field.ReadObject(domain);
             Assert.False(obj.IsNull);
 
             ClrType type = obj.Type;
@@ -435,7 +436,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(0, es.Size);
         }
 
-        [Fact(Skip = "This looks like a bug in mscordac and not ClrMD.")]
+        [Fact]
         public void StringEmptyIsObtainableTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
@@ -448,7 +449,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrStaticField empty = stringType.GetStaticFieldByName("Empty");
             Assert.NotNull(empty);
 
-            string value = empty.ReadString();
+            string value = empty.ReadString(runtime.AppDomains.Single());
             Assert.Equal(string.Empty, value);
         }
 
@@ -476,7 +477,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // this test to fail but the underlying issue would be fixed.
             Assert.Null(componentType);
 
-            ClrObject itemsObj = list.ReadObject().ReadObjectField("_items");
+            ClrObject itemsObj = list.ReadObject(runtime.AppDomains.Single()).ReadObjectField("_items");
 
             // Ensure we are looking at the same ClrType
             if (dt.CacheOptions.CacheTypes)
@@ -499,7 +500,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrType fooType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
-            ClrObject obj = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").ReadObject();
+            ClrObject obj = runtime.GetModule(ModuleName).GetTypeByName("Types").GetStaticFieldByName("s_foo").ReadObject(domain);
 
             if (dt.CacheOptions.CacheTypes)
             {
@@ -650,10 +651,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrObject s_array = type.GetStaticFieldByName("s_array").ReadObject();
-            ClrObject s_one = type.GetStaticFieldByName("s_one").ReadObject();
-            ClrObject s_two = type.GetStaticFieldByName("s_two").ReadObject();
-            ClrObject s_three = type.GetStaticFieldByName("s_three").ReadObject();
+            ClrObject s_array = type.GetStaticFieldByName("s_array").ReadObject(domain);
+            ClrObject s_one = type.GetStaticFieldByName("s_one").ReadObject(domain);
+            ClrObject s_two = type.GetStaticFieldByName("s_two").ReadObject(domain);
+            ClrObject s_three = type.GetStaticFieldByName("s_three").ReadObject(domain);
 
             ulong[] expected = { s_one, s_two, s_three };
 
@@ -681,7 +682,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrObject obj = type.GetStaticFieldByName("s_array").ReadObject();
+            ClrObject obj = type.GetStaticFieldByName("s_array").ReadObject(domain);
             Assert.True(obj.IsArray);
 
             ClrArray arr = obj.AsArray();
@@ -701,10 +702,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ulong s_array = type.GetStaticFieldByName("s_array").ReadObject();
-            ulong s_one = type.GetStaticFieldByName("s_one").ReadObject();
-            ulong s_two = type.GetStaticFieldByName("s_two").ReadObject();
-            ulong s_three = type.GetStaticFieldByName("s_three").ReadObject();
+            ulong s_array = type.GetStaticFieldByName("s_array").ReadObject(domain);
+            ulong s_one = type.GetStaticFieldByName("s_one").ReadObject(domain);
+            ulong s_two = type.GetStaticFieldByName("s_two").ReadObject(domain);
+            ulong s_three = type.GetStaticFieldByName("s_three").ReadObject(domain);
 
             ClrType arrayType = heap.GetObjectType(s_array);
 
@@ -724,13 +725,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject().AsArray();
-            ClrArray s_2dArray = type.GetStaticFieldByName("s_2dArray").ReadObject().AsArray();
-            ClrArray s_5dArray = type.GetStaticFieldByName("s_5dArray").ReadObject().AsArray();
+            ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject(domain).AsArray();
+            ClrArray s_2dArray = type.GetStaticFieldByName("s_2dArray").ReadObject(domain).AsArray();
+            ClrArray s_5dArray = type.GetStaticFieldByName("s_5dArray").ReadObject(domain).AsArray();
 
             Assert.Equal(1, s_array.Rank);
             Assert.Equal(2, s_2dArray.Rank);
@@ -742,12 +744,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject().AsArray();
-            ClrArray s_5dArray = type.GetStaticFieldByName("s_5dArray").ReadObject().AsArray();
+            ClrArray s_array = type.GetStaticFieldByName("s_array").ReadObject(domain).AsArray();
+            ClrArray s_5dArray = type.GetStaticFieldByName("s_5dArray").ReadObject(domain).AsArray();
 
             Assert.Equal(3, s_array.GetLength(0));
 
@@ -763,13 +766,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrArray s_szObjArray = type.GetStaticFieldByName("s_szObjArray").ReadObject().AsArray();
-            ClrArray s_mdObjArray = type.GetStaticFieldByName("s_mdObjArray").ReadObject().AsArray();
-            ClrArray s_2dObjArray = type.GetStaticFieldByName("s_2dObjArray").ReadObject().AsArray();
+            ClrArray s_szObjArray = type.GetStaticFieldByName("s_szObjArray").ReadObject(domain).AsArray();
+            ClrArray s_mdObjArray = type.GetStaticFieldByName("s_mdObjArray").ReadObject(domain).AsArray();
+            ClrArray s_2dObjArray = type.GetStaticFieldByName("s_2dObjArray").ReadObject(domain).AsArray();
 
             Assert.Equal(1, s_szObjArray.Rank);
             Assert.Equal(1, s_mdObjArray.Rank);
@@ -792,13 +796,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrAppDomain domain = runtime.AppDomains.Single();
 
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
 
-            ClrArray s_szIntArray = type.GetStaticFieldByName("s_szIntArray").ReadObject().AsArray(); // System.Int32[]
-            ClrArray s_mdIntArray = type.GetStaticFieldByName("s_mdIntArray").ReadObject().AsArray(); // System.Int32[*]
-            ClrArray s_2dIntArray = type.GetStaticFieldByName("s_2dIntArray").ReadObject().AsArray(); // System.Int32[,]
+            ClrArray s_szIntArray = type.GetStaticFieldByName("s_szIntArray").ReadObject(domain).AsArray(); // System.Int32[]
+            ClrArray s_mdIntArray = type.GetStaticFieldByName("s_mdIntArray").ReadObject(domain).AsArray(); // System.Int32[*]
+            ClrArray s_2dIntArray = type.GetStaticFieldByName("s_2dIntArray").ReadObject(domain).AsArray(); // System.Int32[,]
 
             Assert.Equal(1, s_szIntArray.Rank);
             Assert.Equal(1, s_mdIntArray.Rank);

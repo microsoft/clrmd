@@ -10,7 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     public sealed class ClrmdStaticField : ClrStaticField
     {
-        private ulong _address = ulong.MaxValue - 1;
         private readonly IFieldHelpers _helpers;
         private string? _name;
         private ClrType? _type;
@@ -137,13 +136,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ulong Address => _address != ulong.MaxValue - 1 ? _address : _address = _helpers.GetStaticFieldAddress(this, Type?.Module?.AppDomain);
-
-        public override bool IsInitialized(ClrAppDomain appDomain) => Address != 0;
-
-        public override T Read<T>()
+        public override ulong GetAddress(ClrAppDomain domain)
         {
-            ulong address = Address;
+            ulong address = _helpers.GetStaticFieldAddress(this, domain);
+            return address;
+        }
+
+        public override bool IsInitialized(ClrAppDomain appDomain) => GetAddress(appDomain) != 0;
+
+        public override T Read<T>(ClrAppDomain appDomain)
+        {
+            ulong address = GetAddress(appDomain);
             if (address == 0)
                 return default;
 
@@ -153,9 +156,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return value;
         }
 
-        public override ClrObject ReadObject()
+        public override ClrObject ReadObject(ClrAppDomain appDomain)
         {
-            if (Address == 0 || !_helpers.DataReader.ReadPointer(Address, out ulong obj) || obj == 0)
+            ulong address = GetAddress(appDomain);
+            if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
                 return default;
 
             ulong mt = _helpers.DataReader.ReadPointer(obj);
@@ -166,17 +170,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new ClrObject(obj, type);
         }
 
-        public override ClrValueType ReadStruct()
+        public override ClrValueType ReadStruct(ClrAppDomain appDomain)
         {
-            if (Address == 0)
+            ulong address = GetAddress(appDomain);
+            if (address == 0)
                 return default;
 
-            return new ClrValueType(Address, Type, interior: true);
+            return new ClrValueType(address, Type, interior: true);
         }
 
-        public override string? ReadString()
+        public override string? ReadString(ClrAppDomain appDomain)
         {
-            ClrObject obj = ReadObject();
+            ClrObject obj = ReadObject(appDomain);
             if (obj.IsNull)
                 return null;
 

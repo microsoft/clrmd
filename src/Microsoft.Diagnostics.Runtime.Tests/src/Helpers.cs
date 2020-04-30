@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
             ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
-            return field.ReadObject();
+            return field.ReadObject(mainType.Module.AppDomain);
         }
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrStackFrame GetFrame(this ClrThread thread, string functionName)
         {
-            return thread.EnumerateStackTrace().Single(sf => sf.Method != null ? sf.Method.Name == functionName : false);
+            return thread.EnumerateStackTrace().Single(sf => sf.Method != null && sf.Method.Name == functionName);
         }
 
         public static string TestWorkingDirectory
