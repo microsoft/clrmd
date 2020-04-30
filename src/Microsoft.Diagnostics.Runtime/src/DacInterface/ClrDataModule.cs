@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             fixed (char* namePtr = name)
                 hr = _getName(Self, nameLength, out _, namePtr);
 
-            return !hr ? null : name;
+            return hr ? name : null;
         }
 
         private GetNameDelegate? _getName;
