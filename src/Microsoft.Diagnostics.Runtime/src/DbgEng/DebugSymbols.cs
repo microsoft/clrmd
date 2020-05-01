@@ -33,12 +33,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             if (!hr)
                 return null;
 
-            StringBuilder sb = new StringBuilder(needed);
-            hr = _getModuleNameStringWide(Self, which, index, imageBase, sb, sb.Capacity, out _);
-            if (!hr)
-                return null;
+            string nameResult = new string('\0', needed - 1);
+            fixed (char* nameResultPtr = nameResult)
+                if (_getModuleNameStringWide(Self, which, index, imageBase, nameResultPtr, needed, out _))
+                    return nameResult;
 
-            return sb.ToString();
+            return null;
         }
 
         public int GetNumberModules()
@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetModuleNameStringWideDelegate? _getModuleNameStringWide;
         private readonly DebugSystemObjects _sys;
 
-        private delegate HResult GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? Buffer, int BufferSize, out int NameSize);
+        private delegate HResult GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base, char* Buffer, int BufferSize, out int NameSize);
         private delegate HResult GetNumberModulesDelegate(IntPtr self, out int count, out int unloaded);
         private delegate HResult GetModuleByIndexDelegate(IntPtr self, int index, out ulong imageBase);
         private delegate HResult GetModuleParametersDelegate(IntPtr self, int count, ulong* bases, int start, DEBUG_MODULE_PARAMETERS* parameters);

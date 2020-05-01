@@ -73,16 +73,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return hr;
             }
 
-            StringBuilder sb = new StringBuilder(needed + 1);
-            hr = _getTypeDefProps(Self, token, sb, sb.Capacity, out needed, out attributes, out mdParent);
+            string nameResult = new string('\0', needed - 1);
+            fixed (char* nameResultPtr = nameResult)
+                hr = _getTypeDefProps(Self, token, nameResultPtr, needed, out needed, out attributes, out mdParent);
 
-            if (!hr)
-            {
-                name = null;
-                return hr;
-            }
-
-            name = sb.ToString();
+            name = hr ? nameResult : null;
             return hr;
         }
 
@@ -103,9 +98,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return hr;
             }
 
-            StringBuilder sb = new StringBuilder(needed + 1);
-            hr = _getFieldProps(Self, token, out typeDef, sb, sb.Capacity, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
-            name = hr ? sb.ToString() : null;
+            string nameResult = new string('\0', needed - 1);
+            fixed (char* nameResultPtr = nameResult)
+                hr = _getFieldProps(Self, token, out typeDef, nameResultPtr, needed, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
+
+            name = hr ? nameResult : null;
             return hr;
         }
 
@@ -143,9 +140,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!_getTypeRefProps(Self, token, out int scope, null, 0, out int needed))
                 return null;
 
-            StringBuilder sb = new StringBuilder(needed + 1);
-            if (_getTypeRefProps(Self, token, out scope, sb, sb.Capacity, out needed))
-                return sb.ToString();
+            string nameResult = new string('\0', needed - 1);
+            fixed (char* nameResultPtr = nameResult)
+                if (_getTypeRefProps(Self, token, out scope, nameResultPtr, needed, out needed))
+                    return nameResult;
 
             return null;
         }
@@ -232,20 +230,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate HResult CloseEnumDelegate(IntPtr self, IntPtr e);
         private delegate HResult EnumInterfaceImplsDelegate(IntPtr self, ref IntPtr phEnum, int td, [Out] int[] rImpls, int cMax, out int pCount);
         private delegate HResult GetInterfaceImplPropsDelegate(IntPtr self, int mdImpl, out int mdClass, out int mdIFace);
-        private delegate HResult GetTypeRefPropsDelegate(IntPtr self, int token, out int resolutionScopeToken, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szName,
+        private delegate HResult GetTypeRefPropsDelegate(IntPtr self, int token, out int resolutionScopeToken, char* szName,
                                                          int bufferSize, out int needed);
-        private delegate HResult GetTypeDefPropsDelegate(IntPtr self, int token, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szTypeDef,
+        private delegate HResult GetTypeDefPropsDelegate(IntPtr self, int token, char* szTypeDef,
                                                      int cchTypeDef, out int pchTypeDef, out TypeAttributes pdwTypeDefFlags, out int ptkExtends);
         private delegate HResult EnumFieldsDelegate(IntPtr self, ref IntPtr phEnum, int cl, int[] mdFieldDef, int cMax, out int pcTokens);
         private delegate HResult GetRVADelegate(IntPtr self, int token, out uint pRva, out uint flags);
-        private delegate HResult GetMethodPropsDelegate( IntPtr self, int md, out int pClass, StringBuilder? szMethod, int cchMethod, out int pchMethod,
+        private delegate HResult GetMethodPropsDelegate(IntPtr self, int md, out int pClass, StringBuilder? szMethod, int cchMethod, out int pchMethod,
             out MethodAttributes pdwAttr, out IntPtr ppvSigBlob, out uint pcbSigBlob, out uint pulCodeRVA, out uint pdwImplFlags);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate HResult GetNestedClassPropsDelegate(IntPtr self, int tdNestedClass, out int tdEnclosingClass);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate HResult GetFieldPropsDelegate(IntPtr self, int mb, out int mdTypeDef, [Out][MarshalAs(UnmanagedType.LPWStr)] StringBuilder? szField,
+        private delegate HResult GetFieldPropsDelegate(IntPtr self, int mb, out int mdTypeDef, char* szField,
                                                        int cchField, out int pchField, out FieldAttributes pdwAttr, out IntPtr ppvSigBlob, out int pcbSigBlob,
                                                        out int pdwCPlusTypeFlab, out IntPtr ppValue, out int pcchValue);
 
