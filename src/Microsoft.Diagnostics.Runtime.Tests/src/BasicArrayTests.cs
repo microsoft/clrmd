@@ -217,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void GetArrayElementsValues_WhenIntArray_GetAllValues()
+        public void GetArrayElementsValues_WhenIntArray_ReadAllValues()
         {
             // Arrange
             var originalArray = _prototype.IntArray;
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void GetArrayElementsValues_WhenDateTimeArray_GetAllValues()
+        public void GetArrayElementsValues_WhenDateTimeArray_ReadAllValues()
         {
             // Arrange
             var originalArray = _prototype.DateTimeArray;
@@ -245,18 +245,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void GetArrayElementsValues_WhenDateTimeArray_ReadLessThanAllValues()
+        public void GetArrayElementsValues_WhenDateTimeArray_ReadFirstValues()
         {
+            const int fromEnd = 2;
+
             // Arrange
             var originalArray = _prototype.DateTimeArray;
             ClrArray structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
-            int readLength = originalArray.Length - 2;
 
             // Act
-            DateTime[] datetimes = structArray.ReadValues<DateTime>(0, readLength);
+            DateTime[] datetimes = structArray.ReadValues<DateTime>(0, structArray.Length - fromEnd);
 
             // Assert
-            Assert.Equal(originalArray.AsSpan().Slice(0, readLength).ToArray(), datetimes);
+            Assert.Equal(originalArray[..^fromEnd], datetimes);
+        }
+
+        [Fact]
+        public void GetArrayElementsValues_WhenDateTimeArray_ReadLastValues()
+        {
+            const int fromStart = 2;
+
+            // Arrange
+            var originalArray = _prototype.DateTimeArray;
+            ClrArray structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
+
+            // Act
+            DateTime[] datetimes = structArray.ReadValues<DateTime>(fromStart, structArray.Length - fromStart);
+
+            // Assert
+            Assert.Equal(originalArray[fromStart..], datetimes);
         }
     }
 }

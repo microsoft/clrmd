@@ -58,11 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count)
         {
-            // todo
-            if (start != 0)
-                throw new NotImplementedException();
-
-            ulong address = GetArrayElementAddress(objRef, 0);
+            ulong address = GetArrayElementAddress(objRef, start);
             ClrType? componentType = ComponentType;
             ClrElementType cet;
             if (componentType != null)
