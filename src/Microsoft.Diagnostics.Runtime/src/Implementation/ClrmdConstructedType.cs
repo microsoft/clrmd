@@ -59,11 +59,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrElementType ElementType { get; }
         public override ulong MethodTable => 0;
         public override bool IsFinalizeSuppressed(ulong obj) => false;
-        public override bool IsPointer => true;
+        public override bool IsPointer => ElementType != ClrElementType.SZArray && ElementType != ClrElementType.Array;
         public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
         public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
         public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
-        public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Enumerable.Empty<ClrGenericParameter>();
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override bool IsPublic => true;
