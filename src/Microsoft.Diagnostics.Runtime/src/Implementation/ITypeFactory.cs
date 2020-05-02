@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Immutable;
 
@@ -24,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
         ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
+        ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, ImmutableArray<ClrGenericParameter> typeParameters, ImmutableArray<ClrGenericParameter> methodParameters);
         ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
         ClrMethod? CreateMethodFromHandle(ulong methodHandle);
     }

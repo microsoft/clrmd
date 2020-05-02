@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
@@ -861,6 +862,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
+            // We'll assume 'Class' is just System.Object
+            if (basicType == ClrElementType.Class)
+                basicType = ClrElementType.Object;
+
             ClrType?[]? basicTypes = _basicTypes;
             if (basicTypes is null)
             {
@@ -874,6 +879,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         string? name = _sos.GetMethodTableName(mt);
                         ClrElementType type = name switch
                         {
+                            "System.Void" => ClrElementType.Void,
                             "System.Boolean" => ClrElementType.Boolean,
                             "System.Char" => ClrElementType.Char,
                             "System.SByte" => ClrElementType.Int8,
@@ -902,6 +908,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         }
                     }
                 }
+
+                ClrHeap heap = GetOrCreateHeap();
+                basicTypes[(int)ClrElementType.Object] = heap.ObjectType;
+                basicTypes[(int)ClrElementType.String] = heap.StringType;
 
                 Interlocked.CompareExchange(ref _basicTypes, basicTypes, null);
             }
@@ -1000,6 +1010,136 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     return result;
                 }
             }
+        }
+
+
+        public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, ImmutableArray<ClrGenericParameter> typeParameters, ImmutableArray<ClrGenericParameter> methodParameters)
+        {
+            // ECMA 335 - II.23.2.12 - Type
+
+            if (!parser.GetElemType(out ClrElementType etype))
+                return null;
+
+            if (etype.IsPrimitive() || etype == ClrElementType.Void || etype == ClrElementType.Object || etype == ClrElementType.String)
+                return GetOrCreateBasicType(etype);
+
+            if (etype == ClrElementType.Array)
+            {
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
+                innerType ??= GetOrCreateBasicType(ClrElementType.Void);  // Need a placeholder if we can't determine type
+
+                // II.23.2.13
+                if (!parser.GetData(out int rank))
+                    return null;
+
+                if (!parser.GetData(out int numSizes))
+                    return null;
+
+                for (int i = 0; i < numSizes; i++)
+                    if (!parser.GetData(out _))
+                        return null;
+
+                if (!parser.GetData(out int numLowBounds))
+                    return null;
+
+                for (int i = 0; i < numLowBounds; i++)
+                    if (!parser.GetData(out _))
+                        return null;
+
+                // We should probably use sizes and lower bounds, but this is so rare I won't worry about it for now
+                ClrType? result = GetOrCreateArrayType(innerType, rank);
+                return result;
+            }
+
+            if (etype == ClrElementType.Class || etype == ClrElementType.Struct)
+            {
+                if (!parser.GetToken(out int token))
+                    return null;
+
+                ClrType? result = module != null ? GetOrCreateTypeFromToken(module, token) : null;
+                if (result == null)
+                {
+                    // todo, create a type from metadata instead of returning a basic type?
+                    result = GetOrCreateBasicType(etype);
+                }
+
+                return result;
+            }
+
+            if (etype == ClrElementType.FunctionPointer)
+            {
+                if (!parser.GetToken(out _))
+                    return null;
+
+                // We don't have a type for function pointers so we'll make it a void pointer
+                ClrType inner = GetOrCreateBasicType(ClrElementType.Void);
+                return GetOrCreatePointerType(inner, 1);
+            }
+
+            if (etype == ClrElementType.GenericInstantiation)
+            {
+                if (!parser.GetElemType(out ClrElementType classOrStruct))
+                    return null;
+
+                if (!parser.GetToken(out int token))
+                    return null;
+
+
+                if (!parser.GetData(out int count))
+                    return null;
+
+                var builder = ImmutableArray.CreateBuilder<ClrType>(count);
+                for (int i = 0; i < count; i++)
+                {
+                    ClrType? entry = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
+
+                    // If we fail to load the type we have to have a placeholder.
+                    entry ??= GetOrCreateBasicType(ClrElementType.Void);
+                    builder.Add(entry);
+                }
+
+                ClrType? result = module?.ResolveToken(token);
+                return result;
+            }
+
+            if (etype == ClrElementType.MVar || etype == ClrElementType.Var)
+            {
+                if (!parser.GetData(out int index))
+                    return null;
+
+                ImmutableArray<ClrGenericParameter> param = etype == ClrElementType.Var ? typeParameters : methodParameters;
+                if (param.IsDefault || index < 0 || index >= param.Length)
+                    return null;
+
+                return new ClrmdGenericType(this, GetOrCreateHeap(), module, param[index]);
+            }
+
+            if (etype == ClrElementType.Pointer)
+            {
+                if (!parser.SkipCustomModifiers())
+                    return null;
+
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
+                if (innerType == null)
+                    innerType = GetOrCreateBasicType(ClrElementType.Void);
+
+                return GetOrCreatePointerType(innerType, 1);
+            }
+
+            if (etype == ClrElementType.SZArray)
+            {
+                if (!parser.SkipCustomModifiers())
+                    return null;
+
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
+                if (innerType == null)
+                    innerType = GetOrCreateBasicType(ClrElementType.Void);
+
+                return GetOrCreateArrayType(innerType, 1);
+            }
+
+            DebugOnly.Assert(false);  // What could we have forgotten?  Should only happen in a corrupted signature.
+            return null;
         }
 
         public ClrType? GetOrCreateTypeFromToken(ClrModule module, int token) => module.ResolveToken(token);
@@ -1166,11 +1306,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
                 else if (fieldData.IsStatic)
                 {
-                    staticsBuilder[staticNum++] = new ClrmdStaticField(type, fieldData);
+                    ClrmdStaticField staticField = new ClrmdStaticField(type, fieldData);
+                    staticsBuilder[staticNum++] = staticField;
                 }
                 else
                 {
-                    fieldsBuilder[fieldNum++] = new ClrmdField(type, fieldData);
+                    ClrmdField field = new ClrmdField(type, fieldData);
+                    fieldsBuilder[fieldNum++] = field;
                 }
 
                 nextField = fieldData.NextField;

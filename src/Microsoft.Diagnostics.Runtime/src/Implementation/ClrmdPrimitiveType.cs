@@ -31,7 +31,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int StaticSize => ClrmdField.GetSize(this, ElementType);
         public override ClrType? BaseType => null; // todo;
         public override ClrHeap Heap { get; }
-        public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Enumerable.Empty<ClrGenericParameter>();
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsAbstract => false;
         public override bool IsFinalizable => false;

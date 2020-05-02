@@ -16,6 +16,11 @@ namespace Microsoft.Diagnostics.Runtime
         Unknown = 0x0,
 
         /// <summary>
+        /// Void type.
+        /// </summary>
+        Void = 0x1,
+
+        /// <summary>
         /// ELEMENT_TYPE_BOOLEAN
         /// </summary>
         Boolean = 0x2,
@@ -96,9 +101,19 @@ namespace Microsoft.Diagnostics.Runtime
         Class = 0x12,
 
         /// <summary>
+        /// ELEMENT_TYPE_VAR
+        /// </summary>
+        Var = 0x13,
+
+        /// <summary>
         /// ELEMENT_TYPE_ARRAY
         /// </summary>
         Array = 0x14,
+
+        /// <summary>
+        /// ELEMENT_TYPE_GENERICINST
+        /// </summary>
+        GenericInstantiation = 0x15,
 
         /// <summary>
         /// ELEMENT_TYPE_I
@@ -119,6 +134,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// ELEMENT_TYPE_OBJECT
         /// </summary>
         Object = 0x1C,
+
+        /// <summary>
+        /// ELEMENT_TYPE_MVAR
+        /// </summary>
+        MVar = 0x1e,
 
         /// <summary>
         /// ELEMENT_TYPE_SZARRAY

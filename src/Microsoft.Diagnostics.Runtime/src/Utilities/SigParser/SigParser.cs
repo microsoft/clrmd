@@ -111,6 +111,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return false;
         }
 
+        public bool GetElemType(out ClrElementType etype)
+        {
+            if (GetElemType(out int e))
+            {
+                etype = (ClrElementType)e;
+                return true;
+            }
+
+            etype = ClrElementType.Unknown;
+            return false;
+        }
+
         public bool GetElemType(out int etype)
         {
             if (_len > 0)
@@ -166,6 +178,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             SigParser sigTemp = new SigParser(this);
             return sigTemp.GetElemType(out etype);
+        }
+
+        public bool PeekElemType(out ClrElementType etype)
+        {
+            if (PeekElemType(out int e))
+            {
+                etype = (ClrElementType)e;
+                return true;
+            }
+
+            etype = ClrElementType.Unknown;
+            return false;
         }
 
         public bool PeekElemType(out int etype)

@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
                         parser.GetCallingConvInfo(out _);
-                        parser.GetElemType(out _);
+                        parser.GetElemType(out int _);
 
                         Type? underlying = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
                         if (underlying != null)
