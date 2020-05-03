@@ -234,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime
             else if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
 
-            (Stream? stream, DumpFileFormat format) = OpenDump(filePath);
+            (Stream stream, DumpFileFormat format) = OpenDump(filePath);
             try
             {
 #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -252,20 +252,20 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException($"File '{filePath}' is in an unknown or unsupported file format."),
                 };
 
-                stream = null;
                 return new DataTarget(new CustomDataTarget(reader));
 
 #pragma warning restore CA2000 // Dispose objects before losing scope
             }
-            finally
+            catch
             {
-                stream?.Dispose();
+                stream.Dispose();
+                throw;
             }
         }
 
         private static (Stream stream, DumpFileFormat format) OpenDump(string path)
         {
-            Stream? stream = File.OpenRead(path);
+            Stream stream = File.OpenRead(path);
             try
             {
                 Span<byte> span = stackalloc byte[8];
