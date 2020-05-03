@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -310,6 +311,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="processId">The ID of the process to attach to.</param> 
         /// <param name="suspend">Whether or not to suspend the process.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
         public static DataTarget AttachToProcess(int processId, bool suspend)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -325,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return new DataTarget(customTarget);
             }
 
-            throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
+            throw GetPlatformException();
         }
 
         /// <summary>
@@ -340,6 +342,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
         public static DataTarget CreateSnapshotAndAttach(int processId)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -353,7 +356,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return new DataTarget(LinuxSnapshotTarget.CreateSnapshotFromProcess(processId));
             }
 
-            throw new PlatformNotSupportedException(GetPlatformMessage(nameof(AttachToProcess), RuntimeInformation.OSDescription));
+            throw GetPlatformException();
         }
 
         /// <summary>
@@ -362,15 +365,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="pDebugClient">An IDebugClient interface.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
         public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                throw new PlatformNotSupportedException(GetPlatformMessage(nameof(CreateFromDbgEng), RuntimeInformation.OSDescription));
+                throw GetPlatformException();
 
             CustomDataTarget customTarget = new CustomDataTarget(new DbgEngDataReader(pDebugClient));
             return new DataTarget(customTarget);
         }
 
-        private static string GetPlatformMessage(string method, string os) => $"{method} is not supported on {os}.";
+        private static Exception GetPlatformException([CallerMemberName] string? method = null) =>
+            new PlatformNotSupportedException($"{method} is not supported on {RuntimeInformation.OSDescription}.");
     }
 }
