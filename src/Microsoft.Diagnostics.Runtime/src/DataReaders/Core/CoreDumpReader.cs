@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly int _pointerSize;
         private readonly Architecture _architecture;
         private Dictionary<uint, IElfPRStatus> _threads;
-        private List<CoreModuleInfo> _modules;
+        private List<ModuleInfo> _modules;
         private readonly byte[] _buffer = new byte[512];
 
         public CoreDumpReader(string filename)
@@ -158,12 +158,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IList<ModuleInfo> EnumerateModules()
         {
-            // Only return the native elf modules
-            return EnumerateAllModules().Where((module) => module._elfFile != null).Cast<ModuleInfo>().ToList();
-        }
-
-        private IList<CoreModuleInfo> EnumerateAllModules()
-        {
             if (_modules == null)
             {
                 // Need to filter out non-modules like the interpreter (named something 
@@ -171,14 +165,10 @@ namespace Microsoft.Diagnostics.Runtime
                 // memory range overlaps with actual modules.
                 ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 
-                _modules = new List<CoreModuleInfo>();
+                _modules = new List<ModuleInfo>(_core.LoadedImages.Count);
                 foreach (ElfLoadedImage image in _core.LoadedImages)
-                {
                     if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev/"))
-                    {
                         _modules.Add(new CoreModuleInfo(this, image));
-                    }
-                }
             }
 
             return _modules;
@@ -236,7 +226,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             version = default;
 
-            ModuleInfo moduleInfo = EnumerateAllModules().FirstOrDefault(module => module.ImageBase == baseAddress);
+            ModuleInfo moduleInfo = EnumerateModules().FirstOrDefault(module => module.ImageBase == baseAddress);
             if (moduleInfo != null)
             {
                 version = moduleInfo.Version;
