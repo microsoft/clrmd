@@ -2,18 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Collections.Immutable;
+using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class MinidumpReader : IDataReader, IDisposable
     {
+        private readonly MemoryMappedFile _file;
+        private readonly Stream _stream;
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
 
@@ -22,11 +25,6 @@ namespace Microsoft.Diagnostics.Runtime
         public string DisplayName { get; }
 
         public IMemoryReader MemoryReader => _readerCached ??= _minidump.MemoryReader;
-
-        public MinidumpReader(string crashDump)
-            : this(crashDump, File.OpenRead(crashDump ?? throw new ArgumentNullException(nameof(crashDump))))
-        {
-        }
 
         public MinidumpReader(string crashDump, Stream stream)
         {
@@ -38,7 +36,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = crashDump;
 
-            _minidump = new Minidump(crashDump, stream);
+            stream.Dispose();
+            _file = MemoryMappedFile.CreateFromFile(crashDump, FileMode.Open);
+            _stream = _file.CreateViewStream();
+            _minidump = new Minidump(crashDump, _stream);
 
             Architecture = _minidump.Architecture switch
             {
@@ -62,9 +63,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Dispose()
         {
-            _minidump.Dispose();
+            _stream.Dispose();
+            _file.Dispose();
         }
-
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
