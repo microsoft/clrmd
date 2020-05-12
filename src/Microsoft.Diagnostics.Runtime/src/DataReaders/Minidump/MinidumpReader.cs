@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IMemoryReader MemoryReader => _readerCached ??= _minidump.MemoryReader;
 
-        public MinidumpReader(string crashDump, Stream stream)
+        public MinidumpReader(string crashDump, FileStream stream)
         {
             if (crashDump is null)
                 throw new ArgumentNullException(nameof(crashDump));
@@ -36,9 +36,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = crashDump;
 
-            stream.Dispose();
-            _file = MemoryMappedFile.CreateFromFile(crashDump, FileMode.Open);
-            _stream = _file.CreateViewStream();
+            _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+            _stream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
             _minidump = new Minidump(crashDump, _stream);
 
             Architecture = _minidump.Architecture switch
