@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class MinidumpReader : IDataReader, IDisposable
     {
-        private readonly MemoryMappedFile _file;
+        private readonly MemoryMappedFile? _file;
         private readonly Stream _stream;
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
@@ -36,8 +36,16 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = crashDump;
 
-            _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-            _stream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
+            if (new FileInfo(crashDump).Length <= (Environment.Is64BitProcess ? 0x100_0000_0000 : 0x1000_0000))
+            {
+                _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+                _stream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
+            }
+            else
+            {
+                _stream = stream;
+            }
+
             _minidump = new Minidump(crashDump, _stream);
 
             Architecture = _minidump.Architecture switch
@@ -63,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void Dispose()
         {
             _stream.Dispose();
-            _file.Dispose();
+            _file?.Dispose();
         }
 
         public IEnumerable<ModuleInfo> EnumerateModules()
