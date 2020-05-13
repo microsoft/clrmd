@@ -57,13 +57,27 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (useGlibcDl)
             {
-                _loadLibrary = fileName => dlopen_glibc(fileName, RTLD_NOW);
+                _loadLibrary = fileName =>
+                {
+                    IntPtr handle = dlopen_glibc(fileName, RTLD_NOW);
+                    if (handle == IntPtr.Zero)
+                        throw new DllNotFoundException(Marshal.PtrToStringAnsi(dlerror_glibc()));
+
+                    return handle;
+                };
                 _freeLibrary = ptr => dlclose_glibc(ptr) == 0;
                 _getExport = dlsym_glibc;
             }
             else
             {
-                _loadLibrary = fileName => dlopen(fileName, RTLD_NOW);
+                _loadLibrary = fileName =>
+                {
+                    IntPtr handle = dlopen(fileName, RTLD_NOW);
+                    if (handle == IntPtr.Zero)
+                        throw new DllNotFoundException(Marshal.PtrToStringAnsi(dlerror()));
+
+                    return handle;
+                };
                 _freeLibrary = ptr => dlclose(ptr) == 0;
                 _getExport = dlsym;
             }
@@ -288,6 +302,9 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport(LibDlGlibc, EntryPoint = nameof(dlopen))]
         private static extern IntPtr dlopen_glibc(string fileName, int flags);
 
+        [DllImport(LibDlGlibc, EntryPoint = nameof(dlerror))]
+        private static extern IntPtr dlerror_glibc();
+
         [DllImport(LibDlGlibc, EntryPoint = nameof(dlclose))]
         private static extern int dlclose_glibc(IntPtr module);
 
@@ -296,6 +313,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DllImport(LibDl)]
         private static extern IntPtr dlopen(string fileName, int flags);
+
+        [DllImport(LibDl)]
+        private static extern IntPtr dlerror();
 
         [DllImport(LibDl)]
         private static extern int dlclose(IntPtr module);

@@ -11,6 +11,44 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal unsafe sealed class WindowsFunctions : PlatformFunctions
     {
+        private readonly Func<string, IntPtr> _loadLibrary;
+        private readonly Func<IntPtr, bool> _freeLibrary;
+        private readonly Func<IntPtr, string, IntPtr> _getExport;
+
+        public WindowsFunctions()
+        {
+#if NETCOREAPP3_1
+            _loadLibrary = NativeLibrary.Load;
+            _freeLibrary = handle =>
+            {
+                NativeLibrary.Free(handle);
+                return true;
+            };
+            _getExport = (handle, name) =>
+            {
+                _ = NativeLibrary.TryGetExport(handle, name, out IntPtr address);
+                return address;
+            };
+#else
+            _loadLibrary = libraryPath =>
+            {
+                if (libraryPath is null)
+                    throw new ArgumentNullException(nameof(libraryPath));
+
+                IntPtr handle = NativeMethods.LoadLibrary(libraryPath);
+                if (handle == IntPtr.Zero)
+                    if (Marshal.GetLastWin32Error() == 193)
+                        throw new BadImageFormatException(); // ERROR_BAD_EXE_FORMAT
+                    else
+                        throw new DllNotFoundException();
+
+                return handle;
+            };
+            _freeLibrary = handle => NativeMethods.FreeLibrary(handle);
+            _getExport = (handle, name) => NativeMethods.GetProcAddress(handle, name);
+#endif
+        }
+
         internal static bool IsProcessRunning(int processId)
         {
             IntPtr handle = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_INFORMATION, false, processId);
@@ -45,11 +83,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 ArrayPool<int>.Shared.Return(processIds);
             }
-        }
-
-        public override bool FreeLibrary(IntPtr module)
-        {
-            return NativeMethods.FreeLibrary(module);
         }
 
         internal override bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
@@ -87,15 +120,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        public override IntPtr GetProcAddress(IntPtr module, string method)
-        {
-            return NativeMethods.GetProcAddress(module, method);
-        }
+        public override IntPtr LoadLibrary(string libraryPath)
+            => _loadLibrary(libraryPath);
 
-        public override IntPtr LoadLibrary(string lpFileName)
-        {
-            return NativeMethods.LoadLibrary(lpFileName);
-        }
+        public override bool FreeLibrary(IntPtr handle)
+            => _freeLibrary(handle);
+
+        public override IntPtr GetProcAddress(IntPtr handle, string name)
+            => _getExport(handle, name);
 
         internal static class NativeMethods
         {

@@ -92,9 +92,15 @@ namespace Microsoft.Diagnostics.Runtime
             if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
-            IntPtr dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
-            if (dacLibrary == IntPtr.Zero)
-                throw new ClrDiagnosticsException("Failed to load dac: " + dacLibrary);
+            IntPtr dacLibrary;
+            try
+            {
+                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
+            }
+            catch (Exception e) when (e is DllNotFoundException || e is BadImageFormatException)
+            {
+                throw new ClrDiagnosticsException("Failed to load dac: " + e.Message, e);
+            }
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
 
