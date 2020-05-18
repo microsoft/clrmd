@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     uint count;
                     if (large)
-                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size * 2]);
+                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size]);
                     else
                         memoryReader.ReadDword(obj + (uint)IntPtr.Size, out count);
 
