@@ -82,11 +82,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (DacInfo.PlatformSpecificFileName != null)
                 dac ??= DataTarget.BinaryLocator?.FindBinary(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
 
+            if (IntPtr.Size != DataTarget.DataReader.PointerSize)
+                throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
+
             if (!File.Exists(dac))
                 throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.PlatformSpecificFileName);
-
-            if (IntPtr.Size != DataTarget.DataReader.PointerSize)
-                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
 
             return ConstructRuntime(dac!);
         }
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrRuntime ConstructRuntime(string dac)
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
-                throw new InvalidOperationException("Mismatched architecture between this process and the dac.");
+                throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
 
             DacLibrary dacLibrary = new DacLibrary(DataTarget, dac);
             DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface;

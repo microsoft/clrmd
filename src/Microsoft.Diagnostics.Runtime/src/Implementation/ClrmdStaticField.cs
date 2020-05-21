@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -93,10 +94,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             // We may have to try to construct a type from the sigParser if the method table was a bust in the constructor
-            if (_type != null)
-                return name;
+            if (_type == null)
+            {
+                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
+                {
+                    sigParser.SkipCustomModifiers();
+                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(Parent.Module, sigParser, Parent.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
+                }
+            }
 
-            _type = ClrmdField.GetTypeForFieldSig(_helpers.Factory, sigParser, Parent.Heap, Parent.Module);
             return name;
         }
 

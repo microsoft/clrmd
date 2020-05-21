@@ -6,6 +6,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -142,140 +143,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             // We may have to try to construct a type from the sigParser if the method table was a bust in the constructor
-            if (_type != null)
-                return name;
+            if (_type == null)
+            {
+                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
+                {
+                    sigParser.SkipCustomModifiers();
+                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(Parent.Module, sigParser, Parent.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
+                }
+            }
 
-            _type = GetTypeForFieldSig(_helpers.Factory, sigParser, Parent.Heap, Parent.Module);
             return name;
-        }
-
-        internal static ClrType? GetTypeForFieldSig(ITypeFactory factory, SigParser sigParser, ClrHeap heap, ClrModule? module)
-        {
-            ClrType? result = null;
-            bool res;
-            int etype = 0;
-
-            if (res = sigParser.GetCallingConvInfo(out int sigType))
-                DebugOnly.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
-
-            res = res && sigParser.SkipCustomModifiers();
-            res = res && sigParser.GetElemType(out etype);
-
-            // Generic instantiation
-            if (etype == 0x15)
-                res = res && sigParser.GetElemType(out etype);
-
-            if (res)
-            {
-                ClrElementType type = (ClrElementType)etype;
-
-                if (type == ClrElementType.Array)
-                {
-                    res = sigParser.PeekElemType(out etype);
-                    res = res && sigParser.SkipExactlyOne();
-
-                    int ranks = 0;
-                    res = res && sigParser.GetData(out ranks);
-
-                    if (res)
-                    {
-                        ClrType inner = factory.GetOrCreateBasicType((ClrElementType)etype);
-                        result = factory.GetOrCreateArrayType(inner, ranks);
-                    }
-                }
-                else if (type == ClrElementType.SZArray)
-                {
-                    sigParser.PeekElemType(out etype);
-                    type = (ClrElementType)etype;
-
-                    if (type.IsObjectReference())
-                    {
-                        result = factory.GetOrCreateBasicType(ClrElementType.SZArray);
-                    }
-                    else
-                    {
-                        ClrType inner = factory.GetOrCreateBasicType((ClrElementType)etype);
-                        result = factory.GetOrCreateArrayType(inner, 1);
-                    }
-                }
-                else if (type == ClrElementType.Pointer)
-                {
-                    // Only deal with single pointers for now and types that have already been constructed
-                    sigParser.GetElemType(out etype);
-                    type = (ClrElementType)etype;
-
-                    sigParser.GetToken(out int token);
-
-                    if (module != null)
-                    {
-                        ClrType? innerType;
-                        if (type.IsPrimitive())
-                        {
-                            innerType = factory.GetOrCreateBasicType(type);
-                        }
-                        else
-                        {
-                            innerType = factory.GetOrCreateTypeFromToken(module, token);
-
-                            // Fallback just in case 
-                            if (innerType is null)
-                                innerType = factory.GetOrCreateBasicType(type);
-                        }
-                        
-
-                        result = factory.GetOrCreatePointerType(innerType, 1);
-                    }
-                }
-                else if (type == ClrElementType.Object || type == ClrElementType.Class)
-                {
-                    result = heap.ObjectType;
-                }
-                else
-                {
-                    // struct, then try to get the token
-                    int token = 0;
-                    if (etype == 0x11 || etype == 0x12)
-                        sigParser.GetToken(out token);
-
-                    if (token != 0 && module != null)
-                        result = factory.GetOrCreateTypeFromToken(module, token);
-
-                    if (result is null)
-                        result = factory.GetOrCreateBasicType((ClrElementType)etype);
-                }
-            }
-
-            if (result is null)
-                return result;
-
-            if (result.IsArray && result.ComponentType is null && result is ClrmdArrayType clrmdType)
-            {
-                etype = 0;
-
-                if (res = sigParser.GetCallingConvInfo(out sigType))
-                    DebugOnly.Assert(sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD);
-
-                res = res && sigParser.SkipCustomModifiers();
-                res = res && sigParser.GetElemType(out etype);
-
-                _ = res && sigParser.GetElemType(out etype);
-
-                // Generic instantiation
-                if (etype == 0x15)
-                    sigParser.GetElemType(out etype);
-
-                // If it's a class or struct, then try to get the token
-                int token = 0;
-                if (etype == 0x11 || etype == 0x12)
-                    sigParser.GetToken(out token);
-
-                if (token != 0 && module != null)
-                    clrmdType.SetComponentType(factory.GetOrCreateTypeFromToken(module, token));
-                else
-                    clrmdType.SetComponentType(factory.GetOrCreateBasicType((ClrElementType)etype));
-            }
-
-            return result;
         }
 
         public override T Read<T>(ulong objRef, bool interior)

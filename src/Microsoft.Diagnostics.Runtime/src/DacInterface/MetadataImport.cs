@@ -212,6 +212,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return true;
         }
 
+        public SigParser GetSigFromToken(int token)
+        {
+            InitDelegate(ref _getSigFromToken, VTable.GetSigFromToken);
+
+            HResult hr = _getSigFromToken(Self, token, out IntPtr sig, out int len);
+            if (hr)
+                return new SigParser(sig, len);
+
+            return default;
+        }
+
 
         private EnumInterfaceImplsDelegate? _enumInterfaceImpls;
         private CloseEnumDelegate? _closeEnum;
@@ -226,7 +237,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private GetCustomAttributeByNameDelegate? _getCustomAttributeByName;
         private EnumGenericParamsDelegate? _enumGenericParams;
         private GetGenericParamPropsDelegate? _getGenericParamProps;
+        private GetSigFromTokenDelegate? _getSigFromToken;
 
+        private delegate HResult GetSigFromTokenDelegate(IntPtr self, int token, out IntPtr sig, out int len);
         private delegate HResult CloseEnumDelegate(IntPtr self, IntPtr e);
         private delegate HResult EnumInterfaceImplsDelegate(IntPtr self, ref IntPtr phEnum, int td, [Out] int[] rImpls, int cMax, out int pCount);
         private delegate HResult GetInterfaceImplPropsDelegate(IntPtr self, int mdImpl, out int mdClass, out int mdIFace);
@@ -313,7 +326,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetFieldMarshal;
         public readonly IntPtr GetRVA;
         private readonly IntPtr GetPermissionSetProps;
-        private readonly IntPtr GetSigFromToken;
+        public readonly IntPtr GetSigFromToken;
         private readonly IntPtr GetModuleRefProps;
         private readonly IntPtr EnumModuleRefs;
         private readonly IntPtr GetTypeSpecFromToken;
