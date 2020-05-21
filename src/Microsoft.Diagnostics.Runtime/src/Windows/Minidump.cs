@@ -15,11 +15,10 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal sealed class Minidump : IDisposable
+    internal sealed class Minidump
     {
         private readonly string _crashDump;
-        private bool _disposed;
-        
+
         private readonly MinidumpDirectory[] _directories;
 
         private readonly Task<MinidumpMemoryReader> _memoryTask;
@@ -115,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 Modules = ImmutableArray<MinidumpModule>.Empty;
 
             // Read segments async.
-            _memoryTask = GetMemoryReader();
+            _memoryTask = GetMemoryReader(stream);
             _threadTask = ReadThreadData(stream);
         }
 
@@ -154,95 +153,83 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return (systemInfo, moduleList);
         }
 
-        public void Dispose()
-        {
-            if (!_disposed)
-            {
-                _disposed = true;
-                _readerCached?.Dispose();
-            }
-        }
-
         #region ReadThreadData
         private async Task<ImmutableArray<MinidumpContextData>> ReadThreadData(Stream stream)
         {
             Dictionary<uint, (uint Rva, uint Size)> threadContextLocations = new Dictionary<uint, (uint Rva, uint Size)>();
 
-            using (stream)
+            // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
+            // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
+            // we still want threadIDs which don't have context records for IDataReader.EnumerateThreads.
+            var directories = from d in _directories
+                              where d.StreamType == MinidumpStreamType.ThreadListStream ||
+                                    d.StreamType == MinidumpStreamType.ThreadExListStream ||
+                                    d.StreamType == MinidumpStreamType.ThreadInfoListStream
+                              orderby d.StreamType ascending
+                              select d;
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
+            try
             {
-                // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
-                // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
-                // we still want threadIDs which don't have context records for IDataReader.EnumerateThreads.
-                var directories = from d in _directories
-                                  where d.StreamType == MinidumpStreamType.ThreadListStream ||
-                                        d.StreamType == MinidumpStreamType.ThreadExListStream ||
-                                        d.StreamType == MinidumpStreamType.ThreadInfoListStream
-                                  orderby d.StreamType ascending
-                                  select d;
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
-                try
+                foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType == MinidumpStreamType.ThreadListStream || d.StreamType == MinidumpStreamType.ThreadExListStream))
                 {
-
-                    foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType == MinidumpStreamType.ThreadListStream || d.StreamType == MinidumpStreamType.ThreadExListStream))
+                    if (directory.StreamType == MinidumpStreamType.ThreadListStream)
                     {
-                        if (directory.StreamType == MinidumpStreamType.ThreadListStream)
+                        uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
+                        if (numThreads == 0)
+                            continue;
+
+                        int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
+                        int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+
+                        for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
                         {
-                            uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
-                            if (numThreads == 0)
-                                continue;
-
-                            int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
-                            int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-
-                            for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
-                            {
-                                MinidumpThread thread = Unsafe.As<byte, MinidumpThread>(ref buffer[i]);
-                                threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize);
-                            }
+                            MinidumpThread thread = Unsafe.As<byte, MinidumpThread>(ref buffer[i]);
+                            threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize);
                         }
-                        else if (directory.StreamType == MinidumpStreamType.ThreadExListStream)
+                    }
+                    else if (directory.StreamType == MinidumpStreamType.ThreadExListStream)
+                    {
+                        uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
+                        if (numThreads == 0)
+                            continue;
+
+                        int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
+                        int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+
+                        for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
                         {
-                            uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
-                            if (numThreads == 0)
-                                continue;
-
-                            int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
-                            int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-
-                            for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
-                            {
-                                MinidumpThreadEx thread = Unsafe.As<byte, MinidumpThreadEx>(ref buffer[i]);
-                                threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize);
-                            }
+                            MinidumpThreadEx thread = Unsafe.As<byte, MinidumpThreadEx>(ref buffer[i]);
+                            threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize);
                         }
-                        else if (directory.StreamType == MinidumpStreamType.ThreadInfoListStream)
+                    }
+                    else if (directory.StreamType == MinidumpStreamType.ThreadInfoListStream)
+                    {
+                        MinidumpThreadInfoList threadInfoList = await ReadAsync<MinidumpThreadInfoList>(stream, buffer, directory.Rva).ConfigureAwait(false);
+                        if (threadInfoList.NumberOfEntries <= 0)
+                            continue;
+
+                        if (threadInfoList.SizeOfEntry != SizeOf<MinidumpThreadInfo>())
+                            throw new InvalidDataException($"ThreadInfoList.SizeOfEntry=0x{threadInfoList.SizeOfEntry:x}, but sizeof(MinidumpThreadInfo)=0x{SizeOf<MinidumpThreadInfo>()}");
+
+                        stream.Position = directory.Rva + threadInfoList.SizeOfHeader;
+                        int count = ResizeBytesForArray<MinidumpThreadInfo>((ulong)threadInfoList.NumberOfEntries, ref buffer);
+
+                        int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+
+                        for (int i = 0; i < read; i += threadInfoList.SizeOfEntry)
                         {
-                            MinidumpThreadInfoList threadInfoList = await ReadAsync<MinidumpThreadInfoList>(stream, buffer, directory.Rva).ConfigureAwait(false);
-                            if (threadInfoList.NumberOfEntries <= 0)
-                                continue;
-
-                            if (threadInfoList.SizeOfEntry != SizeOf<MinidumpThreadInfo>())
-                                throw new InvalidDataException($"ThreadInfoList.SizeOfEntry=0x{threadInfoList.SizeOfEntry:x}, but sizeof(MinidumpThreadInfo)=0x{SizeOf<MinidumpThreadInfo>()}");
-
-                            stream.Position = directory.Rva + threadInfoList.SizeOfHeader;
-                            int count = ResizeBytesForArray<MinidumpThreadInfo>((ulong)threadInfoList.NumberOfEntries, ref buffer);
-
-                            int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-
-                            for (int i = 0; i < read; i += threadInfoList.SizeOfEntry)
-                            {
-                                MinidumpThreadInfo thread = Unsafe.As<byte, MinidumpThreadInfo>(ref buffer[i]);
-                                if (!threadContextLocations.ContainsKey(thread.ThreadId))
-                                    threadContextLocations[thread.ThreadId] = (0, 0);
-                            }
+                            MinidumpThreadInfo thread = Unsafe.As<byte, MinidumpThreadInfo>(ref buffer[i]);
+                            if (!threadContextLocations.ContainsKey(thread.ThreadId))
+                                threadContextLocations[thread.ThreadId] = (0, 0);
                         }
                     }
                 }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             var result = from entry in threadContextLocations
@@ -258,11 +245,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
 
         #region GetMemoryReader
-        private async Task<MinidumpMemoryReader> GetMemoryReader()
+        private async Task<MinidumpMemoryReader> GetMemoryReader(Stream stream)
         {
             List<MinidumpSegment> segments = new List<MinidumpSegment>();
-
-            FileStream fileStream = File.Open(_crashDump, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             byte[]? buffer = ArrayPool<byte>.Shared.Rent(128);
             try
@@ -272,18 +257,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     if (_directories[i].StreamType == MinidumpStreamType.MemoryListStream)
                     {
                         // MINIDUMP_MEMORY_LIST only contains a count followed by MINIDUMP_MEMORY_DESCRIPTORs
-                        uint count = await ReadAsync<uint>(fileStream, buffer, _directories[i].Rva).ConfigureAwait(false);
+                        uint count = await ReadAsync<uint>(stream, buffer, _directories[i].Rva).ConfigureAwait(false);
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(count, ref buffer);
 
-                        if (await fileStream.ReadAsync(buffer, 0, byteCount).ConfigureAwait(false) == byteCount)
+                        if (await stream.ReadAsync(buffer, 0, byteCount).ConfigureAwait(false) == byteCount)
                             AddSegments(segments, buffer, byteCount);
                     }
                     else if (_directories[i].StreamType == MinidumpStreamType.Memory64ListStream)
                     {
-                        MinidumpMemory64List memList64 = await ReadAsync<MinidumpMemory64List>(fileStream, buffer, _directories[i].Rva).ConfigureAwait(false);
+                        MinidumpMemory64List memList64 = await ReadAsync<MinidumpMemory64List>(stream, buffer, _directories[i].Rva).ConfigureAwait(false);
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(memList64.NumberOfMemoryRanges, ref buffer);
 
-                        if (await fileStream.ReadAsync(buffer, 0, byteCount).ConfigureAwait(false) == byteCount)
+                        if (await stream.ReadAsync(buffer, 0, byteCount).ConfigureAwait(false) == byteCount)
                             AddSegments(segments, memList64.Rva, buffer, byteCount);
                     }
                 }
@@ -295,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             MinidumpSegment[] result = segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ToArray();
-            return new MinidumpMemoryReader(result, fileStream, PointerSize);
+            return new MinidumpMemoryReader(result, stream, PointerSize);
         }
 
         private static unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)
@@ -326,7 +311,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         private static unsafe int ResizeBytesForArray<T>(ulong count, [NotNull] ref byte[]? buffer)
-            where T: unmanaged
+            where T : unmanaged
         {
             int size = (int)count * sizeof(T);
             if (buffer == null)
@@ -336,7 +321,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             else if (buffer.Length < size)
             {
                 ArrayPool<byte> pool = ArrayPool<byte>.Shared;
-                
+
                 pool.Return(buffer);
                 buffer = pool.Rent(size);
             }
@@ -373,7 +358,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         private static unsafe T Read<T>(Stream stream)
-            where T: unmanaged
+            where T : unmanaged
         {
             int size = sizeof(T);
             Span<byte> buffer = stackalloc byte[size];

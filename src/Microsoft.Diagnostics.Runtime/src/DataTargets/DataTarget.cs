@@ -235,7 +235,7 @@ namespace Microsoft.Diagnostics.Runtime
             else if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
 
-            (Stream stream, DumpFileFormat format) = OpenDump(filePath);
+            (FileStream stream, DumpFileFormat format) = OpenDump(filePath);
             try
             {
 #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -264,9 +264,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private static (Stream stream, DumpFileFormat format) OpenDump(string path)
+        private static (FileStream stream, DumpFileFormat format) OpenDump(string path)
         {
-            Stream stream = File.OpenRead(path);
+            FileStream stream = File.OpenRead(path);
             try
             {
                 Span<byte> span = stackalloc byte[8];

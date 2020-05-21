@@ -11,16 +11,13 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal sealed class MinidumpMemoryReader : IDisposable, IMemoryReader
+    internal sealed class MinidumpMemoryReader : IMemoryReader
     {
         private readonly MinidumpSegment[] _segments;
-        private readonly FileStream _stream;
+        private readonly Stream _stream;
         private readonly object _sync = new object();
 
-        // We shouldn't dispose from multiple threads or race, but we'll be safe and assume it can happen
-        private volatile bool _disposed;
-
-        public MinidumpMemoryReader(MinidumpSegment[] segments, FileStream stream, int pointerSize)
+        public MinidumpMemoryReader(MinidumpSegment[] segments, Stream stream, int pointerSize)
         {
             _segments = segments;
             _stream = stream;
@@ -28,21 +25,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         public int PointerSize { get; }
-
-        public void Dispose()
-        {
-            if (!_disposed)
-            {
-                lock (_sync)
-                {
-                    if (!_disposed)
-                    {
-                        _disposed = true;
-                        _stream.Dispose();
-                    }
-                }
-            }
-        }
 
         public int ReadFromRVA(long rva, Span<byte> buffer)
         {
@@ -133,9 +115,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             lock (_sync)
             {
-                if (_disposed)
-                    throw new ObjectDisposedException(nameof(MinidumpMemoryReader));
-
                 try
                 {
                     bytesRead = 0;
