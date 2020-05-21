@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
                 {
                     sigParser.SkipCustomModifiers();
-                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(Parent.Module, sigParser, Parent.GenericParameters, ImmutableArray<ClrGenericParameter>.Empty);
+                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(Parent.Module, sigParser, Parent.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
                 }
             }
 

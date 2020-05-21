@@ -567,7 +567,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass`5");
 
-            ImmutableArray<ClrGenericParameter> genericParameters = genericType.GenericParameters;
+            ClrGenericParameter[] genericParameters = genericType.EnumerateGenericParameters().ToArray();
             Assert.Equal(5, genericParameters.Length);
 
             VerifyGenericParameter(genericParameters, 0, "T1");
@@ -576,7 +576,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             VerifyGenericParameter(genericParameters, 3, "T4");
             VerifyGenericParameter(genericParameters, 4, "T5");
 
-            static void VerifyGenericParameter(ImmutableArray<ClrGenericParameter> genericParameters, int index, string name)
+            static void VerifyGenericParameter(ClrGenericParameter[] genericParameters, int index, string name)
             {
                 ClrGenericParameter genericParameter = genericParameters[index];
 

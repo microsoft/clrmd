@@ -86,8 +86,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>True if this type is an object reference, false otherwise.</returns>
         public virtual bool IsObjectReference => ElementType.IsObjectReference();
 
-
-        public virtual ImmutableArray<ClrGenericParameter> GenericParameters => ImmutableArray<ClrGenericParameter>.Empty;
+        /// <summary>
+        /// Enumerates the generic parameters of this type.
+        /// </summary>
+        public virtual IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Array.Empty<ClrGenericParameter>();
 
         /// <summary>
         /// Returns the list of interfaces this type implements.

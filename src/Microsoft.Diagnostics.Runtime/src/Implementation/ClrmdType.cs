@@ -29,38 +29,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
-        private ImmutableArray<ClrGenericParameter> _genericParams;
 
-        public override ImmutableArray<ClrGenericParameter> GenericParameters
+        public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters()
         {
-            get
-            {
-                if (!_genericParams.IsDefault)
-                    return _genericParams;
+            // We won't recover from Module being null, so we'll return an empty params list from that.
+            ClrModule? module = Module;
+            if (module is null)
+                yield break;
 
-                // We won't recover from Module being null, so we'll return an empty params list from that.
-                ClrModule? module = Module;
-                if (module is null)
-                    return _genericParams = ImmutableArray<ClrGenericParameter>.Empty;
+            // We'll return default if we can't get MetdataImport.  This effectively means we'll try again
+            // to get MetadataImport later.
+            MetadataImport? import = module.MetadataImport;
+            if (import == null)
+                yield break;
 
-                // We'll return default if we can't get MetdataImport.  This effectively means we'll try again
-                // to get MetadataImport later.
-                MetadataImport? import = module.MetadataImport;
-                if (import == null)
-                    return default;
-
-                ImmutableArray<ClrGenericParameter>.Builder? builder = null;
-                foreach (int token in import.EnumerateGenericParams(MetadataToken))
-                {
-                    if (builder == null)
-                        builder = ImmutableArray.CreateBuilder<ClrGenericParameter>();
-
-                    if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
-                        builder.Add(new ClrGenericParameter(token, index, attributes, name));
-                }
-
-                return _genericParams = builder?.ToImmutable() ?? ImmutableArray<ClrGenericParameter>.Empty;
-            }
+            foreach (int token in import.EnumerateGenericParams(MetadataToken))
+                if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
+                    yield return new ClrGenericParameter(token, index, attributes, name);
         }
 
         public override string? Name

@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -25,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
         ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
-        ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, ImmutableArray<ClrGenericParameter> typeParameters, ImmutableArray<ClrGenericParameter> methodParameters);
+        ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters);
         ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
         ClrMethod? CreateMethodFromHandle(ulong methodHandle);
     }

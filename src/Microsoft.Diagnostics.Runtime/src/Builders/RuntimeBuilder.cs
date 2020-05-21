@@ -1013,7 +1013,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         }
 
 
-        public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, ImmutableArray<ClrGenericParameter> typeParameters, ImmutableArray<ClrGenericParameter> methodParameters)
+        public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
         {
             // ECMA 335 - II.23.2.12 - Type
 
@@ -1101,8 +1101,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (!parser.GetData(out int index))
                     return null;
 
-                ImmutableArray<ClrGenericParameter> param = etype == ClrElementType.Var ? typeParameters : methodParameters;
-                if (param.IsDefault || index < 0 || index >= param.Length)
+                ClrGenericParameter[] param = (etype == ClrElementType.Var ? typeParameters : methodParameters).ToArray();
+                if (index < 0 || index >= param.Length)
                     return null;
 
                 return new ClrmdGenericType(this, GetOrCreateHeap(), module, param[index]);
