@@ -1088,15 +1088,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (!parser.GetData(out int count))
                     return null;
 
-                var builder = ImmutableArray.CreateBuilder<ClrType>(count);
+                // Even though we don't make use of these types we need to move past them in the parser.
                 for (int i = 0; i < count; i++)
-                {
-                    ClrType? entry = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
-
-                    // If we fail to load the type we have to have a placeholder.
-                    entry ??= GetOrCreateBasicType(ClrElementType.Void);
-                    builder.Add(entry);
-                }
+                    GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
 
                 ClrType? result = module?.ResolveToken(token);
                 return result;
