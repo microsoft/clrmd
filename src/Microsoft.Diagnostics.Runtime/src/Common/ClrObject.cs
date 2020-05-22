@@ -126,12 +126,32 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Size => GetTypeOrThrow().Heap.GetObjectSize(Address, GetTypeOrThrow());
 
         /// <summary>
+        /// Obtains the SyncBlock for this object.  Returns null if there is no SyncBlock associated with this object.
+        /// </summary>
+        public SyncBlock? SyncBlock => Type?.Heap.GetSyncBlock(Address);
+
+        /// <summary>
+        /// Returns true if this object is a COM class factory.
+        /// </summary>
+        public bool IsComClassFactory => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.ComClassFactory) == SyncBlockComFlags.ComClassFactory;
+
+        /// <summary>
+        /// Returns true if this object is a ComCallableWrapper.
+        /// </summary>
+        public bool IsComCallableWrapper => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
+
+        /// <summary>
+        /// Returns true if this object is a RuntimeCallableWrapper.
+        /// </summary>
+        public bool IsRuntimeCallableWrapper => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.RuntimeCallableWrapper) == SyncBlockComFlags.RuntimeCallableWrapper;
+
+        /// <summary>
         /// Returns the ComCallableWrapper for the given object.
         /// </summary>
         /// <returns>The ComCallableWrapper associated with the object, <see langword="null"/> if obj is not a CCW.</returns>
         public ComCallableWrapper? AsComCallableWrapper()
         {
-            if (IsNull || !IsValidObject)
+            if (IsNull || !IsValidObject || !IsComCallableWrapper)
                 return null;
 
             return Helpers.Factory.CreateCCWForObject(Address);
