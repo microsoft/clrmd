@@ -608,14 +608,14 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                                 if (!clrObj.IsNull)
                                 {
-                                    ComCallableWrapper? ccw = clrObj.AsComCallableWrapper();
+                                    ComCallableWrapper? ccw = clrObj.GetComCallableWrapper();
                                     if (ccw != null && refCount < ccw.RefCount)
                                     {
                                         refCount = (uint)ccw.RefCount;
                                     }
                                     else
                                     {
-                                        RuntimeCallableWrapper? rcw = clrObj.AsRuntimeCallableWrapper();
+                                        RuntimeCallableWrapper? rcw = clrObj.GetRuntimeCallableWrapper();
                                         if (rcw != null && refCount < rcw.RefCount)
                                             refCount = (uint)rcw.RefCount;
                                     }
