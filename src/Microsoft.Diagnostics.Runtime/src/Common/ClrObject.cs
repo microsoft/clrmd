@@ -138,20 +138,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if this object is a ComCallableWrapper.
         /// </summary>
-        public bool IsComCallableWrapper => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
+        public bool HasComCallableWrapper => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
 
         /// <summary>
         /// Returns true if this object is a RuntimeCallableWrapper.
         /// </summary>
-        public bool IsRuntimeCallableWrapper => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.RuntimeCallableWrapper) == SyncBlockComFlags.RuntimeCallableWrapper;
+        public bool HasRuntimeCallableWrapper => (GetTypeOrThrow().Heap.GetComFlags(Address) & SyncBlockComFlags.RuntimeCallableWrapper) == SyncBlockComFlags.RuntimeCallableWrapper;
 
         /// <summary>
         /// Returns the ComCallableWrapper for the given object.
         /// </summary>
         /// <returns>The ComCallableWrapper associated with the object, <see langword="null"/> if obj is not a CCW.</returns>
-        public ComCallableWrapper? AsComCallableWrapper()
+        public ComCallableWrapper? GetComCallableWrapper()
         {
-            if (IsNull || !IsValidObject || !IsComCallableWrapper)
+            if (IsNull || !IsValidObject || !HasComCallableWrapper)
                 return null;
 
             return Helpers.Factory.CreateCCWForObject(Address);
@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns the RuntimeCallableWrapper for the given object.
         /// </summary>
         /// <returns>The RuntimeCallableWrapper associated with the object, <see langword="null"/> if obj is not a RCW.</returns>
-        public RuntimeCallableWrapper? AsRuntimeCallableWrapper()
+        public RuntimeCallableWrapper? GetRuntimeCallableWrapper()
         {
             if (IsNull || !IsValidObject)
                 return null;
