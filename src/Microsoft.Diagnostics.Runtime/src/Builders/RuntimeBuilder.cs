@@ -106,6 +106,45 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
+        bool IHeapHelpers.GetSyncBlocks(out List<ComSyncBlock> comSyncBlocks, out List<FullSyncBlock> fullSyncBlocks, out List<ulong> emptySyncBlocks)
+        {
+            HResult hr = _sos.GetSyncBlockData(1, out SyncBlockData data);
+            if (!hr || data.TotalSyncBlockCount == 0)
+            {
+                comSyncBlocks = new List<ComSyncBlock>();
+                fullSyncBlocks = new List<FullSyncBlock>();
+                emptySyncBlocks = new List<ulong>();
+                return false;
+            }
+
+            int max = data.TotalSyncBlockCount >= int.MaxValue ? int.MaxValue : (int) data.TotalSyncBlockCount;
+            comSyncBlocks = new List<ComSyncBlock>();
+            fullSyncBlocks = new List<FullSyncBlock>();
+            emptySyncBlocks = new List<ulong>();
+
+            int curr = 1;
+            do
+            {
+                if (data.Free == 0)
+                {
+                    if (data.MonitorHeld != 0 || data.HoldingThread != 0 || data.Recursion != 0 || data.AdditionalThreadCount != 0)
+                        fullSyncBlocks.Add(new FullSyncBlock(data));
+                    else if (data.COMFlags != 0)
+                        comSyncBlocks.Add(new ComSyncBlock(data.Object, data.COMFlags));
+                    else
+                        emptySyncBlocks.Add(data.Object);
+                }
+
+                curr++;
+                if (curr >= max)
+                    break;
+
+                hr = _sos.GetSyncBlockData(curr, out data);
+            } while (hr);
+
+            return true;
+        }
+
         bool IHeapHelpers.CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segments, out ImmutableArray<MemoryRange> allocationContexts,
                                          out ImmutableArray<FinalizerQueueSegment> fqRoots, out ImmutableArray<FinalizerQueueSegment> fqObjects)
         {

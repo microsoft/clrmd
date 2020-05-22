@@ -120,6 +120,13 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<MemoryRange> EnumerateAllocationContexts();
 
         /// <summary>
+        /// Obtains the SyncBlock data for a given object, if the object has an associated SyncBlock.
+        /// </summary>
+        /// <param name="obj">The object to get SyncBlock data for.</param>
+        /// <returns>The SyncBlock for the object, null if the object does not have one.</returns>
+        public abstract SyncBlock? GetSyncBlock(ulong obj);
+
+        /// <summary>
         /// Returns a string representation of this heap, including the size and number of segments.
         /// </summary>
         /// <returns>The string representation of this heap.</returns>
@@ -131,14 +138,17 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Use ClrObject.Size instead.
+        /// This is an implementation helper.  Use ClrObject.IsComCallWrapper and ClrObject.IsRuntimeCallWrapper instead.
         /// </summary>
-        /// <param name="objRef"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        public abstract SyncBlockComFlags GetComFlags(ulong obj);
+
+        /// <summary>
+        /// This is an implementation helper.  Use ClrObject.Size instead.
+        /// </summary>
         public abstract ulong GetObjectSize(ulong objRef, ClrType type);
 
         /// <summary>
+        /// This is an implementation helper.  Use <see cref="ClrObject.EnumerateReferences(bool, bool)">ClrObject.EnumerateReferences</see> instead.
         /// Enumerates all objects that the given object references.  This method is meant for internal use to
         /// implement ClrObject.EnumerateReferences, which you should use instead of calling this directly.
         /// </summary>
@@ -153,6 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
 
 
         /// <summary>
+        /// This is an implementation helper.
         /// Enumerates all objects that the given object references.  This method is meant for internal use to
         /// implement ClrObject.EnumerateReferencesWithFields, which you should use instead of calling this directly.
         /// </summary>

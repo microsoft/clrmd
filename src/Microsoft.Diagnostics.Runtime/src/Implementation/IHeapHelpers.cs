@@ -15,5 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandleLinks();
         bool CreateSegments(ClrHeap clrHeap, out ImmutableArray<ClrSegment> segemnts, out ImmutableArray<MemoryRange> allocationContexts,
                             out ImmutableArray<FinalizerQueueSegment> fqRoots, out ImmutableArray<FinalizerQueueSegment> fqObjects);
+
+        bool GetSyncBlocks(out List<ComSyncBlock> comSyncBlocks, out List<FullSyncBlock> fullSyncBlocks, out List<ulong> emptySyncBlocks);
     }
 }

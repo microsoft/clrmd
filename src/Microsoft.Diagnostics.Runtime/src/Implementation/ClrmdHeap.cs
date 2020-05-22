@@ -18,6 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private readonly object _sync = new object();
         private volatile VolatileHeapData? _volatileHeapData;
+        private volatile VolatileSyncBlockData? _volatileSyncBlocks;
+        private ulong _lastComFlags;
 
         public override ClrRuntime Runtime { get; }
 
@@ -85,6 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public void ClearCachedData()
         {
             _volatileHeapData = null;
+            _volatileSyncBlocks = null;
         }
 
         public ulong SkipAllocationContext(ClrSegment seg, ulong address)
@@ -159,6 +162,41 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return null;
         }
+
+        public override SyncBlock? GetSyncBlock(ulong obj)
+        {
+            VolatileSyncBlockData? syncBlocks = _volatileSyncBlocks;
+            if (syncBlocks is null)
+            {
+                syncBlocks = new VolatileSyncBlockData(_helpers);
+                _volatileSyncBlocks = syncBlocks;
+            }
+
+            return syncBlocks.GetSyncBlock(obj);
+        }
+
+        public override SyncBlockComFlags GetComFlags(ulong obj)
+        {
+            if (obj == 0)
+                return SyncBlockComFlags.None;
+
+            const ulong mask = ~0xe000000000000000;
+            ulong lastComFlags = _lastComFlags;
+            if ((lastComFlags & mask) == obj)
+                return (SyncBlockComFlags)(lastComFlags >> 61);
+
+            VolatileSyncBlockData? syncBlocks = _volatileSyncBlocks;
+            if (syncBlocks is null)
+            {
+                syncBlocks = new VolatileSyncBlockData(_helpers);
+                _volatileSyncBlocks = syncBlocks;
+            }
+
+            SyncBlockComFlags flags = syncBlocks.GetComFlags(obj);
+            _lastComFlags = ((ulong)flags << 61) | (obj & mask);
+            return flags;
+        }
+
 
         public override ulong GetObjectSize(ulong objRef, ClrType type)
         {
@@ -339,6 +377,58 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (type != null)
                         yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));
                 }
+            }
+        }
+
+        class VolatileSyncBlockData
+        {
+            public ImmutableArray<ComSyncBlock> ComOnlySyncBlocks { get; }
+            public ImmutableArray<FullSyncBlock> FullSyncBlocks { get; }
+            public ImmutableHashSet<ulong> EmptySyncBlocks { get; }
+
+            public VolatileSyncBlockData(IHeapHelpers helpers)
+            {
+                // We don't care about a false return as that'll simply create empty arrays and sets, which is fine.
+                helpers.GetSyncBlocks(out List<ComSyncBlock> comSyncBlock, out List<FullSyncBlock> fullSyncBlocks, out List<ulong> empty);
+
+                if (comSyncBlock.Count > 0)
+                    comSyncBlock.Sort((x, y) => x.Object.CompareTo(y.Object));
+
+                if (fullSyncBlocks.Count > 0)
+                    fullSyncBlocks.Sort((x, y) => x.Object.CompareTo(y.Object));
+
+                ComOnlySyncBlocks = comSyncBlock.ToImmutableArray();
+                FullSyncBlocks = fullSyncBlocks.ToImmutableArray();
+                EmptySyncBlocks = empty.ToImmutableHashSet();
+            }
+
+            public SyncBlock? GetSyncBlock(ulong obj)
+            {
+                if (EmptySyncBlocks.Contains(obj))
+                    return new SyncBlock(obj);
+
+                int index = ComOnlySyncBlocks.Search(obj, (x, y) => x.Object.CompareTo(y));
+                if (index != -1)
+                    return ComOnlySyncBlocks[index];
+
+                index = FullSyncBlocks.Search(obj, (x, y) => x.Object.CompareTo(y));
+                if (index != -1)
+                    return FullSyncBlocks[index];
+
+                return null;
+            }
+
+            public SyncBlockComFlags GetComFlags(ulong obj)
+            {
+                int index = ComOnlySyncBlocks.Search(obj, (x, y) => x.Object.CompareTo(y));
+                if (index != -1)
+                    return ComOnlySyncBlocks[index].ComFlags;
+
+                index = FullSyncBlocks.Search(obj, (x, y) => x.Object.CompareTo(y));
+                if (index != -1)
+                    return FullSyncBlocks[index].ComFlags;
+
+                return SyncBlockComFlags.None;
             }
         }
 
