@@ -254,6 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (returnContents)
                     return await msg.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+                Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
                 using FileStream fs = File.Create(fullDestPath);
                 await msg.Content.CopyToAsync(fs).ConfigureAwait(false);
                 return fullDestPath;
