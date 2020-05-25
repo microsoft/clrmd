@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getTypeDefProps, VTable.GetTypeDefProps);
 
             HResult hr = _getTypeDefProps(Self, token, null, 0, out int needed, out attributes, out mdParent);
-            if (!hr)
+            if (!hr.IsOK)
             {
                 name = null;
                 return hr;
