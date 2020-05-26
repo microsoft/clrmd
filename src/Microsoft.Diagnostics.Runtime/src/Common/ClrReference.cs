@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ClrInstanceField curr in containingType.Fields)
             {
                 // If we found the correct field, stop searching
-                if (curr.Offset <= offset && offset <= curr.Offset + curr.Size)
+                if (curr.Offset <= offset && offset < curr.Offset + curr.Size)
                 {
                     field = curr;
                     break;
