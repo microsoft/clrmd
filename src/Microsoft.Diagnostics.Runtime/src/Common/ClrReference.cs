@@ -97,14 +97,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="reference">The object referenced.</param>
         /// <param name="containingType">The type of the object which points to <paramref name="reference"/>.</param>
-        /// <param name="offset">The offset within the source object where <paramref name="reference"/> was located.</param>
+        /// <param name="offset">The offset within the source object where <paramref name="reference"/> was located.  This offset
+        /// should start from where the object's data starts (IE this offset should NOT contain the MethodTable in the offset
+        /// calculation.</param>
         public static ClrReference CreateFromFieldOrArray(ClrObject reference, ClrType containingType, int offset)
         {
             if (containingType == null)
                 throw new ArgumentNullException(nameof(containingType));
 
-            offset -= IntPtr.Size;
-            DebugOnly.Assert(offset >= 0);
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException($"{nameof(offset)} must be >= 0.");
 
             ClrInstanceField? field = FindField(containingType.Fields, offset);
 
