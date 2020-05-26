@@ -3,6 +3,8 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Immutable;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -35,6 +37,29 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 return -1;
+            }
+        }
+
+        /// <summary>
+        /// Resolves the inner field reference for value types.
+        /// </summary>
+        public ClrReference? InnerField
+        {
+            get
+            {
+                if (!IsField || Field?.Type == null || !Field.Type.IsValueType)
+                    return null;
+
+                int offset = Offset - Field.Offset;
+
+                ClrInstanceField? field = FindField(Field.Type.Fields, offset);
+                if (field is null)
+                    return null;
+
+                unchecked
+                {
+                    return new ClrReference(Object, field, OffsetFlag | (uint)offset);
+                }
             }
         }
 
@@ -72,17 +97,29 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="reference">The object referenced.</param>
         /// <param name="containingType">The type of the object which points to <paramref name="reference"/>.</param>
-        /// <param name="offset">The offset within the source object where <paramref name="reference"/> was located.</param>
+        /// <param name="offset">The offset within the source object where <paramref name="reference"/> was located.  This offset
+        /// should start from where the object's data starts (IE this offset should NOT contain the MethodTable in the offset
+        /// calculation.</param>
         public static ClrReference CreateFromFieldOrArray(ClrObject reference, ClrType containingType, int offset)
         {
             if (containingType == null)
                 throw new ArgumentNullException(nameof(containingType));
 
-            offset -= IntPtr.Size;
-            DebugOnly.Assert(offset >= 0);
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException($"{nameof(offset)} must be >= 0.");
 
+            ClrInstanceField? field = FindField(containingType.Fields, offset);
+
+            unchecked
+            {
+                return new ClrReference(reference, field, OffsetFlag | (uint)offset);
+            }
+        }
+
+        private static ClrInstanceField? FindField(ImmutableArray<ClrInstanceField> fields, int offset)
+        {
             ClrInstanceField? field = null;
-            foreach (ClrInstanceField curr in containingType.Fields)
+            foreach (ClrInstanceField curr in fields)
             {
                 // If we found the correct field, stop searching
                 if (curr.Offset <= offset && offset < curr.Offset + curr.Size)
@@ -102,10 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            unchecked
-            {
-                return new ClrReference(reference, field, OffsetFlag | (uint)offset);
-            }
+            return field;
         }
 
         private ClrReference(ClrObject obj, ClrInstanceField? field, ulong offsetOrHandleValue)
@@ -113,6 +147,36 @@ namespace Microsoft.Diagnostics.Runtime
             _offsetOrHandle = offsetOrHandleValue;
             Object = obj;
             Field = field;
+        }
+
+        public override string ToString()
+        {
+            if (IsField)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append(Field?.Name);
+
+                ClrReference? inner = InnerField;
+                while (inner is ClrReference r)
+                {
+                    sb.Append('.');
+                    sb.Append(r.Field?.Name);
+
+                    inner = r.InnerField;
+                }
+
+                sb.Append($" = ");
+
+                sb.Append($"{Object.Address:x12} {Object.Type?.Name ?? "error"}");
+
+
+                return sb.ToString();
+            }
+
+            if (IsDependentHandle)
+                return $"{Object.Address:x12} {Object.Type?.Name ?? "error"} (dependent handle)";
+
+            return $"{Object.Address:x12} {Object.Type?.Name ?? "error"}";
         }
     }
 }

@@ -320,7 +320,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
                     {
                         ClrObject target = new ClrObject(reference, GetObjectType(reference));
-                        yield return ClrReference.CreateFromFieldOrArray(target, type, offset);
+
+                        DebugOnly.Assert(offset >= IntPtr.Size);
+                        yield return ClrReference.CreateFromFieldOrArray(target, type, offset - IntPtr.Size);
                     }
                 }
             }
