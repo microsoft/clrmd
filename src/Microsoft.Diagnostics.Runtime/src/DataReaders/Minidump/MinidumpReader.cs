@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool Read(ulong address, Span<byte> buffer, out int bytesRead) => MemoryReader.Read(address, buffer, out bytesRead);
+        public int Read(ulong address, Span<byte> buffer) => MemoryReader.Read(address, buffer);
         public bool Read<T>(ulong address, out T value) where T : unmanaged => MemoryReader.Read(address, out value);
         public T Read<T>(ulong address) where T : unmanaged => MemoryReader.Read<T>(address);
         public bool ReadPointer(ulong address, out ulong value) => MemoryReader.ReadPointer(address, out value);

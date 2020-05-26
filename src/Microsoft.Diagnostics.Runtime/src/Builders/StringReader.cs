@@ -41,10 +41,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 Span<char> charSpan = new Span<char>(buffer).Slice(0, length);
                 Span<byte> bytes = MemoryMarshal.AsBytes(charSpan);
-                if (!reader.Read(data, bytes, out int count))
+                int read = reader.Read(data, bytes);
+                if (read == 0)
                     return null;
 
-                return Encoding.Unicode.GetString(bytes.Slice(0, count));
+                return Encoding.Unicode.GetString(bytes.Slice(0, read));
             }
             finally
             {

@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                             continue;
 
                         Span<byte> slice = buffer.Slice(0, sizeof(ulong) + i);
-                        if (!dt.DataReader.Read(expectedOffset, slice, out int read) || read != slice.Length)
+                        if (dt.DataReader.Read(expectedOffset, slice) != slice.Length)
                             continue;
 
                         ulong addressFound = dt.DataReader.SearchMemory(segment.Start, (int)segment.Length, buffer.Slice(0, i + sizeof(ulong)));

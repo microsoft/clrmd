@@ -276,7 +276,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                     try
                     {
-                        if (_helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize), out int read) && read > IntPtr.Size)
+                        int read = _helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                        if (read > IntPtr.Size)
                         {
                             foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                                 yield return new ClrObject(reference, GetObjectType(reference));
@@ -334,7 +335,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                     try
                     {
-                        if (_helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize), out int read) && read > IntPtr.Size)
+                        int read = _helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                        if (read > IntPtr.Size)
                         {
                             foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                             {

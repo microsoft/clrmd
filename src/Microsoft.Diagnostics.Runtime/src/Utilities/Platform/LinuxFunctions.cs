@@ -110,7 +110,8 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             Span<byte> bytes = stackalloc byte[64];
-            if (dataReader.Read(address + (uint)s_versionString.Length, bytes, out int read))
+            int read = dataReader.Read(address + (uint)s_versionString.Length, bytes);
+            if (read > 0)
             {
                 bytes = bytes.Slice(0, read);
                 version = ParseAsciiVersion(bytes);

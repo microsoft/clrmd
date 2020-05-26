@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             var values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
-            if (DataReader.Read(address, buffer, out int bytesRead) && bytesRead == buffer.Length)
+            if (DataReader.Read(address, buffer) == buffer.Length)
             {
                 return values;
             }
