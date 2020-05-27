@@ -2,42 +2,36 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal class HeapSegmentDataCache : IDisposable
+    internal sealed class HeapSegmentDataCache : IDisposable
     {
-        private ReaderWriterLockSlim cacheLock;
-        private readonly IDictionary<ulong, SegmentCacheEntry> cache;
-        private SegmentCacheEntryFactory entryFactory;
+        private readonly ReaderWriterLockSlim _cacheLock = new ReaderWriterLockSlim();
+        private readonly Dictionary<ulong, SegmentCacheEntry> _cache = new Dictionary<ulong, SegmentCacheEntry>();
+        private readonly SegmentCacheEntryFactory _entryFactory;
 
-        private long cacheSize;
-        private readonly long maxSize;
+        private long _cacheSize;
+        private readonly long _maxSize;
 
-        internal HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, long maxSize)
+        public HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, long maxSize)
         {
-            this.cacheLock = new ReaderWriterLockSlim();
-            this.cache = new Dictionary<ulong, SegmentCacheEntry>();
-
-            this.entryFactory = entryFactory;
-            this.maxSize = maxSize;
+            _entryFactory = entryFactory;
+            _maxSize = maxSize;
         }
 
-        internal SegmentCacheEntry CreateAndAddEntry(MinidumpSegment segment)
+        public SegmentCacheEntry CreateAndAddEntry(MinidumpSegment segment)
         {
-            SegmentCacheEntry entry = this.entryFactory.CreateEntryForSegment(segment, this.UpdateOverallCacheSizeForAddedChunk);
-            this.cacheLock.EnterWriteLock();
+            SegmentCacheEntry entry = _entryFactory.CreateEntryForSegment(segment, UpdateOverallCacheSizeForAddedChunk);
+            _cacheLock.EnterWriteLock();
             try
             {
                 // Check the cache again now that we have acquired the write lock
-                SegmentCacheEntry existingEntry;
-                if (this.cache.TryGetValue(segment.VirtualAddress, out existingEntry))
+                if (_cache.TryGetValue(segment.VirtualAddress, out SegmentCacheEntry existingEntry))
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
                     using (entry as IDisposable)
@@ -46,31 +40,31 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                 }
 
-                this.cache.Add(segment.VirtualAddress, entry);
+                _cache.Add(segment.VirtualAddress, entry);
             }
             finally
             {
-                this.cacheLock.ExitWriteLock();
+                _cacheLock.ExitWriteLock();
             }
 
-            Interlocked.Add(ref this.cacheSize, entry.CurrentSize);
-            this.TrimCacheIfOverLimit(segment.VirtualAddress);
+            Interlocked.Add(ref _cacheSize, entry.CurrentSize);
+            TrimCacheIfOverLimit(segment.VirtualAddress);
 
             return entry;
         }
 
         internal bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry entry)
         {
-            this.cacheLock.EnterReadLock();
+            _cacheLock.EnterReadLock();
             bool res = false;
 
             try
             {
-                res = this.cache.TryGetValue(baseAddress, out entry);
+                res = _cache.TryGetValue(baseAddress, out entry);
             }
             finally
             {
-                this.cacheLock.ExitReadLock();
+                _cacheLock.ExitReadLock();
             }
 
             if (res)
@@ -83,14 +77,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private void UpdateOverallCacheSizeForAddedChunk(ulong modifiedSegmentAddress, uint chunkSize)
         {
-            Interlocked.Add(ref this.cacheSize, chunkSize);
+            Interlocked.Add(ref _cacheSize, chunkSize);
 
             TrimCacheIfOverLimit(modifiedSegmentAddress);
         }
 
         private void TrimCacheIfOverLimit(ulong modifiedSegmentAddress)
         {
-            if (Interlocked.Read(ref this.cacheSize) < this.maxSize)
+            if (Interlocked.Read(ref _cacheSize) < _maxSize)
                 return;
 
             // Select all cache entries which aren't at their min-size
@@ -99,18 +93,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // lhs rhs comparison is inconsistent when reveresed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
             // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger 
             // this exception, which is bad :)
-            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> items = null;
-            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = null;
+            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>? items = null;
+            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>? entries = null;
 
-            this.cacheLock.EnterReadLock();
+            _cacheLock.EnterReadLock();
             try
             {
-                items = this.cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
+                items = _cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
                 entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
             }
             finally
             {
-                this.cacheLock.ExitReadLock();
+                _cacheLock.ExitReadLock();
             }
 
             // Flip the sort order to the LEAST recently accessed items (i.e. the ones whose LastAccessTickCount are furthest in history) end up at the END of the array,
@@ -121,15 +115,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // Try to cut ourselves down to about 85% of our max capaity, otherwise just hang out right at that boundary and the next entry we add we end up having to
             // scavenge again, and again, and again...
-            uint requiredCutAmount = (uint)(this.maxSize * 0.15);
+            uint requiredCutAmount = (uint)(_maxSize * 0.15);
 
-            long desiredSize = (long)(this.maxSize * 0.85);
+            long desiredSize = (long)(_maxSize * 0.85);
 
             uint cutAmount = 0;
             while (cutAmount < requiredCutAmount)
             {
                 // We could also be trimming on other threads, so if collectively we have brought ourselves below 85% of our max capacity then we are done
-                if (Interlocked.Read(ref this.cacheSize) <= desiredSize)
+                if (Interlocked.Read(ref _cacheSize) <= desiredSize)
                     break;
 
                 // find the largest item of the 10% of least recently accessed (remaining) items
@@ -175,14 +169,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                     using (targetItem as IDisposable)
                     {
-                        this.cacheLock.EnterWriteLock();
+                        _cacheLock.EnterWriteLock();
                         try
                         {
-                            removedMemUsedByItem = this.cache.Remove(entries[removalTargetIndex].CacheEntry.Key);
+                            removedMemUsedByItem = _cache.Remove(entries[removalTargetIndex].CacheEntry.Key);
                         }
                         finally
                         {
-                            this.cacheLock.ExitWriteLock();
+                            _cacheLock.ExitWriteLock();
 
                             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
@@ -195,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 entries.RemoveAt(removalTargetIndex);
                 if (removedMemUsedByItem)
                 {
-                    Interlocked.Add(ref this.cacheSize, -largestSizeSeen);
+                    Interlocked.Add(ref _cacheSize, -largestSizeSeen);
                     cutAmount += largestSizeSeen;
                 }
             }
@@ -203,21 +197,21 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public void Dispose()
         {
-            using (this.entryFactory as IDisposable)
+            using (_entryFactory as IDisposable)
             {
-                this.cacheLock.EnterWriteLock();
+                _cacheLock.EnterWriteLock();
                 try
                 {
-                    foreach (KeyValuePair<ulong, SegmentCacheEntry> kvp in this.cache)
+                    foreach (KeyValuePair<ulong, SegmentCacheEntry> kvp in _cache)
                     {
                         (kvp.Value as IDisposable)?.Dispose();
                     }
 
-                    this.cache.Clear();
+                    _cache.Clear();
                 }
                 finally
                 {
-                    this.cacheLock.ExitWriteLock();
+                    _cacheLock.ExitWriteLock();
                 }
             }
         }
