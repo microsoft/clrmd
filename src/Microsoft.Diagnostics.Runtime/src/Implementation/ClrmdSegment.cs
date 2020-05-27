@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ulong mt;
                 if (large)
                 {
-                    if (!dataReader.Read(obj, buffer, out int read) || read != buffer.Length)
+                    if (dataReader.Read(obj, buffer) != buffer.Length)
                         break;
 
                     if (IntPtr.Size == 4)

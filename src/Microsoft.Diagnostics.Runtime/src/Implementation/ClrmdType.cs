@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
-            if (!reader.Read(MethodTable - (ulong)(slots * IntPtr.Size), buffer, out int read) || read != buffer.Length)
+            if (reader.Read(MethodTable - (ulong)(slots * IntPtr.Size), buffer) != buffer.Length)
             {
                 _gcDesc = default;
                 return default;

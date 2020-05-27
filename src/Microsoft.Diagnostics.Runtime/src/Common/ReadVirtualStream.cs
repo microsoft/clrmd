@@ -44,11 +44,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (_dataReader.Read((ulong)(_pos + _disp), new Span<byte>(buffer, offset, count), out int read))
+            int read = _dataReader.Read((ulong)(_pos + _disp), new Span<byte>(buffer, offset, count));
+            if (read > 0)
             {
-                if (read > 0)
-                    _pos += read;
-
+                _pos += read;
                 return read;
             }
 

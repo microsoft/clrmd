@@ -164,19 +164,18 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
+        public int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
-            return ReadMemoryReadv(address, buffer, out bytesRead);
+            return ReadMemoryReadv(address, buffer);
         }
 
-        private unsafe bool ReadMemoryReadv(ulong address, Span<byte> buffer, out int bytesRead)
+        private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
         {
             int readableBytesCount = GetReadableBytesCount(address, buffer.Length);
             if (readableBytesCount <= 0)
             {
-                bytesRead = 0;
-                return false;
+                return 0;
             }
 
             fixed (byte* ptr = buffer)
@@ -194,17 +193,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 int read = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
                 if (read < 0)
                 {
-                    bytesRead = 0;
                     return Marshal.GetLastWin32Error() switch
                     {
                         EPERM => throw new UnauthorizedAccessException(),
                         ESRCH => throw new InvalidOperationException("The process has exited"),
-                        _ => false
+                        _ => 0
                     };
                 }
 
-                bytesRead = read;
-                return read > 0;
+                return read;
             }
         }
 
@@ -217,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer, out int size) && size == sizeof(T))
+            if (Read(address, buffer) == sizeof(T))
             {
                 value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
@@ -236,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer, out int size) && size == IntPtr.Size)
+            if (Read(address, buffer) == IntPtr.Size)
             {
                 value = buffer.AsPointer();
                 return true;

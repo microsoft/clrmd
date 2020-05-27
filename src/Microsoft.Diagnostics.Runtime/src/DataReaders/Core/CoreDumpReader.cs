@@ -154,17 +154,10 @@ namespace Microsoft.Diagnostics.Runtime
             return _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress).Open();
         }
 
-        public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
+        public int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
-            if (address > long.MaxValue)
-            {
-                bytesRead = 0;
-                return false;
-            }
-
-            bytesRead = _core.ReadMemory((long)address, buffer);
-            return bytesRead > 0;
+            return address > long.MaxValue ? 0 : _core.ReadMemory((long)address, buffer);
         }
 
         public ulong ReadPointer(ulong address)
@@ -176,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer, out int size) && size == sizeof(T))
+            if (Read(address, buffer) == sizeof(T))
             {
                 value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
@@ -195,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer, out int size) && size == IntPtr.Size)
+            if (Read(address, buffer) == IntPtr.Size)
             {
                 value = buffer.AsPointer();
                 return true;

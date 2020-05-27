@@ -49,7 +49,8 @@ namespace Microsoft.Diagnostics.Runtime
                         break;
 
                     Span<byte> buffer = array.AsSpan(0, Math.Min(bytesRemaining, array.Length));
-                    if (!reader.Read(startAddress, buffer, out int read) || read < searchFor.Length)
+                    int read = reader.Read(startAddress, buffer);
+                    if (read < searchFor.Length)
                     {
                         startAddress += (uint)searchFor.Length;
                         continue;

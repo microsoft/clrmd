@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer, out int size) && size == buffer.Length)
+            if (Read(address, buffer) == buffer.Length)
             {
                 value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
                 return true;
@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[PointerSize];
-            if (Read(address, buffer, out int bytesRead) && bytesRead == PointerSize)
+            if (Read(address, buffer) == PointerSize)
             {
                 value = buffer.AsPointer();
                 return true;
@@ -111,13 +111,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return 0;
         }
 
-        public bool Read(ulong address, Span<byte> buffer, out int bytesRead)
+        public int Read(ulong address, Span<byte> buffer)
         {
             lock (_sync)
             {
                 try
                 {
-                    bytesRead = 0;
+                    int bytesRead = 0;
 
                     while (bytesRead < buffer.Length)
                     {
@@ -138,12 +138,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         bytesRead += read;
                     }
 
-                    return bytesRead > 0;
+                    return bytesRead;
                 }
                 catch (IOException)
                 {
-                    bytesRead = 0;
-                    return false;
+                    return 0;
                 }
             }
         }
