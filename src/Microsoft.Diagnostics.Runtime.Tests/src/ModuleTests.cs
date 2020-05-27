@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
@@ -90,6 +91,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 Assert.Equal(oldModules[i], newModules[i]);
                 Assert.NotSame(oldModules[i], newModules[i]);
+            }
+        }
+
+        [Fact]
+        public void TestModulesNames()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            foreach (ClrModule module in runtime.EnumerateModules())
+            {
+                Assert.True(File.Exists(module.Name));
+                Assert.True(File.Exists(module.AssemblyName));
+                Assert.Equal(Path.GetFileNameWithoutExtension(module.Name), module.SimpleName);
             }
         }
 
