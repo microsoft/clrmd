@@ -14,89 +14,71 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal class ArrayPoolBasedCacheEntry : ISegmentCacheEntry, IDisposable
+    internal class ArrayPoolBasedCacheEntry : SegmentCacheEntry, IDisposable
     {
         private readonly static uint PageSize = (uint)Environment.SystemPageSize;
 
-        private Action<ulong, uint> updateOwningCacheForAddedChunk;
-        private DisposerQueue disposerQueue;
-        private MemoryMappedFile mappedFile;
-        private MinidumpSegment segmentData;
-        private ReaderWriterLockSlim[] dataChunkLocks;
-        private CachePage[] dataChunks;
-        private int accessCount;
-        private uint entrySize;
-        private long lastAccessTickCount;
-
-        [DebuggerDisplay("Size: {DataExtent}")]
-        internal class CachePage
-        {
-            internal CachePage(byte[] data, uint dataExtent)
-            {
-                this.Data = data;
-                this.DataExtent = dataExtent;
-            }
-
-            internal readonly byte[] Data;
-            internal readonly uint DataExtent;
-        }
+        private readonly Action<ulong, uint> _updateOwningCacheForAddedChunk;
+        private readonly DisposerQueue _disposerQueue;
+        private readonly MemoryMappedFile _mappedFile;
+        private readonly MinidumpSegment _segmentData;
+        private readonly ReaderWriterLockSlim[] _dataChunkLocks;
+        private readonly CachePage[] _dataChunks;
+        private int _accessCount;
+        private long _lastAccessTickCount;
 
         internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, DisposerQueue disposerQueue, Action<ulong, uint> updateOwningCacheForAddedChunk)
         {
-            this.mappedFile = mappedFile;
-            this.segmentData = segmentData;
+            _mappedFile = mappedFile;
+            _segmentData = segmentData;
 
-            this.disposerQueue = disposerQueue;
+            _disposerQueue = disposerQueue;
 
-            int pageCount = (int)((segmentData.End - segmentData.VirtualAddress) / ArrayPoolBasedCacheEntry.PageSize);
-            if (((int)(segmentData.End - segmentData.VirtualAddress) % ArrayPoolBasedCacheEntry.PageSize) != 0)
+            int pageCount = (int)((segmentData.End - segmentData.VirtualAddress) / PageSize);
+            if (((int)(segmentData.End - segmentData.VirtualAddress) % PageSize) != 0)
             {
                 pageCount++;
             }
 
-            this.dataChunks = new CachePage[pageCount];
-            this.dataChunkLocks = new ReaderWriterLockSlim[pageCount];
-            for (int i = 0; i < this.dataChunkLocks.Length; i++)
+            _dataChunks = new CachePage[pageCount];
+            _dataChunkLocks = new ReaderWriterLockSlim[pageCount];
+            for (int i = 0; i < _dataChunkLocks.Length; i++)
             {
-                this.dataChunkLocks[i] = new ReaderWriterLockSlim();
+                _dataChunkLocks[i] = new ReaderWriterLockSlim();
             }
 
-            this.MinSize = (uint)(6 * UIntPtr.Size) + /*our six fields that are refrence type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
-                           (uint)(this.dataChunks.Length * UIntPtr.Size) + /*The array of data chunks (each element being a pointer)*/
-                           (uint)(this.dataChunkLocks.Length * UIntPtr.Size) + /*The array of locks for our data chunks*/
-                           sizeof(int) + /*accessCount field*/
-                           sizeof(uint) + /*entrySize field*/
-                           sizeof(long) /*lastAccessTickCount field*/;
+            MinSize = (uint)(6 * UIntPtr.Size) + /*our six fields that are refrence type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
+                      (uint)(_dataChunks.Length * UIntPtr.Size) + /*The array of data chunks (each element being a pointer)*/
+                      (uint)(_dataChunkLocks.Length * UIntPtr.Size) + /*The array of locks for our data chunks*/
+                      sizeof(int) + /*accessCount field*/
+                      sizeof(uint) + /*entrySize field*/
+                      sizeof(long) /*lastAccessTickCount field*/;
 
-            this.entrySize = MinSize;
+            CurrentSize = MinSize;
 
-            this.updateOwningCacheForAddedChunk = updateOwningCacheForAddedChunk;
+            _updateOwningCacheForAddedChunk = updateOwningCacheForAddedChunk;
 
             IncrementAccessCount();
             UpdateLastAccessTickCount();
         }
 
-        public uint CurrentSize => this.entrySize;
+        public override int AccessCount => _accessCount;
 
-        public uint MinSize { get; }
-
-        public int AccessCount => this.accessCount;
-
-        public void IncrementAccessCount()
+        public override void IncrementAccessCount()
         {
-            Interlocked.Increment(ref this.accessCount);
+            Interlocked.Increment(ref _accessCount);
         }
 
-        public long LastAccessTickCount => Interlocked.Read(ref this.lastAccessTickCount);
+        public override long LastAccessTickCount => Interlocked.Read(ref _lastAccessTickCount);
 
-        public void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
+        public override void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
         {
-            uint offset = (uint)(address - this.segmentData.VirtualAddress);
+            uint offset = (uint)(address - _segmentData.VirtualAddress);
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
-            int dataIndex = (int)(pageAlignedOffset / ArrayPoolBasedCacheEntry.PageSize);
+            int dataIndex = (int)(pageAlignedOffset / PageSize);
 
-            ReaderWriterLockSlim targetLock = this.dataChunkLocks[dataIndex];
+            ReaderWriterLockSlim targetLock = _dataChunkLocks[dataIndex];
 
             // THREADING: Once we have acquired the read lock we need to hold it, in some fashion, through the entirity of this method, that prevents the cache eviction code from
             // evicting this entry while we are using it.
@@ -110,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     uint inPageOffset = MapOffsetToPageOffset(offset);
 
-                    byte[] targetData = this.dataChunks[dataIndex].Data;
+                    byte[] targetData = _dataChunks[dataIndex].Data;
                     unsafe
                     {
                         fixed (byte* pSource = &targetData[inPageOffset])
@@ -131,16 +113,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     int remainingBytesToRead = (int)byteCount;
                     do
                     {
-                        if (dataIndex == this.dataChunks.Length)
+                        if (dataIndex == _dataChunks.Length)
                         {
                             // Out of data in this segment, report how many bytes we read
                             bytesRead = byteCount - (uint)remainingBytesToRead;
                             return;
                         }
 
-                        uint bytesInCurrentPage = Math.Min((this.dataChunks[dataIndex].DataExtent - inPageOffset), (uint)remainingBytesToRead);
+                        uint bytesInCurrentPage = Math.Min((_dataChunks[dataIndex].DataExtent - inPageOffset), (uint)remainingBytesToRead);
 
-                        byte[] targetData = this.dataChunks[dataIndex++].Data;
+                        byte[] targetData = _dataChunks[dataIndex++].Data;
 
                         unsafe
                         {
@@ -181,15 +163,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
+        public override bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
         {
-            uint offset = (uint)(address - this.segmentData.VirtualAddress);
+            uint offset = (uint)(address - _segmentData.VirtualAddress);
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
-            int dataIndex = (int)(pageAlignedOffset / ArrayPoolBasedCacheEntry.PageSize);
+            int dataIndex = (int)(pageAlignedOffset / PageSize);
 
             List<ReaderWriterLockSlim> locallyAcquiredLocks = new List<ReaderWriterLockSlim>();
-            locallyAcquiredLocks.Add(this.dataChunkLocks[dataIndex]);
+            locallyAcquiredLocks.Add(_dataChunkLocks[dataIndex]);
             locallyAcquiredLocks[0].EnterReadLock();
 
             List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> acquiredLocks = EnsurePageAtOffset(offset, locallyAcquiredLocks[0]);
@@ -200,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             try
             {
-                CachePage curPage = this.dataChunks[dataIndex];
+                CachePage curPage = _dataChunks[dataIndex];
                 while (true)
                 {
                     for (uint i = pageAdjustedOffset; i < curPage.DataExtent;)
@@ -232,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
 
                     // Ran out of data in this segment before we found the end of the sequence
-                    if ((dataIndex + 1) == this.dataChunks.Length)
+                    if ((dataIndex + 1) == _dataChunks.Length)
                     {
                         result = res.ToArray();
                         return false;
@@ -243,12 +225,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                     offset += (uint)curPage.DataExtent;
 
-                    locallyAcquiredLocks.Add(this.dataChunkLocks[dataIndex + 1]);
+                    locallyAcquiredLocks.Add(_dataChunkLocks[dataIndex + 1]);
                     locallyAcquiredLocks[locallyAcquiredLocks.Count - 1].EnterReadLock();
 
                     acquiredLocks.AddRange(EnsurePageAtOffset(offset, locallyAcquiredLocks[locallyAcquiredLocks.Count - 1]));
 
-                    curPage = this.dataChunks[++dataIndex];
+                    curPage = _dataChunks[++dataIndex];
                     if (curPage == null)
                     {
                         throw new InvalidOperationException($"Expected a CachePage to exist at {dataIndex} but it was null! EnsurePageAtOffset didn't work.");
@@ -272,26 +254,26 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public bool PageOutData()
+        public override bool PageOutData()
         {
             // We can't page our data out
             return false;
         }
 
-        public void UpdateLastAccessTickCount()
+        public override void UpdateLastAccessTickCount()
         {
-            long originalTickCountValue = Interlocked.Read(ref this.lastAccessTickCount);
+            long originalTickCountValue = Interlocked.Read(ref _lastAccessTickCount);
 
             long currentTickCount;
             while (true)
             {
                 CacheNativeMethods.Util.QueryPerformanceCounter(out currentTickCount);
-                if (Interlocked.CompareExchange(ref this.lastAccessTickCount, currentTickCount, originalTickCountValue) == originalTickCountValue)
+                if (Interlocked.CompareExchange(ref _lastAccessTickCount, currentTickCount, originalTickCountValue) == originalTickCountValue)
                 {
                     break;
                 }
 
-                originalTickCountValue = Interlocked.Read(ref this.lastAccessTickCount);
+                originalTickCountValue = Interlocked.Read(ref _lastAccessTickCount);
             }
         }
 
@@ -305,12 +287,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // Assume we will be able to evict all non-null pages
                 bool encounteredBusyPage = false;
 
-                for (int i = 0; i < this.dataChunks.Length; i++)
+                for (int i = 0; i < _dataChunks.Length; i++)
                 {
-                    CachePage page = this.dataChunks[i];
+                    CachePage page = _dataChunks[i];
                     if (page != null)
                     {
-                        ReaderWriterLockSlim dataChunkLock = this.dataChunkLocks[i];
+                        ReaderWriterLockSlim dataChunkLock = _dataChunkLocks[i];
                         if (!dataChunkLock.TryEnterWriteLock(timeout: TimeSpan.Zero))
                         {
                             // Someone holds the writelock on this page, skip it and try to get it in another pass, this prevent us from blocking at the moment
@@ -322,11 +304,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         try
                         {
                             // double check that no other thread already scavenged this entry
-                            page = this.dataChunks[i];
+                            page = _dataChunks[i];
                             if (page != null)
                             {
                                 ArrayPool<byte>.Shared.Return(page.Data);
-                                this.dataChunks[i] = null;
+                                _dataChunks[i] = null;
                             }
                         }
                         finally
@@ -345,16 +327,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int pageIndex = (int)(pageAlignedOffset / ArrayPoolBasedCacheEntry.PageSize);
+            int pageIndex = (int)(pageAlignedOffset / PageSize);
 
-            return offset - ((uint)pageIndex * (uint)ArrayPoolBasedCacheEntry.PageSize);
+            return offset - ((uint)pageIndex * PageSize);
         }
 
         private uint AlignOffsetToPageBoundary(uint offset)
         {
-            if ((offset % ArrayPoolBasedCacheEntry.PageSize) != 0)
+            if ((offset % PageSize) != 0)
             {
-                return offset - (uint)(offset % ArrayPoolBasedCacheEntry.PageSize);
+                return offset - offset % PageSize;
             }
 
             return offset;
@@ -362,7 +344,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> EnsurePageAtOffset(uint offset, ReaderWriterLockSlim originalReadLock)
         {
-            return EnsurePageRangeAtOffset(offset, originalReadLock, ArrayPoolBasedCacheEntry.PageSize);
+            return EnsurePageRangeAtOffset(offset, originalReadLock, PageSize);
         }
 
         private List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> EnsurePageRangeAtOffset(uint offset, ReaderWriterLockSlim originalReadLock, uint bytesNeeded)
@@ -371,9 +353,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int dataIndex = (int)(pageAlignedOffset / ArrayPoolBasedCacheEntry.PageSize);
+            int dataIndex = (int)(pageAlignedOffset / PageSize);
 
-            if (this.dataChunks[dataIndex] == null)
+            if (_dataChunks[dataIndex] == null)
             {
                 // THREADING: Our contract is the caller must have acquired the read lock at least for this first page, this is because the caller needs
                 // to ensure the page cannot be evicted even after we return (presumably they want to read data from it). However, before we page in a
@@ -383,14 +365,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 originalReadLock.ExitReadLock();
                 originalReadLock.EnterUpgradeableReadLock();
                 originalReadLock.EnterWriteLock();
-
-                uint dataRange = 0;
                 try
                 {
-                    if (this.dataChunks[dataIndex] == null)
+                    if (_dataChunks[dataIndex] == null)
                     {
-                        byte[] data = GetPageAtOffset(pageAlignedOffset, out dataRange);
-                        this.dataChunks[dataIndex] = new CachePage(data, dataRange);
+                        byte[] data = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
+                        _dataChunks[dataIndex] = new CachePage(data, dataRange);
                     }
                 }
                 catch (Exception)
@@ -412,27 +392,27 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // THREADING: We still either hold the original read lock or our upgraded readlock (if we set the cache page entry above), either way we know
             // that the entry at dataIndex is non-null
-            uint bytesAvailableOnPage = this.dataChunks[dataIndex].DataExtent - (offset - pageAlignedOffset);
+            uint bytesAvailableOnPage = _dataChunks[dataIndex].DataExtent - (offset - pageAlignedOffset);
             if (bytesAvailableOnPage < bytesNeeded)
             {
                 int bytesRemaining = (int)bytesNeeded - (int)bytesAvailableOnPage;
                 do
                 {
                     // Out of data for this memory segment, it may be the case that the read crosses between memory segments
-                    if ((dataIndex + 1) == this.dataChunks.Length)
+                    if ((dataIndex + 1) == _dataChunks.Length)
                     {
                         return acquiredLocks;
                     }
 
-                    pageAlignedOffset += (uint)ArrayPoolBasedCacheEntry.PageSize;
+                    pageAlignedOffset += (uint)PageSize;
 
                     // Take a read lock on the next page entry
-                    originalReadLock = this.dataChunkLocks[dataIndex + 1];
+                    originalReadLock = _dataChunkLocks[dataIndex + 1];
                     originalReadLock.EnterReadLock();
 
-                    if (this.dataChunks[dataIndex + 1] != null)
+                    if (_dataChunks[dataIndex + 1] != null)
                     {
-                        bytesRemaining -= (int)this.dataChunks[++dataIndex].DataExtent;
+                        bytesRemaining -= (int)_dataChunks[++dataIndex].DataExtent;
 
                         acquiredLocks.Add((originalReadLock, IsHeldAsUpgradeableReadLock: false));
                         continue;
@@ -444,7 +424,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     originalReadLock.EnterUpgradeableReadLock();
                     originalReadLock.EnterWriteLock();
 
-                    if (this.dataChunks[dataIndex + 1] == null)
+                    if (_dataChunks[dataIndex + 1] == null)
                     {
                         // Still not set, so we will set it now
                         try
@@ -452,11 +432,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             uint dataRange;
                             byte[] data = GetPageAtOffset(pageAlignedOffset, out dataRange);
 
-                            this.dataChunks[++dataIndex] = new CachePage(data, dataRange);
+                            _dataChunks[++dataIndex] = new CachePage(data, dataRange);
 
                             bytesRemaining -= (int)dataRange;
                         }
-                        catch(Exception)
+                        catch (Exception)
                         {
                             // THREADING: If we see an exception here we are going to rethrow, which means or caller won't be able to release the upgraded read lock, so do it here
                             // as to not leave this page permanently locked out
@@ -464,7 +444,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             originalReadLock.ExitUpgradeableReadLock();
 
                             // Drop any read locks we have taken up to this point as our caller won't be able to do that since we are re-throwing
-                            foreach(var item in acquiredLocks)
+                            foreach (var item in acquiredLocks)
                             {
                                 if (item.IsHeldAsUpgradeableReadLock)
                                     item.Lock.ExitUpgradeableReadLock();
@@ -477,7 +457,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                     else // someone else beat us to filling this page in, extract the data we need
                     {
-                        bytesRemaining -= (int)this.dataChunks[++dataIndex].DataExtent;
+                        bytesRemaining -= (int)_dataChunks[++dataIndex].DataExtent;
                     }
 
                     // THREADING: Exit our write lock as we either wrote the entry or someone else did, but keep our read lock so the page can't be
@@ -493,22 +473,22 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private byte[] GetPageAtOffset(uint offset, out uint dataExtent)
         {
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(this.segmentData.VirtualAddress + offset), ArrayPoolBasedCacheEntry.PageSize);
+                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + offset), PageSize);
 
             uint readSize;
-            if ((offset + ArrayPoolBasedCacheEntry.PageSize) <= (int)this.segmentData.Size)
+            if ((offset + PageSize) <= (int)_segmentData.Size)
             {
-                readSize = ArrayPoolBasedCacheEntry.PageSize;
+                readSize = PageSize;
             }
             else
             {
-                readSize = (uint)this.segmentData.Size - offset;
+                readSize = (uint)_segmentData.Size - offset;
             }
 
             dataExtent = readSize;
 
             bool pageInFailed = false;
-            MemoryMappedViewAccessor view = this.mappedFile.CreateViewAccessor((long)this.segmentData.FileOffset + offset, size: (long)readSize, MemoryMappedFileAccess.Read);
+            MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + offset, size: (long)readSize, MemoryMappedFileAccess.Read);
             try
             {
                 FieldInfo field = typeof(UnmanagedMemoryAccessor).GetField("_offset", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -538,8 +518,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         }
 
                         UpdateLastAccessTickCount();
-                        this.entrySize += (uint)readSize;
-                        this.updateOwningCacheForAddedChunk(this.segmentData.VirtualAddress, (uint)readSize);
+                        CurrentSize += (uint)readSize;
+                        _updateOwningCacheForAddedChunk(_segmentData.VirtualAddress, (uint)readSize);
 
                         return data;
                     }
@@ -550,7 +530,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
@@ -562,7 +542,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 if (view != null)
                 {
-                    this.disposerQueue.Enqueue(view);
+                    _disposerQueue.Enqueue(view);
                 }
 
                 if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
@@ -575,9 +555,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // It is a simple read if the data lies entirely within a single page
             uint alignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int dataIndex = (int)(alignedOffset / ArrayPoolBasedCacheEntry.PageSize);
+            int dataIndex = (int)(alignedOffset / PageSize);
 
-            CachePage startingPage = this.dataChunks[dataIndex];
+            CachePage startingPage = _dataChunks[dataIndex];
             if (startingPage == null)
             {
                 throw new InvalidOperationException($"Inside IsSinglePageRead but the page at index {dataIndex} is null. You need to call EnsurePageAtOffset or EnsurePageRangeAtOffset before calling this method.");
@@ -586,6 +566,19 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             uint inPageOffset = MapOffsetToPageOffset(offset);
 
             return (inPageOffset + byteCount) < startingPage.DataExtent;
+        }
+
+        [DebuggerDisplay("Size: {DataExtent}")]
+        internal sealed class CachePage
+        {
+            internal CachePage(byte[] data, uint dataExtent)
+            {
+                Data = data;
+                DataExtent = dataExtent;
+            }
+
+            public byte[] Data { get; }
+            public uint DataExtent { get; }
         }
     }
 }

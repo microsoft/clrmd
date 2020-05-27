@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             this.disposerQueue = disposerQueue;
         }
 
-        public ISegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
         {
             return new ArrayPoolBasedCacheEntry(this.mappedFile, segmentData, this.disposerQueue, updateOwningCacheForSizeChangeCallback);
         }

@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             this.sharedSegment = UIntPtr.Zero;
         }
 
-        public ISegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
         {
             bool setFPRes = CacheNativeMethods.File.SetFilePointerEx(this.dumpFileHandle, (long)segmentData.FileOffset, SeekOrigin.Begin);
             if (!setFPRes)

@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     internal class HeapSegmentDataCache : IDisposable
     {
         private ReaderWriterLockSlim cacheLock;
-        private readonly IDictionary<ulong, ISegmentCacheEntry> cache;
+        private readonly IDictionary<ulong, SegmentCacheEntry> cache;
         private ISegmentCacheEntryFactory entryFactory;
 
         private long cacheSize;
@@ -23,20 +23,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         internal HeapSegmentDataCache(ISegmentCacheEntryFactory entryFactory, long maxSize)
         {
             this.cacheLock = new ReaderWriterLockSlim();
-            this.cache = new Dictionary<ulong, ISegmentCacheEntry>();
+            this.cache = new Dictionary<ulong, SegmentCacheEntry>();
 
             this.entryFactory = entryFactory;
             this.maxSize = maxSize;
         }
 
-        internal ISegmentCacheEntry CreateAndAddEntry(MinidumpSegment segment)
+        internal SegmentCacheEntry CreateAndAddEntry(MinidumpSegment segment)
         {
-            ISegmentCacheEntry entry = this.entryFactory.CreateEntryForSegment(segment, this.UpdateOverallCacheSizeForAddedChunk);
+            SegmentCacheEntry entry = this.entryFactory.CreateEntryForSegment(segment, this.UpdateOverallCacheSizeForAddedChunk);
             this.cacheLock.EnterWriteLock();
             try
             {
                 // Check the cache again now that we have acquired the write lock
-                ISegmentCacheEntry existingEntry;
+                SegmentCacheEntry existingEntry;
                 if (this.cache.TryGetValue(segment.VirtualAddress, out existingEntry))
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return entry;
         }
 
-        internal bool TryGetCacheEntry(ulong baseAddress, out ISegmentCacheEntry entry)
+        internal bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry entry)
         {
             this.cacheLock.EnterReadLock();
             bool res = false;
@@ -99,14 +99,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // lhs rhs comparison is inconsistent when reveresed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
             // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger 
             // this exception, which is bad :)
-            IEnumerable<(KeyValuePair<ulong, ISegmentCacheEntry> CacheEntry, long LastAccessTickCount)> items = null;
-            List<(KeyValuePair<ulong, ISegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = null;
+            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> items = null;
+            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = null;
 
             this.cacheLock.EnterReadLock();
             try
             {
                 items = this.cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
-                entries = new List<(KeyValuePair<ulong, ISegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
+                entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
             }
             finally
             {
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 int removalTargetIndex = -1;
                 while (curItemIndex < entries.Count)
                 {
-                    KeyValuePair<ulong, ISegmentCacheEntry> curItem = entries[curItemIndex].CacheEntry;
+                    KeyValuePair<ulong, SegmentCacheEntry> curItem = entries[curItemIndex].CacheEntry;
 
                     // >= so we prefer the largest item that is least recently accessed, ensuring we don't remove a segment that is being actively modified now (should
                     // never happen since we also update that segments accessed timestamp, but, defense in depth).
@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     curItemIndex++;
                 }
 
-                ISegmentCacheEntry targetItem = entries[removalTargetIndex].CacheEntry.Value;
+                SegmentCacheEntry targetItem = entries[removalTargetIndex].CacheEntry.Value;
 
                 bool removedMemUsedByItem = true;
 
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 this.cacheLock.EnterWriteLock();
                 try
                 {
-                    foreach (KeyValuePair<ulong, ISegmentCacheEntry> kvp in this.cache)
+                    foreach (KeyValuePair<ulong, SegmentCacheEntry> kvp in this.cache)
                     {
                         (kvp.Value as IDisposable)?.Dispose();
                     }

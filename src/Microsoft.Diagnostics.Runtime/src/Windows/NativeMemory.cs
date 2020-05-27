@@ -16,18 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private HeapSegmentDataCache cachedMemorySegments;
 
-
-        // Set the default cap for the cache at 800 megs (semi-arbitrary value) if we are in a 32 bit process, once the max is reached the cache will trim itself by removing
-        // the largest items from the least recently accessed 10% of entries (until it brings itsef back under its max cap size).
-        internal NativeMemory(int pointerSize, string dumpPath, ImmutableArray<MinidumpSegment> segments) : this(pointerSize, dumpPath, maxCacheSize: Environment.Is64BitProcess ? long.MaxValue : 800 * (1 << 20), segments)
-        {
-        }
-
-
-        internal NativeMemory(int pointerSize, string dumpPath, long maxCacheSize, ImmutableArray<MinidumpSegment> segments) : this(pointerSize, dumpPath, maxCacheSize, CacheTechnology.AWE, segments)
-        {
-        }
-
         internal NativeMemory(int pointerSize, string dumpPath, long maxCacheSize, CacheTechnology cacheTechnology, ImmutableArray<MinidumpSegment> segments)
         {
             this.pointerSize = pointerSize;
@@ -250,11 +238,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private ImmutableArray<MinidumpSegment> SegmentData => memorySegments;
 
-        private ISegmentCacheEntry GetcacheEntryForMemorySegment(MinidumpSegment memorySegment)
+        private SegmentCacheEntry GetcacheEntryForMemorySegment(MinidumpSegment memorySegment)
         {
             // NOTE: We assume the caller has triggered cachedMemorySegments initialization in the fetching of the MemorySegmentData they have given us
 
-            ISegmentCacheEntry entry;
+            SegmentCacheEntry entry;
             if (this.cachedMemorySegments.TryGetCacheEntry(memorySegment.VirtualAddress, out entry))
             {
                 return entry;
@@ -267,14 +255,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private void ReadBytesFromSegment(MinidumpSegment segment, ulong startAddress, uint byteCount, IntPtr buffer, out uint bytesRead)
         {
-            ISegmentCacheEntry cacheEntry = GetcacheEntryForMemorySegment(segment);
+            SegmentCacheEntry cacheEntry = GetcacheEntryForMemorySegment(segment);
 
             cacheEntry.GetDataForAddress(startAddress, byteCount, buffer, out bytesRead);
         }
 
         private bool ReadBytesFromSegmentUntil(MinidumpSegment segment, ulong startAddress, byte[] terminatingByteSequence, out byte[] result)
         {
-            ISegmentCacheEntry cacheEntry = GetcacheEntryForMemorySegment(segment);
+            SegmentCacheEntry cacheEntry = GetcacheEntryForMemorySegment(segment);
 
             return cacheEntry.GetDataFromAddressUntil(startAddress, terminatingByteSequence, out result);
         }

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,97 +9,80 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
+#pragma warning disable CA1810 // Initialize reference type static fields inline
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal class AWEBasedCacheEntry : ISegmentCacheEntry, IDisposable
+    internal sealed class AWEBasedCacheEntry : SegmentCacheEntry, IDisposable
     {
         private readonly static uint VirtualAllocPageSize; // set in static ctor
         private readonly static int SystemPageSize = Environment.SystemPageSize;
 
-        private Action<ulong, uint> updateOwningCacheForSizeChangeCallback;
-        MinidumpSegment segmentData;
-        private UIntPtr pageFrameArray;
-        private int pageFrameArrayItemCount;
-        private ReaderWriterLockSlim[] pageLocks;
-        private CachePage[] pages;
-        private uint entrySize;
-        private long lastAccessTickCount;
-        private int accessCount;
-
-        [DebuggerDisplay("Size: {DataExtent}")]
-        internal class CachePage
-        {
-            internal CachePage(UIntPtr data, uint dataExtent)
-            {
-                this.Data = data;
-                this.DataExtent = dataExtent;
-            }
-
-            internal readonly UIntPtr Data;
-            internal readonly uint DataExtent;
-        }
+        private readonly Action<ulong, uint> _updateOwningCacheForSizeChangeCallback;
+        private readonly MinidumpSegment _segmentData;
+        private UIntPtr _pageFrameArray;
+        private readonly int _pageFrameArrayItemCount;
+        private readonly ReaderWriterLockSlim[] _pageLocks;
+        private CachePage[] _pages;
+        private long _lastAccessTickCount;
+        private int _accessCount;
 
         static AWEBasedCacheEntry()
         {
             CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNativeMethods.Util.SYSTEM_INFO();
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
-            AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;
+            VirtualAllocPageSize = sysInfo.dwAllocationGranularity;
         }
 
         internal AWEBasedCacheEntry(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback, UIntPtr pageFrameArray, int pageFrameArrayItemCount)
         {
-            int pagesSize = (int)(segmentData.Size / (ulong)AWEBasedCacheEntry.VirtualAllocPageSize);
-            if ((segmentData.Size % (ulong)AWEBasedCacheEntry.VirtualAllocPageSize) != 0)
+            int pagesSize = (int)(segmentData.Size / (ulong)VirtualAllocPageSize);
+            if ((segmentData.Size % (ulong)VirtualAllocPageSize) != 0)
                 pagesSize++;
 
-            this.pages = new CachePage[pagesSize];
-            this.pageLocks = new ReaderWriterLockSlim[pagesSize];
-            for (int i = 0; i < this.pageLocks.Length; i++)
+            _pages = new CachePage[pagesSize];
+            _pageLocks = new ReaderWriterLockSlim[pagesSize];
+            for (int i = 0; i < _pageLocks.Length; i++)
             {
-                this.pageLocks[i] = new ReaderWriterLockSlim();
+                _pageLocks[i] = new ReaderWriterLockSlim();
             }
 
-            this.MinSize = (uint)(this.pages.Length * UIntPtr.Size) + /*size of pages array*/
-                           (uint)(this.pageLocks.Length * UIntPtr.Size) + /*size of pageLocks array*/
-                           (uint)(this.pageFrameArrayItemCount * UIntPtr.Size) +  /*size of pageFrameArray*/
-                           (uint)(5 * IntPtr.Size) + /*size of refernce type fields (updateOwningCacheForSizeChangeCallback, segmentData, pageFrameArray, pageLocks, pages)*/
-                           (2 * sizeof(int)) + /*size of int fields (pageFrameArrayItemCount, accessSize)*/
-                           sizeof(uint) +  /*size of uint field (accessCount)*/
-                           sizeof(long); /*size of long field (lasAccessTickCount)*/
+            MinSize = (uint)(_pages.Length * UIntPtr.Size) + /*size of pages array*/
+                      (uint)(_pageLocks.Length * UIntPtr.Size) + /*size of pageLocks array*/
+                      (uint)(_pageFrameArrayItemCount * UIntPtr.Size) +  /*size of pageFrameArray*/
+                      (uint)(5 * IntPtr.Size) + /*size of refernce type fields (updateOwningCacheForSizeChangeCallback, segmentData, pageFrameArray, pageLocks, pages)*/
+                      (2 * sizeof(int)) + /*size of int fields (pageFrameArrayItemCount, accessSize)*/
+                      sizeof(uint) +  /*size of uint field (accessCount)*/
+                      sizeof(long); /*size of long field (lasAccessTickCount)*/
 
-            this.segmentData = segmentData;
-            this.updateOwningCacheForSizeChangeCallback = updateOwningCacheForSizeChangeCallback;
-            this.pageFrameArray = pageFrameArray;
-            this.pageFrameArrayItemCount = pageFrameArrayItemCount;
+            _segmentData = segmentData;
+            _updateOwningCacheForSizeChangeCallback = updateOwningCacheForSizeChangeCallback;
+            _pageFrameArray = pageFrameArray;
+            _pageFrameArrayItemCount = pageFrameArrayItemCount;
 
-            this.entrySize = MinSize;
+            CurrentSize = MinSize;
 
             IncrementAccessCount();
             UpdateLastAccessTickCount();
         }
 
-        public uint CurrentSize => this.entrySize;
+        public override long LastAccessTickCount => Interlocked.Read(ref _lastAccessTickCount);
 
-        public uint MinSize { get; }            
+        public override int AccessCount => _accessCount;
 
-        public long LastAccessTickCount => Interlocked.Read(ref this.lastAccessTickCount);
-
-        public int AccessCount => this.accessCount;
-
-        public void IncrementAccessCount()
+        public override void IncrementAccessCount()
         {
-            Interlocked.Increment(ref this.accessCount);
+            Interlocked.Increment(ref _accessCount);
         }
 
-        public void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
+        public override void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
         {
-            uint offset = (uint)(address - this.segmentData.VirtualAddress);
+            uint offset = (uint)(address - _segmentData.VirtualAddress);
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int dataIndex = (int)(pageAlignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
+            int dataIndex = (int)(pageAlignedOffset / VirtualAllocPageSize);
 
-            ReaderWriterLockSlim targetLock = this.pageLocks[dataIndex];
+            ReaderWriterLockSlim targetLock = _pageLocks[dataIndex];
 
             // THREADING: Once we have acquired the read lock we need to hold it, in some fashion, through the entirity of this method, that prevents the PageOut code from
             // evicting this page data while we are using it.
@@ -114,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     uint inPageOffset = MapOffsetToPageOffset(offset);
 
-                    CacheNativeMethods.Memory.memcpy(buffer, UIntPtr.Add(this.pages[dataIndex].Data, (int)inPageOffset), new UIntPtr((uint)byteCount));
+                    CacheNativeMethods.Memory.memcpy(buffer, UIntPtr.Add(_pages[dataIndex].Data, (int)inPageOffset), new UIntPtr((uint)byteCount));
 
                     bytesRead = byteCount;
                     return;
@@ -128,16 +110,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     int remainingBytesToRead = (int)byteCount;
                     do
                     {
-                        if (dataIndex == this.pages.Length)
+                        if (dataIndex == _pages.Length)
                         {
                             // Out of data in this segment, report how many bytes we read
                             bytesRead = byteCount - (uint)remainingBytesToRead;
                             return;
                         }
 
-                        uint bytesInCurrentPage = Math.Min((this.pages[dataIndex].DataExtent - inPageOffset), (uint)remainingBytesToRead);
+                        uint bytesInCurrentPage = Math.Min((_pages[dataIndex].DataExtent - inPageOffset), (uint)remainingBytesToRead);
 
-                        UIntPtr targetData = this.pages[dataIndex++].Data;
+                        UIntPtr targetData = _pages[dataIndex++].Data;
 
                         CacheNativeMethods.Memory.memcpy(pInsertionPoint, UIntPtr.Add(targetData, (int)inPageOffset), new UIntPtr((uint)bytesInCurrentPage));
 
@@ -172,15 +154,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
+        public override bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
         {
-            uint offset = (uint)(address - this.segmentData.VirtualAddress);
+            uint offset = (uint)(address - _segmentData.VirtualAddress);
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
-            int dataIndex = (int)(pageAlignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
+            int dataIndex = (int)(pageAlignedOffset / VirtualAllocPageSize);
 
             List<ReaderWriterLockSlim> locallyAcquiredLocks = new List<ReaderWriterLockSlim>();
-            locallyAcquiredLocks.Add(this.pageLocks[dataIndex]);
+            locallyAcquiredLocks.Add(_pageLocks[dataIndex]);
             locallyAcquiredLocks[0].EnterReadLock();
 
             List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> acquiredLocks = EnsurePageAtOffset(offset, locallyAcquiredLocks[0]);
@@ -191,8 +173,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             try
             {
-                CachePage curPage = this.pages[dataIndex];
-                UIntPtr curPageData = this.pages[dataIndex].Data;
+                CachePage curPage = _pages[dataIndex];
+                UIntPtr curPageData = _pages[dataIndex].Data;
                 while (true)
                 {
                     for (uint i = pageAdjustedOffset; i < curPage.DataExtent;)
@@ -230,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
 
                     // Ran out of data in this segment before we found the end of the sequence
-                    if ((dataIndex + 1) == this.pages.Length)
+                    if ((dataIndex + 1) == _pages.Length)
                     {
                         result = res.ToArray();
                         return false;
@@ -241,12 +223,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                     offset += (uint)curPage.DataExtent;
 
-                    locallyAcquiredLocks.Add(this.pageLocks[dataIndex + 1]);
+                    locallyAcquiredLocks.Add(_pageLocks[dataIndex + 1]);
                     locallyAcquiredLocks[locallyAcquiredLocks.Count - 1].EnterReadLock();
 
                     acquiredLocks.AddRange(EnsurePageAtOffset(offset, locallyAcquiredLocks[locallyAcquiredLocks.Count - 1]));
 
-                    curPage = this.pages[++dataIndex];
+                    curPage = _pages[++dataIndex];
                     if (curPage == null)
                     {
                         throw new InvalidOperationException($"CachePage at index {dataIndex} was null. EnsurePageAtOffset didn't work.");
@@ -257,14 +239,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                foreach (var entry in acquiredLocks)
+                foreach (var (Lock, IsHeldAsUpgradeableReadLock) in acquiredLocks)
                 {
-                    locallyAcquiredLocks.Remove(entry.Lock);
+                    locallyAcquiredLocks.Remove(Lock);
 
-                    if (entry.IsHeldAsUpgradeableReadLock)
-                        entry.Lock.ExitUpgradeableReadLock();
+                    if (IsHeldAsUpgradeableReadLock)
+                        Lock.ExitUpgradeableReadLock();
                     else
-                        entry.Lock.ExitReadLock();
+                        Lock.ExitReadLock();
                 }
 
                 foreach (ReaderWriterLockSlim remainingLock in locallyAcquiredLocks)
@@ -272,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public bool PageOutData()
+        public override bool PageOutData()
         {
             if(HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataStart();
@@ -286,9 +268,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // Assume we will be able to evict all non-null pages
                 bool encounteredBusyPage = false;
 
-                for (int i = 0; i < this.pages.Length; i++)
+                for (int i = 0; i < _pages.Length; i++)
                 {
-                    ReaderWriterLockSlim pageLock = this.pageLocks[i];
+                    ReaderWriterLockSlim pageLock = _pageLocks[i];
                     if (!pageLock.TryEnterWriteLock(timeout: TimeSpan.Zero))
                     {
                         // Someone holds the writelock on this page, skip it and try to get it in another pass, this prevent us from blocking page out
@@ -299,13 +281,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                     try
                     {
-                        CachePage page = this.pages[i];
+                        CachePage page = _pages[i];
                         if (page != null)
                         {
                             sizeRemoved += page.DataExtent;
 
                             // We need to unmap the physical memory from this VM range and then free the VM range
-                            bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, numberOfPages: (uint)(AWEBasedCacheEntry.VirtualAllocPageSize / AWEBasedCacheEntry.SystemPageSize), pageArray: UIntPtr.Zero);
+                            bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, numberOfPages: (uint)(VirtualAllocPageSize / SystemPageSize), pageArray: UIntPtr.Zero);
                             if (!unmapPhysicalPagesResult)
                             {
                                 Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
@@ -320,13 +302,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                 Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
 
                                 // this is an error but we already unmapped the physical memory so also throw away our VM pointer
-                                this.pages[i] = null;
+                                _pages[i] = null;
 
                                 continue;
                             }
 
                             // Done, throw away our VM pointer
-                            this.pages[i] = null;
+                            _pages[i] = null;
                         }
                     }
                     finally
@@ -346,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             // Revert to our minimum size
-            this.entrySize = MinSize;
+            CurrentSize = MinSize;
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
@@ -354,28 +336,28 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return true;
         }
 
-        public void UpdateLastAccessTickCount()
+        public override void UpdateLastAccessTickCount()
         {
-            long originalTickCountValue = Interlocked.Read(ref this.lastAccessTickCount);
+            long originalTickCountValue = Interlocked.Read(ref _lastAccessTickCount);
 
             long currentTickCount;
             while (true)
             {
                 CacheNativeMethods.Util.QueryPerformanceCounter(out currentTickCount);
-                if (Interlocked.CompareExchange(ref this.lastAccessTickCount, currentTickCount, originalTickCountValue) == originalTickCountValue)
+                if (Interlocked.CompareExchange(ref _lastAccessTickCount, currentTickCount, originalTickCountValue) == originalTickCountValue)
                 {
                     break;
                 }
 
-                originalTickCountValue = Interlocked.Read(ref this.lastAccessTickCount);
+                originalTickCountValue = Interlocked.Read(ref _lastAccessTickCount);
             }
         }
 
         private uint AlignOffsetToPageBoundary(uint offset)
         {
-            if ((offset % AWEBasedCacheEntry.VirtualAllocPageSize) != 0)
+            if ((offset % VirtualAllocPageSize) != 0)
             {
-                return offset - (uint)(offset % AWEBasedCacheEntry.VirtualAllocPageSize);
+                return offset - offset % VirtualAllocPageSize;
             }
 
             return offset;
@@ -385,14 +367,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int pageIndex = (int)(pageAlignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
+            int pageIndex = (int)(pageAlignedOffset / VirtualAllocPageSize);
 
-            return offset - ((uint)pageIndex * (uint)AWEBasedCacheEntry.VirtualAllocPageSize);
+            return offset - ((uint)pageIndex * VirtualAllocPageSize);
         }
 
         private List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> EnsurePageAtOffset(uint offset, ReaderWriterLockSlim acquiredReadLock)
         {
-            return EnsurePageRangeAtOffset(offset, acquiredReadLock, AWEBasedCacheEntry.VirtualAllocPageSize);
+            return EnsurePageRangeAtOffset(offset, acquiredReadLock, VirtualAllocPageSize);
         }
 
         private List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> EnsurePageRangeAtOffset(uint offset, ReaderWriterLockSlim originalReadLock, uint bytesNeeded)
@@ -401,9 +383,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int dataIndex = (int)(pageAlignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
+            int dataIndex = (int)(pageAlignedOffset / VirtualAllocPageSize);
 
-            if (this.pages[dataIndex] == null)
+            if (_pages[dataIndex] == null)
             {
                 // THREADING: Our contract is the caller must have acquired the read lock at least for this first page, this is because the caller needs
                 // to ensure the page cannot be evicted even after we return (presumably they want to read data from it). However, before we page in a
@@ -416,12 +398,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 try
                 {
-                    if (this.pages[dataIndex] == null)
+                    if (_pages[dataIndex] == null)
                     {
                         uint dataRange;
                         UIntPtr pData = GetPageAtOffset(pageAlignedOffset, out dataRange);
 
-                        this.pages[dataIndex] = new CachePage(pData, dataRange);
+                        _pages[dataIndex] = new CachePage(pData, dataRange);
                     }
                 }
                 catch (Exception)
@@ -443,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // THREADING: We still either hold the original read lock or our upgraded readlock (if we set the cache page entry above), either way we know
             // that the entry at dataIndex is non-null
-            uint bytesAvailableOnPage = this.pages[dataIndex].DataExtent - (offset - pageAlignedOffset);
+            uint bytesAvailableOnPage = _pages[dataIndex].DataExtent - (offset - pageAlignedOffset);
             if (bytesAvailableOnPage < bytesNeeded)
             {
                 // if bytesAvailableOnPage < bytesNeeded it means the read will cover multiple cache pages, so we need to also fault in any following cache 
@@ -453,20 +435,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     // Out of data for this memory segment, it may be the case that the read crosses between memory segments, so return any info on any
                     // upgraded locks we have acquired thus far
-                    if ((dataIndex + 1) == this.pages.Length)
+                    if ((dataIndex + 1) == _pages.Length)
                     {
                         return acquiredLocks;
                     }
 
-                    pageAlignedOffset += AWEBasedCacheEntry.VirtualAllocPageSize;
+                    pageAlignedOffset += VirtualAllocPageSize;
 
                     // Take a read lock on the next page entry
-                    originalReadLock = this.pageLocks[dataIndex + 1];
+                    originalReadLock = _pageLocks[dataIndex + 1];
                     originalReadLock.EnterReadLock();
 
-                    if (this.pages[dataIndex + 1] != null)
+                    if (_pages[dataIndex + 1] != null)
                     {
-                        bytesRemaining -= (int)this.pages[++dataIndex].DataExtent;
+                        bytesRemaining -= (int)_pages[++dataIndex].DataExtent;
 
                         acquiredLocks.Add((originalReadLock, IsHeldAsUpgradeableReadLock: false));
                         continue;
@@ -478,7 +460,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     originalReadLock.EnterUpgradeableReadLock();
                     originalReadLock.EnterWriteLock();
 
-                    if (this.pages[dataIndex + 1] == null)
+                    if (_pages[dataIndex + 1] == null)
                     {
                         // Still not set, so we will set it now
 
@@ -487,7 +469,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         {
                             UIntPtr pData = GetPageAtOffset(pageAlignedOffset, out dataRange);
 
-                            this.pages[++dataIndex] = new CachePage(pData, dataRange);
+                            _pages[++dataIndex] = new CachePage(pData, dataRange);
 
                             bytesRemaining -= (int)dataRange;
                         }
@@ -512,7 +494,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                     else // someone else beat us to filling this page in, extract the data we need
                     {
-                        bytesRemaining -= (int)this.pages[++dataIndex].DataExtent;
+                        bytesRemaining -= (int)_pages[++dataIndex].DataExtent;
                     }
 
                     // THREADING: Exit our write lock as we either wrote the entry or someone else did, but keep our read lock so the page can't be
@@ -528,39 +510,39 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private UIntPtr GetPageAtOffset(uint offset, out uint dataExtent)
         {
             uint readSize;
-            if ((offset + AWEBasedCacheEntry.VirtualAllocPageSize) <= (int)this.segmentData.Size)
+            if ((offset + VirtualAllocPageSize) <= (int)_segmentData.Size)
             {
-                readSize = AWEBasedCacheEntry.VirtualAllocPageSize;
+                readSize = VirtualAllocPageSize;
             }
             else
             {
-                readSize = (uint)this.segmentData.Size - offset;
+                readSize = (uint)_segmentData.Size - offset;
             }
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(this.segmentData.VirtualAddress + offset), readSize);
+                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + offset), readSize);
 
             dataExtent = readSize;
 
-            int memoryPageNumber = (int)(offset / AWEBasedCacheEntry.SystemPageSize);
+            int memoryPageNumber = (int)(offset / SystemPageSize);
 
             try
             {
                 // Allocate a VM range to map the physical memory into
-                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc((uint)AWEBasedCacheEntry.VirtualAllocPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
+                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc((uint)VirtualAllocPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
                 if (vmPtr == UIntPtr.Zero)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
                 // Map one page of our physical memory into the VM space, we have to adjust the pageFrameArray pointer as MapUserPhysicalPages only takes a page count and a page frame array starting point
-                bool mapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(vmPtr, numberOfPages: (uint)(readSize / Environment.SystemPageSize), pageFrameArray + (memoryPageNumber * UIntPtr.Size));
+                bool mapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(vmPtr, numberOfPages: (uint)(readSize / Environment.SystemPageSize), _pageFrameArray + (memoryPageNumber * UIntPtr.Size));
                 if (!mapPhysicalPagesResult)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
                 UpdateLastAccessTickCount();
-                this.entrySize += (uint)readSize;
+                CurrentSize += (uint)readSize;
 
                 // NOTE: We call back under lock, non-ideal but the callback should NOT be modifying this entry in any way
-                this.updateOwningCacheForSizeChangeCallback(this.segmentData.VirtualAddress, readSize);
+                _updateOwningCacheForSizeChangeCallback(_segmentData.VirtualAddress, readSize);
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
@@ -580,9 +562,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             uint alignedOffset = AlignOffsetToPageBoundary(offset);
 
-            int dataIndex = (int)(alignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
+            int dataIndex = (int)(alignedOffset / VirtualAllocPageSize);
 
-            CachePage startingPage = this.pages[dataIndex];
+            CachePage startingPage = _pages[dataIndex];
             if (startingPage == null)
             {
                 throw new InvalidOperationException($"Inside IsSinglePageRead but the page at index {dataIndex} is null. You need to call EnsurePageAtOffset or EnsurePageRangeAtOffset before calling this method.");
@@ -595,20 +577,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public void Dispose()
         {
-            if (pages != null)
+            if (_pages != null)
             {
-                for (int i = 0; i < pages.Length; i++)
+                for (int i = 0; i < _pages.Length; i++)
                 {
-                    ReaderWriterLockSlim pageLock = this.pageLocks[i];
+                    ReaderWriterLockSlim pageLock = _pageLocks[i];
                     pageLock.EnterWriteLock();
 
                     try
                     {
-                        CachePage page = this.pages[i];
+                        CachePage page = _pages[i];
                         if (page != null)
                         {
                             // We need to unmap the physical memory from this VM range and then free the VM range
-                            bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, numberOfPages: (uint)(AWEBasedCacheEntry.VirtualAllocPageSize / Environment.SystemPageSize), pageArray: UIntPtr.Zero);
+                            bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, numberOfPages: (uint)(VirtualAllocPageSize / Environment.SystemPageSize), pageArray: UIntPtr.Zero);
                             if (!unmapPhysicalPagesResult)
                             {
                                 Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
@@ -623,13 +605,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                 Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
 
                                 // this is an error but we already unmapped the physical memory so also throw away our VM pointer
-                                this.pages[i] = null;
+                                _pages[i] = null;
 
                                 continue;
                             }
 
                             // Done, throw away our VM pointer
-                            this.pages[i] = null;
+                            _pages[i] = null;
                         }
                     }
                     finally
@@ -638,24 +620,37 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                 }
 
-                uint numberOfPagesToFree = (uint)this.pages.Length;
-                bool freeUserPhyiscalPagesRes = CacheNativeMethods.AWE.FreeUserPhysicalPages(ref numberOfPagesToFree, this.pageFrameArray);
+                uint numberOfPagesToFree = (uint)_pages.Length;
+                bool freeUserPhyiscalPagesRes = CacheNativeMethods.AWE.FreeUserPhysicalPages(ref numberOfPagesToFree, _pageFrameArray);
                 if (!freeUserPhyiscalPagesRes)
                 {
                     Debug.Fail("Failed tp free our physical pages");
                 }
 
-                if (numberOfPagesToFree != this.pages.Length)
+                if (numberOfPagesToFree != _pages.Length)
                 {
                     Debug.Fail("Failed to free ALL of our physical pages");
                 }
 
                 // Free our page frame array
-                CacheNativeMethods.Memory.HeapFree(this.pageFrameArray);
-                this.pageFrameArray = UIntPtr.Zero;
+                CacheNativeMethods.Memory.HeapFree(_pageFrameArray);
+                _pageFrameArray = UIntPtr.Zero;
 
-                pages = null;
+                _pages = null;
             }
+        }
+
+        [DebuggerDisplay("Size: {DataExtent}")]
+        internal sealed class CachePage
+        {
+            internal CachePage(UIntPtr data, uint dataExtent)
+            {
+                Data = data;
+                DataExtent = dataExtent;
+            }
+
+            public UIntPtr Data { get; }
+            public uint DataExtent { get; }
         }
     }
 }
