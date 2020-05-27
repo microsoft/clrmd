@@ -11,10 +11,8 @@ using System.IO.MemoryMappedFiles;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using DumpAnalyzer.Library.Utility;
-using Microsoft.Diagnostics.Runtime.Windows;
 
-namespace DumpAnalyzer.Library.Native
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class ArrayPoolBasedCacheEntry : ISegmentCacheEntry, IDisposable
     {

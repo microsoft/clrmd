@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 
-namespace DumpAnalyzer.Library.Native
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal interface ISegmentCacheEntryFactory
     {

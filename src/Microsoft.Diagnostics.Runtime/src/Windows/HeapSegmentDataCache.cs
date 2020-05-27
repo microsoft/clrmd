@@ -9,7 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
-namespace DumpAnalyzer.Library.Native
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class HeapSegmentDataCache : IDisposable
     {

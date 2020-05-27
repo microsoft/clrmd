@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DumpAnalyzer.Library.Utility
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class DisposerQueue : IDisposable
     {

@@ -5,10 +5,8 @@
 using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
-using DumpAnalyzer.Library.Utility;
-using Microsoft.Diagnostics.Runtime.Windows;
 
-namespace DumpAnalyzer.Library.Native
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class ArrayPoolBasedCacheEntryFactory : ISegmentCacheEntryFactory, IDisposable
     {

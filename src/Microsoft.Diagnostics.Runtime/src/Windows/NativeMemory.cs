@@ -1,17 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using DumpAnalyzer.Definitions.Interfaces.Native;
-using DumpAnalyzer.Library.Utility;
-using Microsoft.Diagnostics.Runtime.Windows;
 
-namespace DumpAnalyzer.Library.Native.Objects
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class NativeMemory : IDisposable
     {

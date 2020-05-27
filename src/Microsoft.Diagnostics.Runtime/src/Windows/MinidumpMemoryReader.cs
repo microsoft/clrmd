@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using DumpAnalyzer.Library.Native.Objects;
 using System;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -27,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _stream = stream;
             PointerSize = pointerSize;
 
-            _nativeMemory = new NativeMemory(pointerSize, dumpPath, 0x800_0000, DumpAnalyzer.Library.Native.CacheTechnology.ArrayPool, _segments.ToImmutableArray());
+            _nativeMemory = new NativeMemory(pointerSize, dumpPath, 0x800_0000, CacheTechnology.ArrayPool, _segments.ToImmutableArray());
         }
 
         public int PointerSize { get; }

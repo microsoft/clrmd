@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace DumpAnalyzer.Library.Native
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class AWEBasedCacheEntry : ISegmentCacheEntry, IDisposable
     {

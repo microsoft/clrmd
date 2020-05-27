@@ -4,7 +4,7 @@
 
 using System;
 
-namespace DumpAnalyzer.Library.Native
+namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal interface ISegmentCacheEntry
     {
