@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -271,8 +272,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             yield break;
                     }
 
-                    foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
-                        yield return new ClrObject(reference, GetObjectType(reference));
+                    int intSize = (int)size;
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                    try
+                    {
+                        if (_helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize), out int read) && read > IntPtr.Size)
+                        {
+                            foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
+                                yield return new ClrObject(reference, GetObjectType(reference));
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
+                    }
                 }
             }
         }
@@ -317,12 +330,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             yield break;
                     }
 
-                    foreach ((ulong reference, int offset) in gcdesc.WalkObject(obj, size, _helpers.DataReader))
+                    int intSize = (int)size;
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                    try
                     {
-                        ClrObject target = new ClrObject(reference, GetObjectType(reference));
+                        if (_helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize), out int read) && read > IntPtr.Size)
+                        {
+                            foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
+                            {
+                                ClrObject target = new ClrObject(reference, GetObjectType(reference));
 
-                        DebugOnly.Assert(offset >= IntPtr.Size);
-                        yield return ClrReference.CreateFromFieldOrArray(target, type, offset - IntPtr.Size);
+                                DebugOnly.Assert(offset >= IntPtr.Size);
+                                yield return ClrReference.CreateFromFieldOrArray(target, type, offset - IntPtr.Size);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
                     }
                 }
             }

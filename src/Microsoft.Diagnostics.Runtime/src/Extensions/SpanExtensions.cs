@@ -47,8 +47,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 #endif
 
-        public static unsafe ulong AsPointer(this Span<byte> span)
+        public static unsafe ulong AsPointer(this Span<byte> span, int offset = 0)
         {
+            if (offset > 0)
+                span = span.Slice(offset);
+
             DebugOnly.Assert(span.Length >= IntPtr.Size);
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % IntPtr.Size == 0);
             return IntPtr.Size == 4
