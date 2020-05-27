@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 class Types
 {
@@ -27,6 +28,11 @@ class Types
 
     public static FileAccess s_enum = FileAccess.Read;
 
+    private static async Task Async()
+    {
+        await Task.Delay(1000);
+    }
+
     static Types()
     {
         s_szIntArray[1] = 42;
@@ -43,6 +49,7 @@ class Types
         new StructTestClass(); // Ensure type is constructed
         Foo f = new Foo();
         Foo[] foos = new Foo[] { f };
+        Task task = Async();
 
         Inner();
 
