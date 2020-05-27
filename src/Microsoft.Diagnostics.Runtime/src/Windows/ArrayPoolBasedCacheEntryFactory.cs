@@ -8,34 +8,30 @@ using System.IO.MemoryMappedFiles;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal class ArrayPoolBasedCacheEntryFactory : ISegmentCacheEntryFactory, IDisposable
+    internal sealed class ArrayPoolBasedCacheEntryFactory : SegmentCacheEntryFactory, IDisposable
     {
-        private FileStream dumpStream;
-        private MemoryMappedFile mappedFile;
-        private DisposerQueue disposerQueue;
+        private readonly FileStream _dumpStream;
+        private readonly MemoryMappedFile _mappedFile;
+        private readonly DisposerQueue _disposerQueue;
 
         internal ArrayPoolBasedCacheEntryFactory(string dumpPath, DisposerQueue disposerQueue)
         {
-            this.dumpStream = new FileStream(dumpPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            this.mappedFile = MemoryMappedFile.CreateFromFile(this.dumpStream,
-                                                              mapName: null,
-                                                              capacity: 0,
-                                                              MemoryMappedFileAccess.Read,
-                                                              HandleInheritability.None,
-                                                              leaveOpen: false);
+            _dumpStream = new FileStream(dumpPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            _mappedFile = MemoryMappedFile.CreateFromFile(_dumpStream,
+                                                          mapName: null,
+                                                          capacity: 0,
+                                                          MemoryMappedFileAccess.Read,
+                                                          HandleInheritability.None,
+                                                          leaveOpen: false);
 
-            this.disposerQueue = disposerQueue;
+            _disposerQueue = disposerQueue;
         }
 
-        public SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
         {
-            return new ArrayPoolBasedCacheEntry(this.mappedFile, segmentData, this.disposerQueue, updateOwningCacheForSizeChangeCallback);
+            return new ArrayPoolBasedCacheEntry(_mappedFile, segmentData, _disposerQueue, updateOwningCacheForSizeChangeCallback);
         }
 
-        public void Dispose()
-        {
-            using (this.mappedFile)
-            { }
-        }
+        public void Dispose() => _mappedFile.Dispose();
     }
 }

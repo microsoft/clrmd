@@ -15,12 +15,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private ReaderWriterLockSlim cacheLock;
         private readonly IDictionary<ulong, SegmentCacheEntry> cache;
-        private ISegmentCacheEntryFactory entryFactory;
+        private SegmentCacheEntryFactory entryFactory;
 
         private long cacheSize;
         private readonly long maxSize;
 
-        internal HeapSegmentDataCache(ISegmentCacheEntryFactory entryFactory, long maxSize)
+        internal HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, long maxSize)
         {
             this.cacheLock = new ReaderWriterLockSlim();
             this.cache = new Dictionary<ulong, SegmentCacheEntry>();

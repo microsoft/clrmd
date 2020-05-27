@@ -322,11 +322,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     break;
             }
 
-            if(pass == maxLoopCount)
-            {
-                int i = 0;
-            }
-
             // Revert to our minimum size
             CurrentSize = MinSize;
 
