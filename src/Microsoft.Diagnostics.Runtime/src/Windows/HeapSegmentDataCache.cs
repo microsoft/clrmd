@@ -35,9 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
                     using (entry as IDisposable)
-                    {
                         return existingEntry;
-                    }
                 }
 
                 _cache.Add(segment.VirtualAddress, entry);

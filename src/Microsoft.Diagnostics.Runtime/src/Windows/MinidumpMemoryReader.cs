@@ -121,10 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (address == 0)
                 return 0;
 
-            if (_nativeMemory.TryReadMemory(address, (uint)buffer.Length, buffer))
-            {
-                return buffer.Length;
-            }
+            return _nativeMemory.Read(address, buffer);
 
 
             lock (_sync)
