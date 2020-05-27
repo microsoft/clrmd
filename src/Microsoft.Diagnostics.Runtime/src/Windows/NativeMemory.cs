@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             else
             {
                 // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
-                this.cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(this.dumpPath, DisposerQueue.Shared), this.maxCacheSize);
+                this.cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(this.dumpPath), this.maxCacheSize);
             }
 
         }

@@ -11,6 +11,7 @@ using System.IO.MemoryMappedFiles;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
@@ -19,7 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly static uint PageSize = (uint)Environment.SystemPageSize;
 
         private readonly Action<ulong, uint> _updateOwningCacheForAddedChunk;
-        private readonly DisposerQueue _disposerQueue;
         private readonly MemoryMappedFile _mappedFile;
         private readonly MinidumpSegment _segmentData;
         private readonly ReaderWriterLockSlim[] _dataChunkLocks;
@@ -27,25 +27,19 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private int _accessCount;
         private long _lastAccessTickCount;
 
-        internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, DisposerQueue disposerQueue, Action<ulong, uint> updateOwningCacheForAddedChunk)
+        internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForAddedChunk)
         {
             _mappedFile = mappedFile;
             _segmentData = segmentData;
 
-            _disposerQueue = disposerQueue;
-
             int pageCount = (int)((segmentData.End - segmentData.VirtualAddress) / PageSize);
             if (((int)(segmentData.End - segmentData.VirtualAddress) % PageSize) != 0)
-            {
                 pageCount++;
-            }
 
             _dataChunks = new CachePage[pageCount];
             _dataChunkLocks = new ReaderWriterLockSlim[pageCount];
             for (int i = 0; i < _dataChunkLocks.Length; i++)
-            {
                 _dataChunkLocks[i] = new ReaderWriterLockSlim();
-            }
 
             MinSize = (uint)(6 * UIntPtr.Size) + /*our six fields that are refrence type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
                       (uint)(_dataChunks.Length * UIntPtr.Size) + /*The array of data chunks (each element being a pointer)*/
@@ -540,10 +534,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
+                // Tests show disposing of the view can be a significant timesync in the previous iteration of this code.
+                // We'll dispose of view on a background task, but we really should profile this.
                 if (view != null)
-                {
-                    _disposerQueue.Enqueue(view);
-                }
+                    Task.Run(view.Dispose);
 
                 if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
@@ -564,7 +558,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             uint inPageOffset = MapOffsetToPageOffset(offset);
-
             return (inPageOffset + byteCount) < startingPage.DataExtent;
         }
 

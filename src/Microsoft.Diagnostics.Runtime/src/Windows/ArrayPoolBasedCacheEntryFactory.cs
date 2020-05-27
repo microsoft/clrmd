@@ -12,9 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private readonly FileStream _dumpStream;
         private readonly MemoryMappedFile _mappedFile;
-        private readonly DisposerQueue _disposerQueue;
 
-        internal ArrayPoolBasedCacheEntryFactory(string dumpPath, DisposerQueue disposerQueue)
+        internal ArrayPoolBasedCacheEntryFactory(string dumpPath)
         {
             _dumpStream = new FileStream(dumpPath, FileMode.Open, FileAccess.Read, FileShare.Read);
             _mappedFile = MemoryMappedFile.CreateFromFile(_dumpStream,
@@ -23,13 +22,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                                           MemoryMappedFileAccess.Read,
                                                           HandleInheritability.None,
                                                           leaveOpen: false);
-
-            _disposerQueue = disposerQueue;
         }
 
         public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
         {
-            return new ArrayPoolBasedCacheEntry(_mappedFile, segmentData, _disposerQueue, updateOwningCacheForSizeChangeCallback);
+            return new ArrayPoolBasedCacheEntry(_mappedFile, segmentData, updateOwningCacheForSizeChangeCallback);
         }
 
         public void Dispose() => _mappedFile.Dispose();
