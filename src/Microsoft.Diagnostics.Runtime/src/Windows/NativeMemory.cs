@@ -1,22 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal sealed class NativeMemory : IDisposable
+    internal sealed class NativeMemory : IDisposable, IMemoryReader
     {
-        private ImmutableArray<MinidumpSegment> _segments;
-        private HeapSegmentDataCache _cachedMemorySegments;
+        private readonly ImmutableArray<MinidumpSegment> _segments;
+        private readonly HeapSegmentDataCache _cachedMemorySegments;
 
         public string DumpPath { get; }
         public int PointerSize { get; }
         public CacheTechnology CacheTechnology { get; }
         public long MaxCacheSize { get; }
 
-        internal NativeMemory(int pointerSize, string dumpPath, long maxCacheSize, CacheTechnology cacheTechnology, ImmutableArray<MinidumpSegment> segments)
+        public NativeMemory(int pointerSize, string dumpPath, long maxCacheSize, CacheTechnology cacheTechnology, ImmutableArray<MinidumpSegment> segments)
         {
             PointerSize = pointerSize;
             DumpPath = dumpPath;
@@ -61,24 +66,55 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(DumpPath), MaxCacheSize);
 #pragma warning restore CA2000 // Dispose objects before losing scope
             }
+        }
 
+        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
+        {
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            if (Read(address, buffer) == buffer.Length)
+            {
+                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public T Read<T>(ulong address) where T : unmanaged
+        {
+            Read(address, out T t);
+            return t;
+        }
+
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[PointerSize];
+            if (Read(address, buffer) == PointerSize)
+            {
+                value = buffer.AsPointer();
+                return true;
+            }
+
+            value = 0;
+            return false;
+        }
+
+        public ulong ReadPointer(ulong address)
+        {
+            if (ReadPointer(address, out ulong value))
+                return value;
+
+            return 0;
         }
 
         public unsafe int Read(ulong address, Span<byte> buffer)
         {
             fixed (void* pBuffer = buffer)
-            {
-                if(TryReadMemory(address, (uint)buffer.Length, new IntPtr(pBuffer)))
-                {
-                    return buffer.Length;
-                }
-
-            }
-
-            return 0;
+                return TryReadMemory(address, buffer.Length, new IntPtr(pBuffer));
         }
 
-        internal bool TryReadMemory(ulong address, uint byteCount, IntPtr buffer)
+        internal int TryReadMemory(ulong address, int byteCount, IntPtr buffer)
         {
             ImmutableArray<MinidumpSegment> segments = _segments;
             MinidumpSegment lastKnownSegment = segments[segments.Length - 1];
@@ -86,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // quick check if the address is before our first segment or after our last, CLRMD seems to ask for numerous addresses that are very small (like < 0x1000), so no need
             // to do an exhaustive search for that as we would never have anything that low
             if ((address < segments[0].VirtualAddress) || (address > (lastKnownSegment.VirtualAddress + lastKnownSegment.Size)))
-                return false;
+                return 0;
 
             int curSegmentIndex = -1;
             MinidumpSegment targetSegment;
@@ -99,20 +135,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             else
             {
+                // It would be beyond the end of the memory segments we have
                 if (memorySegmentStartIndex == ~segments.Length)
-                {
-                    // It would be beyond the end of the memory segments we have
-                    return false;
-                }
+                    return 0;
 
                 // This is the index of the first segment of memory whose start address is GREATER than the given address.
                 int insertionIndex = ~memorySegmentStartIndex;
-
                 if (insertionIndex == 0)
-                {
-                    // Its before our first memory address
-                    return false;
-                }
+                    return 0;
 
                 // Grab the segment before this one, as it must be the one that contains this address
                 curSegmentIndex = insertionIndex - 1;
@@ -123,29 +153,38 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // This can only be true if we went into the else block above, located a segment BEYOND the given address, backed up one segment and the address
             // isn't inside that segment. This means we don't have the requested memory in the dump.
             if (address > targetSegment.End)
-                return false;
+                return 0;
 
             IntPtr insertionPtr = buffer;
+            int totalBytes = 0;
 
-            uint remainingBytes = byteCount;
+            int remainingBytes = byteCount;
             while (true)
             {
-                ReadBytesFromSegment(targetSegment, address, remainingBytes, insertionPtr, out uint bytesRead);
+                ReadBytesFromSegment(targetSegment, address, remainingBytes, insertionPtr, out int bytesRead);
 
+                totalBytes += bytesRead;
                 remainingBytes -= bytesRead;
-                if (remainingBytes == 0)
-                    return true;
 
-                insertionPtr += (int)bytesRead;
-                address += bytesRead;
+                if (remainingBytes == 0 || bytesRead == 0)
+                    return totalBytes;
+
+                insertionPtr += bytesRead;
+                address += (uint)bytesRead;
 
                 if ((curSegmentIndex + 1) == segments.Length)
-                    return false;
+                    return totalBytes;
 
                 targetSegment = segments[++curSegmentIndex];
 
                 if (address != targetSegment.VirtualAddress)
-                    return false;
+                {
+                    curSegmentIndex = segments.Search(address, (x, addr) => (x.VirtualAddress <= addr && addr < x.VirtualAddress + x.Size) ? 0 : x.VirtualAddress.CompareTo(addr));
+                    if (curSegmentIndex >= segments.Length)
+                        return totalBytes;
+
+                    targetSegment = segments[curSegmentIndex];
+                }
             }
         }
 
@@ -158,10 +197,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return _cachedMemorySegments.CreateAndAddEntry(memorySegment);
         }
 
-        private void ReadBytesFromSegment(MinidumpSegment segment, ulong startAddress, uint byteCount, IntPtr buffer, out uint bytesRead)
+        private void ReadBytesFromSegment(MinidumpSegment segment, ulong startAddress, int byteCount, IntPtr buffer, out int bytesRead)
         {
             SegmentCacheEntry cacheEntry = GetcacheEntryForMemorySegment(segment);
-            cacheEntry.GetDataForAddress(startAddress, byteCount, buffer, out bytesRead);
+            cacheEntry.GetDataForAddress(startAddress, (uint)byteCount, buffer, out uint read);
+            bytesRead = (int)read;
         }
 
         public void Dispose()
