@@ -620,6 +620,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             context.Unload();
         }
 
+        [Fact]
+        public void EnumerateInterfaces()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            var query = from obj in runtime.Heap.EnumerateObjects()
+                        where obj.Type?.Name == "Types+<Async>d__0"
+                        select obj.Type;
+
+            ClrType clrType = query.Single();
+            ClrInterface clrInterface = clrType.EnumerateInterfaces().Single();
+
+            Assert.Equal("System.Runtime.CompilerServices.IAsyncStateMachine", clrInterface.Name);
+        }
+
         private struct CollectibleUnmanagedStruct
         {
             public static CollectibleUnmanagedStruct Instance = default;

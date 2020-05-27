@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrInterface? GetInterface(MetadataImport import, int mdIFace)
         {
             ClrInterface? result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends))
+            if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends).IsOK)
             {
                 name = import.GetTypeRefName(mdIFace);
             }
