@@ -280,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             MinidumpSegment[] result = segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ToArray();
-            return new MinidumpMemoryReader(result, stream, PointerSize);
+            return new MinidumpMemoryReader(result, _crashDump, stream, PointerSize);
         }
 
         private static unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)

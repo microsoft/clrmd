@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,7 +18,7 @@ namespace DumpAnalyzer.Library.Native
         private readonly static int SystemPageSize = Environment.SystemPageSize;
 
         private Action<ulong, uint> updateOwningCacheForSizeChangeCallback;
-        HeapSegment segmentData;
+        MinidumpSegment segmentData;
         private UIntPtr pageFrameArray;
         private int pageFrameArrayItemCount;
         private ReaderWriterLockSlim[] pageLocks;
@@ -47,7 +48,7 @@ namespace DumpAnalyzer.Library.Native
             AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;
         }
 
-        internal AWEBasedCacheEntry(HeapSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback, UIntPtr pageFrameArray, int pageFrameArrayItemCount)
+        internal AWEBasedCacheEntry(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback, UIntPtr pageFrameArray, int pageFrameArrayItemCount)
         {
             int pagesSize = (int)(segmentData.Size / (ulong)AWEBasedCacheEntry.VirtualAllocPageSize);
             if ((segmentData.Size % (ulong)AWEBasedCacheEntry.VirtualAllocPageSize) != 0)
@@ -94,7 +95,7 @@ namespace DumpAnalyzer.Library.Native
 
         public void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
         {
-            uint offset = (uint)(address - this.segmentData.Start);
+            uint offset = (uint)(address - this.segmentData.VirtualAddress);
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
             int dataIndex = (int)(pageAlignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
@@ -173,7 +174,7 @@ namespace DumpAnalyzer.Library.Native
 
         public bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
         {
-            uint offset = (uint)(address - this.segmentData.Start);
+            uint offset = (uint)(address - this.segmentData.VirtualAddress);
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
             int dataIndex = (int)(pageAlignedOffset / AWEBasedCacheEntry.VirtualAllocPageSize);
@@ -537,7 +538,7 @@ namespace DumpAnalyzer.Library.Native
             }
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(this.segmentData.Start + offset), readSize);
+                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(this.segmentData.VirtualAddress + offset), readSize);
 
             dataExtent = readSize;
 
@@ -559,7 +560,7 @@ namespace DumpAnalyzer.Library.Native
                 this.entrySize += (uint)readSize;
 
                 // NOTE: We call back under lock, non-ideal but the callback should NOT be modifying this entry in any way
-                this.updateOwningCacheForSizeChangeCallback(this.segmentData.Start, readSize);
+                this.updateOwningCacheForSizeChangeCallback(this.segmentData.VirtualAddress, readSize);
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);

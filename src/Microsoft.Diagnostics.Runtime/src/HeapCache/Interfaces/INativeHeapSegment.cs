@@ -2,7 +2,7 @@
 {
     public interface INativeHeapSegment
     {
-        ulong Start { get; }
+        ulong VirtualAddress { get; }
 
         ulong End { get; }
     }

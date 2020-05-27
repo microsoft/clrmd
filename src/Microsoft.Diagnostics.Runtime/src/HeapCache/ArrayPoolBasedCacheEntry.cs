@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using DumpAnalyzer.Library.Utility;
+using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace DumpAnalyzer.Library.Native
 {
@@ -22,7 +23,7 @@ namespace DumpAnalyzer.Library.Native
         private Action<ulong, uint> updateOwningCacheForAddedChunk;
         private DisposerQueue disposerQueue;
         private MemoryMappedFile mappedFile;
-        private HeapSegment segmentData;
+        private MinidumpSegment segmentData;
         private ReaderWriterLockSlim[] dataChunkLocks;
         private CachePage[] dataChunks;
         private int accessCount;
@@ -42,15 +43,15 @@ namespace DumpAnalyzer.Library.Native
             internal readonly uint DataExtent;
         }
 
-        internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, HeapSegment segmentData, DisposerQueue disposerQueue, Action<ulong, uint> updateOwningCacheForAddedChunk)
+        internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, DisposerQueue disposerQueue, Action<ulong, uint> updateOwningCacheForAddedChunk)
         {
             this.mappedFile = mappedFile;
             this.segmentData = segmentData;
 
             this.disposerQueue = disposerQueue;
 
-            int pageCount = (int)((segmentData.End - segmentData.Start) / ArrayPoolBasedCacheEntry.PageSize);
-            if (((int)(segmentData.End - segmentData.Start) % ArrayPoolBasedCacheEntry.PageSize) != 0)
+            int pageCount = (int)((segmentData.End - segmentData.VirtualAddress) / ArrayPoolBasedCacheEntry.PageSize);
+            if (((int)(segmentData.End - segmentData.VirtualAddress) % ArrayPoolBasedCacheEntry.PageSize) != 0)
             {
                 pageCount++;
             }
@@ -92,7 +93,7 @@ namespace DumpAnalyzer.Library.Native
 
         public void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
         {
-            uint offset = (uint)(address - this.segmentData.Start);
+            uint offset = (uint)(address - this.segmentData.VirtualAddress);
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
             int dataIndex = (int)(pageAlignedOffset / ArrayPoolBasedCacheEntry.PageSize);
@@ -184,7 +185,7 @@ namespace DumpAnalyzer.Library.Native
 
         public bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
         {
-            uint offset = (uint)(address - this.segmentData.Start);
+            uint offset = (uint)(address - this.segmentData.VirtualAddress);
 
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
             int dataIndex = (int)(pageAlignedOffset / ArrayPoolBasedCacheEntry.PageSize);
@@ -494,7 +495,7 @@ namespace DumpAnalyzer.Library.Native
         private byte[] GetPageAtOffset(uint offset, out uint dataExtent)
         {
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(this.segmentData.Start + offset), ArrayPoolBasedCacheEntry.PageSize);
+                HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(this.segmentData.VirtualAddress + offset), ArrayPoolBasedCacheEntry.PageSize);
 
             uint readSize;
             if ((offset + ArrayPoolBasedCacheEntry.PageSize) <= (int)this.segmentData.Size)
@@ -509,7 +510,7 @@ namespace DumpAnalyzer.Library.Native
             dataExtent = readSize;
 
             bool pageInFailed = false;
-            MemoryMappedViewAccessor view = this.mappedFile.CreateViewAccessor((long)this.segmentData.SegmentRVA + offset, size: (long)readSize, MemoryMappedFileAccess.Read);
+            MemoryMappedViewAccessor view = this.mappedFile.CreateViewAccessor((long)this.segmentData.FileOffset + offset, size: (long)readSize, MemoryMappedFileAccess.Read);
             try
             {
                 FieldInfo field = typeof(UnmanagedMemoryAccessor).GetField("_offset", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -540,7 +541,7 @@ namespace DumpAnalyzer.Library.Native
 
                         UpdateLastAccessTickCount();
                         this.entrySize += (uint)readSize;
-                        this.updateOwningCacheForAddedChunk(this.segmentData.Start, (uint)readSize);
+                        this.updateOwningCacheForAddedChunk(this.segmentData.VirtualAddress, (uint)readSize);
 
                         return data;
                     }

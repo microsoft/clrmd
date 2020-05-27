@@ -20,5 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public ulong FileOffset { get; }
         public ulong VirtualAddress { get; }
         public ulong Size { get; }
+
+        public ulong End => VirtualAddress + Size;
     }
 }

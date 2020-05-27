@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,7 +29,7 @@ namespace DumpAnalyzer.Library.Native
             this.maxSize = maxSize;
         }
 
-        internal ISegmentCacheEntry CreateAndAddEntry(HeapSegment segment)
+        internal ISegmentCacheEntry CreateAndAddEntry(MinidumpSegment segment)
         {
             ISegmentCacheEntry entry = this.entryFactory.CreateEntryForSegment(segment, this.UpdateOverallCacheSizeForAddedChunk);
             this.cacheLock.EnterWriteLock();
@@ -36,7 +37,7 @@ namespace DumpAnalyzer.Library.Native
             {
                 // Check the cache again now that we have acquired the write lock
                 ISegmentCacheEntry existingEntry;
-                if (this.cache.TryGetValue(segment.Start, out existingEntry))
+                if (this.cache.TryGetValue(segment.VirtualAddress, out existingEntry))
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
                     using (entry as IDisposable)
@@ -45,7 +46,7 @@ namespace DumpAnalyzer.Library.Native
                     }
                 }
 
-                this.cache.Add(segment.Start, entry);
+                this.cache.Add(segment.VirtualAddress, entry);
             }
             finally
             {
@@ -53,7 +54,7 @@ namespace DumpAnalyzer.Library.Native
             }
 
             Interlocked.Add(ref this.cacheSize, entry.CurrentSize);
-            this.TrimCacheIfOverLimit(segment.Start);
+            this.TrimCacheIfOverLimit(segment.VirtualAddress);
 
             return entry;
         }

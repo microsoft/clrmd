@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using DumpAnalyzer.Library.Utility;
+using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace DumpAnalyzer.Library.Native
 {
@@ -28,7 +29,7 @@ namespace DumpAnalyzer.Library.Native
             this.disposerQueue = disposerQueue;
         }
 
-        public ISegmentCacheEntry CreateEntryForSegment(HeapSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public ISegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
         {
             return new ArrayPoolBasedCacheEntry(this.mappedFile, segmentData, this.disposerQueue, updateOwningCacheForSizeChangeCallback);
         }

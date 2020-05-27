@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using DumpAnalyzer.Library.Native.Objects;
 using System;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,11 +19,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly Stream _stream;
         private readonly object _sync = new object();
 
-        public MinidumpMemoryReader(MinidumpSegment[] segments, Stream stream, int pointerSize)
+        private readonly NativeMemory _nativeMemory;
+
+        public MinidumpMemoryReader(MinidumpSegment[] segments, string dumpPath, Stream stream, int pointerSize)
         {
             _segments = segments;
             _stream = stream;
             PointerSize = pointerSize;
+
+            _nativeMemory = new NativeMemory(pointerSize, dumpPath, 0x800_0000, DumpAnalyzer.Library.Native.CacheTechnology.ArrayPool, _segments.ToImmutableArray());
         }
 
         public int PointerSize { get; }
@@ -113,6 +119,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public int Read(ulong address, Span<byte> buffer)
         {
+            if (address == 0)
+                return 0;
+
+            if (_nativeMemory.TryReadMemory(address, (uint)buffer.Length, buffer))
+            {
+                return buffer.Length;
+            }
+
+
             lock (_sync)
             {
                 try

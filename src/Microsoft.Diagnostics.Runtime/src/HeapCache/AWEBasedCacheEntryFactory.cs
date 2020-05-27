@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -41,9 +42,9 @@ namespace DumpAnalyzer.Library.Native
             this.sharedSegment = UIntPtr.Zero;
         }
 
-        public ISegmentCacheEntry CreateEntryForSegment(HeapSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public ISegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
         {
-            bool setFPRes = CacheNativeMethods.File.SetFilePointerEx(this.dumpFileHandle, (long)segmentData.SegmentRVA, SeekOrigin.Begin);
+            bool setFPRes = CacheNativeMethods.File.SetFilePointerEx(this.dumpFileHandle, (long)segmentData.FileOffset, SeekOrigin.Begin);
             if (!setFPRes)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
