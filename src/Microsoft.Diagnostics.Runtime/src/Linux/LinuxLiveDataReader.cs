@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     /// A data reader that targets a Linux process.
     /// The current process must have ptrace access to the target process.
     /// </summary>
-    internal class LinuxLiveDataReader : IDataReader, IDisposable
+    internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable
     {
         private List<MemoryMapEntry> _memoryMapEntries;
         private readonly List<uint> _threadIDs = new List<uint>();
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool _)
         {
             if (_disposed)
                 return;
@@ -104,8 +104,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         }
 
         public Architecture Architecture { get; }
-
-        public int PointerSize => IntPtr.Size;
 
         public IEnumerable<ModuleInfo> EnumerateModules() =>
             from entry in _memoryMapEntries
@@ -164,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public int Read(ulong address, Span<byte> buffer)
+        public override int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
             return ReadMemoryReadv(address, buffer);
@@ -203,44 +201,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
                 return read;
             }
-        }
-
-        public ulong ReadPointer(ulong address)
-        {
-            ReadPointer(address, out ulong value);
-            return value;
-        }
-
-        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
-        {
-            Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer) == sizeof(T))
-            {
-                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public T Read<T>(ulong address) where T : unmanaged
-        {
-            Read(address, out T value);
-            return value;
-        }
-
-        public bool ReadPointer(ulong address, out ulong value)
-        {
-            Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer) == IntPtr.Size)
-            {
-                value = buffer.AsPointer();
-                return true;
-            }
-
-            value = 0;
-            return false;
         }
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)

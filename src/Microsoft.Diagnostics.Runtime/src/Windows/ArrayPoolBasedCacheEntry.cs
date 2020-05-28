@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             for (int i = 0; i < _dataChunkLocks.Length; i++)
                 _dataChunkLocks[i] = new ReaderWriterLockSlim();
 
-            MinSize = (uint)(6 * UIntPtr.Size) + /*our six fields that are refrence type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
+            MinSize = (uint)(6 * UIntPtr.Size) + /*our six fields that are reference type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
                       (uint)(_dataChunks.Length * UIntPtr.Size) + /*The array of data chunks (each element being a pointer)*/
                       (uint)(_dataChunkLocks.Length * UIntPtr.Size) + /*The array of locks for our data chunks*/
                       sizeof(int) + /*accessCount field*/

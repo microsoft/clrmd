@@ -1,24 +1,17 @@
-﻿using Microsoft.Diagnostics.Runtime.Windows;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    abstract class MinidumpMemoryReader : IMemoryReader, IDisposable
+    internal abstract class MinidumpMemoryReader : CommonMemoryReader, IDisposable
     {
-        public abstract int PointerSize { get; }
-
         public abstract void Dispose();
-
-        public abstract int Read(ulong address, Span<byte> buffer);
-        public abstract bool Read<T>(ulong address, out T value) where T : unmanaged;
-        public abstract T Read<T>(ulong address) where T : unmanaged;
-        public abstract bool ReadPointer(ulong address, out ulong value);
-        public abstract ulong ReadPointer(ulong address);
 
         public abstract int ReadFromRva(ulong rva, Span<byte> buffer);
 

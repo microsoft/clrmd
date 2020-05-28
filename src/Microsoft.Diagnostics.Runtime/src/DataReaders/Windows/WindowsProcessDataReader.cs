@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.DataReaders.Windows;
@@ -15,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed unsafe class WindowsProcessDataReader : IDataReader, IDisposable
+    internal sealed unsafe class WindowsProcessDataReader : CommonMemoryReader, IDataReader, IDisposable
     {
         private bool _disposed = false;
         private readonly WindowsThreadSuspender? _suspension;
@@ -126,8 +125,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
 
-        public int PointerSize => IntPtr.Size;
-
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             EnumProcessModules(_process, null, 0, out uint needed);
@@ -176,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public int Read(ulong address, Span<byte> buffer)
+        public override int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
             try
@@ -193,44 +190,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ulong ReadPointer(ulong address)
-        {
-            ReadPointer(address, out ulong value);
-            return value;
-        }
-
-        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
-        {
-            Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer) == sizeof(T))
-            {
-                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public T Read<T>(ulong address) where T : unmanaged
-        {
-            Read(address, out T value);
-            return value;
-        }
-
-        public bool ReadPointer(ulong address, out ulong value)
-        {
-            Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer) == IntPtr.Size)
-            {
-                value = buffer.AsPointer();
-                return true;
-            }
-
-            value = 0;
-            return false;
-        }
-        
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
@@ -298,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         [DllImport(Kernel32LibraryName, SetLastError = true)]
         internal static extern SafeWin32Handle OpenThread(ThreadAccess dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwThreadId);
-        
+
         [DllImport(Kernel32LibraryName, SetLastError = true)]
         internal static extern int SuspendThread(IntPtr hThread);
 

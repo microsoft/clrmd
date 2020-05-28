@@ -6,8 +6,6 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
 namespace Microsoft.Diagnostics.Runtime.Windows
@@ -89,47 +87,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _rvaStream.Position = (long)rva;
                 return _rvaStream.Read(buffer);
             }
-        }
-
-
-        public override unsafe bool Read<T>(ulong address, out T value)
-        {
-            Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer) == buffer.Length)
-            {
-                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public override T Read<T>(ulong address)
-        {
-            Read(address, out T t);
-            return t;
-        }
-
-        public override bool ReadPointer(ulong address, out ulong value)
-        {
-            Span<byte> buffer = stackalloc byte[PointerSize];
-            if (Read(address, buffer) == PointerSize)
-            {
-                value = buffer.AsPointer();
-                return true;
-            }
-
-            value = 0;
-            return false;
-        }
-
-        public override ulong ReadPointer(ulong address)
-        {
-            if (ReadPointer(address, out ulong value))
-                return value;
-
-            return 0;
         }
 
         public override unsafe int Read(ulong address, Span<byte> buffer)
