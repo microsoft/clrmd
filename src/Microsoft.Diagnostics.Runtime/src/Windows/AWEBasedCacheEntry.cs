@@ -528,8 +528,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 if (vmPtr == UIntPtr.Zero)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
-                // Map one page of our physical memory into the VM space, we have to adjust the pageFrameArray pointer as MapUserPhysicalPages only takes a page count and a page frame array starting point
-
+                // Map pages of our physical memory into the VM space, we have to adjust the pageFrameArray pointer as MapUserPhysicalPages only takes a page count and a page frame array starting point
                 uint numberOfPages = readSize / (uint)Environment.SystemPageSize + (((readSize % Environment.SystemPageSize) == 0) ? 0u : 1u);
                 bool mapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(vmPtr, numberOfPages: numberOfPages, _pageFrameArray + (memoryPageNumber * UIntPtr.Size));
                 if (!mapPhysicalPagesResult)
