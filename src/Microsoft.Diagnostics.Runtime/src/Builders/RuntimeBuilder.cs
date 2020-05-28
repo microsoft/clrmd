@@ -1294,7 +1294,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             fields = default;
             statics = default;
 
-            if (type.IsFree)
+            // If "type.BaseType" is null then this is either System.Object which has no fields, or the parent MethodTable
+            // is invalid.  In this latter case, we actually get bogus field data from GetFieldInfo, leading to reporting
+            // incorrect fields from this type.
+            if (type.IsFree || type.BaseType is null)
                 return;
 
             if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
@@ -1305,30 +1308,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
 
             ImmutableArray<ClrInstanceField>.Builder fieldsBuilder = ImmutableArray.CreateBuilder<ClrInstanceField>(fieldInfo.NumInstanceFields);
-            fieldsBuilder.Count = fieldsBuilder.Capacity;
-
             ImmutableArray<ClrStaticField>.Builder staticsBuilder = ImmutableArray.CreateBuilder<ClrStaticField>(fieldInfo.NumStaticFields);
-            staticsBuilder.Count = staticsBuilder.Capacity;
 
-            if (fieldInfo.NumStaticFields == 0)
-                statics = ImmutableArray<ClrStaticField>.Empty;
-
-            int fieldNum = 0;
-            int staticNum = 0;
-
-            // Add base type's fields.
-            if (type.BaseType != null)
-            {
-                ImmutableArray<ClrInstanceField> baseFields = type.BaseType.Fields;
-                foreach (ClrInstanceField field in baseFields)
-                    fieldsBuilder[fieldNum++] = field;
-            }
+            fieldsBuilder.AddRange(type.BaseType.Fields);
 
             using FieldBuilder fieldData = _fieldBuilders.Rent();
 
             ulong nextField = fieldInfo.FirstFieldAddress;
             int other = 0;
-            while (other + fieldNum + staticNum < fieldsBuilder.Capacity + staticsBuilder.Capacity && nextField != 0)
+            while (other + fieldsBuilder.Count + staticsBuilder.Count < fieldsBuilder.Capacity + staticsBuilder.Capacity && nextField != 0)
             {
                 if (!fieldData.Init(_sos, nextField, this))
                     break;
@@ -1340,19 +1328,16 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 else if (fieldData.IsStatic)
                 {
                     ClrmdStaticField staticField = new ClrmdStaticField(type, fieldData);
-                    staticsBuilder[staticNum++] = staticField;
+                    staticsBuilder.Add(staticField);
                 }
                 else
                 {
                     ClrmdField field = new ClrmdField(type, fieldData);
-                    fieldsBuilder[fieldNum++] = field;
+                    fieldsBuilder.Add(field);
                 }
 
                 nextField = fieldData.NextField;
             }
-
-            fieldsBuilder.Capacity = fieldsBuilder.Count = fieldNum;
-            staticsBuilder.Capacity = staticsBuilder.Count = staticNum;
 
             fieldsBuilder.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
