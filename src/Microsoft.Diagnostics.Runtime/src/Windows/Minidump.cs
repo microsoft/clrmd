@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public Minidump(string crashDump, FileStream stream, int cacheSize)
+        public Minidump(string crashDump, FileStream stream, CacheOptions cacheOptions)
         {
             if (!File.Exists(crashDump))
                 throw new FileNotFoundException(crashDump);
@@ -106,19 +106,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             //_nativeMemory = new CachedMemoryReader(pointerSize, dumpPath, cacheSize, CacheTechnology.ArrayPool, _segments.ToImmutableArray());
             ImmutableArray<MinidumpSegment> segments = GetSegments(stream);
 
-            if (new FileInfo(crashDump).Length <= cacheSize)
+            int cacheSize = cacheOptions.MaxDumpCacheSize > int.MaxValue ? int.MaxValue : (int)cacheOptions.MaxDumpCacheSize;
+
+            if (cacheSize <= CachedMemoryReader.MinimumCacheSize || new FileInfo(crashDump).Length <= cacheSize)
             {
                 _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
                 MemoryMappedViewStream mmStream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
                 MemoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize);
             }
-            else if (cacheSize <= CachedMemoryReader.MinimumCacheSize)
-            {
-                MemoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
-            }
             else
             {
-                MemoryReader = new CachedMemoryReader(segments, crashDump, stream, cacheSize, CacheTechnology.AWE, PointerSize);
+                CacheTechnology technology = cacheOptions.UseOSMemoryFeatures ? CacheTechnology.AWE : CacheTechnology.ArrayPool;
+                MemoryReader = new CachedMemoryReader(segments, crashDump, stream, cacheSize, technology, PointerSize);
             }
 
             _threadTask = ReadThreadData(stream);
