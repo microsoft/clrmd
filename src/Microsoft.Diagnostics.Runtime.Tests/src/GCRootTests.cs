@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void GCRootsImpl(GCRoot gcroot, ClrHeap heap, ulong target, int parallelism, bool unique)
         {
-            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, unique: unique, parallelism, CancellationToken.None).ToArray();
+            GCRootPath[] rootPaths = gcroot.EnumerateGCRoots(target, unique, parallelism, CancellationToken.None).ToArray();
 
             // In the case where we say we only want unique rooting chains AND we want to look in parallel,
             // we cannot guarantee that we will pick the static roots over the stack ones.  Hence we don't
