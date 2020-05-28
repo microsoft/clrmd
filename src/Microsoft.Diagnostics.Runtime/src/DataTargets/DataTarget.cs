@@ -227,13 +227,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Loads a dump file.  Currently supported formats are ELF coredump and Windows Minidump formats.
         /// </summary>
         /// <param name="filePath">The path to the dump file.</param>
+        /// <param name="cacheOptions">The caching options to use </param>
         /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
-        public static DataTarget LoadDump(string filePath)
+        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions = null)
         {
             if (filePath is null)
                 throw new ArgumentNullException(nameof(filePath));
             else if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
+
+            cacheOptions ??= new CacheOptions();
 
             (FileStream stream, DumpFileFormat format) = OpenDump(filePath);
             try
@@ -242,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime
                 
                 IDataReader reader = format switch
                 {
-                    DumpFileFormat.Minidump => new MinidumpReader(filePath, stream),
+                    DumpFileFormat.Minidump => new MinidumpReader(filePath, stream, cacheOptions),
                     DumpFileFormat.ElfCoredump => new CoredumpReader(filePath, stream),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
@@ -253,7 +256,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException($"File '{filePath}' is in an unknown or unsupported file format."),
                 };
 
-                return new DataTarget(new CustomDataTarget(reader));
+                return new DataTarget(new CustomDataTarget(reader) { CacheOptions = cacheOptions });
 
 #pragma warning restore CA2000 // Dispose objects before losing scope
             }

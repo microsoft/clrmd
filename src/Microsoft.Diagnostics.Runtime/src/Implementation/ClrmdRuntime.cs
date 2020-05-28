@@ -161,7 +161,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByHandle(md);
         }
 
-        // _bcl will not be null by the time we reach this
-        public override ClrModule BaseClassLibrary => _bcl!;
+        public override ClrModule BaseClassLibrary => _bcl ??= _helpers.GetBaseClassLibrary(this)!;
     }
 }

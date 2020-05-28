@@ -25,10 +25,13 @@ namespace ParallelStressTest
             if (args.Length != 1)
             {
                 Console.WriteLine("Must specify a crash dump to inspect.");
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
                 Environment.Exit(1);
             }
 
-            using DataTarget dt = DataTarget.LoadCrashDump(args[0]);
+            using DataTarget dt = DataTarget.LoadDump(args[0]);
             using (ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime())
             {
                 _expectedObjects = runtime.Heap.EnumerateObjects().ToArray();
@@ -98,18 +101,18 @@ namespace ParallelStressTest
 
         private static void WorkerThread(ClrRuntime runtime)
         {
-            ClrmdHeap.LogHeapWalkSteps(32);
+            //ClrmdHeap.LogHeapWalkSteps(32);
 
             _event.WaitOne();
 
-            if (_segments.Length != runtime.Heap.Segments.Count)
+            if (_segments.Length != runtime.Heap.Segments.Length)
             {
-                Fail(false, $"Segment count mismatch.  Expected {_segments.Length} segments, found {runtime.Heap.Segments.Count}.");
+                Fail(false, $"Segment count mismatch.  Expected {_segments.Length} segments, found {runtime.Heap.Segments.Length}.");
             }
 
             for (int i = 0; i < _segments.Length; i++)
-                if (runtime.Heap.Segments[i].FirstObject != _segments[i].FirstObject || runtime.Heap.Segments[i].CommittedEnd != _segments[i].CommittedEnd)
-                    Fail(false, $"Segment[{i}] range [{runtime.Heap.Segments[i].FirstObject:x12}-{runtime.Heap.Segments[i].CommittedEnd:x12}], expected [{_segments[i].FirstObject:x12}-{_segments[i].CommittedEnd:x12}]");
+                if (runtime.Heap.Segments[i].ObjectRange.Start != _segments[i].ObjectRange.Start)
+                    Fail(false, $"Segment[{i}] range {runtime.Heap.Segments[i].ObjectRange}, expected {_segments[i].ObjectRange}");
 
             int count = 0;
             IEnumerator<ClrObject> enumerator = runtime.Heap.EnumerateObjects().GetEnumerator();
@@ -137,16 +140,16 @@ namespace ParallelStressTest
                 Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId:x}");
                 Console.WriteLine(reason);
 
-                if (printHeapSteps)
-                {
-                    int i = ClrmdHeap.Step;
-                    do
-                    {
-                        i = (i + 1) % ClrmdHeap.Steps.Count;
-                        HeapWalkStep step = ClrmdHeap.Steps[i];
-                        Console.WriteLine($"obj:{step.Address:x12} mt:{step.MethodTable:x12} base:{step.BaseSize:x8} comp:{step.ComponentSize:x8} count:{step.Count:x8}");
-                    } while (i != ClrmdHeap.Step);
-                }
+                //if (printHeapSteps)
+                //{
+                //    int i = ClrmdHeap.Step;
+                //    do
+                //    {
+                //        i = (i + 1) % ClrmdHeap.Steps.Count;
+                //        HeapWalkStep step = ClrmdHeap.Steps[i];
+                //        Console.WriteLine($"obj:{step.Address:x12} mt:{step.MethodTable:x12} base:{step.BaseSize:x8} comp:{step.ComponentSize:x8} count:{step.Count:x8}");
+                //    } while (i != ClrmdHeap.Step);
+                //}
             }
 
             Break();

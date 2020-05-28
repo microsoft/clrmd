@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Windows;
@@ -15,8 +14,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class MinidumpReader : IDataReader, IDisposable
     {
-        private readonly MemoryMappedFile? _file;
-        private readonly Stream _stream;
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
 
@@ -26,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IMemoryReader MemoryReader => _readerCached ??= _minidump.MemoryReader;
 
-        public MinidumpReader(string crashDump, FileStream stream)
+        public MinidumpReader(string crashDump, FileStream stream, CacheOptions cacheOptions)
         {
             if (crashDump is null)
                 throw new ArgumentNullException(nameof(crashDump));
@@ -36,17 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = crashDump;
 
-            if (new FileInfo(crashDump).Length <= (Environment.Is64BitProcess ? 0x100_0000_0000 : 0x1000_0000))
-            {
-                _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-                _stream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
-            }
-            else
-            {
-                _stream = stream;
-            }
-
-            _minidump = new Minidump(crashDump, _stream);
+            _minidump = new Minidump(crashDump, stream, cacheOptions);
 
             Architecture = _minidump.Architecture switch
             {
@@ -70,8 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Dispose()
         {
-            _stream.Dispose();
-            _file?.Dispose();
+            _minidump.Dispose();
         }
 
         public IEnumerable<ModuleInfo> EnumerateModules()
@@ -97,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (ctx.ContextRva == 0 || ctx.ContextBytes == 0)
                 return false;
 
-            return _minidump.MemoryReader.ReadFromRVA(ctx.ContextRva, context) == context.Length;
+            return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, context) == context.Length;
         }
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;

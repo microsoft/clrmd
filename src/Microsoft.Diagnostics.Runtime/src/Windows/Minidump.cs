@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,29 +16,17 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal sealed class Minidump
+    internal sealed class Minidump : IDisposable
     {
         private readonly string _crashDump;
 
         private readonly MinidumpDirectory[] _directories;
 
-        private readonly Task<MinidumpMemoryReader> _memoryTask;
-        private MinidumpMemoryReader? _readerCached;
-
         private readonly Task<ImmutableArray<MinidumpContextData>> _threadTask;
+        private readonly MemoryMappedFile? _file;
         private ImmutableArray<MinidumpContextData> _contextsCached;
 
-        public MinidumpMemoryReader MemoryReader
-        {
-            get
-            {
-                if (_readerCached != null)
-                    return _readerCached;
-
-                _readerCached = _memoryTask.Result;
-                return _readerCached;
-            }
-        }
+        public MinidumpMemoryReader MemoryReader { get; }
 
         public ImmutableArray<MinidumpContextData> ContextData
         {
@@ -75,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public Minidump(string crashDump, Stream stream)
+        public Minidump(string crashDump, FileStream stream, CacheOptions cacheOptions)
         {
             if (!File.Exists(crashDump))
                 throw new FileNotFoundException(crashDump);
@@ -114,8 +103,32 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 Modules = ImmutableArray<MinidumpModule>.Empty;
 
             // Read segments async.
-            _memoryTask = GetMemoryReader(stream);
+            //_nativeMemory = new CachedMemoryReader(pointerSize, dumpPath, cacheSize, CacheTechnology.ArrayPool, _segments.ToImmutableArray());
+            ImmutableArray<MinidumpSegment> segments = GetSegments(stream);
+
+            int cacheSize = cacheOptions.MaxDumpCacheSize > int.MaxValue ? int.MaxValue : (int)cacheOptions.MaxDumpCacheSize;
+
+            if (cacheSize <= CachedMemoryReader.MinimumCacheSize || new FileInfo(crashDump).Length <= cacheSize)
+            {
+                _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+                MemoryMappedViewStream mmStream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
+                MemoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize);
+            }
+            else
+            {
+                CacheTechnology technology = cacheOptions.UseOSMemoryFeatures ? CacheTechnology.AWE : CacheTechnology.ArrayPool;
+                MemoryReader = new CachedMemoryReader(segments, crashDump, stream, cacheSize, technology, PointerSize);
+            }
+
             _threadTask = ReadThreadData(stream);
+        }
+
+        public void Dispose()
+        {
+            if (MemoryReader is IDisposable disposable)
+                disposable.Dispose();
+
+            _file?.Dispose();
         }
 
         public IEnumerable<MinidumpModuleInfo> EnumerateModuleInfo() => Modules.Select(m => new MinidumpModuleInfo(MemoryReader, m));
@@ -244,8 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         #endregion
 
 
-        #region GetMemoryReader
-        private async Task<MinidumpMemoryReader> GetMemoryReader(Stream stream)
+        private ImmutableArray<MinidumpSegment> GetSegments(Stream stream)
         {
             List<MinidumpSegment> segments = new List<MinidumpSegment>();
 
@@ -257,18 +269,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     if (_directories[i].StreamType == MinidumpStreamType.MemoryListStream)
                     {
                         // MINIDUMP_MEMORY_LIST only contains a count followed by MINIDUMP_MEMORY_DESCRIPTORs
-                        uint count = await ReadAsync<uint>(stream, buffer, _directories[i].Rva).ConfigureAwait(false);
+                        uint count = Read<uint>(stream, _directories[i].Rva);
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(count, ref buffer);
 
-                        if (await stream.ReadAsync(buffer, 0, byteCount).ConfigureAwait(false) == byteCount)
+                        if (stream.Read(buffer, 0, byteCount) == byteCount)
                             AddSegments(segments, buffer, byteCount);
                     }
                     else if (_directories[i].StreamType == MinidumpStreamType.Memory64ListStream)
                     {
-                        MinidumpMemory64List memList64 = await ReadAsync<MinidumpMemory64List>(stream, buffer, _directories[i].Rva).ConfigureAwait(false);
+                        MinidumpMemory64List memList64 = Read<MinidumpMemory64List>(stream, _directories[i].Rva);
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(memList64.NumberOfMemoryRanges, ref buffer);
 
-                        if (await stream.ReadAsync(buffer, 0, byteCount).ConfigureAwait(false) == byteCount)
+                        if (stream.Read(buffer, 0, byteCount) == byteCount)
                             AddSegments(segments, memList64.Rva, buffer, byteCount);
                     }
                 }
@@ -279,8 +291,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            MinidumpSegment[] result = segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ToArray();
-            return new MinidumpMemoryReader(result, stream, PointerSize);
+            return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ToImmutableArray();
         }
 
         private static unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)
@@ -328,7 +339,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             return size;
         }
-        #endregion
 
         private static async Task<T> ReadAsync<T>(Stream stream, byte[] buffer, long offset)
             where T : unmanaged
