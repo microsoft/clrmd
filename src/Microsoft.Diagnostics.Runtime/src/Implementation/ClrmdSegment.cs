@@ -53,17 +53,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override MemoryRange ObjectRange { get; }
 
         public override MemoryRange ReservedMemory { get; }
-        
+
         public override MemoryRange CommittedMemory { get; }
 
         public override MemoryRange Generation0 { get; }
-        
+
         public override MemoryRange Generation1 { get; }
-        
+
         public override MemoryRange Generation2 { get; }
 
         public override ulong FirstObjectAddress => ObjectRange.Start;
-        
+
         public override IEnumerable<ClrObject> EnumerateObjects()
         {
             bool large = IsLargeObjectSegment;

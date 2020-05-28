@@ -263,7 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override bool PageOutData()
         {
-            if(HeapSegmentCacheEventSource.Instance.IsEnabled())
+            if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataStart();
 
             long sizeRemoved = 0;
@@ -545,9 +545,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 return vmPtr;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                if(HeapSegmentCacheEventSource.Instance.IsEnabled())
+                if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
 
                 throw;
