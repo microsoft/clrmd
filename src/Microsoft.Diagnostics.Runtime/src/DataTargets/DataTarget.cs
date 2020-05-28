@@ -27,6 +27,8 @@ namespace Microsoft.Diagnostics.Runtime
 #if !NET45
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 PlatformFunctions = new LinuxFunctions();
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                PlatformFunctions = new OSXFunctions();
             else
 #endif
             PlatformFunctions = new WindowsFunctions();
