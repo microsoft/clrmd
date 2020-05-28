@@ -9,19 +9,25 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal sealed class NativeMemory : IDisposable, IMemoryReader
+    internal sealed class CachedMemoryReader : MinidumpMemoryReader
     {
         private readonly ImmutableArray<MinidumpSegment> _segments;
         private readonly HeapSegmentDataCache _cachedMemorySegments;
 
+        private readonly object _rvaLock = new object();
+        private Stream? _rvaStream;
+
         public string DumpPath { get; }
-        public int PointerSize { get; }
+        public override int PointerSize { get; }
         public CacheTechnology CacheTechnology { get; }
         public long MaxCacheSize { get; }
 
-        public NativeMemory(int pointerSize, string dumpPath, long maxCacheSize, CacheTechnology cacheTechnology, ImmutableArray<MinidumpSegment> segments)
+        public const int MinimumCacheSize = 0x200_0000;
+
+        public CachedMemoryReader(ImmutableArray<MinidumpSegment> segments, string dumpPath, FileStream stream, long maxCacheSize, CacheTechnology cacheTechnology, int pointerSize)
         {
             PointerSize = pointerSize;
             DumpPath = dumpPath;
@@ -32,43 +38,47 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if ((CacheTechnology == CacheTechnology.AWE) &&
                 CacheNativeMethods.Util.EnableDisablePrivilege("SeLockMemoryPrivilege", enable: true))
             {
+                _rvaStream = stream;
+
                 // If we have the ability to lock physical memory in memory and the user has requested we use AWE, then do so, for best performance
                 uint largestSegment = _segments.Max((hs) => (uint)hs.Size);
 
                 // Create a a single large page, the size of the largest heap segment, we will read each in turn into this one large segment before
                 // splitting them into (potentially) multiple VirtualAlloc pages.
-                IntPtr dumpHandle = CacheNativeMethods.File.CreateFile(DumpPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                try
-                {
-                    AWEBasedCacheEntryFactory cacheEntryFactory = new AWEBasedCacheEntryFactory(dumpHandle);
-                    cacheEntryFactory.CreateSharedSegment(largestSegment);
+                AWEBasedCacheEntryFactory cacheEntryFactory = new AWEBasedCacheEntryFactory(stream.SafeFileHandle.DangerousGetHandle());
+                cacheEntryFactory.CreateSharedSegment(largestSegment);
 
-                    _cachedMemorySegments = new HeapSegmentDataCache(cacheEntryFactory, MaxCacheSize);
+                _cachedMemorySegments = new HeapSegmentDataCache(cacheEntryFactory, MaxCacheSize);
 
-                    // Force the cache entry creation, this is because the AWE factory will read the heap segment data from the file into physical memory, it is FAR
-                    // better for perf if we read it all in one contiunous go instead of piece-meal as needed.
-                    foreach (MinidumpSegment segment in _segments)
-                        _cachedMemorySegments.CreateAndAddEntry(segment);
+                // Force the cache entry creation, this is because the AWE factory will read the heap segment data from the file into physical memory, it is FAR
+                // better for perf if we read it all in one contiunous go instead of piece-meal as needed.
+                foreach (MinidumpSegment segment in _segments)
+                    _cachedMemorySegments.CreateAndAddEntry(segment);
 
-                    // We are done using the shared segment so we can release it now
-                    cacheEntryFactory.DeleteSharedSegment();
-                }
-                finally
-                {
-                    CacheNativeMethods.File.CloseHandle(dumpHandle);
-                }
+                // We are done using the shared segment so we can release it now
+                cacheEntryFactory.DeleteSharedSegment();
             }
             else
             {
                 // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(DumpPath), MaxCacheSize);
-#pragma warning restore CA2000 // Dispose objects before losing scope
+                _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream), MaxCacheSize);
             }
         }
 
-        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
+        public override int ReadFromRva(ulong rva, Span<byte> buffer)
+        {
+            lock (_rvaLock)
+            {
+                if (_rvaStream is null)
+                    _rvaStream = File.OpenRead(DumpPath);
+
+                _rvaStream.Position = (long)rva;
+                return _rvaStream.Read(buffer);
+            }
+        }
+
+
+        public override unsafe bool Read<T>(ulong address, out T value)
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             if (Read(address, buffer) == buffer.Length)
@@ -81,13 +91,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return false;
         }
 
-        public T Read<T>(ulong address) where T : unmanaged
+        public override T Read<T>(ulong address)
         {
             Read(address, out T t);
             return t;
         }
 
-        public bool ReadPointer(ulong address, out ulong value)
+        public override bool ReadPointer(ulong address, out ulong value)
         {
             Span<byte> buffer = stackalloc byte[PointerSize];
             if (Read(address, buffer) == PointerSize)
@@ -100,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return false;
         }
 
-        public ulong ReadPointer(ulong address)
+        public override ulong ReadPointer(ulong address)
         {
             if (ReadPointer(address, out ulong value))
                 return value;
@@ -108,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return 0;
         }
 
-        public unsafe int Read(ulong address, Span<byte> buffer)
+        public override unsafe int Read(ulong address, Span<byte> buffer)
         {
             fixed (void* pBuffer = buffer)
                 return TryReadMemory(address, buffer.Length, new IntPtr(pBuffer));
@@ -188,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        private SegmentCacheEntry GetcacheEntryForMemorySegment(MinidumpSegment memorySegment)
+        private SegmentCacheEntry GetCacheEntryForMemorySegment(MinidumpSegment memorySegment)
         {
             // NOTE: We assume the caller has triggered cachedMemorySegments initialization in the fetching of the MemorySegmentData they have given us
             if (_cachedMemorySegments.TryGetCacheEntry(memorySegment.VirtualAddress, out SegmentCacheEntry entry))
@@ -199,12 +209,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private void ReadBytesFromSegment(MinidumpSegment segment, ulong startAddress, int byteCount, IntPtr buffer, out int bytesRead)
         {
-            SegmentCacheEntry cacheEntry = GetcacheEntryForMemorySegment(segment);
+            SegmentCacheEntry cacheEntry = GetCacheEntryForMemorySegment(segment);
             cacheEntry.GetDataForAddress(startAddress, (uint)byteCount, buffer, out uint read);
             bytesRead = (int)read;
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             _cachedMemorySegments.Dispose();
         }

@@ -10,13 +10,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class ArrayPoolBasedCacheEntryFactory : SegmentCacheEntryFactory, IDisposable
     {
-        private readonly FileStream _dumpStream;
         private readonly MemoryMappedFile _mappedFile;
 
-        internal ArrayPoolBasedCacheEntryFactory(string dumpPath)
+        internal ArrayPoolBasedCacheEntryFactory(FileStream stream)
         {
-            _dumpStream = new FileStream(dumpPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            _mappedFile = MemoryMappedFile.CreateFromFile(_dumpStream,
+            _mappedFile = MemoryMappedFile.CreateFromFile(stream,
                                                           mapName: null,
                                                           capacity: 0,
                                                           MemoryMappedFileAccess.Read,

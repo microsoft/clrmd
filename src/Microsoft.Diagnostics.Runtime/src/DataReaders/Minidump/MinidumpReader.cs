@@ -15,8 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class MinidumpReader : IDataReader, IDisposable
     {
-        private readonly MemoryMappedFile? _file;
-        private readonly Stream _stream;
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
 
@@ -36,17 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = crashDump;
 
-            if (new FileInfo(crashDump).Length <= (Environment.Is64BitProcess ? 0x100_0000_0000 : 0x1000_0000))
-            {
-                _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-                _stream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
-            }
-            else
-            {
-                _stream = stream;
-            }
-
-            _minidump = new Minidump(crashDump, _stream);
+            _minidump = new Minidump(crashDump, stream, 0x800_0000);
 
             Architecture = _minidump.Architecture switch
             {
@@ -70,8 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Dispose()
         {
-            _stream.Dispose();
-            _file?.Dispose();
+            _minidump.Dispose();
         }
 
         public IEnumerable<ModuleInfo> EnumerateModules()
@@ -97,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (ctx.ContextRva == 0 || ctx.ContextBytes == 0)
                 return false;
 
-            return _minidump.MemoryReader.ReadFromRVA(ctx.ContextRva, context) == context.Length;
+            return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, context) == context.Length;
         }
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
