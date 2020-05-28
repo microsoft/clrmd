@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct V4FieldInfo
+    public readonly struct FieldInfo
     {
         public readonly short NumInstanceFields;
         public readonly short NumStaticFields;

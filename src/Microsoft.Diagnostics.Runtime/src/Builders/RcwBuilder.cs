@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public bool Init(ulong obj)
         {
-            if (!_sos.GetObjectData(obj, out V45ObjectData data))
+            if (!_sos.GetObjectData(obj, out ObjectData data))
                 return false;
 
             if (data.RCW == 0)

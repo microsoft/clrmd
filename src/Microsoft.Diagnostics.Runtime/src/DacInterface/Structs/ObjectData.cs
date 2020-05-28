@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct V45ObjectData : IObjectData
+    public readonly struct ObjectData : IObjectData
     {
         public readonly ClrDataAddress MethodTable;
         public readonly uint ObjectType;
