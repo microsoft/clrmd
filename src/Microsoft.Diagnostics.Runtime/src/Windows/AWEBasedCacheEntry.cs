@@ -616,14 +616,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                 }
 
-                uint numberOfPagesToFree = (uint)_pages.Length;
+
+                uint numberOfPagesToFree = (uint)_pageFrameArrayItemCount;
                 bool freeUserPhyiscalPagesRes = CacheNativeMethods.AWE.FreeUserPhysicalPages(ref numberOfPagesToFree, _pageFrameArray);
                 if (!freeUserPhyiscalPagesRes)
                 {
                     Debug.Fail("Failed tp free our physical pages");
                 }
 
-                if (numberOfPagesToFree != _pages.Length)
+                if (numberOfPagesToFree != _pageFrameArrayItemCount)
                 {
                     Debug.Fail("Failed to free ALL of our physical pages");
                 }
