@@ -128,6 +128,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             if (MemoryReader is IDisposable disposable)
                 disposable.Dispose();
+
+            _file?.Dispose();
         }
 
         public IEnumerable<MinidumpModuleInfo> EnumerateModuleInfo() => Modules.Select(m => new MinidumpModuleInfo(MemoryReader, m));

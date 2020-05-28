@@ -215,8 +215,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private SegmentCacheEntry GetCacheEntryForMemorySegment(MinidumpSegment memorySegment)
         {
             // NOTE: We assume the caller has triggered cachedMemorySegments initialization in the fetching of the MemorySegmentData they have given us
-            if (_cachedMemorySegments.TryGetCacheEntry(memorySegment.VirtualAddress, out SegmentCacheEntry entry))
-                return entry;
+            if (_cachedMemorySegments.TryGetCacheEntry(memorySegment.VirtualAddress, out SegmentCacheEntry? entry))
+                return entry!;
 
             return _cachedMemorySegments.CreateAndAddEntry(memorySegment);
         }
@@ -231,6 +231,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public override void Dispose()
         {
             _cachedMemorySegments.Dispose();
+            _rvaStream?.Dispose();
         }
     }
 }

@@ -9,6 +9,10 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
+
+// TODO:  This code wasn't written to consider nullable.
+#nullable disable
+
 #pragma warning disable CA1810 // Initialize reference type static fields inline
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
@@ -136,15 +140,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 bool sawOriginalLockInLockCollection = false;
-                foreach (var entry in acquiredLocks)
+                foreach (var (Lock, IsHeldAsUpgradeableReadLock) in acquiredLocks)
                 {
-                    if (entry.Lock == targetLock)
+                    if (Lock == targetLock)
                         sawOriginalLockInLockCollection = true;
 
-                    if (entry.IsHeldAsUpgradeableReadLock)
-                        entry.Lock.ExitUpgradeableReadLock();
+                    if (IsHeldAsUpgradeableReadLock)
+                        Lock.ExitUpgradeableReadLock();
                     else
-                        entry.Lock.ExitReadLock();
+                        Lock.ExitReadLock();
                 }
 
                 // Exit our originally acquire read lock if, in the process of mapping in cache pages, we didn't have to upgrade it to an upgradeable read lock (in which
@@ -161,8 +165,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
             int dataIndex = (int)(pageAlignedOffset / VirtualAllocPageSize);
 
-            List<ReaderWriterLockSlim> locallyAcquiredLocks = new List<ReaderWriterLockSlim>();
-            locallyAcquiredLocks.Add(_pageLocks[dataIndex]);
+            List<ReaderWriterLockSlim> locallyAcquiredLocks = new List<ReaderWriterLockSlim>
+            {
+                _pageLocks[dataIndex]
+            };
+
             locallyAcquiredLocks[0].EnterReadLock();
 
             List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> acquiredLocks = EnsurePageAtOffset(offset, locallyAcquiredLocks[0]);
@@ -335,10 +342,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             long originalTickCountValue = Interlocked.Read(ref _lastAccessTickCount);
 
-            long currentTickCount;
             while (true)
             {
-                CacheNativeMethods.Util.QueryPerformanceCounter(out currentTickCount);
+                CacheNativeMethods.Util.QueryPerformanceCounter(out long currentTickCount);
                 if (Interlocked.CompareExchange(ref _lastAccessTickCount, currentTickCount, originalTickCountValue) == originalTickCountValue)
                 {
                     break;
@@ -348,22 +354,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        private uint AlignOffsetToPageBoundary(uint offset)
+        private static uint AlignOffsetToPageBoundary(uint offset)
         {
             if ((offset % VirtualAllocPageSize) != 0)
-            {
                 return offset - offset % VirtualAllocPageSize;
-            }
 
             return offset;
         }
 
-        private uint MapOffsetToPageOffset(uint offset)
+        private static uint MapOffsetToPageOffset(uint offset)
         {
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
-
             int pageIndex = (int)(pageAlignedOffset / VirtualAllocPageSize);
-
             return offset - ((uint)pageIndex * VirtualAllocPageSize);
         }
 
@@ -395,8 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     if (_pages[dataIndex] == null)
                     {
-                        uint dataRange;
-                        UIntPtr pData = GetPageAtOffset(pageAlignedOffset, out dataRange);
+                        UIntPtr pData = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
 
                         _pages[dataIndex] = new CachePage(pData, dataRange);
                     }
@@ -459,10 +460,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         // Still not set, so we will set it now
 
-                        uint dataRange;
                         try
                         {
-                            UIntPtr pData = GetPageAtOffset(pageAlignedOffset, out dataRange);
+                            UIntPtr pData = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
 
                             _pages[++dataIndex] = new CachePage(pData, dataRange);
 
@@ -476,12 +476,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             originalReadLock.ExitUpgradeableReadLock();
 
                             // Drop any read locks we have taken up to this point as our caller won't be able to do that since we are re-throwing
-                            foreach (var item in acquiredLocks)
+                            foreach ((ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock) in acquiredLocks)
                             {
-                                if (item.IsHeldAsUpgradeableReadLock)
-                                    item.Lock.ExitUpgradeableReadLock();
+                                if (IsHeldAsUpgradeableReadLock)
+                                    Lock.ExitUpgradeableReadLock();
                                 else
-                                    item.Lock.ExitReadLock();
+                                    Lock.ExitReadLock();
                             }
 
                             throw;

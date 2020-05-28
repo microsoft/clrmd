@@ -13,6 +13,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+// TODO:  This code wasn't written to consider nullable.
+#nullable disable
+
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class ArrayPoolBasedCacheEntry : SegmentCacheEntry, IDisposable
@@ -139,15 +142,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 bool sawOriginalLockInLockCollection = false;
-                foreach (var entry in acquiredLocks)
+                foreach (var (Lock, IsHeldAsUpgradeableReadLock) in acquiredLocks)
                 {
-                    if (entry.Lock == targetLock)
+                    if (Lock == targetLock)
                         sawOriginalLockInLockCollection = true;
 
-                    if (entry.IsHeldAsUpgradeableReadLock)
-                        entry.Lock.ExitUpgradeableReadLock();
+                    if (IsHeldAsUpgradeableReadLock)
+                        Lock.ExitUpgradeableReadLock();
                     else
-                        entry.Lock.ExitReadLock();
+                        Lock.ExitReadLock();
                 }
 
                 // Exit our originally acquire read lock if, in the process of mapping in cache pages, we didn't have to upgrade it to an upgradeable read lock (in which
@@ -164,8 +167,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
             int dataIndex = (int)(pageAlignedOffset / PageSize);
 
-            List<ReaderWriterLockSlim> locallyAcquiredLocks = new List<ReaderWriterLockSlim>();
-            locallyAcquiredLocks.Add(_dataChunkLocks[dataIndex]);
+            List<ReaderWriterLockSlim> locallyAcquiredLocks = new List<ReaderWriterLockSlim>
+            {
+                _dataChunkLocks[dataIndex]
+            };
+
             locallyAcquiredLocks[0].EnterReadLock();
 
             List<(ReaderWriterLockSlim Lock, bool IsHeldAsUpgradeableReadLock)> acquiredLocks = EnsurePageAtOffset(offset, locallyAcquiredLocks[0]);
@@ -233,14 +239,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                foreach (var entry in acquiredLocks)
+                foreach (var (Lock, IsHeldAsUpgradeableReadLock) in acquiredLocks)
                 {
-                    locallyAcquiredLocks.Remove(entry.Lock);
+                    locallyAcquiredLocks.Remove(Lock);
 
-                    if (entry.IsHeldAsUpgradeableReadLock)
-                        entry.Lock.ExitUpgradeableReadLock();
+                    if (IsHeldAsUpgradeableReadLock)
+                        Lock.ExitUpgradeableReadLock();
                     else
-                        entry.Lock.ExitReadLock();
+                        Lock.ExitReadLock();
                 }
 
                 foreach (ReaderWriterLockSlim remainingLock in locallyAcquiredLocks)
@@ -258,10 +264,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             long originalTickCountValue = Interlocked.Read(ref _lastAccessTickCount);
 
-            long currentTickCount;
             while (true)
             {
-                CacheNativeMethods.Util.QueryPerformanceCounter(out currentTickCount);
+                CacheNativeMethods.Util.QueryPerformanceCounter(out long currentTickCount);
                 if (Interlocked.CompareExchange(ref _lastAccessTickCount, currentTickCount, originalTickCountValue) == originalTickCountValue)
                 {
                     break;
@@ -317,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        private uint MapOffsetToPageOffset(uint offset)
+        private static uint MapOffsetToPageOffset(uint offset)
         {
             uint pageAlignedOffset = AlignOffsetToPageBoundary(offset);
 
@@ -326,12 +331,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return offset - ((uint)pageIndex * PageSize);
         }
 
-        private uint AlignOffsetToPageBoundary(uint offset)
+        private static uint AlignOffsetToPageBoundary(uint offset)
         {
             if ((offset % PageSize) != 0)
-            {
                 return offset - offset % PageSize;
-            }
 
             return offset;
         }
@@ -349,7 +352,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             int dataIndex = (int)(pageAlignedOffset / PageSize);
 
-            if (_dataChunks[dataIndex] == null)
+            if (_dataChunks[dataIndex] is null)
             {
                 // THREADING: Our contract is the caller must have acquired the read lock at least for this first page, this is because the caller needs
                 // to ensure the page cannot be evicted even after we return (presumably they want to read data from it). However, before we page in a
@@ -361,7 +364,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 originalReadLock.EnterWriteLock();
                 try
                 {
-                    if (_dataChunks[dataIndex] == null)
+                    if (_dataChunks[dataIndex] is null)
                     {
                         byte[] data = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
                         _dataChunks[dataIndex] = new CachePage(data, dataRange);
@@ -423,8 +426,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         // Still not set, so we will set it now
                         try
                         {
-                            uint dataRange;
-                            byte[] data = GetPageAtOffset(pageAlignedOffset, out dataRange);
+                            byte[] data = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
 
                             _dataChunks[++dataIndex] = new CachePage(data, dataRange);
 
@@ -438,12 +440,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             originalReadLock.ExitUpgradeableReadLock();
 
                             // Drop any read locks we have taken up to this point as our caller won't be able to do that since we are re-throwing
-                            foreach (var item in acquiredLocks)
+                            foreach (var (Lock, IsHeldAsUpgradeableReadLock) in acquiredLocks)
                             {
-                                if (item.IsHeldAsUpgradeableReadLock)
-                                    item.Lock.ExitUpgradeableReadLock();
+                                if (IsHeldAsUpgradeableReadLock)
+                                    Lock.ExitUpgradeableReadLock();
                                 else
-                                    item.Lock.ExitReadLock();
+                                    Lock.ExitReadLock();
                             }
 
                             throw;
@@ -486,7 +488,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             try
             {
                 FieldInfo field = typeof(UnmanagedMemoryAccessor).GetField("_offset", BindingFlags.NonPublic | BindingFlags.Instance);
-                ulong viewOffset = (ulong)(long)field.GetValue(view);
+                if (field is null)
+                    throw new PlatformNotSupportedException($"This platform does not have {nameof(UnmanagedMemoryAccessor)}._offset.");
+
+                object viewObjectValue = field.GetValue(view);
+                if (viewObjectValue is null)
+                    throw new PlatformNotSupportedException($"This platform had an unexpected type {nameof(UnmanagedMemoryAccessor)}._offset.");
+
+                ulong viewOffset = (ulong)(long)viewObjectValue;
 
                 unsafe
                 {
@@ -552,10 +561,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             int dataIndex = (int)(alignedOffset / PageSize);
 
             CachePage startingPage = _dataChunks[dataIndex];
-            if (startingPage == null)
-            {
+            if (startingPage is null)
                 throw new InvalidOperationException($"Inside IsSinglePageRead but the page at index {dataIndex} is null. You need to call EnsurePageAtOffset or EnsurePageRangeAtOffset before calling this method.");
-            }
 
             uint inPageOffset = MapOffsetToPageOffset(offset);
             return (inPageOffset + byteCount) < startingPage.DataExtent;

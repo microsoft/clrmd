@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -31,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             try
             {
                 // Check the cache again now that we have acquired the write lock
-                if (_cache.TryGetValue(segment.VirtualAddress, out SegmentCacheEntry existingEntry))
+                if (_cache.TryGetValue(segment.VirtualAddress, out SegmentCacheEntry? existingEntry))
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
                     using (entry as IDisposable)
@@ -51,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return entry;
         }
 
-        internal bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry entry)
+        public bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry? entry)
         {
             _cacheLock.EnterReadLock();
             bool res = false;
@@ -65,11 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _cacheLock.ExitReadLock();
             }
 
-            if (res)
-            {
-                entry.UpdateLastAccessTickCount();
-            }
-
+            entry?.UpdateLastAccessTickCount();
             return res;
         }
 
@@ -212,6 +209,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     _cacheLock.ExitWriteLock();
                 }
             }
+
+            _cacheLock.Dispose();
         }
     }
 }
