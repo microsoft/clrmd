@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal("System.Object[]", obj.Type.Name);
 
-            IEnumerable<ClrObject> refs = obj.EnumerateReferences(false);
+            ClrObject[] refs = obj.EnumerateReferences(false).ToArray();
             obj = Assert.Single(refs);
             Assert.Equal("DoubleRef", obj.Type.Name);
         }
