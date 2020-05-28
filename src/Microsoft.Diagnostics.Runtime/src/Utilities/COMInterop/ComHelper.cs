@@ -38,5 +38,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ReleaseDelegate release = Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(vtable->Release);
             return release(pUnk);
         }
+
+        public static unsafe HResult QueryInterface(IntPtr pUnk, in Guid riid, out IntPtr result)
+        {
+            result = IntPtr.Zero;
+
+            if (pUnk == IntPtr.Zero)
+                return HResult.E_INVALIDARG;
+
+            IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
+
+            QueryInterfaceDelegate qi = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(vtable->QueryInterface);
+            return qi(pUnk, riid, out result);
+        }
     }
 }
