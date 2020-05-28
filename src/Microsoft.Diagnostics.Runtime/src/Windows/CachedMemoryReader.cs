@@ -35,6 +35,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             CacheTechnology = cacheTechnology;
             _segments = segments;
 
+            if (CacheTechnology == CacheTechnology.AWE)
+            {
+                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNativeMethods.Util.SYSTEM_INFO();
+                CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
+
+                // The AWE cache allocates on VirtualAlloc sized pages, which are 64k, if the majority of heap segments in the dump are < 64k this can be wasteful
+                // of memory (in the extreme we can end using 64k of VM to store < 100 bytes), in this case we will force the cache technology to be the array pool
+                // one which allocates on system page size (4k), which is still wasteful but FAR less so.
+                int segmentsBelow64K = _segments.Sum((hs) => hs.Size < sysInfo.dwAllocationGranularity ? 1 : 0);
+                if (segmentsBelow64K > (int)(_segments.Length * 0.80))
+                    CacheTechnology = CacheTechnology.ArrayPool;
+            }
+
+
             if ((CacheTechnology == CacheTechnology.AWE) &&
                 CacheNativeMethods.Util.EnableDisablePrivilege("SeLockMemoryPrivilege", enable: true))
             {
