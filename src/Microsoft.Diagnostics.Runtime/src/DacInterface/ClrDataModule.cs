@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!hr)
                 return null;
 
-            string name = new string('\0', nameLength);
+            string name = new string('\0', nameLength - 1);
             fixed (char* namePtr = name)
                 hr = _getName(Self, nameLength, out _, namePtr);
 
