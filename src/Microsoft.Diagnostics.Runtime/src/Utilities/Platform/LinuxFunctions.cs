@@ -10,44 +10,28 @@ using Microsoft.Diagnostics.Runtime.Linux;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class LinuxFunctions : PlatformFunctions
+    internal sealed class LinuxFunctions : CoreFunctions
     {
-        private static readonly byte[] s_versionString = Encoding.ASCII.GetBytes("@(#)Version ");
-        private static readonly int s_versionLength = s_versionString.Length;
-
-        private readonly Func<string, IntPtr> _loadLibrary;
-        private readonly Func<IntPtr, bool> _freeLibrary;
-        private readonly Func<IntPtr, string, IntPtr> _getExport;
-
-        private delegate bool TryGetExport(IntPtr handle, string name, out IntPtr address);
+#if !NETCOREAPP3_1
+        private readonly Func<string, int, IntPtr> _dlopen;
+        private readonly Func<IntPtr> _dlerror;
+        private readonly Func<IntPtr, int> _dlclose;
+        private readonly Func<IntPtr, string, IntPtr> _dlsym;
 
         public LinuxFunctions()
         {
-#if NETCOREAPP3_1
-            _loadLibrary = NativeLibrary.Load;
-            _freeLibrary = handle =>
-            {
-                NativeLibrary.Free(handle);
-                return true;
-            };
-            _getExport = (handle, name) =>
-            {
-                _ = NativeLibrary.TryGetExport(handle, name, out IntPtr address);
-                return address;
-            };
-#else
             // On glibc based Linux distributions, 'libdl.so' is a symlink provided by development packages.
             // To work on production machines, we fall back to 'libdl.so.2' which is the actual library name.
             bool useGlibcDl = false;
             try
             {
-                dlopen("/", 0);
+                NativeMethods.dlopen("/", 0);
             }
             catch (DllNotFoundException)
             {
                 try
                 {
-                    dlopen_glibc("/", 0);
+                    NativeMethods.dlopen_glibc("/", 0);
                     useGlibcDl = true;
                 }
                 catch (DllNotFoundException)
@@ -57,32 +41,20 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (useGlibcDl)
             {
-                _loadLibrary = fileName =>
-                {
-                    IntPtr handle = dlopen_glibc(fileName, RTLD_NOW);
-                    if (handle == IntPtr.Zero)
-                        throw new DllNotFoundException(Marshal.PtrToStringAnsi(dlerror_glibc()));
-
-                    return handle;
-                };
-                _freeLibrary = ptr => dlclose_glibc(ptr) == 0;
-                _getExport = dlsym_glibc;
+                _dlopen = NativeMethods.dlopen_glibc;
+                _dlerror = NativeMethods.dlerror_glibc;
+                _dlclose = NativeMethods.dlclose_glibc;
+                _dlsym = NativeMethods.dlsym_glibc;
             }
             else
             {
-                _loadLibrary = fileName =>
-                {
-                    IntPtr handle = dlopen(fileName, RTLD_NOW);
-                    if (handle == IntPtr.Zero)
-                        throw new DllNotFoundException(Marshal.PtrToStringAnsi(dlerror()));
-
-                    return handle;
-                };
-                _freeLibrary = ptr => dlclose(ptr) == 0;
-                _getExport = dlsym;
+                _dlopen = NativeMethods.dlopen;
+                _dlerror = NativeMethods.dlerror;
+                _dlclose = NativeMethods.dlclose;
+                _dlsym = NativeMethods.dlsym;
             }
-#endif
         }
+#endif
 
         internal static bool GetVersionInfo(IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
         {
@@ -285,44 +257,57 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public override IntPtr LoadLibrary(string fileName)
-            => _loadLibrary(fileName);
-
-        public override bool FreeLibrary(IntPtr module)
-            => _freeLibrary(module);
-
-        public override IntPtr GetProcAddress(IntPtr module, string method)
-            => _getExport(module, method);
-
 #if !NETCOREAPP3_1
-        private const string LibDlGlibc = "libdl.so.2";
-        private const string LibDl = "libdl.so";
+        public override IntPtr LoadLibrary(string libraryPath)
+        {
+            IntPtr handle = _dlopen(libraryPath, NativeMethods.RTLD_NOW);
+            if (handle == IntPtr.Zero)
+                throw new DllNotFoundException(Marshal.PtrToStringAnsi(_dlerror()));
 
-        private const int RTLD_NOW = 2;
+            return handle;
+        }
 
-        [DllImport(LibDlGlibc, EntryPoint = nameof(dlopen))]
-        private static extern IntPtr dlopen_glibc(string fileName, int flags);
+        public override bool FreeLibrary(IntPtr handle)
+        {
+            return _dlclose(handle) == 0;
+        }
 
-        [DllImport(LibDlGlibc, EntryPoint = nameof(dlerror))]
-        private static extern IntPtr dlerror_glibc();
+        public override IntPtr GetProcAddress(IntPtr handle, string name)
+        {
+            return _dlsym(handle, name);
+        }
 
-        [DllImport(LibDlGlibc, EntryPoint = nameof(dlclose))]
-        private static extern int dlclose_glibc(IntPtr module);
+        internal static class NativeMethods
+        {
+            private const string LibDlGlibc = "libdl.so.2";
+            private const string LibDl = "libdl.so";
 
-        [DllImport(LibDlGlibc, EntryPoint = nameof(dlsym))]
-        private static extern IntPtr dlsym_glibc(IntPtr handle, string symbol);
+            internal const int RTLD_NOW = 2;
 
-        [DllImport(LibDl)]
-        private static extern IntPtr dlopen(string fileName, int flags);
+            [DllImport(LibDlGlibc, EntryPoint = nameof(dlopen))]
+            internal static extern IntPtr dlopen_glibc(string fileName, int flags);
 
-        [DllImport(LibDl)]
-        private static extern IntPtr dlerror();
+            [DllImport(LibDlGlibc, EntryPoint = nameof(dlerror))]
+            internal static extern IntPtr dlerror_glibc();
 
-        [DllImport(LibDl)]
-        private static extern int dlclose(IntPtr module);
+            [DllImport(LibDlGlibc, EntryPoint = nameof(dlclose))]
+            internal static extern int dlclose_glibc(IntPtr handle);
 
-        [DllImport(LibDl)]
-        private static extern IntPtr dlsym(IntPtr handle, string symbol);
+            [DllImport(LibDlGlibc, EntryPoint = nameof(dlsym))]
+            internal static extern IntPtr dlsym_glibc(IntPtr handle, string symbol);
+
+            [DllImport(LibDl)]
+            internal static extern IntPtr dlopen(string fileName, int flags);
+
+            [DllImport(LibDl)]
+            internal static extern IntPtr dlerror();
+
+            [DllImport(LibDl)]
+            internal static extern int dlclose(IntPtr handle);
+
+            [DllImport(LibDl)]
+            internal static extern IntPtr dlsym(IntPtr handle, string symbol);
+        }
 #endif
 
         [DllImport("libc")]
