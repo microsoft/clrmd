@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 if (address != targetSegment.VirtualAddress)
                 {
                     curSegmentIndex = segments.Search(address, (x, addr) => (x.VirtualAddress <= addr && addr < x.VirtualAddress + x.Size) ? 0 : x.VirtualAddress.CompareTo(addr));
-                    if (curSegmentIndex >= segments.Length)
+                    if (curSegmentIndex == -1)
                         return totalBytes;
 
                     targetSegment = segments[curSegmentIndex];
