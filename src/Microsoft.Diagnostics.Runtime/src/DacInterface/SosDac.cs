@@ -298,14 +298,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!_getModule(Self, module, out IntPtr iunk))
                 return null;
 
+            // Make sure we can successfully QueryInterface for IMetaDataImport.  This may fail if
+            // we do not have all of the relevant metadata mapped into memory either through the dump
+            // or via the binary locator.
+            if (QueryInterface(iunk, MetadataImport.IID_IMetaDataImport, out IntPtr pTmp))
+                Release(pTmp);
+            else
+                return null;
+
             try
             {
                 return new MetadataImport(_library, iunk);
             }
             catch (InvalidCastException)
             {
-                // QueryInterface on MetaDataImport seems to fail when we don't have full
-                // metadata available.
                 return null;
             }
         }
