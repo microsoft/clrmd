@@ -1183,7 +1183,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private void TryGetComponentType(ClrmdArrayType type, ulong obj)
         {
             ClrType? result = null;
-            if (_sos.GetObjectData(obj, out V45ObjectData data))
+            if (_sos.GetObjectData(obj, out ObjectData data))
             {
                 if (data.ElementTypeHandle != 0)
                     result = GetOrCreateType(data.ElementTypeHandle, 0);
@@ -1300,7 +1300,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (type.IsFree || type.BaseType is null)
                 return;
 
-            if (!_sos.GetFieldInfo(type.MethodTable, out V4FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            if (!_sos.GetFieldInfo(type.MethodTable, out DacInterface.FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
             {
                 if (type.BaseType != null)
                     fields = type.BaseType.Fields;
@@ -1570,7 +1570,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             CheckDisposed();
 
             // todo remove
-            _sos.GetObjectData(objRef, out V45ObjectData data);
+            _sos.GetObjectData(objRef, out ObjectData data);
             return data;
         }
 

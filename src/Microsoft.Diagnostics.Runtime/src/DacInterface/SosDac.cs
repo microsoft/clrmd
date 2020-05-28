@@ -247,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return GetString(_getFrameName, vtable, false) ?? "Unknown Frame";
         }
 
-        public HResult GetFieldInfo(ulong mt, out V4FieldInfo data)
+        public HResult GetFieldInfo(ulong mt, out FieldInfo data)
         {
             InitDelegate(ref _getFieldInfo, VTable.GetMethodTableFieldData);
             return _getFieldInfo(Self, mt, out data);
@@ -259,7 +259,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return _getFieldData(Self, fieldDesc, out data);
         }
 
-        public HResult GetObjectData(ulong obj, out V45ObjectData data)
+        public HResult GetObjectData(ulong obj, out ObjectData data)
         {
             InitDelegate(ref _getObjectData, VTable.GetObjectData);
             return _getObjectData(Self, obj, out data);
@@ -752,9 +752,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerInfo data);
         private delegate HResult DacGetSyncBlockData(IntPtr self, int index, out SyncBlockData data);
         private delegate HResult DacGetCodeHeaderData(IntPtr self, ClrDataAddress addr, out CodeHeaderData data);
-        private delegate HResult DacGetFieldInfo(IntPtr self, ClrDataAddress addr, out V4FieldInfo data);
+        private delegate HResult DacGetFieldInfo(IntPtr self, ClrDataAddress addr, out FieldInfo data);
         private delegate HResult DacGetFieldData(IntPtr self, ClrDataAddress addr, out FieldData data);
-        private delegate HResult DacGetObjectData(IntPtr self, ClrDataAddress addr, out V45ObjectData data);
+        private delegate HResult DacGetObjectData(IntPtr self, ClrDataAddress addr, out ObjectData data);
         private delegate HResult DacGetCCWData(IntPtr self, ClrDataAddress addr, out CcwData data);
         private delegate HResult DacGetRCWData(IntPtr self, ClrDataAddress addr, out RcwData data);
         private delegate HResult DacGetWorkRequestData(IntPtr self, ClrDataAddress addr, out WorkRequestData data);
