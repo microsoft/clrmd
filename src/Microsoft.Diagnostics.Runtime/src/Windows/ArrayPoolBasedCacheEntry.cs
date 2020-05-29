@@ -6,9 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.IO.MemoryMappedFiles;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -487,15 +485,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + offset, size: (long)readSize, MemoryMappedFileAccess.Read);
             try
             {
-                FieldInfo field = typeof(UnmanagedMemoryAccessor).GetField("_offset", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (field is null)
-                    throw new PlatformNotSupportedException($"This platform does not have {nameof(UnmanagedMemoryAccessor)}._offset.");
-
-                object viewObjectValue = field.GetValue(view);
-                if (viewObjectValue is null)
-                    throw new PlatformNotSupportedException($"This platform had an unexpected type {nameof(UnmanagedMemoryAccessor)}._offset.");
-
-                ulong viewOffset = (ulong)(long)viewObjectValue;
+                ulong viewOffset = (ulong)view.PointerOffset;
 
                 unsafe
                 {
