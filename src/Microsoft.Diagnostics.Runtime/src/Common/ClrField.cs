@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
-        public abstract ClrType Type { get; }
+        public abstract ClrType? Type { get; }
 
         /// <summary>
         /// Gets the element type of this field.  Note that even when Type is <see langword="null"/>, this should still tell you
@@ -91,11 +91,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string? ToString()
         {
-            ClrType type = Type;
-            if (type != null)
-                return $"{type.Name} {Name}";
-
-            return Name;
+            ClrType? type = Type;
+            if (type is null)
+                return Name;
+            
+            return $"{type.Name} {Name}";
         }
     }
 }
