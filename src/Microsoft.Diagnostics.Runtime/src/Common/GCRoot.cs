@@ -352,8 +352,6 @@ namespace Microsoft.Diagnostics.Runtime
                                 {
                                     TraceFullPath(path, end);
                                     yield return GetResult(end);
-
-                                    path.RemoveLast();
                                 }
 
                         if (!processing.Add(next.Address))
