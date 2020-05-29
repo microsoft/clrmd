@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ClrType Type
+        public override ClrType? Type
         {
             get
             {
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     return _type;
 
                 InitData();
-                return _type!;
+                return _type;
             }
         }
 
@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return objRef + (ulong)(Offset + IntPtr.Size);
         }
 
-        internal static int GetSize(ClrType type, ClrElementType cet)
+        internal static int GetSize(ClrType? type, ClrElementType cet)
         {
             // todo:  What if we have a struct which is not fully constructed (null MT,
             //        null type) and need to get the size of the field?
