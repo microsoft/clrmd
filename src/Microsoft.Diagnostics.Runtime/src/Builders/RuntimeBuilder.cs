@@ -1384,7 +1384,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (appDomain is null)
                 return 0;
 
-            ClrType type = field.Parent;
+            ClrType type = field.ContainingType;
             ClrModule? module = type.Module;
             if (module is null)
                 return 0;

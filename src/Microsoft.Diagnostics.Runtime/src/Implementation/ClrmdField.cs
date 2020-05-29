@@ -52,17 +52,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int Token { get; }
         public override int Offset { get; }
 
-        public override ClrType Parent { get; }
+        public override ClrType ContainingType { get; }
 
-        public ClrmdField(ClrType parent, IFieldData data)
+        public ClrmdField(ClrType containingType, IFieldData data)
         {
-            if (parent is null)
-                throw new ArgumentNullException(nameof(parent));
+            if (containingType is null)
+                throw new ArgumentNullException(nameof(containingType));
 
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
 
-            Parent = parent;
+            ContainingType = containingType;
             Token = data.Token;
             ElementType = data.ElementType;
             Offset = data.Offset;
@@ -129,10 +129,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private string? ReadData()
         {
-            if (!_helpers.ReadProperties(Parent, Token, out string? name, out _attributes, out SigParser sigParser))
+            if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, out SigParser sigParser))
                 return null;
 
-            StringCaching options = Parent.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
+            StringCaching options = ContainingType.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
             if (name != null)
             {
                 if (options == StringCaching.Intern)
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
                 {
                     sigParser.SkipCustomModifiers();
-                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(Parent.Module, sigParser, Parent.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
+                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
                 }
             }
 

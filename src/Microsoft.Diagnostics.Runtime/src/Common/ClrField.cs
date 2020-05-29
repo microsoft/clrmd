@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the <see cref="ClrType"/> containing this field.
         /// </summary>
-        public abstract ClrType Parent { get; }
+        public abstract ClrType ContainingType { get; }
 
         /// <summary>
         /// Gets the name of the field.
