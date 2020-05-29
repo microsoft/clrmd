@@ -220,8 +220,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets a set of helper functions that are consistently implemented across all platforms.
         /// </summary>
         public static PlatformFunctions PlatformFunctions { get; } =
-            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? (PlatformFunctions)new LinuxFunctions() : new WindowsFunctions();
-
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? new LinuxFunctions() :
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSFunctions() :
+            (PlatformFunctions)new WindowsFunctions();
 
         /// <summary>
         /// Loads a dump file.  Currently supported formats are ELF coredump and Windows Minidump formats.
