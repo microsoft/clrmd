@@ -7,14 +7,13 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoredumpReader : IDataReader, IDisposable
+    internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable
     {
         private readonly Stream _stream;
         private readonly ElfCoreFile _core;
@@ -120,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture Architecture { get; }
 
-        public int PointerSize { get; }
+        public override int PointerSize { get; }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
@@ -154,48 +153,10 @@ namespace Microsoft.Diagnostics.Runtime
             return _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress).Open();
         }
 
-        public int Read(ulong address, Span<byte> buffer)
+        public override int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
             return address > long.MaxValue ? 0 : _core.ReadMemory((long)address, buffer);
-        }
-
-        public ulong ReadPointer(ulong address)
-        {
-            ReadPointer(address, out ulong value);
-            return value;
-        }
-
-        public unsafe bool Read<T>(ulong address, out T value) where T : unmanaged
-        {
-            Span<byte> buffer = stackalloc byte[sizeof(T)];
-            if (Read(address, buffer) == sizeof(T))
-            {
-                value = Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public T Read<T>(ulong address) where T : unmanaged
-        {
-            Read(address, out T value);
-            return value;
-        }
-
-        public bool ReadPointer(ulong address, out ulong value)
-        {
-            Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer) == IntPtr.Size)
-            {
-                value = buffer.AsPointer();
-                return true;
-            }
-
-            value = 0;
-            return false;
         }
 
         internal IEnumerable<string> GetModulesFullPath()

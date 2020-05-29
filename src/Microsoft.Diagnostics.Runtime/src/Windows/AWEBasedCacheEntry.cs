@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             MinSize = (uint)(_pages.Length * UIntPtr.Size) + /*size of pages array*/
                       (uint)(_pageLocks.Length * UIntPtr.Size) + /*size of pageLocks array*/
                       (uint)(_pageFrameArrayItemCount * UIntPtr.Size) +  /*size of pageFrameArray*/
-                      (uint)(5 * IntPtr.Size) + /*size of refernce type fields (updateOwningCacheForSizeChangeCallback, segmentData, pageFrameArray, pageLocks, pages)*/
+                      (uint)(5 * IntPtr.Size) + /*size of reference type fields (updateOwningCacheForSizeChangeCallback, segmentData, pageFrameArray, pageLocks, pages)*/
                       (2 * sizeof(int)) + /*size of int fields (pageFrameArrayItemCount, accessSize)*/
                       sizeof(uint) +  /*size of uint field (accessCount)*/
                       sizeof(long); /*size of long field (lasAccessTickCount)*/
