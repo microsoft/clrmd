@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.MacOS;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -69,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    throw new PlatformNotSupportedException($"ClrMD only supports the Windows and Linux platforms.  TargetPlatform={DataReader.TargetPlatform}");
+                    locator = new MacOSDefaultSymbolLocator();
                 }
             }
 
@@ -318,17 +319,20 @@ namespace Microsoft.Diagnostics.Runtime
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
         public static DataTarget AttachToProcess(int processId, bool suspend)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                CustomDataTarget customTarget = new CustomDataTarget(new LinuxLiveDataReader(processId, suspend: suspend));
-                return new DataTarget(customTarget);
-            }
-
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 WindowsProcessDataReaderMode mode = suspend ? WindowsProcessDataReaderMode.Suspend : WindowsProcessDataReaderMode.Passive;
-                CustomDataTarget customTarget = new CustomDataTarget(new WindowsProcessDataReader(processId, mode));
-                return new DataTarget(customTarget);
+                return new DataTarget(new CustomDataTarget(new WindowsProcessDataReader(processId, mode)));
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return new DataTarget(new CustomDataTarget(new LinuxLiveDataReader(processId, suspend)));
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return new DataTarget(new CustomDataTarget(new MacOSProcessDataReader(processId, suspend)));
             }
 
             throw GetPlatformException();

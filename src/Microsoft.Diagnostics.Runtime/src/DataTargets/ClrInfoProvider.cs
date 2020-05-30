@@ -14,28 +14,18 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public static class ClrInfoProvider
     {
-        private const string c_desktopModuleName1 = "clr";
-        private const string c_desktopModuleName2 = "mscorwks";
-        private const string c_coreModuleName = "coreclr";
-        private const string c_linuxCoreModuleName = "libcoreclr";
+        private const string c_desktopModuleName1 = "clr.dll";
+        private const string c_desktopModuleName2 = "mscorwks.dll";
+        private const string c_coreModuleName = "coreclr.dll";
+        private const string c_linuxCoreModuleName = "libcoreclr.so";
+        private const string c_macOSCoreModuleName = "libcoreclr.dylib";
 
         private const string c_desktopDacFileNameBase = "mscordacwks";
         private const string c_coreDacFileNameBase = "mscordaccore";
         private const string c_desktopDacFileName = c_desktopDacFileNameBase + ".dll";
         private const string c_coreDacFileName = c_coreDacFileNameBase + ".dll";
         private const string c_linuxCoreDacFileName = "libmscordaccore.so";
-
-        private static bool TryGetModuleName(ModuleInfo moduleInfo, [NotNullWhen(true)] out string? moduleName)
-        {
-            moduleName = Path.GetFileNameWithoutExtension(moduleInfo.FileName);
-            if (moduleName is null)
-                return false;
-
-#pragma warning disable CA1304 // Specify CultureInfo
-            moduleName = moduleName.ToLower();
-#pragma warning restore CA1304 // Specify CultureInfo
-            return true;
-        }
+        private const string c_macOSCoreDacFileName = "libmscordaccore.dylib";
 
         /// <summary>
         /// Checks if the provided module corresponds to a supported runtime, gets clr details inferred from the module name.
@@ -52,7 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
             flavor = default;
             platform = default;
 
-            if (!TryGetModuleName(moduleInfo, out var moduleName))
+            string? moduleName = Path.GetFileName(moduleInfo.FileName);
+            if (moduleName is null)
                 return false;
 
             switch (moduleName)
@@ -73,6 +64,11 @@ namespace Microsoft.Diagnostics.Runtime
                     platform = OSPlatform.Linux;
                     return true;
 
+                case c_macOSCoreModuleName:
+                    flavor = ClrFlavor.Core;
+                    platform = OSPlatform.OSX;
+                    return true;
+
                 default:
                     return false;
             }
@@ -86,6 +82,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (platform == OSPlatform.Linux)
                 return c_linuxCoreDacFileName;
 
+            if (platform == OSPlatform.OSX)
+                return c_macOSCoreDacFileName;
+
             return flavor == ClrFlavor.Core ? c_coreDacFileName : c_desktopDacFileName;
         }
 
@@ -97,6 +96,9 @@ namespace Microsoft.Diagnostics.Runtime
             // Linux never has a "long" named DAC
             if (platform == OSPlatform.Linux)
                 return c_linuxCoreDacFileName;
+
+            if (platform == OSPlatform.OSX)
+                return c_macOSCoreDacFileName;
 
             var dacNameBase = flavor == ClrFlavor.Core ? c_coreDacFileNameBase : c_desktopDacFileNameBase;
             return $"{dacNameBase}_{currentArchitecture}_{targetArchitecture}_{version.Major}.{version.Minor}.{version.Revision}.{version.Patch:D2}.dll";
