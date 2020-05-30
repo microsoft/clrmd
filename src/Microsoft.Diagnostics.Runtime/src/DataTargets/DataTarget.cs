@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -27,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
+        private string? _tempDirectory;
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -87,6 +89,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                     _pefileCache.Clear();
                 }
+
+                CleanupTempDirectory();
 
                 _target.Dispose();
                 _disposed = true;
@@ -164,10 +168,10 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         // Works around issue https://github.com/dotnet/coreclr/issues/20205
                         int processId = Process.GetCurrentProcess().Id;
-                        string tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId);
-                        Directory.CreateDirectory(tempDirectory);
+                        _tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId);
+                        Directory.CreateDirectory(_tempDirectory);
 
-                        string symlink = Path.Combine(tempDirectory, dacFileName);
+                        string symlink = Path.Combine(_tempDirectory, dacFileName);
                         if (LinuxFunctions.symlink(dacLocation, symlink) == 0)
                         {
                             dacLocation = symlink;
@@ -193,6 +197,28 @@ namespace Microsoft.Diagnostics.Runtime
 
             _clrs = versions.MoveOrCopyToImmutable();
             return _clrs;
+        }
+
+        /// <summary>
+        /// Cleans up the temporary directory and symlinks for the Linux DAC workaround.
+        /// </summary>
+        private void CleanupTempDirectory()
+        {
+            string? tempDirectory = Interlocked.Exchange(ref _tempDirectory, null);
+            if (tempDirectory != null)
+            {
+                try
+                {
+                    foreach (string file in Directory.EnumerateFiles(tempDirectory))
+                    {
+                        File.Delete(file);
+                    }
+                    Directory.Delete(tempDirectory);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                }
+            }
         }
 
         /// <summary>
