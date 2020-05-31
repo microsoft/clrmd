@@ -208,12 +208,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (tempDirectory != null)
             {
                 try
-                {
-                    foreach (string file in Directory.EnumerateFiles(tempDirectory))
-                    {
-                        File.Delete(file);
-                    }
-                    Directory.Delete(tempDirectory);
+                {   
+                    Directory.Delete(tempDirectory, recursive: true);
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
