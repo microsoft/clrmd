@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
-        private string? _tempDirectory;
+        private string? _symlink;
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -90,7 +90,16 @@ namespace Microsoft.Diagnostics.Runtime
                     _pefileCache.Clear();
                 }
 
-                CleanupTempDirectory();
+                if (_symlink != null)
+                {
+                    try
+                    {   
+                        File.Delete(_symlink);
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                    }
+                }
 
                 _target.Dispose();
                 _disposed = true;
@@ -167,14 +176,10 @@ namespace Microsoft.Diagnostics.Runtime
                     if (File.Exists(dacLocation))
                     {
                         // Works around issue https://github.com/dotnet/coreclr/issues/20205
-                        int processId = Process.GetCurrentProcess().Id;
-                        _tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId);
-                        Directory.CreateDirectory(_tempDirectory);
-
-                        string symlink = Path.Combine(_tempDirectory, dacFileName);
-                        if (LinuxFunctions.symlink(dacLocation, symlink) == 0)
+                        _symlink = Path.GetTempFileName();
+                        if (LinuxFunctions.symlink(dacLocation, _symlink) == 0)
                         {
-                            dacLocation = symlink;
+                            dacLocation = _symlink;
                         }
                     }
                     else
@@ -204,17 +209,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         private void CleanupTempDirectory()
         {
-            string? tempDirectory = Interlocked.Exchange(ref _tempDirectory, null);
-            if (tempDirectory != null)
-            {
-                try
-                {   
-                    Directory.Delete(tempDirectory, recursive: true);
-                }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                {
-                }
-            }
         }
 
         /// <summary>
