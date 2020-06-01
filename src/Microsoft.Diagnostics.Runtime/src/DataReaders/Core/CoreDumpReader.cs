@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
             }
 
-            return LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+            return this.GetVersionInfo(baseAddress, file, out version);
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)

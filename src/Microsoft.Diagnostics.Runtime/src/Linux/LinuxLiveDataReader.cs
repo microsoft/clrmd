@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
             else
             {
-                return LinuxFunctions.GetVersionInfo(this, baseAddress, file, out version);
+                return this.GetVersionInfo(baseAddress, file, out version);
             }
         }
 

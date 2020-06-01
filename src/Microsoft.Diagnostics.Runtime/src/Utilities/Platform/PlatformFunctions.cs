@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class PlatformFunctions
     {
-        private protected static readonly byte[] s_versionString = Encoding.ASCII.GetBytes("@(#)Version ");
-        private protected static readonly int s_versionLength = s_versionString.Length;
+        internal static readonly byte[] s_versionString = Encoding.ASCII.GetBytes("@(#)Version ");
+        internal static readonly int s_versionLength = s_versionString.Length;
 
         internal abstract bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch);
         public abstract bool TryGetWow64(IntPtr proc, out bool result);
