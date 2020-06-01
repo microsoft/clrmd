@@ -10,7 +10,6 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {

@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return false;
             }
 
-            int max = data.TotalSyncBlockCount >= int.MaxValue ? int.MaxValue : (int) data.TotalSyncBlockCount;
+            int max = data.TotalSyncBlockCount >= int.MaxValue ? int.MaxValue : (int)data.TotalSyncBlockCount;
             comSyncBlocks = new List<ComSyncBlock>();
             fullSyncBlocks = new List<FullSyncBlock>();
             emptySyncBlocks = new List<ulong>();
@@ -683,7 +683,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
         string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
-        
+
         public IExceptionHelpers ExceptionHelpers => this;
 
         uint IExceptionHelpers.GetInnerExceptionOffset(ClrType? type)

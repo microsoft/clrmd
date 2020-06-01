@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 if (!leaveOpen)
                     stream.Dispose();
-                
+
                 return;
             }
 

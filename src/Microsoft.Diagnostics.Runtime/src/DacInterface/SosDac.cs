@@ -323,7 +323,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         public ClrDataAddress[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
-        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count) =>  GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable.GetAssemblyList);
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable.GetAssemblyList);
         public ClrDataAddress[] GetModuleList(ulong assembly) => GetModuleList(assembly, 0);
         public ClrDataAddress[] GetModuleList(ulong assembly, int count) => GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable.GetAssemblyModuleList);
 

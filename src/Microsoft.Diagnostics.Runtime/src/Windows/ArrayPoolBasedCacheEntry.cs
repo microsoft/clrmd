@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         fixed (byte* pSource = &targetData[inPageOffset])
                         {
-                            CacheNativeMethods.Memory.memcpy(buffer, new UIntPtr(pSource), new UIntPtr((uint)byteCount));
+                            CacheNativeMethods.Memory.memcpy(buffer, new UIntPtr(pSource), new UIntPtr(byteCount));
                         }
                     }
 
@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         {
                             fixed (byte* pSource = &targetData[inPageOffset])
                             {
-                                CacheNativeMethods.Memory.memcpy(pInsertionPoint, new UIntPtr(pSource), new UIntPtr((uint)bytesInCurrentPage));
+                                CacheNativeMethods.Memory.memcpy(pInsertionPoint, new UIntPtr(pSource), new UIntPtr(bytesInCurrentPage));
                             }
                         }
 
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     // no offsets when we jump to the next page of data
                     pageAdjustedOffset = 0;
 
-                    offset += (uint)curPage.DataExtent;
+                    offset += curPage.DataExtent;
 
                     locallyAcquiredLocks.Add(_dataChunkLocks[dataIndex + 1]);
                     locallyAcquiredLocks[locallyAcquiredLocks.Count - 1].EnterReadLock();
@@ -399,7 +399,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         return acquiredLocks;
                     }
 
-                    pageAlignedOffset += (uint)PageSize;
+                    pageAlignedOffset += PageSize;
 
                     // Take a read lock on the next page entry
                     originalReadLock = _dataChunkLocks[dataIndex + 1];
@@ -482,7 +482,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             dataExtent = readSize;
 
             bool pageInFailed = false;
-            MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + offset, size: (long)readSize, MemoryMappedFileAccess.Read);
+            MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + offset, size: readSize, MemoryMappedFileAccess.Read);
             try
             {
                 ulong viewOffset = (ulong)view.PointerOffset;
@@ -507,12 +507,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         // from one location to the other, it is literally a couple of orders of magnitude faster.
                         fixed (byte* pData = data)
                         {
-                            CacheNativeMethods.Memory.memcpy(new UIntPtr(pData), new UIntPtr(pViewLoc), new UIntPtr((uint)readSize));
+                            CacheNativeMethods.Memory.memcpy(new UIntPtr(pData), new UIntPtr(pViewLoc), new UIntPtr(readSize));
                         }
 
                         UpdateLastAccessTickCount();
-                        CurrentSize += (uint)readSize;
-                        _updateOwningCacheForAddedChunk(_segmentData.VirtualAddress, (uint)readSize);
+                        CurrentSize += readSize;
+                        _updateOwningCacheForAddedChunk(_segmentData.VirtualAddress, readSize);
 
                         return data;
                     }

@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             int read = DataSource.Read(position, new Span<byte>(&result, size));
             if (read != size)
                 throw new IOException();
-                
+
             return result;
         }
 

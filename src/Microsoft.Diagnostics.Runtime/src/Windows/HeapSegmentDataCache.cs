@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -159,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     // would be in entries that paged out their data.
                     largestSizeSeen = targetItem.CurrentSize;
 
-                    if(HeapSegmentCacheEventSource.Instance.IsEnabled())
+                    if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                         HeapSegmentCacheEventSource.Instance.PageOutDataStart();
 
                     using (targetItem as IDisposable)
