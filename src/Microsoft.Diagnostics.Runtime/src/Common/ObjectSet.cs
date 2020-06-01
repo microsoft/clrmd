@@ -16,17 +16,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
-        protected ClrHeap _heap;
+        protected ClrHeap Heap { get; }
 
         /// <summary>
         /// The minimum object size for this particular heap.
         /// </summary>
-        protected readonly int _minObjSize;
+        protected int MinObjSize { get; } = IntPtr.Size * 3;
 
         /// <summary>
         /// The collection of segments and associated objects.
         /// </summary>
-        protected HeapHashSegment[] _segments;
+#pragma warning disable CA1819 // Properties should not return arrays
+        protected HeapHashSegment[] Segments { get; }
+#pragma warning restore CA1819 // Properties should not return arrays
 
         /// <summary>
         /// Gets or sets the count of objects in this set.
@@ -39,11 +41,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="heap">A ClrHeap to add objects from.</param>
         public ObjectSet(ClrHeap heap)
         {
-            _heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            _minObjSize = IntPtr.Size * 3;
+            Heap = heap ?? throw new ArgumentNullException(nameof(heap));
 
-            List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Length);
-            foreach (ClrSegment seg in _heap.Segments)
+            List<HeapHashSegment> segments = new List<HeapHashSegment>(heap.Segments.Length);
+            foreach (ClrSegment seg in heap.Segments)
             {
                 ulong start = seg.Start;
                 ulong end = seg.End;
@@ -54,12 +55,12 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         StartAddress = start,
                         EndAddress = end,
-                        Objects = new BitArray((int)(end - start) / _minObjSize, false)
+                        Objects = new BitArray((int)(end - start) / MinObjSize, false)
                     });
                 }
             }
 
-            _segments = segments.ToArray();
+            Segments = segments.ToArray();
         }
 
         /// <summary>
@@ -128,8 +129,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual void Clear()
         {
-            for (int i = 0; i < _segments.Length; i++)
-                _segments[i].Objects.SetAll(false);
+            for (int i = 0; i < Segments.Length; i++)
+                Segments[i].Objects.SetAll(false);
 
             Count = 0;
         }
@@ -142,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The index into seg.Objects.</returns>
         protected int GetOffset(ulong obj, HeapHashSegment seg)
         {
-            return checked((int)(obj - seg.StartAddress) / _minObjSize);
+            return checked((int)(obj - seg.StartAddress) / MinObjSize);
         }
 
         /// <summary>
@@ -156,23 +157,23 @@ namespace Microsoft.Diagnostics.Runtime
             if (obj != 0)
             {
                 int lower = 0;
-                int upper = _segments.Length - 1;
+                int upper = Segments.Length - 1;
 
                 while (lower <= upper)
                 {
                     int mid = (lower + upper) >> 1;
 
-                    if (obj < _segments[mid].StartAddress)
+                    if (obj < Segments[mid].StartAddress)
                     {
                         upper = mid - 1;
                     }
-                    else if (obj >= _segments[mid].EndAddress)
+                    else if (obj >= Segments[mid].EndAddress)
                     {
                         lower = mid + 1;
                     }
                     else
                     {
-                        seg = _segments[mid];
+                        seg = Segments[mid];
                         return true;
                     }
                 }
