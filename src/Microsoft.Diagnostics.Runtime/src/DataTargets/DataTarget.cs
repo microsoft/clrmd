@@ -205,13 +205,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Cleans up the temporary directory and symlinks for the Linux DAC workaround.
-        /// </summary>
-        private void CleanupTempDirectory()
-        {
-        }
-
-        /// <summary>
         /// Enumerates information about the loaded modules in the process (both managed and unmanaged).
         /// </summary>
         public IEnumerable<ModuleInfo> EnumerateModules()
