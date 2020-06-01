@@ -30,6 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ModuleInfo[]? _modules;
         private string? _symlink;
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
+        private readonly object _sync = new object();
 
         /// <summary>
         /// Gets the data reader for this instance.
@@ -176,10 +177,13 @@ namespace Microsoft.Diagnostics.Runtime
                     if (File.Exists(dacLocation))
                     {
                         // Works around issue https://github.com/dotnet/coreclr/issues/20205
-                        _symlink = Path.GetTempFileName();
-                        if (LinuxFunctions.symlink(dacLocation, _symlink) == 0)
+                        lock (_sync)
                         {
-                            dacLocation = _symlink;
+                            _symlink = Path.GetTempFileName();
+                            if (LinuxFunctions.symlink(dacLocation, _symlink) == 0)
+                            {
+                                dacLocation = _symlink;
+                            }
                         }
                     }
                     else
