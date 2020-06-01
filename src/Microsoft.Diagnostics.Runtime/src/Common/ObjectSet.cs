@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -13,6 +14,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ObjectSet
     {
+        private readonly HeapHashSegment[] _segments;
+
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
@@ -21,14 +24,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The minimum object size for this particular heap.
         /// </summary>
-        protected int MinObjSize { get; } = IntPtr.Size * 3;
+        protected int MinObjSize => IntPtr.Size * 3;
 
         /// <summary>
         /// The collection of segments and associated objects.
         /// </summary>
-#pragma warning disable CA1819 // Properties should not return arrays
-        protected HeapHashSegment[] Segments { get; }
-#pragma warning restore CA1819 // Properties should not return arrays
+        protected ImmutableArray<HeapHashSegment> Segments => _segments.AsImmutableArray();
 
         /// <summary>
         /// Gets or sets the count of objects in this set.
@@ -60,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            Segments = segments.ToArray();
+            _segments = segments.ToArray();
         }
 
         /// <summary>
@@ -129,8 +130,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual void Clear()
         {
-            for (int i = 0; i < Segments.Length; i++)
-                Segments[i].Objects.SetAll(false);
+            for (int i = 0; i < _segments.Length; i++)
+                _segments[i].Objects.SetAll(false);
 
             Count = 0;
         }
@@ -157,23 +158,23 @@ namespace Microsoft.Diagnostics.Runtime
             if (obj != 0)
             {
                 int lower = 0;
-                int upper = Segments.Length - 1;
+                int upper = _segments.Length - 1;
 
                 while (lower <= upper)
                 {
                     int mid = (lower + upper) >> 1;
 
-                    if (obj < Segments[mid].StartAddress)
+                    if (obj < _segments[mid].StartAddress)
                     {
                         upper = mid - 1;
                     }
-                    else if (obj >= Segments[mid].EndAddress)
+                    else if (obj >= _segments[mid].EndAddress)
                     {
                         lower = mid + 1;
                     }
                     else
                     {
-                        seg = Segments[mid];
+                        seg = _segments[mid];
                         return true;
                     }
                 }
