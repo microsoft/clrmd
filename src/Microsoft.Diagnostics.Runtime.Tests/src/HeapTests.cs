@@ -206,13 +206,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(seg.CommittedMemory.End < seg.ReservedMemory.End);
                 Assert.False(seg.CommittedMemory.Overlaps(seg.ReservedMemory));
                 Assert.True(seg.CommittedMemory.Contains(seg.ObjectRange));
-                
+
                 if (seg.Generation0.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation0));
-                
+
                 if (seg.Generation1.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation1));
-                
+
                 if (seg.Generation2.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 

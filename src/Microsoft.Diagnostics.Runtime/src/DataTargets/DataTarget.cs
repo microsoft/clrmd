@@ -252,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime
             try
             {
 #pragma warning disable CA2000 // Dispose objects before losing scope
-                
+
                 IDataReader reader = format switch
                 {
                     DumpFileFormat.Minidump => new MinidumpReader(filePath, stream, cacheOptions),

@@ -4,8 +4,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {

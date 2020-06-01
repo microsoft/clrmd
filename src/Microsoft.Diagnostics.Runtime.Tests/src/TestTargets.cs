@@ -7,7 +7,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interop;
-using Microsoft.Diagnostics.Runtime.Windows;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]

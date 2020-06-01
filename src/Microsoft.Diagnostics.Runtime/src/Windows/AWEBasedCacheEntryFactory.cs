@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -27,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // TODO: If I don't ensure that size is a multiple of the VA page size I leave chunks of unusable memory, then again allocating on a page boundary and not using it all is also
             // not using the memory, so not sure if it matters/helps to worry about it here.
-            _sharedSegment = CacheNativeMethods.Memory.VirtualAlloc(size, CacheNativeMethods.Memory.VirtualAllocType.Reserve|CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
+            _sharedSegment = CacheNativeMethods.Memory.VirtualAlloc(size, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
         }
 
         internal void DeleteSharedSegment()
@@ -61,14 +60,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 if (!physicalAllocRes)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
-                if(numberOfPagesAllocated != numberOfPages)
+                if (numberOfPagesAllocated != numberOfPages)
                     throw new OutOfMemoryException("Failed to allocate the required number of pages for segment in AWE based cache.");
 
                 UIntPtr reservedMemory = UIntPtr.Zero;
                 try
                 {
                     // Now reserve a chunk of VM equivalent in size to the physical memory, this will now count against our process usage limits, but ony temporarily
-                    reservedMemory = _sharedSegment != UIntPtr.Zero ? _sharedSegment : CacheNativeMethods.Memory.VirtualAlloc((uint)segmentData.Size, 
+                    reservedMemory = _sharedSegment != UIntPtr.Zero ? _sharedSegment : CacheNativeMethods.Memory.VirtualAlloc((uint)segmentData.Size,
                                                                                                                                       CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical,
                                                                                                                                       CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
 
@@ -86,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     // VirtualFree it below the memory 'cost' still is assigned to our process BUT it doesn't count against our resource limits until/unless we map it back into the VM space.
                     // BUT, most importatnly, the physical memory remains and contains the data we read from the file.
                     bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(reservedMemory, numberOfPages, UIntPtr.Zero);
-                    if(!unmapPhysicalPagesResult)
+                    if (!unmapPhysicalPagesResult)
                         throw new Win32Exception(Marshal.GetLastWin32Error());
 
                     if (_sharedSegment != reservedMemory)
@@ -98,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
 
                     reservedMemory = UIntPtr.Zero;
-                    
+
                     // Now give our page frame table to the AWE cache node so it can map the memory back into our VM as needed
                     handedAllocationsToCacheEntry = true;
                     return new AWEBasedCacheEntry(segmentData, updateOwningCacheForSizeChangeCallback, pageFrameArray, (int)numberOfPages);

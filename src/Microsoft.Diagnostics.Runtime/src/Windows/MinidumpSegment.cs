@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             Size = size;
         }
 
-        public override string ToString() => $"{VirtualAddress:x}-{VirtualAddress+Size:x}";
+        public override string ToString() => $"{VirtualAddress:x}-{VirtualAddress + Size:x}";
 
         public bool Contains(ulong address) => VirtualAddress <= address && address < VirtualAddress + Size;
 

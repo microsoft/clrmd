@@ -40,8 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         internal AWEBasedCacheEntry(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback, UIntPtr pageFrameArray, int pageFrameArrayItemCount)
         {
-            int pagesSize = (int)(segmentData.Size / (ulong)VirtualAllocPageSize);
-            if ((segmentData.Size % (ulong)VirtualAllocPageSize) != 0)
+            int pagesSize = (int)(segmentData.Size / VirtualAllocPageSize);
+            if ((segmentData.Size % VirtualAllocPageSize) != 0)
                 pagesSize++;
 
             _pages = new CachePage[pagesSize];
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     uint inPageOffset = MapOffsetToPageOffset(offset);
 
-                    CacheNativeMethods.Memory.memcpy(buffer, UIntPtr.Add(_pages[dataIndex].Data, (int)inPageOffset), new UIntPtr((uint)byteCount));
+                    CacheNativeMethods.Memory.memcpy(buffer, UIntPtr.Add(_pages[dataIndex].Data, (int)inPageOffset), new UIntPtr(byteCount));
 
                     bytesRead = byteCount;
                     return;
@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                         UIntPtr targetData = _pages[dataIndex++].Data;
 
-                        CacheNativeMethods.Memory.memcpy(pInsertionPoint, UIntPtr.Add(targetData, (int)inPageOffset), new UIntPtr((uint)bytesInCurrentPage));
+                        CacheNativeMethods.Memory.memcpy(pInsertionPoint, UIntPtr.Add(targetData, (int)inPageOffset), new UIntPtr(bytesInCurrentPage));
 
                         pInsertionPoint += (int)bytesInCurrentPage;
                         inPageOffset = 0;
@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     // no offsets when we jump to the next page of data
                     pageAdjustedOffset = 0;
 
-                    offset += (uint)curPage.DataExtent;
+                    offset += curPage.DataExtent;
 
                     locallyAcquiredLocks.Add(_pageLocks[dataIndex + 1]);
                     locallyAcquiredLocks[locallyAcquiredLocks.Count - 1].EnterReadLock();
@@ -263,7 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override bool PageOutData()
         {
-            if(HeapSegmentCacheEventSource.Instance.IsEnabled())
+            if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataStart();
 
             long sizeRemoved = 0;
@@ -524,7 +524,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             try
             {
                 // Allocate a VM range to map the physical memory into
-                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc((uint)VirtualAllocPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
+                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc(VirtualAllocPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
                 if (vmPtr == UIntPtr.Zero)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
@@ -535,7 +535,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
                 UpdateLastAccessTickCount();
-                CurrentSize += (uint)readSize;
+                CurrentSize += readSize;
 
                 // NOTE: We call back under lock, non-ideal but the callback should NOT be modifying this entry in any way
                 _updateOwningCacheForSizeChangeCallback(_segmentData.VirtualAddress, readSize);
@@ -545,9 +545,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 return vmPtr;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                if(HeapSegmentCacheEventSource.Instance.IsEnabled())
+                if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
 
                 throw;

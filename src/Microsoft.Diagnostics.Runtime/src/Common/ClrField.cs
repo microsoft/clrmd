@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType? type = Type;
             if (type is null)
                 return Name;
-            
+
             return $"{type.Name} {Name}";
         }
     }
