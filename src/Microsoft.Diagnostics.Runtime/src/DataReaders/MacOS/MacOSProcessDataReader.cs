@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 int kr = Native.vm_read_overwrite(_task, address, readable, ptr, out long read);
                 if (kr != 0)
-                    throw new ClrDiagnosticsException();
+                    return 0;
 
                 return (int)read;
             }
