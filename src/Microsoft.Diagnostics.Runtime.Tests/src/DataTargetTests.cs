@@ -34,12 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(0, library.Release());
         }
 
-        [LinuxFact]
-        public void CreateSnapshotAndAttach_ThrowsPlatformNotSupportedException()
-        {
-            _ = Assert.Throws<PlatformNotSupportedException>(() => DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id));
-        }
-
         [WindowsFact]
         public void LoadDump_ThrowsInvalidDataExceptionForEmptyFile()
         {

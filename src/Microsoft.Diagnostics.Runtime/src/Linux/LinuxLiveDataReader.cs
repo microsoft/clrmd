@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 throw new ArgumentException("The process is not running");
 
             ProcessId = (uint)processId;
-            _memoryMapEntries = LoadMemoryMap();
+            _memoryMapEntries = LoadMemoryMaps();
 
             if (suspend)
             {
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         ~LinuxLiveDataReader() => Dispose(false);
 
-        public uint ProcessId { get; private set; }
+        public uint ProcessId { get; }
 
         public bool IsThreadSafe => false;
 
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public void FlushCachedData()
         {
             _threadIDs.Clear();
-            _memoryMapEntries = LoadMemoryMap();
+            _memoryMapEntries = LoadMemoryMaps();
         }
 
         public Architecture Architecture { get; }
@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return bytesReadable;
         }
 
-        private List<MemoryMapEntry> LoadMemoryMap()
+        private List<MemoryMapEntry> LoadMemoryMaps()
         {
             List<MemoryMapEntry> result = new List<MemoryMapEntry>();
             string mapsFilePath = $"/proc/{ProcessId}/maps";
@@ -398,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private static extern int kill(int pid, int sig);
 
         [DllImport(LibC, SetLastError = true)]
-        private static extern IntPtr ptrace(uint request, int pid, IntPtr addr, IntPtr data);
+        private static extern IntPtr ptrace(int request, int pid, IntPtr addr, IntPtr data);
 
         [DllImport(LibC, SetLastError = true)]
         private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
@@ -412,9 +412,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             public IntPtr iov_len;
         }
 
-        private const uint PTRACE_GETREGS = 12;
-        private const uint PTRACE_ATTACH = 16;
-        private const uint PTRACE_DETACH = 17;
+        private const int PTRACE_GETREGS = 12;
+        private const int PTRACE_ATTACH = 16;
+        private const int PTRACE_DETACH = 17;
     }
 
     internal class MemoryMapEntry

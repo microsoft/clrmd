@@ -67,6 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             int read;
             while (!done && (read = DataSource.Read(position, bytes)) != 0)
             {
+                position += read;
                 for (int i = 0; !done && i < read; i++)
                 {
                     if (bytes[i] != 0)
