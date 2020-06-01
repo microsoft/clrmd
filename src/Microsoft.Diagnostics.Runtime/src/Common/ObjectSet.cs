@@ -19,12 +19,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
-        protected ClrHeap Heap { get; }
+        public ClrHeap Heap { get; }
 
         /// <summary>
         /// The minimum object size for this particular heap.
         /// </summary>
-        protected int MinObjSize => IntPtr.Size * 3;
+        public int MinObjSize => IntPtr.Size * 3;
 
         /// <summary>
         /// The collection of segments and associated objects.
