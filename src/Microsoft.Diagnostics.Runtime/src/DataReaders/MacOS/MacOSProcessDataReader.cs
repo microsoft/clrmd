@@ -322,7 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 internal readonly uint infoArrayCount;
                 internal readonly ulong infoArray;
 
-                // ...
+                // We don't need the rest of this struct so we do not define the rest of the fields.
             }
 
             internal readonly struct dyld_image_info
