@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 T result;
                 if (Native.vm_read_overwrite(_task, address + index * (uint)sizeof(T), sizeof(T), &result, out _) != 0)
-                    throw new ClrDiagnosticsException();
+                    return default;
 
                 return result;
             }
