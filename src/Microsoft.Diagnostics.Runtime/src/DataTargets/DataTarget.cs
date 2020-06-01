@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -27,7 +28,9 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
+        private string? _symlink;
         private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
+        private readonly object _sync = new object();
 
         /// <summary>
         /// Gets the data reader for this instance.
@@ -86,6 +89,17 @@ namespace Microsoft.Diagnostics.Runtime
                         img?.Dispose();
 
                     _pefileCache.Clear();
+                }
+
+                if (_symlink != null)
+                {
+                    try
+                    {   
+                        File.Delete(_symlink);
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                    }
                 }
 
                 _target.Dispose();
@@ -163,14 +177,13 @@ namespace Microsoft.Diagnostics.Runtime
                     if (File.Exists(dacLocation))
                     {
                         // Works around issue https://github.com/dotnet/coreclr/issues/20205
-                        int processId = Process.GetCurrentProcess().Id;
-                        string tempDirectory = Path.Combine(Path.GetTempPath(), "clrmd" + processId);
-                        Directory.CreateDirectory(tempDirectory);
-
-                        string symlink = Path.Combine(tempDirectory, dacFileName);
-                        if (LinuxFunctions.symlink(dacLocation, symlink) == 0)
+                        lock (_sync)
                         {
-                            dacLocation = symlink;
+                            _symlink = Path.GetTempFileName();
+                            if (LinuxFunctions.symlink(dacLocation, _symlink) == 0)
+                            {
+                                dacLocation = _symlink;
+                            }
                         }
                     }
                     else
