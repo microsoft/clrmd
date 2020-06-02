@@ -46,32 +46,40 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override int Read(ulong address, Span<byte> buffer)
         {
-            if (address == 0)
+            if (address == 0 || buffer.Length == 0)
                 return 0;
 
             lock (_sync)
             {
                 try
                 {
-                    int bytesRead = 0;
+                    int i = GetSegmentContaining(address);
+                    if (i < 0)
+                        return 0;
 
-                    while (bytesRead < buffer.Length)
+                    int bytesRead = 0;
+                    ulong prevEndAddress = default;
+                    for (; i < _segments.Length; i++)
                     {
-                        ulong currAddress = address + (uint)bytesRead;
-                        int curr = GetSegmentContaining(currAddress);
-                        if (curr == -1)
+                        MinidumpSegment segment = _segments[i];
+                        if (bytesRead != 0 && segment.VirtualAddress != prevEndAddress)
                             break;
 
-                        MinidumpSegment seg = _segments[curr];
-                        ulong offset = currAddress - seg.VirtualAddress;
+                        ulong offset = address - segment.VirtualAddress;
+                        int toRead = Math.Min(buffer.Length - bytesRead, (int)(segment.Size - offset));
 
-                        Span<byte> slice = buffer.Slice(bytesRead, Math.Min(buffer.Length - bytesRead, (int)(seg.Size - offset)));
-                        _stream.Position = (long)(seg.FileOffset + offset);
+                        Span<byte> slice = buffer.Slice(bytesRead, toRead);
+                        _stream.Position = (long)(segment.FileOffset + offset);
                         int read = _stream.Read(slice);
-                        if (read == 0)
+                        if (read < toRead)
                             break;
 
                         bytesRead += read;
+                        if (bytesRead == buffer.Length)
+                            break;
+
+                        address += (uint)read;
+                        prevEndAddress = segment.End;
                     }
 
                     return bytesRead;
@@ -85,7 +93,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private int GetSegmentContaining(ulong address)
         {
-            int result = -1;
             int lower = 0;
             int upper = _segments.Length - 1;
 
@@ -96,8 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 if (seg.Contains(address))
                 {
-                    result = mid;
-                    break;
+                    return mid;
                 }
 
                 if (address < seg.VirtualAddress)
@@ -106,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     lower = mid + 1;
             }
 
-            return result;
+            return -1;
         }
     }
 }

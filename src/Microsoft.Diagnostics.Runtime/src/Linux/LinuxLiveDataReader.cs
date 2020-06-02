@@ -274,67 +274,85 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private int GetReadableBytesCount(ulong address, int bytesRequested)
+        private int GetReadableBytesCount(ulong address, int bytesToRead)
         {
-            if (bytesRequested < 1)
+            if (bytesToRead <= 0)
             {
                 return 0;
             }
 
-            ulong endAddress = address + (ulong)bytesRequested - 1;
-            int bytesReadable = 0;
-            ulong prevEndAddr = default;
+            int i = GetMapEntryContaining(address);
+            if (i < 0)
+            {
+                return 0;
+            }
 
-            int startIndex = -1;
-            for (int i = 0; i < _memoryMapEntries.Count; i++)
+            int bytesReadable;
+            ulong prevEndAddr;
             {
                 MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddress;
                 ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
+
+                int regionSize = (int)(entryEndAddr - address);
+                if (regionSize >= bytesToRead)
                 {
-                    int regionSize = (int)(entryEndAddr - address);
-                    if (regionSize >= bytesRequested)
-                    {
-                        return bytesRequested;
-                    }
-
-                    startIndex = i;
-                    bytesRequested -= regionSize;
-                    bytesReadable = regionSize;
-                    prevEndAddr = entryEndAddr;
-                    break;
+                    return bytesToRead;
                 }
+
+                bytesToRead -= regionSize;
+                bytesReadable = regionSize;
+                prevEndAddr = entryEndAddr;
             }
 
-            if (startIndex < 0)
-            {
-                return 0;
-            }
-
-            for (int i = startIndex + 1; i < _memoryMapEntries.Count; i++)
+            for (i += 1; i < _memoryMapEntries.Count; i++)
             {
                 MemoryMapEntry entry = _memoryMapEntries[i];
                 ulong entryBeginAddr = entry.BeginAddress;
                 ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
+                if (entryBeginAddr != prevEndAddr || !entry.IsReadable)
                 {
                     break;
                 }
 
                 int regionSize = (int)(entryEndAddr - entryBeginAddr);
-                if (regionSize >= bytesRequested)
+                if (regionSize >= bytesToRead)
                 {
-                    bytesReadable += bytesRequested;
+                    bytesReadable += bytesToRead;
                     break;
                 }
 
-                bytesRequested -= regionSize;
+                bytesToRead -= regionSize;
                 bytesReadable += regionSize;
                 prevEndAddr = entryEndAddr;
             }
 
             return bytesReadable;
+        }
+
+        private int GetMapEntryContaining(ulong address)
+        {
+            int lower = 0;
+            int upper = _memoryMapEntries.Count - 1;
+
+            while (lower <= upper)
+            {
+                int mid = (lower + upper) >> 1;
+                MemoryMapEntry entry = _memoryMapEntries[mid];
+                ulong beginAddress = entry.BeginAddress;
+                ulong endAddress = entry.EndAddress;
+
+                if (beginAddress <= address && address < endAddress)
+                {
+                    return entry.IsReadable ? mid : -1;
+                }
+
+                if (address < beginAddress)
+                    upper = mid - 1;
+                else
+                    lower = mid + 1;
+            }
+
+            return -1;
         }
 
         private List<MemoryMapEntry> LoadMemoryMaps()
