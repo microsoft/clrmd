@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -13,20 +14,24 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ObjectSet
     {
+        private readonly HeapHashSegment[] _segments;
+
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
-        protected ClrHeap _heap;
+        public ClrHeap Heap { get; }
 
         /// <summary>
         /// The minimum object size for this particular heap.
         /// </summary>
-        protected readonly int _minObjSize;
+#pragma warning disable CA1822 // CA1822: Mark members as static
+        public int MinObjSize => IntPtr.Size * 3;
+#pragma warning restore CA1822 // CA1822: Mark members as static
 
         /// <summary>
         /// The collection of segments and associated objects.
         /// </summary>
-        protected HeapHashSegment[] _segments;
+        protected ImmutableArray<HeapHashSegment> Segments => _segments.AsImmutableArray();
 
         /// <summary>
         /// Gets or sets the count of objects in this set.
@@ -39,11 +44,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="heap">A ClrHeap to add objects from.</param>
         public ObjectSet(ClrHeap heap)
         {
-            _heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            _minObjSize = IntPtr.Size * 3;
+            Heap = heap ?? throw new ArgumentNullException(nameof(heap));
 
-            List<HeapHashSegment> segments = new List<HeapHashSegment>(_heap.Segments.Length);
-            foreach (ClrSegment seg in _heap.Segments)
+            List<HeapHashSegment> segments = new List<HeapHashSegment>(heap.Segments.Length);
+            foreach (ClrSegment seg in heap.Segments)
             {
                 ulong start = seg.Start;
                 ulong end = seg.End;
@@ -54,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         StartAddress = start,
                         EndAddress = end,
-                        Objects = new BitArray((int)(end - start) / _minObjSize, false)
+                        Objects = new BitArray((int)(end - start) / MinObjSize, false)
                     });
                 }
             }
@@ -142,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The index into seg.Objects.</returns>
         protected int GetOffset(ulong obj, HeapHashSegment seg)
         {
-            return checked((int)(obj - seg.StartAddress) / _minObjSize);
+            return checked((int)(obj - seg.StartAddress) / MinObjSize);
         }
 
         /// <summary>
