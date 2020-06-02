@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (status < 0 && Marshal.GetLastWin32Error() != EPERM)
                 throw new ArgumentException("The process is not running");
 
-            ProcessId = (uint)processId;
+            ProcessId = processId;
             _memoryMapEntries = LoadMemoryMaps();
 
             if (suspend)
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         ~LinuxLiveDataReader() => Dispose(false);
 
-        public uint ProcessId { get; }
+        public int ProcessId { get; }
 
         public bool IsThreadSafe => false;
 
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             if (_suspended)
             {
-                int status = (int)ptrace(PTRACE_DETACH, (int)ProcessId, IntPtr.Zero, IntPtr.Zero);
+                int status = (int)ptrace(PTRACE_DETACH, ProcessId, IntPtr.Zero, IntPtr.Zero);
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
@@ -188,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     iov_base = (void*)address,
                     iov_len = (IntPtr)readableBytesCount
                 };
-                int read = (int)process_vm_readv((int)ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
+                int read = (int)process_vm_readv(ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
                 if (read < 0)
                 {
                     return Marshal.GetLastWin32Error() switch

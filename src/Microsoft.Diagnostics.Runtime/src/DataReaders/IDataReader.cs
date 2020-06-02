@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the process ID of the DataTarget.
         /// </summary>
-        uint ProcessId { get; }
+        int ProcessId { get; }
 
         /// <summary>
         /// Enumerates modules in the target process.

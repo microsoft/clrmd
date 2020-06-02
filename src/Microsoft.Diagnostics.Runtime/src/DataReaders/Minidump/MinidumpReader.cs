@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture Architecture { get; }
 
-        public uint ProcessId => 0;
+        public int ProcessId => -1;
 
         public int PointerSize { get; }
 
