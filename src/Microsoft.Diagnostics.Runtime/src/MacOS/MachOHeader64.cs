@@ -6,6 +6,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal readonly struct MachOHeader64
     {
+        internal const int ExpectedMagic = unchecked((int)0xfeedfacf);
+
         internal readonly int Magic;
         internal readonly MachOCpuType CpuType;
         internal readonly int CpuSubtype;

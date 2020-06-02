@@ -144,9 +144,50 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
 
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            // TODO
+            if (!Read(baseAddress, out MachOHeader64 header) || header.Magic != MachOHeader64.ExpectedMagic)
+            {
+                version = default;
+                return false;
+            }
+
+            baseAddress += (uint)sizeof(MachOHeader64);
+
+            byte[] dataSegmentName = Encoding.ASCII.GetBytes("__DATA\0");
+            byte[] dataSectionName = Encoding.ASCII.GetBytes("__data\0");
+            for (int c = 0; c < header.NumberOfCommands; c++)
+            {
+                MachOCommand command = Read<MachOCommand>(ref baseAddress);
+                MachOCommandType commandType = command.Command;
+                int commandSize = command.CommandSize;
+
+                if (commandType == MachOCommandType.Segment64)
+                {
+                    ulong prevAddress = baseAddress;
+                    MachOSegmentCommand64 segmentCommand = Read<MachOSegmentCommand64>(ref baseAddress);
+                    if (new ReadOnlySpan<byte>(segmentCommand.SegmentName, dataSegmentName.Length).SequenceEqual(dataSegmentName))
+                    {
+                        for (int s = 0; s < segmentCommand.NumberOfSections; s++)
+                        {
+                            MachOSection64 section = Read<MachOSection64>(ref baseAddress);
+                            if (new ReadOnlySpan<byte>(section.SectionName, dataSectionName.Length).SequenceEqual(dataSectionName))
+                            {
+                                long dataOffset = section.Address;
+                                long dataSize = section.Size;
+                                return this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out version);
+                            }
+                        }
+
+                        break;
+                    }
+
+                    baseAddress = prevAddress;
+                }
+
+                baseAddress += (uint)(commandSize - sizeof(MachOCommand));
+            }
+
             version = default;
             return false;
         }
@@ -169,6 +210,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                 return (int)read;
             }
+        }
+
+        private unsafe T Read<T>(ref ulong address)
+            where T : unmanaged
+        {
+            T result = Read<T>(address);
+            address += (uint)sizeof(T);
+            return result;
         }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
