@@ -626,7 +626,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             var query = from obj in runtime.Heap.EnumerateObjects()
-                        where obj.Type?.Name == "Types+<Async>d__0"
+                        where obj.Type?.Name?.StartsWith("Types+<Async>d__") == true
                         select obj.Type;
 
             ClrType clrType = query.Single();
