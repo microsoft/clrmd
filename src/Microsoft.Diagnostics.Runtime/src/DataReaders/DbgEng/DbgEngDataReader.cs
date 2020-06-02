@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool IsThreadSafe => true; // Enforced by Debug* wrappers.
 
-        public uint ProcessId => _systemObjects.GetProcessId();
+        public int ProcessId => (int)_systemObjects.GetProcessId();
 
         public Architecture Architecture
         {

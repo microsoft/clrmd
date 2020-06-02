@@ -22,12 +22,11 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IntPtr _snapshotHandle;
         private readonly IntPtr _cloneHandle;
         private readonly IntPtr _process;
-        private readonly int _pid;
 
         private const int PROCESS_VM_READ = 0x10;
         private const int PROCESS_QUERY_INFORMATION = 0x0400;
 
-        public string DisplayName => $"pid:{_pid:x}";
+        public string DisplayName => $"pid:{ProcessId:x}";
         public OSPlatform TargetPlatform => OSPlatform.Windows;
 
         public WindowsProcessDataReader(int processId, WindowsProcessDataReaderMode mode)
@@ -46,18 +45,18 @@ namespace Microsoft.Diagnostics.Runtime
                 if (hr != 0)
                     throw new InvalidOperationException($"Could not create snapshot to process. Error {hr}.");
 
-                _pid = GetProcessId(_cloneHandle);
+                ProcessId = GetProcessId(_cloneHandle);
             }
             else
             {
-                _pid = processId;
+                ProcessId = processId;
             }
 
-            _process = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _pid);
+            _process = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, ProcessId);
 
             if (_process == IntPtr.Zero)
             {
-                if (!WindowsFunctions.IsProcessRunning(_pid))
+                if (!WindowsFunctions.IsProcessRunning(ProcessId))
                     throw new ArgumentException($"Process {processId} is not running.");
 
                 int hr = Marshal.GetLastWin32Error();
@@ -73,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             if (mode == WindowsProcessDataReaderMode.Suspend)
-                _suspension = new WindowsThreadSuspender(_pid);
+                _suspension = new WindowsThreadSuspender(ProcessId);
         }
 
         private void Dispose(bool _)
@@ -90,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     try
                     {
-                        Process.GetProcessById(_pid).Kill();
+                        Process.GetProcessById(ProcessId).Kill();
                     }
                     catch (Win32Exception)
                     {
@@ -115,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        public uint ProcessId => (uint)_pid;
+        public int ProcessId { get; }
 
         public bool IsThreadSafe => true;
 

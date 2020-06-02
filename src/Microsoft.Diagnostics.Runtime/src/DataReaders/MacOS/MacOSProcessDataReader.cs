@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (status < 0 && Marshal.GetLastWin32Error() != Native.EPERM)
                 throw new ArgumentException("The process is not running");
 
-            ProcessId = (uint)processId;
+            ProcessId = processId;
             _memoryRegions = LoadMemoryRegions();
 
             int kr = Native.task_for_pid(Native.mach_task_self(), processId, out int task);
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public Architecture Architecture => Architecture.Amd64;
 
-        public uint ProcessId { get; }
+        public int ProcessId { get; }
 
         public void Dispose()
         {
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             if (_suspended)
             {
-                int status = Native.ptrace(Native.PT_DETACH, (int)ProcessId);
+                int status = Native.ptrace(Native.PT_DETACH, ProcessId);
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
@@ -293,7 +293,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             List<MemoryRegion> result = new List<MemoryRegion>();
 
-            int kr = Native.task_for_pid(Native.mach_task_self(), (int)ProcessId, out int task);
+            int kr = Native.task_for_pid(Native.mach_task_self(), ProcessId, out int task);
             if (kr != 0)
                 throw new ClrDiagnosticsException();
 

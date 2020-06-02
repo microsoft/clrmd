@@ -64,14 +64,14 @@ namespace Microsoft.Diagnostics.Runtime
             _stream.Dispose();
         }
 
-        public uint ProcessId
+        public int ProcessId
         {
             get
             {
                 foreach (IElfPRStatus status in _core.EnumeratePRStatus())
-                    return status.ProcessId;
+                    return (int)status.ProcessId;
 
-                return uint.MaxValue;
+                return -1;
             }
         }
 
