@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime;
 
 namespace DesktopTest
 {
-    class Program
+    class SelfAttach
     {
         static void Main()
         {
