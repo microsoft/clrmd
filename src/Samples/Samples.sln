@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30128.36
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfAttach", "SelfAttach\SelfAttach.csproj", "{03D8877E-2369-46A8-930E-07FF1C7F5595}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SelfAttach", "SelfAttach\SelfAttach.csproj", "{03D8877E-2369-46A8-930E-07FF1C7F5595}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GCRoot", "GCRoot\GCRoot.csproj", "{D7405CE8-8C8D-4462-B7AD-F1215E875422}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{03D8877E-2369-46A8-930E-07FF1C7F5595}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03D8877E-2369-46A8-930E-07FF1C7F5595}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03D8877E-2369-46A8-930E-07FF1C7F5595}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
