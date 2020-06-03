@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public override IntPtr GetProcAddress(IntPtr handle, string name)
+        public override IntPtr GetLibraryExport(IntPtr handle, string name)
         {
             _ = NativeLibrary.TryGetExport(handle, name, out IntPtr address);
             return address;
