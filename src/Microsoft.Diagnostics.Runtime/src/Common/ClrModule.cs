@@ -46,11 +46,6 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract string? Name { get; }
 
         /// <summary>
-        /// Gets the simple name of the module.
-        /// </summary>
-        public abstract string? SimpleName { get; }
-
-        /// <summary>
         /// Gets a value indicating whether this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
         /// file).
         /// </summary>
