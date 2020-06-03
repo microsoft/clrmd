@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindbgExtension", "WindbgEx
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClrStack", "ClrStack\ClrStack.csproj", "{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpDict", "DumpDict\DumpDict.csproj", "{61184F60-4EF9-4840-9DCB-83619376E825}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpHeap", "DumpHeap\DumpHeap.csproj", "{A82FB97A-AC9D-4E5E-9BBC-B9382039F2D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61184F60-4EF9-4840-9DCB-83619376E825}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61184F60-4EF9-4840-9DCB-83619376E825}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61184F60-4EF9-4840-9DCB-83619376E825}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61184F60-4EF9-4840-9DCB-83619376E825}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A82FB97A-AC9D-4E5E-9BBC-B9382039F2D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A82FB97A-AC9D-4E5E-9BBC-B9382039F2D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A82FB97A-AC9D-4E5E-9BBC-B9382039F2D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A82FB97A-AC9D-4E5E-9BBC-B9382039F2D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
