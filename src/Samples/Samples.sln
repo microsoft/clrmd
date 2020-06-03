@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GCRoot", "GCRoot\GCRoot.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindbgExtension", "WindbgExtension\WindbgExtension.csproj", "{12679331-455F-470C-B2F3-A53FD6EDF2B3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClrStack", "ClrStack\ClrStack.csproj", "{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AC85363-DB1F-4B6D-B6B6-EB7ECE590D6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
