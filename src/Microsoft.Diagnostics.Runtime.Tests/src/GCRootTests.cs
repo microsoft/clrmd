@@ -266,11 +266,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("DirectTarget").Single();
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None).Count());
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 16, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: true, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: false, 16, CancellationToken.None).Count());
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: true, 16, CancellationToken.None).Count());
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: true, 16, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: false, 1, CancellationToken.None).Count());
         }
 
         [Fact]
@@ -283,11 +283,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong target = heap.GetObjectsOfType("IndirectTarget").Single();
 
-            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 8, CancellationToken.None));
-            _ = Assert.Single(gcroot.EnumerateGCRoots(target, unique: true, 1, CancellationToken.None));
+            _ = Assert.Single(gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: true, 8, CancellationToken.None));
+            _ = Assert.Single(gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: true, 1, CancellationToken.None));
 
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 1, CancellationToken.None).Count());
-            Assert.Equal(2, gcroot.EnumerateGCRoots(target, unique: false, 8, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: false, 1, CancellationToken.None).Count());
+            Assert.Equal(2, gcroot.EnumerateGCRoots(target, returnOnlyFullyUniquePaths: false, 8, CancellationToken.None).Count());
         }
 
         [Fact]
