@@ -29,7 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         ALPHA64 = 0x0284, // ALPHA64
         MIPSFPU = 0x0366, // MIPS
         MIPSFPU16 = 0x0466, // MIPS
-        AXP64 = 0x0284,
         TRICORE = 0x0520, // Infineon
         CEF = 0x0CEF,
         EBC = 0x0EBC, // EFI Byte Code

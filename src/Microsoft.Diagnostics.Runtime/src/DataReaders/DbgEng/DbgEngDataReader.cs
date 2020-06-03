@@ -226,7 +226,7 @@ namespace Microsoft.Diagnostics.Runtime
             return modules;
         }
 
-        private IntPtr CreateIDebugClient()
+        private static IntPtr CreateIDebugClient()
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
             int hr = DebugCreate(guid, out IntPtr ptr);
