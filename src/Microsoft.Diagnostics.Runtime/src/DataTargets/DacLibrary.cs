@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
-        public DacLibrary(DataTarget dataTarget, string dacDll)
+        public DacLibrary(DataTarget dataTarget, string dacPath)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr dacLibrary;
             try
             {
-                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
+                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
             }
             catch (Exception e) when (e is DllNotFoundException || e is BadImageFormatException)
             {
