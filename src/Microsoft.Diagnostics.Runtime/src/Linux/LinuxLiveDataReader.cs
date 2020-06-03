@@ -111,9 +111,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             group entry by entry.FilePath into image
             let filePath = image.Key
             let containsExecutable = image.Any(entry => entry.IsExecutable)
+            let mapping = containsExecutable ? ClrFileLayout.Mapped : ClrFileLayout.Flat
             let beginAddress = image.Min(entry => entry.BeginAddress)
             let props = GetPEImageProperties(filePath)
-            select new ModuleInfo(beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
+            select new ModuleInfo(beginAddress, filePath, mapping, props.Filesize, props.Timestamp, buildId: default);
 
         private static (int Filesize, int Timestamp) GetPEImageProperties(string filePath)
         {

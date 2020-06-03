@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
-            return new ModuleInfo((ulong)image.BaseAddress, image.Path, image._containsExecutable, filesize, timestamp, buildId: default);
+            return new ModuleInfo((ulong)image.BaseAddress, image.Path, image._containsExecutable ? ClrFileLayout.Mapped : ClrFileLayout.Flat, filesize, timestamp, buildId: default);
         }
 
         public void FlushCachedData()

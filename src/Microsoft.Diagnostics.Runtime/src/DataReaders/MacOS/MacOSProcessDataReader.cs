@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 Native.dyld_image_info info = Read<Native.dyld_image_info>(infos.infoArray, i);
                 ulong imageAddress = info.imageLoadAddress;
                 string imageFilePath = ReadNullTerminatedAscii(info.imageFilePath);
-                yield return new ModuleInfo(imageAddress, imageFilePath, true, 0, 0, ImmutableArray<byte>.Empty);
+                yield return new ModuleInfo(imageAddress, imageFilePath, ClrFileLayout.Mapped, 0, 0, ImmutableArray<byte>.Empty);
             }
 
             unsafe T Read<T>(ulong address, uint index = 0)
