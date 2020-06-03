@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
     /// <param name="processed">The total number of objects processed.</param>
-    public delegate void GCRootProgressUpdatedEventHandler(GCRoot source, int processed);
+    public delegate void GCRootProgressUpdatedEventHandler(GCRoot source, long processed);
 
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
@@ -60,27 +60,27 @@ namespace Microsoft.Diagnostics.Runtime
             return EnumerateGCRoots(target, true, cancellationToken);
         }
 
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancellationToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, CancellationToken cancellationToken = default)
         {
-            return EnumerateGCRoots(target, unique, Environment.ProcessorCount, cancellationToken);
+            return EnumerateGCRoots(target, returnOnlyFullyUniquePaths, Environment.ProcessorCount, cancellationToken);
         }
 
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, CancellationToken cancellationToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, CancellationToken cancellationToken = default)
         {
-            return EnumerateGCRoots(target, unique, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancellationToken);
+            return EnumerateGCRoots(target, returnOnlyFullyUniquePaths, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancellationToken);
         }
 
         /// <summary>
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.
         /// </summary>
         /// <param name="target">The target object to search for GC rooting.</param>
-        /// <param name="unique">Whether to only return fully unique paths.</param>
+        /// <param name="returnOnlyFullyUniquePaths">Whether to only return fully unique paths.</param>
         /// <param name="maxDegreeOfParallelism">The number of threads this class is allowed to use to calculate the result.
         /// Setting this to 1 will cause the algorithm to run on the current thread.</param>
         /// <param name="roots">The roots to consider.  You can pass ClrMD.</param>
         /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancellationToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancellationToken = default)
         {
             if (roots is null)
                 throw new ArgumentNullException(nameof(roots));
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ObjectSet processedObjects = new ObjectSet(Heap);
                 foreach (IClrRoot root in roots)
                 {
-                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, unique, cancellationToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath(root, path.ToImmutableArray());
 
@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
                 Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
                 for (int i = 0; i < threads.Length; i++)
                 {
-                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all: true, unique, cancellationToken)) { Name = "GCRoot Worker Thread" };
+                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all: true, returnOnlyFullyUniquePaths, cancellationToken)) { Name = "GCRoot Worker Thread" };
                     threads[i].Start();
                 }
 
@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
             ulong target,
             bool all,
-            bool unique,
+            bool returnOnlyFullyUniquePaths,
             CancellationToken cancellationToken)
         {
             IClrRoot? root;
@@ -179,7 +179,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, unique, cancellationToken))
+                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken))
                 {
                     if (path != null)
                     {
@@ -209,17 +209,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
-        /// <param name="unique">Whether to only enumerate fully unique paths.</param>
+        /// <param name="returnOnlyFullyUniquePaths">Whether to only enumerate fully unique paths.</param>
         /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancellationToken = default)
+        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool returnOnlyFullyUniquePaths, CancellationToken cancellationToken = default)
         {
             return PathsTo(
                 new ObjectSet(Heap),
                 new Dictionary<ulong, LinkedListNode<ClrObject>>(),
                 new ClrObject(source, Heap.GetObjectType(source)),
                 target,
-                unique,
+                returnOnlyFullyUniquePaths,
                 cancellationToken);
         }
 
@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dictionary<ulong, LinkedListNode<ClrObject>>? knownEndPoints,
             ClrObject source,
             ulong target,
-            bool unique,
+            bool returnOnlyFullyUniquePaths,
             CancellationToken cancellationToken)
         {
             /* knownEndPoints: A set of objects that are known to point to the target, once we see one of
@@ -268,7 +268,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     if (knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject>? ending))
                     {
-                        if (!unique || ending.Value.Address == target)
+                        if (!returnOnlyFullyUniquePaths || ending.Value.Address == target)
                         {
                             yield return GetResult(ending);
                         }
@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            if (unique && !deadEnds.Add(source.Address))
+            if (returnOnlyFullyUniquePaths && !deadEnds.Add(source.Address))
                 yield break;
 
             if (source.Type is null)
@@ -307,7 +307,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else if (foundEnding != null)
             {
-                if (!unique || foundEnding.Value.Address == target)
+                if (!returnOnlyFullyUniquePaths || foundEnding.Value.Address == target)
                 {
                     yield return GetResult(foundEnding);
                     yield break;
@@ -343,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
-                        if (unique ? deadEnds.Add(next.Address) : deadEnds.Contains(next.Address))
+                        if (returnOnlyFullyUniquePaths ? deadEnds.Add(next.Address) : deadEnds.Contains(next.Address))
                             continue;
 
                         if (knownEndPoints != null)
@@ -382,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                         else if (foundEnding != null)
                         {
-                            if (!unique || foundEnding.Value.Address == target)
+                            if (!returnOnlyFullyUniquePaths || foundEnding.Value.Address == target)
                             {
                                 TraceFullPath(path, foundEnding);
                                 yield return GetResult(foundEnding);
@@ -415,7 +415,7 @@ namespace Microsoft.Diagnostics.Runtime
                     foreach (ClrObject reference in obj.EnumerateReferences(true))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (!unique && end == null && knownEndPoints != null)
+                        if (!returnOnlyFullyUniquePaths && end == null && knownEndPoints != null)
                         {
                             lock (knownEndPoints)
                             {
@@ -461,7 +461,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                 }
 
-                if (unique)
+                if (returnOnlyFullyUniquePaths)
                 {
                     foreach (ClrObject obj in result)
                     {
