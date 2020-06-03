@@ -146,15 +146,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="imgBase">The base of the image as loaded into the virtual address space.</param>
+        /// <param name="imageBase">The base of the image as loaded into the virtual address space.</param>
         /// <param name="fileName">The full path of the file as loaded from disk (if possible), otherwise only the filename.</param>
         /// <param name="isVirtual">Whether this image is mapped into the virtual address space.  (This is as opposed to a memmap'ed file.)</param>
         /// <param name="indexFileSize">The index file size used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
         /// <param name="indexTimeStamp">The index timestamp used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
         /// <param name="buildId">The ELF buildid of this image.  Not valid for PEImages.</param>
-        public ModuleInfo(ulong imgBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, ImmutableArray<byte> buildId)
+        public ModuleInfo(ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, ImmutableArray<byte> buildId)
         {
-            ImageBase = imgBase;
+            ImageBase = imageBase;
             IndexFileSize = indexFileSize;
             IndexTimeStamp = indexTimeStamp;
             FileName = fileName;
