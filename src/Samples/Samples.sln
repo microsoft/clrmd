@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SelfAttach", "SelfAttach\Se
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GCRoot", "GCRoot\GCRoot.csproj", "{D7405CE8-8C8D-4462-B7AD-F1215E875422}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindbgExtension", "WindbgExtension\WindbgExtension.csproj", "{12679331-455F-470C-B2F3-A53FD6EDF2B3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7405CE8-8C8D-4462-B7AD-F1215E875422}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12679331-455F-470C-B2F3-A53FD6EDF2B3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
