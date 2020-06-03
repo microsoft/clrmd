@@ -104,7 +104,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 Assert.True(File.Exists(module.Name));
                 Assert.True(File.Exists(module.AssemblyName));
-                Assert.Equal(Path.GetFileNameWithoutExtension(module.Name), module.SimpleName);
             }
         }
 

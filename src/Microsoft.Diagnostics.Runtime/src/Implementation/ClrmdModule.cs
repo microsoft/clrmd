@@ -27,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrAppDomain AppDomain { get; }
         public override string? Name { get; }
-        public override string? SimpleName { get; }
         public override string? AssemblyName { get; }
         public override ulong AssemblyAddress { get; }
         public override ulong Address { get; }
@@ -49,7 +48,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _helpers = data.Helpers;
             AppDomain = parent;
             Name = data.Name;
-            SimpleName = data.SimpleName;
             AssemblyName = data.AssemblyName;
             AssemblyAddress = data.AssemblyAddress;
             Address = data.Address;
