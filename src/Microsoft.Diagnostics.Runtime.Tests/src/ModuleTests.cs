@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class ModuleTests
     {
-        [Fact]
+        [WindowsFact] // ModuleInfo.Version only supports native modules at the moment
         public void FileVersionInfoVersionTest()
         {
             bool found = false;
