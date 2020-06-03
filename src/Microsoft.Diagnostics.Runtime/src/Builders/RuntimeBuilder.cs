@@ -1117,7 +1117,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             if (etype == ClrElementType.GenericInstantiation)
             {
-                if (!parser.GetElemType(out ClrElementType classOrStruct))
+                if (!parser.GetElemType(out ClrElementType _))
                     return null;
 
                 if (!parser.GetToken(out int token))

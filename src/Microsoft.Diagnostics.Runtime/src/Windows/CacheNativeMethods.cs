@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ExecuteWriteCopy = 0x00000080,
                 Guard = 0x00000100,
                 NoCache = 0x00000200,
-                WriteCombine = 0x00000200,
+                WriteCombine = 0x00000400,
                 TargetsInvalid = 0x40000000
             }
 

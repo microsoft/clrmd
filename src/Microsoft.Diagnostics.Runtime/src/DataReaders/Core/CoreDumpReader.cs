@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules;
         }
 
-        private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
+        private static ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
             ElfFile? file = image.Open();
 
