@@ -2,31 +2,13 @@
 
 ## What platforms are supported?
 
-ClrMD is fully supported on Windows and Linux.
+ClrMD is fully supported on Windows and Linux.  We are currently working on OS X support but there is no ETA for when this will be complete.
 
 ## Can I use this API to inspect my own process?
 
-Using ClrMD to inspect its own process is not supported and not recommended.  The library does not prevent you from attaching to your own process, and some functionality may work but none of the CLR Diagnostics API that ClrMD was built on top of expects to be inspecting an "live" (un-suspended) process.
+Yes.  ClrMD allows you to create a snapshot of a running process and attach to that snapshot using `DataTarget.CreateSnapshotAndAttach`.  On Windows we use the `PssCreateSnapshot` API which is relatively fast to take an in-memory snapshot of a live process to debug.  On Linux (and eventually OS X when that is supported) you can also use `CreateSnapshotAndAttach` but since there isn't a fast in-memory OS API to take a snapshot we will temporarily drop a coredump to disk and "attach" to that, then delete the temporary coredump when `DataTarget.Dispose` is called.
 
-The fundamental problem here is data consistency.  The CLR runtime uses locks and other mechanisms to ensure that it sees a consistent view of the world (like any software project, really) and the CLR debugging layer (mscordaccore.dll) ignores those locks by design.  This means that if you are inspecting an unsuspended process you can get all kinds of weird behavior.  Exceptions, infinite loops, etc.
-
-We only support inspecting suspended processes. You are always required to suspend a live process before inspecting it, which obviously doens't work for your own process.  (Note that passing AttachFlags.Invasive and AttachFlags.NonInvasive suspend the process on your behalf, only AttachFlags.Passive does not.)
-
-Options for inspecting yourself are:
-- `CreateSnapshotAndAttach` on Windows.
-- Use [`dotnet-dump`](https://github.com/dotnet/diagnostics/blob/master/documentation/dotnet-dump-instructions.md) and inspect the dump.
-- Fork and `SuspendAndAttachToProcess` then kill the fork on Linux.
-- Start a new inspecting process and `SuspendAndAttachToProcess`.
-
-
-## Does this work with any architecture? (x86/x64?)
-
-Yep, this API works with crash dumps of both x86 and amd64 processes.
-
-However, you must match the architecture of your program to the crash dump you
-are reading. Meaning if you are debugging an x86 crash dump, your program must
-run as an x86 process, similar for an x64 dump, you need an x64 process. This is
-usually done with the /platform directive to C#.
+Attaching to your own, unsuspended process using `DataTarget.AttachToProcess(Process.GetCurrentProcess().Id, suspend: false)` is **not** supported.  In general, inspecting any running process that is not suspended is not supported, and we likely won't attempt to fix any bugs or issues in that scenario.
 
 ## Why do I need to match architecture of my process to the dump?
 
