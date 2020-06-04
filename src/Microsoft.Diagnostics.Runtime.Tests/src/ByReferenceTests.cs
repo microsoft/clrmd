@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             IClrStackRoot stackRoot = Assert.Single(stackRoots);
             Assert.True(stackRoot.IsInterior);
-            Assert.True(stackRoot.Object.IsValidObject);
+            Assert.True(stackRoot.Object.IsValid);
         }
 
         private void AssertValueType(IEnumerable<IClrStackRoot> stackRoots)
