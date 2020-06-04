@@ -3,7 +3,6 @@
   <PropertyGroup>
     <!-- This repo version -->
     <VersionPrefix>2.0.0</VersionPrefix>
-    <PreReleaseVersionLabel>rc</PreReleaseVersionLabel>
     <AutoGenerateAssemblyVersion>true</AutoGenerateAssemblyVersion>
     <UsingToolNetFrameworkReferenceAssemblies>true</UsingToolNetFrameworkReferenceAssemblies>
   </PropertyGroup>
