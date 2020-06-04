@@ -17,9 +17,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal abstract bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch);
         public abstract bool TryGetWow64(IntPtr proc, out bool result);
+
+        /// <param name="libraryPath">The path to the native library to be loaded.</param>
         public abstract IntPtr LoadLibrary(string libraryPath);
+
+        /// <param name="handle">The native library OS handle to be freed.</param>
         public abstract bool FreeLibrary(IntPtr handle);
-        public abstract IntPtr GetProcAddress(IntPtr handle, string name);
+
+        /// <param name="handle">The native library OS handle.</param>
+        /// <param name="name">The name of the exported symbol.</param>
+        public abstract IntPtr GetLibraryExport(IntPtr handle, string name);
 
         public virtual bool IsEqualFileVersion(string file, VersionInfo version)
         {

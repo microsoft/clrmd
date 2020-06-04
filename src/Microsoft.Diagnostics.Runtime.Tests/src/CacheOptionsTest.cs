@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(type.Fields, type.Fields);
             Assert.Equal(type.StaticFields, type.StaticFields);
 
-            ClrField field = type.GetInstanceFieldByName("o");
+            ClrField field = type.GetFieldByName("o");
             ClrField field2 = type.Fields.Single(f => f.Name == "o");
 
             Assert.Same(field, field2);
@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.NotEqual(type.Fields, type.Fields);
 
-            ClrField field = type.GetInstanceFieldByName("o");
+            ClrField field = type.GetFieldByName("o");
             ClrField field2 = type.Fields.Single(f => f.Name == "o");
 
             Assert.NotSame(field, field2);

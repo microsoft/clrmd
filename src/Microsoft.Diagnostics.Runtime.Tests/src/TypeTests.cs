@@ -421,7 +421,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType structTest = sharedLibrary.GetTypeByName("Struct");
             Assert.NotNull(structTest);
 
-            ClrInstanceField field = structTestClass.GetInstanceFieldByName("s");
+            ClrInstanceField field = structTestClass.GetFieldByName("s");
             if (dt.CacheOptions.CacheTypes)
                 Assert.Same(structTest, field.Type);
             else
@@ -429,10 +429,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal(sizeof(int), field.Size);
 
-            ClrInstanceField nes = structTestClass.GetInstanceFieldByName("nes");
+            ClrInstanceField nes = structTestClass.GetFieldByName("nes");
             Assert.Equal(0, nes.Size);
 
-            ClrInstanceField es = nes.Type.GetInstanceFieldByName("es");
+            ClrInstanceField es = nes.Type.GetFieldByName("es");
             Assert.Equal(0, es.Size);
         }
 
@@ -467,7 +467,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrStaticField list = fooType.GetStaticFieldByName("s_list");
             Assert.NotNull(list);
 
-            ClrInstanceField itemsField = list.Type.GetInstanceFieldByName("_items");
+            ClrInstanceField itemsField = list.Type.GetFieldByName("_items");
             ClrElementType elementType = itemsField.ElementType;
             ClrType componentType = itemsField.Type.ComponentType;
 
@@ -522,7 +522,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public ClrInstanceField TestFieldNameAndValue(ClrType type, ulong obj, string name, string value)
         {
-            ClrInstanceField field = type.GetInstanceFieldByName(name);
+            ClrInstanceField field = type.GetFieldByName(name);
             Assert.NotNull(field);
             Assert.Equal(name, field.Name);
 
@@ -535,7 +535,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
             where T : unmanaged
         {
-            ClrInstanceField field = type.GetInstanceFieldByName(name);
+            ClrInstanceField field = type.GetFieldByName(name);
             Assert.NotNull(field);
             Assert.Equal(name, field.Name);
 

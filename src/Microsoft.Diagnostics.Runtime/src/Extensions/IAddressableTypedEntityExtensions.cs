@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType entityType = entity?.Type ?? throw new ArgumentNullException(nameof(entity), "No associated type");
 
-            ClrInstanceField field = entityType.GetInstanceFieldByName(fieldName) ?? throw new ArgumentException($"Type '{entityType}' does not contain a field named '{fieldName}'");
+            ClrInstanceField field = entityType.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{entityType}' does not contain a field named '{fieldName}'");
 
             return field.IsObjectReference ? (IAddressableTypedEntity)entity.ReadObjectField(fieldName) : entity.ReadValueTypeField(fieldName);
         }

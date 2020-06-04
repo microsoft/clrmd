@@ -52,25 +52,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Creates a runtime from the given DAC file on disk.
         /// </summary>
-        /// <param name="dacFilename">A full path to the matching DAC dll for this process.</param>
+        /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
         /// <returns></returns>
-        public ClrRuntime CreateRuntime(string dacFilename, bool ignoreMismatch = false)
+        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch = false)
         {
-            if (string.IsNullOrEmpty(dacFilename))
-                throw new ArgumentNullException(nameof(dacFilename));
+            if (string.IsNullOrEmpty(dacPath))
+                throw new ArgumentNullException(nameof(dacPath));
 
-            if (!File.Exists(dacFilename))
-                throw new FileNotFoundException(dacFilename);
+            if (!File.Exists(dacPath))
+                throw new FileNotFoundException(dacPath);
 
             if (!ignoreMismatch)
             {
-                DataTarget.PlatformFunctions.GetFileVersion(dacFilename, out int major, out int minor, out int revision, out int patch);
+                DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
                     throw new InvalidOperationException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
             }
 
-            return ConstructRuntime(dacFilename);
+            return ConstructRuntime(dacPath);
         }
 
         public ClrRuntime CreateRuntime()

@@ -185,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _dlclose(handle) == 0;
         }
 
-        public override IntPtr GetProcAddress(IntPtr handle, string name)
+        public override IntPtr GetLibraryExport(IntPtr handle, string name)
         {
             return _dlsym(handle, name);
         }

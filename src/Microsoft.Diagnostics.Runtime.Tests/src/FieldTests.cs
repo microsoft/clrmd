@@ -19,16 +19,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
             ClrType program = module.GetTypeByName("Program");
 
-            ClrField publicField = program.GetInstanceFieldByName("publicField");
+            ClrField publicField = program.GetFieldByName("publicField");
             Assert.True(publicField.IsPublic);
 
-            ClrField privateField = program.GetInstanceFieldByName("privateField");
+            ClrField privateField = program.GetFieldByName("privateField");
             Assert.True(privateField.IsPrivate);
 
-            ClrField internalField = program.GetInstanceFieldByName("internalField");
+            ClrField internalField = program.GetFieldByName("internalField");
             Assert.True(internalField.IsInternal);
 
-            ClrField protectedField = program.GetInstanceFieldByName("protectedField");
+            ClrField protectedField = program.GetFieldByName("protectedField");
             Assert.True(protectedField.IsProtected);
         }
 
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static void CheckField(ClrType type, string fieldName, ClrElementType element, string typeName, int size)
         {
-            ClrInstanceField field = type.GetInstanceFieldByName(fieldName);
+            ClrInstanceField field = type.GetFieldByName(fieldName);
             Assert.NotNull(field);
             Assert.NotNull(field.Type);
 

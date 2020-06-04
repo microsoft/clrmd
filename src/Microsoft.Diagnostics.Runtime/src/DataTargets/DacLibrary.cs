@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
-        public DacLibrary(DataTarget dataTarget, string dacDll)
+        public DacLibrary(DataTarget dataTarget, string dacPath)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr dacLibrary;
             try
             {
-                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
+                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
             }
             catch (Exception e) when (e is DllNotFoundException || e is BadImageFormatException)
             {
@@ -104,13 +104,13 @@ namespace Microsoft.Diagnostics.Runtime
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
 
-            IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
+            IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
             if (initAddr == IntPtr.Zero)
-                initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "PAL_InitializeDLL");
+                initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "PAL_InitializeDLL");
 
             if (initAddr != IntPtr.Zero)
             {
-                IntPtr dllMain = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DllMain");
+                IntPtr dllMain = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DllMain");
                 if (dllMain == IntPtr.Zero)
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
                 main(dacLibrary, 1, IntPtr.Zero);
             }
 
-            IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "CLRDataCreateInstance");
+            IntPtr addr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "CLRDataCreateInstance");
             if (addr == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
 

@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return NativeMethods.FreeLibrary(handle);
         }
 
-        public override IntPtr GetProcAddress(IntPtr handle, string name)
+        public override IntPtr GetLibraryExport(IntPtr handle, string name)
         {
             return NativeMethods.GetProcAddress(handle, name);
         }
