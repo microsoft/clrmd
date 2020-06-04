@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool IsException => Type != null && Type.IsException;
 
-        public ClrException AsException()
+        public ClrException? AsException()
         {
             if (!IsException)
                 throw new InvalidOperationException($"Object {Address:x} is not an Exception.");

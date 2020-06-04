@@ -21,10 +21,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         internal static void TestProperties(ClrRuntime runtime)
         {
             ClrThread thread = runtime.GetMainThread();
-            ClrException? exNullable = thread.CurrentException;
-            Assert.NotNull(exNullable);
-
-            ClrException ex = exNullable.GetValueOrDefault();
+            ClrException ex = thread.CurrentException;
+            Assert.NotNull(ex);
 
             ExceptionTestData testData = TestTargets.NestedExceptionData;
             Assert.Equal(testData.OuterExceptionMessage, ex.Message);
@@ -39,10 +37,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrThread thread = runtime.GetMainThread();
-            ClrException? exceptionNullable = thread.CurrentException;
-            Assert.NotNull(exceptionNullable);
+            ClrException exception = thread.CurrentException;
+            Assert.NotNull(exception);
 
-            ClrException exception = exceptionNullable.GetValueOrDefault();
             ImmutableArray<ClrStackFrame> stackTrace = exception.StackTrace;
             foreach (ClrStackFrame stackFrame in stackTrace)
             {
