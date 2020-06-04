@@ -6,8 +6,6 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    // TODO:  Make struct
-
     /// <summary>
     /// Information about a specific PDB instance obtained from a PE image.
     /// </summary>
