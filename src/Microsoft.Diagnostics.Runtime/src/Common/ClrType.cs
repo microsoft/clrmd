@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
-        public abstract ClrInstanceField? GetInstanceFieldByName(string name);
+        public abstract ClrInstanceField? GetFieldByName(string name);
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).

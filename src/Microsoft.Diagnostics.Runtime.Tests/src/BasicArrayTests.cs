@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             var index = seed % originalArray.Length;
             var structType = structArray.Type.ComponentType;
-            var textField = structType.GetInstanceFieldByName(nameof(ArrayConnection.SampleStruct.ReferenceLoad));
+            var textField = structType.GetFieldByName(nameof(ArrayConnection.SampleStruct.ReferenceLoad));
 
             // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);

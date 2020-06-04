@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException();
 
-        public override ClrInstanceField? GetInstanceFieldByName(string name) => null;
+        public override ClrInstanceField? GetFieldByName(string name) => null;
 
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
 
