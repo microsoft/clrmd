@@ -55,7 +55,7 @@ namespace WindbgExtension
                 stream.AutoFlush = true;
                 Console.SetOut(stream);
 
-                DataTarget = DataTarget.CreateFromDebuggerInterface(DebugClient);
+                DataTarget = DataTarget.CreateFromDbgEng(ptrClient);
             }
 
             // If our ClrRuntime instance is null, it means that this is our first call, or
@@ -88,7 +88,7 @@ namespace WindbgExtension
                 // If we already had a runtime, flush it for this use.  This is ONLY required
                 // for a live process or iDNA trace.  If you use the IDebug* apis to detect
                 // that we are debugging a crash dump you may skip this call for better perf.
-                Runtime.Flush();
+                Runtime.FlushCachedData();
             }
 
             return Runtime != null;

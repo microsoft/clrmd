@@ -113,7 +113,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrType? Type { get; }
 
-        public bool IsValidObject => Address != 0 && Type != null;
+        /// <summary>
+        /// Returns whether this is free space on the GC heap and not a real object.
+        /// </summary>
+        public bool IsFree => Type?.IsFree ?? false;
+
+        /// <summary>
+        /// Returns whether this is a valid object.  This will return null
+        /// </summary>
+        public bool IsValid => Address != 0 && Type != null;
 
         /// <summary>
         /// Returns if the object value is <see langword="null"/>.
@@ -151,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The ComCallableWrapper associated with the object, <see langword="null"/> if obj is not a CCW.</returns>
         public ComCallableWrapper? GetComCallableWrapper()
         {
-            if (IsNull || !IsValidObject || !HasComCallableWrapper)
+            if (IsNull || !IsValid || !HasComCallableWrapper)
                 return null;
 
             return Helpers.Factory.CreateCCWForObject(Address);
@@ -163,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The RuntimeCallableWrapper associated with the object, <see langword="null"/> if obj is not a RCW.</returns>
         public RuntimeCallableWrapper? GetRuntimeCallableWrapper()
         {
-            if (IsNull || !IsValidObject)
+            if (IsNull || !IsValid)
                 return null;
 
             return Helpers.Factory.CreateRCWForObject(Address);
@@ -355,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new InvalidOperationException("Object is null.");
 
-            if (!IsValidObject)
+            if (!IsValid)
                 throw new InvalidOperationException($"Object {Address:x} is corrupted, could not determine type.");
 
             return Type!;

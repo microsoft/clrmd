@@ -21,16 +21,15 @@ namespace WindbgExtension
             // reobtained every run.
             ClrHeap heap = Runtime.Heap;
 
-            var stats = from obj in heap.EnumerateObjectAddresses()
-                        let t = heap.GetObjectType(obj)
-                        group obj by t into g
-                        let size = g.Sum(p => (uint)g.Key.GetSize(p))
+            var stats = from obj in heap.EnumerateObjects()
+                        group obj by obj.Type into g
+                        let size = g.Sum(p => (long)p.Size)
                         orderby size
                         select new
                         {
                             Size = size,
                             Count = g.Count(),
-                            Name = g.Key.Name
+                            g.Key.Name
                         };
 
             // Console.WriteLine now writes to the debugger.
