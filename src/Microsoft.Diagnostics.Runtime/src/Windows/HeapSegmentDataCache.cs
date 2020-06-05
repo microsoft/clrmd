@@ -144,6 +144,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     curItemIndex++;
                 }
 
+                if (removalTargetIndex == -1)
+                    return;
+
                 SegmentCacheEntry targetItem = entries[removalTargetIndex].CacheEntry.Value;
 
                 bool removedMemUsedByItem = true;
