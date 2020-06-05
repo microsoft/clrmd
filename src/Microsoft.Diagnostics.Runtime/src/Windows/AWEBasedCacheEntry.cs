@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public override bool PageOutData()
+        public override long PageOutData()
         {
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataStart();
@@ -335,7 +335,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
 
-            return true;
+            return sizeRemoved;
         }
 
         public override void UpdateLastAccessTickCount()

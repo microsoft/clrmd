@@ -151,7 +151,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 // Prefer paging out the data if we can, this is less drastic than throwing it away (ala Dispose), if we can't page it out 
                 // though remove and dispose of it
-                if (!targetItem.PageOutData())
+                long removedBytes = targetItem.PageOutData();
+                if (removedBytes == 0)
                 {
                     long sizeRemoved = targetItem.CurrentSize;
 
@@ -223,8 +224,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 if (removedMemUsedByItem)
                 {
-                    Interlocked.Add(ref _cacheSize, -largestSizeSeen);
-                    cutAmount += largestSizeSeen;
+                    Interlocked.Add(ref _cacheSize, -removedBytes);
+                    cutAmount += (uint)removedBytes;
                 }
             }
         }

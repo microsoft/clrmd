@@ -252,10 +252,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public override bool PageOutData()
+        public override long PageOutData()
         {
             // We can't page our data out
-            return false;
+            return 0;
         }
 
         public override void UpdateLastAccessTickCount()
