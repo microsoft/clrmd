@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private CachePage[] _pages;
         private long _lastAccessTickCount;
         private int _accessCount;
-        private int _entrySize;
+        private volatile int _entrySize;
 
         static AWEBasedCacheEntry()
         {
@@ -333,11 +333,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             // Correct our size based on how much data we could remove
-            int oldCurrent = _entrySize;
+            int oldCurrent;
             int newCurrent;
             do
             {
-                newCurrent = Math.Max(MinSize, _entrySize - (int)sizeRemoved);
+                oldCurrent = _entrySize;
+                newCurrent = Math.Max(MinSize, oldCurrent - (int)sizeRemoved);
             }
             while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 
