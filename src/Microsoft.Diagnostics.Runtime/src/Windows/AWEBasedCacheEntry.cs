@@ -330,7 +330,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             // Revert to our minimum size
-            CurrentSize = Math.Min(MinSize, CurrentSize - (uint)sizeRemoved);
+            CurrentSize = Math.Max(MinSize, CurrentSize - (uint)sizeRemoved);
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
