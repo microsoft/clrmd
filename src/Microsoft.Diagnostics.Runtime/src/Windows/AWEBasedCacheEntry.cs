@@ -291,8 +291,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         CachePage page = _pages[i];
                         if (page != null)
                         {
-                            sizeRemoved += page.DataExtent;
-
                             // We need to unmap the physical memory from this VM range and then free the VM range
                             bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, numberOfPages: (uint)(VirtualAllocPageSize / SystemPageSize), pageArray: UIntPtr.Zero);
                             if (!unmapPhysicalPagesResult)
@@ -314,6 +312,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                 continue;
                             }
 
+                            sizeRemoved += page.DataExtent;
+
                             // Done, throw away our VM pointer
                             _pages[i] = null;
                         }
@@ -330,7 +330,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             // Revert to our minimum size
-            CurrentSize = MinSize;
+            CurrentSize = Math.Min(MinSize, CurrentSize - (uint)sizeRemoved);
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
