@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public abstract int AccessCount { get; }
 
-        public abstract bool PageOutData();
+        public abstract long PageOutData();
 
         public abstract void UpdateLastAccessTickCount();
 
