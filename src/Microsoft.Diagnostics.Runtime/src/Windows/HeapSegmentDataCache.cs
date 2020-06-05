@@ -147,6 +147,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 SegmentCacheEntry targetItem = entries[removalTargetIndex].CacheEntry.Value;
 
                 bool removedMemUsedByItem = true;
+                bool refreshEntries = false;
 
                 // Prefer paging out the data if we can, this is less drastic than throwing it away (ala Dispose), if we can't page it out 
                 // though remove and dispose of it
@@ -161,26 +162,65 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                         HeapSegmentCacheEventSource.Instance.PageOutDataStart();
 
-                    using (targetItem as IDisposable)
+                    _cacheLock.EnterWriteLock();
+                    try
                     {
-                        _cacheLock.EnterWriteLock();
-                        try
-                        {
-                            removedMemUsedByItem = _cache.Remove(entries[removalTargetIndex].CacheEntry.Key);
-                        }
-                        finally
-                        {
-                            _cacheLock.ExitWriteLock();
+                        ulong targetKey = entries[removalTargetIndex].CacheEntry.Key;
 
-                            if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                                HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
+                        SegmentCacheEntry? doubleCheckItem;
+                        if (this._cache.TryGetValue(targetKey, out doubleCheckItem)) // make sure it hasn't been removed by another thread
+                        {
+                            // THREADING: If the entry in the cache is the SAME as when we snapshotted the item, then dispose of it. This closes
+                            // a hole where between the time we snapshot and the time we get here another thread has removed the item and then,
+                            // yet another thread, has added a NEW entry for that item back into the cache. If we simply blindly remove the cache 
+                            // item we end up not disposing of it, which is bad.
+                            if (targetItem == doubleCheckItem)
+                            {
+                                (targetItem as IDisposable)?.Dispose();
+                                removedMemUsedByItem = this._cache.Remove(targetKey);
+                            }
+                            else
+                            {
+                                // The item in the cache is not the same as our snapshot, so we should re-snapshot
+                                removedMemUsedByItem = false;
+                                refreshEntries = true;
+                            }
                         }
+                        else
+                        {
+                            // The item we tried to remove doesn't exist any longer, so our snapshot data is clearly out of date
+                            removedMemUsedByItem = false;
+                            refreshEntries = true;
+                        }
+
+                        if(refreshEntries)
+                        {
+                            // THREADING: If the above if check fails we DO NOT want to remove the cache entry. The reason being we chose the target item
+                            // because it was the best candidate amongst our snapshotted items, nothing says that the replaced item at the same key is
+                            // the best item amongst the new collection of entries.
+
+                            // Since there is at least ONE new entry in the cache since our snapshot was taken, retake the snapshot (since we already hold the
+                            // write lock) so we aren't trimming against stale entries.
+                            items = this._cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
+                            entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
+                        }
+                    }
+                    finally
+                    {
+                        _cacheLock.ExitWriteLock();
+
+                        if (HeapSegmentCacheEventSource.Instance.IsEnabled())
+                            HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
                     }
                 }
 
-                // Remove the entry from our local collection of entries as either way (data paged out or item removed from cache or item already 
-                // removed from cache on another thread) the size of the entry is now essentially 0 for further trimming purposes
-                entries.RemoveAt(removalTargetIndex);
+                if (!refreshEntries)
+                {
+                    // If we didn't refresh the entry collection then remove the entry from our local collection of entries as either way (data paged out or item removed from
+                    // cache or item alreday removed from cache on another thread) the size of the entry is now essentially 0 for further trimming purposes.
+                    entries.RemoveAt(removalTargetIndex);
+                }
+
                 if (removedMemUsedByItem)
                 {
                     Interlocked.Add(ref _cacheSize, -largestSizeSeen);
