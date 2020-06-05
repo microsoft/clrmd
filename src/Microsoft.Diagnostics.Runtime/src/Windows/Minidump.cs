@@ -108,11 +108,17 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             int cacheSize = cacheOptions.MaxDumpCacheSize > int.MaxValue ? int.MaxValue : (int)cacheOptions.MaxDumpCacheSize;
 
-            if (cacheSize <= CachedMemoryReader.MinimumCacheSize || new FileInfo(crashDump).Length <= cacheSize)
+            bool isTinyDump = new FileInfo(crashDump).Length <= cacheSize;
+            if (isTinyDump)
             {
                 _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
                 MemoryMappedViewStream mmStream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
                 MemoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize);
+            }
+            else if (cacheSize < CachedMemoryReader.MinimumCacheSize)
+            {
+                // this will be very slow
+                MemoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
             }
             else
             {
