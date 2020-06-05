@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly CachePage[] _dataChunks;
         private int _accessCount;
         private long _lastAccessTickCount;
-        private int _entrySize;
+        private volatile int _entrySize;
 
         internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForAddedChunk)
         {
@@ -259,11 +259,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             var data = TryRemoveAllPagesFromCache();
 
-            int oldCurrent = _entrySize;
+            int oldCurrent;
             int newCurrent;
             do
             {
-                newCurrent = Math.Max((int)this.MinSize, _entrySize - (int)data.DataRemoved);
+                oldCurrent = _entrySize;
+                newCurrent = Math.Max((int)this.MinSize, oldCurrent - (int)data.DataRemoved);
             }
             while(Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 
