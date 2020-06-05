@@ -124,6 +124,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 uint largestSizeSeen = 0;
                 int curItemIndex = (entries.Count - 1) - (int)(entries.Count * 0.10);
 
+                if (curItemIndex < 0)
+                    return;
+
                 int removalTargetIndex = -1;
                 while (curItemIndex < entries.Count)
                 {
