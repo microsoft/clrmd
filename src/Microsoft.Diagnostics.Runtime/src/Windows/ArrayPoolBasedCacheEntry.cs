@@ -482,7 +482,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             dataExtent = readSize;
 
             bool pageInFailed = false;
-            MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + offset, size: readSize, MemoryMappedFileAccess.Read);
+            using MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + offset, size: readSize, MemoryMappedFileAccess.Read);
             try
             {
                 ulong viewOffset = (ulong)view.PointerOffset;
@@ -533,11 +533,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                // Tests show disposing of the view can be a significant timesync in the previous iteration of this code.
-                // We'll dispose of view on a background task, but we really should profile this.
-                if (view != null)
-                    Task.Run(view.Dispose);
-
                 if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
             }
