@@ -257,11 +257,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override long PageOutData()
         {
-            // NOTE: This is kind of confusing but I want to be able to detect, in Dispose, whether there was any memory we COULDN'T reclaim. So instead of reporting
-            // how much memory we DID remove, I report how much we couldn't. If I reported how much we did I would have no way of knowing if 0 meant all the items were
-            // already null or they were all in use. With this appraoch, if in Dispose, this call returns 0 it means we disposed ALL of the memory (and we are
-            // done), otherwise we have to keep spinning. Here however I do NOT want to spin so it doesn't matter what dataUnableToBeRemoved is equal to, we just have to
-            // ensure we leave it in place in our bookeeping and DON'T report that amount as having been removed to our caller.
             var data = TryRemoveAllPagesFromCache();
 
             int oldCurrent = _entrySize;
