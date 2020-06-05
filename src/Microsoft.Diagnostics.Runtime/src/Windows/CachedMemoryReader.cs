@@ -15,6 +15,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly ImmutableArray<MinidumpSegment> _segments;
         private readonly HeapSegmentDataCache _cachedMemorySegments;
 
+        // Single element MinidumpSegment cache for last accessed segment to avoid needing to look it up before reading from its cache entry. The idea is most sequence of reads
+        // have either strong locality (i.e. contiguous) or weak locality (if not contiguous at least within the same heap segment), so for all that meet that criteria avoid the
+        // (somewhat expensive) binary search to go from address -> MinidumpSegment, and go directly to the data.
+        //
+        // NOTE: This technically leaks since we can't really clean up TLS entries, that said the MinidumpSegment only holds on to two ulongs, and then the int in the unnamed tuple, so this leaks
+        // 20 bytes per thread that makes reads into the cache. Do not add anything more expensive to this cache or hold onto anything heavyweight like the actual cache entry that backs
+        // the given heap memory.
+        [ThreadStatic]
+        private static (MinidumpSegment Segment, int SegmentIndex) _lastAccessed;
+
         private readonly object _rvaLock = new object();
         private Stream? _rvaStream;
 
@@ -100,36 +110,43 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             ImmutableArray<MinidumpSegment> segments = _segments;
             MinidumpSegment lastKnownSegment = segments[segments.Length - 1];
 
-            // quick check if the address is before our first segment or after our last, CLRMD seems to ask for numerous addresses that are very small (like < 0x1000), so no need
-            // to do an exhaustive search for that as we would never have anything that low
+            // quick check if the address is before our first segment or after our last
             if ((address < segments[0].VirtualAddress) || (address > (lastKnownSegment.VirtualAddress + lastKnownSegment.Size)))
                 return 0;
 
             int curSegmentIndex = -1;
             MinidumpSegment targetSegment;
 
-            int memorySegmentStartIndex = segments.Search(address, (x, addr) => (x.VirtualAddress <= addr && addr < x.VirtualAddress + x.Size) ? 0 : x.VirtualAddress.CompareTo(addr));
-
-            if (memorySegmentStartIndex >= 0)
+            if (address < _lastAccessed.Segment.End && address >= _lastAccessed.Segment.VirtualAddress)
             {
-                curSegmentIndex = memorySegmentStartIndex;
+                targetSegment = _lastAccessed.Segment;
+                curSegmentIndex = _lastAccessed.SegmentIndex;
             }
             else
             {
-                // It would be beyond the end of the memory segments we have
-                if (memorySegmentStartIndex == ~segments.Length)
-                    return 0;
+                int memorySegmentStartIndex = segments.Search(address, (x, addr) => (x.VirtualAddress <= addr && addr < x.VirtualAddress + x.Size) ? 0 : x.VirtualAddress.CompareTo(addr));
 
-                // This is the index of the first segment of memory whose start address is GREATER than the given address.
-                int insertionIndex = ~memorySegmentStartIndex;
-                if (insertionIndex == 0)
-                    return 0;
+                if (memorySegmentStartIndex >= 0)
+                {
+                    curSegmentIndex = memorySegmentStartIndex;
+                }
+                else
+                {
+                    // It would be beyond the end of the memory segments we have
+                    if (memorySegmentStartIndex == ~segments.Length)
+                        return 0;
 
-                // Grab the segment before this one, as it must be the one that contains this address
-                curSegmentIndex = insertionIndex - 1;
+                    // This is the index of the first segment of memory whose start address is GREATER than the given address.
+                    int insertionIndex = ~memorySegmentStartIndex;
+                    if (insertionIndex == 0)
+                        return 0;
+
+                    // Grab the segment before this one, as it must be the one that contains this address
+                    curSegmentIndex = insertionIndex - 1;
+                }
+
+                targetSegment = segments[curSegmentIndex];
             }
-
-            targetSegment = segments[curSegmentIndex];
 
             // This can only be true if we went into the else block above, located a segment BEYOND the given address, backed up one segment and the address
             // isn't inside that segment. This means we don't have the requested memory in the dump.
@@ -148,13 +165,23 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 remainingBytes -= bytesRead;
 
                 if (remainingBytes == 0 || bytesRead == 0)
+                {
+                    _lastAccessed.Segment = targetSegment;
+                    _lastAccessed.SegmentIndex = curSegmentIndex;
+
                     return totalBytes;
+                }
 
                 insertionPtr += bytesRead;
                 address += (uint)bytesRead;
 
                 if ((curSegmentIndex + 1) == segments.Length)
+                {
+                    _lastAccessed.Segment = targetSegment;
+                    _lastAccessed.SegmentIndex = curSegmentIndex;
+
                     return totalBytes;
+                }
 
                 targetSegment = segments[++curSegmentIndex];
 
@@ -162,7 +189,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     curSegmentIndex = segments.Search(address, (x, addr) => (x.VirtualAddress <= addr && addr < x.VirtualAddress + x.Size) ? 0 : x.VirtualAddress.CompareTo(addr));
                     if (curSegmentIndex == -1)
+                    {
+                        _lastAccessed.SegmentIndex = curSegmentIndex - 1;
+                        _lastAccessed.Segment = segments[_lastAccessed.SegmentIndex];
+
                         return totalBytes;
+                    }
 
                     targetSegment = segments[curSegmentIndex];
                 }
