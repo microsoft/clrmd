@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly CachePage[] _dataChunks;
         private int _accessCount;
         private long _lastAccessTickCount;
+        private int _entrySize;
 
         internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForAddedChunk)
         {
@@ -42,14 +43,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             for (int i = 0; i < _dataChunkLocks.Length; i++)
                 _dataChunkLocks[i] = new ReaderWriterLockSlim();
 
-            MinSize = (uint)(6 * UIntPtr.Size) + /*our six fields that are reference type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
-                      (uint)(_dataChunks.Length * UIntPtr.Size) + /*The array of data chunks (each element being a pointer)*/
-                      (uint)(_dataChunkLocks.Length * UIntPtr.Size) + /*The array of locks for our data chunks*/
+            MinSize = (6 * UIntPtr.Size) + /*our six fields that are reference type fields (updateOwningCacheForAddedChunk, disposeQueue, mappedFile, segmentData, dataChunkLocks, dataChunks)*/
+                      (_dataChunks.Length * UIntPtr.Size) + /*The array of data chunks (each element being a pointer)*/
+                      (_dataChunkLocks.Length * UIntPtr.Size) + /*The array of locks for our data chunks*/
                       sizeof(int) + /*accessCount field*/
                       sizeof(uint) + /*entrySize field*/
                       sizeof(long) /*lastAccessTickCount field*/;
 
-            CurrentSize = MinSize;
+            _entrySize = MinSize;
 
             _updateOwningCacheForAddedChunk = updateOwningCacheForAddedChunk;
 
@@ -65,6 +66,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         public override long LastAccessTickCount => Interlocked.Read(ref _lastAccessTickCount);
+
+        public override int CurrentSize => _entrySize;
 
         public override void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
         {
@@ -254,8 +257,17 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override long PageOutData()
         {
-            // We can't page our data out
-            return 0;
+            var data = TryRemoveAllPagesFromCache();
+
+            int oldCurrent = _entrySize;
+            int newCurrent;
+            do
+            {
+                newCurrent = Math.Max((int)this.MinSize, _entrySize - (int)data.DataRemoved);
+            }
+            while(Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
+
+            return data.DataRemoved;
         }
 
         public override void UpdateLastAccessTickCount()
@@ -276,48 +288,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public void Dispose()
         {
-            // NOTE: Technically this could cause a hang, we don't want to leak an ArrayPool because someone is reading from it while another thread is trying to remove
-            // this cache entry, and we don't want to return it to the pool while they are using it. So the idea is that eventually we will spin around and find all pages
-            // not in use, until then, keep spinning :)
-            while (true)
-            {
-                // Assume we will be able to evict all non-null pages
-                bool encounteredBusyPage = false;
-
-                for (int i = 0; i < _dataChunks.Length; i++)
-                {
-                    CachePage page = _dataChunks[i];
-                    if (page != null)
-                    {
-                        ReaderWriterLockSlim dataChunkLock = _dataChunkLocks[i];
-                        if (!dataChunkLock.TryEnterWriteLock(timeout: TimeSpan.Zero))
-                        {
-                            // Someone holds the writelock on this page, skip it and try to get it in another pass, this prevent us from blocking at the moment
-                            // on someone currently reading a page, they will likely be done by our next pass
-                            encounteredBusyPage = true;
-                            continue;
-                        }
-
-                        try
-                        {
-                            // double check that no other thread already scavenged this entry
-                            page = _dataChunks[i];
-                            if (page != null)
-                            {
-                                ArrayPool<byte>.Shared.Return(page.Data);
-                                _dataChunks[i] = null;
-                            }
-                        }
-                        finally
-                        {
-                            dataChunkLock.ExitWriteLock();
-                        }
-                    }
-                }
-
-                if (!encounteredBusyPage)
-                    break;
-            }
+            // Potentially an infinite spin, but if we are being disposed while concurrently used I'd rather inifinite spin to find such a bug than leak memory and have
+            // to track that down later in long running processes.
+            while (TryRemoveAllPagesFromCache().ItemsSkipped != 0)
+                ;
         }
 
         private static uint MapOffsetToPageOffset(uint offset)
@@ -366,6 +340,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         byte[] data = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
                         _dataChunks[dataIndex] = new CachePage(data, dataRange);
+
+                        UpdateLastAccessTickCount();
+                        Interlocked.Add(ref _entrySize, (int)dataRange);
+
+                        _updateOwningCacheForAddedChunk(_segmentData.VirtualAddress, dataRange);
                     }
                 }
                 catch (Exception)
@@ -427,6 +406,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             byte[] data = GetPageAtOffset(pageAlignedOffset, out uint dataRange);
 
                             _dataChunks[++dataIndex] = new CachePage(data, dataRange);
+
+                            UpdateLastAccessTickCount();
+                            Interlocked.Add(ref _entrySize, (int)dataRange);
+
+                            _updateOwningCacheForAddedChunk(_segmentData.VirtualAddress, dataRange);
 
                             bytesRemaining -= (int)dataRange;
                         }
@@ -510,10 +494,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             CacheNativeMethods.Memory.memcpy(new UIntPtr(pData), new UIntPtr(pViewLoc), new UIntPtr(readSize));
                         }
 
-                        UpdateLastAccessTickCount();
-                        CurrentSize += readSize;
-                        _updateOwningCacheForAddedChunk(_segmentData.VirtualAddress, readSize);
-
                         return data;
                     }
                     finally
@@ -551,6 +531,46 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             uint inPageOffset = MapOffsetToPageOffset(offset);
             return (inPageOffset + byteCount) < startingPage.DataExtent;
+        }
+
+        private (uint DataRemoved, uint ItemsSkipped) TryRemoveAllPagesFromCache()
+        {
+            // Assume we will be able to evict all non-null pages
+            uint dataRemoved = 0;
+            uint itemsSkipped = 0;
+
+            for (int i = 0; i < _dataChunks.Length; i++)
+            {
+                CachePage page = _dataChunks[i];
+                if (page != null)
+                {
+                    ReaderWriterLockSlim dataChunkLock = _dataChunkLocks[i];
+                    if (!dataChunkLock.TryEnterWriteLock(timeout: TimeSpan.Zero))
+                    {
+                        // Someone holds a read or write lock on this page, skip it and record that we skipped it
+                        itemsSkipped++;
+                        continue;
+                    }
+
+                    try
+                    {
+                        // double check that no other thread already scavenged this entry
+                        page = _dataChunks[i];
+                        if (page != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(page.Data);
+                            _dataChunks[i] = null;
+                            dataRemoved += page.DataExtent;
+                        }
+                    }
+                    finally
+                    {
+                        dataChunkLock.ExitWriteLock();
+                    }
+                }
+            }
+
+            return (dataRemoved, itemsSkipped);
         }
 
         [DebuggerDisplay("Size: {DataExtent}")]

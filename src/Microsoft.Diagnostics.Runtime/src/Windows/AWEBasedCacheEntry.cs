@@ -29,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private CachePage[] _pages;
         private long _lastAccessTickCount;
         private int _accessCount;
+        private int _entrySize;
 
         static AWEBasedCacheEntry()
         {
@@ -51,10 +52,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _pageLocks[i] = new ReaderWriterLockSlim();
             }
 
-            MinSize = (uint)(_pages.Length * UIntPtr.Size) + /*size of pages array*/
-                      (uint)(_pageLocks.Length * UIntPtr.Size) + /*size of pageLocks array*/
-                      (uint)(_pageFrameArrayItemCount * UIntPtr.Size) +  /*size of pageFrameArray*/
-                      (uint)(5 * IntPtr.Size) + /*size of reference type fields (updateOwningCacheForSizeChangeCallback, segmentData, pageFrameArray, pageLocks, pages)*/
+            MinSize = (_pages.Length * UIntPtr.Size) + /*size of pages array*/
+                      (_pageLocks.Length * UIntPtr.Size) + /*size of pageLocks array*/
+                      (_pageFrameArrayItemCount * UIntPtr.Size) +  /*size of pageFrameArray*/
+                      (5 * IntPtr.Size) + /*size of reference type fields (updateOwningCacheForSizeChangeCallback, segmentData, pageFrameArray, pageLocks, pages)*/
                       (2 * sizeof(int)) + /*size of int fields (pageFrameArrayItemCount, accessSize)*/
                       sizeof(uint) +  /*size of uint field (accessCount)*/
                       sizeof(long); /*size of long field (lasAccessTickCount)*/
@@ -64,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _pageFrameArray = pageFrameArray;
             _pageFrameArrayItemCount = pageFrameArrayItemCount;
 
-            CurrentSize = MinSize;
+            _entrySize = MinSize;
 
             IncrementAccessCount();
             UpdateLastAccessTickCount();
@@ -73,6 +74,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public override long LastAccessTickCount => Interlocked.Read(ref _lastAccessTickCount);
 
         public override int AccessCount => _accessCount;
+
+        public override int CurrentSize => _entrySize;
 
         public override void IncrementAccessCount()
         {
@@ -329,8 +332,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     break;
             }
 
-            // Revert to our minimum size
-            CurrentSize = Math.Max(MinSize, CurrentSize - (uint)sizeRemoved);
+            // Correct our size based on how much data we could remove
+            int oldCurrent = _entrySize;
+            int newCurrent;
+            do
+            {
+                newCurrent = Math.Max(MinSize, _entrySize - (int)sizeRemoved);
+            }
+            while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
+
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
@@ -535,7 +545,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
                 UpdateLastAccessTickCount();
-                CurrentSize += readSize;
+                Interlocked.Add(ref _entrySize, (int)readSize);
 
                 // NOTE: We call back under lock, non-ideal but the callback should NOT be modifying this entry in any way
                 _updateOwningCacheForSizeChangeCallback(_segmentData.VirtualAddress, readSize);

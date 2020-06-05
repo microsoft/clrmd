@@ -8,9 +8,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     abstract class SegmentCacheEntry
     {
-        public uint CurrentSize { get; protected set; }
+        public abstract int CurrentSize { get; }
 
-        public uint MinSize { get; protected set; }
+        public int MinSize { get; protected set; }
 
         public abstract long LastAccessTickCount { get; }
 
