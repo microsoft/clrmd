@@ -1,6 +1,6 @@
 # ClrMD 2.0 Beta Release Notes
 
-Over the last few weeks we have been rewriting a lot of the internal core of ClrMD to fix a lot of issues that have been problematic in the library.  ClrMD 2.0 is faster, uses less memory, and is thread safe (with exceptions), but it has a lot of breaking changes which will require you to update existing code to use it.
+Over the last few weeks we have been rewriting a lot of the internal core of ClrMD to fix a lot of issues that have been problematic in the library.  ClrMD 2.0 is faster, allows you to control how much memory the library uses, and is thread safe (with exceptions), but it has a lot of breaking changes which will require you to update existing code to use it.
 
 # Quick Notes
 
