@@ -289,10 +289,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public void Dispose()
         {
-            // Potentially an infinite spin, but if we are being disposed while concurrently used I'd rather inifinite spin to find such a bug than leak memory and have
-            // to track that down later in long running processes.
-            while (TryRemoveAllPagesFromCache().ItemsSkipped != 0)
-                ;
+            // TODO:  Need to figure out why we can't free all items.
+            for (int i = 0; i < 3; i++)
+            {
+                while (TryRemoveAllPagesFromCache().ItemsSkipped != 0)
+                {
+
+                }
+            }
         }
 
         private static uint MapOffsetToPageOffset(uint offset)
