@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             catch
             {
-                stream.Dispose();
+                stream?.Dispose();
                 throw;
             }
         }
