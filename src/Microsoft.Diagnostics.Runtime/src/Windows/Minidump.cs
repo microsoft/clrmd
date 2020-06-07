@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class Minidump : IDisposable
     {
-        private readonly string _crashDump;
+        private readonly string _displayName;
 
         private readonly MinidumpDirectory[] _directories;
 
@@ -64,25 +64,22 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public Minidump(string crashDump, FileStream stream, CacheOptions cacheOptions)
+        public Minidump(string displayName, Stream stream, CacheOptions cacheOptions)
         {
-            if (!File.Exists(crashDump))
-                throw new FileNotFoundException(crashDump);
-
-            _crashDump = crashDump;
+            _displayName = displayName;
 
             // Load header
             MinidumpHeader header = Read<MinidumpHeader>(stream);
             if (!header.IsValid)
-                throw new InvalidDataException($"File '{crashDump}' is not a Minidump.");
+                throw new InvalidDataException($"File '{displayName}' is not a Minidump.");
 
             _directories = new MinidumpDirectory[header.NumberOfStreams];
 
             stream.Position = header.StreamDirectoryRva;
             if (!Read(stream, _directories))
-                throw new InvalidDataException($"Unable to read directories from minidump '{crashDump} offset 0x{header.StreamDirectoryRva:x}");
+                throw new InvalidDataException($"Unable to read directories from minidump '{displayName} offset 0x{header.StreamDirectoryRva:x}");
 
-            (int systemInfoIndex, int moduleListIndex) = FindImportantStreams(crashDump);
+            (int systemInfoIndex, int moduleListIndex) = FindImportantStreams(displayName);
 
             // Architecture is the first entry in MINIDUMP_SYSTEM_INFO.  We need nothing else out of that struct,
             // so we only read the first entry.
@@ -106,25 +103,34 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             //_nativeMemory = new CachedMemoryReader(pointerSize, dumpPath, cacheSize, CacheTechnology.ArrayPool, _segments.ToImmutableArray());
             ImmutableArray<MinidumpSegment> segments = GetSegments(stream);
 
-            int cacheSize = cacheOptions.MaxDumpCacheSize > int.MaxValue ? int.MaxValue : (int)cacheOptions.MaxDumpCacheSize;
-
-            bool isTinyDump = new FileInfo(crashDump).Length <= cacheSize;
-            if (isTinyDump)
+            MinidumpMemoryReader memoryReader;
+            if (stream is FileStream fs) // we can optimize for FileStreams
             {
-                _file = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-                MemoryMappedViewStream mmStream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
-                MemoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize);
-            }
-            else if (cacheSize < CachedMemoryReader.MinimumCacheSize)
-            {
-                // this will be very slow
-                MemoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
+                int cacheSize = cacheOptions.MaxDumpCacheSize > int.MaxValue ? int.MaxValue : (int)cacheOptions.MaxDumpCacheSize;
+                bool isTinyDump = stream.Length <= cacheSize;
+                if (isTinyDump)
+                {
+                    _file = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+                    MemoryMappedViewStream mmStream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
+                    memoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize);
+                }
+                else if (cacheSize < CachedMemoryReader.MinimumCacheSize)
+                {
+                    // this will be very slow
+                    memoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
+                }
+                else
+                {
+                    CacheTechnology technology = cacheOptions.UseOSMemoryFeatures ? CacheTechnology.AWE : CacheTechnology.ArrayPool;
+                    memoryReader = new CachedMemoryReader(segments, displayName, fs, cacheSize, technology, PointerSize);
+                }
             }
             else
             {
-                CacheTechnology technology = cacheOptions.UseOSMemoryFeatures ? CacheTechnology.AWE : CacheTechnology.ArrayPool;
-                MemoryReader = new CachedMemoryReader(segments, crashDump, stream, cacheSize, technology, PointerSize);
+                memoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
             }
+
+            MemoryReader = memoryReader;
 
             _threadTask = ReadThreadData(stream);
         }
@@ -401,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return read == buffer.Length;
         }
 
-        public override string ToString() => _crashDump;
+        public override string ToString() => _displayName;
     }
 
 
