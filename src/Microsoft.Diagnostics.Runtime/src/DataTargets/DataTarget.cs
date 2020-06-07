@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.MacOS;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -12,11 +15,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Linux;
-using Microsoft.Diagnostics.Runtime.MacOS;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -287,31 +285,7 @@ namespace Microsoft.Diagnostics.Runtime
             FileStream stream = File.OpenRead(path);
             try
             {
-                Span<byte> span = stackalloc byte[8];
-                if (stream.Read(span) != span.Length)
-                    throw new InvalidDataException($"Unable to load the header of file '{path}'.");
-
-                uint first = Unsafe.As<byte, uint>(ref span[0]);
-                DumpFileFormat format = first switch
-                {
-                    0x504D444D => DumpFileFormat.Minidump,          // MDMP
-                    0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
-                    0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
-                    0x4643534D => DumpFileFormat.CompressedArchive, // CAB
-                    _ => DumpFileFormat.Unknown,
-                };
-
-                if (format == DumpFileFormat.Unknown)
-                {
-                    if (span[0] == 'B' && span[1] == 'Z')           // BZip2
-                        format = DumpFileFormat.CompressedArchive;
-                    else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
-                        format = DumpFileFormat.CompressedArchive;
-                    else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
-                        format = DumpFileFormat.CompressedArchive;
-                }
-
-                stream.Position = 0;
+                DumpFileFormat format = ReadFileFormat(path, stream);
                 return (stream, format);
             }
             catch
@@ -319,6 +293,37 @@ namespace Microsoft.Diagnostics.Runtime
                 stream.Dispose();
                 throw;
             }
+        }
+
+        private static DumpFileFormat ReadFileFormat(string displayName, Stream stream)
+        {
+            Span<byte> span = stackalloc byte[8];
+            if (stream.Read(span) != span.Length)
+                throw new InvalidDataException($"Unable to load the header of '{displayName}'.");
+
+            uint first = Unsafe.As<byte, uint>(ref span[0]);
+            DumpFileFormat format = first switch
+            {
+                0x504D444D => DumpFileFormat.Minidump,          // MDMP
+                0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
+                0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
+                0x4643534D => DumpFileFormat.CompressedArchive, // CAB
+                _ => DumpFileFormat.Unknown,
+            };
+
+            if (format == DumpFileFormat.Unknown)
+            {
+                if (span[0] == 'B' && span[1] == 'Z')           // BZip2
+                    format = DumpFileFormat.CompressedArchive;
+                else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
+                    format = DumpFileFormat.CompressedArchive;
+                else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
+                    format = DumpFileFormat.CompressedArchive;
+            }
+
+            stream.Position = 0;
+
+            return format;
         }
 
         /// <summary>
