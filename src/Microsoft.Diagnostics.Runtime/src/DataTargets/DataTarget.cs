@@ -235,15 +235,16 @@ namespace Microsoft.Diagnostics.Runtime
             RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? new LinuxFunctions() :
             RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSFunctions() :
             (PlatformFunctions)new WindowsFunctions();
-        
+
         /// <summary>
         /// Loads a dump stream. Currently supported formats are ELF coredump and Windows Minidump formats.
         /// </summary>
         /// <param name="displayName">The name of this DataTarget, might be used in exceptions.</param>
-        /// <param name="stream">The stream that should be used. Ownership will be transferred to the DataTarget.</param>
+        /// <param name="stream">The stream that should be used.</param>
         /// <param name="cacheOptions">The caching options to use. (Only used for FileStreams)</param>
+        /// <param name="leaveOpen">True whenever the given stream should be leaved open when the DataTarget is disposed.</param>
         /// <returns>A <see cref="DataTarget"/> for the given dump.</returns>
-        public static DataTarget LoadDumpFromStream(string displayName, Stream stream, CacheOptions? cacheOptions = null)
+        public static DataTarget LoadDump(string displayName, Stream stream, CacheOptions? cacheOptions = null, bool leaveOpen = false)
         {
             try
             {
@@ -260,13 +261,13 @@ namespace Microsoft.Diagnostics.Runtime
 
                 IDataReader reader = format switch
                 {
-                    DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, cacheOptions),
-                    DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream),
+                    DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, cacheOptions, leaveOpen),
+                    DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream, leaveOpen),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
                     // (at least with the Win10 system32\dbgeng.dll), so we will support this for now.
-                    DumpFileFormat.Userdump64 => new DbgEngDataReader(displayName, stream),
+                    DumpFileFormat.Userdump64 => new DbgEngDataReader(displayName, stream, leaveOpen),
                     DumpFileFormat.CompressedArchive => throw new InvalidDataException($"Stream '{displayName}' is a compressed archived instead of a dump file."),
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
@@ -277,7 +278,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
             catch
             {
-                stream?.Dispose();
+                if (leaveOpen)
+                    stream?.Dispose();
                 throw;
             }
         }
@@ -295,10 +297,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
 
-#pragma warning disable CA2000 // Dispose objects before losing scope - LoadDumpFromStream will take ownership
+#pragma warning disable CA2000 // Dispose objects before losing scope - LoadDump(Stream) will take ownership
             FileStream stream = File.OpenRead(filePath);
 #pragma warning restore CA2000 // Dispose objects before losing scope
-            return LoadDumpFromStream(filePath, stream, cacheOptions);
+            return LoadDump(filePath, stream, cacheOptions, leaveOpen: false);
         }
 
         private static DumpFileFormat ReadFileFormat(Stream stream)

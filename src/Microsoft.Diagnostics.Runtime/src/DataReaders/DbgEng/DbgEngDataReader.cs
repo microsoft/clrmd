@@ -42,10 +42,11 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        public DbgEngDataReader(string dumpFile, Stream stream)
+        public DbgEngDataReader(string dumpFile, Stream stream, bool leaveOpen)
             : this(dumpFile)
         {
-            stream?.Dispose();
+            if (!leaveOpen)
+                stream?.Dispose();
         }
 
         public DbgEngDataReader(IntPtr pDebugClient)

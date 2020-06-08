@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public Minidump(string displayName, Stream stream, CacheOptions cacheOptions)
+        public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
         {
             _displayName = displayName;
 
@@ -112,22 +112,22 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     _file = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
                     MemoryMappedViewStream mmStream = _file.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
-                    memoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize);
+                    memoryReader = new UncachedMemoryReader(segments, mmStream, PointerSize, leaveOpen);
                 }
                 else if (cacheSize < CachedMemoryReader.MinimumCacheSize)
                 {
                     // this will be very slow
-                    memoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
+                    memoryReader = new UncachedMemoryReader(segments, stream, PointerSize, leaveOpen);
                 }
                 else
                 {
                     CacheTechnology technology = cacheOptions.UseOSMemoryFeatures ? CacheTechnology.AWE : CacheTechnology.ArrayPool;
-                    memoryReader = new CachedMemoryReader(segments, displayName, fs, cacheSize, technology, PointerSize);
+                    memoryReader = new CachedMemoryReader(segments, displayName, fs, cacheSize, technology, PointerSize, leaveOpen);
                 }
             }
             else
             {
-                memoryReader = new UncachedMemoryReader(segments, stream, PointerSize);
+                memoryReader = new UncachedMemoryReader(segments, stream, PointerSize, leaveOpen);
             }
 
             MemoryReader = memoryReader;

@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IMemoryReader MemoryReader => _readerCached ??= _minidump.MemoryReader;
 
-        public MinidumpReader(string displayName, Stream stream, CacheOptions cacheOptions)
+        public MinidumpReader(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
         {
             if (displayName is null)
                 throw new ArgumentNullException(nameof(displayName));
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = displayName;
 
-            _minidump = new Minidump(displayName, stream, cacheOptions);
+            _minidump = new Minidump(displayName, stream, cacheOptions, leaveOpen);
 
             Architecture = _minidump.Architecture switch
             {
