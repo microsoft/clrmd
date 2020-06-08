@@ -1,5 +1,17 @@
 # Frequently Asked Questions (FAQs)
 
+## What happened to ClrRuntime.EnumerateTypes?
+
+We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 becuase it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package provides an extension method to add it back, but you can simply implement the algorithm yourself to do this.  The source for doing this can be found here:  https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/EnumerateTypesExtension.cs.
+
+## Why are static roots no longer enumerated by `ClrHeap.EnumerateRoots`?
+
+Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider then to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses are you can use this method (or reimplement it yourself): https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/StaticRootsExtension.cs.
+
+## Why doesn't ClrMD 2.0 provide ThreadStatics anymore?
+
+Thread static variables were never working properly in the older version of ClrMD.  This is because the underlying dac api we use to enumerate them isn't fully implemented and can return incorrect results.  Until this is fixed and we have a way to actually provide accurate answers, I've removed these from the library.
+
 ## What platforms are supported?
 
 ClrMD is fully supported on Windows and Linux.  We are currently working on OS X support but there is no ETA for when this will be complete.
