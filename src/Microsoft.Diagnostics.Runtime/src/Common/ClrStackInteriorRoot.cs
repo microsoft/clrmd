@@ -62,5 +62,11 @@ namespace Microsoft.Diagnostics.Runtime
             _object = result;
             return result;
         }
+
+        /// <summary>
+        /// ToString override.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString() => $"stack root @{Address:x12} -> {Object}";
     }
 }
