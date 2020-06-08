@@ -42,9 +42,10 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        public DbgEngDataReader(string dumpFile, Stream stream, bool leaveOpen)
-            : this(dumpFile)
+        public DbgEngDataReader(string displayName, Stream stream, bool leaveOpen)
+            : this((stream as FileStream)?.Name ?? throw new NotSupportedException($"{nameof(DbgEngDataReader)} can only be used with real files. Try to use {nameof(FileStream)}."))
         {
+            DisplayName = displayName;
             if (!leaveOpen)
                 stream?.Dispose();
         }
