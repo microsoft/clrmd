@@ -12,14 +12,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private readonly MemoryMappedFile _mappedFile;
 
-        internal ArrayPoolBasedCacheEntryFactory(FileStream stream)
+        internal ArrayPoolBasedCacheEntryFactory(FileStream stream, bool leaveOpen)
         {
             _mappedFile = MemoryMappedFile.CreateFromFile(stream,
                                                           mapName: null,
                                                           capacity: 0,
                                                           MemoryMappedFileAccess.Read,
                                                           HandleInheritability.None,
-                                                          leaveOpen: false);
+                                                          leaveOpen);
         }
 
         public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)

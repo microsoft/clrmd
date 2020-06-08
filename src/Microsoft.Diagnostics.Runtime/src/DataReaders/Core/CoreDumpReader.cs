@@ -16,6 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable
     {
         private readonly Stream _stream;
+        private readonly bool _leaveOpen;
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
@@ -23,10 +24,11 @@ namespace Microsoft.Diagnostics.Runtime
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Linux;
 
-        public CoredumpReader(string path, Stream stream)
+        public CoredumpReader(string path, Stream stream, bool leaveOpen)
         {
             DisplayName = path ?? throw new ArgumentNullException(nameof(path));
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _leaveOpen = leaveOpen;
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
@@ -61,7 +63,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Dispose()
         {
-            _stream.Dispose();
+            if (!_leaveOpen)
+                _stream.Dispose();
         }
 
         public int ProcessId

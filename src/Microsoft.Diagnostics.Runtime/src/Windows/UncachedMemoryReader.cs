@@ -13,17 +13,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly ImmutableArray<MinidumpSegment> _segments;
         private readonly Stream _stream;
         private readonly object _sync = new object();
+        private readonly bool _leaveOpen;
 
-        public UncachedMemoryReader(ImmutableArray<MinidumpSegment> segments, Stream stream, int pointerSize)
+        public UncachedMemoryReader(ImmutableArray<MinidumpSegment> segments, Stream stream, int pointerSize, bool leaveOpen)
         {
             _segments = segments;
             _stream = stream;
             PointerSize = pointerSize;
+            _leaveOpen = leaveOpen;
         }
 
         public override void Dispose()
         {
-            _stream.Dispose();
+            if (!_leaveOpen)
+                _stream.Dispose();
         }
 
         public override int PointerSize { get; }

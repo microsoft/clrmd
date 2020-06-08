@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.MacOS;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -12,11 +15,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Linux;
-using Microsoft.Diagnostics.Runtime.MacOS;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -239,86 +237,108 @@ namespace Microsoft.Diagnostics.Runtime
             (PlatformFunctions)new WindowsFunctions();
 
         /// <summary>
-        /// Loads a dump file.  Currently supported formats are ELF coredump and Windows Minidump formats.
+        /// Loads a dump stream. Currently supported formats are ELF coredump and Windows Minidump formats.
         /// </summary>
-        /// <param name="filePath">The path to the dump file.</param>
-        /// <param name="cacheOptions">The caching options to use </param>
-        /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
-        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions = null)
+        /// <param name="displayName">The name of this DataTarget, might be used in exceptions.</param>
+        /// <param name="stream">The stream that should be used.</param>
+        /// <param name="cacheOptions">The caching options to use. (Only used for FileStreams)</param>
+        /// <param name="leaveOpen">True whenever the given stream should be leaved open when the DataTarget is disposed.</param>
+        /// <returns>A <see cref="DataTarget"/> for the given dump.</returns>
+        public static DataTarget LoadDump(string displayName, Stream stream, CacheOptions? cacheOptions = null, bool leaveOpen = false)
         {
-            if (filePath is null)
-                throw new ArgumentNullException(nameof(filePath));
-            else if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
-
-            cacheOptions ??= new CacheOptions();
-
-            (FileStream stream, DumpFileFormat format) = OpenDump(filePath);
             try
             {
+                if (displayName is null)
+                    throw new ArgumentNullException(nameof(displayName));
+                if (stream is null)
+                    throw new ArgumentNullException(nameof(stream));
+                if (stream.Position != 0)
+                    throw new ArgumentException("Stream must be at position 0", nameof(stream));
+                if (!stream.CanSeek)
+                    throw new ArgumentException("Stream must be seekable", nameof(stream));
+                if (!stream.CanRead)
+                    throw new ArgumentException("Stream must be readable", nameof(stream));
+
+                cacheOptions ??= new CacheOptions();
+
+                DumpFileFormat format = ReadFileFormat(stream);
+
 #pragma warning disable CA2000 // Dispose objects before losing scope
 
                 IDataReader reader = format switch
                 {
-                    DumpFileFormat.Minidump => new MinidumpReader(filePath, stream, cacheOptions),
-                    DumpFileFormat.ElfCoredump => new CoredumpReader(filePath, stream),
+                    DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, cacheOptions, leaveOpen),
+                    DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream, leaveOpen),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
                     // (at least with the Win10 system32\dbgeng.dll), so we will support this for now.
-                    DumpFileFormat.Userdump64 => new DbgEngDataReader(filePath, stream),
-                    DumpFileFormat.CompressedArchive => throw new InvalidDataException($"File '{filePath}' is a compressed archived instead of a dump file."),
-                    _ => throw new InvalidDataException($"File '{filePath}' is in an unknown or unsupported file format."),
+                    DumpFileFormat.Userdump64 => new DbgEngDataReader(displayName, stream, leaveOpen),
+                    DumpFileFormat.CompressedArchive => throw new InvalidDataException($"Stream '{displayName}' is a compressed archived instead of a dump file."),
+                    _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
-                return new DataTarget(new CustomDataTarget(reader) { CacheOptions = cacheOptions });
+                return new DataTarget(new CustomDataTarget(reader) {CacheOptions = cacheOptions});
 
 #pragma warning restore CA2000 // Dispose objects before losing scope
             }
             catch
             {
-                stream.Dispose();
+                if (leaveOpen)
+                    stream?.Dispose();
                 throw;
             }
         }
 
-        private static (FileStream stream, DumpFileFormat format) OpenDump(string path)
+        /// <summary>
+        /// Loads a dump file. Currently supported formats are ELF coredump and Windows Minidump formats.
+        /// </summary>
+        /// <param name="filePath">The path to the dump file.</param>
+        /// <param name="cacheOptions">The caching options to use.</param>
+        /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
+        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions = null)
         {
-            FileStream stream = File.OpenRead(path);
-            try
+            if (filePath is null)
+                throw new ArgumentNullException(nameof(filePath));
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
+
+#pragma warning disable CA2000 // Dispose objects before losing scope - LoadDump(Stream) will take ownership
+            FileStream stream = File.OpenRead(filePath);
+#pragma warning restore CA2000 // Dispose objects before losing scope
+            return LoadDump(filePath, stream, cacheOptions, leaveOpen: false);
+        }
+
+        private static DumpFileFormat ReadFileFormat(Stream stream)
+        {
+            Span<byte> span = stackalloc byte[8];
+            int readCount = stream.Read(span);
+            stream.Position -= readCount; // Reset stream position
+
+            if (readCount != span.Length)
+                throw new InvalidDataException("Unable to load the header.");
+
+            uint first = Unsafe.As<byte, uint>(ref span[0]);
+            DumpFileFormat format = first switch
             {
-                Span<byte> span = stackalloc byte[8];
-                if (stream.Read(span) != span.Length)
-                    throw new InvalidDataException($"Unable to load the header of file '{path}'.");
+                0x504D444D => DumpFileFormat.Minidump,          // MDMP
+                0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
+                0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
+                0x4643534D => DumpFileFormat.CompressedArchive, // CAB
+                _ => DumpFileFormat.Unknown,
+            };
 
-                uint first = Unsafe.As<byte, uint>(ref span[0]);
-                DumpFileFormat format = first switch
-                {
-                    0x504D444D => DumpFileFormat.Minidump,          // MDMP
-                    0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
-                    0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
-                    0x4643534D => DumpFileFormat.CompressedArchive, // CAB
-                    _ => DumpFileFormat.Unknown,
-                };
-
-                if (format == DumpFileFormat.Unknown)
-                {
-                    if (span[0] == 'B' && span[1] == 'Z')           // BZip2
-                        format = DumpFileFormat.CompressedArchive;
-                    else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
-                        format = DumpFileFormat.CompressedArchive;
-                    else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
-                        format = DumpFileFormat.CompressedArchive;
-                }
-
-                stream.Position = 0;
-                return (stream, format);
-            }
-            catch
+            if (format == DumpFileFormat.Unknown)
             {
-                stream.Dispose();
-                throw;
+                if (span[0] == 'B' && span[1] == 'Z')           // BZip2
+                    format = DumpFileFormat.CompressedArchive;
+                else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
+                    format = DumpFileFormat.CompressedArchive;
+                else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
+                    format = DumpFileFormat.CompressedArchive;
             }
+
+            return format;
         }
 
         /// <summary>

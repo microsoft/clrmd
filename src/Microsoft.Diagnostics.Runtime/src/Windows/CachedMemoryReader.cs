@@ -13,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     internal sealed class CachedMemoryReader : MinidumpMemoryReader
     {
         private readonly ImmutableArray<MinidumpSegment> _segments;
+        private readonly bool _leaveOpen;
         private readonly HeapSegmentDataCache _cachedMemorySegments;
 
         // Single element MinidumpSegment cache for last accessed segment to avoid needing to look it up before reading from its cache entry. The idea is most sequence of reads
@@ -35,13 +36,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public const int MinimumCacheSize = 0x200_0000;
 
-        public CachedMemoryReader(ImmutableArray<MinidumpSegment> segments, string dumpPath, FileStream stream, long maxCacheSize, CacheTechnology cacheTechnology, int pointerSize)
+        public CachedMemoryReader(ImmutableArray<MinidumpSegment> segments, string dumpPath, FileStream stream, long maxCacheSize, CacheTechnology cacheTechnology, int pointerSize, bool leaveOpen)
         {
             PointerSize = pointerSize;
             DumpPath = dumpPath;
             MaxCacheSize = maxCacheSize;
             CacheTechnology = cacheTechnology;
             _segments = segments;
+            _leaveOpen = leaveOpen;
 
             if (CacheTechnology == CacheTechnology.AWE)
             {
@@ -83,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             else
             {
                 // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
-                _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream), MaxCacheSize);
+                _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream, leaveOpen), MaxCacheSize);
             }
         }
 
@@ -220,7 +222,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public override void Dispose()
         {
             _cachedMemorySegments.Dispose();
-            _rvaStream?.Dispose();
+            if (!_leaveOpen)
+                _rvaStream?.Dispose();
         }
     }
 }
