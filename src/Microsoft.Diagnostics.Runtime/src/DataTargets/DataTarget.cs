@@ -252,6 +252,12 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ArgumentNullException(nameof(displayName));
                 if (stream is null)
                     throw new ArgumentNullException(nameof(stream));
+                if (stream.Position != 0)
+                    throw new ArgumentException("Stream must be at position 0", nameof(stream));
+                if (!stream.CanSeek)
+                    throw new ArgumentException("Stream must be seekable", nameof(stream));
+                if (!stream.CanRead)
+                    throw new ArgumentException("Stream must be readable", nameof(stream));
 
                 cacheOptions ??= new CacheOptions();
 
