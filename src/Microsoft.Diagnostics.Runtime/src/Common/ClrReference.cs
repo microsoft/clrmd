@@ -56,6 +56,11 @@ namespace Microsoft.Diagnostics.Runtime
                 if (field is null)
                     return null;
 
+                // Primitive types intentionally have a recursive definition.  In the case where we incorrectly find
+                // an object's offset as one of these fields we need to break out of the infinite loop.
+                if (field == Field && field.Name == "m_value")
+                    return null;
+
                 unchecked
                 {
                     return new ClrReference(Object, field, OffsetFlag | (uint)offset);
