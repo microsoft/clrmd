@@ -3,7 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.Tests.Fixtures;
+using Microsoft.Diagnostics.Runtime.Utilities;
+
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -145,6 +150,60 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Assert
             Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);
+        }
+
+        /// <summary>
+        /// Expected values obtained by:
+        /// dumpheap -type System.String
+        /// dumpheap -strings -min 80 -max 83
+        /// dumpheap -strings -min 88 -max 90
+        /// </summary>
+        [Fact]
+        public void GetStringValue()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            var strings = heap.EnumerateObjects()
+                .Where(o => o.Type.ElementType == ClrElementType.String)
+                .ToDictionary(o => o.Address, o => o.GetStringValue());
+
+            Match(0x0000000003D7AB10, "Windows.Foundation.Diagnostics.AsyncCausalityTracer", strings);
+            Match(0x0000000003D7C278, "ERROR: Exception during construction of EventSource ", strings);
+            Match(0x0000000003D7B298, "Switch.System.Globalization.EnforceJapaneseEraYearRanges", strings);
+            Match(0x0000000003D7B7F0, "Switch.System.Diagnostics.IgnorePortablePDBsInStackTraces", strings);
+
+            static void Match(ulong address, string expectedString,
+                Dictionary<ulong, string> computedStrings)
+            {
+                var computedString = computedStrings[address];
+                Assert.Equal(expectedString, computedString);
+            }
+        }
+
+
+        /// <summary>
+        /// dumpheap -stat
+        /// dumpheap -mt 00007ff9fd298538
+        /// 00007ff9fd298538       32         1520 System.Int32[]
+        /// dumpheap -mt 00007ff9fd298538
+        /// dumparray 0000000003d726e0 (72 elements)
+        /// objsize 0000000003d726e0
+        /// sizeof(0000000003D726E0) = 312 (0x138) bytes (System.Int32[])
+        /// </summary>
+        [Fact]
+        public void GetGraphSize()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            var intArrays = heap.EnumerateObjects()
+                .Where(o => o.Type.Name == "System.Int32[]")
+                .ToList();
+
+            var examinedIntArray = intArrays.Single(a => a.Address == 0x0000000003d726e0);
+            var graphSizeIntArray = examinedIntArray.GetGraphSize();
+            Assert.Equal(312, (int)graphSizeIntArray);
         }
     }
 }
