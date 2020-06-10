@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="heap"></param>
         /// <returns></returns>
-        public static IEnumerable<ClrType> EnumeateTypes(this ClrHeap heap)
+        public static IEnumerable<ClrType> EnumerateTypes(this ClrHeap heap)
         {
             if (heap is null)
                 throw new ArgumentNullException(nameof(heap));
