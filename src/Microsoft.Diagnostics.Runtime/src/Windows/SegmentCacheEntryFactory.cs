@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal abstract class SegmentCacheEntryFactory
     {
-        public abstract SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback);
+        public abstract SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<uint> updateOwningCacheForSizeChangeCallback);
     }
 }

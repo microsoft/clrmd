@@ -51,13 +51,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
                 // The AWE cache allocates on VirtualAlloc sized pages, which are 64k, if the majority of heap segments in the dump are < 64k this can be wasteful
-                // of memory (in the extreme we can end using 64k of VM to store < 100 bytes), in this case we will force the cache technology to be the array pool
-                // one which allocates on system page size (4k), which is still wasteful but FAR less so.
+                // of memory (in the extreme we can end using 64k of VM to store < 100 bytes), in this case we will force the cache technology to be the array pool.
                 int segmentsBelow64K = _segments.Sum((hs) => hs.Size < sysInfo.dwAllocationGranularity ? 1 : 0);
                 if (segmentsBelow64K > (int)(_segments.Length * 0.80))
                     CacheTechnology = CacheTechnology.ArrayPool;
             }
-
 
             if ((CacheTechnology == CacheTechnology.AWE) &&
                 CacheNativeMethods.Util.EnableDisablePrivilege("SeLockMemoryPrivilege", enable: true))
@@ -72,10 +70,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 AWEBasedCacheEntryFactory cacheEntryFactory = new AWEBasedCacheEntryFactory(stream.SafeFileHandle.DangerousGetHandle());
                 cacheEntryFactory.CreateSharedSegment(largestSegment);
 
-                _cachedMemorySegments = new HeapSegmentDataCache(cacheEntryFactory, MaxCacheSize);
+                _cachedMemorySegments = new HeapSegmentDataCache(cacheEntryFactory, entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);
 
                 // Force the cache entry creation, this is because the AWE factory will read the heap segment data from the file into physical memory, it is FAR
-                // better for perf if we read it all in one contiunous go instead of piece-meal as needed.
+                // better for perf if we read it all in one contiunous go instead of piece-meal as needed and it allows us to elide locks on the first level of the cache.
                 foreach (MinidumpSegment segment in _segments)
                     _cachedMemorySegments.CreateAndAddEntry(segment);
 
@@ -85,7 +83,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             else
             {
                 // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
-                _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream, leaveOpen), MaxCacheSize);
+                _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream, leaveOpen), entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);
+
+                // Force creation of emtpy entries for each segment, this won't map the data in from disk but it WILL prevent us from needing to take any locks at the first level of the cache
+                // (the individual entries, when asked for data requiring page-in or when evicting data in page-out will still take locks for consistency).
+                foreach (MinidumpSegment segment in _segments)
+                    _cachedMemorySegments.CreateAndAddEntry(segment);
             }
         }
 

@@ -1,0 +1,392 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Collections.Generic;
+using System.Threading;
+
+// TODO:  This code wasn't written to consider nullable.
+#nullable disable
+
+namespace Microsoft.Diagnostics.Runtime.Windows
+{
+    /// <summary>
+    /// This class acts as the base of the two (ArrayPool and AWE) cache entry types.
+    /// </summary>
+    /// <typeparam name="T">The type of data the cache pages hold</typeparam>
+    internal abstract class CacheEntryBase<T> : SegmentCacheEntry, IDisposable
+    {
+        protected CachePage<T>[] _pages;
+        protected ReaderWriterLockSlim[] _pageLocks;
+        protected MinidumpSegment _segmentData;
+        protected volatile int _entrySize;
+        private long _lastAccessTickCount;
+        private readonly int _minSize;
+        private Action<uint> _updateOwningCacheForAddedChunk;
+
+        internal CacheEntryBase(MinidumpSegment segmentData, int derivedMinSize, Action<uint> updateOwningCacheForAddedChunk)
+        {
+            _segmentData = segmentData;
+
+            int pageCount = (int)((_segmentData.End - _segmentData.VirtualAddress) / EntryPageSize);
+            if (((int)(_segmentData.End - _segmentData.VirtualAddress) % EntryPageSize) != 0)
+                pageCount++;
+
+            _pages = new CachePage<T>[pageCount];
+            _pageLocks = new ReaderWriterLockSlim[pageCount];
+            for (int i = 0; i < _pageLocks.Length; i++)
+            {
+                _pageLocks[i] = new ReaderWriterLockSlim();
+            }
+
+            _minSize = 4 * UIntPtr.Size + /*our four fields that are refrence type fields (pages, pageLocks, segmentData, and updateOwningCacheForAddedChunk)*/
+                           2 * (_pages.Length * UIntPtr.Size) + /*The array of cache pages and matching size array of locks */
+                           2 * sizeof(uint) + /*entrySize and minSize fields*/
+                           sizeof(long) /*lastAccessTickCount field*/ +
+                           derivedMinSize /*size added from our derived classes bookkeeping overhead*/;
+
+            _entrySize = _minSize;
+
+            _updateOwningCacheForAddedChunk = updateOwningCacheForAddedChunk;
+
+            UpdateLastAccessTickCount();
+        }
+
+        protected abstract uint EntryPageSize { get; }
+
+        public override int CurrentSize
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return _entrySize;
+            }
+        }
+
+        public override int MinSize
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return _minSize;
+            }
+        }
+
+        public override long LastAccessTickCount
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return Interlocked.Read(ref _lastAccessTickCount);
+            }
+        }
+
+        public override void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead)
+        {
+            ThrowIfDisposed();
+
+            uint offset = (uint)(address - _segmentData.VirtualAddress);
+
+            int bytesRemaining = (int)byteCount;
+
+            // NOTE: Seems silly to cache this here but it is a read of an abstract property and this method (and more specifically, ReadPageFromOffset who we pass this to) is the hottest
+            // of hot methods for perf in this class.
+            uint entryPageSize = EntryPageSize;
+
+            uint localBytesRead;
+            do
+            {
+                ReadPageDataFromOffset(offset, buffer, (uint)bytesRemaining, entryPageSize, out localBytesRead);
+                bytesRemaining -= (int)localBytesRead;
+
+                buffer += (int)localBytesRead;
+                offset += localBytesRead;
+            } while (bytesRemaining > 0 && localBytesRead != 0);
+
+            bytesRead = (byteCount - (uint)bytesRemaining);
+        }
+
+        public override bool GetDataFromAddressUntil(ulong address, byte[] terminatingSequence, out byte[] result)
+        {
+            ThrowIfDisposed();
+
+            uint offset = (uint)(address - _segmentData.VirtualAddress);
+
+            List<byte> bytesRead = new List<byte>();
+            bool res = ReadPageDataFromOffsetUntil(offset, terminatingSequence, bytesRead);
+
+            result = bytesRead.ToArray();
+            return res;
+        }
+
+        public override void UpdateLastAccessTickCount()
+        {
+            ThrowIfDisposed();
+
+            long currentTickCount;
+            CacheNativeMethods.Util.QueryPerformanceCounter(out currentTickCount);
+
+            // NOTE: Its fine if we end up replacing a slightly more recent tickcount with a slightly older one, if that happens it means many threads are accessing this item in parallel
+            // and the odds of it falling into the least recently used 10% due to us 'rolling back' the tick count slightly is basically 0
+            Interlocked.Exchange(ref _lastAccessTickCount, currentTickCount);
+        }
+
+        public void Dispose()
+        {
+            if (_pages == null)
+                return;
+
+            Dispose(disposing: true);
+
+            _pages = null;
+            _pageLocks = null;
+        }
+
+        protected abstract void Dispose(bool disposing);
+
+        protected void ThrowIfDisposed()
+        {
+            if (_pages == null)
+                throw new ObjectDisposedException(GetType().Name);
+        }
+
+        private void ReadPageDataFromOffset(uint segmentOffset, IntPtr buffer, uint byteCount, uint entryPageSize, out uint bytesRead)
+        {
+            int pageIndex = (int)(segmentOffset / entryPageSize);
+
+            // Request is past the end of our pages of data
+            if (pageIndex >= _pages.Length)
+            {
+                bytesRead = 0;
+                return;
+            }
+
+            uint pageSegmentOffset = (uint)pageIndex * entryPageSize;
+
+            uint inPageOffset = (segmentOffset - pageSegmentOffset);
+
+            uint sizeRead = 0;
+            ReadPageDataFromOffset(pageIndex, (data, dataLength) =>
+                {
+                    // Calculate how much of the requested read can be satisfied by the page
+                    sizeRead = Math.Min(dataLength - inPageOffset, byteCount);
+
+                    unsafe
+                    {
+                        CacheNativeMethods.Memory.memcpy(buffer, new UIntPtr((byte*)data + inPageOffset), new UIntPtr(sizeRead));
+                    }
+                });
+
+            bytesRead = sizeRead;
+        }
+
+        protected abstract void InvokeCallbackWithDataPtr(CachePage<T> page, Action<UIntPtr, uint> callback);
+
+        protected abstract (T Data, uint DataExtent) GetPageDataAtOffset(uint pageAlignedOffset);
+
+        private void ReadPageDataFromOffset(int pageIndex, Action<UIntPtr, uint> dataReader)
+        {
+            bool notifyCacheOfSizeUpdate = false;
+            int addedSize = 0;
+
+            ReaderWriterLockSlim pageLock = _pageLocks[pageIndex];
+
+            pageLock.EnterReadLock();
+            bool holdsReadLock = true;
+            try
+            {
+                // THREADING: If the data is not null we can just read it directly as we hold the read lock, if it is null we must acquire the write lock in
+                // preperation to fetch the data from physical memory
+                if (_pages[pageIndex] != null)
+                {
+                    UpdateLastAccessTickCount();
+
+                    InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                }
+                else
+                {
+                    pageLock.ExitReadLock();
+                    holdsReadLock = false;
+
+                    pageLock.EnterWriteLock();
+                    try
+                    {
+                        // THREADING: Double check it's still null (i.e. no other thread beat us to paging this data in between dropping our read lock and acquiring
+                        // the write lock)
+                        if (_pages[pageIndex] == null)
+                        {
+                            uint dataRange;
+                            T data;
+                            (data, dataRange) = GetPageDataAtOffset((uint)pageIndex * EntryPageSize);
+
+                            _pages[pageIndex] = new CachePage<T>(data, dataRange);
+
+                            Interlocked.Add(ref _entrySize, (int)dataRange);
+
+                            UpdateLastAccessTickCount();
+
+                            InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+
+                            addedSize = (int)dataRange;
+                            notifyCacheOfSizeUpdate = true;
+                        }
+                        else
+                        {
+                            // Someone else beat us to retrieving the data, so we can just read
+                            UpdateLastAccessTickCount();
+
+                            InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                        }
+                    }
+                    finally
+                    {
+                        pageLock.ExitWriteLock();
+                    }
+                }
+            }
+            finally
+            {
+                if (holdsReadLock)
+                    pageLock.ExitReadLock();
+            }
+
+            if (notifyCacheOfSizeUpdate)
+            {
+                _updateOwningCacheForAddedChunk((uint)addedSize);
+            }
+        }
+
+        private bool ReadPageDataFromOffsetUntil(uint segmentOffset, byte[] terminatingSequence, List<byte> bytesRead)
+        {
+            int pageIndex = (int)(segmentOffset / EntryPageSize);
+
+            uint pageSegmentOffset = (uint)pageIndex * EntryPageSize;
+
+            uint inPageOffset = (segmentOffset - pageSegmentOffset);
+
+            bool sawTerminatingSequence = false;
+
+            List<byte> trailingBytes = null;
+
+            do
+            {
+                ReadPageDataFromOffset(pageIndex, (data, dataLength) =>
+                    {
+                        CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
+                    });
+
+                pageIndex++;
+                inPageOffset = 0;
+            } while ((pageIndex != _pages.Length) && !sawTerminatingSequence);
+
+            return sawTerminatingSequence;
+        }
+
+        // This function processes a single page of data (pointed at by data) of length 'dataLength' copying bytes until it exhausts the page contents or encounters the given terminating sequence.
+        // This is primarily useful for reading null-terminated strings when all you have is the start address and the knowledge it is a null-terminated string.
+        //
+        // A couple tricky things to keep in mind
+        //
+        // 1) The length of 'terminatingSequence' can be basically anything. For a a common null-terminator style read it is dependent on the encoding the string in memory is in, which ony the caller
+        //    knows.
+        //
+        // 2) We have to be careful if we have to read across a page boundary (or multiple), if the page isn't an even multiple of the terminating sequence length then we will have extra work to do, 
+        //    specifically we carry over the 'left over' bytes from the last page (in trailingBytes) and append to them data from the current page to see if that forms a terminating sequence. If so
+        //    we are done, if not we have to copy the trailing bytes to the the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
+        //    this could cascade and cause THIS page to also have 'trailing bytes', so we must continue this little adventure until the string terminates.
+        private static unsafe void ProcessPageForSequenceTerminatingRead(UIntPtr data,
+                                                                         uint dataLength,
+                                                                         uint inPageOffset,
+                                                                         byte[] terminatingSequence,
+                                                                         List<byte> bytesRead,
+                                                                         ref List<byte> trailingBytes,
+                                                                         ref bool sawTerminatingSequence)
+        {
+            uint availableDataOnPage = dataLength - inPageOffset;
+            uint startOffsetAdjustment = 0;
+
+            if (trailingBytes != null && trailingBytes.Count != 0)
+            {
+                // We had trailing bytes on the last page's read, so we need to prepend enough bytes from the start of this read to trailing bytes to check if it forms a terminator
+                // sequeunce, and if not copy the bytes over to the output buffer.
+
+                // Since we are checking these bytes here make sure if we DON'T form a terminator sequence that the code below doesn't reproces them. We know that trailingBytes.Count MUST be less
+                // that terminatingSeqence.Length, if not we would have processed the trailing bytes in the last page and wouldn't see them here.
+                startOffsetAdjustment = (uint)(terminatingSequence.Length - trailingBytes.Count);
+
+                for (int i = 0; i < startOffsetAdjustment; i++)
+                {
+                    trailingBytes.Add(*((byte*)data + inPageOffset + i));
+                }
+
+                int j = 0;
+                for (; j < terminatingSequence.Length; j++)
+                {
+                    if (trailingBytes[j] != terminatingSequence[j])
+                        break;
+                }
+
+                if (j == terminatingSequence.Length)
+                {
+                    // we matched the whole terminating sequence with the trailing + leading bytes
+                    sawTerminatingSequence = true;
+                    return;
+                }
+                else
+                {
+                    // We didn't match the terminating sequence
+                    bytesRead.AddRange(trailingBytes);
+                    trailingBytes.Clear();
+                }
+            }
+
+            // If we will have left over bytes (i.e. the amount to read mod the length of the terminating sequence is not 0), then copy then to the trailingBytes buffer so we can
+            // process them on the next go around if we don't complete the read on this page.
+            uint leftoverByteCount = ((availableDataOnPage - startOffsetAdjustment) % (uint)terminatingSequence.Length);
+            if (leftoverByteCount != 0)
+            {
+                // We will have straggling bytes if we don't complete the read on this page, so copy them to the trailingBytes list
+                byte* pDataEnd = ((byte*)data + inPageOffset + availableDataOnPage);
+
+                byte* pDataCur = (pDataEnd - leftoverByteCount);
+                if (trailingBytes == null)
+                {
+                    trailingBytes = new List<byte>((int)leftoverByteCount);
+                }
+
+                while (pDataCur != pDataEnd)
+                {
+                    trailingBytes.Add(*pDataCur);
+                    pDataCur++;
+                }
+            }
+
+            // Account for any bytes we skipped above
+            availableDataOnPage -= startOffsetAdjustment;
+
+            for (uint i = 0 + startOffsetAdjustment; i < availableDataOnPage; i += (uint)terminatingSequence.Length)
+            {
+                uint j = 0;
+                for (; j < terminatingSequence.Length; j++)
+                {
+                    if (*((byte*)data + inPageOffset + i + j) != terminatingSequence[j])
+                        break;
+                }
+
+                if (j == terminatingSequence.Length)
+                {
+                    sawTerminatingSequence = true;
+                    break;
+                }
+                else
+                {
+                    for (j = 0; j < terminatingSequence.Length; j++)
+                    {
+                        bytesRead.Add(*((byte*)data + inPageOffset + i + j));
+                    }
+                }
+            }
+        }
+    }
+}
