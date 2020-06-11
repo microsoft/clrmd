@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                                           leaveOpen);
         }
 
-        public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<uint> updateOwningCacheForSizeChangeCallback)
         {
             return new ArrayPoolBasedCacheEntry(_mappedFile, segmentData, updateOwningCacheForSizeChangeCallback);
         }

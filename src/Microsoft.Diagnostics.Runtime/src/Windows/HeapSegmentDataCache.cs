@@ -11,23 +11,37 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class HeapSegmentDataCache : IDisposable
     {
-        private readonly ReaderWriterLockSlim _cacheLock = new ReaderWriterLockSlim();
-        private readonly Dictionary<ulong, SegmentCacheEntry> _cache = new Dictionary<ulong, SegmentCacheEntry>();
-        private readonly SegmentCacheEntryFactory _entryFactory;
+        private ReaderWriterLockSlim _cacheLock = new ReaderWriterLockSlim();
+        private Dictionary<ulong, SegmentCacheEntry> _cache = new Dictionary<ulong, SegmentCacheEntry>();
+        private SegmentCacheEntryFactory _entryFactory;
 
         private long _cacheSize;
         private readonly long _maxSize;
+        private readonly uint _entryCountWhenFull;
+        private bool _cacheIsComplete;
+        private readonly bool _cacheIsFullyPopulatedBeforeUse;
 
-        public HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, long maxSize)
+
+        public HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, uint entryCountWhenFull, bool cacheIsFullyPopulatedBeforeUse, long maxSize)
         {
             _entryFactory = entryFactory;
             _maxSize = maxSize;
+            _entryCountWhenFull = entryCountWhenFull;
+            _cacheIsFullyPopulatedBeforeUse = cacheIsFullyPopulatedBeforeUse;
         }
 
         public SegmentCacheEntry CreateAndAddEntry(MinidumpSegment segment)
         {
+            ThrowIfDisposed();
+
+            if (_cacheIsComplete)
+                throw new InvalidOperationException($"You cannot call {nameof(CreateAndAddEntry)} after having called {nameof(CreateAndAddEntry)} enough times to cause the entry count to rise to {_entryCountWhenFull}, which was given to the ctor as the largest possible size");
+
             SegmentCacheEntry entry = _entryFactory.CreateEntryForSegment(segment, UpdateOverallCacheSizeForAddedChunk);
-            _cacheLock.EnterWriteLock();
+
+            if (!_cacheIsFullyPopulatedBeforeUse)
+                _cacheLock.EnterWriteLock();
+
             try
             {
                 // Check the cache again now that we have acquired the write lock
@@ -39,21 +53,27 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 }
 
                 _cache.Add(segment.VirtualAddress, entry);
+                _cacheIsComplete = (_cache.Count == _entryCountWhenFull);
             }
             finally
             {
-                _cacheLock.ExitWriteLock();
+                if (!_cacheIsFullyPopulatedBeforeUse)
+                    _cacheLock.ExitWriteLock();
             }
 
             Interlocked.Add(ref _cacheSize, entry.CurrentSize);
-            TrimCacheIfOverLimit(segment.VirtualAddress);
+            TrimCacheIfOverLimit();
 
             return entry;
         }
 
         public bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry? entry)
         {
-            _cacheLock.EnterReadLock();
+            ThrowIfDisposed();
+
+            if (!_cacheIsComplete)
+                _cacheLock.EnterReadLock();
+
             bool res = false;
 
             try
@@ -62,56 +82,71 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                _cacheLock.ExitReadLock();
+                if (!_cacheIsComplete)
+                    _cacheLock.ExitReadLock();
             }
 
-            entry?.UpdateLastAccessTickCount();
+            if(res)
+            { 
+                entry?.UpdateLastAccessTickCount();
+            }
+
             return res;
         }
 
-        private void UpdateOverallCacheSizeForAddedChunk(ulong modifiedSegmentAddress, uint chunkSize)
+        public void Dispose()
         {
-            Interlocked.Add(ref _cacheSize, chunkSize);
+            if (_cache == null)
+                return;
 
-            TrimCacheIfOverLimit(modifiedSegmentAddress);
+            using (_entryFactory as IDisposable)
+            {
+                _cacheLock.EnterWriteLock();
+                try
+                {
+                    foreach (KeyValuePair<ulong, SegmentCacheEntry> kvp in _cache)
+                    {
+                        (kvp.Value as IDisposable)?.Dispose();
+                    }
+
+                    _cache.Clear();
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
+                    _cacheLock.Dispose();
+
+                    _cacheLock = null;
+                    _cache = null;
+                    _entryFactory = null;
+                }
+            }
         }
 
-        private void TrimCacheIfOverLimit(ulong modifiedSegmentAddress)
+        private void UpdateOverallCacheSizeForAddedChunk(uint chunkSize)
+        {
+            ThrowIfDisposed();
+
+            Interlocked.Add(ref _cacheSize, chunkSize);
+
+            TrimCacheIfOverLimit();
+        }
+
+        private void TrimCacheIfOverLimit()
         {
             if (Interlocked.Read(ref _cacheSize) < _maxSize)
                 return;
 
-            // Select all cache entries which aren't at their min-size
-            //
-            // NOTE: We snapshot the LastAccessTickCount values here because there is the case where the Sort function will throw an exception if it tests two entries and the 
-            // lhs rhs comparison is inconsistent when reveresed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
-            // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger 
-            // this exception, which is bad :)
-            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>? items = null;
-            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>? entries = null;
-
-            _cacheLock.EnterReadLock();
-            try
-            {
-                items = _cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
-                entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
-            }
-            finally
-            {
-                _cacheLock.ExitReadLock();
-            }
-
-            // Flip the sort order to the LEAST recently accessed items (i.e. the ones whose LastAccessTickCount are furthest in history) end up at the END of the array,
-            //
-            // NOTE: Using tickcounts is succeptible to roll-over, but worst case scenario we remove a slightly more recently used one thinking it is older, not a huge deal
-            // and using DateTime.Now to get a non-roll-over succeptible timestamp showed up as 5% of scenario time in PerfView :(
-            entries.Sort((lhs, rhs) => rhs.LastAccessTickCount.CompareTo(lhs.LastAccessTickCount));
+            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = SnapshotNonMinSizeCacheItems(); ;
+            if (entries.Count == 0)
+                return;
 
             // Try to cut ourselves down to about 85% of our max capaity, otherwise just hang out right at that boundary and the next entry we add we end up having to
             // scavenge again, and again, and again...
             uint requiredCutAmount = (uint)(_maxSize * 0.15);
 
             long desiredSize = (long)(_maxSize * 0.85);
+            bool haveUpdatedSnapshot = false;
 
             uint cutAmount = 0;
             while (cutAmount < requiredCutAmount)
@@ -132,13 +167,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     KeyValuePair<ulong, SegmentCacheEntry> curItem = entries[curItemIndex].CacheEntry;
 
+                    // TODO: CurrentSize is constantly in flux, other threads are paging data in and out, so while I can read it in the below check there is no guarantee that by the time I get
+                    // to the code that tries to REMOVE this item that CurrentSize hasn't changed
+                    //
                     // >= so we prefer the largest item that is least recently accessed, ensuring we don't remove a segment that is being actively modified now (should
                     // never happen since we also update that segments accessed timestamp, but, defense in depth).
-                    //
-                    // NOTE: We subtract MinSize from CurrentSize assuming the cache will be able to page out its data and thus we won't
-                    // actually remove its entry below. If not we will correct this value later in the 'we remove the entire cache entry'
-                    // block (the !PageOutData block below).
-                    if ((curItem.Value.CurrentSize - curItem.Value.MinSize) >= largestSizeSeen && (curItem.Key != modifiedSegmentAddress))
+                    if ((curItem.Value.CurrentSize - curItem.Value.MinSize) >= largestSizeSeen)
                     {
                         largestSizeSeen = (uint)(curItem.Value.CurrentSize - curItem.Value.MinSize);
                         removalTargetIndex = curItemIndex;
@@ -147,52 +181,86 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     curItemIndex++;
                 }
 
-                if (removalTargetIndex == -1)
-                    return;
+                if (removalTargetIndex < 0)
+                {
+                    // If we are already below our desired size or we have already re-snapshotted one time, then just give up
+                    if (haveUpdatedSnapshot || (Interlocked.Read(ref _cacheSize) <= desiredSize))
+                        break;
+
+                    // we failed to find any non MinSize entris in the last 10% of entries. Since our snapshot originally ONLY contained non-MinSize entries this likely
+                    // means other threads are also trimming. Re-snapshot and try again.
+                    entries = SnapshotNonMinSizeCacheItems();
+                    haveUpdatedSnapshot = true;
+
+                    if (entries.Count == 0)
+                        break;
+
+                    continue;
+                }
 
                 SegmentCacheEntry targetItem = entries[removalTargetIndex].CacheEntry.Value;
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                     HeapSegmentCacheEventSource.Instance.PageOutDataStart();
 
-                long removedBytes = targetItem.PageOutData();
+                long sizeRemoved = targetItem.PageOutData();
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                    HeapSegmentCacheEventSource.Instance.PageOutDataEnd(removedBytes);
+                    HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
 
                 // Whether or not we managed to remove any memory for this item (another thread may have removed it all before we could), remove it from our list of
                 // entries to consider
                 entries.RemoveAt(removalTargetIndex);
 
-                if (removedBytes != 0)
+                if (sizeRemoved != 0)
                 {
-                    Interlocked.Add(ref _cacheSize, -removedBytes);
-                    cutAmount += (uint)removedBytes;
+                    Interlocked.Add(ref _cacheSize, -sizeRemoved);
+                    cutAmount += (uint)sizeRemoved;
                 }
             }
         }
 
-        public void Dispose()
+        private IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> SnapshotNonMinSizeCacheItems()
         {
-            using (_entryFactory as IDisposable)
-            {
-                _cacheLock.EnterWriteLock();
-                try
-                {
-                    foreach (KeyValuePair<ulong, SegmentCacheEntry> kvp in _cache)
-                    {
-                        (kvp.Value as IDisposable)?.Dispose();
-                    }
+            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> items = null;
+            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = null;
 
-                    _cache.Clear();
-                }
-                finally
-                {
-                    _cacheLock.ExitWriteLock();
-                }
+            if (!_cacheIsComplete)
+                _cacheLock.EnterReadLock();
+
+            // Select all cache entries which aren't at their min-size
+            //
+            // THREADING: We snapshot the LastAccessTickCount values here because there is the case where the Sort function will throw an exception if it tests two entries and the 
+            // lhs rhs comparison is inconsistent when reveresed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
+            // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger 
+            // this exception, which is bad :)
+            //
+            // TODO: CurrentSize is constantly in flux, other threads are paging data in and out, so while I can read it in the below Where call there is no guarantee that by the time I get
+            // to the code that looks for the largest item that CurrentSize hasn't changed
+            try
+            {
+                items = _cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
+                entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
+            }
+            finally
+            {
+                if (!_cacheIsComplete)
+                    _cacheLock.ExitReadLock();
             }
 
-            _cacheLock.Dispose();
+            // Flip the sort order to the LEAST recently accessed items (i.e. the ones whose LastAccessTickCount are furthest in history) end up at the END of the array,
+            //
+            // NOTE: Using tickcounts is succeptible to roll-over, but worst case scenario we remove a slightly more recently used one thinking it is older, not a huge deal
+            // and using DateTime.Now to get a non-roll-over succeptible timestamp showed up as 5% of scenario time in PerfView :(
+            entries.Sort((lhs, rhs) => rhs.LastAccessTickCount.CompareTo(lhs.LastAccessTickCount));
+
+            return entries;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_cache == null)
+                throw new ObjectDisposedException(this.GetType().Name);
         }
     }
 }

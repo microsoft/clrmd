@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _sharedSegment = UIntPtr.Zero;
         }
 
-        public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<ulong, uint> updateOwningCacheForSizeChangeCallback)
+        public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<uint> updateOwningCacheForSizeChangeCallback)
         {
             bool setFPRes = CacheNativeMethods.File.SetFilePointerEx(_dumpFileHandle, (long)segmentData.FileOffset, SeekOrigin.Begin);
             if (!setFPRes)
