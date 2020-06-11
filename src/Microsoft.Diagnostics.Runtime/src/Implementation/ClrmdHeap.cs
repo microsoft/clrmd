@@ -463,6 +463,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         class VolatileHeapData
         {
+            private readonly object _sync = new object();
             private ImmutableArray<(ulong Source, ulong Target)> _dependentHandles;
 
             public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }
@@ -497,9 +498,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!_dependentHandles.IsDefault)
                     return _dependentHandles;
 
-                var dependentHandles = helpers.EnumerateDependentHandleLinks().OrderBy(x => x.Source).ToImmutableArray();
-                _dependentHandles = dependentHandles;
-                return dependentHandles;
+                lock (_sync)
+                {
+                    if (!_dependentHandles.IsDefault)
+                        return _dependentHandles;
+
+                    var dependentHandles = helpers.EnumerateDependentHandleLinks().OrderBy(x => x.Source).ToImmutableArray();
+                    _dependentHandles = dependentHandles;
+                    return dependentHandles;
+                }
             }
         }
     }
