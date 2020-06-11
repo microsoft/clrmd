@@ -7,6 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+// TODO:  This code wasn't written to consider nullable.
+#nullable disable
+
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class HeapSegmentDataCache : IDisposable
@@ -45,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             try
             {
                 // Check the cache again now that we have acquired the write lock
-                if (_cache.TryGetValue(segment.VirtualAddress, out SegmentCacheEntry? existingEntry))
+                if (_cache.TryGetValue(segment.VirtualAddress, out SegmentCacheEntry existingEntry))
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
                     using (entry as IDisposable)
@@ -67,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return entry;
         }
 
-        public bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry? entry)
+        public bool TryGetCacheEntry(ulong baseAddress, out SegmentCacheEntry entry)
         {
             ThrowIfDisposed();
 
