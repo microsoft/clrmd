@@ -532,8 +532,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             CheckDisposed();
 
-            // Enumerating handles should be sufficiently rare as to not need to use ArrayPool
-            HandleData[] handles = new HandleData[128];
+            // Yes this is a huge array.  Older versions of ISOSHandleEnum have a memory leak when
+            // we loop below.  If we can fill the array without having to call back into
+            // SOSHandleEnum.ReadHandles then we avoid that leak entirely.
+            HandleData[] handles = new HandleData[0xc0000];
             return EnumerateHandleTable(runtime, handles);
         }
 
@@ -545,7 +547,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (handleEnum is null)
                 yield break;
 
-            HandleData[] handles = new HandleData[32];
+            // See note above in EnumerateHandleTable about why this array is so large.
+            HandleData[] handles = new HandleData[0x18000];
             int fetched;
             while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {

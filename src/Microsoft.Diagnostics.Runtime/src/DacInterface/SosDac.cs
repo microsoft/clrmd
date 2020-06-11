@@ -634,9 +634,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSHandleEnum? EnumerateHandles(params ClrHandleKind[] types)
         {
             InitDelegate(ref _getHandleEnumForTypes, VTable.GetHandleEnumForTypes);
-
             HResult hr = _getHandleEnumForTypes(Self, types, types.Length, out IntPtr ptrEnum);
-            return hr ? new SOSHandleEnum(_library, ptrEnum) : null;
+            if (hr)
+            {
+                SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
+
+                return result;
+            }
+
+            return null;
         }
 
         public SOSHandleEnum? EnumerateHandles()
@@ -644,7 +653,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getHandleEnum, VTable.GetHandleEnum);
 
             HResult hr = _getHandleEnum(Self, out IntPtr ptrEnum);
-            return hr ? new SOSHandleEnum(_library, ptrEnum) : null;
+            if (hr)
+            {
+                SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnum, but instead fully released the object!");
+
+                return result;
+            }
+
+            return null;
         }
 
         public SOSStackRefEnum? EnumerateStackRefs(uint osThreadId)
@@ -652,7 +671,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             InitDelegate(ref _getStackRefEnum, VTable.GetStackReferences);
 
             HResult hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
-            return hr ? new SOSStackRefEnum(_library, ptrEnum) : null;
+
+            if (hr)
+            {
+                SOSStackRefEnum result = new SOSStackRefEnum(_library, ptrEnum);
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetStackReferences, but instead fully released the object!");
+
+                return result;
+            }
+
+            return null;
         }
 
         public ulong GetMethodDescFromToken(ulong module, int token)
