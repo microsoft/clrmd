@@ -10,8 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         public static string GetStringValue(this ClrObject clrObject, int maxLength = int.MaxValue)
         {
-            if (clrObject.Type.ElementType != ClrElementType.String) return null;
-            return clrObject.Type.ClrObjectHelpers.ReadString(clrObject.Address, maxLength);
+            return clrObject.Type.IsString ? clrObject.AsString(maxLength) : null;
         }
 
         public static UInt64 GetGraphSize(this ClrObject clrObject)
