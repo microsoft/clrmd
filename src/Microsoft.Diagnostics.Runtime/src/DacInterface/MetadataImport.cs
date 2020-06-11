@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             InitDelegate(ref _getTypeRefProps, VTable.GetTypeRefProps);
 
-            if (!_getTypeRefProps(Self, token, out int scope, null, 0, out int needed))
+            if (!_getTypeRefProps(Self, token, out int scope, null, 0, out int needed).IsOK)
                 return null;
 
             string nameResult = new string('\0', needed - 1);
