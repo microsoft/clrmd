@@ -635,6 +635,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("System.Runtime.CompilerServices.IAsyncStateMachine", clrInterface.Name);
         }
 
+        [Fact]
+        public void StringEnumerateInterfaces()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            var query = from obj in runtime.Heap.EnumerateObjects()
+                        where obj.Type?.Name == "System.String"
+                        select obj.Type;
+
+            ClrType clrType = query.First();
+            // EnumerateInterfaces should not throw an exception
+            ClrInterface[] clrInterfaces = clrType.EnumerateInterfaces().ToArray();
+
+            Assert.NotEmpty(clrInterfaces);
+        }
+
         private struct CollectibleUnmanagedStruct
         {
             public static CollectibleUnmanagedStruct Instance = default;
