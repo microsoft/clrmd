@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         protected ReaderWriterLockSlim[] _pageLocks;
         protected MinidumpSegment _segmentData;
         protected volatile int _entrySize;
-        private long _lastAccessTickCount;
+        private int _lastAccessTimestamp;
         private readonly int _minSize;
         private Action<uint> _updateOwningCacheForAddedChunk;
 
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             _updateOwningCacheForAddedChunk = updateOwningCacheForAddedChunk;
 
-            UpdateLastAccessTickCount();
+            UpdateLastAccessTimstamp();
         }
 
         protected abstract uint EntryPageSize { get; }
@@ -73,12 +73,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        public override long LastAccessTickCount
+        public override int LastAccessTimestamp
         {
             get
             {
                 ThrowIfDisposed();
-                return Interlocked.Read(ref _lastAccessTickCount);
+                return _lastAccessTimestamp;
             }
         }
 
@@ -120,16 +120,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return res;
         }
 
-        public override void UpdateLastAccessTickCount()
+        public override void UpdateLastAccessTimstamp()
         {
-            ThrowIfDisposed();
-
-            long currentTickCount;
-            CacheNativeMethods.Util.QueryPerformanceCounter(out currentTickCount);
-
-            // NOTE: Its fine if we end up replacing a slightly more recent tickcount with a slightly older one, if that happens it means many threads are accessing this item in parallel
-            // and the odds of it falling into the least recently used 10% due to us 'rolling back' the tick count slightly is basically 0
-            Interlocked.Exchange(ref _lastAccessTickCount, currentTickCount);
+            // NOTE: It dosn't matter that this isn't interlocked/protected. This value simply indicates how recently accessd this entry is vis-a-vis some other
+            // entry, if the values are slightly off because we have a RMW issue it doesn't matter since the only thing it influences is if this entry is eligible
+            // to be trimmed, and being marginally off in the value is basically never going to put something into that group incorrectly. This USED to use
+            // QPC/Interlocked.Exchange, but it showed up as a significant time sink in perf analysis.
+            this._lastAccessTimestamp++;
         }
 
         public void Dispose()
@@ -200,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // preperation to fetch the data from physical memory
                 if (_pages[pageIndex] != null)
                 {
-                    UpdateLastAccessTickCount();
+                    UpdateLastAccessTimstamp();
 
                     InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
                 }
@@ -224,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                             Interlocked.Add(ref _entrySize, (int)dataRange);
 
-                            UpdateLastAccessTickCount();
+                            UpdateLastAccessTimstamp();
 
                             InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
 
@@ -234,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         else
                         {
                             // Someone else beat us to retrieving the data, so we can just read
-                            UpdateLastAccessTickCount();
+                            UpdateLastAccessTimstamp();
 
                             InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
                         }
