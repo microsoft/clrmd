@@ -295,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             int kr = Native.task_for_pid(Native.mach_task_self(), ProcessId, out int task);
             if (kr != 0)
-                throw new ClrDiagnosticsException();
+                throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
 
             ulong address = 0;
             int infoCount = Native.VM_REGION_BASIC_INFO_COUNT_64;
