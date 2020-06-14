@@ -74,8 +74,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             ThrowIfDisposed();
 
+            bool acquiredReadLock = false;
+
             if (!_cacheIsComplete)
+            {
                 _cacheLock.EnterReadLock();
+                acquiredReadLock = true;
+            }
 
             bool res = false;
 
@@ -85,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                if (!_cacheIsComplete)
+                if (acquiredReadLock)
                     _cacheLock.ExitReadLock();
             }
 
@@ -228,8 +233,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> items = null;
             List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = null;
 
+            bool acquiredReadLock = false;
+
             if (!_cacheIsComplete)
+            { 
                 _cacheLock.EnterReadLock();
+                acquiredReadLock = true;
+            }
 
             // Select all cache entries which aren't at their min-size
             //
@@ -247,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                if (!_cacheIsComplete)
+                if (acquiredReadLock)
                     _cacheLock.ExitReadLock();
             }
 
