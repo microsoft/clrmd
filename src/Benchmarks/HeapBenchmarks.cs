@@ -5,15 +5,18 @@ using System.Linq;
 
 namespace Benchmarks
 {
-    public class ParallelHeapBenchmarks
+    // Single threaded heap enumeration test
+    public class HeapBenchmarks
     {
         private DataTarget _dataTarget;
         private ClrRuntime _runtime;
-        private ThreadParallelRunner<ClrSegment> _runner;
+        private ClrHeap _heap;
 
         [Params(
             32 * 1024 * 1024,
             128 * 1024 * 1024,
+            256 * 1024 * 1024,
+            512 * 1024 * 1024,
             1024 * 1024 * 1024)]
         public int CacheSize { get; set; }
 
@@ -30,8 +33,6 @@ namespace Benchmarks
             }
         }
 
-        [Params(1, 4, 8, 12)]
-        public int Threads { get; set; }
 
         [GlobalSetup]
         public void Setup()
@@ -54,11 +55,11 @@ namespace Benchmarks
             _runtime = _dataTarget.ClrVersions.Single().CreateRuntime();
         }
 
+
         [IterationSetup]
-        public void InitRunner()
+        public void SetHeap()
         {
-            _runner = new ThreadParallelRunner<ClrSegment>(Threads, _runtime.Heap.Segments);
-            _runner.Setup();
+            _heap = _runtime.Heap;
         }
 
         [IterationCleanup]
@@ -67,26 +68,21 @@ namespace Benchmarks
             _runtime.FlushCachedData();
         }
 
-        [GlobalCleanup]
-        public void Cleanup()
+        [Benchmark]
+        public void HeapEnumeration()
         {
-            _runtime.Dispose();
-            _dataTarget?.Dispose();
+            foreach (ClrObject _ in _heap.EnumerateObjects())
+            {
+            }
         }
 
         [Benchmark]
-        public void ParallelEnumerateHeapWithReferences()
+        public void HeapEnumerationWithReferences()
         {
-            _runner.Run(WalkSegment);
-        }
-
-        private static void WalkSegment(ClrSegment seg)
-        {
-            foreach (ClrObject obj in seg.EnumerateObjects().Take(2048))
+            foreach (ClrObject obj in _heap.EnumerateObjects())
             {
-                foreach (ClrReference reference in obj.EnumerateReferencesWithFields(carefully: false, considerDependantHandles: true))
+                foreach (ClrObject _ in obj.EnumerateReferences(carefully:false, considerDependantHandles: false))
                 {
-                    _ = reference.Object;
                 }
             }
         }
