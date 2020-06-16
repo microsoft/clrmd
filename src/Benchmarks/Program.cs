@@ -4,14 +4,20 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.CsProj;
 using BenchmarkDotNet.Toolchains.DotNetCli;
+using Microsoft.Diagnostics.Runtime;
 using System;
+using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Benchmarks
 {
     internal static class Program
     {
-        public static string CrashDump => Environment.GetEnvironmentVariable("ClrmdBenchmarkDumpFile") ?? throw new InvalidOperationException("You must set the 'ClrmdBenchmarkDumpFile' environment variable before running this program.");
+        private const string DumpFileEnv = "ClrmdBenchmarkDumpFile";
+        private const string DotnetEnv = "ClrmdBenchmarkDotnet";
+
+        public static string CrashDump => Environment.GetEnvironmentVariable(DumpFileEnv) ?? throw new InvalidOperationException("You must set the 'ClrmdBenchmarkDumpFile' environment variable before running this program.");
 
         public static bool ShouldTestOSMemoryFeatures
         {
@@ -25,21 +31,79 @@ namespace Benchmarks
             }
         }
 
-        static void Main(string[] _)
+        public static string GetDotnetPath(int pointerSize)
         {
+            string dotnetOverride = Environment.GetEnvironmentVariable(DotnetEnv);
+            if (!string.IsNullOrWhiteSpace(dotnetOverride))
+            {
+                if (!File.Exists(dotnetOverride))
+                    throw new FileNotFoundException($"File specified by '{DotnetEnv}' not found.", dotnetOverride);
 
-            var settings = NetCoreAppSettings.NetCoreApp31.WithCustomDotNetCliPath(@"C:\Program Files (x86)\dotnet\dotnet.exe");
-            var config = ManualConfig.Create(DefaultConfig.Instance);
-            Job job = Job.RyuJitX86.With(CsProjCoreToolchain.From(settings))
-                        .WithId("32bit")
-                        .WithWarmupCount(1) // 1 warmup is enough for our purpose
-                        .WithIterationTime(TimeInterval.FromSeconds(25)) // the default is 0.5s per iteration, which is slighlty too much for us
+                return dotnetOverride;
+            }
+
+            string programFiles = pointerSize == 4 ? Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) : Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string dotnetPath = Path.Combine(programFiles, "dotnet", "dotnet.exe");
+            if (!File.Exists(dotnetPath))
+                throw new FileNotFoundException($"Could not find `{dotnetPath}`.");
+
+            return dotnetPath;
+        }
+
+
+        static void Main(string[] args)
+        {
+            if (args.Length > 1)
+            {
+                Console.WriteLine($"Must specify a crash dump as the only argument to this program.");
+                Environment.Exit(1);
+            }
+            else if (args.Length == 1)
+            {
+                // Set the argument as the crash dump.  We can't just set CrashDump here because it needs to be read from child processes.
+                Environment.SetEnvironmentVariable(DumpFileEnv, args[0]);
+            }
+
+            // We want to run this even if we don't use the result to make sure we can successfully load 'CrashDump'.
+            int targetPointerSize = GetTargetPointerSize();
+
+
+            ManualConfig benchmarkConfiguration = ManualConfig.Create(DefaultConfig.Instance);
+
+            // Windows supports x86 and x64 so we need to choose the correct version of .Net.
+            Job job;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string dotnetPath = GetDotnetPath(targetPointerSize);
+
+                if (targetPointerSize == 4)
+                    job = Job.RyuJitX86.With(CsProjCoreToolchain.From(NetCoreAppSettings.NetCoreApp31.WithCustomDotNetCliPath(dotnetPath)));
+                else
+                    job = Job.RyuJitX64.With(CsProjCoreToolchain.From(NetCoreAppSettings.NetCoreApp31.WithCustomDotNetCliPath(dotnetPath)));
+            }
+            else
+            {
+                job = Job.Default;
+            }
+
+            string id = $"{RuntimeInformation.OSDescription} {RuntimeInformation.FrameworkDescription} {(targetPointerSize == 4 ? "32bit" : "64bit")}";
+            job = job.WithId(id)
+                        .WithWarmupCount(1)
+                        .WithIterationTime(TimeInterval.FromSeconds(1))
                         .WithMinIterationCount(10)
-                        .WithMaxIterationCount(20) // we don't want to run more that 20 iterations
-                        .DontEnforcePowerPlan(); // make sure BDN does not try to enforce High Performance power plan on Windows;
+                        .WithMaxIterationCount(20)
+                        .DontEnforcePowerPlan(); // make sure BDN does not try to enforce High Performance power plan on Windows
 
-            config.Add(job);
-            BenchmarkRunner.Run<ParallelHeapBenchmarks>(config);
+            benchmarkConfiguration.Add(job);
+
+            BenchmarkRunner.Run<ParallelHeapBenchmarks>(benchmarkConfiguration);
+        }
+
+
+        private static int GetTargetPointerSize()
+        {
+            using DataTarget dataTarget = DataTarget.LoadDump(CrashDump, new CacheOptions() { UseOSMemoryFeatures = false });
+            return dataTarget.DataReader.PointerSize;
         }
     }
 }
