@@ -11,7 +11,8 @@ namespace Benchmarks
 {
     internal static class Program
     {
-        public static string CrashDump { get; private set; }
+        public static string CrashDump => Environment.GetEnvironmentVariable("ClrmdBenchmarkDumpFile") ?? throw new InvalidOperationException("You must set the 'ClrmdBenchmarkDumpFile' environment variable before running this program.");
+
         public static bool ShouldTestOSMemoryFeatures
         {
             get
@@ -26,12 +27,6 @@ namespace Benchmarks
 
         static void Main(string[] _)
         {
-            CrashDump = Environment.GetEnvironmentVariable("ClrmdBenchmarkDumpFile");
-            if (string.IsNullOrWhiteSpace(CrashDump))
-            {
-                Console.WriteLine($"You must set the 'ClrmdBenchmarkDumpFile' environment variable before running this program.");
-                Environment.Exit(1);
-            }
 
             var settings = NetCoreAppSettings.NetCoreApp31.WithCustomDotNetCliPath(@"C:\Program Files (x86)\dotnet\dotnet.exe");
             var config = ManualConfig.Create(DefaultConfig.Instance);
