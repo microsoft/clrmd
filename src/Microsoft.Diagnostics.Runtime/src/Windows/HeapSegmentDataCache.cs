@@ -74,8 +74,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             ThrowIfDisposed();
 
+            bool acquiredReadLock = false;
+
             if (!_cacheIsComplete)
+            {
                 _cacheLock.EnterReadLock();
+                acquiredReadLock = true;
+            }
 
             bool res = false;
 
@@ -85,13 +90,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             finally
             {
-                if (!_cacheIsComplete)
+                if (acquiredReadLock)
                     _cacheLock.ExitReadLock();
             }
 
             if(res)
             { 
-                entry?.UpdateLastAccessTickCount();
+                entry?.UpdateLastAccessTimstamp();
             }
 
             return res;
@@ -140,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (Interlocked.Read(ref _cacheSize) < _maxSize)
                 return;
 
-            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = SnapshotNonMinSizeCacheItems(); ;
+            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = SnapshotNonMinSizeCacheItems(); ;
             if (entries.Count == 0)
                 return;
 
@@ -223,13 +228,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        private IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> SnapshotNonMinSizeCacheItems()
+        private IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> SnapshotNonMinSizeCacheItems()
         {
-            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> items = null;
-            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)> entries = null;
+            IEnumerable<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> items = null;
+            List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = null;
+
+            bool acquiredReadLock = false;
 
             if (!_cacheIsComplete)
+            { 
                 _cacheLock.EnterReadLock();
+                acquiredReadLock = true;
+            }
 
             // Select all cache entries which aren't at their min-size
             //
@@ -242,12 +252,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // to the code that looks for the largest item that CurrentSize hasn't changed
             try
             {
-                items = _cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTickCount));
-                entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, long LastAccessTickCount)>(items);
+                items = _cache.Where((kvp) => kvp.Value.CurrentSize != kvp.Value.MinSize).Select((kvp) => (CacheEntry: kvp, kvp.Value.LastAccessTimestamp));
+                entries = new List<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)>(items);
             }
             finally
             {
-                if (!_cacheIsComplete)
+                if (acquiredReadLock)
                     _cacheLock.ExitReadLock();
             }
 
@@ -255,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             //
             // NOTE: Using tickcounts is succeptible to roll-over, but worst case scenario we remove a slightly more recently used one thinking it is older, not a huge deal
             // and using DateTime.Now to get a non-roll-over succeptible timestamp showed up as 5% of scenario time in PerfView :(
-            entries.Sort((lhs, rhs) => rhs.LastAccessTickCount.CompareTo(lhs.LastAccessTickCount));
+            entries.Sort((lhs, rhs) => rhs.LastAccessTimestamp.CompareTo(lhs.LastAccessTimestamp));
 
             return entries;
         }

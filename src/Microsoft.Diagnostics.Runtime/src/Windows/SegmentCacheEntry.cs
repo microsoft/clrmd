@@ -12,11 +12,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public abstract int MinSize { get; }
 
-        public abstract long LastAccessTickCount { get; }
+        public abstract int LastAccessTimestamp { get; }
 
         public abstract long PageOutData();
 
-        public abstract void UpdateLastAccessTickCount();
+        public abstract void UpdateLastAccessTimstamp();
 
         public abstract void GetDataForAddress(ulong address, uint byteCount, IntPtr buffer, out uint bytesRead);
 
