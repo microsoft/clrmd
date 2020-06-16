@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.Utilities", "src\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj", "{46E0ED79-1CAD-4876-919D-A736CE47A4F6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{977B7737-E082-47AE-862D-1F177C66CB8D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{46E0ED79-1CAD-4876-919D-A736CE47A4F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46E0ED79-1CAD-4876-919D-A736CE47A4F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{46E0ED79-1CAD-4876-919D-A736CE47A4F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{977B7737-E082-47AE-862D-1F177C66CB8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{977B7737-E082-47AE-862D-1F177C66CB8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{977B7737-E082-47AE-862D-1F177C66CB8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{977B7737-E082-47AE-862D-1F177C66CB8D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
