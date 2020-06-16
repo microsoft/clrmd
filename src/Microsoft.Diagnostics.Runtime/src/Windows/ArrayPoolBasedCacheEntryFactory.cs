@@ -3,30 +3,24 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.IO;
 using System.IO.MemoryMappedFiles;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal sealed class ArrayPoolBasedCacheEntryFactory : SegmentCacheEntryFactory, IDisposable
+    internal sealed class ArrayPoolBasedCacheEntryFactory : SegmentCacheEntryFactory
     {
         private readonly MemoryMappedFile _mappedFile;
 
-        internal ArrayPoolBasedCacheEntryFactory(FileStream stream, bool leaveOpen)
+        private string _dumpPath;
+
+        internal ArrayPoolBasedCacheEntryFactory(string dumpPath)
         {
-            _mappedFile = MemoryMappedFile.CreateFromFile(stream,
-                                                          mapName: null,
-                                                          capacity: 0,
-                                                          MemoryMappedFileAccess.Read,
-                                                          HandleInheritability.None,
-                                                          leaveOpen);
+            _dumpPath = dumpPath;
         }
 
         public override SegmentCacheEntry CreateEntryForSegment(MinidumpSegment segmentData, Action<uint> updateOwningCacheForSizeChangeCallback)
         {
-            return new ArrayPoolBasedCacheEntry(_mappedFile, segmentData, updateOwningCacheForSizeChangeCallback);
+            return new ArrayPoolBasedCacheEntry(_dumpPath, segmentData, updateOwningCacheForSizeChangeCallback);
         }
-
-        public void Dispose() => _mappedFile.Dispose();
     }
 }

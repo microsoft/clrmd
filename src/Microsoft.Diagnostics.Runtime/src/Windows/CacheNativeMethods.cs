@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
@@ -41,6 +42,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [return: MarshalAs(UnmanagedType.Bool)]
             internal static extern bool CloseHandle(IntPtr handle);
 
+            internal static bool ReadFile(SafeFileHandle file, IntPtr buffer, uint numberOfBytesToRead, out uint numberOfBytesRead)
+            {
+                return ReadFile(file.DangerousGetHandle(), buffer, numberOfBytesToRead, out numberOfBytesRead, lpOverlapped: IntPtr.Zero);
+            }
+
             internal static bool ReadFile(IntPtr hFile, IntPtr buffer, uint numberOfBytesToRead, out uint numberOfBytesRead)
             {
                 return ReadFile(hFile, buffer, numberOfBytesToRead, out numberOfBytesRead, lpOverlapped: IntPtr.Zero);
@@ -56,6 +62,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             [DllImport("kernel32.dll", SetLastError = true)]
             private static extern bool ReadFile(IntPtr hFile, UIntPtr lpBuffer, uint nNumberOfBytesToRead, out uint lpNumberOfBytesRead, IntPtr lpOverlapped);
+
+            internal static bool SetFilePointerEx(SafeFileHandle file, long distanceToMove, SeekOrigin seekOrigin)
+            {
+                return SetFilePointerEx(file.DangerousGetHandle(), distanceToMove, lpNewFilePointer: IntPtr.Zero, seekOrigin);
+            }
 
             internal static bool SetFilePointerEx(IntPtr file, long distanceToMove, SeekOrigin seekOrigin)
             {

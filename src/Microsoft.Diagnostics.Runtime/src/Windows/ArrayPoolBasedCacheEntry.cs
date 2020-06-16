@@ -4,9 +4,10 @@
 
 using System;
 using System.Buffers;
-using System.IO.MemoryMappedFiles;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 
 // TODO:  This code wasn't written to consider nullable.
 #nullable disable
@@ -22,11 +23,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private static readonly uint SystemPageSize = (uint)Environment.SystemPageSize;
 
-        private MemoryMappedFile _mappedFile;
+        private SafeFileHandle _fileHandle;
+        private string _dumpFileLocation;
 
-        internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, Action<uint> updateOwningCacheForAddedChunk) : base(segmentData, derivedMinSize: 2 * IntPtr.Size, updateOwningCacheForAddedChunk)
+        internal ArrayPoolBasedCacheEntry(string dumpFileLocation, MinidumpSegment segmentData, Action<uint> updateOwningCacheForAddedChunk) : base(segmentData, derivedMinSize: 2 * IntPtr.Size, updateOwningCacheForAddedChunk)
         {
-            _mappedFile = mappedFile;
+            _dumpFileLocation = dumpFileLocation;
+            _fileHandle = new SafeFileHandle(CacheNativeMethods.File.CreateFile(_dumpFileLocation, FileMode.Open, FileAccess.Read, FileShare.Read), ownsHandle: true);
         }
 
         public override long PageOutData()
@@ -67,57 +70,35 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             bool pageInFailed = false;
-            using (MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + pageAlignedOffset, size: (long)readSize, MemoryMappedFileAccess.Read))
+            try
             {
-                try
+                CacheNativeMethods.File.SetFilePointerEx(_fileHandle, (long)(_segmentData.FileOffset + pageAlignedOffset), SeekOrigin.Begin);
+                unsafe
                 {
-                    ulong viewOffset = (ulong)view.PointerOffset;
+                    // Grab a shared buffer to use if there is one, or create one for the pool
+                    byte[] data = ArrayPool<byte>.Shared.Rent((int)readSize);
 
-                    unsafe
+                    fixed (byte* pData = data)
                     {
-                        byte* pViewLoc = null;
-                        RuntimeHelpers.PrepareConstrainedRegions();
-                        try
-                        {
-                            view.SafeMemoryMappedViewHandle.AcquirePointer(ref pViewLoc);
-                            if (pViewLoc == null)
-                                throw new InvalidOperationException("Failed to acquire the underlying memory mapped view pointer. This is unexpected");
-
-                            pViewLoc += viewOffset;
-
-                            // Grab a shared buffer to use if there is one, or create one for the pool
-                            byte[] data = ArrayPool<byte>.Shared.Rent((int)readSize);
-
-                            // NOTE: This looks sightly ridiculous but view.ReadArray<T> is TERRIBLE for primitive types like byte, it calls Marshal.PtrToStructure for EVERY item in the 
-                            // array, the overhead of that call SWAMPS all access costs to the memory, and it is called N times (where N here is 4k), whereas memcpy just blasts the bits
-                            // from one location to the other, it is literally a couple of orders of magnitude faster.
-                            fixed (byte* pData = data)
-                            {
-                                CacheNativeMethods.Memory.memcpy(new UIntPtr(pData), new UIntPtr(pViewLoc), new UIntPtr(readSize));
-                            }
-
-                            return (data, readSize);
-                        }
-                        finally
-                        {
-                            if (pViewLoc != null)
-                                view.SafeMemoryMappedViewHandle.ReleasePointer();
-                        }
+                        uint bytesRead;
+                        CacheNativeMethods.File.ReadFile(_fileHandle, new IntPtr(pData), readSize, out bytesRead);
                     }
-                }
-                catch (Exception ex)
-                {
-                    if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                        HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
 
-                    pageInFailed = true;
-                    throw;
+                    return (data, readSize);
                 }
-                finally
-                {
-                    if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
-                        HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
-                }
+            }
+            catch (Exception ex)
+            {
+                if (HeapSegmentCacheEventSource.Instance.IsEnabled())
+                    HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
+
+                pageInFailed = true;
+                throw;
+            }
+            finally
+            {
+                if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
+                    HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
             }
         }
 
@@ -137,6 +118,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     break;
                 }
+            }
+
+            if (_fileHandle != null)
+            {
+                _fileHandle.Dispose();
+                _fileHandle = null;
             }
         }
 
