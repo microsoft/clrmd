@@ -70,6 +70,7 @@ namespace Benchmarks
         [GlobalCleanup]
         public void Cleanup()
         {
+            _runtime.Dispose();
             _dataTarget?.Dispose();
         }
 
