@@ -3,14 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.IO.MemoryMappedFiles;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class ArrayPoolBasedCacheEntryFactory : SegmentCacheEntryFactory
     {
-        private readonly MemoryMappedFile _mappedFile;
-
         private string _dumpPath;
 
         internal ArrayPoolBasedCacheEntryFactory(string dumpPath)

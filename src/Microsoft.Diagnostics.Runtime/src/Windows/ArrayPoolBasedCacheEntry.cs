@@ -4,8 +4,10 @@
 
 using System;
 using System.Buffers;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
@@ -30,6 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             _dumpFileLocation = dumpFileLocation;
             _fileHandle = new SafeFileHandle(CacheNativeMethods.File.CreateFile(_dumpFileLocation, FileMode.Open, FileAccess.Read, FileShare.Read), ownsHandle: true);
+            if(_fileHandle.IsInvalid)
+                throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
         public override long PageOutData()
@@ -72,7 +76,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             bool pageInFailed = false;
             try
             {
-                CacheNativeMethods.File.SetFilePointerEx(_fileHandle, (long)(_segmentData.FileOffset + pageAlignedOffset), SeekOrigin.Begin);
+                if(!CacheNativeMethods.File.SetFilePointerEx(_fileHandle, (long)(_segmentData.FileOffset + pageAlignedOffset), SeekOrigin.Begin))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+
                 unsafe
                 {
                     // Grab a shared buffer to use if there is one, or create one for the pool
@@ -81,7 +87,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     fixed (byte* pData = data)
                     {
                         uint bytesRead;
-                        CacheNativeMethods.File.ReadFile(_fileHandle, new IntPtr(pData), readSize, out bytesRead);
+                        if(!CacheNativeMethods.File.ReadFile(_fileHandle, new IntPtr(pData), readSize, out bytesRead))
+                            throw new Win32Exception(Marshal.GetLastWin32Error());
                     }
 
                     return (data, readSize);
