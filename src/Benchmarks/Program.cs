@@ -6,8 +6,10 @@ using BenchmarkDotNet.Toolchains.CsProj;
 using BenchmarkDotNet.Toolchains.DotNetCli;
 using Microsoft.Diagnostics.Runtime;
 using System;
-using System.Drawing;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Benchmarks
@@ -53,15 +55,24 @@ namespace Benchmarks
 
         static void Main(string[] args)
         {
-            if (args.Length > 1)
-            {
-                Console.WriteLine($"Must specify a crash dump as the only argument to this program.");
-                Environment.Exit(1);
-            }
-            else if (args.Length == 1)
+            Assembly thisAssembly = Assembly.GetCallingAssembly();
+            List<Type> benchmarks = new List<Type>();
+            if (args.Length > 0)
             {
                 // Set the argument as the crash dump.  We can't just set CrashDump here because it needs to be read from child processes.
                 Environment.SetEnvironmentVariable(DumpFileEnv, args[0]);
+
+                foreach (string benchmark in args.Skip(1))
+                {
+                    Type benchmarkType = thisAssembly.GetType($"Benchmarks.{benchmark}", throwOnError: false, ignoreCase: true);
+                    if (benchmarkType == null)
+                    {
+                        Console.WriteLine($"Benchmark '{benchmark}' not found.");
+                        Environment.Exit(2);
+                    }
+
+                    benchmarks.Add(benchmarkType);
+                }
             }
 
             // We want to run this even if we don't use the result to make sure we can successfully load 'CrashDump'.
@@ -96,9 +107,16 @@ namespace Benchmarks
 
             benchmarkConfiguration.Add(job);
 
-            BenchmarkRunner.Run<ParallelHeapBenchmarks>(benchmarkConfiguration);
+            if (benchmarks.Count == 0)
+            {
+                BenchmarkRunner.Run(thisAssembly, benchmarkConfiguration);
+            }
+            else
+            {
+                foreach (Type t in benchmarks)
+                    BenchmarkRunner.Run(t, benchmarkConfiguration);
+            }
         }
-
 
         private static int GetTargetPointerSize()
         {
