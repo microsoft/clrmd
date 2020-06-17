@@ -341,7 +341,7 @@ else
 There are two parts in this example you should pay attention to. First is checking the `ClrHeap.CanWalkHeap` property. This property specifies whether the process is in a state where you can reliably walk the heap. If the crashdump was taken during the middle of a GC, the GC could have been relocating objects. At which point a linear walk of the GC heap is not possible. If this is the
 case, `CanWalkHeap` will return `false`.
 
-Second, you need to check whether objects returned from `EnumerateObjects are valid.  `ClrSegment.NextObject` does not attempt to detect heap corruption, so it is possible we will return an object where `ClrObject.IsValid` is false.
+Second, you need to check whether objects returned from `EnumerateObjects` are valid. `ClrSegment.NextObject` does not attempt to detect heap corruption, so it is possible we will return an object where `ClrObject.IsValid` is false.
 
 ## Walking objects without walking the segments
 
