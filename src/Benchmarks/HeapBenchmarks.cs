@@ -13,13 +13,13 @@ namespace Benchmarks
         private ClrHeap _heap;
 
         [ParamsSource(nameof(CacheSizeSource))]
-        public int CacheSize { get; set; }
+        public long CacheSize { get; set; }
 
         [ParamsSource(nameof(OSMemoryFeaturesSource))]
         public bool UseOSMemoryFeatures { get; set; }
 
         public IEnumerable<bool> OSMemoryFeaturesSource => BenchmarkSwitches.OSMemoryFeatureFlags;
-        public IEnumerable<ulong> CacheSizeSource => BenchmarkSwitches.RelevantCacheSizes;
+        public IEnumerable<long> CacheSizeSource => BenchmarkSwitches.RelevantCacheSizes;
 
 
         [GlobalSetup]
