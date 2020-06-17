@@ -12,26 +12,14 @@ namespace Benchmarks
         private ClrRuntime _runtime;
         private ClrHeap _heap;
 
-        [Params(
-            32 * 1024 * 1024,
-            128 * 1024 * 1024,
-            256 * 1024 * 1024,
-            512 * 1024 * 1024,
-            1024 * 1024 * 1024)]
+        [ParamsSource(nameof(CacheSizeSource))]
         public int CacheSize { get; set; }
 
         [ParamsSource(nameof(OSMemoryFeaturesSource))]
         public bool UseOSMemoryFeatures { get; set; }
 
-        public IEnumerable<bool> OSMemoryFeaturesSource
-        {
-            get
-            {
-                yield return false;
-                if (Program.ShouldTestOSMemoryFeatures)
-                    yield return true;
-            }
-        }
+        public IEnumerable<bool> OSMemoryFeaturesSource => BenchmarkSwitches.OSMemoryFeatureFlags;
+        public IEnumerable<ulong> CacheSizeSource => BenchmarkSwitches.RelevantCacheSizes;
 
 
         [GlobalSetup]
