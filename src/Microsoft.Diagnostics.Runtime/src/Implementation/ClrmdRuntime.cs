@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly IRuntimeHelpers _helpers;
         private ClrHeap? _heap;
-        private ClrModule? _bcl;
+        private volatile ClrModule? _bcl;
         private ImmutableArray<ClrThread> _threads;
         private ImmutableArray<ClrAppDomain> _domains;
         private ClrAppDomain? _systemDomain;
@@ -161,6 +161,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByHandle(md);
         }
 
-        public override ClrModule BaseClassLibrary => _bcl ??= _helpers.GetBaseClassLibrary(this)!;
+        public override ClrModule BaseClassLibrary
+        {
+            get
+            {
+                ClrModule? bcl = _bcl;
+                if (bcl is null)
+                {
+                    bcl = _helpers.GetBaseClassLibrary(this);
+                    _bcl = bcl;
+                }
+
+                return bcl!;
+            }
+        }
     }
 }
