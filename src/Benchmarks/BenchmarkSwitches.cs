@@ -21,7 +21,7 @@ namespace Benchmarks
             }
         }
 
-        public static IEnumerable<ulong> RelevantCacheSizes
+        public static IEnumerable<long> RelevantCacheSizes
         {
             get
             {
