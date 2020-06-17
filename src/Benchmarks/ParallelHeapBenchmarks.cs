@@ -11,27 +11,19 @@ namespace Benchmarks
         private ClrRuntime _runtime;
         private ThreadParallelRunner<ClrSegment> _runner;
 
-        [Params(
-            32 * 1024 * 1024,
-            128 * 1024 * 1024,
-            1024 * 1024 * 1024)]
+        [ParamsSource(nameof(CacheSizeSource))]
         public int CacheSize { get; set; }
 
         [ParamsSource(nameof(OSMemoryFeaturesSource))]
         public bool UseOSMemoryFeatures { get; set; }
 
-        public IEnumerable<bool> OSMemoryFeaturesSource
-        {
-            get
-            {
-                yield return false;
-                if (Program.ShouldTestOSMemoryFeatures)
-                    yield return true;
-            }
-        }
-
-        [Params(1, 4, 8, 12)]
+        [ParamsSource(nameof(ThreadCountSource))]
         public int Threads { get; set; }
+
+        public IEnumerable<bool> OSMemoryFeaturesSource => BenchmarkSwitches.OSMemoryFeatureFlags;
+        public IEnumerable<ulong> CacheSizeSource => BenchmarkSwitches.RelevantCacheSizes;
+        public IEnumerable<int> ThreadCountSource => BenchmarkSwitches.Parallelism;
+
 
         [GlobalSetup]
         public void Setup()
