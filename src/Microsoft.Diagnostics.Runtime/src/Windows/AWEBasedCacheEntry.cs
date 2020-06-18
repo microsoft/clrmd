@@ -132,9 +132,22 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return sizeRemoved;
         }
 
-        protected override void InvokeCallbackWithDataPtr(CachePage<UIntPtr> page, Action<UIntPtr, uint> callback)
+        protected unsafe override uint InvokeCallbackWithDataPtr(CachePage<UIntPtr> page, Func<UIntPtr, uint, uint> callback)
         {
-            callback(page.Data, page.DataExtent);
+            return callback(page.Data, page.DataExtent);
+        }
+
+        protected override uint CopyDataFromPage(CachePage<UIntPtr> page, IntPtr buffer, uint inPageOffset, uint byteCount)
+        {
+            // Calculate how much of the requested read can be satisfied by the page
+            uint sizeRead = Math.Min(page.DataExtent - inPageOffset, byteCount);
+
+            unsafe
+            {
+                CacheNativeMethods.Memory.memcpy(buffer, new UIntPtr((byte*)page.Data + inPageOffset), new UIntPtr(sizeRead));
+            }
+
+            return sizeRead;
         }
 
         protected override (UIntPtr Data, uint DataExtent) GetPageDataAtOffset(uint pageAlignedOffset)

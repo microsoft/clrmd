@@ -163,28 +163,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             uint inPageOffset = (segmentOffset - pageSegmentOffset);
 
-            uint sizeRead = 0;
-            ReadPageDataFromOffset(pageIndex, (data, dataLength) =>
-                {
-                    // Calculate how much of the requested read can be satisfied by the page
-                    sizeRead = Math.Min(dataLength - inPageOffset, byteCount);
-
-                    unsafe
-                    {
-                        CacheNativeMethods.Memory.memcpy(buffer, new UIntPtr((byte*)data + inPageOffset), new UIntPtr(sizeRead));
-                    }
-                });
-
-            bytesRead = sizeRead;
+            bytesRead = ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount, buffer, dataReader: null);
         }
 
-        protected abstract void InvokeCallbackWithDataPtr(CachePage<T> page, Action<UIntPtr, uint> callback);
+        protected abstract uint InvokeCallbackWithDataPtr(CachePage<T> page, Func<UIntPtr, uint, uint> callback);
+
+        protected abstract uint CopyDataFromPage(CachePage<T> page, IntPtr buffer, uint inPageOffset, uint byteCount);
 
         protected abstract (T Data, uint DataExtent) GetPageDataAtOffset(uint pageAlignedOffset);
 
-        private void ReadPageDataFromOffset(int pageIndex, Action<UIntPtr, uint> dataReader)
+        private uint ReadPageDataFromOffset(int pageIndex, uint inPageOffset, uint byteCount, IntPtr buffer, Func<UIntPtr, uint, uint> dataReader)
         {
             bool notifyCacheOfSizeUpdate = false;
+
+            uint sizeRead = 0;
             int addedSize = 0;
 
             ReaderWriterLockSlim pageLock = _pageLocks[pageIndex];
@@ -199,7 +191,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     UpdateLastAccessTimstamp();
 
-                    InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                    if (dataReader == null)
+                    {
+                        sizeRead = CopyDataFromPage(_pages[pageIndex], buffer, inPageOffset, byteCount);
+                    }
+                    else
+                    {
+                        sizeRead = InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                    }
                 }
                 else
                 {
@@ -223,7 +222,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                             UpdateLastAccessTimstamp();
 
-                            InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                            if (dataReader == null)
+                            {
+                                sizeRead = CopyDataFromPage(_pages[pageIndex], buffer, inPageOffset, byteCount);
+                            }
+                            else
+                            {
+                                sizeRead = InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                            }
 
                             addedSize = (int)dataRange;
                             notifyCacheOfSizeUpdate = true;
@@ -233,7 +239,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             // Someone else beat us to retrieving the data, so we can just read
                             UpdateLastAccessTimstamp();
 
-                            InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                            if (dataReader == null)
+                            {
+                                sizeRead = CopyDataFromPage(_pages[pageIndex], buffer, inPageOffset, byteCount);
+                            }
+                            else
+                            {
+                                sizeRead = InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
+                            }
                         }
                     }
                     finally
@@ -252,6 +265,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 _updateOwningCacheForAddedChunk((uint)addedSize);
             }
+
+            return sizeRead;
         }
 
         private bool ReadPageDataFromOffsetUntil(uint segmentOffset, byte[] terminatingSequence, List<byte> bytesRead)
@@ -268,10 +283,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             do
             {
-                ReadPageDataFromOffset(pageIndex, (data, dataLength) =>
+                ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount: 0, buffer: IntPtr.Zero, (data, dataLength) =>
                     {
-                        CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
+                        return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
                     });
+
 
                 pageIndex++;
                 inPageOffset = 0;
@@ -292,7 +308,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         //    specifically we carry over the 'left over' bytes from the last page (in trailingBytes) and append to them data from the current page to see if that forms a terminating sequence. If so
         //    we are done, if not we have to copy the trailing bytes to the the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
         //    this could cascade and cause THIS page to also have 'trailing bytes', so we must continue this little adventure until the string terminates.
-        private static unsafe void ProcessPageForSequenceTerminatingRead(UIntPtr data,
+        private static unsafe uint ProcessPageForSequenceTerminatingRead(UIntPtr data,
                                                                          uint dataLength,
                                                                          uint inPageOffset,
                                                                          byte[] terminatingSequence,
@@ -300,6 +316,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                                                          ref List<byte> trailingBytes,
                                                                          ref bool sawTerminatingSequence)
         {
+            uint dataRead = 0;
+
             uint availableDataOnPage = dataLength - inPageOffset;
             uint startOffsetAdjustment = 0;
 
@@ -328,12 +346,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     // we matched the whole terminating sequence with the trailing + leading bytes
                     sawTerminatingSequence = true;
-                    return;
+                    return dataRead;
                 }
                 else
                 {
                     // We didn't match the terminating sequence
                     bytesRead.AddRange(trailingBytes);
+                    dataRead += (uint)trailingBytes.Count;
                     trailingBytes.Clear();
                 }
             }
@@ -382,8 +401,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         bytesRead.Add(*((byte*)data + inPageOffset + i + j));
                     }
+
+                    dataRead += (uint)terminatingSequence.Length;
                 }
             }
+
+            return dataRead;
         }
     }
 }
