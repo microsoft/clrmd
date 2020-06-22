@@ -233,18 +233,31 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        // Convert CLRDATA_ADDRESS to ELF address
+        private long GetElfAddress(ulong addr)
+        {
+            if (_pointerSize == 4)
+            {
+                // CLRDATA_ADDRESS 32-bit addresses are sign extended to 64 bits.
+                // This does not match ELF treatment
+                // Strip sign bits to get the ELF address
+                return (long) (addr & 0xffffffff);
+            }
+            return (long) addr;
+        }
+
         public uint ReadDwordUnsafe(ulong addr)
         {
-            int read = _core.ReadMemory((long)addr, _buffer, 4);
+            int read = _core.ReadMemory(GetElfAddress(addr), _buffer, 4);
             if (read == 4)
                 return BitConverter.ToUInt32(_buffer, 0);
 
             return 0;
         }
 
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
+        public bool ReadMemory(ulong addr, byte[] buffer, int bytesRequested, out int bytesRead)
         {
-            bytesRead = _core.ReadMemory((long)address, buffer, bytesRequested);
+            bytesRead = _core.ReadMemory(GetElfAddress(addr), buffer, bytesRequested);
             return bytesRead > 0;
         }
 
@@ -263,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong ReadPointerUnsafe(ulong addr)
         {
-            int read = _core.ReadMemory((long)addr, _buffer, _pointerSize);
+            int read = _core.ReadMemory(GetElfAddress(addr), _buffer, _pointerSize);
             if (read == _pointerSize)
             {
                 if (_pointerSize == 8)
@@ -278,7 +291,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool VirtualQuery(ulong address, out VirtualQueryData vq)
         {
-            long addr = (long)address;
+            long addr = GetElfAddress(address);
             foreach (ElfProgramHeader item in _core.ElfFile.ProgramHeaders)
             {
                 long start = item.VirtualAddress;
