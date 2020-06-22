@@ -263,28 +263,5 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             return runtime.Heap.EnumerateObjects().ToArray();
         }
-
-        [Fact]
-        public void DumpHeapStat()
-        {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
-            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-            var results = heap.DumpHeapStat(0);
-            var all = results.ToList();
-
-            Assert.Equal(167, all.Count);
-            Assert.Equal<(ulong, int, long)>((0x00007ff9fd29e768, 1, 24), GetRowData("System.Resources.FastResourceComparer"));
-            Assert.Equal<(ulong, int, long)>((0x00007ff9fd295e70, 24, 36152), GetRowData("System.Object[]"));
-            Assert.Equal<(ulong, int, long)>((0x00007ff9fd2959c0, 301, 22700), GetRowData("System.String"));
-
-            (ulong methodTable, int instances, long totalSize) GetRowData(string typeName)
-            {
-                var objectArray = all.Where(a => a.type.Name.Equals(typeName)).Single();
-                var size = objectArray.size;
-                var mt = objectArray.type.MethodTable;
-                return (mt, objectArray.objects.Count(), objectArray.size);
-            }
-        }
     }
 }
