@@ -66,6 +66,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
+        public SOSDac8? GetSOSDacInterface8()
+        {
+            IntPtr result = QueryInterface(SOSDac8.IID_ISOSDac8);
+            if (result == IntPtr.Zero)
+                return null;
+
+            try
+            {
+                return new SOSDac8(_library, result);
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
+        }
+
         public void Flush()
         {
             InitDelegate(ref _flush, VTable.Flush);
