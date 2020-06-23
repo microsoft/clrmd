@@ -21,6 +21,5 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 .Where(t => t.totalSize > minTotalSize)
                 .OrderBy(t => t.totalSize);
         }
-
     }
 }

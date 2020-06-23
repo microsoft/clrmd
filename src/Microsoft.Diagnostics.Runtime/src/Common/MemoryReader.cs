@@ -168,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool MoveToPage(ulong addr)
         {
-            _currPageSize = _dataReader.Read(_currPageStart, _data);
+            _currPageSize = _dataReader.Read(addr, _data);
 
             if (_currPageSize == 0)
             {

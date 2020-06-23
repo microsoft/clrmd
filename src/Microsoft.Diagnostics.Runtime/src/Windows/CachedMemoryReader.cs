@@ -192,11 +192,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 if (address != targetSegment.VirtualAddress)
                 {
+                    int prevSegmentIndex = curSegmentIndex;
+
                     curSegmentIndex = segments.Search(address, (x, addr) => (x.VirtualAddress <= addr && addr < x.VirtualAddress + x.Size) ? 0 : x.VirtualAddress.CompareTo(addr));
                     if (curSegmentIndex == -1)
                     {
-                        _lastAccessed.SegmentIndex = curSegmentIndex - 1;
-                        _lastAccessed.Segment = segments[_lastAccessed.SegmentIndex];
+                        if (prevSegmentIndex >= 0)
+                        {
+                            _lastAccessed.SegmentIndex = prevSegmentIndex;
+                            _lastAccessed.Segment = segments[_lastAccessed.SegmentIndex];
+                        }
 
                         return totalBytes;
                     }
