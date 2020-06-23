@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// by the user's string cache settings.</returns>
         bool GetTypeName(ulong mt, out string? name);
         ulong GetLoaderAllocatorHandle(ulong mt);
-        ulong GetAssemblyLoadContextHandle(ulong mt);
+        ulong GetAssemblyLoadContextAddress(ulong mt);
 
         // TODO: Should not expose this:
         IObjectData GetObjectData(ulong objRef);

@@ -305,14 +305,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ulong AssemblyLoadContextHandle
+        public override ulong AssemblyLoadContextAddress
         {
             get
             {
                 if (_assemblyLoadContextHandle != ulong.MaxValue - 1)
                     return _assemblyLoadContextHandle;
 
-                return _assemblyLoadContextHandle = Helpers.GetAssemblyLoadContextHandle(MethodTable);
+                return _assemblyLoadContextHandle = Helpers.GetAssemblyLoadContextAddress(MethodTable);
             }
         }
 
