@@ -54,6 +54,11 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual ulong LoaderAllocatorHandle => 0;
 
         /// <summary>
+        /// Gets the address of the <c>System.Runtime.Loader.AssemblyLoadContext</c> object.
+        /// </summary>
+        public virtual ulong AssemblyLoadContextHandle => 0;
+
+        /// <summary>
         /// Gets the <see cref="ClrHeap"/> this type belongs to.
         /// </summary>
         public abstract ClrHeap Heap { get; }
