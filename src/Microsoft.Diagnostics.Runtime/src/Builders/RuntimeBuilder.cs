@@ -1572,7 +1572,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return 0;
         }
 
-        ulong ITypeHelpers.GetAssemblyLoadContextHandle(ulong mt)
+        ulong ITypeHelpers.GetAssemblyLoadContextAddress(ulong mt)
         {
             CheckDisposed();
 
