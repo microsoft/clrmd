@@ -6,7 +6,6 @@ using BenchmarkDotNet.Toolchains.CsProj;
 using BenchmarkDotNet.Toolchains.DotNetCli;
 using Microsoft.Diagnostics.Runtime;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -21,10 +20,6 @@ namespace Benchmarks
 
         static void Main(string[] args)
         {
-            // Set the argument as the crash dump.  We can't just set CrashDump here because it needs to be read from child processes.
-            if (args.Length > 0)
-                Environment.SetEnvironmentVariable(DumpFileEnv, args[0]);
-            
             // We want to run this even if we don't use the result to make sure we can successfully load 'CrashDump'.
             int targetPointerSize = GetTargetPointerSize();
 
