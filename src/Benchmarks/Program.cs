@@ -8,8 +8,6 @@ using Microsoft.Diagnostics.Runtime;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Benchmarks
@@ -23,8 +21,6 @@ namespace Benchmarks
 
         static void Main(string[] args)
         {
-            List<Type> benchmarks = GetBenchmarkTypesFromArgs(args);
-
             // Set the argument as the crash dump.  We can't just set CrashDump here because it needs to be read from child processes.
             if (args.Length > 0)
                 Environment.SetEnvironmentVariable(DumpFileEnv, args[0]);
@@ -61,34 +57,8 @@ namespace Benchmarks
 
             benchmarkConfiguration.Add(job);
 
-            if (benchmarks.Count == 0)
-            {
-                BenchmarkRunner.Run(Assembly.GetCallingAssembly(), benchmarkConfiguration);
-            }
-            else
-            {
-                foreach (Type t in benchmarks)
-                    BenchmarkRunner.Run(t, benchmarkConfiguration);
-            }
-        }
 
-        private static List<Type> GetBenchmarkTypesFromArgs(string[] args)
-        {
-            Assembly thisAssembly = Assembly.GetCallingAssembly();
-            List<Type> benchmarks = new List<Type>();
-            foreach (string benchmark in args.Skip(1))
-            {
-                Type benchmarkType = thisAssembly.GetType($"Benchmarks.{benchmark}", throwOnError: false, ignoreCase: true);
-                if (benchmarkType == null)
-                {
-                    Console.WriteLine($"Benchmark '{benchmark}' not found.");
-                    Environment.Exit(2);
-                }
-
-                benchmarks.Add(benchmarkType);
-            }
-
-            return benchmarks;
+            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, benchmarkConfiguration);
         }
 
         public static string GetDotnetPath(int pointerSize)
