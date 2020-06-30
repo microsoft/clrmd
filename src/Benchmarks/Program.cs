@@ -2,11 +2,8 @@
 using BenchmarkDotNet.Horology;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using BenchmarkDotNet.Toolchains.CsProj;
-using BenchmarkDotNet.Toolchains.DotNetCli;
 using Microsoft.Diagnostics.Runtime;
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Benchmarks
@@ -14,7 +11,6 @@ namespace Benchmarks
     internal static class Program
     {
         private const string DumpFileEnv = "ClrmdBenchmarkDumpFile";
-        private const string DotnetEnv = "ClrmdBenchmarkDotnet";
 
         public static string CrashDump => Environment.GetEnvironmentVariable(DumpFileEnv) ?? throw new InvalidOperationException("You must set the 'ClrmdBenchmarkDumpFile' environment variable before running this program.");
 
@@ -23,56 +19,21 @@ namespace Benchmarks
             // We want to run this even if we don't use the result to make sure we can successfully load 'CrashDump'.
             int targetPointerSize = GetTargetPointerSize();
 
-
             ManualConfig benchmarkConfiguration = ManualConfig.Create(DefaultConfig.Instance);
 
-            // Windows supports x86 and x64 so we need to choose the correct version of .Net.
-            Job job;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string dotnetPath = GetDotnetPath(targetPointerSize);
-
-                if (targetPointerSize == 4)
-                    job = Job.RyuJitX86.With(CsProjCoreToolchain.From(NetCoreAppSettings.NetCoreApp31.WithCustomDotNetCliPath(dotnetPath)));
-                else
-                    job = Job.RyuJitX64.With(CsProjCoreToolchain.From(NetCoreAppSettings.NetCoreApp31.WithCustomDotNetCliPath(dotnetPath)));
-            }
-            else
-            {
-                job = Job.Default;
-            }
-
             string id = $"{RuntimeInformation.OSDescription} {RuntimeInformation.FrameworkDescription} {(targetPointerSize == 4 ? "32bit" : "64bit")}";
-            job = job.WithId(id)
+            var job = Job.Default.WithId(id)
                         .WithWarmupCount(1)
                         .WithIterationTime(TimeInterval.FromSeconds(1))
                         .WithMinIterationCount(5)
                         .WithMaxIterationCount(10)
-                        .DontEnforcePowerPlan(); // make sure BDN does not try to enforce High Performance power plan on Windows
+                        .DontEnforcePowerPlan() // make sure BDN does not try to enforce High Performance power plan on Windows
+                        .AsDefault();
 
             benchmarkConfiguration.Add(job);
 
 
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, benchmarkConfiguration);
-        }
-
-        public static string GetDotnetPath(int pointerSize)
-        {
-            string dotnetOverride = Environment.GetEnvironmentVariable(DotnetEnv);
-            if (!string.IsNullOrWhiteSpace(dotnetOverride))
-            {
-                if (!File.Exists(dotnetOverride))
-                    throw new FileNotFoundException($"File specified by '{DotnetEnv}' not found.", dotnetOverride);
-
-                return dotnetOverride;
-            }
-
-            string programFiles = pointerSize == 4 ? Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) : Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string dotnetPath = Path.Combine(programFiles, "dotnet", "dotnet.exe");
-            if (!File.Exists(dotnetPath))
-                throw new FileNotFoundException($"Could not find `{dotnetPath}`.");
-
-            return dotnetPath;
         }
 
         private static int GetTargetPointerSize()
