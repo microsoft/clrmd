@@ -21,6 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private string? _name;
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
+        private ulong _assemblyLoadContextHandle = ulong.MaxValue - 1;
 
         private ImmutableArray<ClrMethod> _methods;
         private ImmutableArray<ClrInstanceField> _fields;
@@ -301,6 +302,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ulong handle = Helpers.GetLoaderAllocatorHandle(MethodTable);
                 _loaderAllocatorHandle = handle;
                 return handle;
+            }
+        }
+
+        public override ulong AssemblyLoadContextAddress
+        {
+            get
+            {
+                if (_assemblyLoadContextHandle != ulong.MaxValue - 1)
+                    return _assemblyLoadContextHandle;
+
+                return _assemblyLoadContextHandle = Helpers.GetAssemblyLoadContextAddress(MethodTable);
             }
         }
 

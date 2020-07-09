@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly SOSDac _sos;
         private readonly CacheOptions _options;
         private readonly SOSDac6? _sos6;
+        private readonly SOSDac8? _sos8;
         private readonly int _threads;
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
@@ -63,6 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
+            _sos8 = _library.SOSDacInterface8;
             DataReader = _clrInfo.DataTarget.DataReader;
 
             int version = 0;
@@ -102,6 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 _dac.Dispose();
                 _sos.Dispose();
                 _sos6?.Dispose();
+                _sos8?.Dispose();
                 _library.Dispose();
             }
         }
@@ -1558,12 +1561,23 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         }
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
+
         ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
         {
             CheckDisposed();
 
             if (_sos6 != null && _sos6.GetMethodTableCollectibleData(mt, out MethodTableCollectibleData data) && data.Collectible != 0)
                 return data.LoaderAllocatorObjectHandle;
+
+            return 0;
+        }
+
+        ulong ITypeHelpers.GetAssemblyLoadContextAddress(ulong mt)
+        {
+            CheckDisposed();
+
+            if (_sos8 != null && _sos8.GetAssemblyLoadContext(mt, out ClrDataAddress assemblyLoadContext))
+                return assemblyLoadContext;
 
             return 0;
         }
