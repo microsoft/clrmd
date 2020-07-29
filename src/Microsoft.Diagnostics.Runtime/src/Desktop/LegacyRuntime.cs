@@ -354,10 +354,10 @@ namespace Microsoft.Diagnostics.Runtime.Desktop
                     if (Request(DacRequests.MANAGER_LIST, null, output))
                     {
                         MutableJitCodeHeapInfo heapInfo = new MutableJitCodeHeapInfo();
-                        int CodeHeapTypeOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "codeHeapType").ToInt32();
-                        int AddressOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "address").ToInt32();
-                        int CurrAddrOffset = Marshal.OffsetOf(typeof(JitCodeHeapInfo), "currentAddr").ToInt32();
-                        int JitCodeHeapInfoSize = Marshal.SizeOf(typeof(JitCodeHeapInfo));
+                        int CodeHeapTypeOffset = Marshal.OffsetOf(typeof(MutableJitCodeHeapInfo), nameof(MutableJitCodeHeapInfo.Type)).ToInt32();
+                        int AddressOffset = Marshal.OffsetOf(typeof(MutableJitCodeHeapInfo), nameof(MutableJitCodeHeapInfo.Address)).ToInt32();
+                        int CurrAddrOffset = Marshal.OffsetOf(typeof(MutableJitCodeHeapInfo), nameof(MutableJitCodeHeapInfo.CurrentAddress)).ToInt32();
+                        int JitCodeHeapInfoSize = Marshal.SizeOf(typeof(MutableJitCodeHeapInfo));
 
                         for (int i = 0; i < count; ++i)
                         {
