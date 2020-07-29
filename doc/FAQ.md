@@ -6,7 +6,7 @@ We don't actually have a way to enumerate all "types" in the process.  ClrHeap.E
 
 ## Why are static roots no longer enumerated by `ClrHeap.EnumerateRoots`?
 
-Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider then to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses are you can use this method (or reimplement it yourself): https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/StaticRootsExtension.cs.
+Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider them to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses are you can use this method (or reimplement it yourself): https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/StaticRootsExtension.cs.
 
 ## Why doesn't ClrMD 2.0 provide ThreadStatics anymore?
 
