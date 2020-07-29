@@ -4,7 +4,7 @@ Over the last few weeks we have been rewriting a lot of the internal core of Clr
 
 # Quick Notes
 
-We plan to continue fixing bugs in ClrMD 1.1 for the forseeable future, so you are not forced to upgrade if you do not want to.  I do plan to only add new features to ClrMD 2.0, but the community is welcome to submit Pull Requests to backport or add features to ClrMD 1.1.
+We plan to continue fixing bugs in ClrMD 1.1 for the foreseeable future, so you are not forced to upgrade if you do not want to.  I do plan to only add new features to ClrMD 2.0, but the community is welcome to submit Pull Requests to backport or add features to ClrMD 1.1.
 
 **Please note that the API surface area of ClrMD 2.0 is not finalized and there may be breaking changes between now and when the library is out of beta.**  I expect to release the non-beta version around March/April 2020.
 
@@ -41,7 +41,7 @@ We use Span<T> in place of most byte[] data reading operations, and use ArrayPoo
 
 ## Better architecture
 
-The old ClrMD implementation had a deep, confusing, and poorly thought out internal class heirarchy.  This mostly grew organically from years of development and not be cleaned up due to compatibility concerns.  The entire library has been refactored from the ground up to fix this.  We've also removed Lazy<T> usage throughout a lot of the codebase because it made debugging problems with ClrMD difficult to do.  We still evaluate most properties lazily, just without the use of that class.
+The old ClrMD implementation had a deep, confusing, and poorly thought out internal class hierarchy.  This mostly grew organically from years of development and not be cleaned up due to compatibility concerns.  The entire library has been refactored from the ground up to fix this.  We've also removed Lazy<T> usage throughout a lot of the codebase because it made debugging problems with ClrMD difficult to do.  We still evaluate most properties lazily, just without the use of that class.
 
 # Thanks
 

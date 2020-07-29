@@ -64,7 +64,7 @@ ClrInfo runtimeInfo = dataTarget.ClrVersions[0];  // just using the first runtim
 ClrRuntime runtime = runtimeInfo.CreateRuntime();
 ```
 
-Note that we did not specific the location of the dac library when calling here.  ClrMD will default to looking at the `LocalDacPath` and use it if it is non-null.  If the `_NT_SYMBOL_PATH` environment variable is set we will also check the symbol servers listed for a matching dac.  To use the Microsoft symbol server you can set `_NT_SYMBOL_PATH=https://msdl.microsoft.com/download/symbols`.
+Note that we did not specify the location of the dac library when calling here.  ClrMD will default to looking at the `LocalDacPath` and use it if it is non-null.  If the `_NT_SYMBOL_PATH` environment variable is set we will also check the symbol servers listed for a matching dac.  To use the Microsoft symbol server you can set `_NT_SYMBOL_PATH=https://msdl.microsoft.com/download/symbols`.
 
 You can also create a runtime from a dac location on disk if you know exactly where it is:
 
@@ -77,7 +77,7 @@ ClrRuntime runtime = runtimeInfo.CreateRuntime(@"C:\path\to\mscordacwks.dll");
 
 When you call CreateRuntime without specifying the location of mscordacwks.dll, ClrMD attempts to locate the dac for you.  It does this through a few mechanisms, first it checks to see if you have the same version of CLR that you are attempting to debug on your local machine.  If so, it loads the dac from there.  (This is usually at c:\windows\Framework[64]\[version]\mscordacwks.dll.)  If you are debugging a crash dump that came from another computer, you will have to find the dac that matches the crash dump you are debugging.
 
-All versions of the dac are requried to be on the Microsoft public symbol server, located here:  https://msdl.microsoft.com/download/symbols.  The DataTarget.SymbolLocator property is how ClrMD interacts with symbol servers.  If you have set the _NT_SYMBOL_PATH environment variable, ClrMD will use that string as your symbol path.  If this environment variable is not set, it will default to the Microsoft Symbol Server.
+All versions of the dac are required to be on the Microsoft public symbol server, located here:  https://msdl.microsoft.com/download/symbols.  The DataTarget.SymbolLocator property is how ClrMD interacts with symbol servers.  If you have set the _NT_SYMBOL_PATH environment variable, ClrMD will use that string as your symbol path.  If this environment variable is not set, it will default to the Microsoft Symbol Server.
 
 With any luck, you should never have to manually locate the dac or interact with DataTarget.SymbolLocator.  CreateRuntime should be able to successfully locate all released builds of CLR.
 
@@ -178,7 +178,7 @@ First, we only create `ClrThread` objects (internally this is the `clr!Thread` o
 Second, we keep these `clr!Thread` objects around for a short while after the actual underlying OS thread has died. Since `ClrThread` is basically a wrapper around `clr!Thread`, we expose that out here. The `ClrThread.IsAlive` property tells you whether a thread is alive (meaning the thread is still active and
 running in the process) or dead (the underlying OS thread has been terminated and thus this thread is no longer running anymore).
 
-Third, there are many cases where we cannot get a complete managed stack trace.  Without getting into too much detail here, the process could have been stopped in a state where our stackwalker gets confused and cannot properly walk the managed stack. However, you are gauaranteed the same results that SOS gets in
+Third, there are many cases where we cannot get a complete managed stack trace.  Without getting into too much detail here, the process could have been stopped in a state where our stackwalker gets confused and cannot properly walk the managed stack. However, you are guaranteed the same results that SOS gets in
 this case, so it should not be too bad.
 
 Fourth, you will notice that there is an `AppDomain` property on `ClrThread`.  This is the AppDomain in which the topmost frame of the stack is running in, not what every stack frame is running in. The Dac private API is limited in that it cannot give us per-frame AppDomain information, so ClrMD cannot give you that information.
@@ -213,7 +213,7 @@ There are nine handle types, each with a special meaning:
 5. **AsyncPinned** - A strong handle used by async operations. This is also a
    pinning handle, meaning the GC is not allowed to relocate the object this
    points to.
-6. **Variable** - An usused handle type. You should never see one of these.
+6. **Variable** - An unused handle type. You should never see one of these.
 7. **RefCount** - A reference counted strong handle (used for COM interop).
    When the RefCount hits 0 the handle becomes a weak handle.
 8. **Dependent** - A weak handle. Please see below.
@@ -261,12 +261,12 @@ Finally, there are large object segments. When a large object (85,000 bytes or m
 Objects on the target process's GC heap are represented by the `ClrObject` struct.  `ClrObject` instances give you wide range of operations to find out information about the object:
 
 1.  `Address` tells you the address of the object in the target process's address space.
-2.  `IsValid` tells you if the object is valid.  This will return false if the addresse in the target address space did not point to a valid object.
+2.  `IsValid` tells you if the object is valid.  This will return false if the address in the target address space did not point to a valid object.
 3.  `IsNull` tells you if the object address was null (also `Address == 0` in this case).  Note that null objects are considered valid (`IsNull == true` => `IsValid == true`).
 4.  `Type` tells you the type of the object, but note that this field may be null if `IsNull` is true or `IsValid` is false.
 5.  `Read*Field` methods allow you to read the instance fields of the class.
 6.  `IsArray` and `AsArray` gives you the ability to read from array indicies.
-7.  `IsException` and `AsException` let you retrive specific information about exception objects.
+7.  `IsException` and `AsException` let you retrieve specific information about exception objects.
 8.  And more.
 
 If you have the address of an object in the target address space, you can create a `ClrObject` for that address by calling `ClrHeap.GetObject(address)`.
@@ -372,7 +372,7 @@ The above code's results are equivalent to the one above it but it will be slowe
 
 ## A non-linear heap walk
 
-The approach above is a good way to to walk every object on the heap. But what if you want to only walk a subset of objects? For example, let's say you have an object and you want to know all of the objects it points to, and all the objects those point to, and so on. This is what we call the `!objsize` algorithm.
+The approach above is a good way to walk every object on the heap. But what if you want to only walk a subset of objects? For example, let's say you have an object and you want to know all of the objects it points to, and all the objects those point to, and so on. This is what we call the `!objsize` algorithm.
 
 If you are not familiar with `!objsize` in SOS, this command takes an object as a parameter and counts the number of objects it keeps alive as well as reports the total size of all objects the given object keeps alive.  Given an object, you can enumerate all objects it points to using `ClrType.Enumerate` object references. Here is an example of implementing this:
 

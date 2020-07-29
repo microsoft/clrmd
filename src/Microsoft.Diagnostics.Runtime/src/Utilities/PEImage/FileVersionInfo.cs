@@ -8,12 +8,12 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// FileVersionInfo reprents the extended version formation that is optionally placed in the PE file resource area.
+    /// FileVersionInfo represents the extended version formation that is optionally placed in the PE file resource area.
     /// </summary>
     public sealed unsafe class FileVersionInfo
     {
         /// <summary>
-        /// Gets the verison string
+        /// Gets the version string
         /// </summary>
         public string? FileVersion { get; }
 

@@ -2,7 +2,7 @@
 
 ## What happened to ClrRuntime.EnumerateTypes?
 
-We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 becuase it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package provides an extension method to add it back, but you can simply implement the algorithm yourself to do this.  The source for doing this can be found here:  https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/EnumerateTypesExtension.cs.
+We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 because it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package provides an extension method to add it back, but you can simply implement the algorithm yourself to do this.  The source for doing this can be found here:  https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/EnumerateTypesExtension.cs.
 
 ## Why are static roots no longer enumerated by `ClrHeap.EnumerateRoots`?
 
@@ -31,7 +31,7 @@ DLL the C# code calling into CLR MD is then tied to the same architecture
 requirement.
 
 Theoretically you could get around this requirement yourself in a few ways. For
-example, you can wrap your calls to the API into a seperate process, then use
+example, you can wrap your calls to the API into a separate process, then use
 interprocess communication to relay the information. I do not plan on adding
 anything to the API to do this automatically though.
 

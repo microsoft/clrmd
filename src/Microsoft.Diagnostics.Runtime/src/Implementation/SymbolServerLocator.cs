@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_queries.TryGetValue(indexPath, out result))
                     return result;
 
-                // Unfortuantely this has to be called under a lock.  We need to make sure that multiple threads
+                // Unfortunately this has to be called under a lock.  We need to make sure that multiple threads
                 // do not race to download/copy the same file to a local path.  We will simply make sure that
                 // FindBinaryFromServerAsync will 'await' before doing too much work.
                 result = FindBinaryFromServerAsync(indexPath);

@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int LogicalHeap { get; }
 
         /// <summary>
-        /// Gets the range of memory reserved (but not commited) for this segment.
+        /// Gets the range of memory reserved (but not committed) for this segment.
         /// </summary>
         public abstract MemoryRange ReservedMemory { get; }
 

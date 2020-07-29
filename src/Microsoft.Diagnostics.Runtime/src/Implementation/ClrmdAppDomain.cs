@@ -37,8 +37,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// <summary>
         /// Create an "empty" ClrAppDomain when we cannot request app domain details.
         /// </summary>
-        /// <param name="runtime">The contianing runtime.</param>
-        /// <param name="helpers">Helpers for quering data</param>
+        /// <param name="runtime">The containing runtime.</param>
+        /// <param name="helpers">Helpers for querying data</param>
         /// <param name="address">The address of the AppDomain</param>
         public ClrmdAppDomain(ClrRuntime runtime, IAppDomainHelpers helpers, ulong address)
         {

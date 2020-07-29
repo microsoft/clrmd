@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                         ulong addressFound = dt.DataReader.SearchMemory(segment.Start, (int)segment.Length, buffer.Slice(0, i + sizeof(ulong)));
 
-                        // There could still accidently be a pattern that matches this somewhere
+                        // There could still accidentally be a pattern that matches this somewhere
                         while (addressFound != 0 && addressFound < expectedOffset)
                             addressFound = dt.DataReader.SearchMemory(addressFound + 1, (int)(segment.End - (addressFound + 1)), buffer.Slice(0, i + sizeof(ulong)));
 

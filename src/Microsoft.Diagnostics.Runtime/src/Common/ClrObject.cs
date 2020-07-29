@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets a value indicating whether this object possibly contians GC pointers.
+        /// Gets a value indicating whether this object possibly contains GC pointers.
         /// </summary>
         public bool ContainsPointers => Type != null && Type.ContainsPointers;
 

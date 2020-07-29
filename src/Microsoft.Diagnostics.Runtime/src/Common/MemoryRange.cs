@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString() => $"[{Start:x},{End:x})";
 
         /// <summary>
-        /// CompareTo impelmentation for a single address.
+        /// CompareTo implementation for a single address.
         /// </summary>
         public int CompareTo(ulong address)
         {

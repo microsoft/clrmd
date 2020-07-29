@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public PEHeader? PEHeader => _peHeader ??= ReadPEHeader();
 
         /// <summary>
-        /// Gets a collection of IMAGE_SECTION_HEADERs in the PE iamge.  Undefined behavior if IsValid is <see langword="false"/>.
+        /// Gets a collection of IMAGE_SECTION_HEADERs in the PE image.  Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
         public ImmutableArray<SectionHeader> Sections => !_sections.IsDefault ? _sections : (_sections = ReadSections());
 
@@ -238,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 versionNode = versionNode.Children[0];
 
             int size = versionNode.Size;
-            if (size < 16)  // Arbtirarily small value to ensure it's non-zero and has at least a little data in it
+            if (size < 16)  // Arbitrarily small value to ensure it's non-zero and has at least a little data in it
                 return null;
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(size);

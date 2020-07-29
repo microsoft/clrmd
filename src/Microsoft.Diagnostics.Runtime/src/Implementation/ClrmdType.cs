@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                // Name can't really be string.Empty for a valid type, so we use that as a sentinal for
+                // Name can't really be string.Empty for a valid type, so we use that as a sentinel for
                 // "we tried to get the type name but it was null" to avoid calling GetTypeName over and
                 // over.
                 if (_name == null)

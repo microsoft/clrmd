@@ -192,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected struct HeapHashSegment
         {
             /// <summary>
-            /// The the objects in the memory range.
+            /// The objects in the memory range.
             /// </summary>
             public BitArray Objects;
 

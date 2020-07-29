@@ -5,7 +5,7 @@
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents an instance field of a type.   Fundamentally it respresents a name and a type
+    /// Represents an instance field of a type.   Fundamentally it represents a name and a type
     /// </summary>
     public abstract class ClrInstanceField : ClrField
     {

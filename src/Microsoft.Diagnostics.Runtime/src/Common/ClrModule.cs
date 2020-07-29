@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap();
 
         /// <summary>
-        /// Resolves the give metdata token for this module.
+        /// Resolves the given metadata token for this module.
         /// </summary>
         /// <param name="typeDefOrRefToken">A typedef or typeref token.</param>
         /// <returns>The ClrType of the resolved token, <see langword="null"/> if not found or if a type for the token hasn't been constructed by the runtime.</returns>

@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     // We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes
     // was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0
-    // becuase it's incredibly slow.  This extension method reimplements that functionality, but
+    // because it's incredibly slow.  This extension method reimplements that functionality, but
     // you should read through its implementation to be sure you understand what it's doing.
     public static class EnumerateTypesExtension
     {

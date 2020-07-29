@@ -5,7 +5,7 @@
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// The type of GCRoot that a ClrRoot represnts.
+    /// The type of GCRoot that a ClrRoot represents.
     /// </summary>
     public enum ClrRootKind
     {
