@@ -10,7 +10,7 @@ using System.Collections.Generic;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     // Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider
-    // then to be specifically roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as
+    // them to be specifically roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as
     // roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it
     // wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses
     // are you can use this method (or reimplement it yourself).

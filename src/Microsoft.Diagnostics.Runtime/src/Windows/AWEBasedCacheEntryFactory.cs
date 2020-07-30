@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 UIntPtr reservedMemory = UIntPtr.Zero;
                 try
                 {
-                    // Now reserve a chunk of VM equivalent in size to the physical memory, this will now count against our process usage limits, but ony temporarily
+                    // Now reserve a chunk of VM equivalent in size to the physical memory, this will now count against our process usage limits, but only temporarily
                     reservedMemory = _sharedSegment != UIntPtr.Zero ? _sharedSegment : CacheNativeMethods.Memory.VirtualAlloc((uint)segmentData.Size,
                                                                                                                                       CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical,
                                                                                                                                       CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                     // Now for the magic, this line unmaps the physical memory from our process, it still counts against our process limits (until the VirtualFree below). Once we
                     // VirtualFree it below the memory 'cost' still is assigned to our process BUT it doesn't count against our resource limits until/unless we map it back into the VM space.
-                    // BUT, most importatnly, the physical memory remains and contains the data we read from the file.
+                    // BUT, most importantly, the physical memory remains and contains the data we read from the file.
                     bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(reservedMemory, numberOfPages, UIntPtr.Zero);
                     if (!unmapPhysicalPagesResult)
                         throw new Win32Exception(Marshal.GetLastWin32Error());

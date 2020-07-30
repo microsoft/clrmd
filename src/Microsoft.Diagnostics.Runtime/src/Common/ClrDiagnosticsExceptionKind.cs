@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     public enum ClrDiagnosticsExceptionKind
     {
         /// <summary>
-        /// Unknown error occured.
+        /// Unknown error occurred.
         /// </summary>
         Unknown,
 

@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// directory of the data for the resource, a size field that gives the number
     /// of bytes of data at that offset, a CodePage that should be used when
     /// decoding code point values within the resource data.  Typically for new
-    /// applications the code page would be the unicode code page.
+    /// applications the code page would be the Unicode code page.
     /// </summary>
     internal struct IMAGE_RESOURCE_DATA_ENTRY
     {

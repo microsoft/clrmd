@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct HeapDetails
     {
-        public readonly ClrDataAddress Address; // Only filled in in server mode, otherwise NULL
+        public readonly ClrDataAddress Address; // Only filled in server mode, otherwise NULL
         public readonly ClrDataAddress Allocated;
         public readonly ClrDataAddress MarkArray;
         public readonly ClrDataAddress CAllocateLH;

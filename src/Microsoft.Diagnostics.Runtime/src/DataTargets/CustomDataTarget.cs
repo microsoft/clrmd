@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IDataReader DataReader { get; set; }
 
         /// <summary>
-        ///  An optional set of cache options.  Returning null from this propery will use ClrMD's default
+        ///  An optional set of cache options.  Returning null from this property will use ClrMD's default
         ///  cache options.
         /// </summary>
         public CacheOptions? CacheOptions { get; set; }

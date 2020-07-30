@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, pagesToUnMap, pageArray: UIntPtr.Zero);
                             if (!unmapPhysicalPagesResult)
                             {
-                                Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
+                                Debug.Fail("MapUserPhysicalPage failed to unmap a physical page");
 
                                 // this is an error but we don't want to remove the ptr entry since we apparently didn't unmap the physical memory
                                 continue;
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             bool virtualFreeRes = CacheNativeMethods.Memory.VirtualFree(page.Data, sizeToFree: UIntPtr.Zero, CacheNativeMethods.Memory.VirtualFreeType.Release);
                             if (!virtualFreeRes)
                             {
-                                Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
+                                Debug.Fail("MapUserPhysicalPage failed to unmap a physical page");
 
                                 // this is an error but we already unmapped the physical memory so also throw away our VM pointer
                                 _pages[i] = null;
@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // Allocate a VM range to map the physical memory into.
                 //
                 // NOTE: VirtualAlloc ALWAYS rounds allocation requests to the VirtualAllocPageSize, which is 64k. If you ask it for less the allocation will succeed but it will have
-                // reserved 64k of memory, making that memory unsuable for anyone else. If you do this a lot (say across an entire dump heap) you easily fragment memory to the point
+                // reserved 64k of memory, making that memory unusable for anyone else. If you do this a lot (say across an entire dump heap) you easily fragment memory to the point
                 // of seeing sporadic allocation failures due to not being able to find enough contiguous memory. VMMAP (from SysInternals) is good for showing this kind of 
                 // fragmentation, it marks the excess space as 'Unusable Space'
                 UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc((uint)EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
@@ -214,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     CachePage<UIntPtr> page = _pages[i];
                     if (page != null)
                     {
-                        // NOTE: While VirtualAllocPageSize SHOULD be a mulitple of SystemPageSize there is no guarantee I can find that says that is true always and everywhere
+                        // NOTE: While VirtualAllocPageSize SHOULD be a multiple of SystemPageSize there is no guarantee I can find that says that is true always and everywhere
                         // so to be safe I make sure we don't leave any straggling pages behind if that is true.
                         uint numberOfPages = (uint)(page.DataExtent / SystemPageSize) + ((page.DataExtent % SystemPageSize) == 0 ? 0U : 1U);
 
@@ -222,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         bool unmapPhysicalPagesResult = CacheNativeMethods.AWE.MapUserPhysicalPages(page.Data, numberOfPages, pageArray: UIntPtr.Zero);
                         if (!unmapPhysicalPagesResult)
                         {
-                            Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
+                            Debug.Fail("MapUserPhysicalPage failed to unmap a physical page");
 
                             // this is an error but we don't want to remove the ptr entry since we apparently didn't unmap the physical memory
                             continue;
@@ -232,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         bool virtualFreeRes = CacheNativeMethods.Memory.VirtualFree(page.Data, sizeToFree: UIntPtr.Zero, CacheNativeMethods.Memory.VirtualFreeType.Release);
                         if (!virtualFreeRes)
                         {
-                            Debug.Fail("MapUserPhysicalPage failed to unmap a phsyical page");
+                            Debug.Fail("MapUserPhysicalPage failed to unmap a physical page");
 
                             // this is an error but we already unmapped the physical memory so also throw away our VM pointer
                             _pages[i] = null;

@@ -9,7 +9,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.Utilities", "src\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj", "{46E0ED79-1CAD-4876-919D-A736CE47A4F6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{977B7737-E082-47AE-862D-1F177C66CB8D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{977B7737-E082-47AE-862D-1F177C66CB8D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Solution Items", ".Solution Items", "{87031E7E-88BC-4646-B2C7-8810CAE33F86}"
+	ProjectSection(SolutionItems) = preProject
+		doc\FAQ.md = doc\FAQ.md
+		doc\GettingStarted.md = doc\GettingStarted.md
+		doc\ReleaseNotes2.0.md = doc\ReleaseNotes2.0.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

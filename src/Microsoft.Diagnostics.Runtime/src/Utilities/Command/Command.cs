@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// Command represents a running of a command lineNumber process.  It is basically
-    /// a wrapper over System.Diagnostics.Process, which hides the complexitity
+    /// a wrapper over System.Diagnostics.Process, which hides the complexity
     /// of System.Diagnostics.Process, and knows how to capture output and otherwise
     /// makes calling commands very easy.
     /// </summary>
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Launch a new command and returns the Command object that can be used to monitor
-        /// the restult.  It does not wait for the command to complete, however you
+        /// the result.  It does not wait for the command to complete, however you
         /// can call 'Wait' to do that, or use the 'Run' or 'RunToConsole' methods. */
         /// </summary>
         /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 // copy over the environment variables to the process startInfo options.
                 foreach (KeyValuePair<string, string> pair in options.environmentVariables)
                 {
-                    // look for %VAR% strings in the value and subtitute the appropriate environment variable.
+                    // look for %VAR% strings in the value and substitute the appropriate environment variable.
                     string value = pair.Value;
                     if (value != null)
                     {
@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (!startInfo.UseShellExecute)
             {
-                // startInfo asyncronously collecting output
+                // startInfo asynchronously collecting output
                 Process.BeginOutputReadLine();
                 Process.BeginErrorReadLine();
             }
@@ -287,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public Process Process { get; }
 
         /// <summary>
-        /// Kill the process (and any child processses (recursively) associated with the
+        /// Kill the process (and any child processes (recursively) associated with the
         /// running command).   Note that it may not be able to kill everything it should
         /// if the child-parent' chain is broken by a child that creates a subprocess and
         /// then dies itself.   This is reasonably uncommon, however.
@@ -326,7 +326,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Put double quotes around 'str' if necessary (handles quotes quotes.
+        /// Put double quotes around 'str' if necessary (handles quotes quotes).
         /// </summary>
         public static string Quote(string str)
         {

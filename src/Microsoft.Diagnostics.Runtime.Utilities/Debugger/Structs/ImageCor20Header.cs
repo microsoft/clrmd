@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         // The main program if it is an EXE (not used if a DLL?)
         // If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is not set, EntryPointToken represents a managed entrypoint.
         // If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is set, EntryPointRVA represents an RVA to a native entrypoint
-        // (depricated for DLLs, use modules constructors intead).
+        // (deprecated for DLLs, use modules constructors instead).
         public IMAGE_COR20_HEADER_ENTRYPOINT EntryPoint;
 
         // This is the blob of managed resources. Fetched using code:AssemblyNative.GetResource and
@@ -33,8 +33,8 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         // here if this feature is used.
         public IMAGE_DATA_DIRECTORY StrongNameSignature;
 
-        public IMAGE_DATA_DIRECTORY CodeManagerTable; // Depricated, not used
-        // Used for manged codee that has unmaanaged code inside it (or exports methods as unmanaged entry points)
+        public IMAGE_DATA_DIRECTORY CodeManagerTable; // Deprecated, not used
+        // Used for managed code that has unmanaged code inside it (or exports methods as unmanaged entry points)
         public IMAGE_DATA_DIRECTORY VTableFixups;
         public IMAGE_DATA_DIRECTORY ExportAddressTableJumps;
 

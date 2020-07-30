@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_object.HasValue)
                 return _object.Value;
 
-            // It's possible that ObjectPointer points the the beginning of an object, though that's rare.  Check that first.
+            // It's possible that ObjectPointer points the beginning of an object, though that's rare.  Check that first.
             ClrType? type = _segment.Heap.GetObjectType(ObjectPointer);
             if (!(type is null))
             {

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _pageLocks[i] = new ReaderWriterLockSlim();
             }
 
-            _minSize = 4 * UIntPtr.Size + /*our four fields that are refrence type fields (pages, pageLocks, segmentData, and updateOwningCacheForAddedChunk)*/
+            _minSize = 4 * UIntPtr.Size + /*our four fields that are reference type fields (pages, pageLocks, segmentData, and updateOwningCacheForAddedChunk)*/
                            2 * (_pages.Length * UIntPtr.Size) + /*The array of cache pages and matching size array of locks */
                            2 * sizeof(uint) + /*entrySize and minSize fields*/
                            sizeof(long) /*lastAccessTickCount field*/ +
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override void UpdateLastAccessTimstamp()
         {
-            // NOTE: It dosn't matter that this isn't interlocked/protected. This value simply indicates how recently accessd this entry is vis-a-vis some other
+            // NOTE: It doesn't matter that this isn't interlocked/protected. This value simply indicates how recently accessed this entry is vis-a-vis some other
             // entry, if the values are slightly off because we have a RMW issue it doesn't matter since the only thing it influences is if this entry is eligible
             // to be trimmed, and being marginally off in the value is basically never going to put something into that group incorrectly. This USED to use
             // QPC/Interlocked.Exchange, but it showed up as a significant time sink in perf analysis.
@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             try
             {
                 // THREADING: If the data is not null we can just read it directly as we hold the read lock, if it is null we must acquire the write lock in
-                // preperation to fetch the data from physical memory
+                // preparation to fetch the data from physical memory
                 if (_pages[pageIndex] != null)
                 {
                     UpdateLastAccessTimstamp();
@@ -301,12 +301,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         //
         // A couple tricky things to keep in mind
         //
-        // 1) The length of 'terminatingSequence' can be basically anything. For a a common null-terminator style read it is dependent on the encoding the string in memory is in, which ony the caller
+        // 1) The length of 'terminatingSequence' can be basically anything. For a a common null-terminator style read it is dependent on the encoding the string in memory is in, which only the caller
         //    knows.
         //
         // 2) We have to be careful if we have to read across a page boundary (or multiple), if the page isn't an even multiple of the terminating sequence length then we will have extra work to do, 
         //    specifically we carry over the 'left over' bytes from the last page (in trailingBytes) and append to them data from the current page to see if that forms a terminating sequence. If so
-        //    we are done, if not we have to copy the trailing bytes to the the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
+        //    we are done, if not we have to copy the trailing bytes to the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
         //    this could cascade and cause THIS page to also have 'trailing bytes', so we must continue this little adventure until the string terminates.
         private static unsafe uint ProcessPageForSequenceTerminatingRead(UIntPtr data,
                                                                          uint dataLength,
@@ -324,9 +324,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (trailingBytes != null && trailingBytes.Count != 0)
             {
                 // We had trailing bytes on the last page's read, so we need to prepend enough bytes from the start of this read to trailing bytes to check if it forms a terminator
-                // sequeunce, and if not copy the bytes over to the output buffer.
+                // sequence, and if not copy the bytes over to the output buffer.
 
-                // Since we are checking these bytes here make sure if we DON'T form a terminator sequence that the code below doesn't reproces them. We know that trailingBytes.Count MUST be less
+                // Since we are checking these bytes here make sure if we DON'T form a terminator sequence that the code below doesn't reprocess them. We know that trailingBytes.Count MUST be less
                 // that terminatingSeqence.Length, if not we would have processed the trailing bytes in the last page and wouldn't see them here.
                 startOffsetAdjustment = (uint)(terminatingSequence.Length - trailingBytes.Count);
 

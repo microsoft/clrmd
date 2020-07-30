@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime
                 foreach (IClrRoot root in roots)
                     queue.Add(root);
 
-                // Add one sentinal value for every thread
+                // Add one sentinel value for every thread
                 for (int i = 0; i < threads.Length; i++)
                     queue.Add(null);
 

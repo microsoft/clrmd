@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // should be roughly as fast as a binary search.
             foreach (ulong marker in _markers)
             {
-                // Markers can be 0 even when _markers was fully intialized by a full heap walk.  This is because parts of
+                // Markers can be 0 even when _markers was fully initialized by a full heap walk.  This is because parts of
                 // the ephemeral GC heap may be not in use (allocation contexts) or when objects on the large object heap
                 // are so big that there's simply not a valid object starting point in that range.
                 if (marker != 0)

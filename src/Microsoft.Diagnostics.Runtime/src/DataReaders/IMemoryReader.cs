@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Read an unmanaged value from the given address.
         /// </summary>
         /// <typeparam name="T">The type to read.  This may be a struct or primitive type as long as it does
-        /// not managed pointeres.</typeparam>
+        /// not managed pointers.</typeparam>
         /// <param name="address">The address to read from.</param>
         /// <param name="value">The value that was read.</param>
         /// <returns>True if the memory was present, false otherwise.</returns>
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Read an unmanaged value from the given address.  Returns default(T) if the data was not readable.
         /// </summary>
         /// <typeparam name="T">The type to read.  This may be a struct or primitive type as long as it does
-        /// not managed pointeres.</typeparam>
+        /// not managed pointers.</typeparam>
         /// <param name="address">The address to read from.</param>
         /// <returns>The value at addr, or default(T) if not present in the data target.</returns>
         T Read<T>(ulong address) where T : unmanaged;
