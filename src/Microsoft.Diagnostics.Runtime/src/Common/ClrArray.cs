@@ -153,7 +153,29 @@ namespace Microsoft.Diagnostics.Runtime
             return length + lowerBound - 1;
         }
 
-        public unsafe T GetValue<T>(int index) where T : unmanaged
+        public T GetValue<T>(int index) where T : unmanaged => GetValue<T>(false, index);
+
+        public T GetValue<T>(params int[] indices) where T : unmanaged => GetValue<T>(false, indices);
+
+        public ClrObject GetObjectValue(int index)
+        {
+            if (!Type.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain object references.");
+
+            ulong address = GetValue<UIntPtr>(isObjectReference: true, index).ToUInt64();
+            return Type.Heap.GetObject(address);
+        }
+
+        public ClrObject GetObjectValue(params int[] indices)
+        {
+            if (!Type.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain object references.");
+
+            ulong address = GetValue<UIntPtr>(isObjectReference: true, indices).ToUInt64();
+            return Type.Heap.GetObject(address);
+        }
+
+        private unsafe T GetValue<T>(bool isObjectReference, int index) where T : unmanaged
         {
             if (Rank != 1)
                 throw new ArgumentException($"Array {Address:x} was not a one-dimensional array.  Type: {Type?.Name ?? "null"}");
@@ -175,15 +197,23 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            int elementSize = Type.ComponentSize;
-            if (sizeof(T) != elementSize)
-                throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
+            int elementSize;
+            if (isObjectReference)
+            {
+                elementSize = sizeof(T); // UIntPtr.Size
+            }
+            else
+            {
+                elementSize = Type.ComponentSize;
+                if (sizeof(T) != elementSize)
+                    throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
+            }
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
         }
 
-        public unsafe T GetValue<T>(params int[] indices) where T : unmanaged
+        private unsafe T GetValue<T>(bool isObjectReference, params int[] indices) where T : unmanaged
         {
             if (indices is null)
                 throw new ArgumentNullException(nameof(indices));
@@ -227,30 +257,20 @@ namespace Microsoft.Diagnostics.Runtime
                 dataByteOffset += 2 * sizeof(int) * rank;
             }
 
-            int elementSize = Type.ComponentSize;
-            if (sizeof(T) != elementSize)
-                throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
+            int elementSize;
+            if (isObjectReference)
+            {
+                elementSize = sizeof(T); // UIntPtr.Size
+            }
+            else
+            {
+                elementSize = Type.ComponentSize;
+                if (sizeof(T) != elementSize)
+                    throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
+            }
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
             return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
-        }
-
-        public ClrObject GetObjectValue(int index)
-        {
-            if (!Type.IsObjectReference)
-                throw new InvalidOperationException($"{Type} does not contain object references.");
-
-            ulong address = GetValue<UIntPtr>(index).ToUInt64();
-            return Type.Heap.GetObject(address);
-        }
-
-        public ClrObject GetObjectValue(params int[] indices)
-        {
-            if (!Type.IsObjectReference)
-                throw new InvalidOperationException($"{Type} does not contain object references.");
-
-            ulong address = GetValue<UIntPtr>(indices).ToUInt64();
-            return Type.Heap.GetObject(address);
         }
 
         // |<-------------------------- Type.StaticSize -------------------------->|
