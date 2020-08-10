@@ -19,14 +19,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int Breakpoint(
             [In][MarshalAs(UnmanagedType.Interface)]
             IDebugBreakpoint2 Bp,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
         int Exception(
             in EXCEPTION_RECORD64 Exception,
             uint FirstChance,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
@@ -34,13 +34,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             ulong Handle,
             ulong DataOffset,
             ulong StartOffset,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
         int ExitThread(
             uint ExitCode,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
@@ -56,13 +56,13 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             ulong InitialThreadHandle,
             ulong ThreadDataOffset,
             ulong StartOffset,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
         int ExitProcess(
             uint ExitCode,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
@@ -74,21 +74,21 @@ namespace Microsoft.Diagnostics.Runtime.Interop
             [In][MarshalAs(UnmanagedType.LPWStr)] string ImageName,
             uint CheckSum,
             uint TimeDateStamp,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
         int UnloadModule(
             [In][MarshalAs(UnmanagedType.LPWStr)] string ImageBaseName,
             ulong BaseOffset,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
         int SystemError(
             uint Error,
             uint Level,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
@@ -99,14 +99,14 @@ namespace Microsoft.Diagnostics.Runtime.Interop
         int ChangeDebuggeeState(
             DEBUG_CDS Flags,
             ulong Argument,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
         int ChangeEngineState(
             DEBUG_CES Flags,
             ulong Argument,
-            [In] DEBUG_EVENT_CONTEXT* Context,
+            in DEBUG_EVENT_CONTEXT Context,
             uint ContextSize);
 
         [PreserveSig]
