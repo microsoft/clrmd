@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private const int PageInDataEventStart = 1;
 
         /// <summary>
-        /// The event ID for when the cache failes while paging in data.
+        /// The event ID for when the cache failed while paging in data.
         /// </summary>
         private const int PageInDataEventFailed = 2;
 
