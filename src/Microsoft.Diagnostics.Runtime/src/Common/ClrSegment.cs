@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract MemoryRange Generation1 { get; }
 
         /// <summary>
-        /// The memory range for Generation e on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
+        /// The memory range for Generation 2 on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
         public abstract MemoryRange Generation2 { get; }
 
