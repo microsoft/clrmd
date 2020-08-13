@@ -222,8 +222,10 @@ namespace Microsoft.Diagnostics.Runtime
             ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
             Array.Sort(modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
 
+#pragma warning disable CS0618 // Type or member is obsolete
             foreach (ModuleInfo module in modules)
                 module.DataTarget = this;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             return _modules = modules;
         }
