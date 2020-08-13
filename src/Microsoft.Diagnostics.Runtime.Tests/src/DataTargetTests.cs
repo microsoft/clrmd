@@ -40,5 +40,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string path = Path.GetTempFileName();
             _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadDump(path));
         }
+
+        [Fact]
+        public void ModuleInfoNonNullDataTarget()
+        {
+            // Regression test for https://github.com/microsoft/clrmd/issues/754
+
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            foreach (ModuleInfo module in dt.DataReader.EnumerateModules())
+                Assert.Equal(dt.DataReader, module.DataReader);
+        }
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Immutable;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -16,11 +17,20 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<byte> _buildId;
         private VersionInfo? _version;
         private readonly bool _isVirtual;
+        private readonly IDataReader _dataReader;
+        private DataTarget _dataTarget;
 
         /// <summary>
         /// The DataTarget which contains this module.
         /// </summary>
-        public DataTarget DataTarget { get; internal set; }
+        [Obsolete("This will be completely removed in the next minor release.  Only DataReader is supported.")]
+        public DataTarget DataTarget
+        {
+            get => _dataTarget;
+            internal set => _dataTarget = value;
+        }
+
+        public IDataReader DataReader => _dataReader ?? _dataTarget.DataReader;
 
         /// <summary>
         /// Gets the base address of the object.
@@ -51,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                PEImage image = new PEImage(new ReadVirtualStream(DataTarget.DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: _isVirtual);
+                PEImage image = new PEImage(new ReadVirtualStream(DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: _isVirtual);
                 if (!_isManaged.HasValue)
                     _isManaged = image.IsManaged;
 
@@ -72,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_buildId.IsDefault)
                 {
-                    return _buildId = DataTarget.DataReader.GetBuildId(ImageBase);
+                    return _buildId = DataReader.GetBuildId(ImageBase);
                 }
 
                 return _buildId;
@@ -131,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_version.HasValue)
                     return _version.Value;
 
-                _version = DataTarget.DataReader.GetVersionInfo(ImageBase, out VersionInfo version) ? version : default;
+                _version = DataReader.GetVersionInfo(ImageBase, out VersionInfo version) ? version : default;
                 return version;
             }
         }
@@ -152,8 +162,30 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="indexFileSize">The index file size used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
         /// <param name="indexTimeStamp">The index timestamp used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
         /// <param name="buildId">The ELF buildid of this image.  Not valid for PEImages.</param>
+        [Obsolete("Use the overload which specifies the DataReader")]
         public ModuleInfo(ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, ImmutableArray<byte> buildId)
         {
+            ImageBase = imageBase;
+            IndexFileSize = indexFileSize;
+            IndexTimeStamp = indexTimeStamp;
+            FileName = fileName;
+            _isVirtual = isVirtual;
+            _buildId = buildId;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="reader">The <see cref="IDataReader"/> containing this module.</param>
+        /// <param name="imageBase">The base of the image as loaded into the virtual address space.</param>
+        /// <param name="fileName">The full path of the file as loaded from disk (if possible), otherwise only the filename.</param>
+        /// <param name="isVirtual">Whether this image is mapped into the virtual address space.  (This is as opposed to a memmap'ed file.)</param>
+        /// <param name="indexFileSize">The index file size used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
+        /// <param name="indexTimeStamp">The index timestamp used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
+        /// <param name="buildId">The ELF buildid of this image.  Not valid for PEImages.</param>
+        public ModuleInfo(IDataReader reader, ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, ImmutableArray<byte> buildId)
+        {
+            _dataReader = reader;
             ImageBase = imageBase;
             IndexFileSize = indexFileSize;
             IndexTimeStamp = indexTimeStamp;
