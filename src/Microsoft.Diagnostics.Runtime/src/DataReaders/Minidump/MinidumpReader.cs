@@ -65,8 +65,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We set buildId to "Empty" since only PEImages exist where minidumps are created, and we do not
             // want to try to lazily evaluate the buildId later
             return from module in _minidump.EnumerateModuleInfo()
-                   select new ModuleInfo(module.BaseOfImage, module.ModuleName, true, module.SizeOfImage,
-                                         module.DateTimeStamp, ImmutableArray<byte>.Empty);
+                   select new ModuleInfo(this, module.BaseOfImage, module.ModuleName, true, module.SizeOfImage, module.DateTimeStamp, ImmutableArray<byte>.Empty);
         }
 
         public void FlushCachedData()

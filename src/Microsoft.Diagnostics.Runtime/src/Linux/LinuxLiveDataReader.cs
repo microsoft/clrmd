@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             let containsExecutable = image.Any(entry => entry.IsExecutable)
             let beginAddress = image.Min(entry => entry.BeginAddress)
             let props = GetPEImageProperties(filePath)
-            select new ModuleInfo(beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
+            select new ModuleInfo(this, beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
 
         private static (int Filesize, int Timestamp) GetPEImageProperties(string filePath)
         {

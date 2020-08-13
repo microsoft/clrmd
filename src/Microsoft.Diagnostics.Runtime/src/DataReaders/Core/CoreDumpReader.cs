@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -96,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _modules;
         }
 
-        private static ModuleInfo CreateModuleInfo(ElfLoadedImage image)
+        private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
             ElfFile? file = image.Open();
 
@@ -111,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
-            return new ModuleInfo((ulong)image.BaseAddress, image.Path, image._containsExecutable, filesize, timestamp, buildId: default);
+            return new ModuleInfo(this, (ulong)image.BaseAddress, image.Path, image._containsExecutable, filesize, timestamp, buildId: default);
         }
 
         public void FlushCachedData()
