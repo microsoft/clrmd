@@ -54,6 +54,16 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             return hr;
         }
 
+        public uint GetCurrentThread()
+        {
+            InitDelegate(ref _getCurrentThread, VTable.GetCurrentThreadId);
+
+            using IDisposable holder = Enter();
+            HResult hr = _getCurrentThread(Self, out uint id);
+
+            return hr ? id : 0;
+        }
+
         public int GetNumberThreads()
         {
             InitDelegate(ref _getNumberThreads, VTable.GetNumberThreads);
@@ -62,6 +72,25 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             HResult hr = _getNumberThreads(Self, out int count);
             DebugOnly.Assert(hr);
             return count;
+        }
+
+        public ulong GetThreadTeb(uint osThreadId)
+        {
+            InitDelegate(ref _getCurrentThreadTeb, VTable.GetCurrentThreadTeb);
+
+            using IDisposable holder = Enter();
+
+            ulong teb = 0;
+            uint currId = GetCurrentThread();
+
+            uint debuggerThreadId = GetThreadIdBySystemId(osThreadId);
+            HResult hr = SetCurrentThread(debuggerThreadId);
+
+            if (hr && !_getCurrentThreadTeb(Self, out teb))
+                teb = 0;
+
+            SetCurrentThread(currId);
+            return teb;
         }
 
         internal void Init()
@@ -108,6 +137,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private GetCurrentSystemIdDelegate? _getSystemId;
         private SetCurrentSystemIdDelegate? _setSystemId;
         private SetCurrentThreadIdDelegate? _setCurrentThread;
+        private GetCurrentThreadIdDelegate? _getCurrentThread;
+        private GetCurrentThreadTebDelegate? _getCurrentThreadTeb;
         private GetNumberThreadsDelegate? _getNumberThreads;
         private GetThreadIdsByIndexDelegate? _getThreadIdsByIndex;
         private GetThreadIdBySystemIdDelegate? _getThreadIdBySystemId;
@@ -116,6 +147,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         private delegate HResult GetCurrentSystemIdDelegate(IntPtr self, out int id);
         private delegate HResult SetCurrentSystemIdDelegate(IntPtr self, int id);
         private delegate HResult SetCurrentThreadIdDelegate(IntPtr self, uint id);
+        private delegate HResult GetCurrentThreadIdDelegate(IntPtr self, out uint id);
+        private delegate HResult GetCurrentThreadTebDelegate(IntPtr self, out ulong id);
         private delegate HResult GetNumberThreadsDelegate(IntPtr self, out int count);
         private delegate HResult GetThreadIdsByIndexDelegate(IntPtr self, int start, int count, int* ids, uint* systemIds);
         private delegate HResult GetThreadIdBySystemIdDelegate(IntPtr self, uint sysId, out uint id);

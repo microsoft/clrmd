@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
@@ -19,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     /// A data reader that targets a Linux process.
     /// The current process must have ptrace access to the target process.
     /// </summary>
-    internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable
+    internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private List<MemoryMapEntry> _memoryMapEntries;
         private readonly List<uint> _threadIDs = new List<uint>();
@@ -202,6 +203,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return read;
             }
         }
+
+        public IEnumerable<uint> EnumerateOSThreadIds()
+        {
+            LoadThreads();
+            return _threadIDs;
+        }
+
+        public ulong GetThreadTeb(uint _) => 0;
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
