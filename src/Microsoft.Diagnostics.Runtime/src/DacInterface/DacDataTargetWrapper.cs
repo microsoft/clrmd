@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public const ulong MagicCallbackConstant = 0x43;
 
-        private static readonly Guid IID_IDacDataTarget = new Guid("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
-        private static readonly Guid IID_IMetadataLocator = new Guid("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
+        private static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
+        private static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
 
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;

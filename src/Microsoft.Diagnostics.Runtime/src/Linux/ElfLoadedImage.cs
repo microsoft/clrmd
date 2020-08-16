@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfLoadedImage
     {
-        private readonly List<ElfFileTableEntryPointers64> _fileTable = new List<ElfFileTableEntryPointers64>(4);
+        private readonly List<ElfFileTableEntryPointers64> _fileTable = new(4);
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
         private long _end;

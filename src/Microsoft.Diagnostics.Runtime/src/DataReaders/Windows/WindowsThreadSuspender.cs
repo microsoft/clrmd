@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Windows
 {
     internal sealed class WindowsThreadSuspender : CriticalFinalizerObject, IDisposable
     {
-        private readonly object _sync = new object();
+        private readonly object _sync = new();
         private readonly int _pid;
         private volatile int[]? _suspendedThreads;
 

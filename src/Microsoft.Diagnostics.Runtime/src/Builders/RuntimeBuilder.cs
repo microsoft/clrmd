@@ -34,15 +34,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ulong _firstThread;
 
         private volatile ClrType?[]? _basicTypes;
-        private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
-        private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
+        private readonly Dictionary<ulong, ClrAppDomain> _domains = new();
+        private readonly Dictionary<ulong, ClrModule> _modules = new();
 
         private readonly ClrmdRuntime _runtime;
         private readonly ClrmdHeap _heap;
 
         private volatile StringReader? _stringReader;
 
-        private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>();
+        private readonly Dictionary<ulong, ClrType> _types = new();
 
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ObjectPool<MethodBuilder> _methodBuilders;

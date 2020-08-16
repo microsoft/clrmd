@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         private List<ModuleInfo>? _modules;
         private int? _pointerSize;
         private Architecture? _architecture;
-        private static readonly RefCountedFreeLibrary _library = new RefCountedFreeLibrary(IntPtr.Zero);
+        private static readonly RefCountedFreeLibrary _library = new(IntPtr.Zero);
 
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Windows;

@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
         private ImmutableArray<ElfLoadedImage> _loadedImages;
-        private readonly Dictionary<ulong, ulong> _auxvEntries = new Dictionary<ulong, ulong>();
+        private readonly Dictionary<ulong, ulong> _auxvEntries = new();
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }

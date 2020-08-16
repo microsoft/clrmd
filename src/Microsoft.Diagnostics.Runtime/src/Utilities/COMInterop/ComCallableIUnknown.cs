@@ -19,8 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly GCHandle _handle;
         private int _refCount;
 
-        private readonly Dictionary<Guid, IntPtr> _interfaces = new Dictionary<Guid, IntPtr>();
-        private readonly List<Delegate> _delegates = new List<Delegate>();
+        private readonly Dictionary<Guid, IntPtr> _interfaces = new();
+        private readonly List<Delegate> _delegates = new();
 
         /// <summary>
         /// Gets the IUnknown pointer to this object.
