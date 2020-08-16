@@ -25,14 +25,16 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public string? GetModuleNameStringWide(DebugModuleName which, int index, ulong imageBase)
         {
+            InitDelegate(ref _getModuleNameStringWide, VTable.GetModuleNameStringWide);
+
             using IDisposable holder = _sys.Enter();
-            HResult hr = VTable.GetModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
+            HResult hr = _getModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
             if (!hr)
                 return null;
 
             string nameResult = new string('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
-                if (VTable.GetModuleNameStringWide(Self, which, index, imageBase, nameResultPtr, needed, out _))
+                if (_getModuleNameStringWide(Self, which, index, imageBase, nameResultPtr, needed, out _))
                     return nameResult;
 
             return null;
@@ -40,37 +42,45 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int GetNumberModules()
         {
+            InitDelegate(ref _getNumberModules, VTable.GetNumberModules);
+
             using IDisposable holder = _sys.Enter();
-            HResult hr = VTable.GetNumberModules(Self, out int count, out _);
+            HResult hr = _getNumberModules(Self, out int count, out _);
             return hr ? count : 0;
         }
 
         public ulong GetModuleByIndex(int i)
         {
+            InitDelegate(ref _getModuleByIndex, VTable.GetModuleByIndex);
+
             using IDisposable holder = _sys.Enter();
-            HResult hr = VTable.GetModuleByIndex(Self, i, out ulong imageBase);
+            HResult hr = _getModuleByIndex(Self, i, out ulong imageBase);
             return hr ? imageBase : 0;
         }
 
         public HResult GetModuleParameters(ulong[] bases, out DEBUG_MODULE_PARAMETERS[] parameters)
         {
+            InitDelegate(ref _getModuleParameters, VTable.GetModuleParameters);
+
             parameters = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
             fixed (ulong* pBases = bases)
             fixed (DEBUG_MODULE_PARAMETERS* pParams = parameters)
             {
                 using IDisposable holder = _sys.Enter();
-                HResult hr = VTable.GetModuleParameters(Self, bases.Length, pBases, 0, pParams);
+                HResult hr = _getModuleParameters(Self, bases.Length, pBases, 0, pParams);
                 return hr;
             }
         }
 
         public VersionInfo GetModuleVersionInformation(int index, ulong imgBase)
         {
+            InitDelegate(ref _getModuleVersionInformation, VTable.GetModuleVersionInformation);
+
             byte* item = stackalloc byte[3] { (byte)'\\', (byte)'\\', 0 };
 
             using IDisposable holder = _sys.Enter();
-            HResult hr = VTable.GetModuleVersionInformation(Self, index, imgBase, item, null, 0, out int needed);
+            HResult hr = _getModuleVersionInformation(Self, index, imgBase, item, null, 0, out int needed);
             if (!hr)
                 return default;
 
@@ -78,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             try
             {
                 fixed (byte* pBuffer = buffer)
-                    hr = VTable.GetModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out needed);
+                    hr = _getModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out needed);
 
                 if (!hr)
                     return default;
@@ -98,15 +108,30 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult GetModuleByOffset(ulong address, int index, out int outIndex, out ulong imgBase)
         {
+            InitDelegate(ref _getModuleByOffset, VTable.GetModuleByOffset);
+
             using IDisposable holder = _sys.Enter();
-            return VTable.GetModuleByOffset(Self, address, index, out outIndex, out imgBase);
+            return _getModuleByOffset(Self, address, index, out outIndex, out imgBase);
         }
 
+        private GetModuleByOffsetDelegate? _getModuleByOffset;
+        private GetModuleVersionInformationDelegate? _getModuleVersionInformation;
+        private GetModuleParametersDelegate? _getModuleParameters;
+        private GetModuleByIndexDelegate? _getModuleByIndex;
+        private GetNumberModulesDelegate? _getNumberModules;
+        private GetModuleNameStringWideDelegate? _getModuleNameStringWide;
         private readonly DebugSystemObjects _sys;
+
+        private delegate HResult GetModuleNameStringWideDelegate(IntPtr self, DebugModuleName Which, int Index, ulong Base, char* Buffer, int BufferSize, out int NameSize);
+        private delegate HResult GetNumberModulesDelegate(IntPtr self, out int count, out int unloaded);
+        private delegate HResult GetModuleByIndexDelegate(IntPtr self, int index, out ulong imageBase);
+        private delegate HResult GetModuleParametersDelegate(IntPtr self, int count, ulong* bases, int start, DEBUG_MODULE_PARAMETERS* parameters);
+        private delegate HResult GetModuleVersionInformationDelegate(IntPtr self, int index, ulong baseAddress, byte* item, byte* buffer, int bufferSize, out int needed);
+        private delegate HResult GetModuleByOffsetDelegate(IntPtr self, ulong offset, int index, out int outIndex, out ulong imgBase);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly unsafe struct IDebugSymbols3VTable
+    internal readonly struct IDebugSymbols3VTable
     {
         public readonly IntPtr GetSymbolOptions;
         public readonly IntPtr AddSymbolOptions;
@@ -117,12 +142,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetNearNameByOffset;
         public readonly IntPtr GetLineByOffset;
         public readonly IntPtr GetOffsetByLine;
-        public readonly delegate*<IntPtr /*self*/, out int /*count*/, out int /*unloaded*/, HResult> GetNumberModules;
-        public readonly delegate*<IntPtr /*self*/, int /*index*/, out ulong /*imageBase*/, HResult> GetModuleByIndex;
+        public readonly IntPtr GetNumberModules;
+        public readonly IntPtr GetModuleByIndex;
         public readonly IntPtr GetModuleByModuleName;
-        public readonly delegate*<IntPtr /*self*/, ulong /*offset*/, int /*index*/, out int /*outIndex*/, out ulong /*imgBase*/, HResult> GetModuleByOffset;
+        public readonly IntPtr GetModuleByOffset;
         public readonly IntPtr GetModuleNames;
-        public readonly delegate*<IntPtr /*self*/, int /*count*/, ulong* /*bases*/, int /*start*/, DEBUG_MODULE_PARAMETERS* /*parameters*/, HResult> GetModuleParameters;
+        public readonly IntPtr GetModuleParameters;
         public readonly IntPtr GetSymbolModule;
         public readonly IntPtr GetTypeName;
         public readonly IntPtr GetTypeId;
@@ -157,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr AppendSourcePath;
         public readonly IntPtr FindSourceFile;
         public readonly IntPtr GetSourceFileLineOffsets;
-        public readonly delegate*<IntPtr /*self*/, int /*index*/, ulong /*baseAddress*/, byte* /*item*/, byte* /*buffer*/, int /*bufferSize*/, out int /*needed*/, HResult> GetModuleVersionInformation;
+        public readonly IntPtr GetModuleVersionInformation;
         public readonly IntPtr GetModuleNameString;
         public readonly IntPtr GetConstantName;
         public readonly IntPtr GetFieldName;
@@ -194,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr FindSourceFileWide;
         public readonly IntPtr GetSourceFileLineOffsetsWide;
         public readonly IntPtr GetModuleVersionInformationWide;
-        public readonly delegate*<IntPtr /*self*/, DebugModuleName /*Which*/, int /*Index*/, ulong /*Base*/, char* /*Buffer*/, int /*BufferSize*/, out int /*NameSize*/, HResult> GetModuleNameStringWide;
+        public readonly IntPtr GetModuleNameStringWide;
         public readonly IntPtr GetConstantNameWide;
         public readonly IntPtr GetFieldNameWide;
         public readonly IntPtr IsManagedModule;

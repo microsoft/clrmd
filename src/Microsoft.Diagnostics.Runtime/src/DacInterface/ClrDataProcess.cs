@@ -84,19 +84,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public void Flush()
         {
-            VTable.Flush(Self);
+            InitDelegate(ref _flush, VTable.Flush);
+            _flush(Self);
         }
 
         public HResult Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
         {
+            InitDelegate(ref _request, VTable.Request);
+
             fixed (byte* pInput = input)
             fixed (byte* pOutput = output)
-                return VTable.Request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
+                return _request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
         }
 
         public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
-            if (!VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask))
+            InitDelegate(ref _getTask, VTable.GetTaskByOSThreadID);
+
+            if (!_getTask(Self, id, out IntPtr pUnkTask))
                 return null;
 
             using ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask);
@@ -114,35 +119,53 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ClrDataAddress addr)
         {
+            InitDelegate(ref _startEnum, VTable.StartEnumMethodInstancesByAddress);
+            InitDelegate(ref _enum, VTable.EnumMethodInstanceByAddress);
+            InitDelegate(ref _endEnum, VTable.EndEnumMethodInstancesByAddress);
+
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
-            if (!VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle))
+            if (!_startEnum(Self, addr, IntPtr.Zero, out ClrDataAddress handle))
                 return result;
 
             try
             {
-                while (VTable.EnumMethodInstanceByAddress(Self, ref handle, out IntPtr method))
+                while (_enum(Self, ref handle, out IntPtr method))
                     result.Add(new ClrDataMethod(_library, method));
             }
             finally
             {
-                VTable.EndEnumMethodInstancesByAddress(Self, handle);
+                _endEnum(Self, handle);
             }
 
             return result;
         }
+
+        private FlushDelegate? _flush;
+        private GetTaskByOSThreadIDDelegate? _getTask;
+        private RequestDelegate? _request;
+        private StartEnumMethodInstancesByAddressDelegate? _startEnum;
+        private EnumMethodInstanceByAddressDelegate? _enum;
+        private EndEnumMethodInstancesByAddressDelegate? _endEnum;
+
+        private delegate HResult StartEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress address, IntPtr appDomain, out ClrDataAddress handle);
+        private delegate HResult EnumMethodInstanceByAddressDelegate(IntPtr self, ref ClrDataAddress handle, out IntPtr method);
+        private delegate HResult EndEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress handle);
+        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, byte* inBuffer, int outBufferSize, byte* outBuffer);
+        private delegate HResult FlushDelegate(IntPtr self);
+        private delegate HResult GetTaskByOSThreadIDDelegate(IntPtr self, uint id, out IntPtr pUnknownTask);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly unsafe struct IXCLRDataProcessVtable
+    internal readonly struct IXCLRDataProcessVtable
     {
-        public readonly delegate*<IntPtr /*self*/, HResult> Flush;
+        public readonly IntPtr Flush;
         private readonly IntPtr Unused_StartEnumTasks;
         private readonly IntPtr EnumTask;
         private readonly IntPtr EndEnumTasks;
 
         // (uint id, [Out, MarshalAs(UnmanagedType.IUnknown)] out object task);
-        public readonly delegate*<IntPtr /*self*/, uint /*id*/, out IntPtr /*pUnknownTask*/, HResult> GetTaskByOSThreadID;
+        public readonly IntPtr GetTaskByOSThreadID;
 
         private readonly IntPtr GetTaskByUniqueID;
         private readonly IntPtr GetFlags;
@@ -165,19 +188,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetModuleByAddress;
 
         // (ulong address, [In, MarshalAs(UnmanagedType.Interface)] object appDomain, out ulong handle);
-        public readonly delegate*<IntPtr /*self*/, ClrDataAddress /*address*/, IntPtr /*appDomain*/, out ClrDataAddress /*handle*/, HResult> StartEnumMethodInstancesByAddress;
+        public readonly IntPtr StartEnumMethodInstancesByAddress;
 
         // (ref ulong handle, [Out, MarshalAs(UnmanagedType.Interface)] out object method);
-        public readonly delegate*<IntPtr /*self*/, ref ClrDataAddress /*handle*/, out IntPtr /*method*/, HResult> EnumMethodInstanceByAddress;
+        public readonly IntPtr EnumMethodInstanceByAddress;
 
         // (ulong handle);
-        public readonly delegate*<IntPtr /*self*/, ClrDataAddress /*handle*/, HResult> EndEnumMethodInstancesByAddress;
+        public readonly IntPtr EndEnumMethodInstancesByAddress;
         private readonly IntPtr GetDataByAddress;
         private readonly IntPtr GetExceptionStateByExceptionRecord;
         private readonly IntPtr TranslateExceptionRecordToNotification;
 
         // (uint reqCode, uint inBufferSize, [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] inBuffer, uint outBufferSize, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] byte[] outBuffer);
-        public readonly delegate*<IntPtr /*self*/, uint /*reqCode*/, int /*inBufferSize*/, byte* /*inBuffer*/, int /*outBufferSize*/, byte* /*outBuffer*/, HResult> Request;
+        public readonly IntPtr Request;
     }
 
     internal interface IXCLRDataProcess_

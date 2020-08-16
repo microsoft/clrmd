@@ -24,27 +24,34 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int ReadVirtual(ulong address, Span<byte> buffer)
         {
+            InitDelegate(ref _readVirtual, VTable.ReadVirtual);
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = buffer)
             {
-                HResult hr = VTable.ReadVirtual(Self, address, ptr, buffer.Length, out int read);
+                HResult hr = _readVirtual(Self, address, ptr, buffer.Length, out int read);
                 return read;
             }
         }
 
         public HResult QueryVirtual(ulong address, out MEMORY_BASIC_INFORMATION64 info)
         {
+            InitDelegate(ref _queryVirtual, VTable.QueryVirtual);
             using IDisposable holder = _sys.Enter();
-            return VTable.QueryVirtual(Self, address, out info);
+            return _queryVirtual(Self, address, out info);
         }
 
+        private ReadVirtualDelegate? _readVirtual;
+        private QueryVirtualDelegate? _queryVirtual;
         private readonly DebugSystemObjects _sys;
+
+        private delegate HResult ReadVirtualDelegate(IntPtr self, ulong address, byte* buffer, int size, out int read);
+        private delegate HResult QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly unsafe struct IDebugDataSpacesVTable
+    internal readonly struct IDebugDataSpacesVTable
     {
-        public readonly delegate*<IntPtr /*self*/, ulong /*address*/, byte* /*buffer*/, int /*size*/, out int /*read*/, HResult> ReadVirtual;
+        public readonly IntPtr ReadVirtual;
         public readonly IntPtr WriteVirtual;
         public readonly IntPtr SearchVirtual;
         public readonly IntPtr ReadVirtualUncached;
@@ -69,6 +76,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr ReadHandleData;
         public readonly IntPtr FillVirtual;
         public readonly IntPtr FillPhysical;
-        public readonly delegate*<IntPtr /*self*/, ulong /*address*/, out MEMORY_BASIC_INFORMATION64 /*info*/, HResult> QueryVirtual;
+        public readonly IntPtr QueryVirtual;
     }
 }
