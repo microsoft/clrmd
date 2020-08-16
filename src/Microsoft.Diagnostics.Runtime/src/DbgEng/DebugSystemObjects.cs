@@ -28,56 +28,44 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public uint GetProcessId()
         {
-            InitDelegate(ref _getProcessId, VTable.GetCurrentProcessSystemId);
-
             using IDisposable holder = Enter();
-            HResult hr = _getProcessId(Self, out uint id);
+            HResult hr = VTable.GetCurrentProcessSystemId(Self, out uint id);
             return hr ? id : 0;
         }
 
         private HResult SetCurrentSystemId(int id)
         {
-            InitDelegate(ref _setSystemId, VTable.SetCurrentSystemId);
-
-            HResult hr = _setSystemId(Self, id);
+            HResult hr = VTable.SetCurrentSystemId(Self, id);
             DebugOnly.Assert(hr);
             return hr;
         }
 
         public HResult SetCurrentThread(uint id)
         {
-            InitDelegate(ref _setCurrentThread, VTable.SetCurrentThreadId);
-
             using IDisposable holder = Enter();
-            HResult hr = _setCurrentThread(Self, id);
+            HResult hr = VTable.SetCurrentThreadId(Self, id);
             DebugOnly.Assert(hr);
             return hr;
         }
 
         public uint GetCurrentThread()
         {
-            InitDelegate(ref _getCurrentThread, VTable.GetCurrentThreadId);
-
             using IDisposable holder = Enter();
-            HResult hr = _getCurrentThread(Self, out uint id);
+            HResult hr = VTable.GetCurrentThreadId(Self, out uint id);
 
             return hr ? id : 0;
         }
 
         public int GetNumberThreads()
         {
-            InitDelegate(ref _getNumberThreads, VTable.GetNumberThreads);
-
             using IDisposable holder = Enter();
-            HResult hr = _getNumberThreads(Self, out int count);
+            HResult hr = VTable.GetNumberThreads(Self, out int count);
             DebugOnly.Assert(hr);
             return count;
         }
 
         public ulong GetThreadTeb(uint osThreadId)
         {
-            InitDelegate(ref _getCurrentThreadTeb, VTable.GetCurrentThreadTeb);
-
             using IDisposable holder = Enter();
 
             ulong teb = 0;
@@ -86,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             uint debuggerThreadId = GetThreadIdBySystemId(osThreadId);
             HResult hr = SetCurrentThread(debuggerThreadId);
 
-            if (hr && !_getCurrentThreadTeb(Self, out teb))
+            if (hr && !VTable.GetCurrentThreadTeb(Self, out teb))
                 teb = 0;
 
             SetCurrentThread(currId);
@@ -95,8 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         internal void Init()
         {
-            InitDelegate(ref _getSystemId, VTable.GetCurrentSystemId);
-            HResult hr = _getSystemId(Self, out int id);
+            HResult hr = VTable.GetCurrentSystemId(Self, out int id);
             DebugOnly.Assert(hr);
             _systemId = id;
         }
@@ -109,12 +96,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             if (count == 0)
                 return Array.Empty<uint>();
 
-            InitDelegate(ref _getThreadIdsByIndex, VTable.GetThreadIdsByIndex);
-
             uint[] result = new uint[count];
             fixed (uint* pResult = result)
             {
-                if (_getThreadIdsByIndex(Self, 0, count, null, pResult))
+                if (VTable.GetThreadIdsByIndex(Self, 0, count, null, pResult))
                     return result;
 
                 return Array.Empty<uint>();
@@ -123,35 +108,13 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public uint GetThreadIdBySystemId(uint sysId)
         {
-            InitDelegate(ref _getThreadIdBySystemId, VTable.GetThreadIdBySystemId);
-
             using IDisposable holder = Enter();
-            HResult hr = _getThreadIdBySystemId(Self, sysId, out uint result);
+            HResult hr = VTable.GetThreadIdBySystemId(Self, sysId, out uint result);
             DebugOnly.Assert(hr);
             return result;
         }
 
         private int _systemId = -1;
-
-        private GetCurrentProcessSystemIdDelegate? _getProcessId;
-        private GetCurrentSystemIdDelegate? _getSystemId;
-        private SetCurrentSystemIdDelegate? _setSystemId;
-        private SetCurrentThreadIdDelegate? _setCurrentThread;
-        private GetCurrentThreadIdDelegate? _getCurrentThread;
-        private GetCurrentThreadTebDelegate? _getCurrentThreadTeb;
-        private GetNumberThreadsDelegate? _getNumberThreads;
-        private GetThreadIdsByIndexDelegate? _getThreadIdsByIndex;
-        private GetThreadIdBySystemIdDelegate? _getThreadIdBySystemId;
-
-        private delegate HResult GetCurrentProcessSystemIdDelegate(IntPtr self, out uint pid);
-        private delegate HResult GetCurrentSystemIdDelegate(IntPtr self, out int id);
-        private delegate HResult SetCurrentSystemIdDelegate(IntPtr self, int id);
-        private delegate HResult SetCurrentThreadIdDelegate(IntPtr self, uint id);
-        private delegate HResult GetCurrentThreadIdDelegate(IntPtr self, out uint id);
-        private delegate HResult GetCurrentThreadTebDelegate(IntPtr self, out ulong id);
-        private delegate HResult GetNumberThreadsDelegate(IntPtr self, out int count);
-        private delegate HResult GetThreadIdsByIndexDelegate(IntPtr self, int start, int count, int* ids, uint* systemIds);
-        private delegate HResult GetThreadIdBySystemIdDelegate(IntPtr self, uint sysId, out uint id);
 
         private class SystemHolder : IDisposable
         {
@@ -170,24 +133,24 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IDebugSystemObjects3VTable
+    internal readonly unsafe struct IDebugSystemObjects3VTable
     {
         public readonly IntPtr GetEventThread;
         public readonly IntPtr GetEventProcess;
-        public readonly IntPtr GetCurrentThreadId;
-        public readonly IntPtr SetCurrentThreadId;
+        public readonly delegate*<IntPtr /*self*/, out uint /*id*/, HResult> GetCurrentThreadId;
+        public readonly delegate*<IntPtr /*self*/, uint /*id*/, HResult> SetCurrentThreadId;
         public readonly IntPtr GetCurrentProcessId;
         public readonly IntPtr SetCurrentProcessId;
-        public readonly IntPtr GetNumberThreads;
+        public readonly delegate*<IntPtr /*self*/, out int /*count*/, HResult> GetNumberThreads;
         public readonly IntPtr GetTotalNumberThreads;
-        public readonly IntPtr GetThreadIdsByIndex;
+        public readonly delegate*<IntPtr /*self*/, int /*start*/, int /*count*/, int* /*ids*/, uint* /*systemIds*/, HResult> GetThreadIdsByIndex;
         public readonly IntPtr GetThreadIdByProcessor;
         public readonly IntPtr GetCurrentThreadDataOffset;
         public readonly IntPtr GetThreadIdByDataOffset;
-        public readonly IntPtr GetCurrentThreadTeb;
+        public readonly delegate*<IntPtr /*self*/, out ulong /*id*/, HResult> GetCurrentThreadTeb;
         public readonly IntPtr GetThreadIdByTeb;
         public readonly IntPtr GetCurrentThreadSystemId;
-        public readonly IntPtr GetThreadIdBySystemId;
+        public readonly delegate*<IntPtr /*self*/, uint /*sysId*/, out uint /*id*/, HResult> GetThreadIdBySystemId;
         public readonly IntPtr GetCurrentThreadHandle;
         public readonly IntPtr GetThreadIdByHandle;
         public readonly IntPtr GetNumberProcesses;
@@ -196,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetProcessIdByDataOffset;
         public readonly IntPtr GetCurrentProcessPeb;
         public readonly IntPtr GetProcessIdByPeb;
-        public readonly IntPtr GetCurrentProcessSystemId;
+        public readonly delegate*<IntPtr /*self*/, out uint /*pid*/, HResult> GetCurrentProcessSystemId;
         public readonly IntPtr GetProcessIdBySystemId;
         public readonly IntPtr GetCurrentProcessHandle;
         public readonly IntPtr GetProcessIdByHandle;
@@ -207,8 +170,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetImplicitProcessDataOffset;
         public readonly IntPtr SetImplicitProcessDataOffset;
         public readonly IntPtr GetEventSystem;
-        public readonly IntPtr GetCurrentSystemId;
-        public readonly IntPtr SetCurrentSystemId;
+        public readonly delegate*<IntPtr /*self*/, out int /*id*/, HResult> GetCurrentSystemId;
+        public readonly delegate*<IntPtr /*self*/, int /*id*/, HResult> SetCurrentSystemId;
         public readonly IntPtr GetNumberSystems;
         public readonly IntPtr GetSystemIdsByIndex;
         public readonly IntPtr GetTotalNumberThreadsAndProcesses;
