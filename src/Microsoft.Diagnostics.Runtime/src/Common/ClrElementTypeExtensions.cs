@@ -26,57 +26,25 @@ namespace Microsoft.Diagnostics.Runtime
                 || cet == ClrElementType.Object;
         }
 
-        public static Type? GetTypeForElementType(this ClrElementType type)
+        public static Type? GetTypeForElementType(this ClrElementType type) => type switch
         {
-            switch (type)
-            {
-                case ClrElementType.Boolean:
-                    return typeof(bool);
-
-                case ClrElementType.Char:
-                    return typeof(char);
-
-                case ClrElementType.Double:
-                    return typeof(double);
-
-                case ClrElementType.Float:
-                    return typeof(float);
-
-                case ClrElementType.Pointer:
-                case ClrElementType.NativeInt:
-                case ClrElementType.FunctionPointer:
-                    return typeof(IntPtr);
-
-                case ClrElementType.NativeUInt:
-                    return typeof(UIntPtr);
-
-                case ClrElementType.Int16:
-                    return typeof(short);
-
-                case ClrElementType.Int32:
-                    return typeof(int);
-
-                case ClrElementType.Int64:
-                    return typeof(long);
-
-                case ClrElementType.Int8:
-                    return typeof(sbyte);
-
-                case ClrElementType.UInt16:
-                    return typeof(ushort);
-
-                case ClrElementType.UInt32:
-                    return typeof(uint);
-
-                case ClrElementType.UInt64:
-                    return typeof(ulong);
-
-                case ClrElementType.UInt8:
-                    return typeof(byte);
-
-                default:
-                    return null;
-            }
-        }
+            ClrElementType.Boolean => typeof(bool),
+            ClrElementType.Char => typeof(char),
+            ClrElementType.Double => typeof(double),
+            ClrElementType.Float => typeof(float),
+            ClrElementType.Pointer or
+            ClrElementType.NativeInt or
+            ClrElementType.FunctionPointer => typeof(IntPtr),
+            ClrElementType.NativeUInt => typeof(UIntPtr),
+            ClrElementType.Int16 => typeof(short),
+            ClrElementType.Int32 => typeof(int),
+            ClrElementType.Int64 => typeof(long),
+            ClrElementType.Int8 => typeof(sbyte),
+            ClrElementType.UInt16 => typeof(ushort),
+            ClrElementType.UInt32 => typeof(uint),
+            ClrElementType.UInt64 => typeof(ulong),
+            ClrElementType.UInt8 => typeof(byte),
+            _ => null,
+        };
     }
 }

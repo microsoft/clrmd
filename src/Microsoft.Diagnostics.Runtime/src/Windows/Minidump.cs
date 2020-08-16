@@ -48,25 +48,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public MinidumpProcessorArchitecture Architecture { get; }
 
-        public int PointerSize
+        public int PointerSize => Architecture switch
         {
-            get
-            {
-                switch (Architecture)
-                {
-                    case MinidumpProcessorArchitecture.Arm64:
-                    case MinidumpProcessorArchitecture.Amd64:
-                        return 8;
-
-                    case MinidumpProcessorArchitecture.Intel:
-                    case MinidumpProcessorArchitecture.Arm:
-                        return 4;
-
-                    default:
-                        throw new NotImplementedException($"Not implemented for architecture {Architecture}.");
-                }
-            }
-        }
+            MinidumpProcessorArchitecture.Arm64 or MinidumpProcessorArchitecture.Amd64 => 8,
+            MinidumpProcessorArchitecture.Intel or MinidumpProcessorArchitecture.Arm => 4,
+            _ => throw new NotImplementedException($"Not implemented for architecture {Architecture}."),
+        };
 
         public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
         {
