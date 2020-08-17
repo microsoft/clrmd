@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private readonly MinidumpDirectory[] _directories;
 
-        private readonly Task<ImmutableArray<MinidumpContextData>> _threadTask;
+        private readonly Task<ThreadReadResult> _threadTask;
         private readonly MemoryMappedFile? _file;
         private ImmutableArray<MinidumpContextData> _contextsCached;
 
@@ -35,10 +35,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 if (!_contextsCached.IsDefault)
                     return _contextsCached;
 
-                _contextsCached = _threadTask.Result;
+                _contextsCached = _threadTask.Result.ContextData;
                 return _contextsCached;
             }
         }
+
+        public ImmutableDictionary<uint, ulong> Tebs => _threadTask.Result.Tebs;
 
         public ImmutableArray<MinidumpModule> Modules { get; }
 
@@ -179,9 +181,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         #region ReadThreadData
-        private async Task<ImmutableArray<MinidumpContextData>> ReadThreadData(Stream stream)
+        private async Task<ThreadReadResult> ReadThreadData(Stream stream)
         {
-            Dictionary<uint, (uint Rva, uint Size)> threadContextLocations = new Dictionary<uint, (uint Rva, uint Size)>();
+            Dictionary<uint, (uint Rva, uint Size, ulong Teb)> threadContextLocations = new Dictionary<uint, (uint Rva, uint Size, ulong Teb)>();
 
             // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
             // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
@@ -211,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
                         {
                             MinidumpThread thread = Unsafe.As<byte, MinidumpThread>(ref buffer[i]);
-                            threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize);
+                            threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
                         }
                     }
                     else if (directory.StreamType == MinidumpStreamType.ThreadExListStream)
@@ -226,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
                         {
                             MinidumpThreadEx thread = Unsafe.As<byte, MinidumpThreadEx>(ref buffer[i]);
-                            threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize);
+                            threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
                         }
                     }
                     else if (directory.StreamType == MinidumpStreamType.ThreadInfoListStream)
@@ -247,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         {
                             MinidumpThreadInfo thread = Unsafe.As<byte, MinidumpThreadInfo>(ref buffer[i]);
                             if (!threadContextLocations.ContainsKey(thread.ThreadId))
-                                threadContextLocations[thread.ThreadId] = (0, 0);
+                                threadContextLocations[thread.ThreadId] = (0, 0, 0);
                         }
                     }
                 }
@@ -257,14 +259,22 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            var result = from entry in threadContextLocations
-                         let threadId = entry.Key
-                         let rva = entry.Value.Rva
-                         let size = entry.Value.Size
-                         orderby threadId
-                         select new MinidumpContextData(threadId, rva, size);
+            var contextBuilder = ImmutableArray.CreateBuilder<MinidumpContextData>(threadContextLocations.Count);
+            var tebBuilder = ImmutableDictionary.CreateBuilder<uint, ulong>();
 
-            return result.ToImmutableArray();
+            foreach (KeyValuePair<uint, (uint Rva, uint Size, ulong Teb)> item in threadContextLocations.OrderBy(k => k.Key))
+            {
+                uint threadId = item.Key;
+
+                contextBuilder.Add(new MinidumpContextData(threadId, item.Value.Rva, item.Value.Size));
+                tebBuilder.Add(threadId, item.Value.Teb);
+            }
+
+            return new ThreadReadResult()
+            {
+                ContextData = contextBuilder.MoveToImmutable(),
+                Tebs = tebBuilder.ToImmutable()
+            };
         }
         #endregion
 
@@ -408,6 +418,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         public override string ToString() => _displayName;
+
+        private struct ThreadReadResult
+        {
+            public ImmutableArray<MinidumpContextData> ContextData;
+            public ImmutableDictionary<uint, ulong> Tebs;
+        }
     }
 
 

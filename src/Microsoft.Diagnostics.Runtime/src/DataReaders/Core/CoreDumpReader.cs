@@ -7,14 +7,14 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable
+    internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private readonly Stream _stream;
         private readonly bool _leaveOpen;
@@ -125,11 +125,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override int PointerSize { get; }
 
+        public IEnumerable<uint> EnumerateOSThreadIds()
+        {
+            Dictionary<uint, IElfPRStatus> threads = LoadThreads();
+            return threads.Keys;
+        }
+
+        public ulong GetThreadTeb(uint osThreadId) => 0;
+
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            InitThreads();
+            Dictionary<uint, IElfPRStatus> threads = LoadThreads();
 
-            if (_threads!.TryGetValue(threadID, out IElfPRStatus? status))
+            if (threads.TryGetValue(threadID, out IElfPRStatus? status))
                 return status.CopyContext(contextFlags, context);
 
             return false;
@@ -168,14 +176,20 @@ namespace Microsoft.Diagnostics.Runtime
             return EnumerateModules().Where(module => !string.IsNullOrEmpty(module.FileName)).Select(module => module.FileName!);
         }
 
-        private void InitThreads()
+        private Dictionary<uint, IElfPRStatus> LoadThreads()
         {
-            if (_threads != null)
-                return;
+            Dictionary<uint, IElfPRStatus>? threads = _threads;
 
-            _threads = new Dictionary<uint, IElfPRStatus>();
-            foreach (IElfPRStatus status in _core.EnumeratePRStatus())
-                _threads.Add(status.ThreadId, status);
+            if (threads is null)
+            {
+                threads = new Dictionary<uint, IElfPRStatus>();
+                foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+                    threads.Add(status.ThreadId, status);
+
+                _threads = threads;
+            }
+
+            return threads;
         }
     }
 }

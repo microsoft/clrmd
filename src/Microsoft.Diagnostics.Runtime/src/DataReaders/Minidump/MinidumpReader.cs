@@ -8,11 +8,12 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
@@ -70,6 +71,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void FlushCachedData()
         {
+        }
+
+        public IEnumerable<uint> EnumerateOSThreadIds() => _minidump.Tebs.Keys;
+
+        public ulong GetThreadTeb(uint osThreadId)
+        {
+            _minidump.Tebs.TryGetValue(osThreadId, out ulong teb);
+            return teb;
         }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
