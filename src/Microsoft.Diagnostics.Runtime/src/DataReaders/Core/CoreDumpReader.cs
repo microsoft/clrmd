@@ -110,6 +110,12 @@ namespace Microsoft.Diagnostics.Runtime
                 filesize = pe.IndexFileSize;
                 timestamp = pe.IndexTimeStamp;
             }
+            else
+            {
+                // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
+                // but this unblocks some SOS scenarios.
+                filesize = (int)image.Size;
+            }
 
             // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
             return new ModuleInfo(this, (ulong)image.BaseAddress, image.Path, image._containsExecutable, filesize, timestamp, buildId: default);
