@@ -58,6 +58,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public bool IsLargeObjectSegment { get; set; }
 
+        public bool IsPinnedObjectSegment { get; set; }
+
         public bool IsEphemeralSegment => _ephemAddress == _segment.Address;
         #endregion
 
