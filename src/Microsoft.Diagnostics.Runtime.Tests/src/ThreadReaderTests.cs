@@ -42,9 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void EnumerateOSThreadIdsTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            IThreadReader threadReader = (IThreadReader)dt.DataReader;
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
+            IThreadReader threadReader = (IThreadReader)dt.DataReader;
             uint[] threads = threadReader.EnumerateOSThreadIds().ToArray();
             
             Assert.NotEmpty(threads);
@@ -55,6 +55,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (uint threadId in runtime.Threads.Select(f => f.OSThreadId).Where(id => id != 0))
                 Assert.Contains(threadId, threads);
+        }
+
+        [Fact]
+        public void EnsureOSThreadOrdering()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            IThreadReader threadReader = (IThreadReader)dt.DataReader;
+
+            var items = threadReader.EnumerateOSThreadIds().ToArray();
+
+            uint mainThreadId = runtime.GetMainThread().OSThreadId;
+            Assert.Equal(mainThreadId, threadReader.EnumerateOSThreadIds().First());
         }
     }
 }
