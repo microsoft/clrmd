@@ -133,8 +133,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<uint> EnumerateOSThreadIds()
         {
-            Dictionary<uint, IElfPRStatus> threads = LoadThreads();
-            return threads.Keys;
+            foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+                yield return status.ThreadId;
         }
 
         public ulong GetThreadTeb(uint osThreadId) => 0;

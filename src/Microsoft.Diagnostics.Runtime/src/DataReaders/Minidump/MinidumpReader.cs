@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        public IEnumerable<uint> EnumerateOSThreadIds() => _minidump.Tebs.Keys;
+        public IEnumerable<uint> EnumerateOSThreadIds() => _minidump.OrderedThreads;
 
         public ulong GetThreadTeb(uint osThreadId)
         {
