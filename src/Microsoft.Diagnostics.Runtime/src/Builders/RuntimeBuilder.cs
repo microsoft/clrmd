@@ -687,7 +687,20 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
+        ulong IRuntimeHelpers.GetMethodDesc(ulong ip)
+        {
+            ulong md = _sos.GetMethodDescPtrFromIP(ip);
+            if (md == 0)
+            {
+                if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
+                    return 0;
+
+                if ((md = codeHeaderData.MethodDesc) == 0)
+                    return 0;
+            }
+
+            return md;
+        }
         string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
 
         public IExceptionHelpers ExceptionHelpers => this;
