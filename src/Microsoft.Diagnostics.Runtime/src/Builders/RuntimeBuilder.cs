@@ -180,13 +180,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     {
                         // As long as we got at least one heap we'll count that as success
                         result = true;
-                        ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                        ProcessHeap(segBuilder, heapList[i], clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                     }
                 }
             }
             else if (_sos.GetWksHeapDetails(out HeapDetails heap))
             {
-                ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                ProcessHeap(segBuilder, 0, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                 result = true;
             }
 
@@ -201,6 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private void ProcessHeap(
             SegmentBuilder segBuilder,
+            ulong heapAddress,
             ClrHeap clrHeap,
             in HeapDetails heap,
             ImmutableArray<MemoryRange>.Builder allocationContexts,
@@ -214,14 +215,30 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
             fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));
 
-            AddSegments(segBuilder, clrHeap, large: true, heap, segments, heap.GenerationTable[3].StartSegment);
-            AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: true, pinned: false, heap, segments, heap.GenerationTable[3].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: false, pinned: false, heap, segments, heap.GenerationTable[2].StartSegment);
+
+            if (_sos8 != null)
+            {
+                if (_sos8.GenerationCount == 5)
+                {
+                    GenerationData[]? genData;
+                    if (clrHeap.IsServer)
+                        genData = _sos8.GetGenerationTable(heapAddress);
+                    else
+                        genData = _sos8.GetGenerationTable();
+
+                    if (genData != null && genData.Length > 3)
+                        AddSegments(segBuilder, clrHeap, large: false, pinned: true, heap, segments, genData[4].StartSegment);
+                }
+            }
         }
 
-        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, bool pinned, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
+            segBuilder.IsPinnedObjectSegment = pinned;
 
             while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
             {

@@ -30,6 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             LogicalHeap = data.LogicalHeap;
             IsLargeObjectSegment = data.IsLargeObjectSegment;
+            IsPinnedObjectSegment = data.IsPinnedObjectSegment;
             IsEphemeralSegment = data.IsEphemeralSegment;
 
             ObjectRange = new MemoryRange(data.Start, data.End);
@@ -48,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int LogicalHeap { get; }
 
         public override bool IsLargeObjectSegment { get; }
+        public override bool IsPinnedObjectSegment { get; }
         public override bool IsEphemeralSegment { get; }
 
         public override MemoryRange ObjectRange { get; }
