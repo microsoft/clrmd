@@ -1036,6 +1036,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (mt == 0)
                 return null;
 
+            // Remove marking bit.
+            mt &= ~1ul;
+
             {
                 ClrType? result = TryGetType(mt);
                 if (result != null)
