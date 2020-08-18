@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
     {
         private readonly int _task;
 
-        private List<MemoryRegion> _memoryRegions;
+        private ImmutableArray<MemoryRegion>.Builder _memoryRegions;
 
         private bool _suspended;
         private bool _disposed;
@@ -26,13 +26,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 throw new ArgumentException("The process is not running");
 
             ProcessId = processId;
-            _memoryRegions = LoadMemoryRegions();
 
             int kr = Native.task_for_pid(Native.mach_task_self(), processId, out int task);
             if (kr != 0)
                 throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
 
             _task = task;
+
+            _memoryRegions = LoadMemoryRegions();
 
             if (suspend)
             {
@@ -226,82 +227,96 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return false;
         }
 
-        private int GetReadableBytesCount(ulong address, int bytesRequested)
+        private int GetReadableBytesCount(ulong address, int bytesToRead)
         {
-            if (bytesRequested < 1)
+            if (bytesToRead <= 0)
             {
                 return 0;
             }
 
-            ulong endAddress = address + (ulong)bytesRequested - 1;
-            int bytesReadable = 0;
-            ulong prevEndAddr = default;
-
-            int startIndex = -1;
-            for (int i = 0; i < _memoryRegions.Count; i++)
-            {
-                MemoryRegion entry = _memoryRegions[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
-                {
-                    int regionSize = (int)(entryEndAddr - address);
-                    if (regionSize >= bytesRequested)
-                    {
-                        return bytesRequested;
-                    }
-
-                    startIndex = i;
-                    bytesRequested -= regionSize;
-                    bytesReadable = regionSize;
-                    prevEndAddr = entryEndAddr;
-                    break;
-                }
-            }
-
-            if (startIndex < 0)
+            int i = GetRegionContaining(address);
+            if (i < 0)
             {
                 return 0;
             }
 
-            for (int i = startIndex + 1; i < _memoryRegions.Count; i++)
+            int bytesReadable;
+            ulong prevEndAddr;
             {
-                MemoryRegion entry = _memoryRegions[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
+                ref readonly MemoryRegion region = ref _memoryRegions.ItemRef(i);
+                ulong regionEndAddr = region.EndAddress;
+
+                int regionSize = (int)(regionEndAddr - address);
+                if (regionSize >= bytesToRead)
+                {
+                    return bytesToRead;
+                }
+
+                bytesToRead -= regionSize;
+                bytesReadable = regionSize;
+                prevEndAddr = regionEndAddr;
+            }
+
+            for (i += 1; i < _memoryRegions.Count; i++)
+            {
+                ref readonly MemoryRegion region = ref _memoryRegions.ItemRef(i);
+                ulong regionBeginAddr = region.BeginAddress;
+                ulong regionEndAddr = region.EndAddress;
+                if (regionBeginAddr != prevEndAddr || !region.IsReadable)
                 {
                     break;
                 }
 
-                int regionSize = (int)(entryEndAddr - entryBeginAddr);
-                if (regionSize >= bytesRequested)
+                int regionSize = (int)(regionEndAddr - regionBeginAddr);
+                if (regionSize >= bytesToRead)
                 {
-                    bytesReadable += bytesRequested;
+                    bytesReadable += bytesToRead;
                     break;
                 }
 
-                bytesRequested -= regionSize;
+                bytesToRead -= regionSize;
                 bytesReadable += regionSize;
-                prevEndAddr = entryEndAddr;
+                prevEndAddr = regionEndAddr;
             }
 
             return bytesReadable;
         }
 
-        private List<MemoryRegion> LoadMemoryRegions()
+        private int GetRegionContaining(ulong address)
         {
-            List<MemoryRegion> result = new List<MemoryRegion>();
+            int lower = 0;
+            int upper = _memoryRegions.Count - 1;
 
-            int kr = Native.task_for_pid(Native.mach_task_self(), ProcessId, out int task);
-            if (kr != 0)
-                throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
+            while (lower <= upper)
+            {
+                int mid = (lower + upper) >> 1;
+                ref readonly MemoryRegion region = ref _memoryRegions.ItemRef(mid);
+                ulong beginAddress = region.BeginAddress;
+                ulong endAddress = region.EndAddress;
+
+                if (beginAddress <= address && address < endAddress)
+                {
+                    return region.IsReadable ? mid : -1;
+                }
+
+                if (address < beginAddress)
+                    upper = mid - 1;
+                else
+                    lower = mid + 1;
+            }
+
+            return -1;
+        }
+
+        private ImmutableArray<MemoryRegion>.Builder LoadMemoryRegions()
+        {
+            ImmutableArray<MemoryRegion>.Builder result = ImmutableArray.CreateBuilder<MemoryRegion>();
 
             ulong address = 0;
             int infoCount = Native.VM_REGION_BASIC_INFO_COUNT_64;
             while (true)
             {
-                kr = Native.mach_vm_region(task, ref address, out ulong size, Native.VM_REGION_BASIC_INFO_64, out Native.vm_region_basic_info_64 info, ref infoCount, out _);
+                int kr = Native.mach_vm_region(_task, ref address, out ulong size, Native.VM_REGION_BASIC_INFO_64, out Native.vm_region_basic_info_64 info, ref infoCount, out _);
                 if (kr != 0)
                     if (kr != Native.KERN_INVALID_ADDRESS)
                         throw new ClrDiagnosticsException();
@@ -401,13 +416,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        internal sealed class MemoryRegion
+        internal struct MemoryRegion
         {
-            public ulong BeginAddress { get; set; }
-            public ulong EndAddress { get; set; }
-            public int Permission { get; set; }
+            internal ulong BeginAddress;
+            internal ulong EndAddress;
+            internal int Permission;
 
-            public bool IsReadable => (Permission & Native.PROT_READ) != 0;
+            internal bool IsReadable => (Permission & Native.PROT_READ) != 0;
         }
     }
 }
