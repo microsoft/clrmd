@@ -2,77 +2,58 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
-        private static Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
-
-        private IXCLRDataStackWalkVTable* VTable => (IXCLRDataStackWalkVTable*)_vtable;
-
-        private readonly byte[] _ulongBuffer = new byte[8];
-        private RequestDelegate _request;
-        private NextDelegate _next;
-        private GetContextDelegate _getContext;
+        private static readonly Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
-            : base(library.OwningLibrary, ref IID_IXCLRDataStackWalk, pUnk)
+            : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
         {
         }
 
-        public ulong GetFrameVtable()
+        private ref readonly IXCLRDataStackWalkVTable VTable => ref Unsafe.AsRef<IXCLRDataStackWalkVTable>(_vtable);
+
+        public ClrDataAddress GetFrameVtable()
         {
-            InitDelegate(ref _request, VTable->Request);
+            InitDelegate(ref _request, VTable.Request);
 
-            int hr = _request(Self, 0xf0000000, 0, null, (uint)_ulongBuffer.Length, _ulongBuffer);
-            if (hr == S_OK)
-                return BitConverter.ToUInt64(_ulongBuffer, 0);
+            long ptr = 0xcccccccc;
 
-            return 0;
+            HResult hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
+            return hr ? new ClrDataAddress(ptr) : default;
         }
 
-        public bool Next()
+        public HResult Next()
         {
-            InitDelegate(ref _next, VTable->Next);
+            InitDelegate(ref _next, VTable.Next);
 
-            int hr = _next(Self);
-            return hr == S_OK;
+            return _next(Self);
         }
 
-        public bool GetContext(uint contextFlags, uint contextBufSize, out uint contextSize, byte[] buffer)
+        public HResult GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
-            InitDelegate(ref _getContext, VTable->GetContext);
-
-            int hr = _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
-            return hr == S_OK;
+            InitDelegate(ref _getContext, VTable.GetContext);
+            return _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetContextDelegate(IntPtr self, uint contextFlags, uint contextBufSize, out uint contextSize, byte[] buffer);
+        private RequestDelegate? _request;
+        private NextDelegate? _next;
+        private GetContextDelegate? _getContext;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int NextDelegate(IntPtr self);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int RequestDelegate(
-            IntPtr self,
-            uint reqCode,
-            uint inBufferSize,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-            byte[] inBuffer,
-            uint outBufferSize,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
-            byte[] outBuffer);
+        private delegate HResult GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
+        private delegate HResult NextDelegate(IntPtr self);
+        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, byte* inBuffer, uint outBufferSize, byte* outBuffer);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-
-    internal struct IXCLRDataStackWalkVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct IXCLRDataStackWalkVTable
     {
         public readonly IntPtr GetContext;
         private readonly IntPtr GetContext2;

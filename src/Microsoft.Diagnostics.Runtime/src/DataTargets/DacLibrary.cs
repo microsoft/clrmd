@@ -12,20 +12,24 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class DacLibrary : IDisposable
     {
         private bool _disposed;
-        private SOSDac _sos;
+        private SOSDac? _sos;
 
         internal DacDataTargetWrapper DacDataTarget { get; }
 
-        internal RefCountedFreeLibrary OwningLibrary { get; }
+        public RefCountedFreeLibrary? OwningLibrary { get; }
 
         internal ClrDataProcess InternalDacPrivateInterface { get; }
 
-        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(InternalDacPrivateInterface);
+        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(this, InternalDacPrivateInterface);
 
-        internal SOSDac GetSOSInterfaceNoAddRef()
+        private SOSDac GetSOSInterfaceNoAddRef()
         {
-            if (_sos == null)
+            if (_sos is null)
+            {
                 _sos = InternalDacPrivateInterface.GetSOSDacInterface();
+                if (_sos is null)
+                    throw new InvalidOperationException("This runtime does not support ISOSDac.");
+            }
 
             return _sos;
         }
@@ -35,18 +39,22 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 SOSDac sos = GetSOSInterfaceNoAddRef();
-                return sos != null ? new SOSDac(sos) : null;
+                return new SOSDac(this, sos);
             }
         }
 
-        public T GetInterface<T>(ref Guid riid)
+        public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
+
+        public SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
+
+        public T? GetInterface<T>(in Guid riid)
             where T : CallableCOMWrapper
         {
-            IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(ref riid);
+            IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(riid);
             if (pUnknown == IntPtr.Zero)
                 return null;
 
-            T t = (T)Activator.CreateInstance(typeof(T), this, pUnknown);
+            T t = (T)Activator.CreateInstance(typeof(T), this, pUnknown)!;
             return t;
         }
 
@@ -66,49 +74,64 @@ namespace Microsoft.Diagnostics.Runtime
             return pUnk;
         }
 
-        internal DacLibrary(DataTarget dataTarget, IntPtr pUnk)
+        public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
-            InternalDacPrivateInterface = new ClrDataProcess(this, pUnk);
+            if (dataTarget is null)
+                throw new ArgumentNullException(nameof(dataTarget));
+
+            if (pClrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(pClrDataProcess));
+
+            InternalDacPrivateInterface = new ClrDataProcess(this, pClrDataProcess);
+            DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
-        public DacLibrary(DataTarget dataTarget, string dacDll)
+        public DacLibrary(DataTarget dataTarget, string dacPath)
         {
-            if (dataTarget.ClrVersions.Count == 0)
+            if (dataTarget is null)
+                throw new ArgumentNullException(nameof(dataTarget));
+
+            if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
-            IntPtr dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacDll);
-            if (dacLibrary == IntPtr.Zero)
-                throw new ClrDiagnosticsException("Failed to load dac: " + dacLibrary);
+            IntPtr dacLibrary;
+            try
+            {
+                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
+            }
+            catch (Exception e) when (e is DllNotFoundException || e is BadImageFormatException)
+            {
+                throw new ClrDiagnosticsException("Failed to load dac: " + e.Message, e);
+            }
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
-            dataTarget.AddDacLibrary(this);
 
-            IntPtr initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DAC_PAL_InitializeDLL");
+            IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
             if (initAddr == IntPtr.Zero)
-                initAddr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "PAL_InitializeDLL");
+                initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "PAL_InitializeDLL");
 
             if (initAddr != IntPtr.Zero)
             {
-                IntPtr dllMain = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "DllMain");
+                IntPtr dllMain = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DllMain");
                 if (dllMain == IntPtr.Zero)
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
-                DllMain main = (DllMain)Marshal.GetDelegateForFunctionPointer(dllMain, typeof(DllMain));
-                int result = main(dacLibrary, 1, IntPtr.Zero);
+                DllMain main = Marshal.GetDelegateForFunctionPointer<DllMain>(dllMain);
+                main(dacLibrary, 1, IntPtr.Zero);
             }
 
-            IntPtr addr = DataTarget.PlatformFunctions.GetProcAddress(dacLibrary, "CLRDataCreateInstance");
+            IntPtr addr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "CLRDataCreateInstance");
             if (addr == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
 
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
 
-            CreateDacInstance func = (CreateDacInstance)Marshal.GetDelegateForFunctionPointer(addr, typeof(CreateDacInstance));
+            CreateDacInstance func = Marshal.GetDelegateForFunctionPointer<CreateDacInstance>(addr);
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-            int res = func(ref guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
+            int res = func(guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
             if (res != 0)
-                throw new ClrDiagnosticsException("Failure loading DAC: CreateDacInstance failed 0x" + res.ToString("x"), ClrDiagnosticsExceptionKind.DacError, res);
+                throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
 
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
@@ -124,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        private void Dispose(bool disposing)
+        private void Dispose(bool _)
         {
             if (!_disposed)
             {
@@ -136,15 +159,15 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int DllMain(IntPtr instance, int reason, IntPtr reserved);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int PAL_Initialize();
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         private delegate int CreateDacInstance(
-            ref Guid riid,
+            in Guid riid,
             IntPtr dacDataInterface,
             out IntPtr ppObj);
     }

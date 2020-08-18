@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// This is a representation of the metadata element type.  These values
-    /// directly correspond with Clr's CorElementType.
+    /// directly correspond with CLR's CorElementType.
     /// </summary>
     public enum ClrElementType
     {
@@ -14,10 +14,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// Not one of the other types.
         /// </summary>
         Unknown = 0x0,
+
+        /// <summary>
+        /// Void type.
+        /// </summary>
+        Void = 0x1,
+
         /// <summary>
         /// ELEMENT_TYPE_BOOLEAN
         /// </summary>
         Boolean = 0x2,
+
         /// <summary>
         /// ELEMENT_TYPE_CHAR
         /// </summary>
@@ -94,9 +101,19 @@ namespace Microsoft.Diagnostics.Runtime
         Class = 0x12,
 
         /// <summary>
+        /// ELEMENT_TYPE_VAR
+        /// </summary>
+        Var = 0x13,
+
+        /// <summary>
         /// ELEMENT_TYPE_ARRAY
         /// </summary>
         Array = 0x14,
+
+        /// <summary>
+        /// ELEMENT_TYPE_GENERICINST
+        /// </summary>
+        GenericInstantiation = 0x15,
 
         /// <summary>
         /// ELEMENT_TYPE_I
@@ -117,6 +134,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// ELEMENT_TYPE_OBJECT
         /// </summary>
         Object = 0x1C,
+
+        /// <summary>
+        /// ELEMENT_TYPE_MVAR
+        /// </summary>
+        MVar = 0x1e,
 
         /// <summary>
         /// ELEMENT_TYPE_SZARRAY

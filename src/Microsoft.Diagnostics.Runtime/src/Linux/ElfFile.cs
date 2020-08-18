@@ -2,11 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
@@ -16,15 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly long _position;
         private readonly bool _virtual;
 
-        private Reader _virtualAddressReader;
-        private ElfNote[] _notes;
-        private ElfProgramHeader[] _programHeaders;
-        private ElfSectionHeader[] _sections;
-        private string[] _sectionNames;
+        private Reader? _virtualAddressReader;
+        private ImmutableArray<ElfNote> _notes;
+        private ImmutableArray<ElfProgramHeader> _programHeaders;
+        private ImmutableArray<byte> _buildId;
 
-        public ElfHeader Header { get; }
+        public IElfHeader Header { get; }
 
-        public IReadOnlyCollection<ElfNote> Notes
+        public ImmutableArray<ElfNote> Notes
         {
             get
             {
@@ -32,7 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return _notes;
             }
         }
-        public IReadOnlyList<ElfProgramHeader> ProgramHeaders
+
+        public ImmutableArray<ElfProgramHeader> ProgramHeaders
         {
             get
             {
@@ -46,50 +43,71 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             get
             {
                 CreateVirtualAddressReader();
-                return _virtualAddressReader;
+                return _virtualAddressReader!;
             }
         }
 
-        public byte[] BuildId
+        public ImmutableArray<byte> BuildId
         {
             get
             {
-                if (Header.ProgramHeaderOffset != IntPtr.Zero && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
+                if (!_buildId.IsDefault)
+                    return _buildId;
+
+                if (Header.ProgramHeaderOffset != 0 && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
                 {
                     try
                     {
                         foreach (ElfNote note in Notes)
+                        {
                             if (note.Type == ElfNoteType.PrpsInfo && note.Name.Equals("GNU"))
-                                return note.ReadContents(0, (int)note.Header.ContentSize);
+                            {
+                                byte[] buildId = new byte[note.Header.ContentSize];
+                                note.ReadContents(0, buildId);
+                                return _buildId = buildId.AsImmutableArray();
+                            }
+                        }
                     }
                     catch (IOException)
                     {
                     }
                 }
-                return null;
+
+                return default;
             }
         }
 
-        public ElfFile(Reader reader, long position = 0, bool virt = false)
+        public ElfFile(Reader reader, long position = 0, bool isVirtual = false)
         {
             _reader = reader;
             _position = position;
-            _virtual = virt;
+            _virtual = isVirtual;
 
-            if (virt)
+            if (isVirtual)
                 _virtualAddressReader = reader;
 
-            Header = reader.Read<ElfHeader>(position);
-            Header.Validate(reader.DataSource.Name);
+            ElfHeaderCommon common;
+            try
+            {
+                common = reader.Read<ElfHeaderCommon>(position);
+            }
+            catch (IOException e)
+            {
+                throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.", e);
+            }
+
+            Header = common.GetHeader(reader, position)!;
+            if (Header is null)
+                throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
-        internal ElfFile(ElfHeader header, Reader reader, long position = 0, bool virt = false)
+        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool isVirtual = false)
         {
             _reader = reader;
             _position = position;
-            _virtual = virt;
+            _virtual = isVirtual;
 
-            if (virt)
+            if (isVirtual)
                 _virtualAddressReader = reader;
 
             Header = header;
@@ -97,23 +115,20 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void CreateVirtualAddressReader()
         {
-            if (_virtualAddressReader != null)
-                return;
-
-            _virtualAddressReader = new Reader(new ELFVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
+            _virtualAddressReader ??= new Reader(new ElfVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
         }
 
         private void LoadNotes()
         {
-            if (_notes != null)
+            if (!_notes.IsDefault)
                 return;
 
             LoadProgramHeaders();
 
-            List<ElfNote> notes = new List<ElfNote>();
+            ImmutableArray<ElfNote>.Builder notes = ImmutableArray.CreateBuilder<ElfNote>();
             foreach (ElfProgramHeader programHeader in _programHeaders)
             {
-                if (programHeader.Header.Type == ElfProgramHeaderType.Note)
+                if (programHeader.Type == ElfProgramHeaderType.Note)
                 {
                     Reader reader = new Reader(programHeader.AddressSpace);
                     long position = 0;
@@ -127,84 +142,21 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
             }
 
-            _notes = notes.ToArray();
+            _notes = notes.MoveOrCopyToImmutable();
         }
 
         private void LoadProgramHeaders()
         {
-            if (_programHeaders != null)
+            if (!_programHeaders.IsDefault)
                 return;
 
-            _programHeaders = new ElfProgramHeader[Header.ProgramHeaderCount];
-            for (int i = 0; i < _programHeaders.Length; i++)
-                _programHeaders[i] = new ElfProgramHeader(_reader, _position + (long)Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+            ImmutableArray<ElfProgramHeader>.Builder programHeaders = ImmutableArray.CreateBuilder<ElfProgramHeader>(Header.ProgramHeaderCount);
+            programHeaders.Count = programHeaders.Capacity;
+
+            for (int i = 0; i < programHeaders.Count; i++)
+                programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+
+            _programHeaders = programHeaders.MoveToImmutable();
         }
-
-        private string GetSectionName(int section)
-        {
-            LoadSections();
-            if (section < 0 || section >= _sections.Length)
-                throw new ArgumentOutOfRangeException(nameof(section));
-
-            if (_sectionNames == null)
-                _sectionNames = new string[_sections.Length];
-
-            if (_sectionNames[section] != null)
-                return _sectionNames[section];
-
-            LoadSectionNameTable();
-            ref ElfSectionHeader hdr = ref _sections[section];
-            int idx = hdr.NameIndex;
-
-            if (hdr.Type == ElfSectionHeaderType.Null || idx == 0)
-                return _sectionNames[section] = string.Empty;
-
-            int len = 0;
-            for (len = 0; idx + len < _sectionNameTable.Length && _sectionNameTable[idx + len] != 0; len++)
-                ;
-
-            string name = Encoding.ASCII.GetString(_sectionNameTable, idx, len);
-            _sectionNames[section] = name;
-
-            return _sectionNames[section];
-        }
-
-        private byte[] _sectionNameTable;
-
-        private void LoadSectionNameTable()
-        {
-            if (_sectionNameTable != null)
-                return;
-
-            int nameTableIndex = Header.SectionHeaderStringIndex;
-            if (Header.SectionHeaderOffset != IntPtr.Zero && Header.SectionHeaderCount > 0 && nameTableIndex != 0)
-            {
-                ref ElfSectionHeader hdr = ref _sections[nameTableIndex];
-                long offset = hdr.FileOffset.ToInt64();
-                int size = checked((int)hdr.FileSize.ToInt64());
-
-                _sectionNameTable = _reader.ReadBytes(offset, size);
-            }
-        }
-
-        private void LoadSections()
-        {
-            if (_sections != null)
-                return;
-
-            _sections = new ElfSectionHeader[Header.SectionHeaderCount];
-            for (int i = 0; i < _sections.Length; i++)
-                _sections[i] = _reader.Read<ElfSectionHeader>(_position + (long)Header.SectionHeaderOffset + i * Header.SectionHeaderEntrySize);
-        }
-
-#if DEBUG
-        private void LoadAllSectionNames()
-        {
-            LoadSections();
-
-            for (int i = 0; i < _sections.Length; i++)
-                GetSectionName(i);
-        }
-#endif
     }
 }

@@ -4,6 +4,9 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interop;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -24,17 +27,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public static class TestTargets
     {
-        private static readonly Lazy<TestTarget> _arrays = new Lazy<TestTarget>(() => new TestTarget("Arrays.cs"));
-        private static readonly Lazy<TestTarget> _clrObjects = new Lazy<TestTarget>(() => new TestTarget("ClrObjects.cs"));
-        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot.cs"));
-        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException.cs"));
-        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles.cs"));
-        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types.cs"));
-        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains.cs"));
-        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue.cs"));
+        private static readonly Lazy<TestTarget> _arrays = new Lazy<TestTarget>(() => new TestTarget("Arrays"));
+        private static readonly Lazy<TestTarget> _clrObjects = new Lazy<TestTarget>(() => new TestTarget("ClrObjects"));
+        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot"));
+        private static readonly Lazy<TestTarget> _gcroot2 = new Lazy<TestTarget>(() => new TestTarget("GCRoot2"));
+        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException"));
+        private static readonly Lazy<TestTarget> _nestedTypes = new Lazy<TestTarget>(() => new TestTarget("NestedTypes"));
+        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles"));
+        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types"));
+        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains"));
+        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue"));
+        private static readonly Lazy<TestTarget> _byReference = new Lazy<TestTarget>(() => new TestTarget("ByReference"));
 
         public static TestTarget GCRoot => _gcroot.Value;
+        public static TestTarget GCRoot2 => _gcroot2.Value;
         public static TestTarget NestedException => _nestedException.Value;
+        public static TestTarget NestedTypes => _nestedTypes.Value;
         public static ExceptionTestData NestedExceptionData => new ExceptionTestData();
         public static TestTarget GCHandles => _gcHandles.Value;
         public static TestTarget Types => _types.Value;
@@ -42,6 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget FinalizationQueue => _finalizationQueue.Value;
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
+        public static TestTarget ByReference => _byReference.Value;
     }
 
     public class TestTarget
@@ -66,42 +75,76 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
         }
 
-        public TestTarget(string source)
+        public TestTarget(string name)
         {
-            Source = Path.Combine(TestRoot, source);
+            Source = Path.Combine(TestRoot, name, name + ".cs");
             if (!File.Exists(Source))
-                throw new FileNotFoundException($"Could not find source file: {source}");
+                throw new FileNotFoundException($"Could not find source file: {name}.cs");
 
-            Executable = Path.Combine(Path.GetDirectoryName(Source), "bin", Architecture, Path.ChangeExtension(source, ".exe"));
+            Executable = Path.Combine(TestRoot, "bin", Architecture, name + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : null));
             Pdb = Path.ChangeExtension(Executable, ".pdb");
 
             if (!File.Exists(Executable) || !File.Exists(Pdb))
             {
-                string buildTestAssets = Path.Combine(Path.GetDirectoryName(Source), "build_test_assets.cmd");
-                throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: {buildTestAssets}");
+                string buildTestAssets = Path.Combine(TestRoot, "TestTargets.csproj");
+                throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: dotnet build {buildTestAssets}");
             }
         }
 
-        private string BuildDumpName(GCMode gcmode, bool full)
+        private static DataTarget LoadDump(string path)
         {
-            string filename = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                DataTarget dataTarget = DataTarget.LoadDump(path);
+                dataTarget.BinaryLocator = new SymbolServerLocator(string.Empty);
+                return dataTarget;
+            }
+            else
+            {
+                return DataTarget.LoadDump(path);
+            }
+        }
+
+        public string BuildDumpName(GCMode gcmode, bool full)
+        {
+            string fileName = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
-            string dumpType = full ? "" : "_mini";
-            filename = $"{filename}_{gc}{dumpType}.dmp";
-            return filename;
+            string dumpType = full ? string.Empty : "_mini";
+            fileName = $"{fileName}_{gc}{dumpType}.dmp";
+            return fileName;
         }
 
-        public DataTarget LoadMiniDump(GCMode gc = GCMode.Workstation)
+        public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
+
+        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, true));
+
+        public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
-            string path = BuildDumpName(gc, false);
-            return DataTarget.LoadCrashDump(path);
+            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+            int hr = DebugCreate(guid, out IntPtr pDebugClient);
+            if (hr != 0)
+                throw new Exception($"Failed to create DebugClient, hr={hr:x}.");
+
+            IDebugClient client = (IDebugClient)Marshal.GetTypedObjectForIUnknown(pDebugClient, typeof(IDebugClient));
+            IDebugControl control = (IDebugControl)client;
+
+            string dumpPath = BuildDumpName(gc, true);
+            hr = client.OpenDumpFile(dumpPath);
+            if (hr != 0)
+                throw new Exception($"Failed to OpenDumpFile, hr={hr:x}.");
+
+            hr = control.WaitForEvent(DEBUG_WAIT.DEFAULT, 10000);
+
+            if (hr != 0)
+                throw new Exception($"Failed to attach to dump file, hr={hr:x}.");
+
+            Marshal.Release(pDebugClient);
+            return DataTarget.CreateFromDbgEng(pDebugClient);
         }
 
-        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation)
-        {
-            string path = BuildDumpName(gc, true);
-            return DataTarget.LoadCrashDump(path);
-        }
+
+        [DllImport("dbgeng.dll")]
+        private static extern int DebugCreate(in Guid InterfaceId, out IntPtr pDebugClient);
     }
 }

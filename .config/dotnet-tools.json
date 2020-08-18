@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "coverlet.console": {
+      "version": "1.6.0",
+      "commands": [
+        "coverlet"
+      ]
+    },
+    "powershell": {
+      "version": "6.2.3",
+      "commands": [
+        "pwsh"
+      ]
+    },
+    "codecov.tool": {
+      "version": "1.9.0",
+      "commands": [
+        "codecov"
+      ]
+    },
+    "dotnet-reportgenerator-globaltool": {
+      "version": "4.3.9",
+      "commands": [
+        "reportgenerator"
+      ]
+    }
+  }
+}

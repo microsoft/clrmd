@@ -3,9 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     public unsafe class CallableCOMWrapper : COMHelper, IDisposable
@@ -18,11 +21,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected void* _vtable => _unknownVTable + 1;
 
-        private ReleaseDelegate _release;
-        private AddRefDelegate _addRef;
+        private ReleaseDelegate? _release;
+        private AddRefDelegate? _addRef;
 
         protected CallableCOMWrapper(CallableCOMWrapper toClone)
         {
+            if (toClone is null)
+                throw new ArgumentNullException(nameof(toClone));
+
             if (toClone._disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
@@ -36,29 +42,34 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int AddRef()
         {
-            if (_addRef == null)
-                _addRef = (AddRefDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->AddRef, typeof(AddRefDelegate));
+            _addRef ??= Marshal.GetDelegateForFunctionPointer<AddRefDelegate>(_unknownVTable->AddRef);
 
             int count = _addRef(Self);
             return count;
         }
 
-        private protected CallableCOMWrapper(RefCountedFreeLibrary library, ref Guid desiredInterface, IntPtr pUnknown)
+        public void SuppressRelease()
         {
-            _library = library;
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
+
+        protected CallableCOMWrapper(RefCountedFreeLibrary? library, in Guid desiredInterface, IntPtr pUnknown)
+        {
+            _library = library ?? throw new ArgumentNullException(nameof(library));
             _library.AddRef();
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
-            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(tbl->QueryInterface, typeof(QueryInterfaceDelegate));
-            int hr = queryInterface(pUnknown, ref desiredInterface, out IntPtr pCorrectUnknown);
+            QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(tbl->QueryInterface);
+            int hr = queryInterface(pUnknown, desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
             {
                 GC.SuppressFinalize(this);
                 throw new InvalidCastException($"{GetType().FullName}.QueryInterface({desiredInterface}) failed, hr=0x{hr:x}");
             }
 
-            ReleaseDelegate release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(tbl->Release, typeof(ReleaseDelegate));
+            ReleaseDelegate release = Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(tbl->Release);
             int count = release(pUnknown);
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
@@ -66,33 +77,34 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int Release()
         {
-            if (_release == null)
-                _release = (ReleaseDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->Release, typeof(ReleaseDelegate));
+            _release ??= Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(_unknownVTable->Release);
 
             int count = _release(Self);
             return count;
         }
 
-        public IntPtr QueryInterface(ref Guid riid)
+        public IntPtr QueryInterface(in Guid riid)
         {
-            QueryInterfaceDelegate queryInterface = (QueryInterfaceDelegate)Marshal.GetDelegateForFunctionPointer(_unknownVTable->QueryInterface, typeof(QueryInterfaceDelegate));
+            QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(_unknownVTable->QueryInterface);
 
-            int hr = queryInterface(Self, ref riid, out IntPtr unk);
-            return hr == S_OK ? unk : IntPtr.Zero;
+            HResult hr = queryInterface(Self, riid, out IntPtr unk);
+            return hr.IsOK ? unk : IntPtr.Zero;
         }
 
-        protected static bool SUCCEEDED(int hresult)
-        {
-            return hresult >= 0;
-        }
-
-        protected static void InitDelegate<T>(ref T t, IntPtr entry)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static void InitDelegate<T>([NotNull] ref T? t, IntPtr entry)
             where T : Delegate
         {
             if (t != null)
                 return;
 
-            t = (T)Marshal.GetDelegateForFunctionPointer(entry, typeof(T));
+            InitDelegateWorker(ref t, entry);
+        }
+
+        private static void InitDelegateWorker<T>([NotNull] ref T? t, IntPtr entry)
+            where T : Delegate
+        {
+            t = Marshal.GetDelegateForFunctionPointer<T>(entry);
 
 #if DEBUG
             if (t.Method.GetParameters().First().ParameterType != typeof(IntPtr))
@@ -115,7 +127,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Dispose(false);
         }
 
-        // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
             Dispose(true);

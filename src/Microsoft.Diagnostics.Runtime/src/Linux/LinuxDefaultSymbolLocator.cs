@@ -4,41 +4,60 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.Utilities;
+using System.Threading.Tasks;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
     /// A symbol locator that search binaries based on files loaded in the live Linux target.
     /// </summary>
-    internal class LinuxDefaultSymbolLocator : DefaultSymbolLocator
+    internal class LinuxDefaultSymbolLocator : IBinaryLocator
     {
-        private IEnumerable<string> _modules;
-        
-        public LinuxDefaultSymbolLocator(IEnumerable<string> modules) : base()
+        private readonly SymbolServerLocator? _locator;
+        private readonly IEnumerable<string> _modules;
+
+        public LinuxDefaultSymbolLocator(IDataReader reader)
         {
-            _modules = modules;
+            _modules = reader.EnumerateModules().Where(module => !string.IsNullOrEmpty(module.FileName)).Select(module => module.FileName!);
+            string? sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+            if (!string.IsNullOrWhiteSpace(sympath))
+                _locator = new SymbolServerLocator(sympath);
         }
 
-        public override string FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties = true)
+        public string? FindBinary(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
+        {
+            string? localBinary = FindLocalBinary(fileName);
+            return localBinary ?? _locator?.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
+        }
+
+        public string? FindBinary(string fileName, ImmutableArray<byte> buildId, bool checkProperties = true) => null;
+
+        public Task<string?> FindBinaryAsync(string fileName, ImmutableArray<byte> buildId, bool checkProperties = true) => Task.FromResult<string?>(null);
+
+        public Task<string?> FindBinaryAsync(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
+        {
+            string? localBinary = FindLocalBinary(fileName);
+            if (localBinary != null)
+                return Task.FromResult(localBinary)!;
+
+            return _locator?.FindBinaryAsync(fileName, buildTimeStamp, imageSize, checkProperties) ?? Task.FromResult<string?>(null);
+        }
+
+        private string? FindLocalBinary(string fileName)
         {
             string name = Path.GetFileName(fileName);
-            foreach(var m in _modules)
+            foreach (var m in _modules)
             {
-                if (name == Path.GetFileName(m))
-                {
-                    return m;
-                }
-                string path = Path.Combine(Path.GetDirectoryName(m), name);
+                string path = Path.Combine(Path.GetDirectoryName(m)!, name);
                 if (File.Exists(path))
-                {
                     return path;
-                }
             }
-            return base.FindBinary(fileName, buildTimeStamp, imageSize, checkProperties);
+
+            return null;
         }
     }
 }

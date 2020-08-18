@@ -4,32 +4,58 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public static class Helpers
     {
-        public static IEnumerable<ulong> GetObjectsOfType(this ClrHeap heap, string name)
+        public static IEnumerable<ClrObject> GetObjectsOfType(this ClrHeap heap, string name)
         {
-            return from obj in heap.EnumerateObjectAddresses()
-                   let type = heap.GetObjectType(obj)
-                   where type?.Name == name
+            return from obj in heap.EnumerateObjects()
+                   where obj.Type?.Name == name
                    select obj;
+        }
+
+        public static IEnumerable<ClrType> EnumerateTypes(this ClrModule module)
+        {
+            ClrRuntime runtime = module.AppDomain.Runtime;
+            foreach ((ulong mt, int _) in module.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType type = runtime.GetTypeByMethodTable(mt);
+                if (type != null)
+                    yield return type;
+            }
+        }
+
+        public static IEnumerable<ClrModule> EnumerateModules(this ClrRuntime runtime) => runtime.AppDomains.SelectMany(ad => ad.Modules);
+
+        public static ClrType GetTypeByName(this ClrModule module, string typeName)
+        {
+            ClrRuntime runtime = module.AppDomain.Runtime;
+            foreach ((ulong mt, int _) in module.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType type = runtime.GetTypeByMethodTable(mt);
+                if (type.Name == typeName)
+                    return type;
+            }
+
+            return null;
         }
 
         public static ClrObject GetStaticObjectValue(this ClrType mainType, string fieldName)
         {
             ClrStaticField field = mainType.GetStaticFieldByName(fieldName);
-            ulong obj = (ulong)field.GetValue(field.Type.Heap.Runtime.AppDomains.Single());
-            return new ClrObject(obj, mainType.Heap.GetObjectType(obj));
+            return field.ReadObject(mainType.Module.AppDomain);
         }
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)
         {
-            return runtime.Modules.Single(m => m.FileName.EndsWith(".exe"));
+            // .NET Core SDK 3.x creates an executable host by default (FDE)
+            return runtime.AppDomains.SelectMany(ad => ad.Modules).Single(m => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? m.Name.EndsWith(".exe") : File.Exists(Path.ChangeExtension(m.Name, null)));
         }
 
         public static ClrMethod GetMethod(this ClrType type, string name)
@@ -53,36 +79,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrAppDomain GetDomainByName(this ClrRuntime runtime, string domainName)
         {
-            return runtime.AppDomains.Where(ad => ad.Name == domainName).Single();
+            return runtime.AppDomains.Single(ad => ad.Name == domainName);
         }
 
-        public static ClrModule GetModule(this ClrRuntime runtime, string filename)
+        public static ClrModule GetModule(this ClrRuntime runtime, string fileName)
         {
-            return (from module in runtime.Modules
-                    let file = Path.GetFileName(module.FileName)
-                    where file.Equals(filename, StringComparison.OrdinalIgnoreCase)
-                    select module).Single();
+            return (from module in runtime.AppDomains.SelectMany(ad => ad.Modules)
+                    let file = Path.GetFileName(module.Name)
+                    where file.Equals(fileName, StringComparison.OrdinalIgnoreCase)
+                    select module).FirstOrDefault();
         }
 
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
-            ClrThread thread = runtime.Threads.Where(t => !t.IsFinalizer).Single();
+            ClrThread thread = runtime.Threads.Single(t => !t.IsBackground);
             return thread;
         }
 
         public static ClrStackFrame GetFrame(this ClrThread thread, string functionName)
         {
-            return thread.StackTrace.Where(sf => sf.Method != null ? sf.Method.Name == functionName : false).Single();
+            return thread.EnumerateStackTrace().Single(sf => sf.Method != null && sf.Method.Name == functionName);
         }
 
         public static string TestWorkingDirectory
         {
             get => _userSetWorkingPath ?? _workingPath.Value;
-            set
-            {
-                Debug.Assert(!_workingPath.IsValueCreated);
-                _userSetWorkingPath = value;
-            }
+            set => _userSetWorkingPath = value;
         }
 
         private static string _userSetWorkingPath;
@@ -111,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            foreach (string directory in Directory.GetDirectories(Environment.CurrentDirectory))
+            foreach (string directory in Directory.EnumerateDirectories(Environment.CurrentDirectory))
                 if (directory.Contains(Helpers.TempRoot))
                     Directory.Delete(directory, true);
         }

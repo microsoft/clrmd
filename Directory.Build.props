@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <PropertyGroup>
-    <ImportNetSdkFromRepoToolset>false</ImportNetSdkFromRepoToolset>
+  <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+    <Coverage>true</Coverage>
+    <!-- Workaround for tonerdo/coverlet#363 -->
+    <DeterministicSourcePaths>false</DeterministicSourcePaths>
   </PropertyGroup>
 
   <PropertyGroup>
     <LangVersion>Latest</LangVersion>
     <Features>strict</Features>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -19,16 +24,10 @@
 
   <PropertyGroup Label="NuGet Metadata">
     <Title>CLR Memory Diagnostics (ClrMD)</Title>
-    <Authors>Microsoft</Authors>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl>http://go.microsoft.com/fwlink/?LinkId=329770</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Microsoft/clrmd</PackageProjectUrl>
-    <PackageIconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</PackageIconUrl>
     <Description>ClrMD is a set of advanced APIs for programmatically inspecting a crash dump of a .NET program much in the same way that the SOS Debugging Extensions (SOS) do. This allows you to write automated crash analysis for your applications as well as automate many common debugger tasks. In addition to reading crash dumps ClrMD also allows supports attaching to live processes.</Description>
     <PackageReleaseNotes>See https://github.com/Microsoft/clrmd/releases for the latest release notes</PackageReleaseNotes>
-    <Copyright>$(CopyrightNetFoundation)</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
-  <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 </Project>

@@ -3,133 +3,104 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.IO;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class Reader : IDisposable
+    internal unsafe class Reader
     {
-        public const int MaxHeldBuffer = 4096;
-        public const int InitialBufferSize = 64;
-
-        private byte[] _buffer;
-        private GCHandle _handle;
-        private bool _disposed;
-
         public IAddressSpace DataSource { get; }
 
         public Reader(IAddressSpace source)
         {
             DataSource = source;
-            _buffer = new byte[512];
-            _handle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
         }
 
         public T? TryRead<T>(long position)
-            where T : struct
+            where T : unmanaged
         {
-            int size = Marshal.SizeOf(typeof(T));
-            EnsureSize(size);
+            int size = Unsafe.SizeOf<T>();
+            T result;
+            int read = DataSource.Read(position, new Span<byte>(&result, size));
+            if (read == size)
+                return result;
 
-            int read = DataSource.Read(position, _buffer, 0, size);
-            if (read != size)
-                return null;
-
-            T result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
-            return result;
+            return null;
         }
 
         public T Read<T>(long position)
-            where T : struct
+            where T : unmanaged
         {
-            int size = Marshal.SizeOf(typeof(T));
-            EnsureSize(size);
-
-            int read = DataSource.Read(position, _buffer, 0, size);
+            int size = Unsafe.SizeOf<T>();
+            T result;
+            int read = DataSource.Read(position, new Span<byte>(&result, size));
             if (read != size)
                 throw new IOException();
 
-            T result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
             return result;
         }
 
         public T Read<T>(ref long position)
-            where T : struct
+            where T : unmanaged
         {
-            int size = Marshal.SizeOf(typeof(T));
-            EnsureSize(size);
-
-            int read = DataSource.Read(position, _buffer, 0, size);
+            int size = Unsafe.SizeOf<T>();
+            T result;
+            int read = DataSource.Read(position, new Span<byte>(&result, size));
             if (read != size)
                 throw new IOException();
 
-            T result = (T)Marshal.PtrToStructure(_handle.AddrOfPinnedObject(), typeof(T));
-
-            position += size;
+            position += read;
             return result;
         }
 
-        public byte[] ReadBytes(long offset, int size)
+        public int ReadBytes(long position, Span<byte> buffer) => DataSource.Read(position, buffer);
+
+        public string ReadNullTerminatedAscii(long position)
         {
-            byte[] buffer = new byte[size];
-            int read = DataSource.Read(offset, buffer, 0, size);
+            StringBuilder builder = new StringBuilder(64);
+            Span<byte> bytes = stackalloc byte[64];
 
-            if (read != size)
-                throw new IOException();
-
-            return buffer;
-        }
-
-        private void EnsureSize(int size)
-        {
-            if (_buffer.Length < size)
+            bool done = false;
+            int read;
+            while (!done && (read = DataSource.Read(position, bytes)) != 0)
             {
-                if (size > MaxHeldBuffer)
-                    throw new InvalidOperationException();
-
-                _handle.Free();
-
-                _buffer = new byte[size];
-                _handle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+                position += read;
+                for (int i = 0; !done && i < read; i++)
+                {
+                    if (bytes[i] != 0)
+                        builder.Append((char)bytes[i]);
+                    else
+                        done = true;
+                }
             }
+
+            return builder.ToString();
         }
 
-        ~Reader()
+        public string ReadNullTerminatedAscii(long position, int length)
         {
-            Dispose(false);
-        }
+            byte[]? array = null;
+            Span<byte> buffer = length <= 32 ? stackalloc byte[length] : (array = ArrayPool<byte>.Shared.Rent(length)).AsSpan(0, length);
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
+            try
             {
-                _disposed = true;
-                _handle.Free();
+                int read = DataSource.Read(position, buffer);
+                if (read == 0)
+                    return string.Empty;
+
+                if (buffer[read - 1] == '\0')
+                    read--;
+
+                return Encoding.ASCII.GetString(buffer.Slice(0, read));
             }
-        }
-
-        public string ReadNullTerminatedAscii(long position, int len)
-        {
-            byte[] buffer = _buffer;
-            if (len > _buffer.Length)
-                buffer = new byte[len];
-
-            int read = DataSource.Read(position, buffer, 0, len);
-            if (read == 0)
-                return "";
-
-            if (buffer[read - 1] == 0)
-                read--;
-
-            return Encoding.ASCII.GetString(buffer, 0, read);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            finally
+            {
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
+            }
         }
     }
 }

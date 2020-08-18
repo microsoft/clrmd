@@ -9,58 +9,68 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents the version of a DLL.
     /// </summary>
-    [Serializable]
-    public struct VersionInfo : IEquatable<VersionInfo>, IComparable<VersionInfo>
+    public readonly struct VersionInfo : IEquatable<VersionInfo>, IComparable<VersionInfo>
     {
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'A'.
         /// </summary>
-        public readonly int Major;
+        public int Major { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'B'.
         /// </summary>
-        public readonly int Minor;
+        public int Minor { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'C'.
         /// </summary>
-        public readonly int Revision;
+        public int Revision { get; }
 
         /// <summary>
         /// In a version 'A.B.C.D', this field represents 'D'.
         /// </summary>
-        public readonly int Patch;
+        public int Patch { get; }
 
-        internal VersionInfo(int major, int minor, int revision, int patch)
+        public VersionInfo(int major, int minor, int revision, int patch)
         {
+            if (major < 0)
+                throw new ArgumentOutOfRangeException(nameof(major));
+
+            if (minor < 0)
+                throw new ArgumentOutOfRangeException(nameof(minor));
+
+            if (revision < 0)
+                throw new ArgumentOutOfRangeException(nameof(revision));
+
+            if (patch < 0)
+                throw new ArgumentOutOfRangeException(nameof(patch));
+
             Major = major;
             Minor = minor;
             Revision = revision;
             Patch = patch;
         }
 
-        /// <summary>
-        /// Equals
-        /// </summary>
+        internal VersionInfo(int major, int minor, int revision, int patch, bool skipChecks)
+        {
+            _ = skipChecks;
+
+            Major = major;
+            Minor = minor;
+            Revision = revision;
+            Patch = patch;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(VersionInfo other)
         {
             return Major == other.Major && Minor == other.Minor && Revision == other.Revision && Patch == other.Patch;
         }
 
-        /// <summary>
-        /// Equals
-        /// </summary>
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is VersionInfo other && Equals(other);
 
-            return obj is VersionInfo other && Equals(other);
-        }
-
-        /// <summary>
-        /// GetHashCode
-        /// </summary>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             unchecked
@@ -73,10 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        /// <summary>
-        /// CompareTo
-        /// </summary>
-        /// <returns>-1 if less, 0 if equal, 1 if greater.</returns>
+        /// <inheritdoc/>
         public int CompareTo(VersionInfo other)
         {
             if (Major != other.Major)
@@ -97,7 +104,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The A.B.C.D version prepended with 'v'.</returns>
         public override string ToString()
         {
-            return $"v{Major}.{Minor}.{Revision}.{Patch:D2}";
+            return $"{Major}.{Minor}.{Revision}.{Patch}";
         }
+
+        public static bool operator ==(VersionInfo left, VersionInfo right) => left.Equals(right);
+
+        public static bool operator !=(VersionInfo left, VersionInfo right) => !(left == right);
+
+        public static bool operator <(VersionInfo left, VersionInfo right) => left.CompareTo(right) < 0;
+
+        public static bool operator <=(VersionInfo left, VersionInfo right) => left.CompareTo(right) <= 0;
+
+        public static bool operator >(VersionInfo left, VersionInfo right) => right < left;
+
+        public static bool operator >=(VersionInfo left, VersionInfo right) => right <= left;
     }
 }

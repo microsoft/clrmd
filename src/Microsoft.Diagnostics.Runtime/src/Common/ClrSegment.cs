@@ -14,118 +14,101 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrSegment
     {
         /// <summary>
-        /// The start address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
-        /// </summary>
-        public abstract ulong Start { get; }
-
-        /// <summary>
-        /// The end address of the segment.  All objects in this segment fall within Start &lt;= object &lt; End.
-        /// </summary>
-        public abstract ulong End { get; }
-
-        /// <summary>
-        /// The number of bytes in the segment.
-        /// </summary>
-        public ulong Length => End - Start;
-
-        /// <summary>
-        /// The GC heap associated with this segment.  There's only one GCHeap per process, so this is
+        /// Gets the GC heap associated with this segment.  There's only one GCHeap per process, so this is
         /// only a convenience method to keep from having to pass the heap along with a segment.
         /// </summary>
         public abstract ClrHeap Heap { get; }
 
         /// <summary>
-        /// The processor that this heap is affinitized with.  In a workstation GC, there is no processor
+        /// The memory range of the segment on which objects are allocated.  All objects in this segment fall within this range.
+        /// </summary>
+        public abstract MemoryRange ObjectRange { get; }
+
+        /// <summary>
+        /// Gets the start address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Start"/>.
+        /// </summary>
+        public virtual ulong Start => ObjectRange.Start;
+
+        /// <summary>
+        /// Gets the end address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
+        /// </summary>
+        public virtual ulong End => ObjectRange.End;
+
+        /// <summary>
+        /// Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
+        /// </summary>
+        public virtual ulong Length => ObjectRange.Length;
+
+        /// <summary>
+        /// Gets the processor that this heap is affinitized with.  In a workstation GC, there is no processor
         /// affinity (and the return value of this property is undefined).  In a server GC each segment
         /// has a logical processor in the PC associated with it.  This property returns that logical
         /// processor number (starting at 0).
         /// </summary>
-        public abstract int ProcessorAffinity { get; }
+        public abstract int LogicalHeap { get; }
 
         /// <summary>
-        /// The address of the end of memory reserved for the segment, but not committed.
+        /// Gets the range of memory reserved (but not committed) for this segment.
         /// </summary>
-        public virtual ulong ReservedEnd => 0;
+        public abstract MemoryRange ReservedMemory { get; }
 
         /// <summary>
-        /// The address of the end of memory committed for the segment (this may be longer than Length).
+        /// Gets the range of memory committed for the segment (this may be larger than MemoryRange).
         /// </summary>
-        public virtual ulong CommittedEnd => 0;
+        public abstract MemoryRange CommittedMemory { get; }
 
         /// <summary>
-        /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
+        /// Gets the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
-        public abstract ulong FirstObject { get; }
-
-        /// <summary>
-        /// FirstObject returns the first object on this segment or 0 if this segment contains no objects.
-        /// </summary>
-        /// <param name="type">The type of the first object.</param>
-        /// <returns>The first object on this segment or 0 if this segment contains no objects.</returns>
-        public abstract ulong GetFirstObject(out ClrType type);
-
-        /// <summary>
-        /// Given an object on the segment, return the 'next' object in the segment.  Returns
-        /// 0 when there are no more objects.   (Or enumeration is not possible)
-        /// </summary>
-        public abstract ulong NextObject(ulong objRef);
-
-        /// <summary>
-        /// Given an object on the segment, return the 'next' object in the segment.  Returns
-        /// 0 when there are no more objects.   (Or enumeration is not possible)
-        /// </summary>
-        public abstract ulong NextObject(ulong objRef, out ClrType type);
+        public abstract ulong FirstObjectAddress { get; }
 
         /// <summary>
         /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
         /// Large objects (greater than 85,000 bytes in size), are stored in their own segments and
         /// only collected on full (gen 2) collections.
         /// </summary>
-        public virtual bool IsLarge => false;
+        public abstract bool IsLargeObjectSegment { get; }
 
         /// <summary>
         /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1
         /// objects).
         /// </summary>
-        public virtual bool IsEphemeral => false;
+        public abstract bool IsEphemeralSegment { get; }
 
         /// <summary>
-        /// Ephemeral heap sements have geneation 0 and 1 in them.  Gen 1 is always above Gen 2 and
-        /// Gen 0 is above Gen 1.  This property tell where Gen 0 start in memory.   Note that
-        /// if this is not an Ephemeral segment, then this will return End (which makes Gen 0 empty
-        /// for this segment)
+        /// The memory range for Generation 0 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
-        public virtual ulong Gen0Start => Start;
+        public abstract MemoryRange Generation0 { get; }
 
         /// <summary>
-        /// The length of the gen0 portion of this segment.
+        /// The memory range for Generation 1 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
-        public virtual ulong Gen0Length => Length;
+        public abstract MemoryRange Generation1 { get; }
 
         /// <summary>
-        /// The start of the gen1 portion of this segment.
+        /// The memory range for Generation 2 on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
-        public virtual ulong Gen1Start => End;
-
-        /// <summary>
-        /// The length of the gen1 portion of this segment.
-        /// </summary>
-        public virtual ulong Gen1Length => 0;
-
-        /// <summary>
-        /// The start of the gen2 portion of this segment.
-        /// </summary>
-        public virtual ulong Gen2Start => End;
-
-        /// <summary>
-        /// The length of the gen2 portion of this segment.
-        /// </summary>
-        public virtual ulong Gen2Length => 0;
+        public abstract MemoryRange Generation2 { get; }
 
         /// <summary>
         /// Enumerates all objects on the segment.
         /// </summary>
-        public abstract IEnumerable<ulong> EnumerateObjectAddresses();
+        public abstract IEnumerable<ClrObject> EnumerateObjects();
+
+        /// <summary>
+        /// Returns the object after the given object.
+        /// </summary>
+        /// <param name="obj">A valid object address that resides on this segment.</param>
+        /// <returns>The next object on this segment, or 0 if <paramref name="obj"/> is the last object on the segment.</returns>
+        public abstract ulong GetNextObjectAddress(ulong obj);
+
+        /// <summary>
+        /// Returns the object before the given object.  Note that this function may take a while because in the worst case
+        /// scenario we have to linearly walk all the way from the beginning of the segment to the object.
+        /// </summary>
+        /// <param name="obj">An address that resides on this segment.  This does not need to point directly to a good object.</param>
+        /// <returns>The previous object on this segment, or 0 if <paramref name="obj"/> is the first object on the segment.</returns>
+        public abstract ulong GetPreviousObjectAddress(ulong obj);
 
         /// <summary>
         /// Returns the generation of an object in this segment.
@@ -137,14 +120,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </returns>
         public virtual int GetGeneration(ulong obj)
         {
-            if (Gen0Start <= obj && obj < Gen0Start + Gen0Length)
-                return 0;
+            if (Generation2.Contains(obj))
+                return 2;
 
-            if (Gen1Start <= obj && obj < Gen1Start + Gen1Length)
+            if (Generation1.Contains(obj))
                 return 1;
 
-            if (Gen2Start <= obj && obj < Gen2Start + Gen2Length)
-                return 2;
+            if (Generation0.Contains(obj))
+                return 0;
 
             return -1;
         }

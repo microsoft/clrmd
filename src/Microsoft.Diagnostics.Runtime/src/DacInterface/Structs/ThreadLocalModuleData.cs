@@ -9,12 +9,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct ThreadLocalModuleData
     {
-        public readonly ulong ThreadAddress;
-        public readonly ulong ModuleIndex;
+        public readonly ClrDataAddress ThreadAddress;
+        public readonly ClrDataAddress ModuleIndex;
 
-        public readonly ulong ClassData;
-        public readonly ulong DynamicClassTable;
-        public readonly ulong GCStaticDataStart;
-        public readonly ulong NonGCStaticDataStart;
+        public readonly ClrDataAddress ClassData;
+        public readonly ClrDataAddress DynamicClassTable;
+        public readonly ClrDataAddress GCStaticDataStart;
+        public readonly ClrDataAddress NonGCStaticDataStart;
     }
 }

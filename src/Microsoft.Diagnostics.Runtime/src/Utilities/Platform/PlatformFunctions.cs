@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -11,12 +12,21 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class PlatformFunctions
     {
+        internal static readonly byte[] s_versionString = Encoding.ASCII.GetBytes("@(#)Version ");
+        internal static readonly int s_versionLength = s_versionString.Length;
+
         internal abstract bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch);
         public abstract bool TryGetWow64(IntPtr proc, out bool result);
-        public abstract IntPtr LoadLibrary(string lpFileName);
-        public abstract bool FreeLibrary(IntPtr module);
 
-        public abstract IntPtr GetProcAddress(IntPtr module, string method);
+        /// <param name="libraryPath">The path to the native library to be loaded.</param>
+        public abstract IntPtr LoadLibrary(string libraryPath);
+
+        /// <param name="handle">The native library OS handle to be freed.</param>
+        public abstract bool FreeLibrary(IntPtr handle);
+
+        /// <param name="handle">The native library OS handle.</param>
+        /// <param name="name">The name of the exported symbol.</param>
+        public abstract IntPtr GetLibraryExport(IntPtr handle, string name);
 
         public virtual bool IsEqualFileVersion(string file, VersionInfo version)
         {

@@ -3,12 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Desktop;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ThreadPoolData : IThreadPoolData
+    public readonly struct ThreadPoolData
     {
         public readonly int CpuUtilization;
         public readonly int NumIdleWorkerThreads;
@@ -17,9 +16,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly int MinLimitTotalWorkerThreads;
         public readonly int MaxLimitTotalWorkerThreads;
 
-        public readonly ulong FirstUnmanagedWorkRequest;
+        public readonly ClrDataAddress FirstUnmanagedWorkRequest;
 
-        public readonly ulong HillClimbingLog;
+        public readonly ClrDataAddress HillClimbingLog;
         public readonly int HillClimbingLogFirstIndex;
         public readonly int HillClimbingLogSize;
 
@@ -33,21 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly int CurrentLimitTotalCPThreads;
         public readonly int MinLimitTotalCPThreads;
 
-        public readonly ulong _asyncTimerCallbackCompletionFPtr;
-
-        int IThreadPoolData.MinCP => MinLimitTotalCPThreads;
-        int IThreadPoolData.MaxCP => MaxLimitTotalCPThreads;
-        int IThreadPoolData.CPU => CpuUtilization;
-        int IThreadPoolData.NumFreeCP => NumFreeCPThreads;
-        int IThreadPoolData.MaxFreeCP => MaxFreeCPThreads;
-        int IThreadPoolData.TotalThreads => NumIdleWorkerThreads + NumWorkingWorkerThreads + NumRetiredWorkerThreads;
-        int IThreadPoolData.RunningThreads => NumWorkingWorkerThreads;
-        int IThreadPoolData.IdleThreads => NumIdleWorkerThreads;
-        int IThreadPoolData.MinThreads => MinLimitTotalWorkerThreads;
-        int IThreadPoolData.MaxThreads => MaxLimitTotalWorkerThreads;
-        ulong IThreadPoolData.FirstWorkRequest => FirstUnmanagedWorkRequest;
-        ulong IThreadPoolData.QueueUserWorkItemCallbackFPtr => 0;
-        ulong IThreadPoolData.AsyncCallbackCompletionFPtr => 0;
-        ulong IThreadPoolData.AsyncTimerCallbackCompletionFPtr => _asyncTimerCallbackCompletionFPtr;
+        public readonly ClrDataAddress AsyncTimerCallbackCompletionFPtr;
     }
 }

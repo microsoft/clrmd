@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,25 +15,37 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class ElfCoreFile
     {
         private readonly Reader _reader;
-        private ElfLoadedImage[] _loadedImages;
-        private ELFVirtualAddressSpace _virtualAddressSpace;
+        private ImmutableArray<ElfLoadedImage> _loadedImages;
+        private readonly Dictionary<ulong, ulong> _auxvEntries = new Dictionary<ulong, ulong>();
+        private ElfVirtualAddressSpace? _virtualAddressSpace;
 
         public ElfFile ElfFile { get; }
-        public ElfMachine Architecture => (ElfMachine)ElfFile.Header.Machine;
 
-        public IEnumerable<ElfPRStatus> EnumeratePRStatus()
+        public IEnumerable<IElfPRStatus> EnumeratePRStatus()
         {
-            return GetNotes(ElfNoteType.PrpsStatus).Select(r => r.ReadContents<ElfPRStatus>(0));
-        }
+            ElfMachine architecture = ElfFile.Header.Architecture;
 
-        public IReadOnlyCollection<ElfLoadedImage> LoadedImages
-        {
-            get
+            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r =>
             {
-                LoadFileTable();
-                return _loadedImages;
-            }
+                return architecture switch
+                {
+                    ElfMachine.EM_X86_64 => r.ReadContents<ElfPRStatusX64>(0),
+                    ElfMachine.EM_ARM => r.ReadContents<ElfPRStatusArm>(0),
+                    ElfMachine.EM_AARCH64 => r.ReadContents<ElfPRStatusArm64>(0),
+                    ElfMachine.EM_386 => r.ReadContents<ElfPRStatusX86>(0),
+                    _ => throw new NotSupportedException($"Invalid architecture {architecture}"),
+                };
+            });
         }
+
+        public ulong GetAuxvValue(ElfAuxvType type)
+        {
+            LoadAuxvTable();
+            _auxvEntries.TryGetValue((ulong)type, out ulong value);
+            return value;
+        }
+
+        public ImmutableArray<ElfLoadedImage> LoadedImages => LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -45,12 +60,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 #endif
         }
 
-        public int ReadMemory(long address, byte[] buffer, int bytesRequested)
+        public int ReadMemory(long address, Span<byte> buffer)
         {
-            if (_virtualAddressSpace == null)
-                _virtualAddressSpace = new ELFVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
-
-            return _virtualAddressSpace.Read(address, buffer, 0, bytesRequested);
+            _virtualAddressSpace ??= new ElfVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
+            return _virtualAddressSpace.Read(address, buffer);
         }
 
         private IEnumerable<ElfNote> GetNotes(ElfNoteType type)
@@ -58,42 +71,112 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return ElfFile.Notes.Where(n => n.Type == type);
         }
 
-        private void LoadFileTable()
+        private void LoadAuxvTable()
         {
-            if (_loadedImages != null)
+            if (_auxvEntries.Count != 0)
                 return;
+
+            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
+            if (auxvNote is null)
+                throw new BadImageFormatException($"No auxv entries in coredump");
+
+            long position = 0;
+            while (true)
+            {
+                ulong type;
+                ulong value;
+                if (ElfFile.Header.Is64Bit)
+                {
+                    var elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
+                    type = elfauxv64.Type;
+                    value = elfauxv64.Value;
+                }
+                else
+                {
+                    var elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
+                    type = elfauxv32.Type;
+                    value = elfauxv32.Value;
+                }
+
+                if (type == (ulong)ElfAuxvType.Null)
+                {
+                    break;
+                }
+
+                _auxvEntries.Add(type, value);
+            }
+        }
+
+        private ImmutableArray<ElfLoadedImage> LoadFileTable()
+        {
+            if (!_loadedImages.IsDefault)
+                return _loadedImages;
 
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
             long position = 0;
-            ElfFileTableHeader header = fileNote.ReadContents<ElfFileTableHeader>(ref position);
+            ulong entryCount = 0;
+            if (ElfFile.Header.Is64Bit)
+            {
+                ElfFileTableHeader64 header = fileNote.ReadContents<ElfFileTableHeader64>(ref position);
+                entryCount = header.EntryCount;
+            }
+            else
+            {
+                ElfFileTableHeader32 header = fileNote.ReadContents<ElfFileTableHeader32>(ref position);
+                entryCount = header.EntryCount;
+            }
 
-            ElfFileTableEntryPointers[] fileTable = new ElfFileTableEntryPointers[header.EntryCount.ToInt32()];
-            List<ElfLoadedImage> images = new List<ElfLoadedImage>(fileTable.Length);
+            ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
             Dictionary<string, ElfLoadedImage> lookup = new Dictionary<string, ElfLoadedImage>(fileTable.Length);
 
             for (int i = 0; i < fileTable.Length; i++)
-                fileTable[i] = fileNote.ReadContents<ElfFileTableEntryPointers>(ref position);
-
-            long size = fileNote.Header.ContentSize - position;
-            byte[] bytes = fileNote.ReadContents(position, (int)size);
-            int start = 0;
-            for (int i = 0; i < fileTable.Length; i++)
             {
-                int end = start;
-                while (bytes[end] != 0)
-                    end++;
-
-                string path = Encoding.ASCII.GetString(bytes, start, end - start);
-                start = end + 1;
-
-                if (!lookup.TryGetValue(path, out ElfLoadedImage image))
-                    image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, path);
-
-                image.AddTableEntryPointers(fileTable[i]);
+                if (ElfFile.Header.Is64Bit)
+                {
+                    fileTable[i] = fileNote.ReadContents<ElfFileTableEntryPointers64>(ref position);
+                }
+                else
+                {
+                    ElfFileTableEntryPointers32 entry = fileNote.ReadContents<ElfFileTableEntryPointers32>(ref position);
+                    fileTable[i].Start = entry.Start;
+                    fileTable[i].Stop = entry.Stop;
+                    fileTable[i].PageOffset = entry.PageOffset;
+                }
             }
 
-            _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToArray();
+            int size = (int)(fileNote.Header.ContentSize - position);
+            byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                int read = fileNote.ReadContents(position, bytes);
+                int start = 0;
+                for (int i = 0; i < fileTable.Length; i++)
+                {
+                    int end = start;
+                    while (bytes[end] != 0)
+                        end++;
+
+                    string path = Encoding.UTF8.GetString(bytes, start, end - start);
+                    start = end + 1;
+
+                    if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
+                        image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
+
+                    ulong fileStart = fileTable[i].Start;
+                    ElfProgramHeader? programHeader = ElfFile.ProgramHeaders.FirstOrDefault(
+                        s => (ulong)s.VirtualAddress <= fileStart && fileStart < (ulong)s.VirtualAddress + (ulong)s.VirtualSize);
+                    bool isExecutable = programHeader?.IsExecutable ?? false;
+
+                    image.AddTableEntryPointers(fileTable[i], isExecutable);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(bytes);
+            }
+
+            return _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToImmutableArray();
         }
     }
 }

@@ -9,7 +9,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal class ReadVirtualStream : Stream
     {
-        private byte[] _tmp;
         private long _pos;
         private readonly long _disp;
         private long _len;
@@ -24,13 +23,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override bool CanRead => true;
         public override bool CanSeek => true;
-        public override bool CanWrite => true;
+        public override bool CanWrite => false;
 
         public override void Flush()
         {
         }
 
-        public override long Length => throw new NotImplementedException();
+        public override long Length => _len;
 
         public override long Position
         {
@@ -45,34 +44,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (offset == 0)
+            int read = _dataReader.Read((ulong)(_pos + _disp), new Span<byte>(buffer, offset, count));
+            if (read > 0)
             {
-                if (_dataReader.ReadMemory((ulong)(_pos + _disp), buffer, count, out int read))
-                {
-                    if (read > 0)
-                        _pos += read;
-
-                    return read;
-                }
-
-                return 0;
-            }
-            else
-            {
-                if (_tmp == null || _tmp.Length < count)
-                    _tmp = new byte[count];
-
-                if (!_dataReader.ReadMemory((ulong)(_pos + _disp), _tmp, count, out int read))
-                    return 0;
-
-                if (read > 0)
-                {
-                    Buffer.BlockCopy(_tmp, 0, buffer, offset, read);
-                    _pos += read;
-                }
-
+                _pos += read;
                 return read;
             }
+
+            return 0;
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -106,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"Cannot write to a {nameof(ReadVirtualStream)}.");
         }
     }
 }

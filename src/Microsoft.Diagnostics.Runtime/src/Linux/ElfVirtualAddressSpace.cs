@@ -8,55 +8,61 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ELFVirtualAddressSpace : IAddressSpace
+    internal class ElfVirtualAddressSpace : IAddressSpace
     {
         private readonly ElfProgramHeader[] _segments;
         private readonly IAddressSpace _addressSpace;
 
         public string Name => _addressSpace.Name;
 
-        public ELFVirtualAddressSpace(IReadOnlyList<ElfProgramHeader> segments, IAddressSpace addressSpace)
+        public ElfVirtualAddressSpace(IReadOnlyList<ElfProgramHeader> segments, IAddressSpace addressSpace)
         {
-            Length = segments.Max(s => s.Header.VirtualAddress + s.Header.VirtualSize);
+            Length = segments.Max(s => s.VirtualAddress + s.VirtualSize);
             // FileSize == 0 means the segment isn't backed by any data
-            _segments = segments.Where((programHeader) => programHeader.Header.FileSize > 0).ToArray();
+            _segments = segments.Where(programHeader => programHeader.FileSize > 0).ToArray();
             _addressSpace = addressSpace;
         }
 
         public long Length { get; }
 
-        public int Read(long position, byte[] buffer, int bufferOffset, int count)
+        public int Read(long position, Span<byte> buffer)
         {
             int bytesRead = 0;
-            while (bytesRead != count)
+            while (bytesRead != buffer.Length)
             {
                 int i = 0;
                 for (; i < _segments.Length; i++)
                 {
-                    ref ElfProgramHeader64 header = ref _segments[i].RefHeader;
+                    ElfProgramHeader segment = _segments[i];
+                    long virtualAddress = segment.VirtualAddress;
+                    long virtualSize = segment.VirtualSize;
 
-                    long upperAddress = header.VirtualAddress + header.VirtualSize;
-                    if (header.VirtualAddress <= position && position < upperAddress)
+                    long upperAddress = virtualAddress + virtualSize;
+                    if (virtualAddress <= position && position < upperAddress)
                     {
-                        int bytesToReadRange = (int)Math.Min(count - bytesRead, upperAddress - position);
-                        long segmentOffset = position - header.VirtualAddress;
-                        int bytesReadRange = _segments[i].AddressSpace.Read(segmentOffset, buffer, bufferOffset, bytesToReadRange);
-                        if (bytesReadRange == 0) {
+                        int bytesToReadRange = (int)Math.Min(buffer.Length - bytesRead, upperAddress - position);
+                        long segmentOffset = position - virtualAddress;
+
+                        Span<byte> slice = buffer.Slice(bytesRead, bytesToReadRange);
+                        int bytesReadRange = segment.AddressSpace.Read(segmentOffset, slice);
+                        if (bytesReadRange == 0)
                             goto done;
-                        }
+
                         position += bytesReadRange;
-                        bufferOffset += bytesReadRange;
                         bytesRead += bytesReadRange;
+                        if (bytesReadRange < bytesToReadRange)
+                            goto done;
+
                         break;
                     }
                 }
-                if (i == _segments.Length) {
+
+                if (i == _segments.Length)
                     break;
-                }
             }
+
         done:
-            // Zero the rest of the buffer if read less than requested
-            Array.Clear(buffer, bufferOffset, count - bytesRead);
+            buffer.Slice(bytesRead).Clear();
             return bytesRead;
         }
     }

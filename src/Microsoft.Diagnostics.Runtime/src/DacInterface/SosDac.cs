@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -14,535 +16,477 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// </summary>
     public sealed unsafe class SOSDac : CallableCOMWrapper
     {
-        internal static Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
-        private ISOSDacVTable* VTable => (ISOSDacVTable*)_vtable;
-        private static RejitData[] s_emptyRejit;
+        internal static readonly Guid IID_ISOSDac = new Guid("436f00f2-b42a-4b9f-870c-e73db66ae930");
+
         private readonly DacLibrary _library;
 
-        public SOSDac(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, ref IID_ISOSDac, ptr)
+        public SOSDac(DacLibrary? library, IntPtr ptr)
+            : base(library?.OwningLibrary, IID_ISOSDac, ptr)
         {
-            _library = library;
+            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
-        public SOSDac(CallableCOMWrapper toClone) : base(toClone)
+        private ref readonly ISOSDacVTable VTable => ref Unsafe.AsRef<ISOSDacVTable>(_vtable);
+
+        public SOSDac(DacLibrary lib, CallableCOMWrapper toClone) : base(toClone)
         {
+            _library = lib;
         }
-
-        private const int CharBufferSize = 256;
-        private byte[] _buffer = new byte[CharBufferSize];
-
-        private DacGetIntPtr _getHandleEnum;
-        private DacGetIntPtrWithArg _getStackRefEnum;
-        private DacGetThreadData _getThreadData;
-        private DacGetHeapDetailsWithArg _getGCHeapDetails;
-        private DacGetHeapDetails _getGCHeapStaticData;
-        private DacGetUlongArray _getGCHeapList;
-        private DacGetUlongArray _getAppDomainList;
-        private DacGetUlongArrayWithArg _getAssemblyList;
-        private DacGetUlongArrayWithArg _getModuleList;
-        private DacGetAssemblyData _getAssemblyData;
-        private DacGetADStoreData _getAppDomainStoreData;
-        private DacGetMTData _getMethodTableData;
-        private DacGetUlongWithArg _getMTForEEClass;
-        private DacGetGCInfoData _getGCHeapData;
-        private DacGetCommonMethodTables _getCommonMethodTables;
-        private DacGetCharArrayWithArg _getMethodTableName;
-        private DacGetByteArrayWithArg _getJitHelperFunctionName;
-        private DacGetCharArrayWithArg _getPEFileName;
-        private DacGetCharArrayWithArg _getAppDomainName;
-        private DacGetCharArrayWithArg _getAssemblyName;
-        private DacGetCharArrayWithArg _getAppBase;
-        private DacGetCharArrayWithArg _getConfigFile;
-        private DacGetModuleData _getModuleData;
-        private DacGetSegmentData _getSegmentData;
-        private DacGetAppDomainData _getAppDomainData;
-        private DacGetJitManagers _getJitManagers;
-        private DacTraverseLoaderHeap _traverseLoaderHeap;
-        private DacTraverseStubHeap _traverseStubHeap;
-        private DacTraverseModuleMap _traverseModuleMap;
-        private DacGetFieldInfo _getFieldInfo;
-        private DacGetFieldData _getFieldData;
-        private DacGetObjectData _getObjectData;
-        private DacGetCCWData _getCCWData;
-        private DacGetRCWData _getRCWData;
-        private DacGetCharArrayWithArg _getFrameName;
-        private DacGetUlongWithArg _getMethodDescPtrFromFrame;
-        private DacGetUlongWithArg _getMethodDescPtrFromIP;
-        private DacGetCodeHeaderData _getCodeHeaderData;
-        private DacGetSyncBlockData _getSyncBlock;
-        private DacGetThreadPoolData _getThreadPoolData;
-        private DacGetWorkRequestData _getWorkRequestData;
-        private DacGetDomainLocalModuleDataFromAppDomain _getDomainLocalModuleDataFromAppDomain;
-        private DacGetLocalModuleData _getDomainLocalModuleDataFromModule;
-        private DacGetCodeHeaps _getCodeHeaps;
-        private DacGetCOMPointers _getCCWInterfaces;
-        private DacGetCOMPointers _getRCWInterfaces;
-        private DacGetUlongWithArgs _getILForModule;
-        private DacGetThreadLocalModuleData _getThreadLocalModuleData;
-        private DacGetUlongWithArgs _getMethodTableSlot;
-        private DacGetCharArrayWithArg _getMethodDescName;
-        private DacGetThreadFromThinLock _getThreadFromThinlockId;
-        private DacGetUInt _getTlsIndex;
-        private DacGetThreadStoreData _getThreadStoreData;
-        private GetMethodDescDataDelegate _getMethodDescData;
-        private GetMetaDataImportDelegate _getMetaData;
-        private GetMethodDescFromTokenDelegate _getMethodDescFromToken;
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
-            InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
-            int hr = _getMethodDescData(Self, md, ip, out MethodDescData data, 0, null, out int needed);
-
-            if (SUCCEEDED(hr) && needed > 1)
+            InitDelegate(ref _getMethodDescData, VTable.GetMethodDescData);
+            HResult hr = _getMethodDescData(Self, md, ip, out MethodDescData data, 0, null, out int needed);
+            if (hr && needed >= 1)
             {
                 RejitData[] result = new RejitData[needed];
                 hr = _getMethodDescData(Self, md, ip, out data, result.Length, result, out needed);
-                if (SUCCEEDED(hr))
+                if (hr)
                     return result;
             }
 
-            if (s_emptyRejit == null)
-                s_emptyRejit = new RejitData[0];
-
-            return s_emptyRejit;
+            return Array.Empty<RejitData>();
         }
 
-        public bool GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
+        public HResult GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
         {
-            InitDelegate(ref _getMethodDescData, VTable->GetMethodDescData);
-            int hr = _getMethodDescData(Self, md, ip, out data, 0, null, out int needed);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getMethodDescData, VTable.GetMethodDescData);
+            return _getMethodDescData(Self, md, ip, out data, 0, null, out int needed);
         }
 
-        public bool GetThreadStoreData(out ThreadStoreData data)
+        public HResult GetThreadStoreData(out ThreadStoreData data)
         {
-            InitDelegate(ref _getThreadStoreData, VTable->GetThreadStoreData);
-            return _getThreadStoreData(Self, out data) == S_OK;
+            InitDelegate(ref _getThreadStoreData, VTable.GetThreadStoreData);
+            return _getThreadStoreData(Self, out data);
         }
 
         public uint GetTlsIndex()
         {
-            InitDelegate(ref _getTlsIndex, VTable->GetTLSIndex);
-            if (_getTlsIndex(Self, out uint index) == S_OK)
+            InitDelegate(ref _getTlsIndex, VTable.GetTLSIndex);
+            if (_getTlsIndex(Self, out uint index))
                 return index;
 
             return uint.MaxValue;
         }
 
-        public ulong GetThreadFromThinlockId(uint id)
+        public ClrDataAddress GetThreadFromThinlockId(uint id)
         {
-            InitDelegate(ref _getThreadFromThinlockId, VTable->GetThreadFromThinlockID);
-            if (_getThreadFromThinlockId(Self, id, out ulong thread) == S_OK)
+            InitDelegate(ref _getThreadFromThinlockId, VTable.GetThreadFromThinlockID);
+            if (_getThreadFromThinlockId(Self, id, out ClrDataAddress thread))
                 return thread;
 
-            return 0;
+            return default;
         }
 
-        public string GetMethodDescName(ulong md)
+        public string? GetMethodDescName(ulong md)
         {
             if (md == 0)
                 return null;
 
-            InitDelegate(ref _getMethodDescName, VTable->GetMethodDescName);
+            InitDelegate(ref _getMethodDescName, VTable.GetMethodDescName);
 
-            if (_getMethodDescName(Self, md, 0, null, out int needed) < S_OK)
+            if (!_getMethodDescName(Self, md, 0, null, out int needed))
                 return null;
 
-            byte[] buffer = AcquireBuffer(needed * 2);
-
-            if (_getMethodDescName(Self, md, needed, buffer, out int actuallyNeeded) < S_OK)
-                return null;
-
-            // Patch for a bug on sos side :
-            //  Sometimes, when the target method has parameters with generic types
-            //  the first call to GetMethodDescName sets an incorrect value into pNeeded.
-            //  In those cases, a second call directly after the first returns the correct value.
-            if (needed != actuallyNeeded)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * sizeof(char));
+            try
             {
-                ReleaseBuffer(buffer);
-                buffer = AcquireBuffer(actuallyNeeded * 2);
-                if (_getMethodDescName(Self, md, actuallyNeeded, buffer, out actuallyNeeded) < S_OK)
-                    return null;
-            }
+                int actuallyNeeded;
+                fixed (byte* bufferPtr = buffer)
+                    if (!_getMethodDescName(Self, md, needed, bufferPtr, out actuallyNeeded))
+                        return null;
 
-            ReleaseBuffer(buffer);
-            return string.Intern(Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * 2));
+                // Patch for a bug on sos side :
+                //  Sometimes, when the target method has parameters with generic types
+                //  the first call to GetMethodDescName sets an incorrect value into pNeeded.
+                //  In those cases, a second call directly after the first returns the correct value.
+                if (needed != actuallyNeeded)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                    buffer = ArrayPool<byte>.Shared.Rent(actuallyNeeded * sizeof(char));
+                    fixed (byte* bufferPtr = buffer)
+                        if (!_getMethodDescName(Self, md, actuallyNeeded, bufferPtr, out actuallyNeeded))
+                            return null;
+                }
+
+                return Encoding.Unicode.GetString(buffer, 0, (actuallyNeeded - 1) * sizeof(char));
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
-        public ulong GetMethodTableSlot(ulong mt, int slot)
+        public ulong GetMethodTableSlot(ulong mt, uint slot)
         {
             if (mt == 0)
                 return 0;
 
-            InitDelegate(ref _getMethodTableSlot, VTable->GetMethodTableSlot);
+            InitDelegate(ref _getMethodTableSlot, VTable.GetMethodTableSlot);
 
-            if (_getMethodTableSlot(Self, mt, (uint)slot, out ulong ip) == S_OK)
+            if (_getMethodTableSlot(Self, mt, slot, out ClrDataAddress ip))
                 return ip;
 
             return 0;
         }
 
-        public bool GetThreadLocalModuleData(ulong thread, uint index, out ThreadLocalModuleData data)
+        public HResult GetThreadLocalModuleData(ulong thread, uint index, out ThreadLocalModuleData data)
         {
-            InitDelegate(ref _getThreadLocalModuleData, VTable->GetThreadLocalModuleData);
+            InitDelegate(ref _getThreadLocalModuleData, VTable.GetThreadLocalModuleData);
 
-            return _getThreadLocalModuleData(Self, thread, index, out data) == S_OK;
+            return _getThreadLocalModuleData(Self, thread, index, out data);
         }
 
         public ulong GetILForModule(ulong moduleAddr, uint rva)
         {
-            InitDelegate(ref _getILForModule, VTable->GetILForModule);
+            InitDelegate(ref _getILForModule, VTable.GetILForModule);
 
-            int hr = _getILForModule(Self, moduleAddr, rva, out ulong result);
-            return hr == S_OK ? result : 0;
+            if (_getILForModule(Self, moduleAddr, rva, out ClrDataAddress result))
+                return result;
+
+            return 0;
         }
 
-        public COMInterfacePointerData[] GetCCWInterfaces(ulong ccw, int count)
+        public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
         {
-            InitDelegate(ref _getCCWInterfaces, VTable->GetCCWInterfaces);
+            InitDelegate(ref _getCCWInterfaces, VTable.GetCCWInterfaces);
 
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            if (_getCCWInterfaces(Self, ccw, count, data, out int pNeeded) >= 0)
+            if (_getCCWInterfaces(Self, ccw, count, data, out int pNeeded))
                 return data;
 
             return null;
         }
 
-        public COMInterfacePointerData[] GetRCWInterfaces(ulong ccw, int count)
+        public COMInterfacePointerData[]? GetRCWInterfaces(ulong ccw, int count)
         {
-            InitDelegate(ref _getRCWInterfaces, VTable->GetRCWInterfaces);
+            InitDelegate(ref _getRCWInterfaces, VTable.GetRCWInterfaces);
 
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            if (_getRCWInterfaces(Self, ccw, count, data, out int pNeeded) >= 0)
+            if (_getRCWInterfaces(Self, ccw, count, data, out int pNeeded))
                 return data;
 
             return null;
         }
 
-        public bool GetDomainLocalModuleDataFromModule(ulong module, out DomainLocalModuleData data)
+        public HResult GetDomainLocalModuleDataFromModule(ulong module, out DomainLocalModuleData data)
         {
-            InitDelegate(ref _getDomainLocalModuleDataFromModule, VTable->GetDomainLocalModuleDataFromModule);
-            int res = _getDomainLocalModuleDataFromModule(Self, module, out data);
-            return SUCCEEDED(res);
+            InitDelegate(ref _getDomainLocalModuleDataFromModule, VTable.GetDomainLocalModuleDataFromModule);
+            return _getDomainLocalModuleDataFromModule(Self, module, out data);
         }
 
-        public bool GetDomainLocalModuleDataFromAppDomain(ulong appDomain, int id, out DomainLocalModuleData data)
+        public HResult GetDomainLocalModuleDataFromAppDomain(ulong appDomain, int id, out DomainLocalModuleData data)
         {
-            InitDelegate(ref _getDomainLocalModuleDataFromAppDomain, VTable->GetDomainLocalModuleDataFromAppDomain);
-            int res = _getDomainLocalModuleDataFromAppDomain(Self, appDomain, id, out data);
-            return SUCCEEDED(res);
+            InitDelegate(ref _getDomainLocalModuleDataFromAppDomain, VTable.GetDomainLocalModuleDataFromAppDomain);
+            return _getDomainLocalModuleDataFromAppDomain(Self, appDomain, id, out data);
         }
 
-        public bool GetWorkRequestData(ulong request, out WorkRequestData data)
+        public HResult GetWorkRequestData(ulong request, out WorkRequestData data)
         {
-            InitDelegate(ref _getWorkRequestData, VTable->GetWorkRequestData);
-            int hr = _getWorkRequestData(Self, request, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getWorkRequestData, VTable.GetWorkRequestData);
+            return _getWorkRequestData(Self, request, out data);
         }
 
-        public bool GetThreadPoolData(out ThreadPoolData data)
+        public HResult GetThreadPoolData(out ThreadPoolData data)
         {
-            InitDelegate(ref _getThreadPoolData, VTable->GetThreadpoolData);
-            int hr = _getThreadPoolData(Self, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getThreadPoolData, VTable.GetThreadpoolData);
+            return _getThreadPoolData(Self, out data);
         }
 
-        public bool GetSyncBlockData(int index, out SyncBlockData data)
+        public HResult GetSyncBlockData(int index, out SyncBlockData data)
         {
-            InitDelegate(ref _getSyncBlock, VTable->GetSyncBlockData);
-            int hr = _getSyncBlock(Self, index, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getSyncBlock, VTable.GetSyncBlockData);
+            return _getSyncBlock(Self, index, out data);
         }
 
-        public string GetAppBase(ulong domain)
+        public string? GetAppBase(ulong domain)
         {
-            InitDelegate(ref _getAppBase, VTable->GetApplicationBase);
+            InitDelegate(ref _getAppBase, VTable.GetApplicationBase);
             return GetString(_getAppBase, domain);
         }
 
-        public string GetConfigFile(ulong domain)
+        public string? GetConfigFile(ulong domain)
         {
-            InitDelegate(ref _getConfigFile, VTable->GetAppDomainConfigFile);
+            InitDelegate(ref _getConfigFile, VTable.GetAppDomainConfigFile);
             return GetString(_getConfigFile, domain);
         }
 
-        public bool GetCodeHeaderData(ulong ip, out CodeHeaderData codeHeaderData)
+        public HResult GetCodeHeaderData(ulong ip, out CodeHeaderData codeHeaderData)
         {
             if (ip == 0)
             {
-                codeHeaderData = new CodeHeaderData();
-                return false;
+                codeHeaderData = default;
+                return HResult.E_INVALIDARG;
             }
 
-            InitDelegate(ref _getCodeHeaderData, VTable->GetCodeHeaderData);
-
-            int hr = _getCodeHeaderData(Self, ip, out codeHeaderData);
-            return hr == S_OK;
+            InitDelegate(ref _getCodeHeaderData, VTable.GetCodeHeaderData);
+            return _getCodeHeaderData(Self, ip, out codeHeaderData);
         }
 
-        public ulong GetMethodDescPtrFromFrame(ulong frame)
+        public ClrDataAddress GetMethodDescPtrFromFrame(ulong frame)
         {
-            InitDelegate(ref _getMethodDescPtrFromFrame, VTable->GetMethodDescPtrFromFrame);
-            if (_getMethodDescPtrFromFrame(Self, frame, out ulong data) == S_OK)
+            InitDelegate(ref _getMethodDescPtrFromFrame, VTable.GetMethodDescPtrFromFrame);
+            if (_getMethodDescPtrFromFrame(Self, frame, out ClrDataAddress data))
                 return data;
 
-            return 0;
+            return default;
         }
 
-        public ulong GetMethodDescPtrFromIP(ulong frame)
+        public ClrDataAddress GetMethodDescPtrFromIP(ulong frame)
         {
-            InitDelegate(ref _getMethodDescPtrFromIP, VTable->GetMethodDescPtrFromIP);
-            if (_getMethodDescPtrFromIP(Self, frame, out ulong data) == S_OK)
+            InitDelegate(ref _getMethodDescPtrFromIP, VTable.GetMethodDescPtrFromIP);
+            if (_getMethodDescPtrFromIP(Self, frame, out ClrDataAddress data))
                 return data;
 
-            return 0;
+            return default;
         }
 
         public string GetFrameName(ulong vtable)
         {
-            InitDelegate(ref _getFrameName, VTable->GetFrameName);
+            InitDelegate(ref _getFrameName, VTable.GetFrameName);
             return GetString(_getFrameName, vtable, false) ?? "Unknown Frame";
         }
 
-        public bool GetFieldInfo(ulong mt, out V4FieldInfo data)
+        public HResult GetFieldInfo(ulong mt, out FieldInfo data)
         {
-            InitDelegate(ref _getFieldInfo, VTable->GetMethodTableFieldData);
-            int hr = _getFieldInfo(Self, mt, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getFieldInfo, VTable.GetMethodTableFieldData);
+            return _getFieldInfo(Self, mt, out data);
         }
 
-        public bool GetFieldData(ulong fieldDesc, out FieldData data)
+        public HResult GetFieldData(ulong fieldDesc, out FieldData data)
         {
-            InitDelegate(ref _getFieldData, VTable->GetFieldDescData);
-            int hr = _getFieldData(Self, fieldDesc, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getFieldData, VTable.GetFieldDescData);
+            return _getFieldData(Self, fieldDesc, out data);
         }
 
-        public bool GetObjectData(ulong obj, out V45ObjectData data)
+        public HResult GetObjectData(ulong obj, out ObjectData data)
         {
-            InitDelegate(ref _getObjectData, VTable->GetObjectData);
-            int hr = _getObjectData(Self, obj, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getObjectData, VTable.GetObjectData);
+            return _getObjectData(Self, obj, out data);
         }
 
-        public bool GetCCWData(ulong ccw, out CCWData data)
+        public HResult GetCCWData(ulong ccw, out CcwData data)
         {
-            InitDelegate(ref _getCCWData, VTable->GetCCWData);
-            int hr = _getCCWData(Self, ccw, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getCCWData, VTable.GetCCWData);
+            return _getCCWData(Self, ccw, out data);
         }
 
-        public bool GetRCWData(ulong rcw, out RCWData data)
+        public HResult GetRCWData(ulong rcw, out RcwData data)
         {
-            InitDelegate(ref _getRCWData, VTable->GetRCWData);
-            int hr = _getRCWData(Self, rcw, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getRCWData, VTable.GetRCWData);
+            return _getRCWData(Self, rcw, out data);
         }
 
-        public MetaDataImport GetMetadataImport(ulong module)
+        public ClrDataModule? GetClrDataModule(ulong module)
         {
             if (module == 0)
                 return null;
 
-            InitDelegate(ref _getMetaData, VTable->GetMetaDataImport);
-            if (_getMetaData(Self, module, out IntPtr iunk) != S_OK)
+            InitDelegate(ref _getModule, VTable.GetModule);
+            if (_getModule(Self, module, out IntPtr iunk))
+                return new ClrDataModule(_library, iunk);
+
+            return null;
+        }
+
+        public MetadataImport? GetMetadataImport(ulong module)
+        {
+            if (module == 0)
+                return null;
+
+            InitDelegate(ref _getModule, VTable.GetModule);
+            if (!_getModule(Self, module, out IntPtr iunk))
+                return null;
+
+            // Make sure we can successfully QueryInterface for IMetaDataImport.  This may fail if
+            // we do not have all of the relevant metadata mapped into memory either through the dump
+            // or via the binary locator.
+            if (QueryInterface(iunk, MetadataImport.IID_IMetaDataImport, out IntPtr pTmp))
+                Release(pTmp);
+            else
                 return null;
 
             try
             {
-                return new MetaDataImport(_library, iunk);
+                return new MetadataImport(_library, iunk);
             }
             catch (InvalidCastException)
             {
-                // QueryInterface on MetaDataImport seems to fail when we don't have full
-                // metadata available.
                 return null;
             }
         }
 
-        public bool GetCommonMethodTables(out CommonMethodTables commonMTs)
+        public HResult GetCommonMethodTables(out CommonMethodTables commonMTs)
         {
-            InitDelegate(ref _getCommonMethodTables, VTable->GetUsefulGlobals);
-            return _getCommonMethodTables(Self, out commonMTs) == S_OK;
+            InitDelegate(ref _getCommonMethodTables, VTable.GetUsefulGlobals);
+            return _getCommonMethodTables(Self, out commonMTs);
         }
 
-        public ulong[] GetAssemblyList(ulong appDomain)
-        {
-            return GetAssemblyList(appDomain, 0);
-        }
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable.GetAssemblyList);
+        public ClrDataAddress[] GetModuleList(ulong assembly) => GetModuleList(assembly, 0);
+        public ClrDataAddress[] GetModuleList(ulong assembly, int count) => GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable.GetAssemblyModuleList);
 
-        public ulong[] GetAssemblyList(ulong appDomain, int count)
+        public HResult GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
         {
-            return GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable->GetAssemblyList);
-        }
-
-        public bool GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
-        {
-            InitDelegate(ref _getAssemblyData, VTable->GetAssemblyData);
+            InitDelegate(ref _getAssemblyData, VTable.GetAssemblyData);
 
             // The dac seems to have an issue where the assembly data can be filled in for a minidump.
             // If the data is partially filled in, we'll use it.
 
-            int hr = _getAssemblyData(Self, domain, assembly, out data);
-            return SUCCEEDED(hr) || data.Address == assembly;
+            HResult hr = _getAssemblyData(Self, domain, assembly, out data);
+            if (!hr && data.Address == assembly)
+                return HResult.S_FALSE;
+
+            return hr;
         }
 
-        public bool GetAppDomainData(ulong addr, out AppDomainData data)
+        public HResult GetAppDomainData(ulong addr, out AppDomainData data)
         {
-            InitDelegate(ref _getAppDomainData, VTable->GetAppDomainData);
+            InitDelegate(ref _getAppDomainData, VTable.GetAppDomainData);
 
             // We can face an exception while walking domain data if we catch the process
             // at a bad state.  As a workaround we will return partial data if data.Address
             // and data.StubHeap are set.
 
-            int hr = _getAppDomainData(Self, addr, out data);
-            return SUCCEEDED(hr) || data.Address == addr && data.StubHeap != 0;
+            HResult hr = _getAppDomainData(Self, addr, out data);
+            if (!hr && data.Address == addr && data.StubHeap != 0)
+                return HResult.S_FALSE;
+
+            return hr;
         }
 
-        public string GetAppDomainName(ulong appDomain)
+        public string? GetAppDomainName(ulong appDomain)
         {
-            InitDelegate(ref _getAppDomainName, VTable->GetAppDomainName);
+            InitDelegate(ref _getAppDomainName, VTable.GetAppDomainName);
             return GetString(_getAppDomainName, appDomain);
         }
 
-        public string GetAssemblyName(ulong assembly)
+        public string? GetAssemblyName(ulong assembly)
         {
-            InitDelegate(ref _getAssemblyName, VTable->GetAssemblyName);
+            InitDelegate(ref _getAssemblyName, VTable.GetAssemblyName);
             return GetString(_getAssemblyName, assembly);
         }
 
-        public bool GetAppDomainStoreData(out AppDomainStoreData data)
+        public HResult GetAppDomainStoreData(out AppDomainStoreData data)
         {
-            InitDelegate(ref _getAppDomainStoreData, VTable->GetAppDomainStoreData);
-            int hr = _getAppDomainStoreData(Self, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getAppDomainStoreData, VTable.GetAppDomainStoreData);
+            return _getAppDomainStoreData(Self, out data);
         }
 
-        public bool GetMethodTableData(ulong addr, out MethodTableData data)
+        public HResult GetMethodTableData(ulong addr, out MethodTableData data)
         {
-            InitDelegate(ref _getMethodTableData, VTable->GetMethodTableData);
-            int hr = _getMethodTableData(Self, addr, out data);
-            return SUCCEEDED(hr);
+            // If the 2nd bit is set it means addr is actually a TypeHandle (which GetMethodTable does not support).
+            if ((addr & 2) == 2)
+            {
+                data = default;
+                return HResult.E_INVALIDARG;
+            }
+
+            InitDelegate(ref _getMethodTableData, VTable.GetMethodTableData);
+            return _getMethodTableData(Self, addr, out data);
         }
 
-        public string GetMethodTableName(ulong mt)
+        public string? GetMethodTableName(ulong mt)
         {
-            InitDelegate(ref _getMethodTableName, VTable->GetMethodTableName);
+            InitDelegate(ref _getMethodTableName, VTable.GetMethodTableName);
             return GetString(_getMethodTableName, mt);
         }
 
-        public string GetJitHelperFunctionName(ulong addr)
+        public string? GetJitHelperFunctionName(ulong addr)
         {
-            InitDelegate(ref _getJitHelperFunctionName, VTable->GetJitHelperFunctionName);
+            InitDelegate(ref _getJitHelperFunctionName, VTable.GetJitHelperFunctionName);
             return GetAsciiString(_getJitHelperFunctionName, addr);
         }
 
-        public string GetPEFileName(ulong pefile)
+        public string? GetPEFileName(ulong pefile)
         {
-            InitDelegate(ref _getPEFileName, VTable->GetPEFileName);
+            InitDelegate(ref _getPEFileName, VTable.GetPEFileName);
             return GetString(_getPEFileName, pefile);
         }
 
-        private string GetString(DacGetCharArrayWithArg func, ulong addr, bool skipNull = true)
+        private string? GetString(DacGetCharArrayWithArg func, ulong addr, bool skipNull = true)
         {
-            int hr = func(Self, addr, 0, null, out int needed);
-            if (hr != S_OK)
+            HResult hr = func(Self, addr, 0, null, out int needed);
+            if (!hr)
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
-            byte[] buffer = AcquireBuffer(needed * 2);
-            hr = func(Self, addr, needed, buffer, out needed);
-            if (hr != S_OK)
+            byte[]? array = null;
+            int size = needed * sizeof(char);
+            Span<byte> buffer = size <= 32 ? stackalloc byte[size] : (array = ArrayPool<byte>.Shared.Rent(size)).AsSpan(0, size);
+
+            try
             {
-                ReleaseBuffer(buffer);
-                return null;
+                fixed (byte* bufferPtr = buffer)
+                    hr = func(Self, addr, needed, bufferPtr, out needed);
+
+                if (!hr)
+                    return null;
+
+                if (skipNull)
+                    needed--;
+
+                return Encoding.Unicode.GetString(buffer.Slice(0, needed * sizeof(char)));
             }
-
-            if (skipNull)
-                needed--;
-
-            string result = Encoding.Unicode.GetString(buffer, 0, needed * 2);
-
-            ReleaseBuffer(buffer);
-            return result;
+            finally
+            {
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
+            }
         }
 
-        private string GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
+        private string? GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
         {
-            int hr = func(Self, addr, 0, null, out int needed);
-            if (hr != S_OK)
+            HResult hr = func(Self, addr, 0, null, out int needed);
+            if (!hr)
                 return null;
 
             if (needed == 0)
-                return "";
+                return string.Empty;
 
-            byte[] buffer = AcquireBuffer(needed);
-            hr = func(Self, addr, needed, buffer, out needed);
-            if (hr != S_OK)
+            byte[]? array = null;
+            Span<byte> buffer = needed <= 32 ? stackalloc byte[needed] : (array = ArrayPool<byte>.Shared.Rent(needed)).AsSpan(0, needed);
+
+            try
             {
-                ReleaseBuffer(buffer);
-                return null;
+                fixed (byte* bufferPtr = buffer)
+                    hr = func(Self, addr, needed, bufferPtr, out needed);
+
+                if (!hr)
+                    return null;
+
+                int len = buffer.IndexOf((byte)'\0');
+                if (len >= 0)
+                    needed = len;
+
+                return Encoding.ASCII.GetString(buffer.Slice(0, needed));
             }
-
-            int len = Array.IndexOf(buffer, (byte)0);
-            if (len >= 0)
-                needed = len;
-
-            string result = Encoding.ASCII.GetString(buffer, 0, needed);
-
-            ReleaseBuffer(buffer);
-            return result;
+            finally
+            {
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
+            }
         }
 
-        private byte[] AcquireBuffer(int size)
+        public ClrDataAddress GetMethodTableByEEClass(ulong eeclass)
         {
-            if (_buffer == null)
-                _buffer = new byte[CharBufferSize];
-
-            if (size > _buffer.Length)
-                return new byte[size];
-
-            byte[] result = _buffer;
-            _buffer = null;
-            return result;
-        }
-
-        private void ReleaseBuffer(byte[] buffer)
-        {
-            if (buffer.Length == CharBufferSize)
-                _buffer = buffer;
-        }
-
-        public ulong GetMethodTableByEEClass(ulong eeclass)
-        {
-            InitDelegate(ref _getMTForEEClass, VTable->GetMethodTableForEEClass);
-            if (_getMTForEEClass(Self, eeclass, out ulong data) == S_OK)
+            InitDelegate(ref _getMTForEEClass, VTable.GetMethodTableForEEClass);
+            if (_getMTForEEClass(Self, eeclass, out ClrDataAddress data))
                 return data;
 
-            return 0;
+            return default;
         }
 
-        public bool GetModuleData(ulong module, out ModuleData data)
+        public HResult GetModuleData(ulong module, out ModuleData data)
         {
-            InitDelegate(ref _getModuleData, VTable->GetModuleData);
-            int hr = _getModuleData(Self, module, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getModuleData, VTable.GetModuleData);
+            return _getModuleData(Self, module, out data);
         }
 
-        public ulong[] GetModuleList(ulong assembly)
-        {
-            return GetModuleList(assembly, 0);
-        }
-
-        public ulong[] GetModuleList(ulong assembly, int count)
-        {
-            return GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable->GetAssemblyModuleList);
-        }
-
-        private ulong[] GetModuleOrAssembly(ulong address, int count, ref DacGetUlongArrayWithArg func, IntPtr vtableEntry)
+        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, ref DacGetAddrArrayWithArg? func, IntPtr vtableEntry)
         {
             InitDelegate(ref func, vtableEntry);
 
@@ -550,123 +494,104 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (count <= 0)
             {
                 if (func(Self, address, 0, null, out needed) < 0)
-                    return new ulong[0];
+                    return Array.Empty<ClrDataAddress>();
 
                 count = needed;
             }
 
             // We ignore the return value here since the list may be partially filled
-            ulong[] modules = new ulong[count];
+            ClrDataAddress[] modules = new ClrDataAddress[count];
             func(Self, address, modules.Length, modules, out needed);
 
             return modules;
         }
 
-        public ulong[] GetAppDomainList(int count = 0)
+        public ClrDataAddress[] GetAppDomainList(int count = 0)
         {
-            InitDelegate(ref _getAppDomainList, VTable->GetAppDomainList);
+            InitDelegate(ref _getAppDomainList, VTable.GetAppDomainList);
 
             if (count <= 0)
             {
                 if (!GetAppDomainStoreData(out AppDomainStoreData addata))
-                    return new ulong[0];
+                    return Array.Empty<ClrDataAddress>();
 
                 count = addata.AppDomainCount;
             }
 
-            ulong[] data = new ulong[count];
-            int hr = _getAppDomainList(Self, data.Length, data, out int needed);
-            return hr == S_OK ? data : new ulong[0];
+            ClrDataAddress[] data = new ClrDataAddress[count];
+            HResult hr = _getAppDomainList(Self, data.Length, data, out int needed);
+            return hr ? data : Array.Empty<ClrDataAddress>();
         }
 
-        public bool GetThreadData(ulong address, out ThreadData data)
+        public HResult GetThreadData(ulong address, out ThreadData data)
         {
             if (address == 0)
             {
-                data = new ThreadData();
-                return false;
+                data = default;
+                return HResult.E_INVALIDARG;
             }
 
-            InitDelegate(ref _getThreadData, VTable->GetThreadData);
-
-            int hr = _getThreadData(Self, address, out data);
-
-            if (IntPtr.Size == 4)
-                data = new ThreadData(ref data);
-
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getThreadData, VTable.GetThreadData);
+            return _getThreadData(Self, address, out data);
         }
 
-        public bool GetGcHeapData(out GCInfo data)
+        public HResult GetGCHeapData(out GCInfo data)
         {
-            InitDelegate(ref _getGCHeapData, VTable->GetGCHeapData);
-            int hr = _getGCHeapData(Self, out data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getGCHeapData, VTable.GetGCHeapData);
+            return _getGCHeapData(Self, out data);
         }
 
-        public bool GetSegmentData(ulong addr, out SegmentData data)
+        public HResult GetSegmentData(ulong addr, out SegmentData data)
         {
-            InitDelegate(ref _getSegmentData, VTable->GetHeapSegmentData);
-            int hr = _getSegmentData(Self, addr, out data);
-            if (hr == 0 && IntPtr.Size == 4)
-                data = new SegmentData(ref data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getSegmentData, VTable.GetHeapSegmentData);
+            return _getSegmentData(Self, addr, out data);
         }
 
-        public ulong[] GetHeapList(int heapCount)
+        public ClrDataAddress[] GetHeapList(int heapCount)
         {
-            InitDelegate(ref _getGCHeapList, VTable->GetGCHeapList);
+            InitDelegate(ref _getGCHeapList, VTable.GetGCHeapList);
 
-            ulong[] refs = new ulong[heapCount];
-            int hr = _getGCHeapList(Self, heapCount, refs, out int needed);
-            return hr == S_OK ? refs : null;
+            ClrDataAddress[] refs = new ClrDataAddress[heapCount];
+            HResult hr = _getGCHeapList(Self, heapCount, refs, out int needed);
+            return hr ? refs : Array.Empty<ClrDataAddress>();
         }
 
-        public bool GetServerHeapDetails(ulong addr, out HeapDetails data)
+        public HResult GetServerHeapDetails(ulong addr, out HeapDetails data)
         {
-            InitDelegate(ref _getGCHeapDetails, VTable->GetGCHeapDetails);
-            int hr = _getGCHeapDetails(Self, addr, out data);
-
-            if (IntPtr.Size == 4)
-                data = new HeapDetails(ref data);
-
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getGCHeapDetails, VTable.GetGCHeapDetails);
+            return _getGCHeapDetails(Self, addr, out data);
         }
 
-        public bool GetWksHeapDetails(out HeapDetails data)
+        public HResult GetWksHeapDetails(out HeapDetails data)
         {
-            InitDelegate(ref _getGCHeapStaticData, VTable->GetGCHeapStaticData);
-            int hr = _getGCHeapStaticData(Self, out data);
-
-            if (IntPtr.Size == 4)
-                data = new HeapDetails(ref data);
-            return SUCCEEDED(hr);
+            InitDelegate(ref _getGCHeapStaticData, VTable.GetGCHeapStaticData);
+            return _getGCHeapStaticData(Self, out data);
         }
 
         public JitManagerInfo[] GetJitManagers()
         {
-            InitDelegate(ref _getJitManagers, VTable->GetJitManagerList);
-            int hr = _getJitManagers(Self, 0, null, out int needed);
-            if (hr != S_OK || needed == 0)
-                return new JitManagerInfo[0];
+            InitDelegate(ref _getJitManagers, VTable.GetJitManagerList);
+            HResult hr = _getJitManagers(Self, 0, null, out int needed);
+            if (!hr || needed == 0)
+                return Array.Empty<JitManagerInfo>();
 
             JitManagerInfo[] result = new JitManagerInfo[needed];
             hr = _getJitManagers(Self, result.Length, result, out needed);
 
-            return hr == S_OK ? result : new JitManagerInfo[0];
+            return hr ? result : Array.Empty<JitManagerInfo>();
         }
 
         public JitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
         {
-            InitDelegate(ref _getCodeHeaps, VTable->GetCodeHeapList);
-            int hr = _getCodeHeaps(Self, jitManager, 0, null, out int needed);
-            if (hr != S_OK || needed == 0)
-                return new JitCodeHeapInfo[0];
+            InitDelegate(ref _getCodeHeaps, VTable.GetCodeHeapList);
+            HResult hr = _getCodeHeaps(Self, jitManager, 0, null, out int needed);
+            if (!hr || needed == 0)
+                return Array.Empty<JitCodeHeapInfo>();
 
             JitCodeHeapInfo[] result = new JitCodeHeapInfo[needed];
             hr = _getCodeHeaps(Self, jitManager, result.Length, result, out needed);
 
-            return hr == S_OK ? result : new JitCodeHeapInfo[0];
+            return hr ? result : Array.Empty<JitCodeHeapInfo>();
         }
 
         public enum ModuleMapTraverseKind
@@ -675,200 +600,209 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             TypeRefToMethodTable
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void ModuleMapTraverse(uint index, ulong methodTable, IntPtr token);
+        public delegate void ModuleMapTraverse(int index, ulong methodTable, IntPtr token);
 
-        public bool TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
+        public HResult TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
-            InitDelegate(ref _traverseModuleMap, VTable->TraverseModuleMap);
+            InitDelegate(ref _traverseModuleMap, VTable.TraverseModuleMap);
 
-            int hr = _traverseModuleMap(Self, (int)mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
+            HResult hr = _traverseModuleMap(Self, mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
-            return hr == S_OK;
+            return hr;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
 
-        public bool TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
+        public HResult TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
         {
-            InitDelegate(ref _traverseLoaderHeap, VTable->TraverseLoaderHeap);
+            InitDelegate(ref _traverseLoaderHeap, VTable.TraverseLoaderHeap);
 
-            int hr = _traverseLoaderHeap(Self, heap, Marshal.GetFunctionPointerForDelegate(callback));
+            HResult hr = _traverseLoaderHeap(Self, heap, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
-            return hr == S_OK;
+            return hr;
         }
 
-        public bool TraverseStubHeap(ulong heap, int type, LoaderHeapTraverse callback)
+        public HResult TraverseStubHeap(ulong heap, int type, LoaderHeapTraverse callback)
         {
-            InitDelegate(ref _traverseStubHeap, VTable->TraverseVirtCallStubHeap);
+            InitDelegate(ref _traverseStubHeap, VTable.TraverseVirtCallStubHeap);
 
-            int hr = _traverseStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
+            HResult hr = _traverseStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
-            return hr == S_OK;
+            return hr;
         }
 
-        public SOSHandleEnum EnumerateHandles()
+        public SOSHandleEnum? EnumerateHandles(params ClrHandleKind[] types)
         {
-            InitDelegate(ref _getHandleEnum, VTable->GetHandleEnum);
+            InitDelegate(ref _getHandleEnumForTypes, VTable.GetHandleEnumForTypes);
+            HResult hr = _getHandleEnumForTypes(Self, types, types.Length, out IntPtr ptrEnum);
+            if (hr)
+            {
+                SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
 
-            int hr = _getHandleEnum(Self, out IntPtr ptrEnum);
-            return hr == S_OK ? new SOSHandleEnum(_library, ptrEnum) : null;
+                return result;
+            }
+
+            return null;
         }
 
-        public SOSStackRefEnum EnumerateStackRefs(uint osThreadId)
+        public SOSHandleEnum? EnumerateHandles()
         {
-            InitDelegate(ref _getStackRefEnum, VTable->GetStackReferences);
+            InitDelegate(ref _getHandleEnum, VTable.GetHandleEnum);
 
-            int hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
-            return hr == S_OK ? new SOSStackRefEnum(_library, ptrEnum) : null;
+            HResult hr = _getHandleEnum(Self, out IntPtr ptrEnum);
+            if (hr)
+            {
+                SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnum, but instead fully released the object!");
+
+                return result;
+            }
+
+            return null;
         }
 
-        public ulong GetMethodDescFromToken(ulong module, uint token)
+        public SOSStackRefEnum? EnumerateStackRefs(uint osThreadId)
         {
-            InitDelegate(ref _getMethodDescFromToken, VTable->GetMethodDescFromToken);
+            InitDelegate(ref _getStackRefEnum, VTable.GetStackReferences);
 
-            int hr = _getMethodDescFromToken(Self, module, token, out ulong md);
-            return hr == S_OK ? md : 0;
+            HResult hr = _getStackRefEnum(Self, osThreadId, out IntPtr ptrEnum);
+
+            if (hr)
+            {
+                SOSStackRefEnum result = new SOSStackRefEnum(_library, ptrEnum);
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetStackReferences, but instead fully released the object!");
+
+                return result;
+            }
+
+            return null;
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMethodDescFromTokenDelegate(IntPtr self, ulong module, uint token, out ulong methodDesc);
+        public ulong GetMethodDescFromToken(ulong module, int token)
+        {
+            InitDelegate(ref _getMethodDescFromToken, VTable.GetMethodDescFromToken);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMethodDescDataDelegate(IntPtr self, ulong md, ulong ip, out MethodDescData data, int count, [Out] RejitData[] rejitData, out int needed);
+            if (_getMethodDescFromToken(Self, module, token, out ClrDataAddress md))
+                return md;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetIntPtr(IntPtr self, out IntPtr data);
+            return 0;
+        }
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongWithArg(IntPtr self, ulong arg, out ulong data);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongWithArgs(IntPtr self, ulong arg, uint id, out ulong data);
+        private DacGetIntPtr? _getHandleEnum;
+        private GetHandleEnumForTypesDelegate? _getHandleEnumForTypes;
+        private DacGetIntPtrWithArg? _getStackRefEnum;
+        private DacGetThreadData? _getThreadData;
+        private DacGetHeapDetailsWithArg? _getGCHeapDetails;
+        private DacGetHeapDetails? _getGCHeapStaticData;
+        private DacGetAddrArray? _getGCHeapList;
+        private DacGetAddrArray? _getAppDomainList;
+        private DacGetAddrArrayWithArg? _getAssemblyList;
+        private DacGetAddrArrayWithArg? _getModuleList;
+        private DacGetAssemblyData? _getAssemblyData;
+        private DacGetADStoreData? _getAppDomainStoreData;
+        private DacGetMTData? _getMethodTableData;
+        private DacGetAddrWithArg? _getMTForEEClass;
+        private DacGetGCInfoData? _getGCHeapData;
+        private DacGetCommonMethodTables? _getCommonMethodTables;
+        private DacGetCharArrayWithArg? _getMethodTableName;
+        private DacGetByteArrayWithArg? _getJitHelperFunctionName;
+        private DacGetCharArrayWithArg? _getPEFileName;
+        private DacGetCharArrayWithArg? _getAppDomainName;
+        private DacGetCharArrayWithArg? _getAssemblyName;
+        private DacGetCharArrayWithArg? _getAppBase;
+        private DacGetCharArrayWithArg? _getConfigFile;
+        private DacGetModuleData? _getModuleData;
+        private DacGetSegmentData? _getSegmentData;
+        private DacGetAppDomainData? _getAppDomainData;
+        private DacGetJitManagers? _getJitManagers;
+        private DacTraverseLoaderHeap? _traverseLoaderHeap;
+        private DacTraverseStubHeap? _traverseStubHeap;
+        private DacTraverseModuleMap? _traverseModuleMap;
+        private DacGetFieldInfo? _getFieldInfo;
+        private DacGetFieldData? _getFieldData;
+        private DacGetObjectData? _getObjectData;
+        private DacGetCCWData? _getCCWData;
+        private DacGetRCWData? _getRCWData;
+        private DacGetCharArrayWithArg? _getFrameName;
+        private DacGetAddrWithArg? _getMethodDescPtrFromFrame;
+        private DacGetAddrWithArg? _getMethodDescPtrFromIP;
+        private DacGetCodeHeaderData? _getCodeHeaderData;
+        private DacGetSyncBlockData? _getSyncBlock;
+        private DacGetThreadPoolData? _getThreadPoolData;
+        private DacGetWorkRequestData? _getWorkRequestData;
+        private DacGetDomainLocalModuleDataFromAppDomain? _getDomainLocalModuleDataFromAppDomain;
+        private DacGetLocalModuleData? _getDomainLocalModuleDataFromModule;
+        private DacGetCodeHeaps? _getCodeHeaps;
+        private DacGetCOMPointers? _getCCWInterfaces;
+        private DacGetCOMPointers? _getRCWInterfaces;
+        private DacGetAddrWithArgs? _getILForModule;
+        private DacGetThreadLocalModuleData? _getThreadLocalModuleData;
+        private DacGetAddrWithArgs? _getMethodTableSlot;
+        private DacGetCharArrayWithArg? _getMethodDescName;
+        private DacGetThreadFromThinLock? _getThreadFromThinlockId;
+        private DacGetUInt? _getTlsIndex;
+        private DacGetThreadStoreData? _getThreadStoreData;
+        private GetMethodDescDataDelegate? _getMethodDescData;
+        private GetModuleDelegate? _getModule;
+        private GetMethodDescFromTokenDelegate? _getMethodDescFromToken;
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUInt(IntPtr self, out uint data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetIntPtrWithArg(IntPtr self, uint addr, out IntPtr data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetThreadData(IntPtr self, ulong addr, [Out] out ThreadData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetHeapDetailsWithArg(IntPtr self, ulong addr, out HeapDetails data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetHeapDetails(IntPtr self, out HeapDetails data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongArray(IntPtr self, int count, [Out] ulong[] values, out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetUlongArrayWithArg(IntPtr self, ulong arg, int count, [Out] ulong[] values, out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCharArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetByteArrayWithArg(IntPtr self, ulong arg, int count, [Out] byte[] values, [Out] out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetAssemblyData(IntPtr self, ulong in1, ulong in2, out AssemblyData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetADStoreData(IntPtr self, out AppDomainStoreData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetGCInfoData(IntPtr self, out GCInfo data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCommonMethodTables(IntPtr self, out CommonMethodTables data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetThreadPoolData(IntPtr self, out ThreadPoolData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetThreadStoreData(IntPtr self, out ThreadStoreData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetMTData(IntPtr self, ulong addr, out MethodTableData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetModuleData(IntPtr self, ulong addr, out ModuleData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetSegmentData(IntPtr self, ulong addr, out SegmentData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetAppDomainData(IntPtr self, ulong addr, out AppDomainData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetJitManagerInfo(IntPtr self, ulong addr, out JitManagerInfo data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetSyncBlockData(IntPtr self, int index, out SyncBlockData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCodeHeaderData(IntPtr self, ulong addr, out CodeHeaderData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetFieldInfo(IntPtr self, ulong addr, out V4FieldInfo data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetFieldData(IntPtr self, ulong addr, out FieldData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetObjectData(IntPtr self, ulong addr, out V45ObjectData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCCWData(IntPtr self, ulong addr, out CCWData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetRCWData(IntPtr self, ulong addr, out RCWData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetWorkRequestData(IntPtr self, ulong addr, out WorkRequestData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetLocalModuleData(IntPtr self, ulong addr, out DomainLocalModuleData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetThreadFromThinLock(IntPtr self, uint id, out ulong data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCodeHeaps(IntPtr self, ulong addr, int count, [Out] JitCodeHeapInfo[] values, out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetCOMPointers(IntPtr self, ulong addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ulong appDomainAddr, int moduleID, out DomainLocalModuleData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetThreadLocalModuleData(IntPtr self, ulong addr, uint id, out ThreadLocalModuleData data);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacTraverseLoaderHeap(IntPtr self, ulong addr, IntPtr callback);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacTraverseStubHeap(IntPtr self, ulong addr, int type, IntPtr callback);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacTraverseModuleMap(IntPtr self, int type, ulong addr, IntPtr callback, IntPtr param);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[] jitManagers, out int pNeeded);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int GetMetaDataImportDelegate(IntPtr self, ulong addr, out IntPtr iunk);
+        private delegate HResult GetHandleEnumForTypesDelegate(IntPtr self, [In] ClrHandleKind[] types, int count, out IntPtr handleEnum);
+        private delegate HResult GetMethodDescFromTokenDelegate(IntPtr self, ClrDataAddress module, int token, out ClrDataAddress methodDesc);
+        private delegate HResult GetMethodDescDataDelegate(IntPtr self, ClrDataAddress md, ulong ip, out MethodDescData data, int count, [Out] RejitData[]? rejitData, out int needed);
+        private delegate HResult DacGetIntPtr(IntPtr self, out IntPtr data);
+        private delegate HResult DacGetAddrWithArg(IntPtr self, ClrDataAddress arg, out ClrDataAddress data);
+        private delegate HResult DacGetAddrWithArgs(IntPtr self, ClrDataAddress arg, uint id, out ClrDataAddress data);
+        private delegate HResult DacGetUInt(IntPtr self, out uint data);
+        private delegate HResult DacGetIntPtrWithArg(IntPtr self, uint addr, out IntPtr data);
+        private delegate HResult DacGetThreadData(IntPtr self, ClrDataAddress addr, [Out] out ThreadData data);
+        private delegate HResult DacGetHeapDetailsWithArg(IntPtr self, ClrDataAddress addr, out HeapDetails data);
+        private delegate HResult DacGetHeapDetails(IntPtr self, out HeapDetails data);
+        private delegate HResult DacGetAddrArray(IntPtr self, int count, [Out] ClrDataAddress[] values, out int needed);
+        private delegate HResult DacGetAddrArrayWithArg(IntPtr self, ClrDataAddress arg, int count, [Out] ClrDataAddress[]? values, out int needed);
+        private delegate HResult DacGetCharArrayWithArg(IntPtr self, ClrDataAddress arg, int count, byte* values, [Out] out int needed);
+        private delegate HResult DacGetByteArrayWithArg(IntPtr self, ClrDataAddress arg, int count, byte* values, [Out] out int needed);
+        private delegate HResult DacGetAssemblyData(IntPtr self, ClrDataAddress in1, ClrDataAddress in2, out AssemblyData data);
+        private delegate HResult DacGetADStoreData(IntPtr self, out AppDomainStoreData data);
+        private delegate HResult DacGetGCInfoData(IntPtr self, out GCInfo data);
+        private delegate HResult DacGetCommonMethodTables(IntPtr self, out CommonMethodTables data);
+        private delegate HResult DacGetThreadPoolData(IntPtr self, out ThreadPoolData data);
+        private delegate HResult DacGetThreadStoreData(IntPtr self, out ThreadStoreData data);
+        private delegate HResult DacGetMTData(IntPtr self, ClrDataAddress addr, out MethodTableData data);
+        private delegate HResult DacGetModuleData(IntPtr self, ClrDataAddress addr, out ModuleData data);
+        private delegate HResult DacGetSegmentData(IntPtr self, ClrDataAddress addr, out SegmentData data);
+        private delegate HResult DacGetAppDomainData(IntPtr self, ClrDataAddress addr, out AppDomainData data);
+        private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerInfo data);
+        private delegate HResult DacGetSyncBlockData(IntPtr self, int index, out SyncBlockData data);
+        private delegate HResult DacGetCodeHeaderData(IntPtr self, ClrDataAddress addr, out CodeHeaderData data);
+        private delegate HResult DacGetFieldInfo(IntPtr self, ClrDataAddress addr, out FieldInfo data);
+        private delegate HResult DacGetFieldData(IntPtr self, ClrDataAddress addr, out FieldData data);
+        private delegate HResult DacGetObjectData(IntPtr self, ClrDataAddress addr, out ObjectData data);
+        private delegate HResult DacGetCCWData(IntPtr self, ClrDataAddress addr, out CcwData data);
+        private delegate HResult DacGetRCWData(IntPtr self, ClrDataAddress addr, out RcwData data);
+        private delegate HResult DacGetWorkRequestData(IntPtr self, ClrDataAddress addr, out WorkRequestData data);
+        private delegate HResult DacGetLocalModuleData(IntPtr self, ClrDataAddress addr, out DomainLocalModuleData data);
+        private delegate HResult DacGetThreadFromThinLock(IntPtr self, uint id, out ClrDataAddress data);
+        private delegate HResult DacGetCodeHeaps(IntPtr self, ClrDataAddress addr, int count, [Out] JitCodeHeapInfo[]? values, out int needed);
+        private delegate HResult DacGetCOMPointers(IntPtr self, ClrDataAddress addr, int count, [Out] COMInterfacePointerData[] values, out int needed);
+        private delegate HResult DacGetDomainLocalModuleDataFromAppDomain(IntPtr self, ClrDataAddress appDomainAddr, int moduleID, out DomainLocalModuleData data);
+        private delegate HResult DacGetThreadLocalModuleData(IntPtr self, ClrDataAddress addr, uint id, out ThreadLocalModuleData data);
+        private delegate HResult DacTraverseLoaderHeap(IntPtr self, ClrDataAddress addr, IntPtr callback);
+        private delegate HResult DacTraverseStubHeap(IntPtr self, ClrDataAddress addr, int type, IntPtr callback);
+        private delegate HResult DacTraverseModuleMap(IntPtr self, ModuleMapTraverseKind type, ClrDataAddress addr, IntPtr callback, IntPtr param);
+        private delegate HResult DacGetJitManagers(IntPtr self, int count, [Out] JitManagerInfo[]? jitManagers, out int pNeeded);
+        private delegate HResult GetModuleDelegate(IntPtr self, ClrDataAddress addr, out IntPtr iunk);
     }
 
-#pragma warning disable CS0169
-#pragma warning disable CS0649
-
-    internal struct ISOSDacVTable
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct ISOSDacVTable
     {
         // ThreadStore
         public readonly IntPtr GetThreadStoreData;
@@ -886,7 +820,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetAssemblyName;
 
         // Modules
-        public readonly IntPtr GetMetaDataImport;
+        public readonly IntPtr GetModule;
         public readonly IntPtr GetModuleData;
         public readonly IntPtr TraverseModuleMap;
         public readonly IntPtr GetAssemblyModuleList;
@@ -969,7 +903,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Handles
         public readonly IntPtr GetHandleEnum;
-        private readonly IntPtr GetHandleEnumForTypes;
+        public readonly IntPtr GetHandleEnumForTypes;
         private readonly IntPtr GetHandleEnumForGC;
 
         // EH

@@ -3,12 +3,13 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Diagnostics.Runtime.Desktop;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -16,17 +17,15 @@ namespace Microsoft.Diagnostics.Runtime
     /// A delegate for reporting GCRoot progress.
     /// </summary>
     /// <param name="source">The GCRoot sending the event.</param>
-    /// <param name="current">The total number of objects processed.</param>
-    /// <param name="total">The total number of objects in the heap, if that number is known, otherwise -1.</param>
-    public delegate void GCRootProgressEvent(GCRoot source, long current, long total);
+    /// <param name="processed">The total number of objects processed.</param>
+    public delegate void GCRootProgressUpdatedEventHandler(GCRoot source, long processed);
 
     /// <summary>
     /// A helper class to find the GC rooting chain for a particular object.
     /// </summary>
-    public class GCRoot
+    public sealed class GCRoot
     {
         private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
-        private int _maxTasks;
 
         /// <summary>
         /// Since GCRoot can be long running, this event will provide periodic updates to how many objects the algorithm
@@ -34,40 +33,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// the number of objects processed will ever reach the total number of objects on the heap.  That's because there
         /// will be garbage objects on the heap we can't reach.
         /// </summary>
-        public event GCRootProgressEvent ProgressUpdate;
+        public event GCRootProgressUpdatedEventHandler? ProgressUpdated;
 
         /// <summary>
-        /// Returns the heap that's associated with this GCRoot instance.
+        /// Gets the heap that's associated with this GCRoot instance.
         /// </summary>
         public ClrHeap Heap { get; }
-
-        /// <summary>
-        /// Whether or not to allow GC root to search in parallel or not.  Note that GCRoot does not have to respect this
-        /// flag.  Parallel searching of roots will only happen if a copy of the stack and heap were built using BuildCache,
-        /// and if the entire heap was cached.  Note that ClrMD and underlying APIs do NOT support multithreading, so this
-        /// is only used when we can ensure all relevant data is local memory and we do not need to touch the debuggee.
-        /// </summary>
-        public bool AllowParallelSearch { get; set; } = true;
-
-        /// <summary>
-        /// The maximum number of tasks allowed to run in parallel, if GCRoot does a parallel search.
-        /// </summary>
-        public int MaximumTasksAllowed
-        {
-            get => _maxTasks;
-            set
-            {
-                if (_maxTasks < 0)
-                    throw new InvalidOperationException($"{nameof(MaximumTasksAllowed)} cannot be less than 0!");
-
-                _maxTasks = value;
-            }
-        }
-
-        /// <summary>
-        /// Returns true if all relevant heap and root data is locally cached in this process for fast GCRoot processing.
-        /// </summary>
-        public bool IsFullyCached => Heap.AreRootsCached;
 
         /// <summary>
         /// Creates a GCRoot helper object for the given heap.
@@ -76,228 +47,247 @@ namespace Microsoft.Diagnostics.Runtime
         public GCRoot(ClrHeap heap)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            _maxTasks = Environment.ProcessorCount * 2;
         }
 
         /// <summary>
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.  Note this function only returns paths that are fully unique.
         /// </summary>
         /// <param name="target">The target object to search for GC rooting.</param>
-        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
+        /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, CancellationToken cancellationToken = default)
         {
-            return EnumerateGCRoots(target, true, cancelToken);
+            return EnumerateGCRoots(target, true, cancellationToken);
+        }
+
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, CancellationToken cancellationToken = default)
+        {
+            return EnumerateGCRoots(target, returnOnlyFullyUniquePaths, Environment.ProcessorCount, cancellationToken);
+        }
+
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, CancellationToken cancellationToken = default)
+        {
+            return EnumerateGCRoots(target, returnOnlyFullyUniquePaths, maxDegreeOfParallelism, Heap.EnumerateRoots(), cancellationToken);
         }
 
         /// <summary>
         /// Enumerates GCRoots of a given object.  Similar to !gcroot.
         /// </summary>
         /// <param name="target">The target object to search for GC rooting.</param>
-        /// <param name="unique">Whether to only return fully unique paths.</param>
-        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
+        /// <param name="returnOnlyFullyUniquePaths">Whether to only return fully unique paths.</param>
+        /// <param name="maxDegreeOfParallelism">The number of threads this class is allowed to use to calculate the result.
+        /// Setting this to 1 will cause the algorithm to run on the current thread.</param>
+        /// <param name="roots">The roots to consider.  You can pass ClrMD.</param>
+        /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool unique, CancellationToken cancelToken)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancellationToken = default)
         {
-            Heap.BuildDependentHandleMap(cancelToken);
+            if (roots is null)
+                throw new ArgumentNullException(nameof(roots));
 
-            long totalObjects = Heap.TotalObjects;
-            long lastObjectReported = 0;
+            bool parallel = Heap.Runtime.IsThreadSafe && maxDegreeOfParallelism > 1;
 
-            bool parallel = AllowParallelSearch && IsFullyCached && _maxTasks > 0;
-
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>();
-
-            ObjectSet processedObjects = parallel 
-                ? new ParallelObjectSet(Heap) 
-                : new ObjectSet(Heap);
-
-            Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks = parallel
-                ? new Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[_maxTasks]
-                : null;
-
-            int initial = 0;
-
-            foreach (ClrHandle handle in Heap.EnumerateStrongHandles())
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>()
             {
-                Debug.Assert(handle.HandleType != HandleType.Dependent);
-                Debug.Assert(handle.Object != 0);
+                { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
+            };
 
-                GCRootPath? gcRootPath = ProcessRoot(handle.Object, handle.Type, () => GetHandleRoot(handle));
-
-                if (gcRootPath != null)
-                    yield return gcRootPath.Value;
-            }
-
-            foreach (ClrRoot root in Heap.EnumerateStackRoots())
+            if (!parallel)
             {
-                GCRootPath? gcRootPath = ProcessRoot(root.Object, root.Type, () => root);
+                int count = 0;
 
-                if (gcRootPath != null)
-                    yield return gcRootPath.Value;
-            }
-
-            if (parallel)
-            {
-                foreach (Tuple<LinkedList<ClrObject>, ClrRoot> result in WhenEach(tasks))
+                ObjectSet processedObjects = new ObjectSet(Heap);
+                foreach (IClrRoot root in roots)
                 {
-                    ReportObjectCount(processedObjects.Count);
-                    yield return new GCRootPath {Root = result.Item2, Path = result.Item1.ToArray()};
-                }
-            }
-
-            ReportObjectCount(totalObjects);
-
-            yield break;
-
-            GCRootPath? ProcessRoot(ulong rootRef, ClrType rootType, Func<ClrRoot> rootFunc)
-            {
-                if (processedObjects.Contains(rootRef))
-                    return null;
-
-                Debug.Assert(Heap.GetObjectType(rootRef) == rootType);
-
-                var rootObject = ClrObject.Create(rootRef, rootType);
-
-                GCRootPath? result = null;
-
-                if (parallel)
-                {
-                    Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = Task.Run(
-                        () =>
-                            {
-                                LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
-                                return new Tuple<LinkedList<ClrObject>, ClrRoot>(path, path == null ? null : rootFunc());
-                            },
-                        cancelToken);
-
-                    if (initial < tasks.Length)
-                    {
-                        tasks[initial++] = task;
-                    }
-                    else
-                    {
-                        int i = Task.WaitAny(tasks);
-                        Task<Tuple<LinkedList<ClrObject>, ClrRoot>> completed = tasks[i];
-                        tasks[i] = task;
-
-                        if (completed.Result.Item1 != null)
-                            result = new GCRootPath {Root = completed.Result.Item2, Path = completed.Result.Item1.ToArray()};
-                    }
-                }
-                else
-                {
-                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, rootObject, target, unique, cancelToken).FirstOrDefault();
+                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
                     if (path != null)
-                        result = new GCRootPath {Root = rootFunc(), Path = path.ToArray()};
+                        yield return new GCRootPath(root, path.ToImmutableArray());
+
+                    if (count != processedObjects.Count)
+                    {
+                        count = processedObjects.Count;
+                        ProgressUpdated?.Invoke(this, count);
+                    }
                 }
-
-                ReportObjectCount(processedObjects.Count);
-
-                return result;
             }
-
-            void ReportObjectCount(long curr)
+            else
             {
-                if (curr != lastObjectReported)
+                ParallelObjectSet processedObjects = new ParallelObjectSet(Heap);
+                ConcurrentQueue<GCRootPath> results = new ConcurrentQueue<GCRootPath>();
+                using BlockingCollection<IClrRoot?> queue = new BlockingCollection<IClrRoot?>();
+
+                Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
+                for (int i = 0; i < threads.Length; i++)
                 {
-                    lastObjectReported = curr;
-                    ProgressUpdate?.Invoke(this, lastObjectReported, totalObjects);
+                    threads[i] = new Thread(() => WorkerThread(queue, results, processedObjects, knownEndPoints, target, all: true, returnOnlyFullyUniquePaths, cancellationToken)) { Name = "GCRoot Worker Thread" };
+                    threads[i].Start();
+                }
+
+                foreach (IClrRoot root in roots)
+                    queue.Add(root);
+
+                // Add one sentinel value for every thread
+                for (int i = 0; i < threads.Length; i++)
+                    queue.Add(null);
+
+                int count = 0;
+
+                // Worker threads end when they have run out of roots to process.  While we are waiting for them to exit, yield return
+                // any results they've found.  We'll use a 100 msec timeout because processing roots is slooooow and finding a root is
+                // rare.  There's no reason to check these results super quickly and starve worker threads.
+                for (int i = 0; i < threads.Length; i++)
+                {
+                    while (!threads[i].Join(100))
+                    {
+                        while (results.TryDequeue(out GCRootPath result))
+                            yield return result;
+                    }
+
+                    if (count != processedObjects.Count)
+                    {
+                        count = processedObjects.Count;
+                        ProgressUpdated?.Invoke(this, count);
+                    }
+                }
+
+                // We could have raced to put an object in the results queue while joining the last thread, so we need to drain the
+                // results queue one last time.
+                while (results.TryDequeue(out GCRootPath result))
+                    yield return result;
+
+                if (count != processedObjects.Count)
+                {
+                    count = processedObjects.Count;
+                    ProgressUpdated?.Invoke(this, count);
                 }
             }
         }
 
-        private static IEnumerable<Tuple<LinkedList<ClrObject>, ClrRoot>> WhenEach(Task<Tuple<LinkedList<ClrObject>, ClrRoot>>[] tasks)
+        private void WorkerThread(
+            BlockingCollection<IClrRoot?> queue,
+            ConcurrentQueue<GCRootPath> results,
+            ObjectSet seen,
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
+            ulong target,
+            bool all,
+            bool returnOnlyFullyUniquePaths,
+            CancellationToken cancellationToken)
         {
-            List<Task<Tuple<LinkedList<ClrObject>, ClrRoot>>> taskList = tasks.Where(t => t != null).ToList();
-
-            while (taskList.Count > 0)
+            IClrRoot? root;
+            while ((root = queue.Take()) != null)
             {
-                Task<Tuple<LinkedList<ClrObject>, ClrRoot>> task = Task.WhenAny(taskList).Result;
-                if (task.Result.Item1 != null)
-                    yield return task.Result;
+                if (cancellationToken.IsCancellationRequested)
+                    break;
 
-                bool removed = taskList.Remove(task);
-                Debug.Assert(removed);
+                foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken))
+                {
+                    if (path != null)
+                    {
+                        results.Enqueue(new GCRootPath(root, path.ToImmutableArray()));
+
+                        if (!all)
+                            break;
+                    }
+                }
             }
         }
 
         /// <summary>
-        /// Returns the path from the start object to the end object (or null if no such path exists).
+        /// Returns the path from the start object to the end object (or <see langword="null"/> if no such path exists).
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
-        /// <param name="cancelToken">A cancellation token to stop searching.</param>
-        /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
-        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancelToken)
+        /// <param name="cancellationToken">A cancellation token to stop searching.</param>
+        /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
+        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancellationToken = default)
         {
-            Heap.BuildDependentHandleMap(cancelToken);
-            return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancelToken).FirstOrDefault();
+            return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancellationToken).FirstOrDefault();
         }
 
         /// <summary>
-        /// Returns the path from the start object to the end object (or null if no such path exists).
+        /// Returns the path from the start object to the end object (or <see langword="null"/> if no such path exists).
         /// </summary>
         /// <param name="source">The initial object to start the search from.</param>
         /// <param name="target">The object we are searching for.</param>
-        /// <param name="unique">Whether to only enumerate fully unique paths.</param>
-        /// <param name="cancelToken">A cancellation token to stop enumeration.</param>
-        /// <returns>A path from 'source' to 'target' if one exists, null if one does not.</returns>
-        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool unique, CancellationToken cancelToken)
+        /// <param name="returnOnlyFullyUniquePaths">Whether to only enumerate fully unique paths.</param>
+        /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
+        /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
+        public IEnumerable<LinkedList<ClrObject>> EnumerateAllPaths(ulong source, ulong target, bool returnOnlyFullyUniquePaths, CancellationToken cancellationToken = default)
         {
-            Heap.BuildDependentHandleMap(cancelToken);
             return PathsTo(
                 new ObjectSet(Heap),
                 new Dictionary<ulong, LinkedListNode<ClrObject>>(),
                 new ClrObject(source, Heap.GetObjectType(source)),
                 target,
-                unique,
-                cancelToken);
-        }
-
-        /// <summary>
-        /// Builds a cache of the GC heap and roots.  This will consume a LOT of memory, so when calling it you must wrap this in
-        /// a try/catch for OutOfMemoryException.
-        /// Note that this function allows you to choose whether we have exact thread callstacks or not.  Exact thread callstacks
-        /// will essentially force ClrMD to walk the stack as a real GC would, but this can take 10s of minutes when the thread count gets
-        /// into the 1000s.
-        /// </summary>
-        /// <param name="cancelToken">The cancellation token used to cancel the operation if it's taking too long.</param>
-        public void BuildCache(CancellationToken cancelToken)
-        {
-            Heap.CacheRoots(cancelToken);
-            Heap.CacheHeap(cancelToken);
-        }
-
-        /// <summary>
-        /// Clears all caches, reclaiming most memory held by this GCRoot object.
-        /// </summary>
-        public void ClearCache()
-        {
-            Heap.ClearHeapCache();
-            Heap.ClearRootCache();
+                returnOnlyFullyUniquePaths,
+                cancellationToken);
         }
 
         private IEnumerable<LinkedList<ClrObject>> PathsTo(
-            ObjectSet seen,
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
+            ObjectSet deadEnds,
+            Dictionary<ulong, LinkedListNode<ClrObject>>? knownEndPoints,
             ClrObject source,
             ulong target,
-            bool unique,
-            CancellationToken cancelToken)
+            bool returnOnlyFullyUniquePaths,
+            CancellationToken cancellationToken)
         {
-            seen.Add(source.Address);
+            /* knownEndPoints: A set of objects that are known to point to the target, once we see one of
+                               these, we can end the search early and return the current path plus the
+                               nodes there.
 
-            if (source.Type == null)
+               deadEnds  When unique == false, these are Objects we've fully processed and know doesn't
+                         point to the target object.  When unique == true, deadEnds are updated to include
+                         objects that other threads are processing, ensuring we don't yield duplicate
+                         roots. Note that we must be careful to ONLY add objects to this list when we are
+                         sure we've exhausted all potential paths because parallel threads use this same
+                         set.
+
+               path: The current path we are considering.  As we walk through objects in the rooting chain,
+                     we will add a new node to this list with the object in question and create a stack of
+                     all objects it points to.  This is a depth-first search, so we will search as deeply
+                     as we can, and pop off objects from path as soon as the stack of references is empty.
+                     If we find that the reference stack is empty and we didn't find the target/known end
+                     point, then we'll mark the object in deadEnds.
+
+               processing: The list of objects we are currently considering on this thread.  Since objects
+                           can contain circular references, we need to know we shouldn't re-consider objects
+                           we encounter while walking objects.
+
+               It's important to note that multiple threads may race and consider the same path at the same
+               time.  This is expected (and similar to how the GC operates).  The thing we have to make sure
+               of is that we only add objects to knownEndPoints/deadEnds when we are 100% sure of the result
+               because it will directly affect other threads walking these paths.
+            */
+
+            HashSet<ulong> processing = new HashSet<ulong>() { source.Address };
+            LinkedList<PathEntry> path = new LinkedList<PathEntry>();
+
+            if (knownEndPoints != null)
+            {
+                lock (knownEndPoints)
+                {
+                    if (knownEndPoints.TryGetValue(source.Address, out LinkedListNode<ClrObject>? ending))
+                    {
+                        if (!returnOnlyFullyUniquePaths || ending.Value.Address == target)
+                        {
+                            yield return GetResult(ending);
+                        }
+
+                        yield break;
+                    }
+                }
+            }
+
+            if (returnOnlyFullyUniquePaths && !deadEnds.Add(source.Address))
                 yield break;
 
-            LinkedList<PathEntry> path = new LinkedList<PathEntry>();
+            if (source.Type is null)
+                yield break;
 
             if (source.Address == target)
             {
-                path.AddLast(new PathEntry {Object = source});
+                path.AddLast(new PathEntry { Object = source });
                 yield return GetResult();
-
                 yield break;
             }
 
@@ -305,32 +295,40 @@ namespace Microsoft.Diagnostics.Runtime
                 new PathEntry
                 {
                     Object = source,
-                    Todo = GetRefs(source, out bool foundTarget, out LinkedListNode<ClrObject> foundEnding)
+                    Todo = GetRefs(source, out bool foundTarget, out LinkedListNode<ClrObject>? foundEnding)
                 });
 
             // Did the 'start' object point directly to 'end'?  If so, early out.
             if (foundTarget)
             {
-                path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
+                path.AddLast(new PathEntry { Object = Heap.GetObject(target), Todo = s_emptyStack });
                 yield return GetResult();
+                yield break;
             }
             else if (foundEnding != null)
             {
-                yield return GetResult(foundEnding);
+                if (!returnOnlyFullyUniquePaths || foundEnding.Value.Address == target)
+                {
+                    yield return GetResult(foundEnding);
+                    yield break;
+                }
             }
 
             while (path.Count > 0)
             {
-                cancelToken.ThrowIfCancellationRequested();
+                if (cancellationToken.IsCancellationRequested)
+                    yield break;
 
                 TraceFullPath(null, path);
-                PathEntry last = path.Last.Value;
+                PathEntry last = path.Last!.Value;
 
                 if (last.Todo.Count == 0)
                 {
                     // We've exhausted all children and didn't find the target.  Remove this node
                     // and continue.
                     path.RemoveLast();
+                    deadEnds.Add(last.Object.Address);
+                    processing.Remove(last.Object.Address);
                 }
                 else
                 {
@@ -338,12 +336,25 @@ namespace Microsoft.Diagnostics.Runtime
                     // we can't get an object's type...inconsistent heap happens sometimes).
                     do
                     {
-                        cancelToken.ThrowIfCancellationRequested();
+                        if (cancellationToken.IsCancellationRequested)
+                            yield break;
+
                         ClrObject next = last.Todo.Pop();
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
-                        if (!seen.Add(next.Address))
+                        if (returnOnlyFullyUniquePaths ? deadEnds.Add(next.Address) : deadEnds.Contains(next.Address))
+                            continue;
+
+                        if (knownEndPoints != null)
+                            lock (knownEndPoints)
+                                if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject>? end))
+                                {
+                                    TraceFullPath(path, end);
+                                    yield return GetResult(end);
+                                }
+
+                        if (!processing.Add(next.Address))
                             continue;
 
                         // We should never reach the 'end' here, as we always check if we found the target
@@ -361,7 +372,7 @@ namespace Microsoft.Diagnostics.Runtime
                         // If we found the target object while enumerating refs of the current object, we are done.
                         if (foundTarget)
                         {
-                            path.AddLast(new PathEntry {Object = Heap.GetObject(target)});
+                            path.AddLast(new PathEntry { Object = Heap.GetObject(target) });
                             TraceFullPath("FoundTarget", path);
 
                             yield return GetResult();
@@ -371,8 +382,11 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                         else if (foundEnding != null)
                         {
-                            TraceFullPath(path, foundEnding);
-                            yield return GetResult(foundEnding);
+                            if (!returnOnlyFullyUniquePaths || foundEnding.Value.Address == target)
+                            {
+                                TraceFullPath(path, foundEnding);
+                                yield return GetResult(foundEnding);
+                            }
 
                             path.RemoveLast();
                         }
@@ -386,45 +400,38 @@ namespace Microsoft.Diagnostics.Runtime
             Stack<ClrObject> GetRefs(
                 ClrObject obj,
                 out bool found,
-                out LinkedListNode<ClrObject> ending)
+                out LinkedListNode<ClrObject>? end)
             {
                 // These asserts slow debug down by a lot, but it's important to ensure consistency in retail.
-                //Debug.Assert(obj.Type != null);
-                //Debug.Assert(obj.Type == _heap.GetObjectType(obj.Address));
+                // DebugOnly.Assert(obj.Type != null);
+                // DebugOnly.Assert(obj.Type == _heap.GetObjectType(obj.Address));
 
-                Stack<ClrObject> result = null;
+                Stack<ClrObject>? result = null;
 
                 found = false;
-                ending = null;
-                if (obj.ContainsPointers)
+                end = null;
+                if (obj.Type != null && (obj.Type.ContainsPointers || obj.Type.IsCollectible))
                 {
-                    foreach (ClrObject reference in obj.EnumerateObjectReferences(true))
+                    foreach (ClrObject reference in obj.EnumerateReferences(true))
                     {
-                        cancelToken.ThrowIfCancellationRequested();
-                        if (ending == null && knownEndPoints != null)
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!returnOnlyFullyUniquePaths && end == null && knownEndPoints != null)
                         {
                             lock (knownEndPoints)
                             {
-                                if (unique)
-                                {
-                                    if (knownEndPoints.ContainsKey(reference.Address))
-                                        continue;
-                                }
-                                else
-                                {
-                                    knownEndPoints.TryGetValue(reference.Address, out ending);
-                                }
+                                knownEndPoints.TryGetValue(reference.Address, out end);
                             }
                         }
 
-                        if (!seen.Contains(reference.Address))
+                        if (reference.Address == target)
                         {
-                            if (result is null)
-                                result = new Stack<ClrObject>();
+                            found = true;
+                        }
 
+                        if (!deadEnds.Contains(reference.Address))
+                        {
+                            result ??= new Stack<ClrObject>();
                             result.Push(reference);
-                            if (reference.Address == target)
-                                found = true;
                         }
                     }
                 }
@@ -432,45 +439,44 @@ namespace Microsoft.Diagnostics.Runtime
                 return result ?? s_emptyStack;
             }
 
-            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject> ending = null)
+            LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject>? end = null)
             {
-                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object).ToArray());
+                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object));
 
-                for (; ending != null; ending = ending.Next)
-                    result.AddLast(ending.Value);
+                for (; end != null; end = end.Next)
+                    result.AddLast(end.Value);
 
                 if (knownEndPoints != null)
+                {
                     lock (knownEndPoints)
-                        for (LinkedListNode<ClrObject> node = result.First; node != null; node = node.Next)
-                            if (node.Value.Address != target)
-                                knownEndPoints[node.Value.Address] = node;
+                    {
+                        for (LinkedListNode<ClrObject>? node = result.First; node != null; node = node.Next)
+                        {
+                            ulong address = node.Value.Address;
+                            if (knownEndPoints.ContainsKey(address))
+                                break;
+
+                            knownEndPoints[address] = node;
+                        }
+                    }
+                }
+
+                if (returnOnlyFullyUniquePaths)
+                {
+                    foreach (ClrObject obj in result)
+                    {
+                        deadEnds.Add(obj);
+                    }
+                }
 
                 return result;
             }
         }
 
-        private static ClrRoot GetHandleRoot(ClrHandle handle)
-        {
-            GCRootKind kind = GCRootKind.Strong;
-
-            switch (handle.HandleType)
-            {
-                case HandleType.Pinned:
-                    kind = GCRootKind.Pinning;
-                    break;
-
-                case HandleType.AsyncPinned:
-                    kind = GCRootKind.AsyncPinning;
-                    break;
-            }
-
-            return new HandleRoot(handle.Address, handle.Object, handle.Type, handle.HandleType, kind, handle.AppDomain);
-        }
-
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
-            ulong size = type.GetSize(obj);
-            if (!seg.IsLarge && size >= 85000)
+            ulong size = type.Heap.GetObjectSize(obj, type);
+            if (!seg.IsLargeObjectSegment && size >= 85000)
                 return true;
 
             return obj + size > seg.End;
@@ -485,25 +491,19 @@ namespace Microsoft.Diagnostics.Runtime
         private static List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
             List<string> list = new List<string>();
-            for (; tmp != null; tmp = tmp.Next)
-                list.Add(tmp.Value.ToString());
+            for (LinkedListNode<ClrObject>? node = tmp; node != null; node = node.Next)
+                list.Add(node.Value.ToString());
 
             return list;
         }
 
         [Conditional("GCROOTTRACE")]
-        private void TraceCurrent(ulong next, IEnumerable<ulong> refs)
-        {
-            Debug.WriteLine($"Considering: {new ClrObject(next, Heap.GetObjectType(next))} Refs:{string.Join(" ", refs)}");
-        }
-
-        [Conditional("GCROOTTRACE")]
-        private static void TraceFullPath(string prefix, LinkedList<PathEntry> path)
+        private static void TraceFullPath(string? prefix, LinkedList<PathEntry> path)
         {
             if (!string.IsNullOrWhiteSpace(prefix))
                 prefix += ": ";
             else
-                prefix = "";
+                prefix = string.Empty;
 
             Debug.WriteLine(prefix + string.Join(" ", path.Select(p => p.Object.ToString())));
         }

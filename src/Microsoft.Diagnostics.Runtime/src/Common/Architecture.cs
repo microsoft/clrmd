@@ -27,6 +27,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// ARM
         /// </summary>
-        Arm
+        Arm,
+
+        /// <summary>
+        /// ARM64
+        /// </summary>
+        Arm64
     }
 }

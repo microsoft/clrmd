@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class RefCountedFreeLibrary
+    public sealed class RefCountedFreeLibrary
     {
         private readonly IntPtr _library;
         private int _refCount;
@@ -18,9 +18,9 @@ namespace Microsoft.Diagnostics.Runtime
             _refCount = 1;
         }
 
-        public void AddRef()
+        public int AddRef()
         {
-            Interlocked.Increment(ref _refCount);
+            return Interlocked.Increment(ref _refCount);
         }
 
         public int Release()

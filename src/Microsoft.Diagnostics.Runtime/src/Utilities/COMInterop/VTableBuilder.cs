@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// Builds an individual VTable for a COM object.
     /// </summary>
-    public unsafe class VTableBuilder
+    public sealed unsafe class VTableBuilder
     {
         private readonly Guid _guid;
         private readonly COMCallableIUnknown _wrapper;
@@ -29,23 +29,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Adds a method to be the next function in the VTable.  Note the delegate passed here must
-        /// be marked with [UnmanagedFunctionPointerAttribute] and take an IntPtr as its first parameter.
+        /// Adds a method to be the next function in the VTable.
         /// </summary>
         /// <param name="validate">Whether to validate the delegate matches requirements.</param>
         /// <param name="func">The function to add to the next slot of the VTable.</param>
         public void AddMethod(Delegate func, bool validate = false)
         {
+            if (func is null)
+                throw new ArgumentNullException(nameof(func));
+
             if (_complete)
                 throw new InvalidOperationException();
 
             if (_forceValidation || validate)
             {
                 if (func.Method.GetParameters().First().ParameterType != typeof(IntPtr))
-                    throw new InvalidOperationException();
-
-                object[] attrs = func.GetType().GetCustomAttributes(false);
-                if (attrs.Count(c => c is UnmanagedFunctionPointerAttribute) != 1)
                     throw new InvalidOperationException();
             }
 

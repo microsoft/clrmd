@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal enum ElfNoteType
+    internal enum ElfNoteType : uint
     {
         PrpsStatus = 1,
         PrpsFpreg = 2,

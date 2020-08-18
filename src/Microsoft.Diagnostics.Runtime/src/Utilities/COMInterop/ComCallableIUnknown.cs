@@ -23,12 +23,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly List<Delegate> _delegates = new List<Delegate>();
 
         /// <summary>
-        /// The IUnknown pointer to this object.
+        /// Gets the IUnknown pointer to this object.
         /// </summary>
         public IntPtr IUnknownObject { get; }
 
         /// <summary>
-        /// The IUnknown VTable for this object.
+        /// Gets the IUnknown VTable for this object.
         /// </summary>
         public IUnknownVTable IUnknown => **(IUnknownVTable**)IUnknownObject;
 
@@ -93,17 +93,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _delegates.AddRange(keepAlive);
         }
 
-        private int QueryInterfaceImpl(IntPtr self, ref Guid guid, out IntPtr ptr)
+        private HResult QueryInterfaceImpl(IntPtr _, in Guid guid, out IntPtr ptr)
         {
             if (_interfaces.TryGetValue(guid, out IntPtr value))
             {
                 Interlocked.Increment(ref _refCount);
                 ptr = value;
-                return S_OK;
+                return HResult.S_OK;
             }
 
             ptr = IntPtr.Zero;
-            return E_NOINTERFACE;
+            return HResult.E_NOINTERFACE;
         }
 
         private int ReleaseImpl(IntPtr self)

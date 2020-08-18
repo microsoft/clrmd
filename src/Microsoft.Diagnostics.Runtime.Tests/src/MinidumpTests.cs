@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     internal class StackTraceEntry
     {
-        public ClrStackFrameType Kind { get; set; }
+        public ClrStackFrameKind Kind { get; set; }
         public string ModuleString { get; set; }
         public string MethodName { get; set; }
     }
@@ -20,31 +20,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpCallstackTest()
         {
-            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrThread thread = runtime.GetMainThread();
+
+            string[] frames = IntPtr.Size == 8 ? new[] { "Inner", "Inner", "Middle", "Outer", "Main" } : new[] { "Inner", "Middle", "Outer", "Main" };
+
+            int i = 0;
+
+            foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
             {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ClrThread thread = runtime.GetMainThread();
-
-                string[] frames = IntPtr.Size == 8 ? new[] {"Inner", "Inner", "Middle", "Outer", "Main"} : new[] {"Inner", "Middle", "Outer", "Main"};
-
-                int i = 0;
-
-                foreach (ClrStackFrame frame in thread.StackTrace)
+                if (frame.Kind == ClrStackFrameKind.ManagedMethod)
                 {
-                    if (frame.Kind == ClrStackFrameType.Runtime)
-                    {
-                        Assert.Equal(0ul, frame.InstructionPointer);
-                        Assert.NotEqual(0ul, frame.StackPointer);
-                    }
-                    else
-                    {
-                        Assert.NotEqual(0ul, frame.InstructionPointer);
-                        Assert.NotEqual(0ul, frame.StackPointer);
-                        Assert.NotNull(frame.Method);
-                        Assert.NotNull(frame.Method.Type);
-                        Assert.NotNull(frame.Method.Type.Module);
-                        Assert.Equal(frames[i++], frame.Method.Name);
-                    }
+                    Assert.NotEqual(0ul, frame.InstructionPointer);
+                    Assert.NotEqual(0ul, frame.StackPointer);
+                    Assert.NotNull(frame.Method);
+                    Assert.NotNull(frame.Method.Type);
+                    Assert.NotNull(frame.Method.Type.Module);
+                    Assert.Equal(frames[i++], frame.Method.Name);
                 }
             }
         }
@@ -52,11 +45,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void MinidumpExceptionPropertiesTest()
         {
-            using (DataTarget dt = TestTargets.NestedException.LoadMiniDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                ExceptionTests.TestProperties(runtime);
-            }
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ExceptionTests.TestProperties(runtime);
+        }
+
+
+
+        [Fact]
+        public void MinidumpExceptionPropertiesNoSymbolsTest()
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            dt.BinaryLocator = new NullBinaryLocator();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ExceptionTests.TestProperties(runtime);
         }
     }
 }

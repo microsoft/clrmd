@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
         Desktop = 0,
 
         /// <summary>
-        /// For .Net Core
+        /// For .NET Core
         /// </summary>
         Core = 3
     }

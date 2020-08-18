@@ -2,30 +2,38 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// An interface implementation in the target process.
     /// </summary>
-    public abstract class ClrInterface
+    public sealed class ClrInterface :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<ClrInterface>
+#nullable restore
     {
         /// <summary>
-        /// The typename of the interface.
+        /// Gets the typename of the interface.
         /// </summary>
-        public abstract string Name { get; }
+        public string Name { get; }
 
         /// <summary>
-        /// The interface that this interface inherits from.
+        /// Gets the interface that this interface inherits from.
         /// </summary>
-        public abstract ClrInterface BaseInterface { get; }
+        public ClrInterface? BaseInterface { get; }
 
         /// <summary>
         /// Display string for this interface.
         /// </summary>
         /// <returns>Display string for this interface.</returns>
-        public override string ToString()
+        public override string ToString() => Name;
+
+        public ClrInterface(string name, ClrInterface? baseInterface)
         {
-            return Name;
+            Name = name;
+            BaseInterface = baseInterface;
         }
 
         /// <summary>
@@ -33,19 +41,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">Object to compare to.</param>
         /// <returns>True if this interface equals another.</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj) => Equals(obj as ClrInterface);
+
+        public bool Equals(ClrInterface? other)
         {
-            if (obj == null || !(obj is ClrInterface))
+            if (ReferenceEquals(this, other))
+                return true;
+
+            if (other is null)
                 return false;
 
-            ClrInterface rhs = (ClrInterface)obj;
-            if (Name != rhs.Name)
-                return false;
-
-            if (BaseInterface == null)
-                return rhs.BaseInterface == null;
-
-            return BaseInterface.Equals(rhs.BaseInterface);
+            return Name == other.Name && BaseInterface == other.BaseInterface;
         }
 
         /// <summary>
@@ -64,5 +70,15 @@ namespace Microsoft.Diagnostics.Runtime
 
             return hashCode;
         }
+
+        public static bool operator ==(ClrInterface? left, ClrInterface? right)
+        {
+            if (right is null)
+                return left is null;
+
+            return right.Equals(left);
+        }
+
+        public static bool operator !=(ClrInterface? left, ClrInterface? right) => !(left == right);
     }
 }

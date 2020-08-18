@@ -7,31 +7,34 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Returns information about the IL for a method.
     /// </summary>
-    public class ILInfo
+    public sealed class ILInfo
     {
         /// <summary>
-        /// The address in memory of where the IL for a particular method is located.
+        /// Gets the address in memory of where the IL for a particular method is located.
         /// </summary>
-        public ulong Address { get; internal set; }
+        public ulong Address { get; }
 
         /// <summary>
-        /// The length (in bytes) of the IL method body.
+        /// Gets the length (in bytes) of the IL method body.
         /// </summary>
-        public int Length { get; internal set; }
+        public int Length { get; }
 
         /// <summary>
-        /// The maximum IL stack size in this method.
+        /// Gets the flags associated with the IL code.
         /// </summary>
-        public int MaxStack { get; internal set; }
+        public uint Flags { get; }
 
         /// <summary>
-        /// The flags associated with the IL code.
+        /// Gets the local variable signature token for this IL method.
         /// </summary>
-        public uint Flags { get; internal set; }
+        public uint LocalVarSignatureToken { get; }
 
-        /// <summary>
-        /// The local variable signature token for this IL method.
-        /// </summary>
-        public uint LocalVarSignatureToken { get; internal set; }
+        public ILInfo(ulong address, int len, uint flags, uint localVarSignatureToken)
+        {
+            Address = address;
+            Length = len;
+            Flags = flags;
+            LocalVarSignatureToken = localVarSignatureToken;
+        }
     }
 }

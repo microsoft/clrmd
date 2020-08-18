@@ -2,18 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Exception kind
     /// </summary>
-    [Serializable]
     public enum ClrDiagnosticsExceptionKind
     {
         /// <summary>
-        /// Unknown error occured.
+        /// Unknown error occurred.
         /// </summary>
         Unknown,
 
@@ -23,8 +20,8 @@ namespace Microsoft.Diagnostics.Runtime
         CorruptedFileOrUnknownFormat,
 
         /// <summary>
-        /// The caller attempted to re-use an object after calling ClrRuntime.Flush.  See the
-        /// documentation for ClrRuntime.Flush for more details.
+        /// The caller attempted to re-use an object after calling <see cref="ClrRuntime.FlushCachedData"/>.  See the
+        /// documentation for <see cref="ClrRuntime.FlushCachedData"/> for more details.
         /// </summary>
         RevisionMismatch,
 
@@ -44,12 +41,12 @@ namespace Microsoft.Diagnostics.Runtime
         DataRequestError,
 
         /// <summary>
-        /// Hit an unexpected (non-recoverable) dac error.
+        /// Hit an unexpected (non-recoverable) DAC error.
         /// </summary>
         DacError,
 
         /// <summary>
-        /// The dll of the specified runtime (mscorwks.dll or clr.dll) is loaded into the process, but
+        /// The dll of the specified runtime (<i>mscorwks.dll</i> or <i>clr.dll</i>) is loaded into the process, but
         /// has not actually been initialized and thus cannot be debugged.
         /// </summary>
         RuntimeUninitialized

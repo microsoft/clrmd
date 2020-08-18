@@ -1,9 +1,0 @@
-﻿{
-  "dependencies": {
-    "UnmanagedExports": "1.2.7"
-  },
-  "frameworks": {
-    "net452": {}
-  },
-  "runtimes": { "win": {} }
-}

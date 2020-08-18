@@ -1,65 +1,92 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Buffers;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// An entry in the resource table.
     /// </summary>
-    public class ResourceEntry
+    public sealed class ResourceEntry
     {
-        private static readonly ResourceEntry[] s_emptyChildren = new ResourceEntry[0];
-        private ResourceEntry[] _children;
+        private ImmutableArray<ResourceEntry> _children;
         private readonly int _offset;
 
         /// <summary>
-        /// The PEImage containing this ResourceEntry.
+        /// The maximum number of children nodes that ResourceEntry objects will consider.  Note that if a PEImage is
+        /// corrupted or if we read bad data out of the target then we may misinterpret the data we read and spend
+        /// a lot of time enumerating bad resources.  Setting this to int.MaxValue removes this limitation.
+        /// </summary>
+        public static int MaxChildrenCount { get; set; } = 128;
+
+        /// <summary>
+        /// The maximum length ResourceEntry.Name strings we will return.  Note that if a PEImage is
+        /// corrupted or if we read bad data out of the target then we may misinterpret the data we read and spend
+        /// a lot of time enumerating bad resources.  Setting this to int.MaxValue removes this limitation.
+        /// </summary>
+        public static int MaxNameLength { get; set; } = 512;
+
+        /// <summary>
+        /// Gets the PEImage containing this ResourceEntry.
         /// </summary>
         public PEImage Image { get; }
 
         /// <summary>
-        /// The parent resource of this ResourceEntry.  Null if and only if this is the root node.
+        /// Gets the parent resource of this ResourceEntry.  Null if and only if this is the root node.
         /// </summary>
-        public ResourceEntry Parent { get; }
+        public ResourceEntry? Parent { get; }
 
         /// <summary>
-        /// Resource Name.  May be null if this is the root node.
+        /// Gets resource Name.  May be <see langword="null"/> if this is the root node.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// Returns true if this is a leaf, and contains data.
+        /// Gets a value indicating whether this is a leaf, and contains data.
         /// </summary>
         public bool IsLeaf { get; }
 
         /// <summary>
-        /// The number of children this entry contains.
+        /// Gets the size of data for this node.
         /// </summary>
-        public int Count => Children.Count;
+        public int Size
+        {
+            get
+            {
+                GetDataVaAndSize(out _, out int size);
+                return size;
+            }
+        }
 
         /// <summary>
-        /// Returns the i'th child.
+        /// Gets the number of children this entry contains.  Note that ResourceEntry.Children is capped at
+        /// MaxChildrenCount entries.  This property returns the total number of entries as defined by the
+        /// IMAGE_RESOURCE_DIRECTORY.  That means this number may be larger than Children.Count.
         /// </summary>
-        /// <param name="i">The child to return.</param>
-        /// <returns>The i'th ResourceEntry child.</returns>
-        public ResourceEntry this[int i] => Children[i];
+        public int ChildCount
+        {
+            get
+            {
+                (_, IMAGE_RESOURCE_DIRECTORY hdr) = GetHeader();
+                return hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
+            }
+        }
 
         /// <summary>
         /// Returns the given resource child by name.
         /// </summary>
         /// <param name="name">The name of the child to return.</param>
-        /// <returns>The child in question, or null if none are found with that name.</returns>
+        /// <returns>The child in question, or <see langword="null"/> if none are found with that name.</returns>
         public ResourceEntry this[string name] => Children.SingleOrDefault(c => c.Name == name);
 
-        /// <summary>
-        /// The children resources of this ResourceEntry.
-        /// </summary>
-        public IReadOnlyList<ResourceEntry> Children => GetChildren();
-
-        internal ResourceEntry(PEImage image, ResourceEntry parent, string name, bool leaf, int offset)
+        internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {
             Image = image;
             Parent = parent;
@@ -72,18 +99,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// The data associated with this entry.
         /// </summary>
         /// <returns>A byte array of the data, or a byte[] of length 0 if this entry contains no data.</returns>
-        public byte[] GetData()
+        public int GetData(Span<byte> span)
         {
             GetDataVaAndSize(out int va, out int size);
             if (size == 0 || va == 0)
-                return new byte[0];
+                return 0;
 
-            byte[] result = new byte[size];
-            int count = Image.Read(result, va, size);
-            if (count < size)
-                Array.Resize(ref result, count);
-
-            return result;
+            return Image.Read(va, span);
         }
 
         /// <summary>
@@ -92,72 +114,111 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <typeparam name="T">A struct type to convert.</typeparam>
         /// <param name="offset">The offset into the data.</param>
         /// <returns>The struct that was read out of the data section.</returns>
-        public T GetData<T>(int offset = 0) where T : struct
+        public unsafe T GetData<T>(int offset = 0) where T : unmanaged
         {
-            byte[] data = GetData();
-            int size = Marshal.SizeOf(typeof(T));
-            if (size + offset > data.Length)
-                throw new IndexOutOfRangeException();
+            int size = Unsafe.SizeOf<T>();
+            GetDataVaAndSize(out int va, out int sectionSize);
+            if (va == 0 || sectionSize < size + offset)
+                return default;
 
-            GCHandle hnd = GCHandle.Alloc(data, GCHandleType.Pinned);
-            T result = (T)Marshal.PtrToStructure(hnd.AddrOfPinnedObject(), typeof(T));
-            hnd.Free();
-
-            return result;
+            T output;
+            int read = Image.Read(va + offset, new Span<byte>(&output, size));
+            return read == size ? output : default;
         }
 
-        private ResourceEntry[] GetChildren()
+
+        /// <summary>
+        /// Gets the children resources of this ResourceEntry.
+        /// </summary>
+        public ImmutableArray<ResourceEntry> Children
         {
-            if (_children != null)
-                return _children;
-
-            if (IsLeaf)
-                return _children = s_emptyChildren;
-
-            ResourceEntry root = Image.Resources;
-            int resourceStartFileOffset = root._offset;
-            int offset = _offset;
-            IMAGE_RESOURCE_DIRECTORY hdr = Image.Read<IMAGE_RESOURCE_DIRECTORY>(ref offset);
-
-            int count = hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries;
-            ResourceEntry[] result = new ResourceEntry[count];
-
-            for (int i = 0; i < count; i++)
+            get
             {
-                IMAGE_RESOURCE_DIRECTORY_ENTRY entry = Image.Read<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset);
-                string name;
-                if (this == root)
-                    name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
-                else
-                    name = GetName(ref entry, resourceStartFileOffset);
+                if (!_children.IsDefault)
+                    return _children;
 
-                result[i] = new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset);
+                if (IsLeaf)
+                    return _children = ImmutableArray<ResourceEntry>.Empty;
+
+                try
+                {
+                    (int offset, IMAGE_RESOURCE_DIRECTORY hdr) = GetHeader();
+                    ResourceEntry root = Image.Resources;
+                    int resourceStartFileOffset = root._offset;
+
+                    // Cap the number of entires we inspect
+                    int count = Math.Min(hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries, MaxChildrenCount);
+
+                    ImmutableArray<ResourceEntry>.Builder result = ImmutableArray.CreateBuilder<ResourceEntry>(count);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (!Image.TryRead<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset, out IMAGE_RESOURCE_DIRECTORY_ENTRY entry))
+                            break;
+
+                        string name;
+                        if (!entry.IsStringName)
+                            name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
+                        else
+                            name = GetName(entry.NameOffset, resourceStartFileOffset);
+
+                        result.Add(new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset));
+                    }
+
+                    return _children = result.MoveToImmutable();
+                }
+                catch
+                {
+                    // If there's a bad image we could hit a variety of different failures here, including out of memory or
+                    // under/overflow issues.  We'll just not return anything if we hit an error here since a bad image
+                    // could lead to really unpredictable behavior if we are interpreting random bits of data.
+                    return _children = ImmutableArray<ResourceEntry>.Empty;
+                }
             }
-
-            return _children = result;
         }
 
-        private string GetName(ref IMAGE_RESOURCE_DIRECTORY_ENTRY entry, int resourceStartFileOffset)
+        private (int OffsetAfterHeader, IMAGE_RESOURCE_DIRECTORY Header) GetHeader()
         {
-            int offset = resourceStartFileOffset + entry.NameOffset;
+            int offset = _offset;
+
+            if (Image.TryRead<IMAGE_RESOURCE_DIRECTORY>(ref offset, out IMAGE_RESOURCE_DIRECTORY hdr))
+                return (offset, hdr);
+
+            // Returning default will mean that our count will == 0, so we don't have to turn this
+            // into "bool TryGetHeader".
+            return (offset, default);
+        }
+
+        private string GetName(int nameOffset, int resourceStartFileOffset)
+        {
+            int offset = resourceStartFileOffset + nameOffset;
             int len = Image.Read<ushort>(ref offset);
 
-            StringBuilder sb = new StringBuilder(len);
-            for (int i = 0; i < len; i++)
+            // Cap the length of the string we will read
+            len = Math.Min(len, MaxNameLength);
+            if (len == 0)
+                return string.Empty;
+
+            char[] buffer = ArrayPool<char>.Shared.Rent(len);
+            try
             {
-                char c = (char)Image.Read<ushort>(ref offset);
-                if (c == 0)
-                    break;
+                Span<char> span = new Span<char>(buffer, 0, len);
+                int count = Image.Read(offset, MemoryMarshal.AsBytes(span)) >> 1;
 
-                sb.Append(c);
+                int i = 0;
+                while (i < len && buffer[i] != 0)
+                    i++;
+
+                return new string(buffer, 0, i);
             }
-
-            return sb.ToString();
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private void GetDataVaAndSize(out int va, out int size)
         {
-
             IMAGE_RESOURCE_DATA_ENTRY dataEntry = Image.Read<IMAGE_RESOURCE_DATA_ENTRY>(_offset);
             va = dataEntry.RvaToData;
             size = dataEntry.Size;

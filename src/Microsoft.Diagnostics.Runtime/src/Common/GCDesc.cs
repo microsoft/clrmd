@@ -3,24 +3,26 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class GCDesc
+    public readonly struct GCDesc
     {
         private static readonly int s_GCDescSize = IntPtr.Size * 2;
 
         private readonly byte[] _data;
+
+        public bool IsEmpty => _data is null;
 
         public GCDesc(byte[] data)
         {
             _data = data;
         }
 
-        public void WalkObject(ulong addr, ulong size, Func<ulong, ulong> readPointer, Action<ulong, int> refCallback)
+        public IEnumerable<(ulong ReferencedObject, int Offset)> WalkObject(byte[] buffer, int size)
         {
-            Debug.Assert(size >= (ulong)IntPtr.Size);
+            DebugOnly.Assert(size >= IntPtr.Size);
 
             int series = GetNumSeries();
             int highest = GetHighestSeries();
@@ -31,16 +33,16 @@ namespace Microsoft.Diagnostics.Runtime
                 int lowest = GetLowestSeries();
                 do
                 {
-                    ulong ptr = addr + GetSeriesOffset(curr);
-                    ulong stop = (ulong)((long)ptr + GetSeriesSize(curr) + (long)size);
+                    long offset = GetSeriesOffset(curr);
+                    long stop = offset + GetSeriesSize(curr) + size;
 
-                    while (ptr < stop)
+                    while (offset < stop)
                     {
-                        ulong ret = readPointer(ptr);
+                        ulong ret = new Span<byte>(buffer).AsPointer((int)offset);
                         if (ret != 0)
-                            refCallback(ret, (int)(ptr - addr));
+                            yield return (ret, (int)offset);
 
-                        ptr += (ulong)IntPtr.Size;
+                        offset += IntPtr.Size;
                     }
 
                     curr -= s_GCDescSize;
@@ -48,47 +50,47 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                ulong ptr = addr + GetSeriesOffset(curr);
+                long offset = GetSeriesOffset(curr);
 
-                while (ptr < addr + size - (ulong)IntPtr.Size)
+                while (offset < size - IntPtr.Size)
                 {
                     for (int i = 0; i > series; i--)
                     {
-                        uint nptrs = GetPointers(curr, i);
-                        uint skip = GetSkip(curr, i);
+                        int nptrs = GetPointers(curr, i);
+                        int skip = GetSkip(curr, i);
 
-                        ulong stop = ptr + (ulong)(nptrs * IntPtr.Size);
+                        long stop = offset + (nptrs * IntPtr.Size);
                         do
                         {
-                            ulong ret = readPointer(ptr);
+                            ulong ret = new Span<byte>(buffer).AsPointer((int)offset);
                             if (ret != 0)
-                                refCallback(ret, (int)(ptr - addr));
+                                yield return (ret, (int)offset);
 
-                            ptr += (ulong)IntPtr.Size;
-                        } while (ptr < stop);
+                            offset += IntPtr.Size;
+                        } while (offset < stop);
 
-                        ptr += skip;
+                        offset += skip;
                     }
                 }
             }
         }
 
-        private uint GetPointers(int curr, int i)
+        private int GetPointers(int curr, int i)
         {
             int offset = i * IntPtr.Size;
             if (IntPtr.Size == 4)
                 return BitConverter.ToUInt16(_data, curr + offset);
 
-            return BitConverter.ToUInt32(_data, curr + offset);
+            return BitConverter.ToInt32(_data, curr + offset);
         }
 
-        private uint GetSkip(int curr, int i)
+        private int GetSkip(int curr, int i)
         {
             int offset = i * IntPtr.Size + IntPtr.Size / 2;
             if (IntPtr.Size == 4)
-                return BitConverter.ToUInt16(_data, curr + offset);
+                return BitConverter.ToInt16(_data, curr + offset);
 
-            return BitConverter.ToUInt32(_data, curr + offset);
+            return BitConverter.ToInt32(_data, curr + offset);
         }
 
         private int GetSeriesSize(int curr)
@@ -99,13 +101,13 @@ namespace Microsoft.Diagnostics.Runtime
             return (int)BitConverter.ToInt64(_data, curr);
         }
 
-        private ulong GetSeriesOffset(int curr)
+        private long GetSeriesOffset(int curr)
         {
-            ulong offset;
+            long offset;
             if (IntPtr.Size == 4)
                 offset = BitConverter.ToUInt32(_data, curr + IntPtr.Size);
             else
-                offset = BitConverter.ToUInt64(_data, curr + IntPtr.Size);
+                offset = BitConverter.ToInt64(_data, curr + IntPtr.Size);
 
             return offset;
         }

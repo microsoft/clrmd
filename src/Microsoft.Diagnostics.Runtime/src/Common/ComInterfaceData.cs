@@ -7,16 +7,22 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// The COM implementation details of a single CCW entry.
     /// </summary>
-    public abstract class ComInterfaceData
+    public readonly struct ComInterfaceData
     {
         /// <summary>
-        /// The CLR type this represents.
+        /// Gets the CLR type this represents.
         /// </summary>
-        public abstract ClrType Type { get; }
+        public ClrType? Type { get; }
 
         /// <summary>
-        /// The interface pointer of Type.
+        /// Gets the interface pointer of Type.
         /// </summary>
-        public abstract ulong InterfacePointer { get; }
+        public ulong InterfacePointer { get; }
+
+        public ComInterfaceData(ClrType? type, ulong pointer)
+        {
+            Type = type;
+            InterfacePointer = pointer;
+        }
     }
 }

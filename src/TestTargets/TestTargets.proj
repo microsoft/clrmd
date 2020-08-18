@@ -1,0 +1,212 @@
+﻿<Project>
+
+  <PropertyGroup>
+    <BinDir>bin\</BinDir>
+    <BinDir32>$(BinDir)x86\</BinDir32>
+    <BinDir64>$(BinDir)x64\</BinDir64>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <CscPath32>C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe</CscPath32>
+    <CscPath64>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscPath64>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <TargetSources Include="*\*.cs" Exclude="Shared\*">
+      <ExePath32>$(BinDir32)%(Filename).exe</ExePath32>
+      <ExePath64>$(BinDir64)%(Filename).exe</ExePath64>
+    </TargetSources>
+    <TargetExes32 Include="@(TargetSources->'%(ExePath32)')">
+      <FullDumpPath>$(BinDir32)%(Filename)_wks.dmp</FullDumpPath>
+      <MiniDumpPath>$(BinDir32)%(Filename)_wks_mini.dmp</MiniDumpPath>
+    </TargetExes32>
+    <TargetExes64 Include="@(TargetSources->'%(ExePath64)')">
+      <FullDumpPath>$(BinDir64)%(Filename)_wks.dmp</FullDumpPath>
+      <MiniDumpPath>$(BinDir64)%(Filename)_wks_mini.dmp</MiniDumpPath>
+    </TargetExes64>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Unix'">
+    <TargetSources Include="*\*.cs" Exclude="Shared\*;AppDomains\*">
+      <ProjectPath>%(RelativeDir)%(Filename).csproj</ProjectPath>
+      <DllPath>$(BinDir64)%(Filename).dll</DllPath>
+    </TargetSources>
+    <TargetProjects Include="@(TargetSources->'%(ProjectPath)')">
+      <DllPath>$(BinDir64)%(Filename).dll</DllPath>
+    </TargetProjects>
+    <TargetDlls Include="@(TargetSources->'%(DllPath)')">
+      <WorkingDir>%(Filename)\</WorkingDir>
+      <HeapDumpPath>$(BinDir64)%(Filename)_wks.dmp</HeapDumpPath>
+      <MiniDumpPath>$(BinDir64)%(Filename)_wks_mini.dmp</MiniDumpPath>
+    </TargetDlls>
+  </ItemGroup>
+
+  <Target Name="BeforeBuildCommon">
+
+    <MakeDir Directories="$(BinDir64)" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Windows_NT'"
+    Name="BeforeBuildWindows"
+    AfterTargets="BeforeBuildCommon">
+
+    <MakeDir Directories="$(BinDir32)" />
+
+    <Error Condition="!Exists('$(CscPath32)')" Text="csc.exe (x86) ($(CscPath32)) not found." />
+    <Error Condition="!Exists('$(CscPath64)')" Text="csc.exe (x64) ($(CscPath64)) not found." />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Windows_NT'"
+    Name="BuildWindowsShared"
+    AfterTargets="BeforeBuildWindows"
+    Inputs="Shared\SharedLibrary.cs"
+    Outputs="$(BinDir32)SharedLibrary.dll;$(BinDir64)SharedLibrary.dll">
+
+    <Exec Command='"$(CscPath32)" /nologo /debug /target:library /out:$(BinDir32)SharedLibrary.dll Shared\SharedLibrary.cs' />
+    <Exec Command='"$(CscPath64)" /nologo /debug /target:library /out:$(BinDir64)SharedLibrary.dll Shared\SharedLibrary.cs' />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Windows_NT'"
+    Name="BuildWindows"
+    AfterTargets="BuildWindowsShared"
+    Inputs="@(TargetSources)"
+    Outputs="@(TargetSources->'%(ExePath32)');@(TargetSources->'%(ExePath64)')">
+
+    <Exec Command='"$(CscPath32)" /nologo /unsafe /reference:$(BinDir32)SharedLibrary.dll /platform:x86 /debug /out:%(TargetSources.ExePath32) %(TargetSources.Identity)' />
+    <Exec Command='"$(CscPath64)" /nologo /unsafe /reference:$(BinDir64)SharedLibrary.dll /platform:x64 /debug /out:%(TargetSources.ExePath64) %(TargetSources.Identity)' />
+
+  </Target>
+
+  <UsingTask
+    Condition="'$(OS)' == 'Windows_NT'"
+    TaskName="Microsoft.Diagnostics.Runtime.Tests.Tasks.Dump"
+    AssemblyFile="..\..\artifacts\bin\TestTasks\$(Configuration)\netcoreapp3.1\TestTasks.dll" />
+
+  <Target
+    Condition="'$(OS)' == 'Windows_NT'"
+    Name="DumpWindows"
+    AfterTargets="BuildWindows"
+    Inputs="@(TargetExes32);@(TargetExes64)"
+    Outputs="@(TargetExes32->'%(FullDumpPath)');@(TargetExes32->'%(MiniDumpPath)');@(TargetExes64->'%(FullDumpPath)');@(TargetExes64->'%(MiniDumpPath)')">
+
+    <Delete Files="%(TargetExes32.FullDumpPath);%(TargetExes32.MiniDumpPath)" />
+    <Delete Files="%(TargetExes64.FullDumpPath);%(TargetExes64.MiniDumpPath)" />
+
+    <Dump ExePath="%(TargetExes32.Identity)" FullDumpPath="%(TargetExes32.FullDumpPath)" MiniDumpPath="%(TargetExes32.MiniDumpPath)" />
+    <Dump ExePath="%(TargetExes64.Identity)" FullDumpPath="%(TargetExes64.FullDumpPath)" MiniDumpPath="%(TargetExes64.MiniDumpPath)" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Windows_NT'"
+    Name="DumpWindowsServerGC"
+    AfterTargets="DumpWindows"
+    Inputs="$(BinDir32)Types.exe;$(BinDir64)Types.exe"
+    Outputs="$(BinDir32)Types_svr.dmp;$(BinDir64)Types_svr.dmp">
+
+    <Delete Files="$(BinDir32)Types_svr.dmp" />
+    <Delete Files="$(BinDir64)Types_svr.dmp" />
+
+    <Dump ExePath="$(BinDir32)Types.exe" FullDumpPath="$(BinDir32)Types_svr.dmp" IsServerGC="true" />
+    <Dump ExePath="$(BinDir64)Types.exe" FullDumpPath="$(BinDir64)Types_svr.dmp" IsServerGC="true" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Unix'"
+    Name="BuildLinux"
+    AfterTargets="BeforeBuildCommon"
+    Inputs="@(TargetSources);@(TargetProjects)"
+    Outputs="@(TargetSources->'%(DllPath)');@(TargetProjects->'%(DllPath)')">
+
+    <ItemGroup>
+      <TargetProjects Include="@(TargetSources->'%(ProjectPath)')" />
+    </ItemGroup>
+
+    <Exec Command="dotnet build --output $(BinDir64) %(TargetProjects.Identity)" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Unix'"
+    Name="BeforeDumpLinux"
+    AfterTargets="BuildLinux">
+
+    <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" Value="1" />
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" Value="coredump" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Unix'"
+    Name="HeapDumpLinux"
+    AfterTargets="BeforeDumpLinux"
+    Inputs="@(TargetDlls)"
+    Outputs="@(TargetDlls->'%(HeapDumpPath)')">
+
+    <Exec Command='dotnet "$(MSBuildThisFileDirectory)%(TargetDlls.Identity)" || true' WorkingDirectory="%(TargetDlls.WorkingDir)" />
+    <Move SourceFiles="%(TargetDlls.WorkingDir)coredump" DestinationFiles="%(TargetDlls.HeapDumpPath)" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Unix'"
+    Name="MiniDumpLinux"
+    AfterTargets="HeapDumpLinux"
+    Inputs="@(TargetDlls)"
+    Outputs="@(TargetDlls->'%(MiniDumpPath)')">
+
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" Value="1" />
+    <Exec Command='dotnet "$(MSBuildThisFileDirectory)%(TargetDlls.Identity)" || true' WorkingDirectory="%(TargetDlls.WorkingDir)" />
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpType" />
+    <Move SourceFiles="%(TargetDlls.WorkingDir)coredump" DestinationFiles="%(TargetDlls.MiniDumpPath)" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Unix'"
+    Name="DumpLinuxServerGC"
+    AfterTargets="MiniDumpLinux"
+    Inputs="$(BinDir64)Types"
+    Outputs="$(BinDir64)Types_svr.dmp">
+
+    <SetEnvironmentVariable Variable="COMPlus_gcServer" Value="1" />
+    <Exec Command='dotnet "$(MSBuildThisFileDirectory)$(BinDir64)Types.dll" || true' WorkingDirectory="Types\" />
+    <SetEnvironmentVariable Variable="COMPlus_gcServer" />
+    <Move SourceFiles="Types\coredump" DestinationFiles="$(BinDir64)Types_svr.dmp" />
+
+  </Target>
+
+  <Target
+    Condition="'$(OS)' == 'Unix'"
+    Name="AfterDumpLinux"
+    AfterTargets="DumpLinuxServerGC">
+
+    <SetEnvironmentVariable Variable="COMPlus_DbgEnableMiniDump" />
+    <SetEnvironmentVariable Variable="COMPlus_DbgMiniDumpName" />
+
+  </Target>
+
+  <UsingTask
+    TaskName="SetEnvironmentVariable"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.Core">
+
+    <ParameterGroup>
+      <Variable ParameterType="System.String" Required="true" />
+      <Value ParameterType="System.String" />
+    </ParameterGroup>
+
+    <Task>
+      <Code>Environment.SetEnvironmentVariable(Variable, Value);</Code>
+    </Task>
+
+  </UsingTask>
+
+</Project>

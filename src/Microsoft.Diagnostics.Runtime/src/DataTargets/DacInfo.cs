@@ -2,46 +2,73 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-
-#pragma warning disable 0618
+using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// Represents the dac dll
+    /// This class provides information needed to located the correct CLR diagnostics DLL (this dll
+    /// is called the Debug Access Component (DAC)).
     /// </summary>
-    [Serializable]
-    public class DacInfo : ModuleInfo
+    public sealed class DacInfo
     {
         /// <summary>
-        /// Returns the filename of the dac dll according to the specified parameters
+        /// If a local dac exists on disk that matches this dac, this property will contain its full path.
+        /// In a live debugging scenario this will almost always point to a local dac which can be used to inspect
+        /// the process (unless the user deleted mscordaccore in the .Net Core case).
         /// </summary>
-        [Obsolete("Use ClrInfoProvider.GetDacRequestFileName")]
-        public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo clrVersion)
+        public string? LocalDacPath { get; }
+
+        /// <summary>
+        /// Gets the platform specific filename of the DAC dll.
+        /// </summary>
+        public string PlatformSpecificFileName { get; }
+
+        /// <summary>
+        /// Gets the platform-agnostic file name of the DAC dll.
+        /// </summary>
+        public string PlatformAgnosticFileName { get; }
+
+        /// <summary>
+        /// Gets the architecture (x86 or amd64) being targeted.
+        /// </summary>
+        public Architecture TargetArchitecture { get; }
+
+        /// <summary>
+        /// Gets the specific file size of the image used to index it on the symbol server.
+        /// </summary>
+        public int IndexFileSize { get; }
+
+        /// <summary>
+        /// Gets the timestamp of the image used to index it on the symbol server.
+        /// </summary>
+        public int IndexTimeStamp { get; }
+
+        /// <summary>
+        /// Gets the version information for the CLR this dac matches.  The dac will have the
+        /// same version.
+        /// </summary>
+        public VersionInfo Version { get; }
+
+        /// <summary>
+        /// If CLR has a build id on this platform, this property will contain its build id.
+        /// </summary>
+        public ImmutableArray<byte> ClrBuildId { get; }
+
+        /// <summary>
+        /// Constructs a DacInfo object with the appropriate properties initialized.
+        /// </summary>
+        public DacInfo(string? localPath, string specificName, string agnosticName, Architecture targetArch,
+                       int filesize, int timestamp, VersionInfo version, ImmutableArray<byte> clrBuildId)
         {
-            //method is kept for backward compatibility //TODO: remove
-            return ClrInfoProvider.GetDacRequestFileName(flavor, currentArchitecture, targetArchitecture, clrVersion, Platform.Windows);
-        }
-
-        /// <summary>
-        /// The platform-agnostic filename of the dac dll
-        /// </summary>
-        public string PlatformAgnosticFileName { get; set; }
-
-        /// <summary>
-        /// The architecture (x86 or amd64) being targeted
-        /// </summary>
-        public Architecture TargetArchitecture { get; set; }
-
-        /// <summary>
-        /// Constructs a DacInfo object with the appropriate properties initialized
-        /// </summary>
-        public DacInfo(IDataReader reader, string agnosticName, Architecture targetArch)
-            : base(reader)
-        {
+            LocalDacPath = localPath;
+            PlatformSpecificFileName = specificName;
             PlatformAgnosticFileName = agnosticName;
             TargetArchitecture = targetArch;
+            IndexFileSize = filesize;
+            IndexTimeStamp = timestamp;
+            Version = version;
+            ClrBuildId = clrBuildId;
         }
     }
 }

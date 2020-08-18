@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -14,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns whether this static field has been initialized in a particular AppDomain
         /// or not.  If a static variable has not been initialized, then its class constructor
-        /// may have not been run yet.  Calling GetFieldValue on an uninitialized static
+        /// may have not been run yet.  Calling any of the Read* methods on an uninitialized static
         /// will result in returning either NULL or a value of 0.
         /// </summary>
         /// <param name="appDomain">The AppDomain to see if the variable has been initialized.</param>
@@ -25,45 +23,34 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsInitialized(ClrAppDomain appDomain);
 
         /// <summary>
-        /// Gets the value of the static field.
+        /// Gets the address of the static field's value in memory.
         /// </summary>
-        /// <param name="appDomain">The AppDomain in which to get the value.</param>
-        /// <returns>The value of this static field.</returns>
-        public virtual object GetValue(ClrAppDomain appDomain)
-        {
-            return GetValue(appDomain, true);
-        }
-
-        /// <summary>
-        /// Gets the value of the static field.
-        /// </summary>
-        /// <param name="appDomain">The AppDomain in which to get the value.</param>
-        /// <param name="convertStrings">
-        /// When true, the value of a string field will be
-        /// returned as a System.String object; otherwise the address of the String object will be returned.
-        /// </param>
-        /// <returns>The value of this static field.</returns>
-        public abstract object GetValue(ClrAppDomain appDomain, bool convertStrings);
-
-        /// <summary>
-        /// Returns the address of the static field's value in memory.
-        /// </summary>
-        /// <param name="appDomain">The AppDomain in which to get the field's address.</param>
         /// <returns>The address of the field's value.</returns>
         public abstract ulong GetAddress(ClrAppDomain appDomain);
 
         /// <summary>
-        /// Returns true if the static field has a default value (and if we can obtain it).
+        /// Reads the value of the field as an unmanaged struct or primitive type.
         /// </summary>
-        public virtual bool HasDefaultValue => false;
+        /// <typeparam name="T">An unmanaged struct or primitive type.</typeparam>
+        /// <returns>The value read.</returns>
+        public abstract T Read<T>(ClrAppDomain appDomain) where T : unmanaged;
 
         /// <summary>
-        /// The default value of the field.
+        /// Reads the value of an object field.
         /// </summary>
-        /// <returns>The default value of the field.</returns>
-        public virtual object GetDefaultValue()
-        {
-            throw new NotImplementedException();
-        }
+        /// <returns>The value read.</returns>
+        public abstract ClrObject ReadObject(ClrAppDomain appDomain);
+
+        /// <summary>
+        /// Reads a ValueType struct from the instance field.
+        /// </summary>
+        /// <returns>The value read.</returns>
+        public abstract ClrValueType ReadStruct(ClrAppDomain appDomain);
+
+        /// <summary>
+        /// Reads a string from the instance field.
+        /// </summary>
+        /// <returns>The value read.</returns>
+        public abstract string? ReadString(ClrAppDomain appDomain);
     }
 }

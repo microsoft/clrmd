@@ -11,24 +11,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public readonly uint HasNativeCode;
         public readonly uint IsDynamic;
-        public readonly short SlotNumber;
-        public readonly ulong NativeCodeAddr;
+        public readonly ushort SlotNumber;
+        public readonly ClrDataAddress NativeCodeAddr;
 
         // Useful for breaking when a method is jitted.
-        public readonly ulong AddressOfNativeCodeSlot;
+        public readonly ClrDataAddress AddressOfNativeCodeSlot;
 
-        public readonly ulong MethodDesc;
-        public readonly ulong MethodTable;
-        public readonly ulong Module;
+        public readonly ClrDataAddress MethodDesc;
+        public readonly ClrDataAddress MethodTable;
+        public readonly ClrDataAddress Module;
 
         public readonly uint MDToken;
-        public readonly ulong GCInfo;
-        public readonly ulong GCStressCodeCopy;
+        public readonly ClrDataAddress GCInfo;
+        public readonly ClrDataAddress GCStressCodeCopy;
 
         // This is only valid if bIsDynamic is true
-        public readonly ulong ManagedDynamicMethodObject;
+        public readonly ClrDataAddress ManagedDynamicMethodObject;
 
-        public readonly ulong RequestedIP;
+        public readonly ClrDataAddress RequestedIP;
 
         // Gives info for the single currently active version of a method
         public readonly RejitData RejitDataCurrent;

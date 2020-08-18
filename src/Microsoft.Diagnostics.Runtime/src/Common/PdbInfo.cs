@@ -3,44 +3,38 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Information about a specific PDB instance obtained from a PE image.
     /// </summary>
-    [Serializable]
-    public class PdbInfo
+    public sealed class PdbInfo :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<PdbInfo>
+#nullable restore
     {
         /// <summary>
-        /// The Guid of the PDB.
+        /// Gets the Guid of the PDB.
         /// </summary>
-        public Guid Guid { get; set; }
+        public Guid Guid { get; }
 
         /// <summary>
-        /// The pdb revision.
+        /// Gets the PDB revision.
         /// </summary>
-        public int Revision { get; set; }
+        public int Revision { get; }
 
         /// <summary>
-        /// The filename of the pdb.
+        /// Gets the path to the PDB.
         /// </summary>
-        public string FileName { get; set; }
+        public string Path { get; }
 
         /// <summary>
-        /// Creates an instance of the PdbInfo class
+        /// Creates an instance of the PdbInfo class with the corresponding properties initialized.
         /// </summary>
-        public PdbInfo()
+        public PdbInfo(string path, Guid guid, int rev)
         {
-        }
-
-        /// <summary>
-        /// Creates an instance of the PdbInfo class with the corresponding properties initialized
-        /// </summary>
-        public PdbInfo(string fileName, Guid guid, int rev)
-        {
-            FileName = fileName;
+            Path = path;
             Guid = guid;
             Revision = rev;
         }
@@ -55,26 +49,25 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Override for Equals.  Returns true if the guid, age, and filenames equal.  Note that this compares only the
+        /// Override for Equals.  Returns true if the guid, age, and file names equal.  Note that this compares only the.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns>True if the objects match, false otherwise.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj == null)
-                return false;
+        public override bool Equals(object? obj) => Equals(obj as PdbInfo);
 
-            if (ReferenceEquals(this, obj))
+        public bool Equals(PdbInfo? other)
+        {
+            if (ReferenceEquals(this, other))
                 return true;
 
-            if (obj is PdbInfo rhs)
+            if (other is null)
+                return false;
+
+            if (Revision == other.Revision && Guid == other.Guid)
             {
-                if (Revision == rhs.Revision && Guid == rhs.Guid)
-                {
-                    string lhsFilename = Path.GetFileName(FileName);
-                    string rhsFilename = Path.GetFileName(rhs.FileName);
-                    return lhsFilename.Equals(rhsFilename, StringComparison.OrdinalIgnoreCase);
-                }
+                string thisFileName = System.IO.Path.GetFileName(Path);
+                string otherFileName = System.IO.Path.GetFileName(other.Path);
+                return thisFileName.Equals(otherFileName, StringComparison.OrdinalIgnoreCase);
             }
 
             return false;
@@ -86,7 +79,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>Printing friendly version.</returns>
         public override string ToString()
         {
-            return $"{Guid} {Revision} {FileName}";
+            return $"{Guid} {Revision} {Path}";
         }
+
+        public static bool operator ==(PdbInfo? left, PdbInfo? right)
+        {
+            if (right is null)
+                return left is null;
+
+            return right.Equals(left);
+        }
+
+        public static bool operator !=(PdbInfo? left, PdbInfo? right) => !(left == right);
     }
 }

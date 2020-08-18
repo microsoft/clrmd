@@ -237,3 +237,51 @@ space_after_operator_keyword = true
 # _XMLDOC_
 xmldoc_indent_text = zero_indent
 
+
+# IDE1006: Naming Styles
+dotnet_diagnostic.IDE1006.severity = none
+
+# CA1720: Identifier contains type name
+dotnet_diagnostic.CA1720.severity = none
+
+# CA1716: Identifiers should not match keywords
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1303: Do not pass literals as localized parameters
+dotnet_diagnostic.CA1303.severity = none
+
+# CA1307: Specify StringComparison
+dotnet_diagnostic.CA1307.severity = none
+
+# CA1028: Enum Storage should be Int32
+dotnet_diagnostic.CA1028.severity = none
+
+# TODO: CA1031: Do not catch general exception types
+dotnet_diagnostic.CA1031.severity = none
+
+# TODO: CA1051: Do not declare visible instance fields
+dotnet_diagnostic.CA1051.severity = none
+
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1714: Flags enums should have plural names
+dotnet_diagnostic.CA1714.severity = none
+
+# CA2101: Specify marshaling for P/Invoke string arguments
+dotnet_diagnostic.CA2101.severity = none
+
+# CA1815: Override equals and operator equals on value types
+dotnet_diagnostic.CA1815.severity = none
+
+# CA2225: Operator overloads have named alternates
+dotnet_diagnostic.CA2225.severity = none
+
+# CA1717: Only FlagsAttribute enums should have plural names
+dotnet_diagnostic.CA1717.severity = none
+
+# CA1060: Move pinvokes to native methods class
+dotnet_diagnostic.CA1060.severity = none
+
+# xUnit1004: Test methods should not be skipped
+dotnet_diagnostic.xUnit1004.severity = none

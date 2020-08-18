@@ -4,307 +4,189 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// A representation of a type in the target process.
     /// </summary>
-    public abstract class ClrType
+    public abstract class ClrType :
+#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
+        IEquatable<ClrType>
+#nullable restore
     {
-        protected internal abstract GCDesc GCDesc { get; }
+        /// <summary>
+        /// Gets the <see cref="GCDesc"/> associated with this type.  Only valid if <see cref="ContainsPointers"/> is <see langword="true"/>.
+        /// </summary>
+        public abstract GCDesc GCDesc { get; }
 
         /// <summary>
-        /// Retrieves the first type handle in <see cref="EnumerateMethodTables"/>.
-        /// <see cref="MethodTable"/> instances are unique to an AppDomain/Type pair,
-        /// so when there are multiple domains there will be multiple <see cref="MethodTable"/>
-        /// for a class.
+        /// Gets the MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
         /// </summary>
         public abstract ulong MethodTable { get; }
 
         /// <summary>
-        /// Enumerates all <see cref="MethodTable"/> for this type in the process. <see cref="MethodTable"/>
-        /// are unique to an AppDomain/Type pair, so when there are multiple domains
-        /// there may be multiple <see cref="MethodTable"/>.  Note that even if a type could be
-        /// used in an AppDomain, that does not mean we actually have a <see cref="MethodTable"/>
-        /// if the type hasn't been created yet.
+        /// Gets the metadata token of this type.
         /// </summary>
-        /// <returns>
-        /// An enumeration of MethodTable in the process for this given
-        /// type.
-        /// </returns>
-        public abstract IEnumerable<ulong> EnumerateMethodTables();
+        public abstract int MetadataToken { get; }
 
         /// <summary>
-        /// Returns the metadata token of this type.
+        /// Gets the name of this type.
         /// </summary>
-        public abstract uint MetadataToken { get; }
+        public abstract string? Name { get; }
 
         /// <summary>
-        /// Types have names.
-        /// </summary>
-        public abstract string Name { get; }
-
-        /// <summary>
-        /// GetSize returns the size in bytes for the total overhead of the object <paramref name="objRef"/>.
-        /// </summary>
-        public abstract ulong GetSize(ulong objRef);
-
-        /// <summary>
-        /// Calls <paramref name="action"/> once for each object reference inside <paramref name="objRef"/>.
-        /// <paramref name="action"/> is passed the address of the outgoing reference as well as an integer that
-        /// represents the field offset.  While often this is the physical offset of the outgoing
-        /// reference, abstractly is simply something that can be given to <see cref="GetFieldForOffset"/> to
-        /// return the field information for that object reference
-        /// </summary>
-        public abstract void EnumerateRefsOfObject(ulong objRef, Action<ulong, int> action);
-
-        /// <summary>
-        /// Does the same as <see cref="EnumerateRefsOfObject"/>, but does additional bounds checking to ensure
-        /// we don't loop forever with inconsistent data.
-        /// </summary>
-        public abstract void EnumerateRefsOfObjectCarefully(ulong objRef, Action<ulong, int> action);
-
-        /// <summary>
-        /// Enumerates all objects that the given object references.
-        /// </summary>
-        /// <param name="obj">The object in question.</param>
-        /// <param name="carefully">
-        /// Whether to bounds check along the way (useful in cases where
-        /// the heap may be in an inconsistent state.)
-        /// </param>
-        public virtual IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, bool carefully = false)
-        {
-            Debug.Assert(Heap.GetObjectType(obj) == this);
-            return Heap.EnumerateObjectReferences(obj, this, carefully);
-        }
-
-        public virtual IEnumerable<ClrObjectReference> EnumerateObjectReferencesWithFields(ulong obj, bool carefully = false)
-        {
-            Debug.Assert(Heap.GetObjectType(obj) == this);
-            return Heap.EnumerateObjectReferencesWithFields(obj, this, carefully);
-        }
-
-        /// <summary>
-        /// Returns true if the type CAN contain references to other objects.  This is used in optimizations
+        /// Gets a value indicating whether the type <b>can</b> contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.
         /// </summary>
         public virtual bool ContainsPointers => true;
 
         /// <summary>
-        /// All types know the heap they belong to.
+        /// Gets a value indicating whether this is a collectible type.
+        /// </summary>
+        public virtual bool IsCollectible => false;
+
+        /// <summary>
+        /// Gets the handle to the <c>LoaderAllocator</c> object for collectible types.
+        /// </summary>
+        public virtual ulong LoaderAllocatorHandle => 0;
+
+        /// <summary>
+        /// Gets the address of the <c>AssemblyLoadContext</c> object.
+        /// </summary>
+        public virtual ulong AssemblyLoadContextAddress => 0;
+        
+        [Obsolete("Use AssemblyLoadContextAddress.")]
+        public virtual ulong AssemblyLoadContextHandle =>AssemblyLoadContextAddress;
+
+        /// <summary>
+        /// Gets the <see cref="ClrHeap"/> this type belongs to.
         /// </summary>
         public abstract ClrHeap Heap { get; }
 
         /// <summary>
-        /// Returns true if this object is a 'RuntimeType' (that is, the concrete System.RuntimeType class
-        /// which is what you get when calling "typeof" in C#).
+        /// Gets the module this type is defined in.
         /// </summary>
-        public virtual bool IsRuntimeType => false;
+        public abstract ClrModule? Module { get; }
 
         /// <summary>
-        /// Returns the concrete type (in the target process) that this RuntimeType represents.
-        /// Note you may only call this function if IsRuntimeType returns true.
+        /// Gets the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
         /// </summary>
-        /// <param name="obj">The RuntimeType object to get the concrete type for.</param>
-        /// <returns>
-        /// The underlying type that this RuntimeType actually represents.  May return null if the
-        /// underlying type has not been fully constructed by the runtime, or if the underlying type
-        /// is actually a typehandle (which unfortunately ClrMD cannot convert into a ClrType due to
-        /// limitations in the underlying APIs.  (So always null-check the return value of this
-        /// function.)
-        /// </returns>
-        public virtual ClrType GetRuntimeType(ulong obj)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract ClrElementType ElementType { get; }
 
         /// <summary>
-        /// Returns the module this type is defined in.
+        /// Gets a value indicating whether this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc).
         /// </summary>
-        public virtual ClrModule Module => null;
-
-        /// <summary>
-        /// Returns a method based on its token.
-        /// </summary>
-        /// <param name="token">The token of the method to return.</param>
-        /// <returns>A ClrMethod for the given token, null if no such methodDesc exists.</returns>
-        internal virtual ClrMethod GetMethod(uint token)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// Returns the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
-        /// </summary>
-        public virtual ClrElementType ElementType
-        {
-            get => ClrElementType.Unknown;
-            internal set => throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns true if this type is a primitive (int, float, etc), false otherwise.
-        /// </summary>
-        /// <returns>True if this type is a primitive (int, float, etc), false otherwise.</returns>
+        /// <returns>True if this type is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
         public virtual bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
-        /// Returns true if this type is a ValueClass (struct), false otherwise.
+        /// Gets a value indicating whether this type is a value type.
         /// </summary>
-        /// <returns>True if this type is a ValueClass (struct), false otherwise.</returns>
-        public virtual bool IsValueClass => ElementType.IsValueClass();
+        /// <returns>True if this type is a value type, false otherwise.</returns>
+        public virtual bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
-        /// Returns true if this type is an object reference, false otherwise.
+        /// Gets a value indicating whether this type is an object reference.
         /// </summary>
         /// <returns>True if this type is an object reference, false otherwise.</returns>
         public virtual bool IsObjectReference => ElementType.IsObjectReference();
 
         /// <summary>
+        /// Enumerates the generic parameters of this type.
+        /// </summary>
+        public virtual IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Array.Empty<ClrGenericParameter>();
+
+        /// <summary>
         /// Returns the list of interfaces this type implements.
         /// </summary>
-        public abstract IList<ClrInterface> Interfaces { get; }
+        public abstract IEnumerable<ClrInterface> EnumerateInterfaces();
 
         /// <summary>
         /// Returns true if the finalization is suppressed for an object (the user program called
         /// <see cref="GC.SuppressFinalize"/>). The behavior of this function is undefined if the object itself
         /// is not finalizable.
         /// </summary>
-        public virtual bool IsFinalizeSuppressed(ulong obj)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract bool IsFinalizeSuppressed(ulong obj);
 
         /// <summary>
-        /// Returns whether objects of this type are finalizable.
+        /// Gets a value indicating whether objects of this type are finalizable.
         /// </summary>
         public abstract bool IsFinalizable { get; }
 
         // Visibility:
         /// <summary>
-        /// Returns true if this type is marked Public.
+        /// Gets a value indicating whether this type is marked Public.
         /// </summary>
         public abstract bool IsPublic { get; }
 
         /// <summary>
-        /// returns true if this type is marked Private.
+        /// Gets a value indicating whether this type is marked Private.
         /// </summary>
         public abstract bool IsPrivate { get; }
 
         /// <summary>
-        /// Returns true if this type is accessible only by items in its own assembly.
+        /// Gets a value indicating whether this type is accessible only by items in its own assembly.
         /// </summary>
         public abstract bool IsInternal { get; }
 
         /// <summary>
-        /// Returns true if this nested type is accessible only by subtypes of its outer type.
+        /// Gets a value indicating whether this nested type is accessible only by subtypes of its outer type.
         /// </summary>
         public abstract bool IsProtected { get; }
 
         // Other attributes:
 
         /// <summary>
-        /// Returns true if this class is abstract.
+        /// Gets a value indicating whether this class is abstract.
         /// </summary>
         public abstract bool IsAbstract { get; }
 
         /// <summary>
-        /// Returns true if this class is sealed.
+        /// Gets a value indicating whether this class is sealed.
         /// </summary>
         public abstract bool IsSealed { get; }
 
         /// <summary>
-        /// Returns true if this type is an interface.
+        /// Gets a value indicating whether this type is an interface.
         /// </summary>
         public abstract bool IsInterface { get; }
 
         /// <summary>
-        /// Returns all possible fields in this type.   It does not return dynamically typed fields.
+        /// Gets all possible fields in this type.   It does not return dynamically typed fields.
         /// Returns an empty list if there are no fields.
         /// </summary>
-        public virtual IList<ClrInstanceField> Fields => null;
+        public abstract ImmutableArray<ClrInstanceField> Fields { get; }
 
         /// <summary>
-        /// Returns a list of static fields on this type.  Returns an empty list if there are no fields.
+        /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
         /// </summary>
-        public virtual IList<ClrStaticField> StaticFields => null;
-
-        /// <summary>
-        /// Returns a list of thread static fields on this type.  Returns an empty list if there are no fields.
-        /// </summary>
-        public virtual IList<ClrThreadStaticField> ThreadStaticFields => null;
+        public abstract ImmutableArray<ClrStaticField> StaticFields { get; }
 
         /// <summary>
         /// Gets the list of methods this type implements.
         /// </summary>
-        public virtual IList<ClrMethod> Methods => null;
-
-        /// <summary>
-        /// When you enumerate a object, the offset within the object is returned.  This offset might represent
-        /// nested fields (obj.Field1.Field2).    GetFieldOffset returns the first of these field (Field1),
-        /// and 'remaining' offset with the type of Field1 (which must be a struct type).   Calling
-        /// GetFieldForOffset repeatedly until the childFieldOffset is 0 will retrieve the whole chain.
-        /// </summary>
-        /// <returns>true if successful.  Will fail if it 'this' is an array type</returns>
-        public abstract bool GetFieldForOffset(int fieldOffset, bool inner, out ClrInstanceField childField, out int childFieldOffset);
+        public abstract ImmutableArray<ClrMethod> Methods { get; }
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
-        public abstract ClrInstanceField GetFieldByName(string name);
+        public abstract ClrInstanceField? GetFieldByName(string name);
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>
-        public abstract ClrStaticField GetStaticFieldByName(string name);
+        public abstract ClrStaticField? GetStaticFieldByName(string name);
 
         /// <summary>
-        /// If this type inherits from another type, this is that type.  Can return null if it does not inherit (or is unknown)
+        /// If this type inherits from another type, this is that type.  Can return <see langword="null"/> if it does not inherit (or is unknown).
         /// </summary>
-        public abstract ClrType BaseType { get; }
+        public abstract ClrType? BaseType { get; }
 
         /// <summary>
-        /// Returns true if the given object is a Com-Callable-Wrapper.  This is only supported in v4.5 and later.
-        /// </summary>
-        /// <param name="obj">The object to check.</param>
-        /// <returns>True if this is a CCW.</returns>
-        public virtual bool IsCCW(ulong obj)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the CCWData for the given object.  Note you may only call this function if IsCCW returns true.
-        /// </summary>
-        /// <returns>The CCWData associated with the object, undefined result of obj is not a CCW.</returns>
-        public virtual CcwData GetCCWData(ulong obj)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// Returns true if the given object is a Runtime-Callable-Wrapper.  This is only supported in v4.5 and later.
-        /// </summary>
-        /// <param name="obj">The object to check.</param>
-        /// <returns>True if this is an RCW.</returns>
-        public virtual bool IsRCW(ulong obj)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the RCWData for the given object.  Note you may only call this function if IsRCW returns true.
-        /// </summary>
-        /// <returns>The RCWData associated with the object, undefined result of obj is not a RCW.</returns>
-        public virtual RcwData GetRCWData(ulong obj)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// Indicates if the type is in fact a pointer. If so, the pointer operators
+        /// Gets a value indicating whether the type is in fact a pointer. If so, the pointer operators
         /// may be used.
         /// </summary>
         public virtual bool IsPointer => false;
@@ -312,19 +194,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the element referenced by the pointer.
         /// </summary>
-        public virtual ClrType ComponentType { get; internal set; }
+        public abstract ClrType? ComponentType { get; }
 
         /// <summary>
         /// A type is an array if you can use the array operators below, Abstractly arrays are objects
         /// that whose children are not statically known by just knowing the type.
         /// </summary>
-        public virtual bool IsArray => false;
-
-        /// <summary>
-        /// If the type is an array, then GetArrayLength returns the number of elements in the array.  Undefined
-        /// behavior if this type is not an array.
-        /// </summary>
-        public abstract int GetArrayLength(ulong objRef);
+        public abstract bool IsArray { get; }
 
         /// <summary>
         /// Returns the absolute address to the given array element.  You may then make a direct memory read out
@@ -333,127 +209,103 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract ulong GetArrayElementAddress(ulong objRef, int index);
 
         /// <summary>
-        /// Returns the array element value at the given index.  Returns 'null' if the array element is of type
-        /// VALUE_CLASS.
+        /// Returns multiple consecutive array element values.
         /// </summary>
-        public abstract object GetArrayElementValue(ulong objRef, int index);
+        public abstract T[]? ReadArrayElements<T>(ulong objRef, int start, int count) where T : unmanaged;
 
         /// <summary>
-        /// Returns the size of individual elements of an array.
+        /// Gets the static size of objects of this type when they are created on the CLR heap.
         /// </summary>
-        public abstract int ElementSize { get; }
+        public abstract int StaticSize { get; }
 
         /// <summary>
-        /// Returns the base size of the object.
+        /// Gets the size of elements of this object.
         /// </summary>
-        public abstract int BaseSize { get; }
+        public abstract int ComponentSize { get; }
 
         /// <summary>
-        /// Returns true if this type is System.String.
+        /// Gets a value indicating whether this type is <see cref="string"/>.
         /// </summary>
         public virtual bool IsString => false;
 
         /// <summary>
-        /// Returns true if this type represents free space on the heap.
+        /// Gets a value indicating whether this type represents free space on the heap.
         /// </summary>
         public virtual bool IsFree => false;
 
         /// <summary>
-        /// Returns true if this type is an exception (that is, it derives from System.Exception).
+        /// Gets a value indicating whether this type is an exception (that is, it derives from <see cref="Exception"/>).
         /// </summary>
         public virtual bool IsException => false;
 
         /// <summary>
-        /// Returns true if this type is an enum.
+        /// Gets a value indicating whether this type is an enum.
         /// </summary>
-        public virtual bool IsEnum => false;
+        public abstract bool IsEnum { get; }
 
         /// <summary>
-        /// Returns the element type of this enum.
+        /// Returns the <see cref="ClrEnum"/> representation of this type.
         /// </summary>
-        public virtual ClrElementType GetEnumElementType()
-        {
-            throw new NotImplementedException();
-        }
+        /// <returns>The <see cref="ClrEnum"/> representation of this type.</returns>
+        /// <exception cref="InvalidOperationException"><see cref="IsEnum"/> is <see langword="false"/>.</exception>
+        public abstract ClrEnum AsEnum();
 
         /// <summary>
-        /// Returns a list of names in the enum.
+        /// Gets a value indicating whether this type is shared across multiple AppDomains.
         /// </summary>
-        public virtual IEnumerable<string> GetEnumNames()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Gets the name of the value in the enum, or null if the value doesn't have a name.
-        /// This is a convenience function, and has undefined results if the same value appears
-        /// twice in the enum.
-        /// </summary>
-        /// <param name="value">The value to lookup.</param>
-        /// <returns>The name of one entry in the enum with this value, or null if none exist.</returns>
-        public virtual string GetEnumName(object value)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Gets the name of the value in the enum, or null if the value doesn't have a name.
-        /// This is a convenience function, and has undefined results if the same value appears
-        /// twice in the enum.
-        /// </summary>
-        /// <param name="value">The value to lookup.</param>
-        /// <returns>The name of one entry in the enum with this value, or null if none exist.</returns>
-        public virtual string GetEnumName(int value)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Attempts to get the integer value for a given enum entry.  Note you should only call this function if
-        /// GetEnumElementType returns ELEMENT_TYPE_I4.
-        /// </summary>
-        /// <param name="name">The name of the value to get (taken from GetEnumNames).</param>
-        /// <param name="value">The value to write out.</param>
-        /// <returns>True if we successfully filled value, false if <paramref name="name"/> is not a part of the enumeration.</returns>
-        public virtual bool TryGetEnumValue(string name, out int value)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Attempts to get the value for a given enum entry.  The type of "value" can be determined by the
-        /// return value of GetEnumElementType.
-        /// </summary>
-        /// <param name="name">The name of the value to get (taken from GetEnumNames).</param>
-        /// <param name="value">The value to write out.</param>
-        /// <returns>True if we successfully filled value, false if <paramref name="name"/> is not a part of the enumeration.</returns>
-        public virtual bool TryGetEnumValue(string name, out object value)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns true if instances of this type have a simple value.
-        /// </summary>
-        public virtual bool HasSimpleValue => false;
-
-        /// <summary>
-        /// Returns the simple value of an instance of this type.  Undefined behavior if HasSimpleValue returns false.
-        /// For example ELEMENT_TYPE_I4 is an "int" and the return value of this function would be an int.
-        /// </summary>
-        /// <param name="address">The address of an instance of this type.</param>
-        public virtual object GetValue(ulong address)
-        {
-            return null;
-        }
+        public abstract bool IsShared { get; }
 
         /// <summary>
         /// Returns a string representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
-        public override string ToString()
+        public override string? ToString() => Name;
+
+        /// <summary>
+        /// Used to provide functionality to ClrObject.
+        /// </summary>
+        public abstract IClrObjectHelpers ClrObjectHelpers { get; }
+
+        public override bool Equals(object? obj) => Equals(obj as ClrType);
+
+        public bool Equals(ClrType? other)
         {
-            return Name;
+            if (ReferenceEquals(this, other))
+                return true;
+
+            if (other is null)
+                return false;
+
+            if (MethodTable != 0 && other.MethodTable != 0)
+                return MethodTable == other.MethodTable;
+
+            if (other.IsPointer)
+                return ComponentType == other.ComponentType;
+
+            if (IsPrimitive && other.IsPrimitive && ElementType != ClrElementType.Unknown)
+                return ElementType == other.ElementType;
+
+            // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
+            // check if we resolved from the same token out of the same module.
+            if (Module != null && MetadataToken != 0)
+                return Module == other.Module && MetadataToken == other.MetadataToken;
+
+            return false;
+        }
+
+        public override int GetHashCode() => MethodTable.GetHashCode();
+
+        public static bool operator ==(ClrType? left, ClrType? right)
+        {
+            if (right is null)
+                return left is null;
+
+            return right.Equals(left);
+        }
+
+        public static bool operator !=(ClrType? left, ClrType? right)
+        {
+            return !(left == right);
         }
     }
 }

@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly uint HasRegisterInformation;
         public readonly int Register;
         public readonly int Offset;
-        public readonly ulong Address;
-        public readonly ulong Object;
+        public readonly ClrDataAddress Address;
+        public readonly ClrDataAddress Object;
         public readonly uint Flags;
 
         public readonly uint SourceType;
-        public readonly ulong Source;
-        public readonly ulong StackPointer;
+        public readonly ClrDataAddress Source;
+        public readonly ClrDataAddress StackPointer;
     }
 }

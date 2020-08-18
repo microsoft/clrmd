@@ -1,0 +1,98 @@
+<Project>
+
+  <PropertyGroup>
+    <CoverageFormat Condition="'$(CoverageFormat)' == ''">cobertura</CoverageFormat>
+    <CoverageOutputPath Condition="'$(CoverageOutputPath)' == ''">coverage.cobertura.xml</CoverageOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CoverletId />
+  </PropertyGroup>
+
+  <Target Name="BeforeCollectCodeCoverage" BeforeTargets="RunTests">
+    <BeforeCollectCodeCoverageTask TestAssembly="%(TestToRun.Identity)" PipeName="%(TestToRun.Filename)">
+      <Output TaskParameter="CoverletId" PropertyName="CoverletId" />
+    </BeforeCollectCodeCoverageTask>
+  </Target>
+
+  <Target Name="AfterCollectCodeCoverage" AfterTargets="RunTests">
+    <AfterCollectCodeCoverageTask PipeName="%(TestToRun.Filename)" CoverletId="$(CoverletId)" />
+    <!-- <Exec Command="$(DotNetTool) tool run codecov -f '$(CoverageOutputPath)'" /> -->
+  </Target>
+
+  <UsingTask
+    TaskName="BeforeCollectCodeCoverageTask"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.Core">
+
+    <ParameterGroup>
+      <TestAssembly ParameterType="System.String" Required="true" />
+      <PipeName ParameterType="System.String" Required="true" />
+      <CoverletId ParameterType="System.Int32" Output="true" />
+    </ParameterGroup>
+
+    <Task>
+      <Using Namespace="System.Diagnostics" />
+      <Using Namespace="System.IO.Pipes" />
+      <Code>
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} .");
+
+        using var coverlet = Process.Start(
+          @"$(DotNetTool)",
+          $@"tool run coverlet ""{TestAssembly}"" " +
+          @"--format $(CoverageFormat) " +
+          @"--output ""$(CoverageOutputPath)"" " +
+          @"--target ""$(DotNetTool)"" " +
+          @"--targetargs ""tool run pwsh " +
+          $"$server = [System.IO.Pipes.NamedPipeServerStream]::new('{PipeName}');" +
+          "$server.WaitForConnection();" +
+          "$server.ReadByte();" +
+          "$server.Disconnect();" +
+          "$server.WaitForConnection();" +
+          "$server.Disconnect();" +
+          @"""");
+        CoverletId = coverlet.Id;
+
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ..");
+
+        using var client = new NamedPipeClientStream(PipeName);
+        client.Connect();
+        client.WriteByte(0);
+
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ...");
+      </Code>
+    </Task>
+
+  </UsingTask>
+
+  <UsingTask
+    TaskName="AfterCollectCodeCoverageTask"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.Core">
+
+    <ParameterGroup>
+      <PipeName ParameterType="System.String" Required="true" />
+      <CoverletId ParameterType="System.Int32" Required="true" />
+    </ParameterGroup>
+
+    <Task>
+      <Using Namespace="System.Diagnostics" />
+      <Using Namespace="System.IO.Pipes" />
+      <Code>
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ....");
+
+        using var client = new NamedPipeClientStream(PipeName);
+        client.Connect();
+
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} .....");
+
+        using var coverlet = Process.GetProcessById(CoverletId);
+        coverlet.WaitForExit();
+
+        Log.LogMessage(MessageImportance.High, $"Collecting code coverage for {PipeName} ......");
+      </Code>
+    </Task>
+
+  </UsingTask>
+
+</Project>

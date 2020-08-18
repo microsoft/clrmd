@@ -1,6 +1,11 @@
 ﻿using System;
-
+#pragma warning disable 0169
 #pragma warning disable 0414
+
+public static class SharedStaticTest
+{
+    public static int Value;
+}
 
 public class Foo
 {
@@ -11,6 +16,7 @@ public class Foo
     double d = 8.4;
     object o = new object();
     Struct st = new Struct();
+    GenericClass<bool, int, float, string, object> g = new GenericClass<bool, int, float, string, object>();
 
     public string FooString = "Foo string";
 
@@ -29,3 +35,7 @@ public class GenericClass<T1, T2, T3, T4, T5>
 {
     public T5 Invoke(T1 a, T2 b, T3 te, T4 t4) { return default(T5); }
 }
+
+struct EmptyStruct { }
+struct NestedEmptyStruct { EmptyStruct es; }
+public class StructTestClass { Struct s; NestedEmptyStruct nes; }

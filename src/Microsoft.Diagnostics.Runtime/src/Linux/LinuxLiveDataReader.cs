@@ -1,310 +1,272 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
-#if !NET45
+
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     /// <summary>
-    /// A data reader targets a Linux process, implemented by reading /proc/<pid>/maps 
-    /// and /proc/<pid>/mem files. The process must have READ permission to the above 2
-    /// files. 
-    ///   1. The current process can run as root.
-    ///   2. If executed from within a Docker container, the best way is to use "ptrace 
-    ///      attach" to obtain the permission. 
-    ///        - the container should be started with "--cap-add=SYS_PTRACE" or equivalent. 
-    ///        - the process must call the following before constructing the data reader.
-    ///             if (ptrace(PTRACE_ATTACH, targetProcessId, NULL, NULL) != 0) { fail }
-    ///             wait(NULL);
+    /// A data reader that targets a Linux process.
+    /// The current process must have ptrace access to the target process.
     /// </summary>
-    internal class LinuxLiveDataReader : IDataReader2
+    internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private List<MemoryMapEntry> _memoryMapEntries;
-        private FileStream _memoryStream;
-        private List<uint> _threadIDs = new List<uint>();
-        private byte[] _ptrBuffer = new byte[IntPtr.Size];
-        private byte[] _dwordBuffer = new byte[4];
+        private readonly List<uint> _threadIDs = new List<uint>();
 
-        public LinuxLiveDataReader(uint processId)
+        private bool _suspended;
+        private bool _disposed;
+
+        public string DisplayName => $"pid:{ProcessId:x}";
+        public OSPlatform TargetPlatform => OSPlatform.Linux;
+
+        public LinuxLiveDataReader(int processId, bool suspend)
         {
-            this.ProcessId = processId;
-            _memoryMapEntries = this.LoadMemoryMap();
+            int status = kill(processId, 0);
+            if (status < 0 && Marshal.GetLastWin32Error() != EPERM)
+                throw new ArgumentException("The process is not running");
+
+            ProcessId = processId;
+            _memoryMapEntries = LoadMemoryMaps();
+
+            if (suspend)
+            {
+                status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
+
+                if (status >= 0)
+                    status = waitpid(processId, IntPtr.Zero, 0);
+
+                if (status < 0)
+                {
+                    int errno = Marshal.GetLastWin32Error();
+                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", errno);
+                }
+
+                _suspended = true;
+            }
+
+            Architecture = RuntimeInformation.ProcessArchitecture switch
+            {
+                ProcessArchitecture.X86 => Architecture.X86,
+                ProcessArchitecture.X64 => Architecture.Amd64,
+                ProcessArchitecture.Arm => Architecture.Arm,
+                ProcessArchitecture.Arm64 => Architecture.Arm64,
+                _ => Architecture.Unknown,
+            };
         }
 
-        public uint ProcessId { get; private set; }
+        ~LinuxLiveDataReader() => Dispose(false);
 
-        public bool IsMinidump { get { return false; } }
+        public int ProcessId { get; }
 
-        public void Close()
+        public bool IsThreadSafe => false;
+
+        public void Dispose()
         {
-            _memoryStream?.Dispose();
-            _memoryStream = null;
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        public void Flush()
+        private void Dispose(bool _)
+        {
+            if (_disposed)
+                return;
+
+            if (_suspended)
+            {
+                int status = (int)ptrace(PTRACE_DETACH, ProcessId, IntPtr.Zero, IntPtr.Zero);
+                if (status < 0)
+                {
+                    int errno = Marshal.GetLastWin32Error();
+                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
+                }
+
+                _suspended = false;
+            }
+
+            _disposed = true;
+        }
+
+        public void FlushCachedData()
         {
             _threadIDs.Clear();
-            _memoryStream?.Dispose();
-            _memoryStream = null;
-            _memoryMapEntries = this.LoadMemoryMap();
+            _memoryMapEntries = LoadMemoryMaps();
         }
 
-        public Architecture GetArchitecture()
-        {
-            return IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
-        }
+        public Architecture Architecture { get; }
 
-        public uint GetPointerSize()
-        {
-            return (uint)IntPtr.Size;
-        }
+        public IEnumerable<ModuleInfo> EnumerateModules() =>
+            from entry in _memoryMapEntries
+            where !string.IsNullOrEmpty(entry.FilePath)
+            group entry by entry.FilePath into image
+            let filePath = image.Key
+            let containsExecutable = image.Any(entry => entry.IsExecutable)
+            let beginAddress = image.Min(entry => entry.BeginAddress)
+            let props = GetPEImageProperties(filePath)
+            select new ModuleInfo(this, beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
 
-        public IList<ModuleInfo> EnumerateModules()
+        private static (int Filesize, int Timestamp) GetPEImageProperties(string filePath)
         {
-            List<ModuleInfo> result = new List<ModuleInfo>();
-            foreach (var entry in _memoryMapEntries)
+            if (File.Exists(filePath))
             {
-                if (string.IsNullOrEmpty(entry.FilePath))
+                try
                 {
-                    continue;
+                    using PEImage pe = new PEImage(File.OpenRead(filePath));
+                    if (pe.IsValid)
+                        return (pe.IndexFileSize, pe.IndexTimeStamp);
                 }
-                var module = result.FirstOrDefault(m => m.FileName == entry.FileName);
-                if (module == null)
+                catch
                 {
-                    ModuleInfo moduleInfo = new ModuleInfo(this)
+                }
+            }
+
+            return (0, 0);
+        }
+
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+
+        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        {
+            ElfFile? file = GetElfFile(baseAddress);
+            if (file is null)
+            {
+                version = default;
+                return false;
+            }
+            else
+            {
+                return this.GetVersionInfo(baseAddress, file, out version);
+            }
+        }
+
+        private ElfFile? GetElfFile(ulong baseAddress)
+        {
+            MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
+            try
+            {
+                return new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+            }
+            catch (InvalidDataException)
+            {
+                return null;
+            }
+        }
+
+        public override int Read(ulong address, Span<byte> buffer)
+        {
+            DebugOnly.Assert(!buffer.IsEmpty);
+            return ReadMemoryReadv(address, buffer);
+        }
+
+        private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
+        {
+            int readableBytesCount = GetReadableBytesCount(address, buffer.Length);
+            if (readableBytesCount <= 0)
+            {
+                return 0;
+            }
+
+            fixed (byte* ptr = buffer)
+            {
+                var local = new iovec
+                {
+                    iov_base = ptr,
+                    iov_len = (IntPtr)readableBytesCount
+                };
+                var remote = new iovec
+                {
+                    iov_base = (void*)address,
+                    iov_len = (IntPtr)readableBytesCount
+                };
+                int read = (int)process_vm_readv(ProcessId, &local, (UIntPtr)1, &remote, (UIntPtr)1, UIntPtr.Zero).ToInt64();
+                if (read < 0)
+                {
+                    return Marshal.GetLastWin32Error() switch
                     {
-                        ImageBase = entry.BeginAddr,
-                        FileName = entry.FileName
+                        EPERM => throw new UnauthorizedAccessException(),
+                        ESRCH => throw new InvalidOperationException("The process has exited"),
+                        _ => 0
                     };
-                    if (File.Exists(entry.FilePath))
-                    {
-                        var fileInfo = new FileInfo(entry.FilePath);
-                        moduleInfo.FileSize = (uint)fileInfo.Length;
-                        moduleInfo.TimeStamp = (uint)new DateTimeOffset(fileInfo.CreationTimeUtc).ToUnixTimeSeconds();
-                    }
-                    result.Add(moduleInfo);
                 }
-            }
-            return result;
-        }
 
-        public void GetVersionInfo(ulong addr, out VersionInfo version)
-        {
-            foreach (var entry in _memoryMapEntries)
-            {
-                if (addr >= entry.BeginAddr && addr <= entry.EndAddr && !string.IsNullOrEmpty(entry.FilePath))
-                {
-                    Version v = null;
-                    int i1 = entry.FileName.LastIndexOf(".so.");
-                    if (i1 > 0)
-                    {
-                        v = this.ParseForVersion(entry.FileName.Substring(i1 + 4));
-                    }
-                    if (v == null)
-                    {
-                        string dirName = Path.GetFileName(Path.GetDirectoryName(entry.FilePath));
-                        v = this.ParseForVersion(dirName);
-                    }
-                    if (v != null)
-                    {
-                        version = new VersionInfo(v.Major, v.Minor, v.Build, v.Revision);
-                        return;
-                    }
-                }
-            }
-            version = new VersionInfo();
-        }
-
-        public bool ReadMemory(ulong address, byte[] buffer, int bytesRequested, out int bytesRead)
-        {
-            this.OpenMemFile();
-            bytesRead = 0;
-            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
-            if (readableBytesCount <= 0)
-            {
-                return false;
-            }
-            try
-            {
-                _memoryStream.Seek((long)address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(buffer, 0, readableBytesCount);
-                return bytesRead > 0;
-            }
-            catch (Exception)
-            {
-                return false;
+                return read;
             }
         }
 
-        public bool ReadMemory(ulong address, IntPtr buffer, int bytesRequested, out int bytesRead)
+        public IEnumerable<uint> EnumerateOSThreadIds()
         {
-            this.OpenMemFile();
-            bytesRead = 0;
-            int readableBytesCount = this.GetReadableBytesCount(address, bytesRequested);
-            if (readableBytesCount <= 0)
-            {
-                return false;
-            }
-            try
-            {
-                byte[] bytes = new byte[readableBytesCount];
-                _memoryStream.Seek((long)address, SeekOrigin.Begin);
-                bytesRead = _memoryStream.Read(bytes, 0, readableBytesCount);
-                if (bytesRead > 0)
-                {
-                    Marshal.Copy(bytes, 0, buffer, bytesRead);
-                }
-                return bytesRead > 0;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        public ulong ReadPointerUnsafe(ulong address)
-        {
-            if (!ReadMemory(address, _ptrBuffer, IntPtr.Size, out int read))
-            {
-                return 0;
-            }
-            return IntPtr.Size == 4 ? BitConverter.ToUInt32(_ptrBuffer, 0) : BitConverter.ToUInt64(_ptrBuffer, 0);
-        }
-
-        public uint ReadDwordUnsafe(ulong address)
-        {
-            if (!ReadMemory(address, _dwordBuffer, 4, out int read))
-            {
-                return 0;
-            }
-            return BitConverter.ToUInt32(_dwordBuffer, 0);
-        }
-
-        public ulong GetThreadTeb(uint thread)
-        {
-            // not implemented
-            return 0;
-        }
-
-        public IEnumerable<uint> EnumerateAllThreads()
-        {
-            this.LoadThreads();
+            LoadThreads();
             return _threadIDs;
         }
 
-        public bool VirtualQuery(ulong addr, out VirtualQueryData vq)
-        {
-            foreach (var entry in _memoryMapEntries)
-            {
-                if (entry.BeginAddr <= addr && entry.EndAddr >= addr)
-                {
-                    vq = new VirtualQueryData(entry.BeginAddr, entry.EndAddr - entry.BeginAddr + 1);
-                    return true;
-                }
-            }
-            vq = new VirtualQueryData();
-            return false;
-        }
+        public ulong GetThreadTeb(uint _) => 0;
 
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, IntPtr context)
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            this.LoadThreads();
-            if (!_threadIDs.Contains(threadID) || contextSize != AMD64Context.Size)
-            {
+            LoadThreads();
+            if (!_threadIDs.Contains(threadID) || Architecture == Architecture.X86)
                 return false;
-            }
-            AMD64Context* ctx = (AMD64Context*)context.ToPointer();
-            ctx->ContextFlags = (int)contextFlags;
-            IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
+
+            int regSize = Architecture switch
+            {
+                Architecture.Arm => sizeof(RegSetArm),
+                Architecture.Arm64 => sizeof(RegSetArm64),
+                Architecture.Amd64 => sizeof(RegSetX64),
+                _ => sizeof(RegSetX86),
+            };
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
             try
             {
-                ulong ret = ptrace(PTRACE_GETREGS, (int) threadID, IntPtr.Zero, ptr);
-                if (ret != 0)
+                fixed (byte* data = buffer)
                 {
-                    Console.WriteLine($"PTRACE_GETREGS returns {ret:x} for {threadID}");
+                    ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, new IntPtr(data));
                 }
-                RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
-                CopyContext(ctx, ref r);
+
+                switch (Architecture)
+                {
+                    case Architecture.Arm:
+                        Unsafe.As<byte, RegSetArm>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case Architecture.Arm64:
+                        Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case Architecture.Amd64:
+                        Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    default:
+                        Unsafe.As<byte, RegSetX86>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                }
             }
             finally
             {
-                Marshal.FreeHGlobal(ptr);
+                ArrayPool<byte>.Shared.Return(buffer);
             }
+
             return true;
-        }
-
-        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, uint contextSize, byte[] context)
-        {
-            this.LoadThreads();
-            if (!_threadIDs.Contains(threadID) || contextSize != AMD64Context.Size)
-            {
-                return false;
-            }
-            IntPtr ptrContext = Marshal.AllocHGlobal(sizeof(AMD64Context));
-            AMD64Context* ctx = (AMD64Context*)ptrContext;
-            ctx->ContextFlags = (int)contextFlags;
-            IntPtr ptr = Marshal.AllocHGlobal(sizeof(RegSetX64));
-            try
-            {
-                ulong ret = ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, ptr);
-                if (ret != 0)
-                {
-                    Console.WriteLine($"PTRACE_GETREGS returns {ret:x} for {threadID}");
-                }
-                RegSetX64 r = Marshal.PtrToStructure<RegSetX64>(ptr);
-                CopyContext(ctx, ref r);
-                Marshal.Copy(ptrContext, context, 0, sizeof(AMD64Context));
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(ptr);
-                Marshal.FreeHGlobal(ptrContext);
-            }
-            return true;
-        }
-
-        internal IEnumerable<string> GetModulesFullPath()
-        {
-            return _memoryMapEntries.Where(e => !string.IsNullOrEmpty(e.FilePath)).Select(e => e.FilePath).Distinct();
-        }
-
-        private unsafe void CopyContext(AMD64Context* ctx, ref RegSetX64 registerSet)
-        {
-            ctx->R15 = registerSet.R15;
-            ctx->R14 = registerSet.R14;
-            ctx->R13 = registerSet.R13;
-            ctx->R12 = registerSet.R12;
-            ctx->Rbp = registerSet.Rbp;
-            ctx->Rbx = registerSet.Rbx;
-            ctx->R11 = registerSet.R11;
-            ctx->R10 = registerSet.R10;
-            ctx->R9 = registerSet.R9;
-            ctx->R8 = registerSet.R8;
-            ctx->Rax = registerSet.Rax;
-            ctx->Rcx = registerSet.Rcx;
-            ctx->Rdx = registerSet.Rdx;
-            ctx->Rsi = registerSet.Rsi;
-            ctx->Rdi = registerSet.Rdi;
-            ctx->Rip = registerSet.Rip;
-            ctx->Rsp = registerSet.Rsp;
         }
 
         private void LoadThreads()
         {
             if (_threadIDs.Count == 0)
             {
-                string taskDirPath = $"/proc/{this.ProcessId}/task";
-                foreach (var taskDir in Directory.GetDirectories(taskDirPath))
+                string taskDirPath = $"/proc/{ProcessId}/task";
+                foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
                 {
                     string dirName = Path.GetFileName(taskDir);
-                    uint taskId;
-                    if (uint.TryParse(dirName, out taskId) && taskId > 0)
+                    if (uint.TryParse(dirName, out uint taskId))
                     {
                         _threadIDs.Add(taskId);
                     }
@@ -312,192 +274,185 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private void OpenMemFile()
+        private int GetReadableBytesCount(ulong address, int bytesToRead)
         {
-            if (_memoryStream != null)
+            if (bytesToRead <= 0)
             {
-                return;
+                return 0;
             }
-            _memoryStream = File.OpenRead($"/proc/{this.ProcessId}/mem");
+
+            int i = GetMapEntryContaining(address);
+            if (i < 0)
+            {
+                return 0;
+            }
+
+            int bytesReadable;
+            ulong prevEndAddr;
+            {
+                MemoryMapEntry entry = _memoryMapEntries[i];
+                ulong entryEndAddr = entry.EndAddress;
+
+                int regionSize = (int)(entryEndAddr - address);
+                if (regionSize >= bytesToRead)
+                {
+                    return bytesToRead;
+                }
+
+                bytesToRead -= regionSize;
+                bytesReadable = regionSize;
+                prevEndAddr = entryEndAddr;
+            }
+
+            for (i += 1; i < _memoryMapEntries.Count; i++)
+            {
+                MemoryMapEntry entry = _memoryMapEntries[i];
+                ulong entryBeginAddr = entry.BeginAddress;
+                ulong entryEndAddr = entry.EndAddress;
+                if (entryBeginAddr != prevEndAddr || !entry.IsReadable)
+                {
+                    break;
+                }
+
+                int regionSize = (int)(entryEndAddr - entryBeginAddr);
+                if (regionSize >= bytesToRead)
+                {
+                    bytesReadable += bytesToRead;
+                    break;
+                }
+
+                bytesToRead -= regionSize;
+                bytesReadable += regionSize;
+                prevEndAddr = entryEndAddr;
+            }
+
+            return bytesReadable;
         }
 
-        private int GetReadableBytesCount(ulong address, int bytesRequested)
+        private int GetMapEntryContaining(ulong address)
         {
-            if (bytesRequested < 1)
+            int lower = 0;
+            int upper = _memoryMapEntries.Count - 1;
+
+            while (lower <= upper)
             {
-                return 0;
-            }
-            ulong endAddress = address + (ulong)bytesRequested - 1;
-            int startIndex = -1;
-            for (int i = 0; i < _memoryMapEntries.Count; i++)
-            {
-                var entry = _memoryMapEntries[i];
-                if (entry.BeginAddr <= address && address < entry.EndAddr && entry.IsReadable())
+                int mid = (lower + upper) >> 1;
+                MemoryMapEntry entry = _memoryMapEntries[mid];
+                ulong beginAddress = entry.BeginAddress;
+                ulong endAddress = entry.EndAddress;
+
+                if (beginAddress <= address && address < endAddress)
                 {
-                    startIndex = i;
+                    return entry.IsReadable ? mid : -1;
                 }
+
+                if (address < beginAddress)
+                    upper = mid - 1;
+                else
+                    lower = mid + 1;
             }
-            if (startIndex < 0)
+
+            return -1;
+        }
+
+        private List<MemoryMapEntry> LoadMemoryMaps()
+        {
+            List<MemoryMapEntry> result = new List<MemoryMapEntry>();
+            string mapsFilePath = $"/proc/{ProcessId}/maps";
+            using StreamReader reader = new StreamReader(mapsFilePath);
+            while (true)
             {
-                return 0;
-            }
-            int endIndex = _memoryMapEntries.Count - 1;
-            for (int i = startIndex; i < _memoryMapEntries.Count; i++)
-            {
-                var entry = _memoryMapEntries[i];
-                if (!entry.IsReadable()         // the current region is not readable
-                    || entry.BeginAddr > endAddress
-                    || (i > startIndex && _memoryMapEntries[i - 1].EndAddr != entry.BeginAddr))   // the region is no longer continuous
+                string? line = reader.ReadLine();
+                if (string.IsNullOrEmpty(line))
                 {
-                    endIndex = i - 1;
                     break;
                 }
-            }
-            int readableBytesCount = 0;
-            ulong offset = address - _memoryMapEntries[startIndex].BeginAddr;
-            for (int i = startIndex; i <= endIndex; i++)
-            {
-                var entry = _memoryMapEntries[i];
-                ulong regionSize = entry.EndAddr - entry.BeginAddr - offset;
-                if (regionSize >= (ulong) bytesRequested)
+
+                string address, permission, path;
+                string[] parts = line.Split(new char[] { ' ' }, 6, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 5)
                 {
-                    readableBytesCount += bytesRequested;
-                    bytesRequested = 0;
-                    break;
+                    path = string.Empty;
+                }
+                else if (parts.Length == 6)
+                {
+                    path = parts[5].StartsWith("[") ? string.Empty : parts[5];
                 }
                 else
                 {
-                    bytesRequested -= (int)regionSize;
-                    readableBytesCount += (int)regionSize;
+                    DebugOnly.Fail("Unknown data format");
+                    continue;
                 }
-                offset = 0;
-            }
-            return readableBytesCount;
-        }
 
-        private Version ParseForVersion(string s)
-        {
-            StringBuilder b = new StringBuilder();
-            string[] parts = s.Split(new char[] { '-', '.', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in parts)
-            {
-                int i;
-                if (int.TryParse(p, out i))
+                address = parts[0];
+                permission = parts[1];
+                string[] addressBeginEnd = address.Split('-');
+                MemoryMapEntry entry = new MemoryMapEntry()
                 {
-                    if (b.Length > 0)
-                    {
-                        b.Append('.');
-                    }
-                    b.Append(p);
-                }
+                    BeginAddress = Convert.ToUInt64(addressBeginEnd[0], 16),
+                    EndAddress = Convert.ToUInt64(addressBeginEnd[1], 16),
+                    FilePath = path,
+                    Permission = ParsePermission(permission)
+                };
+                result.Add(entry);
             }
-            Version v = null;
-            Version.TryParse(b.ToString(), out v);
-            if (v != null)
-            {
-                if (v.Major < 0)
-                {
-                    v = new Version(0, v.Minor, v.Build, v.Revision);
-                }
-                if (v.Minor < 0)
-                {
-                    v = new Version(v.Major, 0, v.Build, v.Revision);
-                }
-                if (v.Build < 0)
-                {
-                    v = new Version(v.Major, v.Minor, 0, v.Revision);
-                }
-                if (v.Revision < 0)
-                {
-                    v = new Version(v.Major, v.Minor, v.Build, 0);
-                }
-            }
-            return v;
-        }
 
-        private List<MemoryMapEntry> LoadMemoryMap()
-        {
-            List<MemoryMapEntry> result = new List<MemoryMapEntry>();
-            string mapsFilePath = $"/proc/{this.ProcessId}/maps";
-            using (FileStream fs = File.OpenRead(mapsFilePath))
-            using (StreamReader sr = new StreamReader(fs))
-            {
-                while (true)
-                {
-                    string line = sr.ReadLine();
-                    if (string.IsNullOrEmpty(line))
-                    {
-                        break;
-                    }
-                    string address, permission, offset, dev, inode, path;
-                    string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 5)
-                    {
-                        path = string.Empty;
-                    }
-                    else if (parts.Length == 6)
-                    {
-                        path = parts[5].StartsWith("[") ? string.Empty : parts[5];
-                    }
-                    else
-                    {
-                        // Unknown data format 
-                        continue;
-                    }
-                    address = parts[0]; permission = parts[1]; offset = parts[2]; dev = parts[3]; inode = parts[4];
-                    string[] addressBeginEnd = address.Split('-');
-                    MemoryMapEntry entry = new MemoryMapEntry()
-                    {
-                        BeginAddr = Convert.ToUInt64(addressBeginEnd[0], 16),
-                        EndAddr = Convert.ToUInt64(addressBeginEnd[1], 16),
-                        FilePath = path,
-                        FileName = string.IsNullOrEmpty(path) ? string.Empty : Path.GetFileName(path),
-                        Permission = ParsePermission(permission)
-                    };
-                    result.Add(entry);
-                }
-            }
             return result;
         }
 
-        private int ParsePermission(string permission)
+        private static int ParsePermission(string permission)
         {
-            // parse something like rwxp or r-xp. more info see 
-            // https://stackoverflow.com/questions/1401359/understanding-linux-proc-id-maps
-            if (permission.Length != 4)
-            {
-                return 0;
-            }
-            int r = permission[0] != '-' ? 8 : 0;   // 8: can read
-            int w = permission[1] != '-' ? 4 : 0;   // 4: can write
-            int x = permission[2] != '-' ? 2 : 0;   // 2: can execute
-            int p = permission[3] != '-' ? 1 : 0;   // 1: private
-            return r + w + x + p;
+            DebugOnly.Assert(permission.Length == 4);
+
+            // r = read
+            // w = write
+            // x = execute
+            // s = shared
+            // p = private (copy on write)
+            int r = permission[0] == 'r' ? 8 : 0;
+            int w = permission[1] == 'w' ? 4 : 0;
+            int x = permission[2] == 'x' ? 2 : 0;
+            int p = permission[3] == 'p' ? 1 : 0;
+            return r | w | x | p;
         }
 
+        private const int EPERM = 1;
+        private const int ESRCH = 3;
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern ulong ptrace(uint command, int pid, IntPtr addr, IntPtr data);
+        private const string LibC = "libc";
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern int wait(IntPtr status);
+        [DllImport(LibC, SetLastError = true)]
+        private static extern int kill(int pid, int sig);
 
-        private const uint PTRACE_ATTACH = 16;
-        private const uint PTRACE_GETREGS = 12;
+        [DllImport(LibC, SetLastError = true)]
+        private static extern IntPtr ptrace(int request, int pid, IntPtr addr, IntPtr data);
+
+        [DllImport(LibC, SetLastError = true)]
+        private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
+
+        [DllImport(LibC)]
+        private static extern int waitpid(int pid, IntPtr status, int options);
+
+        private unsafe struct iovec
+        {
+            public void* iov_base;
+            public IntPtr iov_len;
+        }
+
+        private const int PTRACE_GETREGS = 12;
+        private const int PTRACE_ATTACH = 16;
+        private const int PTRACE_DETACH = 17;
     }
 
     internal class MemoryMapEntry
     {
-        public ulong BeginAddr { get; set; }
-        public ulong EndAddr { get; set; }
-        public string FilePath { get; set; }
-        public string FileName { get; set; }
+        public ulong BeginAddress { get; set; }
+        public ulong EndAddress { get; set; }
+        public string? FilePath { get; set; }
         public int Permission { get; set; }
 
-        public bool IsReadable()
-        {
-            return (this.Permission & 8) > 0;
-        }
+        public bool IsReadable => (Permission & 8) != 0;
+
+        public bool IsExecutable => (Permission & 2) != 0;
     }
 }
-#endif

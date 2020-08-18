@@ -13,37 +13,33 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void TestAllFinalizableObjects()
         {
-            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                Stats stats = GetStats(runtime.Heap, runtime.Heap.EnumerateFinalizableObjectAddresses());
-                
-                Assert.Equal(0, stats.A);
-                Assert.Equal(13, stats.B);
-                Assert.Equal(25, stats.C);
-            }
+            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            Stats stats = GetStats(runtime.Heap.EnumerateFinalizableObjects());
+
+            Assert.Equal(0, stats.A);
+            Assert.Equal(13, stats.B);
+            Assert.Equal(25, stats.C);
         }
 
         [Fact]
         public void TestFinalizerQueueObjects()
         {
-            using (DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump())
-            {
-                ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-                Stats stats = GetStats(runtime.Heap, runtime.EnumerateFinalizerQueueObjectAddresses());
-                
-                Assert.Equal(42, stats.A);
-                Assert.Equal(0, stats.B);
-                Assert.Equal(0, stats.C);
-            }
+            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            Stats stats = GetStats(runtime.Heap.EnumerateFinalizerRoots().Select(r => r.Object));
+
+            Assert.Equal(42, stats.A);
+            Assert.Equal(0, stats.B);
+            Assert.Equal(0, stats.C);
         }
-        
-        private static Stats GetStats(ClrHeap heap, IEnumerable<ulong> addresses)
+
+        private static Stats GetStats(IEnumerable<ClrObject> objs)
         {
             var stats = new Stats();
-            foreach (var address in addresses)
+            foreach (ClrObject obj in objs)
             {
-                var type = heap.GetObjectType(address);
+                var type = obj.Type;
                 if (type.Name == "SampleA")
                     stats.A++;
                 else if (type.Name == "SampleB")
@@ -54,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             return stats;
         }
-        
+
         private class Stats
         {
             public int A;
