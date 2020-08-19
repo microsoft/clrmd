@@ -106,6 +106,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             catch (BadImageFormatException)
             {
             }
+            catch (EndOfStreamException)
+            {
+            }
         }
 
         internal int ResourceVirtualAddress => PEHeader?.ResourceTableDirectory.RelativeVirtualAddress ?? 0;
