@@ -157,14 +157,64 @@ namespace Microsoft.Diagnostics.Runtime
 
         public T GetValue<T>(params int[] indices) where T : unmanaged => GetValue<T>(false, indices);
 
+        // This helper method returns the address of the item at a given index of an array.
+        // - reference type object: the array item at the given index contains the address so it has to be read.
+        // - value type object: it will be embedded inside the array itself so the address is computed relatively to the array itself.
+        private ulong GetItemAddress(int index, bool isObjectReference)
+        {
+            if (Rank != 1)
+                throw new ArgumentException($"Array {Address:x} was not a one-dimensional array.  Type: {Type?.Name ?? "null"}");
+
+            int valueOffset = index;
+            int dataByteOffset = 2 * IntPtr.Size;
+
+            if (IsMultiDimensional)
+            {
+                valueOffset -= GetMultiDimensionalBound(1);
+                if ((uint)valueOffset >= GetMultiDimensionalBound(0))
+                    throw new ArgumentOutOfRangeException(nameof(index));
+
+                dataByteOffset += 2 * sizeof(int);
+            }
+            else
+            {
+                if ((uint)valueOffset >= Length)
+                    throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+
+            int elementSize = isObjectReference ? UIntPtr.Size : Type.ComponentSize;
+            int valueByteOffset = dataByteOffset + valueOffset * elementSize;
+
+            if (isObjectReference)
+            {
+                return Type.ClrObjectHelpers.DataReader.Read<UIntPtr>(Address + (ulong)valueByteOffset).ToUInt64();
+            }
+            else
+            {
+                return Address + (ulong)valueByteOffset;
+            }
+        }
+
+        public ClrValueType GetStructValue(int index)
+        {
+            if (Type.ComponentType.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain value type instances.");
+
+            ulong address = GetItemAddress(index, false);
+            return new ClrValueType(address, Type.ComponentType, false);
+        }
+
+
         public ClrObject GetObjectValue(int index)
         {
-            if (!Type.IsObjectReference)
+            if (!Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            ulong address = GetValue<UIntPtr>(isObjectReference: true, index).ToUInt64();
+            ulong address = GetItemAddress(index, true);
             return Type.Heap.GetObject(address);
         }
+
 
         public ClrObject GetObjectValue(params int[] indices)
         {

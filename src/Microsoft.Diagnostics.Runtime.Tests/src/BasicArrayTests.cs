@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             _connection = connection;
         }
 
+
         [Fact]
         public void Length_WhenPrimitiveValueTypeArray_ReturnsExpected()
         {
@@ -274,6 +275,77 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Assert
             Assert.Equal(originalArray[fromStart..], datetimes);
+        }
+
+        [Fact]
+        public void GetStructValue_WhenPrimitiveValueTypeArray_ReturnsExpectedType()
+        {
+            // Arrange
+            ClrArray intArraySnapshot = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
+
+            // Act
+            var value = intArraySnapshot.GetStructValue(0);
+
+            // Assert
+            Assert.Equal("System.Int32", value.Type.Name);
+        }
+
+        [Fact]
+        public void GetStructValue_WhenCustomStructArray_ReturnsExpectedType()
+        {
+            // Arrange
+            ClrArray customStructArray = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
+
+            // Act
+            var value = customStructArray.GetStructValue(0);
+
+            // Assert
+            Assert.Equal("SampleStruct", value.Type.Name);
+        }
+
+        [Fact]
+        public void GetStructValue_WhenReferenceTypeArray_Throws()
+        {
+            // Arrange
+            ClrArray referenceArraySnapshot = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => referenceArraySnapshot.GetStructValue(0));
+        }
+
+        [Theory]
+        [InlineData(-2)]
+        [InlineData(-1)]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void GetObjectValue_WhenReferenceTypeArray_ReturnsExpectedValue(int offset)
+        {
+            // Arrange
+            var originalArray = _prototype.StringArray;
+            ClrArray referenceArraySnapshot = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
+            var index = (offset < 0) ? originalArray.Length + offset : offset;
+
+            // Act
+            var value = referenceArraySnapshot.GetObjectValue(index);
+
+            // Assert
+            Assert.Equal(_prototype.StringArray[index], value.AsString());
+        }
+
+        [Fact]
+        public void GetObjectValue_WhenValueTypeArray_Throws()
+        {
+            // Arrange
+            ClrArray customStructArray = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => customStructArray.GetObjectValue(0));
         }
     }
 }
