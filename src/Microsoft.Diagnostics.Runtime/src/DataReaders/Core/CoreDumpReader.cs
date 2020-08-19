@@ -106,9 +106,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is null)
             {
-                using PEImage pe = image.OpenAsPEImage();
-                filesize = pe.IndexFileSize;
-                timestamp = pe.IndexTimeStamp;
+                using Stream stream = image.CreateStream();
+                PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
             }
             else
             {
