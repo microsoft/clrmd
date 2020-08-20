@@ -27,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             _connection = connection;
         }
 
-
         [Fact]
         public void Length_WhenPrimitiveValueTypeArray_ReturnsExpected()
         {
