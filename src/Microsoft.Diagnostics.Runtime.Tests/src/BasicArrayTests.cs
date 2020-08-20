@@ -27,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             _connection = connection;
         }
 
-
         [Fact]
         public void Length_WhenPrimitiveValueTypeArray_ReturnsExpected()
         {
@@ -306,6 +305,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void GetStructValue_WhenNegativeIndex_Throws()
+        {
+            // Arrange
+            ClrArray customStructArray = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
+
+            // Act & Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => customStructArray.GetStructValue(-1));
+        }
+
+        [Fact]
         public void GetStructValue_WhenReferenceTypeArray_Throws()
         {
             // Arrange
@@ -346,6 +356,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => customStructArray.GetObjectValue(0));
+        }
+
+        [Fact]
+        public void GetObjectValue_WhenNegativeIndex_Throws()
+        {
+            // Arrange
+            ClrArray referenceArraySnapshot = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
+
+            // Act & Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => referenceArraySnapshot.GetObjectValue(-1));
         }
     }
 }

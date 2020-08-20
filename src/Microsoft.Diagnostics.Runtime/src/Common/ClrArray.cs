@@ -165,6 +165,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (Rank != 1)
                 throw new ArgumentException($"Array {Address:x} was not a one-dimensional array.  Type: {Type?.Name ?? "null"}");
 
+            if (index < 0)
+                throw new ArgumentOutOfRangeException(nameof(index), index, "An array index cannot be negative.");
+
             int valueOffset = index;
             int dataByteOffset = 2 * IntPtr.Size;
 
@@ -198,6 +201,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrValueType GetStructValue(int index)
         {
+            if (Type.ComponentType == null)
+                return new ClrValueType();
+
             if (Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain value type instances.");
 
@@ -208,6 +214,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrObject GetObjectValue(int index)
         {
+            if (Type.ComponentType == null)
+                return new ClrObject();
+
             if (!Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
