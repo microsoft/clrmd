@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             public ulong BeginAddress { get; set; }
             public ulong EndAddress { get; set; }
 
-            internal int Permission;
+            public int Permission { get; set; }
 
             public bool IsReadable => (Permission & Native.PROT_READ) != 0;
         }
