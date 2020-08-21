@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ClrValueType GetStructValue(int index)
+        public ClrValueType GetStructValue(int index, bool interior = false)
         {
             if (Type.ComponentType == null)
                 return new ClrValueType();
@@ -208,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"{Type} does not contain value type instances.");
 
             ulong address = GetItemAddress(index, false);
-            return new ClrValueType(address, Type.ComponentType, false);
+            return new ClrValueType(address, Type.ComponentType, interior);
         }
 
 
