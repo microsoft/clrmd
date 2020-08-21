@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public ElfVirtualAddressSpace(ImmutableArray<ElfProgramHeader> segments, IAddressSpace addressSpace)
         {
             // FileSize == 0 means the segment isn't backed by any data
-            _segments = segments.Where(segment => segment.FileSize > 0).OrderBy(segment => segment.VirtualAddress).ToArray();
+            _segments = segments.Where(segment => segment.FileSize > 0).OrderBy(segment => segment.VirtualAddress).ThenBy(segment => segment.VirtualSize).ToArray();
             ElfProgramHeader lastSegment = _segments[_segments.Length - 1];
             Length = lastSegment.VirtualAddress + lastSegment.FileSize;
             _addressSpace = addressSpace;
