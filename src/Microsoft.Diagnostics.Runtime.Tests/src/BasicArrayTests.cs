@@ -291,6 +291,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void GetStructValue_WhenValueTypeArray_ReturnsExpectedValue()
+        {
+            // Arrange
+            ClrArray structArraySnapshot = _arrayHolder
+                .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
+
+            // Act
+            var item = structArraySnapshot.GetStructValue(0, true);
+            var intFieldValue = item.ReadField<int>("Number");
+            var stringFieldValue = item.ReadField<UIntPtr>("ReferenceLoad");
+            var fieldType = _heap.GetObjectType(stringFieldValue.ToUInt64());
+
+            // Assert
+            Assert.Equal(_prototype.StructArray[0].Number, intFieldValue);
+            Assert.True(fieldType.IsString);
+            Assert.Equal(_prototype.StructArray[0].ReferenceLoad, new ClrObject(stringFieldValue.ToUInt64(), fieldType).AsString());
+        }
+
+
+        [Fact]
         public void GetStructValue_WhenCustomStructArray_ReturnsExpectedType()
         {
             // Arrange
