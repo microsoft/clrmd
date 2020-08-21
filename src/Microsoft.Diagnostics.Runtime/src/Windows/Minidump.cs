@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ToImmutableArray();
+            return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ThenBy(s => s.Size).ToImmutableArray();
         }
 
         private static unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)
