@@ -372,6 +372,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             int read = stream.Read(buffer);
+            if (read == 0)
+                return default;
+
             if (read < buffer.Length)
                 buffer = buffer.Slice(0, read);
 
