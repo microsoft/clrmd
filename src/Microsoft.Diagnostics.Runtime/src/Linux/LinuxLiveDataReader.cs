@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private ImmutableArray<MemoryMapEntry>.Builder _memoryMapEntries;
-        private readonly List<uint> _threadIDs = new List<uint>();
+        private readonly List<uint> _threadIDs = new();
 
         private bool _suspended;
         private bool _disposed;

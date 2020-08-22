@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class GCRoot
     {
-        private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
+        private static readonly Stack<ClrObject> s_emptyStack = new();
 
         /// <summary>
         /// Since GCRoot can be long running, this event will provide periodic updates to how many objects the algorithm

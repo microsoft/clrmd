@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
     internal sealed class ObjectPool<T>
         where T : new()
     {
-        private readonly Queue<T> _bag = new Queue<T>();
+        private readonly Queue<T> _bag = new();
         private readonly Action<ObjectPool<T>, T> _setOwner;
 
         public ObjectPool(Action<ObjectPool<T>, T> setOwner)

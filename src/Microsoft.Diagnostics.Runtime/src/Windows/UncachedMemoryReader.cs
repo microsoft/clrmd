@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private readonly ImmutableArray<MinidumpSegment> _segments;
         private readonly Stream _stream;
-        private readonly object _sync = new object();
+        private readonly object _sync = new();
         private readonly bool _leaveOpen;
 
         public UncachedMemoryReader(ImmutableArray<MinidumpSegment> segments, Stream stream, int pointerSize, bool leaveOpen)

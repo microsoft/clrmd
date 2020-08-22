@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class HeapSegmentDataCache : IDisposable
     {
-        private ReaderWriterLockSlim _cacheLock = new ReaderWriterLockSlim();
-        private Dictionary<ulong, SegmentCacheEntry> _cache = new Dictionary<ulong, SegmentCacheEntry>();
+        private ReaderWriterLockSlim _cacheLock = new();
+        private Dictionary<ulong, SegmentCacheEntry> _cache = new();
         private SegmentCacheEntryFactory _entryFactory;
 
         private long _cacheSize;

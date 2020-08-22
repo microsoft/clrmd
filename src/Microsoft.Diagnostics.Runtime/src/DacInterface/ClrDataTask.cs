@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe class ClrDataTask : CallableCOMWrapper
     {
-        private static readonly Guid IID_IXCLRDataTask = new Guid("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
+        private static readonly Guid IID_IXCLRDataTask = new("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 
         public ClrDataTask(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, IID_IXCLRDataTask, pUnk)

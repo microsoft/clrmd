@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public abstract class COMHelper
     {
-        protected static readonly Guid IUnknownGuid = new Guid("00000000-0000-0000-C000-000000000046");
+        protected static readonly Guid IUnknownGuid = new("00000000-0000-0000-C000-000000000046");
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         protected delegate int AddRefDelegate(IntPtr self);

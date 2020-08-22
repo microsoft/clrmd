@@ -43,26 +43,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a value indicating whether the handle is strong (roots the object).
         /// </summary>
-        public bool IsStrong
+        public bool IsStrong => HandleKind switch
         {
-            get
-            {
-                switch (HandleKind)
-                {
-                    case ClrHandleKind.RefCounted:
-                        return ReferenceCount > 0;
-
-                    case ClrHandleKind.WeakLong:
-                    case ClrHandleKind.WeakShort:
-                    case ClrHandleKind.Dependent:
-                    case ClrHandleKind.WeakWinRT:
-                        return false;
-
-                    default:
-                        return true;
-                }
-            }
-        }
+            ClrHandleKind.RefCounted => ReferenceCount > 0,
+            ClrHandleKind.WeakLong or
+            ClrHandleKind.WeakShort or
+            ClrHandleKind.Dependent or
+            ClrHandleKind.WeakWinRT => false,
+            _ => true,
+        };
 
         public ClrRootKind RootKind => IsStrong ? (ClrRootKind)HandleKind : ClrRootKind.None;
 

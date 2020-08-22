@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// </summary>
     public sealed unsafe class ClrDataProcess : CallableCOMWrapper
     {
-        private static readonly Guid IID_IXCLRDataProcess = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
+        private static readonly Guid IID_IXCLRDataProcess = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
         private readonly DacLibrary _library;
 
         public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
