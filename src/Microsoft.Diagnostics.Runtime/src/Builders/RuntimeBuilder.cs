@@ -34,15 +34,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly ulong _firstThread;
 
         private volatile ClrType?[]? _basicTypes;
-        private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
-        private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
+        private readonly Dictionary<ulong, ClrAppDomain> _domains = new();
+        private readonly Dictionary<ulong, ClrModule> _modules = new();
 
         private readonly ClrmdRuntime _runtime;
         private readonly ClrmdHeap _heap;
 
         private volatile StringReader? _stringReader;
 
-        private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>();
+        private readonly Dictionary<ulong, ClrType> _types = new();
 
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ObjectPool<MethodBuilder> _methodBuilders;
@@ -180,13 +180,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     {
                         // As long as we got at least one heap we'll count that as success
                         result = true;
-                        ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                        ProcessHeap(segBuilder, heapList[i], clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                     }
                 }
             }
             else if (_sos.GetWksHeapDetails(out HeapDetails heap))
             {
-                ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                ProcessHeap(segBuilder, 0, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                 result = true;
             }
 
@@ -201,6 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private void ProcessHeap(
             SegmentBuilder segBuilder,
+            ulong heapAddress,
             ClrHeap clrHeap,
             in HeapDetails heap,
             ImmutableArray<MemoryRange>.Builder allocationContexts,
@@ -214,14 +215,30 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
             fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));
 
-            AddSegments(segBuilder, clrHeap, large: true, heap, segments, heap.GenerationTable[3].StartSegment);
-            AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: true, pinned: false, heap, segments, heap.GenerationTable[3].StartSegment);
+            AddSegments(segBuilder, clrHeap, large: false, pinned: false, heap, segments, heap.GenerationTable[2].StartSegment);
+
+            if (_sos8 != null)
+            {
+                if (_sos8.GenerationCount == 5)
+                {
+                    GenerationData[]? genData;
+                    if (clrHeap.IsServer)
+                        genData = _sos8.GetGenerationTable(heapAddress);
+                    else
+                        genData = _sos8.GetGenerationTable();
+
+                    if (genData != null && genData.Length > 3)
+                        AddSegments(segBuilder, clrHeap, large: false, pinned: true, heap, segments, genData[4].StartSegment);
+                }
+            }
         }
 
-        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, bool pinned, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
             segBuilder.IsLargeObjectSegment = large;
+            segBuilder.IsPinnedObjectSegment = pinned;
 
             while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
             {
@@ -687,7 +704,20 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
+        ulong IRuntimeHelpers.GetMethodDesc(ulong ip)
+        {
+            ulong md = _sos.GetMethodDescPtrFromIP(ip);
+            if (md == 0)
+            {
+                if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
+                    return 0;
+
+                if ((md = codeHeaderData.MethodDesc) == 0)
+                    return 0;
+            }
+
+            return md;
+        }
         string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
 
         public IExceptionHelpers ExceptionHelpers => this;
@@ -1005,6 +1035,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             if (mt == 0)
                 return null;
+
+            // Remove marking bit.
+            mt &= ~1ul;
 
             {
                 ClrType? result = TryGetType(mt);

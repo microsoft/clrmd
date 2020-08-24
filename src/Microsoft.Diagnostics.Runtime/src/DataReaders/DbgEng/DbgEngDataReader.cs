@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         private List<ModuleInfo>? _modules;
         private int? _pointerSize;
         private Architecture? _architecture;
-        private static readonly RefCountedFreeLibrary _library = new RefCountedFreeLibrary(IntPtr.Zero);
+        private static readonly RefCountedFreeLibrary _library = new(IntPtr.Zero);
 
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Windows;
@@ -123,43 +123,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int ProcessId => (int)_systemObjects.GetProcessId();
 
-        public Architecture Architecture
+        public Architecture Architecture => _architecture ??= _control.GetEffectiveProcessorType() switch
         {
-            get
-            {
-                if (_architecture is Architecture architecture)
-                    return architecture;
-
-                IMAGE_FILE_MACHINE machineType = _control.GetEffectiveProcessorType();
-                switch (machineType)
-                {
-                    case IMAGE_FILE_MACHINE.I386:
-                        architecture = Architecture.X86;
-                        break;
-
-                    case IMAGE_FILE_MACHINE.AMD64:
-                        architecture = Architecture.Amd64;
-                        break;
-
-                    case IMAGE_FILE_MACHINE.ARM:
-                    case IMAGE_FILE_MACHINE.THUMB:
-                    case IMAGE_FILE_MACHINE.THUMB2:
-                        architecture = Architecture.Arm;
-                        break;
-
-                    case IMAGE_FILE_MACHINE.ARM64:
-                        architecture = Architecture.Arm64;
-                        break;
-
-                    default:
-                        architecture = Architecture.Unknown;
-                        break;
-                }
-
-                _architecture = architecture;
-                return architecture;
-            }
-        }
+            IMAGE_FILE_MACHINE.I386 => Architecture.X86,
+            IMAGE_FILE_MACHINE.AMD64 => Architecture.Amd64,
+            IMAGE_FILE_MACHINE.ARM or
+            IMAGE_FILE_MACHINE.THUMB or
+            IMAGE_FILE_MACHINE.THUMB2 => Architecture.Arm,
+            IMAGE_FILE_MACHINE.ARM64 => Architecture.Arm64,
+            _ => Architecture.Unknown,
+        };
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport("dbgeng.dll")]

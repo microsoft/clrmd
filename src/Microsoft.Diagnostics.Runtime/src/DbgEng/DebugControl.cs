@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         public const int INITIAL_BREAK = 0x20;
 
-        internal static readonly Guid IID_IDebugControl2 = new Guid("d4366723-44df-4bed-8c7e-4c05424f4588");
+        internal static readonly Guid IID_IDebugControl2 = new("d4366723-44df-4bed-8c7e-4c05424f4588");
 
         private readonly DebugSystemObjects _sys;
 

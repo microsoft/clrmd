@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly Guid _guid;
         private readonly COMCallableIUnknown _wrapper;
         private readonly bool _forceValidation;
-        private readonly List<Delegate> _delegates = new List<Delegate>();
+        private readonly List<Delegate> _delegates = new();
 
         private bool _complete;
 

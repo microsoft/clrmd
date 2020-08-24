@@ -22,8 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     /// </summary>
     internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
-        private List<MemoryMapEntry> _memoryMapEntries;
-        private readonly List<uint> _threadIDs = new List<uint>();
+        private ImmutableArray<MemoryMapEntry>.Builder _memoryMapEntries;
+        private readonly List<uint> _threadIDs = new();
 
         private bool _suspended;
         private bool _disposed;
@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
         {
-            int readableBytesCount = GetReadableBytesCount(address, buffer.Length);
+            int readableBytesCount = this.GetReadableBytesCount(this._memoryMapEntries, address, buffer.Length);
             if (readableBytesCount <= 0)
             {
                 return 0;
@@ -274,90 +274,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private int GetReadableBytesCount(ulong address, int bytesToRead)
+        private ImmutableArray<MemoryMapEntry>.Builder LoadMemoryMaps()
         {
-            if (bytesToRead <= 0)
-            {
-                return 0;
-            }
-
-            int i = GetMapEntryContaining(address);
-            if (i < 0)
-            {
-                return 0;
-            }
-
-            int bytesReadable;
-            ulong prevEndAddr;
-            {
-                MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryEndAddr = entry.EndAddress;
-
-                int regionSize = (int)(entryEndAddr - address);
-                if (regionSize >= bytesToRead)
-                {
-                    return bytesToRead;
-                }
-
-                bytesToRead -= regionSize;
-                bytesReadable = regionSize;
-                prevEndAddr = entryEndAddr;
-            }
-
-            for (i += 1; i < _memoryMapEntries.Count; i++)
-            {
-                MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr != prevEndAddr || !entry.IsReadable)
-                {
-                    break;
-                }
-
-                int regionSize = (int)(entryEndAddr - entryBeginAddr);
-                if (regionSize >= bytesToRead)
-                {
-                    bytesReadable += bytesToRead;
-                    break;
-                }
-
-                bytesToRead -= regionSize;
-                bytesReadable += regionSize;
-                prevEndAddr = entryEndAddr;
-            }
-
-            return bytesReadable;
-        }
-
-        private int GetMapEntryContaining(ulong address)
-        {
-            int lower = 0;
-            int upper = _memoryMapEntries.Count - 1;
-
-            while (lower <= upper)
-            {
-                int mid = (lower + upper) >> 1;
-                MemoryMapEntry entry = _memoryMapEntries[mid];
-                ulong beginAddress = entry.BeginAddress;
-                ulong endAddress = entry.EndAddress;
-
-                if (beginAddress <= address && address < endAddress)
-                {
-                    return entry.IsReadable ? mid : -1;
-                }
-
-                if (address < beginAddress)
-                    upper = mid - 1;
-                else
-                    lower = mid + 1;
-            }
-
-            return -1;
-        }
-
-        private List<MemoryMapEntry> LoadMemoryMaps()
-        {
-            List<MemoryMapEntry> result = new List<MemoryMapEntry>();
+            ImmutableArray<MemoryMapEntry>.Builder result = ImmutableArray.CreateBuilder<MemoryMapEntry>();
             string mapsFilePath = $"/proc/{ProcessId}/maps";
             using StreamReader reader = new StreamReader(mapsFilePath);
             while (true)
@@ -444,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private const int PTRACE_DETACH = 17;
     }
 
-    internal class MemoryMapEntry
+    internal struct MemoryMapEntry : IRegion
     {
         public ulong BeginAddress { get; set; }
         public ulong EndAddress { get; set; }

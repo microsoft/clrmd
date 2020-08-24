@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const int MaxGen2ObjectSize = 85000;
         private readonly IHeapHelpers _helpers;
 
-        private readonly object _sync = new object();
+        private readonly object _sync = new();
         private volatile VolatileHeapData? _volatileHeapData;
         private volatile VolatileSyncBlockData? _volatileSyncBlocks;
         private ulong _lastComFlags;
@@ -463,7 +463,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         class VolatileHeapData
         {
-            private readonly object _sync = new object();
+            private readonly object _sync = new();
             private ImmutableArray<(ulong Source, ulong Target)> _dependentHandles;
 
             public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }

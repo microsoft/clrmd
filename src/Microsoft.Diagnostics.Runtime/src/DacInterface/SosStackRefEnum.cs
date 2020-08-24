@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class SOSStackRefEnum : CallableCOMWrapper
     {
-        private static readonly Guid IID_ISOSStackRefEnum = new Guid("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
+        private static readonly Guid IID_ISOSStackRefEnum = new("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
 
 
         public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)

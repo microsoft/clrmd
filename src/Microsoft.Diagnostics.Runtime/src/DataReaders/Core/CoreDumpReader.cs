@@ -33,31 +33,14 @@ namespace Microsoft.Diagnostics.Runtime
             _core = new ElfCoreFile(_stream);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
-            switch (architecture)
+            (PointerSize, Architecture) = architecture switch
             {
-                case ElfMachine.EM_X86_64:
-                    PointerSize = 8;
-                    Architecture = Architecture.Amd64;
-                    break;
-
-                case ElfMachine.EM_386:
-                    PointerSize = 4;
-                    Architecture = Architecture.X86;
-                    break;
-
-                case ElfMachine.EM_AARCH64:
-                    PointerSize = 8;
-                    Architecture = Architecture.Arm64;
-                    break;
-
-                case ElfMachine.EM_ARM:
-                    PointerSize = 4;
-                    Architecture = Architecture.Arm;
-                    break;
-
-                default:
-                    throw new NotImplementedException($"Support for {architecture} not yet implemented.");
-            }
+                ElfMachine.EM_X86_64  => (8, Architecture.Amd64),
+                ElfMachine.EM_386     => (4, Architecture.X86),
+                ElfMachine.EM_AARCH64 => (8, Architecture.Arm64),
+                ElfMachine.EM_ARM     => (4, Architecture.Arm),
+                _ => throw new NotImplementedException($"Support for {architecture} not yet implemented."),
+            };
         }
 
         public bool IsThreadSafe => false;
@@ -106,9 +89,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is null)
             {
-                using PEImage pe = image.OpenAsPEImage();
-                filesize = pe.IndexFileSize;
-                timestamp = pe.IndexTimeStamp;
+                using Stream stream = image.CreateStream();
+                PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
             }
             else
             {
@@ -133,8 +115,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<uint> EnumerateOSThreadIds()
         {
-            Dictionary<uint, IElfPRStatus> threads = LoadThreads();
-            return threads.Keys;
+            foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+                yield return status.ThreadId;
         }
 
         public ulong GetThreadTeb(uint osThreadId) => 0;

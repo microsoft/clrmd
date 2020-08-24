@@ -40,31 +40,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
+        public ImmutableArray<uint> OrderedThreads => _threadTask.Result.Threads;
+
         public ImmutableDictionary<uint, ulong> Tebs => _threadTask.Result.Tebs;
 
         public ImmutableArray<MinidumpModule> Modules { get; }
 
         public MinidumpProcessorArchitecture Architecture { get; }
 
-        public int PointerSize
+        public int PointerSize => Architecture switch
         {
-            get
-            {
-                switch (Architecture)
-                {
-                    case MinidumpProcessorArchitecture.Arm64:
-                    case MinidumpProcessorArchitecture.Amd64:
-                        return 8;
-
-                    case MinidumpProcessorArchitecture.Intel:
-                    case MinidumpProcessorArchitecture.Arm:
-                        return 4;
-
-                    default:
-                        throw new NotImplementedException($"Not implemented for architecture {Architecture}.");
-                }
-            }
-        }
+            MinidumpProcessorArchitecture.Arm64 or MinidumpProcessorArchitecture.Amd64 => 8,
+            MinidumpProcessorArchitecture.Intel or MinidumpProcessorArchitecture.Arm => 4,
+            _ => throw new NotImplementedException($"Not implemented for architecture {Architecture}."),
+        };
 
         public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
         {
@@ -195,10 +184,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                               orderby d.StreamType ascending
                               select d;
 
+            var threadBuilder = ImmutableArray.CreateBuilder<uint>();
+
             byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
             {
-
                 foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType == MinidumpStreamType.ThreadListStream || d.StreamType == MinidumpStreamType.ThreadExListStream))
                 {
                     if (directory.StreamType == MinidumpStreamType.ThreadListStream)
@@ -213,6 +203,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
                         {
                             MinidumpThread thread = Unsafe.As<byte, MinidumpThread>(ref buffer[i]);
+
+                            if (!threadContextLocations.ContainsKey(thread.ThreadId))
+                                threadBuilder.Add(thread.ThreadId);
+
                             threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
                         }
                     }
@@ -228,6 +222,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
                         {
                             MinidumpThreadEx thread = Unsafe.As<byte, MinidumpThreadEx>(ref buffer[i]);
+
+                            if (!threadContextLocations.ContainsKey(thread.ThreadId))
+                                threadBuilder.Add(thread.ThreadId);
+
                             threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
                         }
                     }
@@ -249,7 +247,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         {
                             MinidumpThreadInfo thread = Unsafe.As<byte, MinidumpThreadInfo>(ref buffer[i]);
                             if (!threadContextLocations.ContainsKey(thread.ThreadId))
+                            {
                                 threadContextLocations[thread.ThreadId] = (0, 0, 0);
+                                threadBuilder.Add(thread.ThreadId);
+                            }
                         }
                     }
                 }
@@ -273,7 +274,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return new ThreadReadResult()
             {
                 ContextData = contextBuilder.MoveToImmutable(),
-                Tebs = tebBuilder.ToImmutable()
+                Tebs = tebBuilder.ToImmutable(),
+                Threads = threadBuilder.ToImmutable()
             };
         }
         #endregion
@@ -313,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ToImmutableArray();
+            return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ThenBy(s => s.Size).ToImmutableArray();
         }
 
         private static unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)
@@ -423,6 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             public ImmutableArray<MinidumpContextData> ContextData;
             public ImmutableDictionary<uint, ulong> Tebs;
+            public ImmutableArray<uint> Threads;
         }
     }
 

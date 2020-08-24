@@ -70,6 +70,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsLargeObjectSegment { get; }
 
         /// <summary>
+        /// Returns true if this is a segment for the Pinned Object Heap.  False otherwise.
+        /// </summary>
+        public abstract bool IsPinnedObjectSegment { get; }
+
+        /// <summary>
         /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1
         /// objects).
         /// </summary>

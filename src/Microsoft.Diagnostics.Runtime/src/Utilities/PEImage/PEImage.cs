@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -104,6 +105,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Reader = reader;
             }
             catch (BadImageFormatException)
+            {
+            }
+            catch (EndOfStreamException)
             {
             }
         }
@@ -337,6 +341,73 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return result.MoveOrCopyToImmutable();
+        }
+
+        internal static bool ReadIndexProperties(Stream stream, out int buildTimeStamp, out int imageSize)
+        {
+            buildTimeStamp = 0;
+            imageSize = 0;
+
+            if (Read<ushort>(stream, 0) != ExpectedDosHeaderMagic)
+                return false;
+
+            int peHeaderOffset = Read<int>(stream, PESignatureOffsetLocation);
+            ImageFileHeader header = Read<ImageFileHeader>(stream, peHeaderOffset);
+            if (header.Magic != ExpectedPESignature)
+                return false;
+
+            buildTimeStamp = header.TimeDateStamp;
+
+            int optionalHeaderOffset = peHeaderOffset + sizeof(ImageFileHeader);
+            ImageOptionalHeader optional = Read<ImageOptionalHeader>(stream, optionalHeaderOffset);
+            if (optional.Magic != 0x010b && optional.Magic != 0x020b)
+                return false;
+
+            imageSize = optional.SizeOfImage;
+
+            return true;
+        }
+
+        private static T Read<T>(Stream stream) where T: unmanaged
+        {
+            Span<byte> buffer = stackalloc byte[sizeof(T)];
+            int read = stream.Read(buffer);
+            if (read == 0)
+                return default;
+
+            if (read < buffer.Length)
+                buffer = buffer.Slice(0, read);
+
+            return Unsafe.As<byte, T>(ref buffer[0]);
+        }
+
+        private static T Read<T>(Stream stream, int offset) where T : unmanaged
+        {
+            stream.Seek(offset, SeekOrigin.Begin);
+            return Read<T>(stream);
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        private struct ImageFileHeader
+        {
+            public uint Magic;
+            public ushort Machine;
+            public ushort NumberOfSections;
+            public int TimeDateStamp;
+            public uint PointerToSymbolTable;
+            public uint NumberOfSymbols;
+            public ushort SizeOfOptionalHeader;
+            public ushort Characteristics;
+        }
+
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct ImageOptionalHeader
+        {
+            [FieldOffset(0)]
+            public ushort Magic;
+            [FieldOffset(56)]
+            public int SizeOfImage;
         }
     }
 }

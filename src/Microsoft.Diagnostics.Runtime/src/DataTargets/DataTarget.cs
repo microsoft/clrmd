@@ -28,8 +28,8 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
         private string? _symlink;
-        private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
-        private readonly object _sync = new object();
+        private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _sync = new();
 
         /// <summary>
         /// Gets the data reader for this instance.

@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugAdvanced : CallableCOMWrapper
     {
-        internal static readonly Guid IID_IDebugAdvanced = new Guid("f2df5f53-071f-47bd-9de6-5734c3fed689");
+        internal static readonly Guid IID_IDebugAdvanced = new("f2df5f53-071f-47bd-9de6-5734c3fed689");
 
         public DebugAdvanced(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, IID_IDebugAdvanced, pUnk)

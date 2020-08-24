@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugSystemObjects : CallableCOMWrapper
     {
-        internal static readonly Guid IID_DebugSystemObjects3 = new Guid("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
+        internal static readonly Guid IID_DebugSystemObjects3 = new("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
 
         public DebugSystemObjects(RefCountedFreeLibrary library, IntPtr pUnk)
             : base(library, IID_DebugSystemObjects3, pUnk)
@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private class SystemHolder : IDisposable
         {
-            private static readonly object _sync = new object();
+            private static readonly object _sync = new();
 
             public SystemHolder()
             {

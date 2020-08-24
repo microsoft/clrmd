@@ -197,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             DebugOnly.Assert(!buffer.IsEmpty);
 
-            int readable = GetReadableBytesCount(address, buffer.Length);
+            int readable = this.GetReadableBytesCount(_memoryRegions, address, buffer.Length);
             if (readable <= 0)
             {
                 return 0;
@@ -225,87 +225,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             // TODO
             return false;
-        }
-
-        private int GetReadableBytesCount(ulong address, int bytesToRead)
-        {
-            if (bytesToRead <= 0)
-            {
-                return 0;
-            }
-
-            int i = GetRegionContaining(address);
-            if (i < 0)
-            {
-                return 0;
-            }
-
-            int bytesReadable;
-            ulong prevEndAddr;
-            {
-                ref readonly MemoryRegion region = ref _memoryRegions.ItemRef(i);
-                ulong regionEndAddr = region.EndAddress;
-
-                int regionSize = (int)(regionEndAddr - address);
-                if (regionSize >= bytesToRead)
-                {
-                    return bytesToRead;
-                }
-
-                bytesToRead -= regionSize;
-                bytesReadable = regionSize;
-                prevEndAddr = regionEndAddr;
-            }
-
-            for (i += 1; i < _memoryRegions.Count; i++)
-            {
-                ref readonly MemoryRegion region = ref _memoryRegions.ItemRef(i);
-                ulong regionBeginAddr = region.BeginAddress;
-                ulong regionEndAddr = region.EndAddress;
-                if (regionBeginAddr != prevEndAddr || !region.IsReadable)
-                {
-                    break;
-                }
-
-                int regionSize = (int)(regionEndAddr - regionBeginAddr);
-                if (regionSize >= bytesToRead)
-                {
-                    bytesReadable += bytesToRead;
-                    break;
-                }
-
-                bytesToRead -= regionSize;
-                bytesReadable += regionSize;
-                prevEndAddr = regionEndAddr;
-            }
-
-            return bytesReadable;
-        }
-
-        private int GetRegionContaining(ulong address)
-        {
-            int lower = 0;
-            int upper = _memoryRegions.Count - 1;
-
-            while (lower <= upper)
-            {
-                int mid = (lower + upper) >> 1;
-                ref readonly MemoryRegion region = ref _memoryRegions.ItemRef(mid);
-                ulong beginAddress = region.BeginAddress;
-                ulong endAddress = region.EndAddress;
-
-                if (beginAddress <= address && address < endAddress)
-                {
-                    return region.IsReadable ? mid : -1;
-                }
-
-                if (address < beginAddress)
-                    upper = mid - 1;
-                else
-                    lower = mid + 1;
-            }
-
-            return -1;
         }
 
         private ImmutableArray<MemoryRegion>.Builder LoadMemoryRegions()
@@ -416,13 +335,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        internal struct MemoryRegion
+        internal struct MemoryRegion : IRegion
         {
-            internal ulong BeginAddress;
-            internal ulong EndAddress;
-            internal int Permission;
+            public ulong BeginAddress { get; set; }
+            public ulong EndAddress { get; set; }
 
-            internal bool IsReadable => (Permission & Native.PROT_READ) != 0;
+            public int Permission { get; set; }
+
+            public bool IsReadable => (Permission & Native.PROT_READ) != 0;
         }
     }
 }
