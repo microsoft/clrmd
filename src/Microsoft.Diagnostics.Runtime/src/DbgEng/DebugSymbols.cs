@@ -80,15 +80,13 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             byte* item = stackalloc byte[3] { (byte)'\\', (byte)'\\', 0 };
 
             using IDisposable holder = _sys.Enter();
-            HResult hr = _getModuleVersionInformation(Self, index, imgBase, item, null, 0, out int needed);
-            if (!hr)
-                return default;
-
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(needed);
+            
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
             try
             {
+                HResult hr;
                 fixed (byte* pBuffer = buffer)
-                    hr = _getModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out needed);
+                    hr = _getModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out _);
 
                 if (!hr)
                     return default;
