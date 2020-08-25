@@ -199,7 +199,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ClrValueType GetStructValue(int index, bool interior = false)
+        public ClrValueType GetStructValue(int index) => GetStructValue(index, false);
+
+        public ClrValueType GetStructValue(int index, bool interior)
         {
             if (Type.ComponentType == null)
                 return new ClrValueType();
