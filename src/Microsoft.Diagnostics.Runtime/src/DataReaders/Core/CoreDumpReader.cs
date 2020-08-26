@@ -92,15 +92,19 @@ namespace Microsoft.Diagnostics.Runtime
                 using Stream stream = image.CreateStream();
                 PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
             }
-            else
+
+            // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
+            // but this unblocks some SOS scenarios.
+            if (filesize == 0)
             {
-                // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
-                // but this unblocks some SOS scenarios.
-                filesize = (int)image.Size;
+                filesize = unchecked((int)image.Size);
             }
 
+            // This substitution is for unloaded modules for which Linux appends " (deleted)" to the module name.
+            string path = image.Path.Replace(" (deleted)", "");
+
             // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
-            return new ModuleInfo(this, (ulong)image.BaseAddress, image.Path, image._containsExecutable, filesize, timestamp, buildId: default);
+            return new ModuleInfo(this, (ulong)image.BaseAddress, path, true, filesize, timestamp, buildId: default);
         }
 
         public void FlushCachedData()
@@ -139,18 +143,34 @@ namespace Microsoft.Diagnostics.Runtime
         public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
             ElfFile? file = GetElfFile(baseAddress);
-            if (file is null)
+            if (file != null)
             {
-                version = default;
-                return false;
+                return this.GetVersionInfo(baseAddress, file, out version);
             }
 
-            return this.GetVersionInfo(baseAddress, file, out version);
+            using PEImage? pe = GetPEImage(baseAddress);
+            if (pe != null)
+            {
+                FileVersionInfo? fileVersionInfo = pe.GetFileVersionInfo();
+                if (fileVersionInfo != null)
+                {
+                    version = fileVersionInfo.VersionInfo;
+                    return true;
+                }
+            }
+
+            version = default;
+            return false;
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)
         {
             return _core.LoadedImages.First(image => (ulong)image.BaseAddress == baseAddress).Open();
+        }
+
+        private PEImage? GetPEImage(ulong baseAddress)
+        {
+            return EnumerateModules().First(mod => mod.ImageBase == baseAddress).GetPEImage();
         }
 
         public override int Read(ulong address, Span<byte> buffer)
