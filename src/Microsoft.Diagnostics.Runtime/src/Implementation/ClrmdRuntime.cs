@@ -156,7 +156,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             ulong md = _helpers.GetMethodDesc(ip);
             if (md == 0)
-                return null;
+            {
+                if (!DacLibrary.SOSDacInterface.GetCodeHeaderData(ip, out var codeHeaderData))
+                    return null;
+
+                if ((md = codeHeaderData.MethodDesc) == 0)
+                    return null;
+            }
 
             return GetMethodByHandle(md);
         }
