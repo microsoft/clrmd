@@ -385,18 +385,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     if (!stackwalk.GetContext(contextFlags, contextSize, out _, context))
                         break;
 
-                    ulong ip, sp;
-
-                    if (IntPtr.Size == 4)
-                    {
-                        ip = BitConverter.ToUInt32(context, ipOffset);
-                        sp = BitConverter.ToUInt32(context, spOffset);
-                    }
-                    else
-                    {
-                        ip = BitConverter.ToUInt64(context, ipOffset);
-                        sp = BitConverter.ToUInt64(context, spOffset);
-                    }
+                    ulong ip = context.AsSpan().AsPointer(ipOffset);
+                    ulong sp = context.AsSpan().AsPointer(spOffset);
 
                     ulong frameVtbl = stackwalk.GetFrameVtable();
                     if (frameVtbl != 0)
