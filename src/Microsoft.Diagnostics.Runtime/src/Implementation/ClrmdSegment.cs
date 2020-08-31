@@ -90,10 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (dataReader.Read(obj, buffer) != buffer.Length)
                         break;
 
-                    if (IntPtr.Size == 4)
-                        mt = Unsafe.As<byte, uint>(ref buffer[0]);
-                    else
-                        mt = Unsafe.As<byte, ulong>(ref buffer[0]);
+                    mt = Unsafe.As<byte, nuint>(ref buffer[0]);
                 }
                 else
                 {

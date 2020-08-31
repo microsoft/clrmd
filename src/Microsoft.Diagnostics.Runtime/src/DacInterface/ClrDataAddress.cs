@@ -33,12 +33,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// <param name="cda">The address to convert.</param>
         public static implicit operator ulong(ClrDataAddress cda) => cda.AsUInt64();
 
-        public static implicit operator ClrDataAddress(ulong value) => new ClrDataAddress(IntPtr.Size == 4 ? unchecked((int)value) : unchecked((long)value));
+        public static implicit operator ClrDataAddress(ulong value) => new ClrDataAddress(unchecked((nint)value));
 
         /// <summary>
         /// Returns the value of this address and un-sign extends the value if appropriate.
         /// </summary>
         /// <returns>The value of this address and un-sign extends the value if appropriate.</returns>
-        private ulong AsUInt64() => IntPtr.Size == 4 ? unchecked((uint)Value) : unchecked((ulong)Value);
+        private ulong AsUInt64() => unchecked((nuint)Value);
     }
 }
