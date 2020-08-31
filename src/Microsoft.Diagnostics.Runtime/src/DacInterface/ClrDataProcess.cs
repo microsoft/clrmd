@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                while (_enum(Self, ref handle, out IntPtr method))
+                while (_enum(Self, ref handle, out IntPtr method) == HResult.S_OK)
                     result.Add(new ClrDataMethod(_library, method));
             }
             finally
