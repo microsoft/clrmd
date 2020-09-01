@@ -208,10 +208,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrObject GetObjectValue(int index)
         {
-            if (Type.ComponentType is null)
-                return default;
-
-            if (!Type.ComponentType.IsObjectReference)
+            if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
             return Type.Heap.GetObject(ReadValue<nuint>(index));
@@ -219,10 +216,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrObject GetObjectValue(params int[] indices)
         {
-            if (Type.ComponentType is null)
-                return default;
-
-            if (!Type.ComponentType.IsObjectReference)
+            if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
             return Type.Heap.GetObject(ReadValue<nuint>(indices));
