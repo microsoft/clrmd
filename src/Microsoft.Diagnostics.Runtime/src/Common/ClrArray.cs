@@ -153,128 +153,118 @@ namespace Microsoft.Diagnostics.Runtime
             return length + lowerBound - 1;
         }
 
-        public T GetValue<T>(int index) where T : unmanaged => GetValue<T>(false, index);
-
-        public T GetValue<T>(params int[] indices) where T : unmanaged => GetValue<T>(false, indices);
-
-        // This helper method returns the address of the item at a given index of an array.
-        // - reference type object: the array item at the given index contains the address so it has to be read.
-        // - value type object: it will be embedded inside the array itself so the address is computed relatively to the array itself.
-        private ulong GetItemAddress(int index, bool isObjectReference)
+        public unsafe T GetValue<T>(int index) where T : unmanaged
         {
-            if (Rank != 1)
-                throw new ArgumentException($"Array {Address:x} was not a one-dimensional array.  Type: {Type?.Name ?? "null"}");
+            if (sizeof(T) != Type.ComponentSize)
+                throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{Type.ComponentSize:x}.");
 
-            if (index < 0)
-                throw new ArgumentOutOfRangeException(nameof(index), index, "An array index cannot be negative.");
-
-            int valueOffset = index;
-            int dataByteOffset = 2 * IntPtr.Size;
-
-            if (IsMultiDimensional)
-            {
-                valueOffset -= GetMultiDimensionalBound(1);
-                if ((uint)valueOffset >= GetMultiDimensionalBound(0))
-                    throw new ArgumentOutOfRangeException(nameof(index));
-
-                dataByteOffset += 2 * sizeof(int);
-            }
-            else
-            {
-                if ((uint)valueOffset >= Length)
-                    throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-
-            int elementSize = isObjectReference ? UIntPtr.Size : Type.ComponentSize;
-            int valueByteOffset = dataByteOffset + valueOffset * elementSize;
-
-            if (isObjectReference)
-            {
-                return Type.ClrObjectHelpers.DataReader.Read<UIntPtr>(Address + (ulong)valueByteOffset).ToUInt64();
-            }
-            else
-            {
-                return Address + (ulong)valueByteOffset;
-            }
+            return ReadValue<T>(index);
         }
 
-        public ClrValueType GetStructValue(int index) => GetStructValue(index, false);
-
-        public ClrValueType GetStructValue(int index, bool interior)
+        public unsafe T GetValue<T>(params int[] indices) where T : unmanaged
         {
-            if (Type.ComponentType == null)
-                return new ClrValueType();
+            if (sizeof(T) != Type.ComponentSize)
+                throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{Type.ComponentSize:x}.");
+
+            return ReadValue<T>(indices);
+        }
+
+        public ClrValueType GetStructValue(int index)
+        {
+            if (Type.ComponentType is null)
+                return default;
 
             if (Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain value type instances.");
 
-            ulong address = GetItemAddress(index, false);
+            ulong address = GetElementAddress(Type.ComponentSize, index);
+            return new ClrValueType(address, Type.ComponentType, interior: true);
+        }
+
+        [Obsolete("Use GetStructValue(int) instead.")]
+        public ClrValueType GetStructValue(int index, bool interior)
+        {
+            if (Type.ComponentType is null)
+                return default;
+
+            if (Type.ComponentType.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain value type instances.");
+
+            ulong address = GetElementAddress(Type.ComponentSize, index);
             return new ClrValueType(address, Type.ComponentType, interior);
         }
 
+        public ClrValueType GetStructValue(params int[] indices)
+        {
+            if (Type.ComponentType is null)
+                return default;
+
+            if (Type.ComponentType.IsObjectReference)
+                throw new InvalidOperationException($"{Type} does not contain value type instances.");
+
+            ulong address = GetElementAddress(Type.ComponentSize, indices);
+            return new ClrValueType(address, Type.ComponentType, interior: true);
+        }
 
         public ClrObject GetObjectValue(int index)
         {
-            if (Type.ComponentType == null)
-                return new ClrObject();
+            if (Type.ComponentType is null)
+                return default;
 
             if (!Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            ulong address = GetItemAddress(index, true);
-            return Type.Heap.GetObject(address);
+            return Type.Heap.GetObject(ReadValue<nuint>(index));
         }
-
 
         public ClrObject GetObjectValue(params int[] indices)
         {
-            if (!Type.IsObjectReference)
+            if (Type.ComponentType is null)
+                return default;
+
+            if (!Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            ulong address = GetValue<UIntPtr>(isObjectReference: true, indices).ToUInt64();
-            return Type.Heap.GetObject(address);
+            return Type.Heap.GetObject(ReadValue<nuint>(indices));
         }
 
-        private unsafe T GetValue<T>(bool isObjectReference, int index) where T : unmanaged
+        private unsafe T ReadValue<T>(int index) where T : unmanaged
+        {
+            return Type.ClrObjectHelpers.DataReader.Read<T>(GetElementAddress(sizeof(T), index));
+        }
+
+        private unsafe T ReadValue<T>(int[] indices) where T : unmanaged
+        {
+            return Type.ClrObjectHelpers.DataReader.Read<T>(GetElementAddress(sizeof(T), indices));
+        }
+
+        private unsafe ulong GetElementAddress(int elementSize, int index)
         {
             if (Rank != 1)
-                throw new ArgumentException($"Array {Address:x} was not a one-dimensional array.  Type: {Type?.Name ?? "null"}");
+                throw new ArgumentException($"Array {Address:x} was not a one-dimensional array. Type: {Type?.Name ?? "null"}");
 
             int valueOffset = index;
-            int dataByteOffset = 2 * IntPtr.Size;
+            int dataByteOffset = 2 * sizeof(nint);
 
             if (IsMultiDimensional)
             {
                 valueOffset -= GetMultiDimensionalBound(1);
-                if ((uint)valueOffset >= GetMultiDimensionalBound(0))
+                if (unchecked((uint)valueOffset) >= GetMultiDimensionalBound(0))
                     throw new ArgumentOutOfRangeException(nameof(index));
 
                 dataByteOffset += 2 * sizeof(int);
             }
             else
             {
-                if ((uint)valueOffset >= Length)
+                if (unchecked((uint)valueOffset) >= Length)
                     throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            int elementSize;
-            if (isObjectReference)
-            {
-                elementSize = sizeof(T); // UIntPtr.Size
-            }
-            else
-            {
-                elementSize = Type.ComponentSize;
-                if (sizeof(T) != elementSize)
-                    throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
-            }
-
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
-            return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
+            return Address + (ulong)valueByteOffset;
         }
 
-        private unsafe T GetValue<T>(bool isObjectReference, params int[] indices) where T : unmanaged
+        private unsafe ulong GetElementAddress(int elementSize, int[] indices)
         {
             if (indices is null)
                 throw new ArgumentNullException(nameof(indices));
@@ -284,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Indices length does not match the array rank. Array {Address:x} Rank = {rank}, {nameof(indices)} Rank = {indices.Length}");
 
             int valueOffset = 0;
-            int dataByteOffset = 2 * IntPtr.Size;
+            int dataByteOffset = 2 * sizeof(nint);
 
             if (rank == 1)
             {
@@ -318,20 +308,8 @@ namespace Microsoft.Diagnostics.Runtime
                 dataByteOffset += 2 * sizeof(int) * rank;
             }
 
-            int elementSize;
-            if (isObjectReference)
-            {
-                elementSize = sizeof(T); // UIntPtr.Size
-            }
-            else
-            {
-                elementSize = Type.ComponentSize;
-                if (sizeof(T) != elementSize)
-                    throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{elementSize:x}.");
-            }
-
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
-            return Type.ClrObjectHelpers.DataReader.Read<T>(Address + (ulong)valueByteOffset);
+            return Address + (ulong)valueByteOffset;
         }
 
         // |<-------------------------- Type.StaticSize -------------------------->|

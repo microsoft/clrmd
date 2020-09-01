@@ -298,7 +298,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
 
             // Act
-            var item = structArraySnapshot.GetStructValue(0, true);
+            var item = structArraySnapshot.GetStructValue(0);
             var intFieldValue = item.ReadField<int>("Number");
             var stringFieldValue = item.ReadField<UIntPtr>("ReferenceLoad");
             var fieldType = _heap.GetObjectType(stringFieldValue.ToUInt64());
