@@ -166,9 +166,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     ulong fileStart = fileTable[i].Start;
                     ElfProgramHeader? programHeader = ElfFile.ProgramHeaders.FirstOrDefault(
                         s => (ulong)s.VirtualAddress <= fileStart && fileStart < (ulong)s.VirtualAddress + (ulong)s.VirtualSize);
-                    bool isExecutable = programHeader?.IsExecutable ?? false;
 
-                    image.AddTableEntryPointers(fileTable[i], isExecutable);
+                    image.AddTableEntryPointers(fileTable[i]);
                 }
             }
             finally

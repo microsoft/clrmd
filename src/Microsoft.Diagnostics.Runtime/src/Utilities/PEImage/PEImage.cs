@@ -322,25 +322,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ImmutableArray<PdbInfo> ReadPdbs()
         {
             if (Reader == null)
-                return default;
-
-            ImmutableArray<DebugDirectoryEntry> debugDirectories = Reader.ReadDebugDirectory();
-            if (debugDirectories.IsEmpty)
                 return ImmutableArray<PdbInfo>.Empty;
 
-            ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(debugDirectories.Length);
-
-            foreach (DebugDirectoryEntry entry in debugDirectories)
+            try
             {
-                if (entry.Type == DebugDirectoryEntryType.CodeView)
-                {
-                    CodeViewDebugDirectoryData data = Reader.ReadCodeViewDebugDirectoryData(entry);
-                    PdbInfo pdb = new PdbInfo(data.Path, data.Guid, data.Age);
-                    result.Add(pdb);
-                }
-            }
+                ImmutableArray<DebugDirectoryEntry> debugDirectories = Reader.ReadDebugDirectory();
+                if (debugDirectories.IsEmpty)
+                    return ImmutableArray<PdbInfo>.Empty;
 
-            return result.MoveOrCopyToImmutable();
+                ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(debugDirectories.Length);
+
+                foreach (DebugDirectoryEntry entry in debugDirectories)
+                {
+                    if (entry.Type == DebugDirectoryEntryType.CodeView)
+                    {
+                        CodeViewDebugDirectoryData data = Reader.ReadCodeViewDebugDirectoryData(entry);
+                        PdbInfo pdb = new PdbInfo(data.Path, data.Guid, data.Age);
+                        result.Add(pdb);
+                    }
+                }
+
+                return result.MoveOrCopyToImmutable();
+            }
+            catch (IOException)
+            {
+                return ImmutableArray<PdbInfo>.Empty;
+            }
         }
 
         internal static bool ReadIndexProperties(Stream stream, out int buildTimeStamp, out int imageSize)
