@@ -102,7 +102,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return pointers;
         }
 
-
         private GetAssemblyLoadContextDelegate? _getAssemblyLoadContext;
         private GetNumberGenerationsDelegate? _getNumberGenerations;
         private GetGenerationTableDelegate? _getGenerationTable;
@@ -120,7 +119,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // SVR
         private delegate HResult GetGenerationTableSvrDelegate(IntPtr self, ulong heapAddr, int cGenerations, GenerationData *pGenerationData, out int pNeeded);
         private delegate HResult GetFinalizationFillPointersSvrDelegate(IntPtr self, ulong heapAddr, int cFillPointers, ClrDataAddress* pFinalizationFillPointers, out int pNeeded);
-
 
         [StructLayout(LayoutKind.Sequential)]
         private readonly struct ISOSDac8VTable

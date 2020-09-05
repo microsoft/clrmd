@@ -274,7 +274,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-
         public IEnumerable<uint> EnumerateOSThreadIds() => _systemObjects.GetThreadIds();
         public ulong GetThreadTeb(uint osThreadId) => _systemObjects.GetThreadTeb(osThreadId);
 

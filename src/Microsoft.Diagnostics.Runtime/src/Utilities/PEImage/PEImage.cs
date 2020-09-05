@@ -407,7 +407,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             public ushort Characteristics;
         }
 
-
         [StructLayout(LayoutKind.Explicit)]
         private struct ImageOptionalHeader
         {

@@ -161,7 +161,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </param>
         public abstract IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles);
 
-
         /// <summary>
         /// This is an implementation helper.
         /// Enumerates all objects that the given object references.  This method is meant for internal use to

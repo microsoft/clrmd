@@ -24,7 +24,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private bool _cacheIsComplete;
         private readonly bool _cacheIsFullyPopulatedBeforeUse;
 
-
         public HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, uint entryCountWhenFull, bool cacheIsFullyPopulatedBeforeUse, long maxSize)
         {
             _entryFactory = entryFactory;

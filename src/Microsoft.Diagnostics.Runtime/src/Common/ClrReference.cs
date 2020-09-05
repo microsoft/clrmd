@@ -174,7 +174,6 @@ namespace Microsoft.Diagnostics.Runtime
 
                 sb.Append($"{Object.Address:x12} {Object.Type?.Name ?? "error"}");
 
-
                 return sb.ToString();
             }
 

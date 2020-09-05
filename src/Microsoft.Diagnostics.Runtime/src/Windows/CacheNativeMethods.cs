@@ -146,7 +146,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [return: MarshalAs(UnmanagedType.Bool)]
             private static extern bool HeapFree(IntPtr heapHandle, [MarshalAs(UnmanagedType.U4)] HeapFlags heapFlags, UIntPtr lpMem);
 
-
             internal static uint HeapSize(UIntPtr heapAddress)
             {
                 UIntPtr heapSize = HeapSize(GetProcessHeap(), 0, heapAddress);
@@ -177,7 +176,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [DllImport("kernel32", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
             private static extern bool AllocateUserPhysicalPages(IntPtr processHandle, ref UIntPtr numberOfPages, UIntPtr pageArray);
-
 
             internal static bool MapUserPhysicalPages(UIntPtr virtualAddress, uint numberOfPages, UIntPtr pageArray)
             {
@@ -248,7 +246,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             private const int ERROR_NOT_ALL_ASSIGNED = 1300;
-
 
             private enum LuidAttributes : uint
             {

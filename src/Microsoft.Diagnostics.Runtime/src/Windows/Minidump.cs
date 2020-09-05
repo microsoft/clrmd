@@ -280,7 +280,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
         #endregion
 
-
         private ImmutableArray<MinidumpSegment> GetSegments(Stream stream)
         {
             List<MinidumpSegment> segments = new List<MinidumpSegment>();
@@ -428,7 +427,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             public ImmutableArray<uint> Threads;
         }
     }
-
 
     internal readonly struct MinidumpContextData
     {

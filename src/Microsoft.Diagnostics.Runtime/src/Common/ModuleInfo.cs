@@ -146,7 +146,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-
         // DataTarget is one of the few "internal set" properties, and is initialized as soon as DataTarget asks
         // IDataReader to create ModuleInfo.  So even though we don't set it here, we will immediately set the
         // value to non-null and never change it.
