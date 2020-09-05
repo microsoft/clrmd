@@ -124,11 +124,11 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 foreach (IClrRoot root in roots)
-                    queue.Add(root);
+                    queue.Add(root, cancellationToken);
 
                 // Add one sentinel value for every thread
                 for (int i = 0; i < threads.Length; i++)
-                    queue.Add(null);
+                    queue.Add(null, cancellationToken);
 
                 int count = 0;
 
@@ -174,7 +174,7 @@ namespace Microsoft.Diagnostics.Runtime
             CancellationToken cancellationToken)
         {
             IClrRoot? root;
-            while ((root = queue.Take()) != null)
+            while ((root = queue.Take(cancellationToken)) != null)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
