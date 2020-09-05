@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const uint ExpectedPESignature = 0x00004550;    // PE00
 
         private readonly bool _isVirtual;
-        private int _offset = 0;
+        private int _offset;
 
         private readonly Stream _stream;
         private readonly PEHeaders? _peHeaders;
