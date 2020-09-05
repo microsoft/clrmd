@@ -26,6 +26,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="3.3.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.61701" />
     <!-- <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.113">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -38,4 +39,9 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+  
 </Project>
