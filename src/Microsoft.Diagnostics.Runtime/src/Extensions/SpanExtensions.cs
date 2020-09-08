@@ -70,5 +70,12 @@ namespace Microsoft.Diagnostics.Runtime
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(uint) == 0);
             return Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span));
         }
+
+#if !NETCOREAPP3_1
+        public static bool Contains(this string source, string value, StringComparison comparisonType)
+        {
+            return source.IndexOf(value, comparisonType) != -1;
+        }
+#endif
     }
 }

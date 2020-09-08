@@ -198,7 +198,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return flags;
         }
 
-
         public override ulong GetObjectSize(ulong objRef, ClrType type)
         {
             ulong size;
@@ -354,7 +353,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
             }
         }
-
 
         public override IEnumerable<IClrRoot> EnumerateRoots()
         {

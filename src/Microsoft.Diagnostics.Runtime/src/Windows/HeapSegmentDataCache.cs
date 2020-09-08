@@ -24,7 +24,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private bool _cacheIsComplete;
         private readonly bool _cacheIsFullyPopulatedBeforeUse;
 
-
         public HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, uint entryCountWhenFull, bool cacheIsFullyPopulatedBeforeUse, long maxSize)
         {
             _entryFactory = entryFactory;
@@ -145,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (Interlocked.Read(ref _cacheSize) < _maxSize)
                 return;
 
-            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = SnapshotNonMinSizeCacheItems(); ;
+            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = SnapshotNonMinSizeCacheItems();
             if (entries.Count == 0)
                 return;
 

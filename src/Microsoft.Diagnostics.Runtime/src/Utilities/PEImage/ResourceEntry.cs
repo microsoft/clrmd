@@ -126,7 +126,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return read == size ? output : default;
         }
 
-
         /// <summary>
         /// Gets the children resources of this ResourceEntry.
         /// </summary>

@@ -27,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-
         public HResult GetMethodTableCollectibleData(ulong mt, out MethodTableCollectibleData data)
         {
             InitDelegate(ref _getMethodTableCollectibleData, VTable.GetMethodTableCollectibleData);

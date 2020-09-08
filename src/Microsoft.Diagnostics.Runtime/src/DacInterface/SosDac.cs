@@ -695,7 +695,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return 0;
         }
 
-
         private DacGetIntPtr? _getHandleEnum;
         private GetHandleEnumForTypesDelegate? _getHandleEnumForTypes;
         private DacGetIntPtrWithArg? _getStackRefEnum;

@@ -198,7 +198,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             continue;
 
                         int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
+#if NETCOREAPP3_1
+                        int read = await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
+#else
                         int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+#endif
 
                         for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
                         {
@@ -217,7 +221,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             continue;
 
                         int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
+#if NETCOREAPP3_1
+                        int read = await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
+#else
                         int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+#endif
 
                         for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
                         {
@@ -241,7 +249,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         stream.Position = directory.Rva + threadInfoList.SizeOfHeader;
                         int count = ResizeBytesForArray<MinidumpThreadInfo>((ulong)threadInfoList.NumberOfEntries, ref buffer);
 
+#if NETCOREAPP3_1
+                        int read = await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
+#else
                         int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+#endif
 
                         for (int i = 0; i < read; i += threadInfoList.SizeOfEntry)
                         {
@@ -279,7 +291,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             };
         }
         #endregion
-
 
         private ImmutableArray<MinidumpSegment> GetSegments(Stream stream)
         {
@@ -372,7 +383,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 buffer = new byte[size];
 
             stream.Position = offset;
+#if NETCOREAPP3_1
+            int read = await stream.ReadAsync(buffer.AsMemory(0, size)).ConfigureAwait(false);
+#else
             int read = await stream.ReadAsync(buffer, 0, size).ConfigureAwait(false);
+#endif
             if (read == size)
             {
                 T result = Unsafe.As<byte, T>(ref buffer[0]);
@@ -428,7 +443,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             public ImmutableArray<uint> Threads;
         }
     }
-
 
     internal readonly struct MinidumpContextData
     {

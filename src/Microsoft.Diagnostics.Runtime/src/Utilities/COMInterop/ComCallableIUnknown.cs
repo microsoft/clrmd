@@ -16,7 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public unsafe class COMCallableIUnknown : COMHelper
     {
-        private readonly GCHandle _handle;
+        // NOTE do not make this field readonly, as otherwise we operate upon a copy of it
+        private GCHandle _handle;
         private int _refCount;
 
         private readonly Dictionary<Guid, IntPtr> _interfaces = new();

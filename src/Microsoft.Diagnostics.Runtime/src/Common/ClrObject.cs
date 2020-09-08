@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"Object {Address:x} is not an Exception.");
 
             if (Type is null || !Type.IsException)
-                return default;
+                return null;
 
             return new ClrException(Helpers.ExceptionHelpers, null, this);
         }

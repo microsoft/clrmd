@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed unsafe class WindowsProcessDataReader : CommonMemoryReader, IDataReader, IDisposable
     {
-        private bool _disposed = false;
+        private bool _disposed;
         private readonly WindowsThreadSuspender? _suspension;
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;

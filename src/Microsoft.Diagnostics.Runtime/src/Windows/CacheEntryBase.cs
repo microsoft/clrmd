@@ -288,7 +288,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
                     });
 
-
                 pageIndex++;
                 inPageOffset = 0;
             } while ((pageIndex != _pages.Length) && !sawTerminatingSequence);

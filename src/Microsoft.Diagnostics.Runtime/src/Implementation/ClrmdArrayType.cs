@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return values;
             }
 
-            return default;
+            return null;
         }
     }
 }

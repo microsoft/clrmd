@@ -148,7 +148,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return sizeRead;
         }
 
-
         protected override void Dispose(bool disposing)
         {
             for (int i = 0; i < 3; i++)

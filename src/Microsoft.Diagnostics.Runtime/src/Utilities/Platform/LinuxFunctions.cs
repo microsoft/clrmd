@@ -96,6 +96,9 @@ namespace Microsoft.Diagnostics.Runtime
             long address = dataOffset;
             long endAddress = address + dataSize;
 
+            Span<byte> bytes = stackalloc byte[1];
+            Span<char> chars = stackalloc char[1];
+
             while (address < endAddress)
             {
                 int read = streamAddressSpace.Read(address, buffer);
@@ -117,7 +120,6 @@ namespace Microsoft.Diagnostics.Runtime
                 StringBuilder builder = new StringBuilder();
                 while (address < endAddress)
                 {
-                    Span<byte> bytes = stackalloc byte[1];
                     read = streamAddressSpace.Read(address, bytes);
                     if (read < bytes.Length)
                     {
@@ -146,7 +148,6 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                     }
 
-                    Span<char> chars = stackalloc char[1];
                     fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
                     fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
                     {

@@ -1080,7 +1080,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-
         public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
         {
             // ECMA 335 - II.23.2.12 - Type
@@ -1151,7 +1150,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 if (!parser.GetToken(out int token))
                     return null;
-
 
                 if (!parser.GetData(out int count))
                     return null;
@@ -1570,7 +1568,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         [return: NotNullIfNotNull("name")]
         public static string? FixGenerics(string? name)
         {
-            if (name == null || name.IndexOf("[[") == -1)
+            if (name == null || !name.Contains("[[", StringComparison.Ordinal))
                 return name;
 
             int maxDepth = 64;
@@ -1613,7 +1611,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _sos.GetObjectData(objRef, out ObjectData data);
             return data;
         }
-
 
         string? IClrObjectHelpers.ReadString(ulong addr, int maxLength)
         {

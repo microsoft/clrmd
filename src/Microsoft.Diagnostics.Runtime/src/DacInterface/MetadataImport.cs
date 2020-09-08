@@ -223,7 +223,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return default;
         }
 
-
         private EnumInterfaceImplsDelegate? _enumInterfaceImpls;
         private CloseEnumDelegate? _closeEnum;
         private GetInterfaceImplPropsDelegate? _getInterfaceImplProps;
