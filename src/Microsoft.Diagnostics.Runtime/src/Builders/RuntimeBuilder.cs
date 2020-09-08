@@ -1568,11 +1568,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         [return: NotNullIfNotNull("name")]
         public static string? FixGenerics(string? name)
         {
-#if NETCOREAPP3_1
             if (name == null || !name.Contains("[[", StringComparison.Ordinal))
-#else
-            if (name == null || name.IndexOf("[[", StringComparison.Ordinal) == -1)
-#endif
                 return name;
 
             int maxDepth = 64;
