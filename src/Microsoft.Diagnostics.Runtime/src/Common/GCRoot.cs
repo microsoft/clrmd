@@ -132,6 +132,8 @@ namespace Microsoft.Diagnostics.Runtime
                     queue.Add(null);
 #pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods that take one
 
+                queue.CompleteAdding();
+
                 int count = 0;
 
                 // Worker threads end when they have run out of roots to process.  While we are waiting for them to exit, yield return
