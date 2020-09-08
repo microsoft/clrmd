@@ -143,6 +143,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     while (!threads[i].Join(100))
                     {
+                        if (cancellationToken.IsCancellationRequested)
+                            yield break;
+
                         while (results.TryDequeue(out GCRootPath result))
                             yield return result;
                     }
