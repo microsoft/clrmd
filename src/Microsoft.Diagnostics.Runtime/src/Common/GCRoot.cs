@@ -123,12 +123,14 @@ namespace Microsoft.Diagnostics.Runtime
                     threads[i].Start();
                 }
 
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods that take one (BlockingCollection is unbounded so Add will not block)
                 foreach (IClrRoot root in roots)
-                    queue.Add(root, cancellationToken);
+                    queue.Add(root);
 
                 // Add one sentinel value for every thread
                 for (int i = 0; i < threads.Length; i++)
-                    queue.Add(null, cancellationToken);
+                    queue.Add(null);
+#pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods that take one
 
                 int count = 0;
 
@@ -173,10 +175,19 @@ namespace Microsoft.Diagnostics.Runtime
             bool returnOnlyFullyUniquePaths,
             CancellationToken cancellationToken)
         {
-            IClrRoot? root;
-            while ((root = queue.Take(cancellationToken)) != null)
+            while (true)
             {
-                if (cancellationToken.IsCancellationRequested)
+                IClrRoot? root;
+                try
+                {
+                    root = queue.Take(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                if (root == null)
                     break;
 
                 foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken))
