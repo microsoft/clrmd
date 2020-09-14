@@ -64,14 +64,6 @@ else
   use_global_nuget_cache=${use_global_nuget_cache:-true}
 fi
 
-# Used when restoring .NET SDK from alternative feeds
-runtime_source_feed=${runtime_source_feed:-''}
-runtime_source_feed_key=${runtime_source_feed_key:-''}
-
-# Determines if dotnet-install.sh comes from the eng/common folder or the internet
-# (default = public version)
-use_default_dotnet_install=${use_default_dotnet_install:-false}
-
 # Resolve any symlinks in the given path.
 function ResolvePath {
   local path=$1
@@ -178,11 +170,11 @@ function InitializeDotNetCli {
 function InstallDotNetSdk {
   local root=$1
   local version=$2
-  local architecture="unset"
-  if [[ $# -ge 3 ]]; then
+  local architecture=""
+  if [[ $# == 3 ]]; then
     architecture=$3
   fi
-  InstallDotNet "$root" "$version" $architecture 'sdk' 'false' $runtime_source_feed $runtime_source_feed_key
+  InstallDotNet "$root" "$version" $architecture
 }
 
 function InstallDotNet {
@@ -193,50 +185,50 @@ function InstallDotNet {
   local install_script=$_GetDotNetInstallScript
 
   local archArg=''
-  if [[ -n "${3:-}" ]] && [ "$3" != 'unset' ]; then
+  if [[ -n "${3:-}" ]]; then
     archArg="--architecture $3"
   fi
   local runtimeArg=''
-  if [[ -n "${4:-}" ]] && [ "$4" != 'sdk' ]; then
+  if [[ -n "${4:-}" ]]; then
     runtimeArg="--runtime $4"
   fi
+
   local skipNonVersionedFilesArg=""
-  if [[ "$#" -ge "5" ]] && [[ "$5" != 'false' ]]; then
+  if [[ "$#" -ge "5" ]]; then
     skipNonVersionedFilesArg="--skip-non-versioned-files"
   fi
   bash "$install_script" --version $version --install-dir "$root" $archArg $runtimeArg $skipNonVersionedFilesArg || {
     local exit_code=$?
-    echo "Failed to install dotnet SDK from public location (exit code '$exit_code')."
+    Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to install dotnet SDK from public location (exit code '$exit_code')."
 
-    local runtimeSourceFeed=''
-    if [[ -n "${6:-}" ]]; then
-      runtimeSourceFeed="--azure-feed $6"
-    fi
-
-    local runtimeSourceFeedKey=''
-    if [[ -n "${7:-}" ]]; then
-      # The 'base64' binary on alpine uses '-d' and doesn't support '--decode'
-      # '-d'. To work around this, do a simple detection and switch the parameter
-      # accordingly.
-      decodeArg="--decode"
-      if base64 --help 2>&1 | grep -q "BusyBox"; then
-          decodeArg="-d"
+    if [[ -n "$runtimeArg" ]]; then
+      local runtimeSourceFeed=''
+      if [[ -n "${6:-}" ]]; then
+        runtimeSourceFeed="--azure-feed $6"
       fi
-      decodedFeedKey=`echo $7 | base64 $decodeArg`
-      runtimeSourceFeedKey="--feed-credential $decodedFeedKey"
-    fi
 
-    if [[ -n "$runtimeSourceFeed" || -n "$runtimeSourceFeedKey" ]]; then
-      bash "$install_script" --version $version --install-dir "$root" $archArg $runtimeArg $skipNonVersionedFilesArg $runtimeSourceFeed $runtimeSourceFeedKey || {
-        local exit_code=$?
-        Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to install dotnet SDK from custom location '$runtimeSourceFeed' (exit code '$exit_code')."
+      local runtimeSourceFeedKey=''
+      if [[ -n "${7:-}" ]]; then
+        # The 'base64' binary on alpine uses '-d' and doesn't support '--decode'
+        # '-d'. To work around this, do a simple detection and switch the parameter
+        # accordingly.
+        decodeArg="--decode"
+        if base64 --help 2>&1 | grep -q "BusyBox"; then
+            decodeArg="-d"
+        fi
+        decodedFeedKey=`echo $7 | base64 $decodeArg`
+        runtimeSourceFeedKey="--feed-credential $decodedFeedKey"
+      fi
+
+      if [[ -n "$runtimeSourceFeed" || -n "$runtimeSourceFeedKey" ]]; then
+        bash "$install_script" --version $version --install-dir "$root" $archArg $runtimeArg $skipNonVersionedFilesArg $runtimeSourceFeed $runtimeSourceFeedKey || {
+          local exit_code=$?
+          Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to install dotnet SDK from custom location '$runtimeSourceFeed' (exit code '$exit_code')."
+          ExitWithExitCode $exit_code
+        }
+      else
         ExitWithExitCode $exit_code
-      }
-    else
-      if [[ $exit_code != 0 ]]; then
-        Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to install dotnet SDK from public location (exit code '$exit_code')."
       fi
-      ExitWithExitCode $exit_code
     fi
   }
 }
@@ -271,30 +263,23 @@ function GetDotNetInstallScript {
   if [[ ! -a "$install_script" ]]; then
     mkdir -p "$root"
 
-    if [[ "$use_default_dotnet_install" == true ]]; then
-      echo "Downloading '$install_script_url'"
+    echo "Downloading '$install_script_url'"
 
-      # Use curl if available, otherwise use wget
-      if command -v curl > /dev/null; then
-        with_retries curl "$install_script_url" -sSL --retry 10 --create-dirs -o "$install_script" || {
-          local exit_code=$?
-          Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to acquire dotnet install script (exit code '$exit_code')."
-          ExitWithExitCode $exit_code
-        }
-      else
-        with_retries wget -v -O "$install_script" "$install_script_url" || {
-          local exit_code=$?
-          Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to acquire dotnet install script (exit code '$exit_code')."
-          ExitWithExitCode $exit_code
-        }
-      fi
+    # Use curl if available, otherwise use wget
+    if command -v curl > /dev/null; then
+      with_retries curl "$install_script_url" -sSL --retry 10 --create-dirs -o "$install_script" || {
+        local exit_code=$?
+        Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to acquire dotnet install script (exit code '$exit_code')."
+        ExitWithExitCode $exit_code
+      }
     else
-      # Use a special version of the script from eng/common that understands the existence of a "productVersion.txt" in a dotnet path.
-      # See https://github.com/dotnet/arcade/issues/6047 for details
-      cp $repo_root/eng/common/dotnet-install-scripts/dotnet-install.sh $install_script
+      with_retries wget -v -O "$install_script" "$install_script_url" || {
+        local exit_code=$?
+        Write-PipelineTelemetryError -category 'InitializeToolset' "Failed to acquire dotnet install script (exit code '$exit_code')."
+        ExitWithExitCode $exit_code
+      }
     fi
   fi
-
   # return value
   _GetDotNetInstallScript="$install_script"
 }
@@ -406,7 +391,11 @@ function MSBuild {
     InitializeBuildTool
     InitializeToolset
 
+    # Work around issues with Azure Artifacts credential provider
+    # https://github.com/dotnet/arcade/issues/3932
     if [[ "$ci" == true ]]; then
+      "$_InitializeBuildTool" nuget locals http-cache -c
+
       export NUGET_PLUGIN_HANDSHAKE_TIMEOUT_IN_SECONDS=20
       export NUGET_PLUGIN_REQUEST_TIMEOUT_IN_SECONDS=20
       Write-PipelineSetVariable -name "NUGET_PLUGIN_HANDSHAKE_TIMEOUT_IN_SECONDS" -value "20"
