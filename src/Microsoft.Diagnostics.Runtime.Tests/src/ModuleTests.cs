@@ -38,6 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 if (Path.GetFileNameWithoutExtension(module.FileName).Equals("types", StringComparison.OrdinalIgnoreCase))
                 {
+                    Assert.Equal("1.2.3.4", fileVersionInfo.FileVersion);
+                    Assert.Equal("1.2.3.4", fileVersionInfo.VersionInfo.ToString());
                     Assert.Equal("1.2.3.4", fileVersionInfo.ToString());
                     Assert.Equal(1, fileVersionInfo.VersionInfo.Major);
                     Assert.Equal(2, fileVersionInfo.VersionInfo.Minor);
