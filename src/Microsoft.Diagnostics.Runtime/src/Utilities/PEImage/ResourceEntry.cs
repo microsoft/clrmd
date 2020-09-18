@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="name">The name of the child to return.</param>
         /// <returns>The child in question, or <see langword="null"/> if none are found with that name.</returns>
-        public ResourceEntry this[string name] => Children.SingleOrDefault(c => c.Name == name);
+        public ResourceEntry? this[string name] => Children.SingleOrDefault(c => c.Name == name);
 
         internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {

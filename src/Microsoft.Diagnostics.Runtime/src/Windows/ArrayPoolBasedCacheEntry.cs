@@ -76,7 +76,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     unsafe
                     {
                         byte* pViewLoc = null;
-                        RuntimeHelpers.PrepareConstrainedRegions();
                         try
                         {
                             view.SafeMemoryMappedViewHandle.AcquirePointer(ref pViewLoc);

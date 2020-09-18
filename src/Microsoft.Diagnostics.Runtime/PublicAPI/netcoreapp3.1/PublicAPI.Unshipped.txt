@@ -678,7 +678,7 @@ Microsoft.Diagnostics.Runtime.GCRoot.EnumerateGCRoots(ulong target, System.Threa
 Microsoft.Diagnostics.Runtime.GCRoot.EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.GCRootPath>!
 Microsoft.Diagnostics.Runtime.GCRoot.EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.IClrRoot!>! roots, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.GCRootPath>!
 Microsoft.Diagnostics.Runtime.GCRoot.EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.GCRootPath>!
-Microsoft.Diagnostics.Runtime.GCRoot.FindSinglePath(ulong source, ulong target, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.LinkedList<Microsoft.Diagnostics.Runtime.ClrObject>!
+Microsoft.Diagnostics.Runtime.GCRoot.FindSinglePath(ulong source, ulong target, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.LinkedList<Microsoft.Diagnostics.Runtime.ClrObject>?
 Microsoft.Diagnostics.Runtime.GCRoot.GCRoot(Microsoft.Diagnostics.Runtime.ClrHeap! heap) -> void
 Microsoft.Diagnostics.Runtime.GCRoot.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
 Microsoft.Diagnostics.Runtime.GCRoot.ProgressUpdated -> Microsoft.Diagnostics.Runtime.GCRootProgressUpdatedEventHandler?
@@ -1138,7 +1138,7 @@ Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> System.IntPtr
 Microsoft.Diagnostics.Runtime.Utilities.PEImage
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.CoffHeader.get -> System.Reflection.PortableExecutable.CoffHeader?
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.CorHeader.get -> System.Reflection.PortableExecutable.CorHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.DefaultPdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo!
+Microsoft.Diagnostics.Runtime.Utilities.PEImage.DefaultPdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.Dispose() -> void
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.GetFileVersionInfo() -> Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo?
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.IndexFileSize.get -> int
@@ -1165,7 +1165,7 @@ Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.IsLeaf.get -> bool
 Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Name.get -> string!
 Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Parent.get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry?
 Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Size.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.this[string! name].get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!
+Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.this[string! name].get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry?
 Microsoft.Diagnostics.Runtime.Utilities.SigParser
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetCallingConvInfo(out int data) -> bool
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetData(out int data) -> bool

@@ -218,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 try
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
+                    Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath)!);
                     using (FileStream input = File.OpenRead(filePtrData))
                     using (FileStream output = File.OpenWrite(fullDestPath))
                         await input.CopyToAsync(output).ConfigureAwait(false);
@@ -254,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (returnContents)
                     return await msg.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath));
+                Directory.CreateDirectory(Path.GetDirectoryName(fullDestPath)!);
                 using FileStream fs = File.Create(fullDestPath);
                 await msg.Content.CopyToAsync(fs).ConfigureAwait(false);
                 return fullDestPath;

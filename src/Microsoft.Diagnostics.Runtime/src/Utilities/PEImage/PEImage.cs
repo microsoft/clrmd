@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// wasn't included in Stream) this returns <see langword="null"/>.  If multiple PDB streams are present, this method returns the
         /// last entry.
         /// </summary>
-        public PdbInfo DefaultPdb => Pdbs.LastOrDefault();
+        public PdbInfo? DefaultPdb => Pdbs.LastOrDefault();
 
         public PEReader? Reader { get; }
 
