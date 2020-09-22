@@ -15,6 +15,9 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if NET5_0
+using System.Runtime.Versioning;
+#endif
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -409,6 +412,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="pDebugClient">An IDebugClient interface.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
+#if NET5_0
+        [SupportedOSPlatform("windows")]
+#endif
         public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
