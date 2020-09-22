@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ObjectSet processedObjects = new ObjectSet(Heap);
                 foreach (IClrRoot root in roots)
                 {
-                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
+                    LinkedList<ClrObject>? path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath(root, path.ToImmutableArray());
 
@@ -215,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="target">The object we are searching for.</param>
         /// <param name="cancellationToken">A cancellation token to stop searching.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancellationToken = default)
+        public LinkedList<ClrObject>? FindSinglePath(ulong source, ulong target, CancellationToken cancellationToken = default)
         {
             return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancellationToken).FirstOrDefault();
         }

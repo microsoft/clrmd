@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (_auxvEntries.Count != 0)
                 return;
 
-            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
+            ElfNote? auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
             if (auxvNote is null)
                 throw new BadImageFormatException($"No auxv entries in coredump");
 

@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            startInfo.WorkingDirectory = options.currentDirectory;
+            startInfo.WorkingDirectory = options.currentDirectory ?? string.Empty;
 
             _outputStream = options.outputStream;
             if (options.outputFile != null)
