@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     [StructLayout(LayoutKind.Explicit, Pack = 1)]
     public struct Arm64Context
     {
-        public const uint Context = 0x00200000;
+        public const uint Context = 0x00400000;
         public const uint ContextControl = Context | 0x1;
         public const uint ContextInteger = Context | 0x2;
         public const uint ContextFloatingPoint = Context | 0x4;
