@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     [StructLayout(LayoutKind.Explicit, Pack = 1)]
     public struct X86Context
     {
-        public const uint Context = 0x00100000;
+        public const uint Context = 0x00010000;
         public const uint ContextControl = Context | 0x1;
         public const uint ContextInteger = Context | 0x2;
         public const uint ContextSegments = Context | 0x4;
