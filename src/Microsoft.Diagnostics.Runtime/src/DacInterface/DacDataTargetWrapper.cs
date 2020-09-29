@@ -154,6 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         return HResult.E_NOTIMPL;
                     }
 
+                    Trace.TraceInformation($"ReadVirtual {address:X16} size {bytesRequested}");
                     filePath = _dataTarget.BinaryLocator?.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
                 }
 
@@ -172,7 +173,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         DebugOnly.Assert(peimage.IsValid);
                         int rva = checked((int)(address - info.ImageBase));
                         bytesRead = peimage.Read(rva, span);
-                        return HResult.S_OK;
+                        if (bytesRead > 0)
+                        {
+                            return HResult.S_OK;
+                        }
                     }
                 }
             }
