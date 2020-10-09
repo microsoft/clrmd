@@ -1650,6 +1650,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
 
+            // EnumerateMethodByAddress will fail if we cannot read a single byte out of the instruction pointer.
+            // This holder ensures we succeed that read.
+            using IDisposable holder = _library.DacDataTarget.SucceedNextRead(1);
+
             foreach (ClrDataMethod method in _dac.EnumerateMethodInstancesByAddress(ip))
             {
                 ILToNativeMap[]? map = method.GetILToNativeMap();

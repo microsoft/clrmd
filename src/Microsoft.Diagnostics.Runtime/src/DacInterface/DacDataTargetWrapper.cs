@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private Action? _callback;
         private volatile int _callbackContext;
+        private volatile int _succeedCount;
 
         public IntPtr IDacDataTarget { get; }
 
@@ -157,23 +158,30 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     filePath = _dataTarget.BinaryLocator?.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
                 }
 
-                if (filePath is null)
+                if (filePath != null)
                 {
-                    bytesRead = 0;
-                    return HResult.E_FAIL;
-                }
-
-                // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEImage? peimage = _dataTarget.LoadPEImage(filePath);
-                if (peimage != null)
-                {
-                    lock (peimage)
+                    // We do not put a using statement here to prevent needing to load/unload the binary over and over.
+                    PEImage? peimage = _dataTarget.LoadPEImage(filePath);
+                    if (peimage != null)
                     {
-                        DebugOnly.Assert(peimage.IsValid);
-                        int rva = checked((int)(address - info.ImageBase));
-                        bytesRead = peimage.Read(rva, span);
-                        return HResult.S_OK;
+                        lock (peimage)
+                        {
+                            DebugOnly.Assert(peimage.IsValid);
+                            int rva = checked((int)(address - info.ImageBase));
+                            bytesRead = peimage.Read(rva, span);
+                            return HResult.S_OK;
+                        }
                     }
+                }
+            }
+
+            if (_succeedCount > 0)
+            {
+                int succeedCount = Interlocked.Decrement(ref _succeedCount);
+                if (succeedCount >= 0)
+                {
+                    bytesRead = bytesRequested;
+                    return HResult.S_OK;
                 }
             }
 
@@ -272,6 +280,34 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
 
             return HResult.S_OK;
+        }
+
+        /// <summary>
+        /// Forces the next <paramref name="count"/> reads to succeed, even if no data was read.
+        /// </summary>
+        /// <param name="count">The number of reads to succeed.</param>
+        /// <returns>A holder for a lock which MUST be disposed.</returns>
+        public IDisposable SucceedNextRead(int count) => new ReadHolder(this, count);
+
+        private class ReadHolder : IDisposable
+        {
+            private static readonly object _sync = new object();
+            private readonly DacDataTargetWrapper _parent;
+            private readonly int _prevCount;
+
+            public ReadHolder(DacDataTargetWrapper parent, int count)
+            {
+                Monitor.Enter(_sync);
+                _parent = parent;
+                _prevCount = _parent._succeedCount;
+                _parent._succeedCount = count;
+            }
+
+            public void Dispose()
+            {
+                _parent._succeedCount = _prevCount;
+                Monitor.Exit(_sync);
+            }
         }
 
         private delegate HResult GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,

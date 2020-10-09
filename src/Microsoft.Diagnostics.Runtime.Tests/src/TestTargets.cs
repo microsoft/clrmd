@@ -13,6 +13,12 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
+    public enum DumpType
+    {
+        Full,
+        Mini
+    }
+
     public enum GCMode
     {
         Workstation,
@@ -105,21 +111,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        public string BuildDumpName(GCMode gcmode, bool full)
+        public string BuildDumpName(DumpType dumpType, GCMode gcmode)
         {
             string fileName = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
 
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
-            string dumpType = full ? string.Empty : "_mini";
-            fileName = $"{fileName}_{gc}{dumpType}.dmp";
+            string typeSuffix = dumpType == DumpType.Full ? string.Empty : "_mini";
+            fileName = $"{fileName}_{gc}{typeSuffix}.dmp";
             return fileName;
         }
 
-        public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
+        public DataTarget LoadDump(DumpType dumpType, GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(dumpType, gc));
 
-        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, true));
+        public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadDump(DumpType.Mini, gc);
 
-        public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
+        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(DumpType.Full, gc);
+
+        public DataTarget LoadFullDumpWithDbgEng(DumpType dumpType = DumpType.Full, GCMode gc = GCMode.Workstation)
         {
             Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
             int hr = DebugCreate(guid, out IntPtr pDebugClient);
@@ -129,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             IDebugClient client = (IDebugClient)Marshal.GetTypedObjectForIUnknown(pDebugClient, typeof(IDebugClient));
             IDebugControl control = (IDebugControl)client;
 
-            string dumpPath = BuildDumpName(gc, true);
+            string dumpPath = BuildDumpName(dumpType, gc);
             hr = client.OpenDumpFile(dumpPath);
             if (hr != 0)
                 throw new Exception($"Failed to OpenDumpFile, hr={hr:x}.");
@@ -142,7 +150,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Marshal.Release(pDebugClient);
             return DataTarget.CreateFromDbgEng(pDebugClient);
         }
-
 
         [DllImport("dbgeng.dll")]
         private static extern int DebugCreate(in Guid InterfaceId, out IntPtr pDebugClient);

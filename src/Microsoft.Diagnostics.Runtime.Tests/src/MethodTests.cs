@@ -100,5 +100,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal(')', methodName.Last());
         }
+
+        [Theory]
+        [InlineData(DumpType.Full)]
+        [InlineData(DumpType.Mini)]
+        public void FrameILOffsetTest(DumpType dumpType)
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadDump(dumpType);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrThread thread = runtime.Threads.Where(t => t.CurrentException != null).Single();
+            foreach (var frame in thread.EnumerateStackTrace().Where(f => f.Method != null))
+            {
+                var ilOffset = frame.Method.GetILOffset(frame.InstructionPointer); // cannot get correct ilOffset here
+                Assert.True(ilOffset > 0);
+            }
+        }
     }
 }
