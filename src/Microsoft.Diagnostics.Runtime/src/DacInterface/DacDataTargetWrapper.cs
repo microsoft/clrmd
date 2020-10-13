@@ -172,7 +172,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         DebugOnly.Assert(peimage.IsValid);
                         int rva = checked((int)(address - info.ImageBase));
                         bytesRead = peimage.Read(rva, span);
-                        return HResult.S_OK;
+                        if (bytesRead > 0)
+                        {
+                            return HResult.S_OK;
+                        }
                     }
                 }
             }
