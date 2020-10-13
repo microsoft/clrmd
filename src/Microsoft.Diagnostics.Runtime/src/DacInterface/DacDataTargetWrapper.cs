@@ -154,7 +154,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         return HResult.E_NOTIMPL;
                     }
 
-                    Trace.TraceInformation($"ReadVirtual {address:X16} size {bytesRequested}");
                     filePath = _dataTarget.BinaryLocator?.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
                 }
 
