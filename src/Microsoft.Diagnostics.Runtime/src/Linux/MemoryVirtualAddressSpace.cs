@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public long Length => throw new NotImplementedException();
 
-        public string Name => throw new NotImplementedException();
+        public string Name => null;
 
         public int Read(long position, Span<byte> buffer)
         {
