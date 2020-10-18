@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     continue;
 
                 long offset = address - virtualAddress;
-                int toRead = Math.Min(buffer.Length - bytesRead, (int)(virtualSize - offset));
+                int toRead = (int)Math.Min(buffer.Length - bytesRead, virtualSize - offset);
 
                 Span<byte> slice = buffer.Slice(bytesRead, toRead);
                 int read = segment.AddressSpace.Read(offset, slice);
