@@ -28,14 +28,14 @@ namespace Microsoft.Diagnostics.Runtime
                 ref readonly TRegion region = ref regions.ItemRef(i);
                 ulong regionEndAddr = region.EndAddress;
 
-                int regionSize = (int)(regionEndAddr - address);
+                long regionSize = (long)(regionEndAddr - address);
                 if (regionSize >= bytesToRead)
                 {
                     return bytesToRead;
                 }
 
-                bytesToRead -= regionSize;
-                bytesReadable = regionSize;
+                bytesToRead -= (int)regionSize;
+                bytesReadable = (int)regionSize;
                 prevEndAddr = regionEndAddr;
             }
 
