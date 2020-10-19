@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             continue;
 
                         ulong offset = address - virtualAddress;
-                        int toRead = Math.Min(buffer.Length - bytesRead, (int)(size - offset));
+                        int toRead = (int)Math.Min(buffer.Length - bytesRead, (long)(size - offset));
 
                         Span<byte> slice = buffer.Slice(bytesRead, toRead);
                         _stream.Position = (long)(segment.FileOffset + offset);
