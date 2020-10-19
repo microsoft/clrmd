@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static string GetIndexPath(string fileName, int buildTimeStamp, int imageSize)
         {
             fileName = Path.GetFileName(fileName).ToLowerInvariant();
-            return $"{fileName}\\{unchecked((uint)buildTimeStamp):x}{unchecked((uint)imageSize):x}\\{fileName}";
+            return $"{fileName}\\{unchecked((uint)buildTimeStamp):x8}{unchecked((uint)imageSize):x}\\{fileName}";
         }
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
