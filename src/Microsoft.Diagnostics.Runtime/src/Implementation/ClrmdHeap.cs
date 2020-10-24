@@ -16,6 +16,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IHeapHelpers _helpers;
+        private readonly Lazy<ClrType> _freeType;
+        private readonly Lazy<ClrType> _objectType;
+        private readonly Lazy<ClrType> _stringType;
+        private readonly Lazy<ClrType> _exceptionType;
 
         private readonly object _sync = new();
         private volatile VolatileHeapData? _volatileHeapData;
@@ -36,13 +40,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override int LogicalHeapCount { get; }
 
-        public override ClrType FreeType { get; }
+        public override ClrType FreeType => _freeType.Value;
 
-        public override ClrType StringType { get; }
+        public override ClrType StringType => _stringType.Value;
 
-        public override ClrType ObjectType { get; }
+        public override ClrType ObjectType => _objectType.Value;
 
-        public override ClrType ExceptionType { get; }
+        public override ClrType ExceptionType => _exceptionType.Value;
 
         public override bool IsServer { get; }
 
@@ -52,17 +56,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 throw new ArgumentNullException(nameof(data));
 
             _helpers = data.HeapHelpers;
+            _freeType = new Lazy<ClrType>(() => _helpers.Factory.CreateSystemType(this, data.FreeMethodTable, "Free"));
+            _objectType = new Lazy<ClrType>(() => _helpers.Factory.CreateSystemType(this, data.ObjectMethodTable, "System.Object")); 
+            _stringType = new Lazy<ClrType>(() => _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String"));
+            _exceptionType = new Lazy<ClrType>(() => _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception"));
 
             Runtime = runtime;
             CanWalkHeap = data.CanWalkHeap;
             IsServer = data.IsServer;
             LogicalHeapCount = data.LogicalHeapCount;
-
-            // Prepopulate a few important method tables.  This should never fail.
-            FreeType = _helpers.Factory.CreateSystemType(this, data.FreeMethodTable, "Free");
-            ObjectType = _helpers.Factory.CreateSystemType(this, data.ObjectMethodTable, "System.Object");
-            StringType = _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String");
-            ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
         }
 
         public override IEnumerable<MemoryRange> EnumerateAllocationContexts() => AllocationContexts.Select(item => new MemoryRange(item.Key, item.Value));
