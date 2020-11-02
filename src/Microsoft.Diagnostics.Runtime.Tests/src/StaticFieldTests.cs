@@ -70,6 +70,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEqual(0ul, prev);
 
             ClrObject staticsArray = runtime.Heap.GetObject(prev);
+            Assert.True(staticsArray.IsValid);
+            Assert.True(staticsArray.IsArray);
         }
     }
 }
