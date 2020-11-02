@@ -42,5 +42,34 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(2, value2);
             Assert.Equal(42, value42);
         }
+
+        [Fact]
+        public void StringEmptyTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrType strType = runtime.Heap.StringType;
+            var statics = strType.StaticFields;
+            ulong valueSlot = Assert.Single(statics).GetAddress(runtime.AppDomains[0]);
+            Assert.NotEqual(0ul, valueSlot);
+
+            ulong address = dt.DataReader.ReadPointer(valueSlot);
+
+            Assert.NotEqual(0ul, address);
+            ClrObject obj = runtime.Heap.GetObject(address);
+            Assert.True(obj.Type.IsString);
+
+            string strValue = obj.AsString();
+            Assert.Equal("", strValue);
+
+            ClrSegment seg = runtime.Heap.GetSegmentByAddress(valueSlot);
+            Assert.NotNull(seg);
+
+            ulong prev = seg.GetPreviousObjectAddress(valueSlot);
+            Assert.NotEqual(0ul, prev);
+
+            ClrObject staticsArray = runtime.Heap.GetObject(prev);
+        }
     }
 }
