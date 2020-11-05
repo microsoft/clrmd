@@ -61,8 +61,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Prepopulate a few important method tables.  This should never fail.
             FreeType = _helpers.Factory.CreateSystemType(this, data.FreeMethodTable, "Free");
             ObjectType = _helpers.Factory.CreateSystemType(this, data.ObjectMethodTable, "System.Object");
-            StringType = _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String");
             ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
+
+            // Triage dumps may not place System.String data into the dump.  In these cases we'll create a "fake"
+            // System.String type for the library to use.
+            try
+            {
+                StringType = _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String");
+            }
+            catch (System.IO.InvalidDataException)
+            {
+                int token = 0;
+                using var sosdac = Runtime.DacLibrary.SOSDacInterface;
+                if (sosdac.GetMethodTableData(data.StringMethodTable, out DacInterface.MethodTableData mtd))
+                    token = (int)mtd.Token;
+
+                StringType = new ClrmdStringType((ITypeHelpers)_helpers, this, data.StringMethodTable, token);
+            }
         }
 
         public override IEnumerable<MemoryRange> EnumerateAllocationContexts() => AllocationContexts.Select(item => new MemoryRange(item.Key, item.Value));
