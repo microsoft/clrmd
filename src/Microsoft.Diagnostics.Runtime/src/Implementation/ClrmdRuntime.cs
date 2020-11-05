@@ -118,6 +118,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _helpers.DataReader.FlushCachedData();
             _helpers.FlushCachedData();
+
+            DacLibrary.Flush();
         }
 
         public override IEnumerable<ClrModule> EnumerateModules()
