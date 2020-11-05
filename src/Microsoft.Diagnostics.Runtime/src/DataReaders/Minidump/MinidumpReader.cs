@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture Architecture { get; }
 
-        public int ProcessId => -1;
+        public int ProcessId => _minidump.ProcessId;
 
         public int PointerSize { get; }
 
