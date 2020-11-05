@@ -19,9 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     internal sealed class Minidump : IDisposable
     {
         private readonly string _displayName;
-
         private readonly MinidumpDirectory[] _directories;
-
         private readonly Task<ThreadReadResult> _threadTask;
         private readonly MemoryMappedFile? _file;
         private ImmutableArray<MinidumpContextData> _contextsCached;
@@ -47,6 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public ImmutableArray<MinidumpModule> Modules { get; }
 
         public MinidumpProcessorArchitecture Architecture { get; }
+        public int ProcessId { get; } = -1;
 
         public int PointerSize => Architecture switch
         {
@@ -70,12 +69,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (!Read(stream, _directories))
                 throw new InvalidDataException($"Unable to read directories from minidump '{displayName} offset 0x{header.StreamDirectoryRva:x}");
 
-            (int systemInfoIndex, int moduleListIndex) = FindImportantStreams(displayName);
+            (int systemInfoIndex, int moduleListIndex, int miscStream) = FindImportantStreams(displayName);
 
             // Architecture is the first entry in MINIDUMP_SYSTEM_INFO.  We need nothing else out of that struct,
             // so we only read the first entry.
             // https://docs.microsoft.com/en-us/windows/win32/api/minidumpapiset/ns-minidumpapiset-minidump_system_info
             Architecture = Read<MinidumpProcessorArchitecture>(stream, _directories[systemInfoIndex].Rva);
+
+            // ProcessId is the 3rd DWORD in this stream.
+            if (miscStream != -1)
+                ProcessId = Read<int>(stream, _directories[miscStream].Rva + sizeof(uint) * 2);
 
             // Initialize modules.  DataTarget will need a module list immediately, so there's no reason to delay
             // filling in the module list.
@@ -91,7 +94,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 Modules = ImmutableArray<MinidumpModule>.Empty;
 
             // Read segments async.
-            //_nativeMemory = new CachedMemoryReader(pointerSize, dumpPath, cacheSize, CacheTechnology.ArrayPool, _segments.ToImmutableArray());
             ImmutableArray<MinidumpSegment> segments = GetSegments(stream);
 
             MinidumpMemoryReader memoryReader;
@@ -136,10 +138,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public IEnumerable<MinidumpModuleInfo> EnumerateModuleInfo() => Modules.Select(m => new MinidumpModuleInfo(MemoryReader, m));
 
-        private (int systemInfo, int moduleList) FindImportantStreams(string crashDump)
+        private (int systemInfo, int moduleList, int miscInfo) FindImportantStreams(string crashDump)
         {
             int systemInfo = -1;
             int moduleList = -1;
+            int miscInfo = -1;
 
             for (int i = 0; i < _directories.Length; i++)
             {
@@ -158,6 +161,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                         systemInfo = i;
                         break;
+
+                    case MinidumpStreamType.MiscInfoStream:
+                        miscInfo = i;
+                        break;
                 }
             }
 
@@ -166,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (moduleList == -1)
                 throw new InvalidDataException($"Minidump '{crashDump}' did not contain a module list stream.");
 
-            return (systemInfo, moduleList);
+            return (systemInfo, moduleList, miscInfo);
         }
 
         #region ReadThreadData
@@ -198,11 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             continue;
 
                         int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
-#if NETCOREAPP3_1
-                        int read = await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
-#else
-                        int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-#endif
+                        int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
 
                         for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
                         {
@@ -221,11 +224,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             continue;
 
                         int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
-#if NETCOREAPP3_1
-                        int read = await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
-#else
-                        int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-#endif
+                        int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
 
                         for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
                         {
@@ -248,12 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                         stream.Position = directory.Rva + threadInfoList.SizeOfHeader;
                         int count = ResizeBytesForArray<MinidumpThreadInfo>((ulong)threadInfoList.NumberOfEntries, ref buffer);
-
-#if NETCOREAPP3_1
-                        int read = await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
-#else
-                        int read = await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-#endif
+                        int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
 
                         for (int i = 0; i < read; i += threadInfoList.SizeOfEntry)
                         {
@@ -289,6 +283,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 Tebs = tebBuilder.ToImmutable(),
                 Threads = threadBuilder.ToImmutable()
             };
+        }
+
+        private static async Task<int> ReadAsync(Stream stream, byte[] buffer, int count)
+        {
+#if NETCOREAPP3_1 || NET5_0
+            return await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
+#else
+            return await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
+#endif
         }
         #endregion
 
@@ -383,11 +386,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 buffer = new byte[size];
 
             stream.Position = offset;
-#if NETCOREAPP3_1
-            int read = await stream.ReadAsync(buffer.AsMemory(0, size)).ConfigureAwait(false);
-#else
-            int read = await stream.ReadAsync(buffer, 0, size).ConfigureAwait(false);
-#endif
+            int read = await ReadAsync(stream, buffer, size).ConfigureAwait(false);
             if (read == size)
             {
                 T result = Unsafe.As<byte, T>(ref buffer[0]);
