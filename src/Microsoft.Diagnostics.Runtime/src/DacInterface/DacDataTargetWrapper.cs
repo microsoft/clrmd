@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;
-        private readonly ModuleInfo[] _modules;
+        private volatile ModuleInfo[]? _modules;
 
         private Action? _callback;
         private volatile int _callbackContext;
@@ -34,8 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
-            _modules = dataTarget.EnumerateModules().ToArray();
-            Array.Sort(_modules, (left, right) => left.ImageBase.CompareTo(right.ImageBase));
 
             VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
@@ -75,14 +73,34 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.S_OK;
         }
 
+        public void Flush()
+        {
+            _modules = null;
+        }
+
+        private ModuleInfo[] GetModules()
+        {
+            ModuleInfo[]? modules = _modules;
+            if (modules is null)
+            {
+                modules = _dataTarget.EnumerateModules().ToArray();
+                Array.Sort(modules, (left, right) => left.ImageBase.CompareTo(right.ImageBase));
+
+                _modules = modules;
+            }
+
+            return modules;
+        }
+
         private ModuleInfo? GetModule(ulong address)
         {
-            int min = 0, max = _modules.Length - 1;
+            ModuleInfo[] modules = GetModules();
+            int min = 0, max = modules.Length - 1;
 
             while (min <= max)
             {
                 int i = (min + max) / 2;
-                ModuleInfo curr = _modules[i];
+                ModuleInfo curr = modules[i];
 
                 if (curr.ImageBase <= address && address < curr.ImageBase + (ulong)curr.IndexFileSize)
                     return curr;
@@ -106,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             imagePath = Path.GetFileNameWithoutExtension(imagePath);
 
-            foreach (ModuleInfo module in _modules)
+            foreach (ModuleInfo module in GetModules())
             {
                 string? moduleName = Path.GetFileNameWithoutExtension(module.FileName);
                 if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase))
