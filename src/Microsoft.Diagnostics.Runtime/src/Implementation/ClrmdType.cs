@@ -377,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => throw new InvalidOperationException($"{Name} is not an array.");
 
         // convenience function for testing
-        public static string? FixGenerics(string? name) => RuntimeBuilder.FixGenerics(name);
+        public static string? FixGenerics(string? name) => DACNameParser.Parse(name);
 
         private void InitFlags()
         {
