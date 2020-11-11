@@ -181,7 +181,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // TODO: remove
         public override ClrInstanceField? GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
 
-
         private const uint FinalizationSuppressedFlag = 0x40000000;
         public override bool IsFinalizeSuppressed(ulong obj)
         {

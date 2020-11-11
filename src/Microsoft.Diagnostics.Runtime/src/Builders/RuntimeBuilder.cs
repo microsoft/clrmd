@@ -895,7 +895,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         // When searching for a type, we don't want to actually cache or intern the name until we completely
         // construct the type.  This will alleviate a lot of needless memory usage when we do something like
         // search all modules for a named type we never find.
-        string? IModuleHelpers.GetTypeName(ulong mt) => FixGenerics(_sos.GetMethodTableName(mt));
+        string? IModuleHelpers.GetTypeName(ulong mt) => DACNameParser.Parse(_sos.GetMethodTableName(mt));
         (ulong MethodTable, int Token)[] IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         (ulong MethodTable, int Token)[] IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -1462,123 +1462,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (string.IsNullOrWhiteSpace(name))
                 return true;
 
-            name = FixGenerics(name);
+            name = DACNameParser.Parse(name);
             if (_options.CacheTypeNames == StringCaching.Intern)
                 name = string.Intern(name);
 
             return _options.CacheTypeNames != StringCaching.None;
-        }
-
-        private static void FixGenerics(StringBuilder result, string name, int start, int len, ref int maxDepth, out int finish)
-        {
-            if (--maxDepth < 0)
-            {
-                finish = 0;
-                return;
-            }
-
-            int i = start;
-            while (i < len)
-            {
-                if (name[i] == '`')
-                    while (i < len && name[i] != '[')
-                        i++;
-
-                if (name[i] == ',')
-                {
-                    finish = i;
-                    return;
-                }
-
-                if (name[i] == '[')
-                {
-                    int end = FindEnd(name, i);
-
-                    if (IsArraySubstring(name, i, end))
-                    {
-                        result.Append(name, i, end - i + 1);
-                        i = end + 1;
-                    }
-                    else
-                    {
-                        result.Append('<');
-
-                        int curr = i;
-                        do
-                        {
-                            FixGenerics(result, name, curr + 2, end - 1, ref maxDepth, out int currEnd);
-                            if (maxDepth < 0)
-                            {
-                                finish = 0;
-                                return;
-                            }
-
-                            curr = FindEnd(name, currEnd) + 1;
-
-                            if (curr >= end)
-                                break;
-
-                            if (name[curr] == ',')
-                                result.Append(", ");
-                        }
-                        while (curr < end);
-
-                        result.Append('>');
-
-                        i = curr + 1;
-                    }
-                }
-                else
-                {
-                    result.Append(name[i]);
-                    i++;
-                }
-            }
-
-            finish = i;
-        }
-
-        private static int FindEnd(string name, int start)
-        {
-            int parenCount = 1;
-            for (int i = start + 1; i < name.Length; i++)
-            {
-                if (name[i] == '[')
-                    parenCount++;
-                if (name[i] == ']' && --parenCount == 0)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        private static bool IsArraySubstring(string name, int start, int end)
-        {
-            start++;
-            end--;
-            while (start < end)
-                if (name[start++] != ',')
-                    return false;
-
-            return true;
-        }
-
-        [return: NotNullIfNotNull("name")]
-        public static string? FixGenerics(string? name)
-        {
-            if (name == null || !name.Contains("[[", StringComparison.Ordinal))
-                return name;
-
-            int maxDepth = 64;
-            StringBuilder sb = new StringBuilder();
-            FixGenerics(sb, name, 0, name.Length, ref maxDepth, out _);
-
-            if (maxDepth < 0)
-                return null;
-
-            return sb.ToString();
         }
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
