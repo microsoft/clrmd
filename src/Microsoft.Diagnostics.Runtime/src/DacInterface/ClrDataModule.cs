@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -24,12 +24,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetModuleData(out ExtendedModuleData data)
         {
-            InitDelegate(ref _request, VTable.Request);
 
             HResult hr;
             fixed (void* dataPtr = &data)
             {
-                hr = _request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
+                hr = VTable.Request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
                 if (!hr)
                     data = default;
 
@@ -39,27 +38,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetName()
         {
-            InitDelegate(ref _getName, VTable.GetName);
 
-            HResult hr = _getName(Self, 0, out int nameLength, null);
+            HResult hr = VTable.GetName(Self, 0, out int nameLength, null);
             if (!hr)
                 return null;
 
             string name = new string('\0', nameLength - 1);
             fixed (char* namePtr = name)
-                hr = _getName(Self, nameLength, out _, namePtr);
+                hr = VTable.GetName(Self, nameLength, out _, namePtr);
 
             return hr ? name : null;
         }
 
-        private GetNameDelegate? _getName;
-        private delegate HResult GetNameDelegate(IntPtr self, int bufLen, out int nameLen, char* name);
-
-        private RequestDelegate? _request;
-        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
-
         [StructLayout(LayoutKind.Sequential)]
-        private readonly struct IClrDataModuleVTable
+        private readonly unsafe struct IClrDataModuleVTable
         {
             private readonly IntPtr StartEnumAssemblies;
             private readonly IntPtr EnumAssembly;
@@ -87,14 +79,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             private readonly IntPtr StartEnumDataByName;
             private readonly IntPtr EnumDataByName;
             private readonly IntPtr EndEnumDataByName;
-            public readonly IntPtr GetName;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, HResult> GetName;
             private readonly IntPtr GetFileName;
             private readonly IntPtr GetFlags;
             private readonly IntPtr IsSameObject;
             private readonly IntPtr StartEnumExtents;
             private readonly IntPtr EnumExtent;
             private readonly IntPtr EndEnumExtents;
-            public readonly IntPtr Request;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, void*, int, void*, HResult> Request;
             private readonly IntPtr StartEnumAppDomains;
             private readonly IntPtr EnumAppDomain;
             private readonly IntPtr EndEnumAppDomains;

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -24,23 +24,19 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult GetThreadContext(Span<byte> context)
         {
-            InitDelegate(ref _getThreadContext, VTable.GetThreadContext);
 
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = context)
-                return _getThreadContext(Self, ptr, context.Length);
+                return VTable.GetThreadContext(Self, ptr, context.Length);
         }
 
         private readonly DebugSystemObjects _sys;
-
-        private GetThreadContextDelegate? _getThreadContext;
-        private delegate HResult GetThreadContextDelegate(IntPtr self, byte* context, int contextSize);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IDebugAdvancedVTable
+    internal readonly unsafe struct IDebugAdvancedVTable
     {
-        public readonly IntPtr GetThreadContext;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, byte*, int, HResult> GetThreadContext;
         public readonly IntPtr SetThreadContext;
     }
 }

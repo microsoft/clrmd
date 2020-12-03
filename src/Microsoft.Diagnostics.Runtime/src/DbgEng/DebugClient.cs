@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -26,26 +26,23 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void EndSession(DebugEnd mode)
         {
-            InitDelegate(ref _endSession, VTable.EndSession);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _endSession(Self, mode);
+            int hr = VTable.EndSession(Self, mode);
             DebugOnly.Assert(hr == 0);
         }
 
         public void DetachProcesses()
         {
-            InitDelegate(ref _detachProcesses, VTable.DetachProcesses);
 
             using IDisposable holder = _sys.Enter();
-            int hr = _detachProcesses(Self);
+            int hr = VTable.DetachProcesses(Self);
             DebugOnly.Assert(hr == 0);
         }
 
         public HResult AttachProcess(uint pid, DebugAttach flags)
         {
-            InitDelegate(ref _attachProcess, VTable.AttachProcess);
-            HResult hr = _attachProcess(Self, 0, pid, flags);
+            HResult hr = VTable.AttachProcess(Self, 0, pid, flags);
 
             _sys.Init();
             return hr;
@@ -53,23 +50,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult OpenDumpFile(string dumpFile)
         {
-            InitDelegate(ref _openDumpFile, VTable.OpenDumpFile);
-            return _openDumpFile(Self, dumpFile);
+            return VTable.OpenDumpFile(Self, dumpFile);
         }
-
-        private EndSessionDelegate? _endSession;
-        private DetachProcessesDelegate? _detachProcesses;
-        private AttachProcessDelegate? _attachProcess;
-        private OpenDumpFileDelegate? _openDumpFile;
-
-        private delegate HResult EndSessionDelegate(IntPtr self, DebugEnd mode);
-        private delegate HResult DetachProcessesDelegate(IntPtr self);
-        private delegate HResult AttachProcessDelegate(IntPtr self, ulong server, uint pid, DebugAttach AttachFlags);
-        private delegate HResult OpenDumpFileDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPStr)] string file);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IDebugClientVTable
+    internal readonly unsafe struct IDebugClientVTable
     {
         public readonly IntPtr AttachKernel;
         public readonly IntPtr GetKernelConnectionOptions;
@@ -80,21 +66,21 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetRunningProcessSystemIds;
         public readonly IntPtr GetRunningProcessSystemIdByExecutableName;
         public readonly IntPtr GetRunningProcessDescription;
-        public readonly IntPtr AttachProcess;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, uint, DebugAttach, HResult> AttachProcess;
         public readonly IntPtr CreateProcess;
         public readonly IntPtr CreateProcessAndAttach;
         public readonly IntPtr GetProcessOptions;
         public readonly IntPtr AddProcessOptions;
         public readonly IntPtr RemoveProcessOptions;
         public readonly IntPtr SetProcessOptions;
-        public readonly IntPtr OpenDumpFile;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, [In][MarshalAs(UnmanagedType.LPStr)] string, HResult> OpenDumpFile;
         public readonly IntPtr WriteDumpFile;
         public readonly IntPtr ConnectSession;
         public readonly IntPtr StartServer;
         public readonly IntPtr OutputServer;
         public readonly IntPtr TerminateProcesses;
-        public readonly IntPtr DetachProcesses;
-        public readonly IntPtr EndSession;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> DetachProcesses;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, DebugEnd, HResult> EndSession;
         public readonly IntPtr GetExitCode;
         public readonly IntPtr DispatchCallbacks;
         public readonly IntPtr ExitDispatch;
