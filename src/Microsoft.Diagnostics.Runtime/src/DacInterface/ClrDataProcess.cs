@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
-        private ref readonly IXCLRDataProcessVtable VTable => ref Unsafe.AsRef<IXCLRDataProcessVtable>(_vtable);
+        private ref readonly IXCLRDataProcessVTable VTable => ref Unsafe.AsRef<IXCLRDataProcessVTable>(_vtable);
 
         public ClrDataProcess(DacLibrary library, CallableCOMWrapper toClone) : base(toClone)
         {
@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IXCLRDataProcessVtable
+    internal readonly struct IXCLRDataProcessVTable
     {
         public readonly IntPtr Flush;
         private readonly IntPtr Unused_StartEnumTasks;

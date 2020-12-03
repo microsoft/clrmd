@@ -35,10 +35,10 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void DetachProcesses()
         {
-            InitDelegate(ref this._detachProcesses, VTable.DetachProcesses);
+            InitDelegate(ref _detachProcesses, VTable.DetachProcesses);
 
             using IDisposable holder = _sys.Enter();
-            int hr = this._detachProcesses(Self);
+            int hr = _detachProcesses(Self);
             DebugOnly.Assert(hr == 0);
         }
 
