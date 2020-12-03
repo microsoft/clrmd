@@ -323,9 +323,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         public ClrDataAddress[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
-        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, ref _getAssemblyList, VTable.GetAssemblyList);
+
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count)
+        {
+            InitDelegate(ref _getAssemblyList, VTable.GetAssemblyList);
+            GetModuleOrAssembly(appDomain, count, _getAssemblyList);
+        }
+
         public ClrDataAddress[] GetModuleList(ulong assembly) => GetModuleList(assembly, 0);
-        public ClrDataAddress[] GetModuleList(ulong assembly, int count) => GetModuleOrAssembly(assembly, count, ref _getModuleList, VTable.GetAssemblyModuleList);
+
+        public ClrDataAddress[] GetModuleList(ulong assembly, int count)
+        {
+            InitDelegate(ref _getModuleList, VTable.GetAssemblyModuleList);
+            GetModuleOrAssembly(assembly, count, _getModuleList);
+        }
 
         public HResult GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
         {
@@ -486,10 +497,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return _getModuleData(Self, module, out data);
         }
 
-        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, ref DacGetAddrArrayWithArg? func, IntPtr vtableEntry)
+        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, DacGetAddrArrayWithArg func)
         {
-            InitDelegate(ref func, vtableEntry);
-
             int needed;
             if (count <= 0)
             {
