@@ -32,9 +32,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
             {
-                while (VTable.EnumInterfaceImpls(Self, ref handle, token, tokens, tokens.Length, out int count) && count > 0)
+                while (Enum(ref handle, token, tokens, tokens.Length, out int count) && count > 0)
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
+
+                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count) =>
+                    VTable.EnumInterfaceImpls(Self, ref handle, token, tokens, length, out count);
             }
             finally
             {
@@ -107,9 +110,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
             {
-                while (VTable.EnumFields(Self, ref handle, token, tokens, tokens.Length, out int count) && count > 0)
+                while (Enum(ref handle, token, tokens, tokens.Length, out int count) && count > 0)
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
+
+                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count) =>
+                    VTable.EnumFields(Self, ref handle, token, tokens, length, out count);
             }
             finally
             {
@@ -165,9 +171,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
             {
-                while (VTable.EnumGenericParams(Self, ref handle, token, tokens, tokens.Length, out int count) && count > 0)
+                while (Enum(ref handle, token, tokens, tokens.Length, out int count) && count > 0)
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
+
+                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count) =>
+                    VTable.EnumGenericParams(Self, ref handle, token, tokens, length, out count);
             }
             finally
             {

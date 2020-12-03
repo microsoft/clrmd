@@ -289,17 +289,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
 
-        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count)
-        {
-            GetModuleOrAssembly(appDomain, count, VTable.GetAssemblyList);
-        }
+        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, VTable.GetAssemblyList);
 
         public ClrDataAddress[] GetModuleList(ulong assembly) => GetModuleList(assembly, 0);
 
-        public ClrDataAddress[] GetModuleList(ulong assembly, int count)
-        {
-            GetModuleOrAssembly(assembly, count, VTable.GetAssemblyModuleList);
-        }
+        public ClrDataAddress[] GetModuleList(ulong assembly, int count) => GetModuleOrAssembly(assembly, count, VTable.GetAssemblyModuleList);
 
         public HResult GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
         {
@@ -369,7 +363,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return GetString(VTable.GetPEFileName, pefile);
         }
 
-        private string? GetString(DacGetCharArrayWithArg func, ulong addr, bool skipNull = true)
+        private string? GetString(delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> func, ulong addr, bool skipNull = true)
         {
             HResult hr = func(Self, addr, 0, null, out int needed);
             if (!hr)
@@ -402,7 +396,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private string? GetAsciiString(DacGetByteArrayWithArg func, ulong addr)
+        private string? GetAsciiString(delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> func, ulong addr)
         {
             HResult hr = func(Self, addr, 0, null, out int needed);
             if (!hr)
@@ -448,7 +442,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetModuleData(Self, module, out data);
         }
 
-        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, DacGetAddrArrayWithArg func)
+        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> func)
         {
             int needed;
             if (count <= 0)
@@ -661,7 +655,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // Modules
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out IntPtr, HResult> GetModule;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ModuleData, HResult> GetModuleData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ModuleMapTraverseKind, ClrDataAddress, IntPtr, IntPtr, HResult> TraverseModuleMap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, SOSDac.ModuleMapTraverseKind, ClrDataAddress, IntPtr, IntPtr, HResult> TraverseModuleMap;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> GetAssemblyModuleList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, HResult> GetILForModule;
 
