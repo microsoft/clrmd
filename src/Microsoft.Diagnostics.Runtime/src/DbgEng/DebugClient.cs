@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr AddProcessOptions;
         public readonly IntPtr RemoveProcessOptions;
         public readonly IntPtr SetProcessOptions;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, [In][MarshalAs(UnmanagedType.LPStr)] string, HResult> OpenDumpFile;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, string, HResult> OpenDumpFile;
         public readonly IntPtr WriteDumpFile;
         public readonly IntPtr ConnectSession;
         public readonly IntPtr StartServer;

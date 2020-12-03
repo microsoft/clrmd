@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr CountEnum;
         private readonly IntPtr ResetEnum;
         private readonly IntPtr EnumTypeDefs;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, [Out] int[], int, out int, HResult> EnumInterfaceImpls;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int[], int, out int, HResult> EnumInterfaceImpls;
         private readonly IntPtr EnumTypeRefs;
         private readonly IntPtr FindTypeDefByName;
         private readonly IntPtr GetScopeProps;
@@ -272,14 +272,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int, out int, out FieldAttributes, out IntPtr, out int, out int, out IntPtr, out int, HResult> GetFieldProps;
         private readonly IntPtr GetPropertyProps;
         private readonly IntPtr GetParamProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, [MarshalAs(UnmanagedType.LPWStr)] string, out IntPtr, out uint, HResult> GetCustomAttributeByName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, string, out IntPtr, out uint, HResult> GetCustomAttributeByName;
         private readonly IntPtr IsValidToken;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, HResult> GetNestedClassProps;
         private readonly IntPtr GetNativeCallConvFromSig;
         private readonly IntPtr IsGlobal;
 
         // IMetaDataImport2
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, [Out] int[], int, out int, HResult> EnumGenericParams;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int[], int, out int, HResult> EnumGenericParams;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, out GenericParameterAttributes, out int, out int, char*, int, out int, HResult> GetGenericParamProps;
         private readonly IntPtr GetMethodSpecProps;
         private readonly IntPtr EnumGenericParamConstraints;

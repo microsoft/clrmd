@@ -648,42 +648,42 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // AppDomains
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out AppDomainStoreData, HResult> GetAppDomainStoreData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, [Out] ClrDataAddress[], out int, HResult> GetAppDomainList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress[], out int, HResult> GetAppDomainList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out AppDomainData, HResult> GetAppDomainData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetAppDomainName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetAppDomainName;
         public readonly IntPtr GetDomainFromContext;
 
         // Assemblies
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, [Out] ClrDataAddress[]?, out int, HResult> GetAssemblyList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> GetAssemblyList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, ClrDataAddress, out AssemblyData, HResult> GetAssemblyData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetAssemblyName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetAssemblyName;
 
         // Modules
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out IntPtr, HResult> GetModule;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ModuleData, HResult> GetModuleData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ModuleMapTraverseKind, ClrDataAddress, IntPtr, IntPtr, HResult> TraverseModuleMap;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, [Out] ClrDataAddress[]?, out int, HResult> GetAssemblyModuleList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> GetAssemblyModuleList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, HResult> GetILForModule;
 
         // Threads
 
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, [Out] out ThreadData, HResult> GetThreadData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ThreadData, HResult> GetThreadData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out ClrDataAddress, HResult> GetThreadFromThinlockID;
         public readonly IntPtr GetStackLimits;
 
         // MethodDescs
 
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, ulong, out MethodDescData, int, [Out] RejitData[]?, out int, HResult> GetMethodDescData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, ulong, out MethodDescData, int, RejitData[]?, out int, HResult> GetMethodDescData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, HResult> GetMethodDescPtrFromIP;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetMethodDescName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetMethodDescName;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, HResult> GetMethodDescPtrFromFrame;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, out ClrDataAddress, HResult> GetMethodDescFromToken;
         private readonly IntPtr GetMethodDescTransparencyData;
 
         // JIT Data
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CodeHeaderData, HResult> GetCodeHeaderData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, [Out] JitManagerInfo[]?, out int, HResult> GetJitManagerList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetJitHelperFunctionName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerInfo[]?, out int, HResult> GetJitManagerList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetJitHelperFunctionName;
         private readonly IntPtr GetJumpThunkTarget;
 
         // ThreadPool
@@ -698,7 +698,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetObjectClassName;
 
         // MethodTable
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetMethodTableName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetMethodTableName;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableData, HResult> GetMethodTableData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, HResult> GetMethodTableSlot;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out FieldInfo, HResult> GetMethodTableFieldData;
@@ -711,15 +711,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out FieldData, HResult> GetFieldDescData;
 
         // Frames
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetFrameName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetFrameName;
 
         // PEFiles
         public readonly IntPtr GetPEFileBase;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetPEFileName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetPEFileName;
 
         // GC
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out GCInfo, HResult> GetGCHeapData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, [Out] ClrDataAddress[], out int, HResult> GetGCHeapList; // svr only
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress[], out int, HResult> GetGCHeapList; // svr only
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out HeapDetails, HResult> GetGCHeapDetails; // wks only
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out HeapDetails, HResult> GetGCHeapStaticData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out SegmentData, HResult> GetHeapSegmentData;
@@ -742,7 +742,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Handles
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, HResult> GetHandleEnum;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, [In] ClrHandleKind[], int, out IntPtr, HResult> GetHandleEnumForTypes;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrHandleKind[], int, out IntPtr, HResult> GetHandleEnumForTypes;
         private readonly IntPtr GetHandleEnumForGC;
 
         // EH
@@ -754,7 +754,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Heaps
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, HResult> TraverseLoaderHeap;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, [Out] JitCodeHeapInfo[]?, out int, HResult> GetCodeHeapList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, JitCodeHeapInfo[]?, out int, HResult> GetCodeHeapList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, IntPtr, HResult> TraverseVirtCallStubHeap;
 
         // Other
@@ -765,9 +765,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // COM
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out RcwData, HResult> GetRCWData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, [Out] COMInterfacePointerData[], out int, HResult> GetRCWInterfaces;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData[], out int, HResult> GetRCWInterfaces;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CcwData, HResult> GetCCWData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, [Out] COMInterfacePointerData[], out int, HResult> GetCCWInterfaces;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData[], out int, HResult> GetCCWInterfaces;
         private readonly IntPtr TraverseRCWCleanupList;
 
         // GC Reference Functions
@@ -781,8 +781,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetFailedAssemblyList;
         public readonly IntPtr GetPrivateBinPaths;
         public readonly IntPtr GetAssemblyLocation;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetAppDomainConfigFile;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, [Out] out int, HResult> GetApplicationBase;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetAppDomainConfigFile;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetApplicationBase;
         public readonly IntPtr GetFailedAssemblyData;
         public readonly IntPtr GetFailedAssemblyLocation;
         public readonly IntPtr GetFailedAssemblyDisplayName;
