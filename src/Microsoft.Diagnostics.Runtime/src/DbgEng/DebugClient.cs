@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -26,7 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void EndSession(DebugEnd mode)
         {
-
             using IDisposable holder = _sys.Enter();
             int hr = VTable.EndSession(Self, mode);
             DebugOnly.Assert(hr == 0);
@@ -34,7 +33,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public void DetachProcesses()
         {
-
             using IDisposable holder = _sys.Enter();
             int hr = VTable.DetachProcesses(Self);
             DebugOnly.Assert(hr == 0);

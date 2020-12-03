@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -24,7 +24,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetModuleData(out ExtendedModuleData data)
         {
-
             HResult hr;
             fixed (void* dataPtr = &data)
             {
@@ -38,7 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetName()
         {
-
             HResult hr = VTable.GetName(Self, 0, out int nameLength, null);
             if (!hr)
                 return null;

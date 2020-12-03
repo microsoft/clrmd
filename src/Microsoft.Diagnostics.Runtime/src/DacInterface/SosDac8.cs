@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -43,7 +43,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public GenerationData[]? GetGenerationTable()
         {
-
             if (!VTable.GetGenerationTable(Self, 0, null, out int needed))
                 return null;
 
@@ -57,7 +56,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public GenerationData[]? GetGenerationTable(ulong heap)
         {
-
             if (!VTable.GetGenerationTableSvr(Self, heap, 0, null, out int needed))
                 return null;
 
@@ -71,7 +69,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[]? GetFinalizationFillPointers()
         {
-
             if (!VTable.GetFinalizationFillPointers(Self, 0, null, out int needed))
                 return null;
 
@@ -85,7 +82,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[]? GetFinalizationFillPointers(ulong heap)
         {
-
             if (!VTable.GetFinalizationFillPointersSvr(Self, heap, 0, null, out int needed))
                 return null;
 

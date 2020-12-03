@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -25,7 +25,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public string? GetModuleNameStringWide(DebugModuleName which, int index, ulong imageBase)
         {
-
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
             if (!hr)
@@ -41,7 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int GetNumberModules()
         {
-
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetNumberModules(Self, out int count, out _);
             return hr ? count : 0;
@@ -49,7 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public ulong GetModuleByIndex(int i)
         {
-
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetModuleByIndex(Self, i, out ulong imageBase);
             return hr ? imageBase : 0;
@@ -57,7 +54,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult GetModuleParameters(ulong[] bases, out DEBUG_MODULE_PARAMETERS[] parameters)
         {
-
             parameters = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
             fixed (ulong* pBases = bases)
@@ -71,7 +67,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public VersionInfo GetModuleVersionInformation(int index, ulong imgBase)
         {
-
             byte* item = stackalloc byte[3] { (byte)'\\', (byte)'\\', 0 };
 
             using IDisposable holder = _sys.Enter();
@@ -101,7 +96,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult GetModuleByOffset(ulong address, int index, out int outIndex, out ulong imgBase)
         {
-
             using IDisposable holder = _sys.Enter();
             return VTable.GetModuleByOffset(Self, address, index, out outIndex, out imgBase);
         }

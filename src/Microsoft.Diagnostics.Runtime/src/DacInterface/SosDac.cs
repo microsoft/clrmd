@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -123,13 +123,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetThreadLocalModuleData(ulong thread, uint index, out ThreadLocalModuleData data)
         {
-
             return VTable.GetThreadLocalModuleData(Self, thread, index, out data);
         }
 
         public ulong GetILForModule(ulong moduleAddr, uint rva)
         {
-
             if (VTable.GetILForModule(Self, moduleAddr, rva, out ClrDataAddress result))
                 return result;
 
@@ -138,7 +136,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
         {
-
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
             if (VTable.GetCCWInterfaces(Self, ccw, count, data, out int pNeeded))
                 return data;
@@ -148,7 +145,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public COMInterfacePointerData[]? GetRCWInterfaces(ulong ccw, int count)
         {
-
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
             if (VTable.GetRCWInterfaces(Self, ccw, count, data, out int pNeeded))
                 return data;
@@ -297,7 +293,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
         {
-
             // The dac seems to have an issue where the assembly data can be filled in for a minidump.
             // If the data is partially filled in, we'll use it.
 
@@ -310,7 +305,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetAppDomainData(ulong addr, out AppDomainData data)
         {
-
             // We can face an exception while walking domain data if we catch the process
             // at a bad state.  As a workaround we will return partial data if data.Address
             // and data.StubHeap are set.
@@ -462,7 +456,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[] GetAppDomainList(int count = 0)
         {
-
             if (count <= 0)
             {
                 if (!GetAppDomainStoreData(out AppDomainStoreData addata))
@@ -498,7 +491,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress[] GetHeapList(int heapCount)
         {
-
             ClrDataAddress[] refs = new ClrDataAddress[heapCount];
             HResult hr = VTable.GetGCHeapList(Self, heapCount, refs, out int needed);
             return hr ? refs : Array.Empty<ClrDataAddress>();
@@ -548,7 +540,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
-
             HResult hr = VTable.TraverseModuleMap(Self, mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
             return hr;
@@ -558,7 +549,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
         {
-
             HResult hr = VTable.TraverseLoaderHeap(Self, heap, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
             return hr;
@@ -566,7 +556,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult TraverseStubHeap(ulong heap, int type, LoaderHeapTraverse callback)
         {
-
             HResult hr = VTable.TraverseVirtCallStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
             return hr;
@@ -590,7 +579,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSHandleEnum? EnumerateHandles()
         {
-
             HResult hr = VTable.GetHandleEnum(Self, out IntPtr ptrEnum);
             if (hr)
             {
@@ -607,7 +595,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSStackRefEnum? EnumerateStackRefs(uint osThreadId)
         {
-
             HResult hr = VTable.GetStackReferences(Self, osThreadId, out IntPtr ptrEnum);
 
             if (hr)
@@ -625,7 +612,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ulong GetMethodDescFromToken(ulong module, int token)
         {
-
             if (VTable.GetMethodDescFromToken(Self, module, token, out ClrDataAddress md))
                 return md;
 

@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -28,7 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public uint GetProcessId()
         {
-
             using IDisposable holder = Enter();
             HResult hr = VTable.GetCurrentProcessSystemId(Self, out uint id);
             return hr ? id : 0;
@@ -36,7 +35,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private HResult SetCurrentSystemId(int id)
         {
-
             HResult hr = VTable.SetCurrentSystemId(Self, id);
             DebugOnly.Assert(hr);
             return hr;
@@ -44,7 +42,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult SetCurrentThread(uint id)
         {
-
             using IDisposable holder = Enter();
             HResult hr = VTable.SetCurrentThreadId(Self, id);
             DebugOnly.Assert(hr);
@@ -53,7 +50,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public uint GetCurrentThread()
         {
-
             using IDisposable holder = Enter();
             HResult hr = VTable.GetCurrentThreadId(Self, out uint id);
 
@@ -62,7 +58,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int GetNumberThreads()
         {
-
             using IDisposable holder = Enter();
             HResult hr = VTable.GetNumberThreads(Self, out int count);
             DebugOnly.Assert(hr);
@@ -71,7 +66,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public ulong GetThreadTeb(uint osThreadId)
         {
-
             using IDisposable holder = Enter();
 
             ulong teb = 0;
@@ -114,7 +108,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public uint GetThreadIdBySystemId(uint sysId)
         {
-
             using IDisposable holder = Enter();
             HResult hr = VTable.GetThreadIdBySystemId(Self, sysId, out uint result);
             DebugOnly.Assert(hr);

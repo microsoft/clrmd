@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -89,7 +89,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
         {
-
             fixed (byte* pInput = input)
             fixed (byte* pOutput = output)
                 return VTable.Request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
@@ -97,7 +96,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
-
             if (!VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask))
                 return null;
 
@@ -116,7 +114,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ClrDataAddress addr)
         {
-
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
             if (!VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle))

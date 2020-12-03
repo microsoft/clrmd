@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -22,7 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetFrameVtable()
         {
-
             long ptr = 0xcccccccc;
 
             HResult hr = VTable.Request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
@@ -31,7 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult Next()
         {
-
             return VTable.Next(Self);
         }
 

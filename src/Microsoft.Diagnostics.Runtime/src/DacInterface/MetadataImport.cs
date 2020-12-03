@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -27,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<int> EnumerateInterfaceImpls(int token)
         {
-
             IntPtr handle = IntPtr.Zero;
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
@@ -50,21 +49,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public MethodAttributes GetMethodAttributes(int token)
         {
-
             HResult hr = VTable.GetMethodProps(Self, token, out int cls, null, 0, out int needed, out MethodAttributes result, out IntPtr sigBlob, out uint sigBlobLen, out uint codeRVA, out uint implFlags);
             return hr ? result : default;
         }
 
         public uint GetRva(int token)
         {
-
             HResult hr = VTable.GetRVA(Self, token, out uint rva, out uint flags);
             return hr ? rva : 0;
         }
 
         public HResult GetTypeDefProperties(int token, out string? name, out TypeAttributes attributes, out int mdParent)
         {
-
             HResult hr = VTable.GetTypeDefProps(Self, token, null, 0, out int needed, out attributes, out mdParent);
             if (!hr.IsOK)
             {
@@ -87,7 +83,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetFieldProps(int token, out string? name, out FieldAttributes attrs, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue)
         {
-
             HResult hr = VTable.GetFieldProps(Self, token, out int typeDef, null, 0, out int needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out int pcchValue);
             if (!hr)
             {
@@ -105,7 +100,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<int> EnumerateFields(int token)
         {
-
             IntPtr handle = IntPtr.Zero;
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
@@ -133,7 +127,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetTypeRefName(int token)
         {
-
             if (!VTable.GetTypeRefProps(Self, token, out int scope, null, 0, out int needed).IsOK)
                 return null;
 
@@ -166,7 +159,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<int> EnumerateGenericParams(int token)
         {
-
             IntPtr handle = IntPtr.Zero;
             int[] tokens = ArrayPool<int>.Shared.Rent(32);
             try
@@ -210,7 +202,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SigParser GetSigFromToken(int token)
         {
-
             HResult hr = VTable.GetSigFromToken(Self, token, out IntPtr sig, out int len);
             if (hr)
                 return new SigParser(sig, len);

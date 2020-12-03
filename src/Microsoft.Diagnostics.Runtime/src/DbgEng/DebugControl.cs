@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -28,7 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public IMAGE_FILE_MACHINE GetEffectiveProcessorType()
         {
-
             using IDisposable holder = _sys.Enter();
             int hr = VTable.GetEffectiveProcessorType(Self, out IMAGE_FILE_MACHINE result);
             if (hr == 0)
@@ -39,7 +38,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public bool IsPointer64Bit()
         {
-
             using IDisposable holder = _sys.Enter();
             int hr = VTable.IsPointer64Bit(Self);
             return hr == 0;
@@ -47,21 +45,18 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public HResult WaitForEvent(uint timeout)
         {
-
             using IDisposable holder = _sys.Enter();
             return VTable.WaitForEvent(Self, 0, timeout);
         }
 
         public HResult AddEngineOptions(int options)
         {
-
             using IDisposable holder = _sys.Enter();
             return VTable.AddEngineOptions(Self, options);
         }
 
         public DEBUG_FORMAT GetDumpFormat()
         {
-
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetDumpFormatFlags(Self, out DEBUG_FORMAT result);
             if (hr)
@@ -72,7 +67,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public DEBUG_CLASS_QUALIFIER GetDebuggeeClassQualifier()
         {
-
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
             DebugOnly.Assert(hr.IsOK);
