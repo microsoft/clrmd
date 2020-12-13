@@ -150,6 +150,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             ulong step = Length / ((uint)_markers.Length + 1);
 
+            if (step == 0)
+                return -1;
+
             ulong offset = obj - FirstObjectAddress;
             int index = (int)(offset / step) - 1;
 
