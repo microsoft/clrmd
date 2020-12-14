@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
-        public DacLibrary(DataTarget dataTarget, string dacPath)
+        public unsafe DacLibrary(DataTarget dataTarget, string dacPath)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (dllMain == IntPtr.Zero)
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
-                DllMain main = Marshal.GetDelegateForFunctionPointer<DllMain>(dllMain);
+                var main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
                 main(dacLibrary, 1, IntPtr.Zero);
             }
 
@@ -126,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
 
-            CreateDacInstance func = Marshal.GetDelegateForFunctionPointer<CreateDacInstance>(addr);
+            var func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
             int res = func(guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
 
@@ -160,17 +160,5 @@ namespace Microsoft.Diagnostics.Runtime
                 _disposed = true;
             }
         }
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int DllMain(IntPtr instance, int reason, IntPtr reserved);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int PAL_Initialize();
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int CreateDacInstance(
-            in Guid riid,
-            IntPtr dacDataInterface,
-            out IntPtr ppObj);
     }
 }

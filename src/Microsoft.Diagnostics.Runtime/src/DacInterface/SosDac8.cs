@@ -32,9 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             get
             {
-                InitDelegate(ref _getNumberGenerations, VTable.GetNumberGenerations);
-
-                if (_getNumberGenerations(Self, out int generations))
+                if (VTable.GetNumberGenerations(Self, out int generations))
                     return generations;
 
                 return 0;
@@ -92,13 +90,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return pointers;
         }
-        private GetNumberGenerationsDelegate? _getNumberGenerations;
-        private delegate HResult GetNumberGenerationsDelegate(IntPtr self, out int generations);
 
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac8VTable
         {
-            public readonly IntPtr GetNumberGenerations;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, HResult> GetNumberGenerations;
             public readonly delegate* unmanaged[Stdcall]<IntPtr, int, GenerationData*, out int, HResult> GetGenerationTable;
             public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, HResult> GetFinalizationFillPointers;
             public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, GenerationData*, out int, HResult> GetGenerationTableSvr;

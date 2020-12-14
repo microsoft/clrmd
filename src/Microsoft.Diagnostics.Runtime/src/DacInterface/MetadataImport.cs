@@ -152,8 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             if (handle != IntPtr.Zero)
             {
-                InitDelegate(ref _closeEnum, VTable.CloseEnum);
-                _closeEnum(Self, handle);
+                VTable.CloseEnum(Self, handle);
             }
         }
 
@@ -208,14 +207,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return default;
         }
-        private CloseEnumDelegate? _closeEnum;
-        private delegate HResult CloseEnumDelegate(IntPtr self, IntPtr e);
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IMetaDataImportVTable
     {
-        public readonly IntPtr CloseEnum;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, HResult> CloseEnum;
         private readonly IntPtr CountEnum;
         private readonly IntPtr ResetEnum;
         private readonly IntPtr EnumTypeDefs;

@@ -16,9 +16,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_ISOSHandleEnum, pUnk)
         {
-            ref readonly ISOSHandleEnumVTable vtable = ref Unsafe.AsRef<ISOSHandleEnumVTable>(_vtable);
-            InitDelegate(ref _next, vtable.Next);
         }
+
+        private ref readonly ISOSHandleEnumVTable VTable => ref Unsafe.AsRef<ISOSHandleEnumVTable>(_vtable);
 
         public int ReadHandles(Span<HandleData> handles)
         {
@@ -27,21 +27,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             fixed (HandleData* ptr = handles)
             {
-                HResult hr = _next(Self, handles.Length, ptr, out int read);
+                HResult hr = VTable.Next(Self, handles.Length, ptr, out int read);
                 return hr ? read : 0;
             }
         }
-
-        private readonly Next _next;
-        private delegate HResult Next(IntPtr self, int count, HandleData* handles, out int pNeeded);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct ISOSHandleEnumVTable
+    internal readonly unsafe struct ISOSHandleEnumVTable
     {
         private readonly IntPtr Skip;
         private readonly IntPtr Reset;
         private readonly IntPtr GetCount;
-        public readonly IntPtr Next;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, HandleData*, out int, HResult> Next;
     }
 }

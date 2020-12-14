@@ -4,7 +4,6 @@
 
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {

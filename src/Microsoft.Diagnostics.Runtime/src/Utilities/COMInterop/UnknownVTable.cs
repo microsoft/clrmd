@@ -9,10 +9,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// The basic VTable for an IUnknown interface.
     /// </summary>
-    public struct IUnknownVTable
+    public unsafe struct IUnknownVTable
     {
-        public IntPtr QueryInterface;
-        public IntPtr AddRef;
-        public IntPtr Release;
+        public delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, HResult> QueryInterface;
+        public delegate* unmanaged[Stdcall]<IntPtr, int> AddRef;
+        public delegate* unmanaged[Stdcall]<IntPtr, int> Release;
     }
 }
