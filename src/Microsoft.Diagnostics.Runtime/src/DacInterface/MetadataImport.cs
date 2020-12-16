@@ -78,7 +78,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetCustomAttributeByName(int token, string name, out IntPtr data, out uint cbData)
         {
-            return VTable.GetCustomAttributeByName(Self, token, name, out data, out cbData);
+            fixed (char* namePtr = name)
+            {
+                return VTable.GetCustomAttributeByName(Self, token, namePtr, out data, out cbData);
+            }
         }
 
         public HResult GetFieldProps(int token, out string? name, out FieldAttributes attrs, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue)
@@ -269,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int, out int, out FieldAttributes, out IntPtr, out int, out int, out IntPtr, out int, HResult> GetFieldProps;
         private readonly IntPtr GetPropertyProps;
         private readonly IntPtr GetParamProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, string, out IntPtr, out uint, HResult> GetCustomAttributeByName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, char*, out IntPtr, out uint, HResult> GetCustomAttributeByName;
         private readonly IntPtr IsValidToken;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, HResult> GetNestedClassProps;
         private readonly IntPtr GetNativeCallConvFromSig;
