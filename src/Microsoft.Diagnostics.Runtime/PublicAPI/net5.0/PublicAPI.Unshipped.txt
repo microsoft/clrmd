@@ -1186,7 +1186,7 @@ Microsoft.Diagnostics.Runtime.Utilities.VTableBuilder.Complete() -> System.IntPt
 Microsoft.Diagnostics.Runtime.VectorRegisterArea
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.Clear() -> void
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorControl -> ulong
-Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegister -> Microsoft.Diagnostics.Runtime.M128A[]!
+Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegister -> Microsoft.Diagnostics.Runtime.M128A[]?
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea(Microsoft.Diagnostics.Runtime.VectorRegisterArea other) -> void
 Microsoft.Diagnostics.Runtime.VersionInfo
 Microsoft.Diagnostics.Runtime.VersionInfo.CompareTo(Microsoft.Diagnostics.Runtime.VersionInfo other) -> int
