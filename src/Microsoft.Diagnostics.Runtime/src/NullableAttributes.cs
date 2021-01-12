@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 #if !NETCOREAPP3_1
+#if !NET5_0
 namespace System.Diagnostics.CodeAnalysis
 {
     /// <summary>Specifies that an output will not be null even if the corresponding type allows it.</summary>
@@ -41,4 +42,5 @@ namespace System.Diagnostics.CodeAnalysis
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
     internal sealed class DoesNotReturnAttribute : Attribute { }
 }
+#endif
 #endif

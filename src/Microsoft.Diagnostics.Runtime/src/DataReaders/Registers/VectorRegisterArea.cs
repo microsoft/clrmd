@@ -35,8 +35,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Clear()
         {
-            for (int i = 0; i < VectorRegisterSize; ++i)
-                VectorRegister[i].Clear();
+            if (VectorRegister != null)
+                for (int i = 0; i < VectorRegisterSize; ++i)
+                    VectorRegister[i].Clear();
 
             VectorControl = 0;
         }
