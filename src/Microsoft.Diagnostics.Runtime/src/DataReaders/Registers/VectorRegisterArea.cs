@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -13,13 +14,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         [FieldOffset(0x0)]
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = VectorRegisterSize)]
-        public M128A[] VectorRegister;
+        public M128A[]? VectorRegister;
 
         [FieldOffset(0x1a0)]
         public ulong VectorControl;
 
         public VectorRegisterArea(VectorRegisterArea other) : this()
         {
+            if (other.VectorRegister is null)
+                throw new ArgumentException("Cannot have empty VectorRegister.", nameof(other));
+
+            if (VectorRegister == null)
+                VectorRegister = new M128A[other.VectorRegister.Length];
+
             for (int i = 0; i < VectorRegisterSize; ++i)
                 VectorRegister[i] = other.VectorRegister[i];
 
