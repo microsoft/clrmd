@@ -7,9 +7,13 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct ElfFileTableHeader64
+    internal struct ElfSymbol64
     {
-        public ulong EntryCount;
-        public ulong PageSize;
+        public uint Name;
+        public byte Info;
+        public byte Other;
+        public ushort Shndx;
+        public uint Value;
+        public ulong Size;
     }
 }

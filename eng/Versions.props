@@ -3,6 +3,7 @@
   <PropertyGroup>
     <!-- This repo version -->
     <VersionPrefix>2.0.0</VersionPrefix>
+    <DotNetUseShippingVersions>true</DotNetUseShippingVersions>
     <AutoGenerateAssemblyVersion>true</AutoGenerateAssemblyVersion>
     <UsingToolNetFrameworkReferenceAssemblies>true</UsingToolNetFrameworkReferenceAssemblies>
   </PropertyGroup>

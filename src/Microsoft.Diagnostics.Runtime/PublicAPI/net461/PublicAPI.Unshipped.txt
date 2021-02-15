@@ -736,6 +736,8 @@ Microsoft.Diagnostics.Runtime.ILToNativeMap.EndAddress -> ulong
 Microsoft.Diagnostics.Runtime.ILToNativeMap.ILOffset -> int
 Microsoft.Diagnostics.Runtime.ILToNativeMap.ILToNativeMap() -> void
 Microsoft.Diagnostics.Runtime.ILToNativeMap.StartAddress -> ulong
+Microsoft.Diagnostics.Runtime.IExportReader
+Microsoft.Diagnostics.Runtime.IExportReader.TryGetSymbolAddress(ulong baseAddress, string! name, out ulong offset) -> bool
 Microsoft.Diagnostics.Runtime.IMemoryReader
 Microsoft.Diagnostics.Runtime.IMemoryReader.PointerSize.get -> int
 Microsoft.Diagnostics.Runtime.IMemoryReader.Read(ulong address, System.Span<byte> buffer) -> int

@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class ElfCoreFile
     {
         private readonly Reader _reader;
-        private ImmutableArray<ElfLoadedImage> _loadedImages;
+        private IReadOnlyDictionary<long, ElfLoadedImage>? _loadedImages;
         private readonly Dictionary<ulong, ulong> _auxvEntries = new();
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public ImmutableArray<ElfLoadedImage> LoadedImages => LoadFileTable();
+        public IReadOnlyDictionary<long, ElfLoadedImage> LoadedImages => LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -107,9 +107,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private ImmutableArray<ElfLoadedImage> LoadFileTable()
+        private IReadOnlyDictionary<long, ElfLoadedImage> LoadFileTable()
         {
-            if (!_loadedImages.IsDefault)
+            if (_loadedImages is not null)
                 return _loadedImages;
 
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
@@ -163,10 +163,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
                         image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
 
-                    ulong fileStart = fileTable[i].Start;
-                    ElfProgramHeader? programHeader = ElfFile.ProgramHeaders.FirstOrDefault(
-                        s => (ulong)s.VirtualAddress <= fileStart && fileStart < (ulong)s.VirtualAddress + (ulong)s.VirtualSize);
-
                     image.AddTableEntryPointers(fileTable[i]);
                 }
             }
@@ -175,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            return _loadedImages = lookup.Values.OrderBy(i => i.BaseAddress).ToImmutableArray();
+            return _loadedImages = lookup.Values.ToImmutableDictionary(i => i.BaseAddress);
         }
     }
 }
