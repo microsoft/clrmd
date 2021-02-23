@@ -42,15 +42,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
             QueryInterfaceDelegate qi = QueryInterfaceImpl;
-            vtable->QueryInterface = Marshal.GetFunctionPointerForDelegate(qi);
+            vtable->QueryInterface = (delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, HResult>)Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
             AddRefDelegate addRef = new AddRefDelegate(AddRefImpl);
-            vtable->AddRef = Marshal.GetFunctionPointerForDelegate(addRef);
+            vtable->AddRef = (delegate* unmanaged[Stdcall]<IntPtr, int>)Marshal.GetFunctionPointerForDelegate(addRef);
             _delegates.Add(addRef);
 
             ReleaseDelegate release = new ReleaseDelegate(ReleaseImpl);
-            vtable->Release = Marshal.GetFunctionPointerForDelegate(release);
+            vtable->Release = (delegate* unmanaged[Stdcall]<IntPtr, int>)Marshal.GetFunctionPointerForDelegate(release);
             _delegates.Add(release);
 
             IUnknownObject = Marshal.AllocHGlobal(IntPtr.Size);
