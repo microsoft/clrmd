@@ -137,8 +137,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
         {
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            if (VTable.GetCCWInterfaces(Self, ccw, count, data, out int pNeeded))
-                return data;
+            fixed (COMInterfacePointerData*ptr = data)
+                if (VTable.GetCCWInterfaces(Self, ccw, count, ptr, out int pNeeded))
+                    return data;
 
             return null;
         }
@@ -146,8 +147,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public COMInterfacePointerData[]? GetRCWInterfaces(ulong ccw, int count)
         {
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            if (VTable.GetRCWInterfaces(Self, ccw, count, data, out int pNeeded))
-                return data;
+            fixed (COMInterfacePointerData* ptr = data)
+                if (VTable.GetRCWInterfaces(Self, ccw, count, ptr, out int pNeeded))
+                    return data;
 
             return null;
         }
@@ -436,7 +438,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetModuleData(Self, module, out data);
         }
 
-        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> func)
+        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress*, out int, HResult> func)
         {
             int needed;
             if (count <= 0)
@@ -449,7 +451,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             // We ignore the return value here since the list may be partially filled
             ClrDataAddress[] modules = new ClrDataAddress[count];
-            func(Self, address, modules.Length, modules, out needed);
+            fixed (ClrDataAddress* ptr = modules)
+                func(Self, address, modules.Length, ptr, out needed);
 
             return modules;
         }
@@ -465,8 +468,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
 
             ClrDataAddress[] data = new ClrDataAddress[count];
-            HResult hr = VTable.GetAppDomainList(Self, data.Length, data, out int needed);
-            return hr ? data : Array.Empty<ClrDataAddress>();
+            fixed (ClrDataAddress* ptr = data)
+            {
+                HResult hr = VTable.GetAppDomainList(Self, data.Length, ptr, out int needed);
+                return hr ? data : Array.Empty<ClrDataAddress>();
+            }
         }
 
         public HResult GetThreadData(ulong address, out ThreadData data)
@@ -492,8 +498,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrDataAddress[] GetHeapList(int heapCount)
         {
             ClrDataAddress[] refs = new ClrDataAddress[heapCount];
-            HResult hr = VTable.GetGCHeapList(Self, heapCount, refs, out int needed);
-            return hr ? refs : Array.Empty<ClrDataAddress>();
+            fixed (ClrDataAddress* ptr = refs)
+            {
+                HResult hr = VTable.GetGCHeapList(Self, heapCount, ptr, out int needed);
+                return hr ? refs : Array.Empty<ClrDataAddress>();
+            }
         }
 
         public HResult GetServerHeapDetails(ulong addr, out HeapDetails data)
@@ -513,9 +522,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return Array.Empty<JitManagerInfo>();
 
             JitManagerInfo[] result = new JitManagerInfo[needed];
-            hr = VTable.GetJitManagerList(Self, result.Length, result, out needed);
-
-            return hr ? result : Array.Empty<JitManagerInfo>();
+            fixed (JitManagerInfo* ptr = result)
+            {
+                hr = VTable.GetJitManagerList(Self, result.Length, ptr, out needed);
+                return hr ? result : Array.Empty<JitManagerInfo>();
+            }
         }
 
         public JitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
@@ -525,9 +536,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return Array.Empty<JitCodeHeapInfo>();
 
             JitCodeHeapInfo[] result = new JitCodeHeapInfo[needed];
-            hr = VTable.GetCodeHeapList(Self, jitManager, result.Length, result, out needed);
-
-            return hr ? result : Array.Empty<JitCodeHeapInfo>();
+            fixed (JitCodeHeapInfo* ptr = result)
+            {
+                hr = VTable.GetCodeHeapList(Self, jitManager, result.Length, ptr, out needed);
+                return hr ? result : Array.Empty<JitCodeHeapInfo>();
+            }
         }
 
         public enum ModuleMapTraverseKind
@@ -563,15 +576,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public SOSHandleEnum? EnumerateHandles(params ClrHandleKind[] types)
         {
-            HResult hr = VTable.GetHandleEnumForTypes(Self, types, types.Length, out IntPtr ptrEnum);
-            if (hr)
+            fixed (ClrHandleKind* ptr = types)
             {
-                SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
-                int count = result.Release();
-                if (count == 0)
-                    throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
+                HResult hr = VTable.GetHandleEnumForTypes(Self, ptr, types.Length, out IntPtr ptrEnum);
+                if (hr)
+                {
+                    SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                    int count = result.Release();
+                    if (count == 0)
+                        throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
 
-                return result;
+                    return result;
+                }
             }
 
             return null;
@@ -628,13 +644,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // AppDomains
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out AppDomainStoreData, HResult> GetAppDomainStoreData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress[], out int, HResult> GetAppDomainList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, HResult> GetAppDomainList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out AppDomainData, HResult> GetAppDomainData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetAppDomainName;
         public readonly IntPtr GetDomainFromContext;
 
         // Assemblies
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> GetAssemblyList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress*, out int, HResult> GetAssemblyList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, ClrDataAddress, out AssemblyData, HResult> GetAssemblyData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetAssemblyName;
 
@@ -642,7 +658,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out IntPtr, HResult> GetModule;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ModuleData, HResult> GetModuleData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, SOSDac.ModuleMapTraverseKind, ClrDataAddress, IntPtr, IntPtr, HResult> TraverseModuleMap;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress[]?, out int, HResult> GetAssemblyModuleList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress*, out int, HResult> GetAssemblyModuleList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, HResult> GetILForModule;
 
         // Threads
@@ -662,7 +678,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // JIT Data
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CodeHeaderData, HResult> GetCodeHeaderData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerInfo[]?, out int, HResult> GetJitManagerList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerInfo*, out int, HResult> GetJitManagerList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, HResult> GetJitHelperFunctionName;
         private readonly IntPtr GetJumpThunkTarget;
 
@@ -699,7 +715,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // GC
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out GCInfo, HResult> GetGCHeapData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress[], out int, HResult> GetGCHeapList; // svr only
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, HResult> GetGCHeapList; // svr only
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out HeapDetails, HResult> GetGCHeapDetails; // wks only
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out HeapDetails, HResult> GetGCHeapStaticData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out SegmentData, HResult> GetHeapSegmentData;
@@ -722,7 +738,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Handles
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, HResult> GetHandleEnum;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrHandleKind[], int, out IntPtr, HResult> GetHandleEnumForTypes;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrHandleKind*, int, out IntPtr, HResult> GetHandleEnumForTypes;
         private readonly IntPtr GetHandleEnumForGC;
 
         // EH
@@ -734,7 +750,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // Heaps
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, HResult> TraverseLoaderHeap;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, JitCodeHeapInfo[]?, out int, HResult> GetCodeHeapList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, JitCodeHeapInfo*, out int, HResult> GetCodeHeapList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, IntPtr, HResult> TraverseVirtCallStubHeap;
 
         // Other
@@ -745,9 +761,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // COM
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out RcwData, HResult> GetRCWData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData[], out int, HResult> GetRCWInterfaces;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData*, out int, HResult> GetRCWInterfaces;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CcwData, HResult> GetCCWData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData[], out int, HResult> GetCCWInterfaces;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData*, out int, HResult> GetCCWInterfaces;
         private readonly IntPtr TraverseRCWCleanupList;
 
         // GC Reference Functions

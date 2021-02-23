@@ -35,14 +35,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
-            return VTable.GetContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
+            fixed (byte *ptr = buffer)
+                return VTable.GetContext(Self, contextFlags, contextBufSize, out contextSize, ptr);
         }
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IXCLRDataStackWalkVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, out int, byte[], HResult> GetContext;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, out int, byte*, HResult> GetContext;
         private readonly IntPtr GetContext2;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> Next;
         private readonly IntPtr GetStackSizeSkipped;
