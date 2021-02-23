@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -12,6 +13,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     public abstract class COMHelper
     {
         protected static readonly Guid IUnknownGuid = new("00000000-0000-0000-C000-000000000046");
+
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        protected delegate int AddRefDelegate(IntPtr self);
+
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        protected delegate int ReleaseDelegate(IntPtr self);
+
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        protected delegate HResult QueryInterfaceDelegate(IntPtr self, in Guid guid, out IntPtr ptr);
 
         /// <summary>
         /// Release an IUnknown pointer.

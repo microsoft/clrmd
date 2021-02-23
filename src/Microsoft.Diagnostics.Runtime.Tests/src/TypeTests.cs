@@ -564,7 +564,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass`5");
+            ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass<T1, T2, T3, T4, T5>");
 
             ClrGenericParameter[] genericParameters = genericType.EnumerateGenericParameters().ToArray();
             Assert.Equal(5, genericParameters.Length);

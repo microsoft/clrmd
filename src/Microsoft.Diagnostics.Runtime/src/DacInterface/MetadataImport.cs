@@ -35,8 +35,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
 
-                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count) =>
-                    VTable.EnumInterfaceImpls(Self, ref handle, token, tokens, length, out count);
+                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
+                {
+                    fixed (int* ptr = tokens)
+                        return VTable.EnumInterfaceImpls(Self, ref handle, token, ptr, length, out count);
+                }
             }
             finally
             {
@@ -111,8 +114,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
 
-                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count) =>
-                    VTable.EnumFields(Self, ref handle, token, tokens, length, out count);
+                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
+                {
+                    fixed (int* ptr = tokens)
+                        return VTable.EnumFields(Self, ref handle, token, ptr, length, out count);
+                }
             }
             finally
             {
@@ -169,8 +175,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
 
-                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count) =>
-                    VTable.EnumGenericParams(Self, ref handle, token, tokens, length, out count);
+                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
+                {
+                    fixed (int *ptr = tokens)
+                        return VTable.EnumGenericParams(Self, ref handle, token, ptr, length, out count);
+                }
             }
             finally
             {
@@ -219,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr CountEnum;
         private readonly IntPtr ResetEnum;
         private readonly IntPtr EnumTypeDefs;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int[], int, out int, HResult> EnumInterfaceImpls;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, HResult> EnumInterfaceImpls;
         private readonly IntPtr EnumTypeRefs;
         private readonly IntPtr FindTypeDefByName;
         private readonly IntPtr GetScopeProps;
@@ -232,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr EnumMembersWithName;
         private readonly IntPtr EnumMethods;
         private readonly IntPtr EnumMethodsWithName;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int[], int, out int, HResult> EnumFields;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, HResult> EnumFields;
         private readonly IntPtr EnumFieldsWithName;
         private readonly IntPtr EnumParams;
         private readonly IntPtr EnumMemberRefs;
@@ -279,7 +288,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr IsGlobal;
 
         // IMetaDataImport2
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int[], int, out int, HResult> EnumGenericParams;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, HResult> EnumGenericParams;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, out GenericParameterAttributes, out int, out int, char*, int, out int, HResult> GetGenericParamProps;
         private readonly IntPtr GetMethodSpecProps;
         private readonly IntPtr EnumGenericParamConstraints;

@@ -69,9 +69,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             *(void**)obj = vtable;
 
             IUnknownVTable iunk = _wrapper.IUnknown;
-            *vtable++ = iunk.QueryInterface;
-            *vtable++ = iunk.AddRef;
-            *vtable++ = iunk.Release;
+            *vtable++ = new IntPtr(iunk.QueryInterface);
+            *vtable++ = new IntPtr(iunk.AddRef);
+            *vtable++ = new IntPtr(iunk.Release);
 
             foreach (Delegate d in _delegates)
                 *vtable++ = Marshal.GetFunctionPointerForDelegate(d);
