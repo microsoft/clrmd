@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
-        private ref readonly IXCLRDataProcessVtable VTable => ref Unsafe.AsRef<IXCLRDataProcessVtable>(_vtable);
+        private ref readonly IXCLRDataProcessVTable VTable => ref Unsafe.AsRef<IXCLRDataProcessVTable>(_vtable);
 
         public ClrDataProcess(DacLibrary library, CallableCOMWrapper toClone) : base(toClone)
         {
@@ -84,24 +84,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public void Flush()
         {
-            InitDelegate(ref _flush, VTable.Flush);
-            _flush(Self);
+            VTable.Flush(Self);
         }
 
         public HResult Request(uint reqCode, ReadOnlySpan<byte> input, Span<byte> output)
         {
-            InitDelegate(ref _request, VTable.Request);
-
             fixed (byte* pInput = input)
             fixed (byte* pOutput = output)
-                return _request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
+                return VTable.Request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
         }
 
         public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
-            InitDelegate(ref _getTask, VTable.GetTaskByOSThreadID);
-
-            if (!_getTask(Self, id, out IntPtr pUnkTask))
+            if (!VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask))
                 return null;
 
             using ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask);
@@ -119,53 +114,35 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ClrDataAddress addr)
         {
-            InitDelegate(ref _startEnum, VTable.StartEnumMethodInstancesByAddress);
-            InitDelegate(ref _enum, VTable.EnumMethodInstanceByAddress);
-            InitDelegate(ref _endEnum, VTable.EndEnumMethodInstancesByAddress);
-
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
-            if (!_startEnum(Self, addr, IntPtr.Zero, out ClrDataAddress handle))
+            if (!VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle))
                 return result;
 
             try
             {
-                while (_enum(Self, ref handle, out IntPtr method) == HResult.S_OK)
+                while (VTable.EnumMethodInstanceByAddress(Self, ref handle, out IntPtr method) == HResult.S_OK)
                     result.Add(new ClrDataMethod(_library, method));
             }
             finally
             {
-                _endEnum(Self, handle);
+                VTable.EndEnumMethodInstancesByAddress(Self, handle);
             }
 
             return result;
         }
-
-        private FlushDelegate? _flush;
-        private GetTaskByOSThreadIDDelegate? _getTask;
-        private RequestDelegate? _request;
-        private StartEnumMethodInstancesByAddressDelegate? _startEnum;
-        private EnumMethodInstanceByAddressDelegate? _enum;
-        private EndEnumMethodInstancesByAddressDelegate? _endEnum;
-
-        private delegate HResult StartEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress address, IntPtr appDomain, out ClrDataAddress handle);
-        private delegate HResult EnumMethodInstanceByAddressDelegate(IntPtr self, ref ClrDataAddress handle, out IntPtr method);
-        private delegate HResult EndEnumMethodInstancesByAddressDelegate(IntPtr self, ClrDataAddress handle);
-        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, byte* inBuffer, int outBufferSize, byte* outBuffer);
-        private delegate HResult FlushDelegate(IntPtr self);
-        private delegate HResult GetTaskByOSThreadIDDelegate(IntPtr self, uint id, out IntPtr pUnknownTask);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IXCLRDataProcessVtable
+    internal readonly unsafe struct IXCLRDataProcessVTable
     {
-        public readonly IntPtr Flush;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> Flush;
         private readonly IntPtr Unused_StartEnumTasks;
         private readonly IntPtr EnumTask;
         private readonly IntPtr EndEnumTasks;
 
         // (uint id, [Out, MarshalAs(UnmanagedType.IUnknown)] out object task);
-        public readonly IntPtr GetTaskByOSThreadID;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, HResult> GetTaskByOSThreadID;
 
         private readonly IntPtr GetTaskByUniqueID;
         private readonly IntPtr GetFlags;
@@ -188,19 +165,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetModuleByAddress;
 
         // (ulong address, [In, MarshalAs(UnmanagedType.Interface)] object appDomain, out ulong handle);
-        public readonly IntPtr StartEnumMethodInstancesByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, out ClrDataAddress, HResult> StartEnumMethodInstancesByAddress;
 
         // (ref ulong handle, [Out, MarshalAs(UnmanagedType.Interface)] out object method);
-        public readonly IntPtr EnumMethodInstanceByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref ClrDataAddress, out IntPtr, HResult> EnumMethodInstanceByAddress;
 
         // (ulong handle);
-        public readonly IntPtr EndEnumMethodInstancesByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, HResult> EndEnumMethodInstancesByAddress;
         private readonly IntPtr GetDataByAddress;
         private readonly IntPtr GetExceptionStateByExceptionRecord;
         private readonly IntPtr TranslateExceptionRecordToNotification;
 
         // (uint reqCode, uint inBufferSize, [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] inBuffer, uint outBufferSize, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] byte[] outBuffer);
-        public readonly IntPtr Request;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, byte*, int, byte*, HResult> Request;
     }
 
     internal interface IXCLRDataProcess_

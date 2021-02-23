@@ -2202,7 +2202,6 @@ static Microsoft.Diagnostics.Runtime.PdbInfo.operator !=(Microsoft.Diagnostics.R
 static Microsoft.Diagnostics.Runtime.PdbInfo.operator ==(Microsoft.Diagnostics.Runtime.PdbInfo? left, Microsoft.Diagnostics.Runtime.PdbInfo? right) -> bool
 static Microsoft.Diagnostics.Runtime.Utilities.COMHelper.QueryInterface(System.IntPtr pUnk, in System.Guid riid, out System.IntPtr result) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 static Microsoft.Diagnostics.Runtime.Utilities.COMHelper.Release(System.IntPtr pUnk) -> int
-static Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.InitDelegate<T>(ref T? t, System.IntPtr entry) -> void
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator Microsoft.Diagnostics.Runtime.Utilities.HResult(int hr) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator bool(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> bool
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator int(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> int

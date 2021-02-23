@@ -29,17 +29,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetMethodTableCollectibleData(ulong mt, out MethodTableCollectibleData data)
         {
-            InitDelegate(ref _getMethodTableCollectibleData, VTable.GetMethodTableCollectibleData);
-            return _getMethodTableCollectibleData(Self, mt, out data);
+            return VTable.GetMethodTableCollectibleData(Self, mt, out data);
         }
-
-        private DacGetMethodTableCollectibleData? _getMethodTableCollectibleData;
-        private delegate int DacGetMethodTableCollectibleData(IntPtr self, ClrDataAddress addr, out MethodTableCollectibleData data);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct ISOSDac6VTable
+    internal readonly unsafe struct ISOSDac6VTable
     {
-        public readonly IntPtr GetMethodTableCollectibleData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableCollectibleData, int> GetMethodTableCollectibleData;
     }
 }

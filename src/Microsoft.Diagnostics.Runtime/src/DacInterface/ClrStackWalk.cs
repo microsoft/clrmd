@@ -22,46 +22,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetFrameVtable()
         {
-            InitDelegate(ref _request, VTable.Request);
-
             long ptr = 0xcccccccc;
 
-            HResult hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
+            HResult hr = VTable.Request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
             return hr ? new ClrDataAddress(ptr) : default;
         }
 
         public HResult Next()
         {
-            InitDelegate(ref _next, VTable.Next);
-
-            return _next(Self);
+            return VTable.Next(Self);
         }
 
         public HResult GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
-            InitDelegate(ref _getContext, VTable.GetContext);
-            return _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
+            return VTable.GetContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
         }
-
-        private RequestDelegate? _request;
-        private NextDelegate? _next;
-        private GetContextDelegate? _getContext;
-
-        private delegate HResult GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
-        private delegate HResult NextDelegate(IntPtr self);
-        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, byte* inBuffer, uint outBufferSize, byte* outBuffer);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IXCLRDataStackWalkVTable
+    internal readonly unsafe struct IXCLRDataStackWalkVTable
     {
-        public readonly IntPtr GetContext;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, out int, byte[], HResult> GetContext;
         private readonly IntPtr GetContext2;
-        public readonly IntPtr Next;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> Next;
         private readonly IntPtr GetStackSizeSkipped;
         private readonly IntPtr GetFrameType;
         public readonly IntPtr GetFrame;
-        public readonly IntPtr Request;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, uint, byte*, uint, byte*, HResult> Request;
         private readonly IntPtr SetContext2;
     }
 }

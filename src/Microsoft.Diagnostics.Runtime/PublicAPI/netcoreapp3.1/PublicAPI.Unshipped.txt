@@ -1131,10 +1131,10 @@ Microsoft.Diagnostics.Runtime.Utilities.HResult.IsOK.get -> bool
 Microsoft.Diagnostics.Runtime.Utilities.HResult.Value.get -> int
 Microsoft.Diagnostics.Runtime.Utilities.HResult.Value.set -> void
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> System.IntPtr
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.IUnknownVTable() -> void
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> System.IntPtr
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> System.IntPtr
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> delegate* unmanaged[Stdcall]<System.IntPtr, in System.Guid, out System.IntPtr, Microsoft.Diagnostics.Runtime.Utilities.HResult>
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.PEImage
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.CoffHeader.get -> System.Reflection.PortableExecutable.CoffHeader?
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.CorHeader.get -> System.Reflection.PortableExecutable.CorHeader?
@@ -2202,7 +2202,6 @@ static Microsoft.Diagnostics.Runtime.PdbInfo.operator !=(Microsoft.Diagnostics.R
 static Microsoft.Diagnostics.Runtime.PdbInfo.operator ==(Microsoft.Diagnostics.Runtime.PdbInfo? left, Microsoft.Diagnostics.Runtime.PdbInfo? right) -> bool
 static Microsoft.Diagnostics.Runtime.Utilities.COMHelper.QueryInterface(System.IntPtr pUnk, in System.Guid riid, out System.IntPtr result) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 static Microsoft.Diagnostics.Runtime.Utilities.COMHelper.Release(System.IntPtr pUnk) -> int
-static Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.InitDelegate<T>(ref T? t, System.IntPtr entry) -> void
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator Microsoft.Diagnostics.Runtime.Utilities.HResult(int hr) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator bool(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> bool
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator int(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> int

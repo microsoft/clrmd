@@ -98,7 +98,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-
             MinidumpModuleInfo? module = _minidump.EnumerateModuleInfo().FirstOrDefault(m => m.BaseOfImage == baseAddress);
             if (module == null)
             {

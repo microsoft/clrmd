@@ -5,7 +5,6 @@
 using System;
 using System.Buffers;
 using System.IO.MemoryMappedFiles;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 // TODO:  This code wasn't written to consider nullable.
