@@ -1,6 +1,7 @@
 # Microsoft.Diagnostics.Runtime
 
 [![ClrMD release](https://img.shields.io/nuget/v/Microsoft.Diagnostics.Runtime)](https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/)
+[![ClrMD download count](https://img.shields.io/nuget/dt/Microsoft.Diagnostics.Runtime)](https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/)
 
 `Microsoft.Diagnostics.Runtime.dll` also called "ClrMD" is a process and crash
 dump introspection library. This allows you to write tools and debugger plugins
