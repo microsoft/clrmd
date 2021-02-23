@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         StartAddress = start,
                         EndAddress = end,
-                        Objects = new BitArray((int)(end - start) / MinObjSize, false)
+                        Objects = new BitArray((int)((uint)(end - start) / MinObjSize), false)
                     });
                 }
             }
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The index into seg.Objects.</returns>
         protected int GetOffset(ulong obj, HeapHashSegment seg)
         {
-            return checked((int)(obj - seg.StartAddress) / MinObjSize);
+            return checked((int)((uint)(obj - seg.StartAddress) / MinObjSize));
         }
 
         /// <summary>

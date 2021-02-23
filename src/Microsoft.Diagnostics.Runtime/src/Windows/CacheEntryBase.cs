@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _segmentData = segmentData;
 
             int pageCount = (int)((_segmentData.End - _segmentData.VirtualAddress) / EntryPageSize);
-            if (((int)(_segmentData.End - _segmentData.VirtualAddress) % EntryPageSize) != 0)
+            if (((uint)(_segmentData.End - _segmentData.VirtualAddress) % EntryPageSize) != 0)
                 pageCount++;
 
             _pages = new CachePage<T>[pageCount];

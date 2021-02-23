@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // NOTE: The caller ensures this method is not called concurrently
 
             uint readSize;
-            if ((pageAlignedOffset + EntryPageSize) <= (int)_segmentData.Size)
+            if ((pageAlignedOffset + EntryPageSize) <= (uint)_segmentData.Size)
             {
                 readSize = EntryPageSize;
             }
