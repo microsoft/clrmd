@@ -450,12 +450,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             if (runtime.SharedDomain != null)
                 foreach (ClrModule module in runtime.SharedDomain.Modules)
-                    if (!(module.Name is null) && module.Name.ToUpperInvariant().Contains(moduleName))
+                    if (!(module.Name is null) && module.Name.Contains(moduleName, StringComparison.OrdinalIgnoreCase))
                         return module;
 
             foreach (ClrAppDomain domain in runtime.AppDomains)
                 foreach (ClrModule module in domain.Modules)
-                    if (!(module.Name is null) && module.Name.ToUpperInvariant().Contains(moduleName))
+                    if (!(module.Name is null) && module.Name.Contains(moduleName, StringComparison.OrdinalIgnoreCase))
                         return module;
 
             return null;

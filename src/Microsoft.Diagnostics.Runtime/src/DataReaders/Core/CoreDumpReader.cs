@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _modules = new List<ModuleInfo>(_core.LoadedImages.Length);
                 foreach (ElfLoadedImage image in _core.LoadedImages)
-                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev"))
+                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev", StringComparison.Ordinal))
                         _modules.Add(CreateModuleInfo(image));
             }
 
@@ -100,8 +100,13 @@ namespace Microsoft.Diagnostics.Runtime
                 filesize = unchecked((int)image.Size);
             }
 
+            // We suppress the warning because the function it wants us to use is not available on all ClrMD platforms
+#pragma warning disable CA1307 // Specify StringComparison
+
             // This substitution is for unloaded modules for which Linux appends " (deleted)" to the module name.
             string path = image.Path.Replace(" (deleted)", "");
+
+#pragma warning restore CA1307 // Specify StringComparison
 
             // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
             return new ModuleInfo(this, (ulong)image.BaseAddress, path, true, filesize, timestamp, buildId: default);
