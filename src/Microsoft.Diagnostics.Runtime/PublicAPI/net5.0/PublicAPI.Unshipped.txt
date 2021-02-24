@@ -1131,10 +1131,10 @@ Microsoft.Diagnostics.Runtime.Utilities.HResult.IsOK.get -> bool
 Microsoft.Diagnostics.Runtime.Utilities.HResult.Value.get -> int
 Microsoft.Diagnostics.Runtime.Utilities.HResult.Value.set -> void
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> System.IntPtr
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.IUnknownVTable() -> void
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> System.IntPtr
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> System.IntPtr
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> delegate* unmanaged[Stdcall]<System.IntPtr, in System.Guid, out System.IntPtr, Microsoft.Diagnostics.Runtime.Utilities.HResult>
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.PEImage
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.CoffHeader.get -> System.Reflection.PortableExecutable.CoffHeader?
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.CorHeader.get -> System.Reflection.PortableExecutable.CorHeader?
