@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentNullException(nameof(containingType));
 
             if (offset < 0)
-                throw new ArgumentOutOfRangeException($"{nameof(offset)} must be >= 0.");
+                throw new ArgumentOutOfRangeException(nameof(offset), $"{nameof(offset)} must be >= 0.");
 
             ClrInstanceField? field = FindField(containingType.Fields, offset);
 
