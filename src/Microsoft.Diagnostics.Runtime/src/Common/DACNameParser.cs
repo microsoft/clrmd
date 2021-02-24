@@ -662,31 +662,30 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         [DebuggerDisplay("{Name}")]
         private struct TypeNameSegment
         {
-            private string input;
-            private int expectedGenericArgCount;
-            private TypeNameSegment[]? typeArgSegments;
-            private int nextUnfulfilledGenericArgSlot;
-            private int arrayDimensions;
-            private int arrayOfArraysCount;
+            private readonly string _input;
+            private int _expectedGenericArgCount;
+            private TypeNameSegment[]? _typeArgSegments;
+            private int _nextUnfulfilledGenericArgSlot;
+            private int _arrayDimensions;
+            private int _arrayOfArraysCount;
 
             // NOTE: This is only an array to defeat the cycle detection stuff in the compiler. Since this is a struct if I have a field that is TypeNameSegment or
             // TypeNameSegment? it complains there is a cycle in the layout since to determine the size of the struct it must determine the size of the struct. To
             // avoid that we store a nested class (and there will only ever be at most 1) in an array.
-            private TypeNameSegment[]? nestedClass;
+            private TypeNameSegment[]? _nestedClass;
 
             public TypeNameSegment(string input, (int Start, int End) extent, bool isNestedClass, int parsingArgDepth)
             {
-                this.input = input;
-                this.Extent = extent;
-                this.IsNestedClass = isNestedClass;
-                this.expectedGenericArgCount = 0;
-                this.typeArgSegments = null;
-                this.nextUnfulfilledGenericArgSlot = 0;
-                this.nestedClass = null;
-                this.arrayDimensions = 0;
-                this.arrayOfArraysCount = 0;
-                this.ParsingArgDepth = parsingArgDepth;
-                this.nestedClass = null;
+                _input = input;
+                Extent = extent;
+                IsNestedClass = isNestedClass;
+                _expectedGenericArgCount = 0;
+                _typeArgSegments = null;
+                _nextUnfulfilledGenericArgSlot = 0;
+                _arrayDimensions = 0;
+                _arrayOfArraysCount = 0;
+                ParsingArgDepth = parsingArgDepth;
+                _nestedClass = null;
             }
 
             public (int Start, int End) Extent { get; }
@@ -697,15 +696,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             public bool IsNestedClass { get; }
 
-            public bool IsNestedClassOrHasNestedClassComponent => this.IsNestedClass || this.HasNestedClassSegment;
+            public bool IsNestedClassOrHasNestedClassComponent => IsNestedClass || HasNestedClassSegment;
 
-            public bool IsGenericClass => this.expectedGenericArgCount != 0;
+            public bool IsGenericClass => _expectedGenericArgCount != 0;
 
-            public bool HasUnfulfilledGenericArgs => this.IsGenericClass && (this.typeArgSegments == null || this.nextUnfulfilledGenericArgSlot < this.typeArgSegments.Length);
+            public bool HasUnfulfilledGenericArgs => IsGenericClass && (_typeArgSegments == null || _nextUnfulfilledGenericArgSlot < _typeArgSegments.Length);
 
-            public int ExpectedGenericArgsCount => this.expectedGenericArgCount;
+            public int ExpectedGenericArgsCount => _expectedGenericArgCount;
 
-            public int RemainingUnfulfilledGenericArgCount => this.expectedGenericArgCount - this.nextUnfulfilledGenericArgSlot;
+            public int RemainingUnfulfilledGenericArgCount => _expectedGenericArgCount - _nextUnfulfilledGenericArgSlot;
 
             public void SetArrayDimensions(int dimensions)
             {
@@ -715,34 +714,34 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 // name segment', we just pile them all into the original TypeNameSegment and differentiate when we are printing
                 // out the names at the end (to either print [,] or [][]).
 
-                if(this.arrayDimensions == 0)
-                    this.arrayDimensions = dimensions;
+                if(_arrayDimensions == 0)
+                    _arrayDimensions = dimensions;
                 else
-                    this.arrayOfArraysCount++;
+                    _arrayOfArraysCount++;
             }
 
             public void SetExpectedGenericArgCount(int expectedCount)
             {
-                this.expectedGenericArgCount = expectedCount;
+                _expectedGenericArgCount = expectedCount;
             }
 
             public void AddGenericArg(TypeNameSegment arg)
             {
-                Debug.Assert(this.expectedGenericArgCount != 0, $"{Name} did not expect any generic arguments");
+                Debug.Assert(_expectedGenericArgCount != 0, $"{Name} did not expect any generic arguments");
 
-                if (this.expectedGenericArgCount == 0)
+                if (_expectedGenericArgCount == 0)
                     return;
 
-                if (this.typeArgSegments == null)
-                    this.typeArgSegments = new TypeNameSegment[this.expectedGenericArgCount];
+                if (_typeArgSegments == null)
+                    _typeArgSegments = new TypeNameSegment[_expectedGenericArgCount];
 
-                this.typeArgSegments[this.nextUnfulfilledGenericArgSlot++] = arg;
+                _typeArgSegments[_nextUnfulfilledGenericArgSlot++] = arg;
             }
 
             public void UnifyNestedClass(TypeNameSegment nestedClass)
             {
                 Debug.Assert(nestedClass.IsNestedClass);
-                this.nestedClass = new[] { nestedClass };
+                _nestedClass = new[] { nestedClass };
             }
 
             public override string ToString()
@@ -756,38 +755,38 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             public void ToString(StringBuilder destination)
             {
-                if (this.IsNestedClass)
+                if (IsNestedClass)
                     destination.Append('+');
 
-                destination.Append(this.input, Extent.Start, Extent.End - Extent.Start);
+                destination.Append(_input, Extent.Start, Extent.End - Extent.Start);
 
-                if (this.IsGenericClass)
+                if (IsGenericClass)
                 {
-                    OutputTypeArguments(destination, this.nextUnfulfilledGenericArgSlot, this.expectedGenericArgCount, this.typeArgSegments);
+                    OutputTypeArguments(destination, _nextUnfulfilledGenericArgSlot, _expectedGenericArgCount, _typeArgSegments);
                 }
 
-                if (this.nestedClass != null)
+                if (_nestedClass != null)
                 {
-                    this.nestedClass[0].ToString(destination);
+                    _nestedClass[0].ToString(destination);
                 }
 
                 // See comment in SetArrayDimensions on what this is :)
-                if(this.arrayOfArraysCount != 0)
+                if(_arrayOfArraysCount != 0)
                 {
                     destination.Append("[]");
-                    for(int i = 0; i < this.arrayOfArraysCount; i++)
+                    for(int i = 0; i < _arrayOfArraysCount; i++)
                         destination.Append("[]");
                 }
-                else if (this.arrayDimensions != 0)
+                else if (_arrayDimensions != 0)
                 {
                     destination.Append('[');
-                    if (this.arrayDimensions > 1)
-                        destination.Append(',', this.arrayDimensions - 1);
+                    if (_arrayDimensions > 1)
+                        destination.Append(',', _arrayDimensions - 1);
                     destination.Append(']');
                 }
             }
 
-            private bool HasNestedClassSegment => this.nestedClass != null;
+            private bool HasNestedClassSegment => _nestedClass != null;
 
             private static void OutputTypeArguments(StringBuilder destination, int firstMissingGenericSlot, int expectedArgCount, TypeNameSegment[]? typeArgs)
             {
