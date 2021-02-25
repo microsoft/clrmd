@@ -373,8 +373,35 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             // Handle table
             foreach (ClrHandle handle in Runtime.EnumerateHandles())
+            {
                 if (handle.IsStrong)
                     yield return handle;
+
+                if (handle.RootKind == ClrRootKind.AsyncPinnedHandle && handle.Object.IsValid)
+                {
+                    (ulong address, ClrObject m_userObject) = GetObjectAndAddress(handle.Object, "m_userObject");
+                    if (address != 0 && m_userObject.IsValid)
+                    {
+                        ClrElementType? arrayElementType = m_userObject.Type?.ComponentType?.ElementType;
+
+                        if (!m_userObject.IsArray || !arrayElementType.HasValue || !arrayElementType.Value.IsObjectReference())
+                        {
+                            yield return new ClrmdHandle(handle.AppDomain, address, m_userObject, handle.HandleKind);
+                        }
+                        else
+                        {
+                            ClrArray array = m_userObject.AsArray();
+                            for (int i = 0; i < array.Length; i++)
+                            {
+                                ulong innerAddress = m_userObject + (ulong)(2 * IntPtr.Size + i * IntPtr.Size);
+                                ClrObject innerObj = array.GetObjectValue(i);
+
+                                yield return new ClrmdHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
+                            }
+                        }
+                    }
+                }
+            }
 
             // Finalization Queue
             foreach (ClrFinalizerRoot root in EnumerateFinalizerRoots())
@@ -383,6 +410,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Threads
             foreach (IClrRoot root in EnumerateStackRoots())
                 yield return root;
+        }
+
+        private (ulong Address, ClrObject obj) GetObjectAndAddress(ClrObject containing, string fieldName)
+        {
+            if (containing.IsValid)
+            {
+                ClrInstanceField? field = containing.Type?.Fields.FirstOrDefault(f => f.Name == fieldName);
+                if (field != null && field.Offset > 0)
+                {
+                    ulong address = field.GetAddress(containing.Address);
+                    ulong objPtr = _helpers.DataReader.ReadPointer(address);
+                    ClrObject obj = GetObject(objPtr);
+
+                    if (obj.IsValid)
+                        return (address, obj);
+                }
+            }
+
+            return (0ul, default);
         }
 
         private IEnumerable<IClrRoot> EnumerateStackRoots()
