@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 
 #pragma warning disable CA1721 // Property names should not match get methods
@@ -380,15 +381,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (handle.RootKind == ClrRootKind.AsyncPinnedHandle && handle.Object.IsValid)
                 {
                     (ulong address, ClrObject m_userObject) = GetObjectAndAddress(handle.Object, "m_userObject");
+
                     if (address != 0 && m_userObject.IsValid)
                     {
-                        ClrElementType? arrayElementType = m_userObject.Type?.ComponentType?.ElementType;
+                        yield return new ClrmdHandle(handle.AppDomain, address, m_userObject, handle.HandleKind);
 
-                        if (!m_userObject.IsArray || !arrayElementType.HasValue || !arrayElementType.Value.IsObjectReference())
-                        {
-                            yield return new ClrmdHandle(handle.AppDomain, address, m_userObject, handle.HandleKind);
-                        }
-                        else
+                        ClrElementType? arrayElementType = m_userObject.Type?.ComponentType?.ElementType;
+                        if (m_userObject.IsArray && arrayElementType.HasValue && arrayElementType.Value.IsObjectReference())
                         {
                             ClrArray array = m_userObject.AsArray();
                             for (int i = 0; i < array.Length; i++)
@@ -396,7 +395,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 ulong innerAddress = m_userObject + (ulong)(2 * IntPtr.Size + i * IntPtr.Size);
                                 ClrObject innerObj = array.GetObjectValue(i);
 
-                                yield return new ClrmdHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
+                                if (innerObj.IsValid)
+                                    yield return new ClrmdHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
                             }
                         }
                     }
