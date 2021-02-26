@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrType? componentType = ComponentType;
 
-                IObjectData data = Helpers.GetObjectData(objRef);
+                IObjectData? data = Helpers.GetObjectData(objRef);
                 if (data != null)
                 {
                     _baseArrayOffset = (int)(data.DataPointer - objRef);
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             else
             {
                 // Slow path, we need to get the element type of the array.
-                IObjectData data = Helpers.GetObjectData(objRef);
+                IObjectData? data = Helpers.GetObjectData(objRef);
                 if (data is null)
                     return null;
 

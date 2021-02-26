@@ -1489,13 +1489,15 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return 0;
         }
 
-        IObjectData ITypeHelpers.GetObjectData(ulong objRef)
+        IObjectData? ITypeHelpers.GetObjectData(ulong objRef)
         {
             CheckDisposed();
 
             // todo remove
-            _sos.GetObjectData(objRef, out ObjectData data);
-            return data;
+            if (_sos.GetObjectData(objRef, out ObjectData data) == HResult.S_OK)
+                return data;
+
+            return null;
         }
 
         string? IClrObjectHelpers.ReadString(ulong addr, int maxLength)

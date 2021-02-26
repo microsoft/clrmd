@@ -994,7 +994,7 @@ Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.DataReader.get -> Micr
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetAssemblyLoadContextAddress(ulong mt) -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetLoaderAllocatorHandle(ulong mt) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData!
+Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData?
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetTypeName(ulong mt, out string? name) -> bool
 Microsoft.Diagnostics.Runtime.M128A
 Microsoft.Diagnostics.Runtime.M128A.Clear() -> void
