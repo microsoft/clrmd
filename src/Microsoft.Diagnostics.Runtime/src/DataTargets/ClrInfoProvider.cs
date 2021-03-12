@@ -13,9 +13,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public static class ClrInfoProvider
     {
-        private const string c_desktopModuleName1 = "CLR.DLL";
-        private const string c_desktopModuleName2 = "MSCORWKS.DLL";
-        private const string c_coreModuleName = "CORECLR.DLL";
+        private const string c_desktopModuleName1 = "clr.dll";
+        private const string c_desktopModuleName2 = "mscorwks.dll";
+        private const string c_coreModuleName = "coreclr.dll";
         private const string c_linuxCoreModuleName = "libcoreclr.so";
         private const string c_macOSCoreModuleName = "libcoreclr.dylib";
 
@@ -45,18 +45,19 @@ namespace Microsoft.Diagnostics.Runtime
             if (moduleName is null)
                 return false;
 
-            switch (moduleName.ToUpperInvariant())
+            if (moduleName.Equals(c_desktopModuleName1, StringComparison.OrdinalIgnoreCase) ||
+                moduleName.Equals(c_desktopModuleName2, StringComparison.OrdinalIgnoreCase))
             {
-                case c_desktopModuleName1:
-                case c_desktopModuleName2:
-                    flavor = ClrFlavor.Desktop;
-                    platform = OSPlatform.Windows;
-                    return true;
+                flavor = ClrFlavor.Desktop;
+                platform = OSPlatform.Windows;
+                return true;
+            }
 
-                case c_coreModuleName:
-                    flavor = ClrFlavor.Core;
-                    platform = OSPlatform.Windows;
-                    return true;
+            if (moduleName.Equals(c_coreModuleName, StringComparison.OrdinalIgnoreCase))
+            {
+                flavor = ClrFlavor.Core;
+                platform = OSPlatform.Windows;
+                return true;
             }
 
             switch (moduleName)
