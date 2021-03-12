@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
             MachOReader reader = new MachOReader(stream);
 
             MachOHeader64 header = reader.Read<MachOHeader64>();
-            if (header.CpuType != MachOCpuType.X86_64)
+            if (header.Magic != MachOHeader64.ExpectedMagic)
             {
                 throw new NotSupportedException();
             }

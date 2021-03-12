@@ -45,19 +45,23 @@ namespace Microsoft.Diagnostics.Runtime
             if (moduleName is null)
                 return false;
 
+            if (moduleName.Equals(c_desktopModuleName1, StringComparison.OrdinalIgnoreCase) ||
+                moduleName.Equals(c_desktopModuleName2, StringComparison.OrdinalIgnoreCase))
+            {
+                flavor = ClrFlavor.Desktop;
+                platform = OSPlatform.Windows;
+                return true;
+            }
+
+            if (moduleName.Equals(c_coreModuleName, StringComparison.OrdinalIgnoreCase))
+            {
+                flavor = ClrFlavor.Core;
+                platform = OSPlatform.Windows;
+                return true;
+            }
+
             switch (moduleName)
             {
-                case c_desktopModuleName1:
-                case c_desktopModuleName2:
-                    flavor = ClrFlavor.Desktop;
-                    platform = OSPlatform.Windows;
-                    return true;
-
-                case c_coreModuleName:
-                    flavor = ClrFlavor.Core;
-                    platform = OSPlatform.Windows;
-                    return true;
-
                 case c_linuxCoreModuleName:
                     flavor = ClrFlavor.Core;
                     platform = OSPlatform.Linux;
@@ -67,10 +71,9 @@ namespace Microsoft.Diagnostics.Runtime
                     flavor = ClrFlavor.Core;
                     platform = OSPlatform.OSX;
                     return true;
-
-                default:
-                    return false;
             }
+
+            return false;
         }
 
         /// <summary>
