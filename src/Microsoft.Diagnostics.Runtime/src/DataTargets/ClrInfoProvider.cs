@@ -13,9 +13,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public static class ClrInfoProvider
     {
-        private const string c_desktopModuleName1 = "clr.dll";
-        private const string c_desktopModuleName2 = "mscorwks.dll";
-        private const string c_coreModuleName = "coreclr.dll";
+        private const string c_desktopModuleName1 = "CLR.DLL";
+        private const string c_desktopModuleName2 = "MSCORWKS.DLL";
+        private const string c_coreModuleName = "CORECLR.DLL";
         private const string c_linuxCoreModuleName = "libcoreclr.so";
         private const string c_macOSCoreModuleName = "libcoreclr.dylib";
 
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (moduleName is null)
                 return false;
 
-            switch (moduleName)
+            switch (moduleName.ToUpperInvariant())
             {
                 case c_desktopModuleName1:
                 case c_desktopModuleName2:
@@ -57,7 +57,10 @@ namespace Microsoft.Diagnostics.Runtime
                     flavor = ClrFlavor.Core;
                     platform = OSPlatform.Windows;
                     return true;
+            }
 
+            switch (moduleName)
+            {
                 case c_linuxCoreModuleName:
                     flavor = ClrFlavor.Core;
                     platform = OSPlatform.Linux;
@@ -67,10 +70,9 @@ namespace Microsoft.Diagnostics.Runtime
                     flavor = ClrFlavor.Core;
                     platform = OSPlatform.OSX;
                     return true;
-
-                default:
-                    return false;
             }
+
+            return false;
         }
 
         /// <summary>
