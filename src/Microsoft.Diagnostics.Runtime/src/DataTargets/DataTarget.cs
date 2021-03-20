@@ -164,6 +164,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             IExportReader? exportReader = DataReader as IExportReader;
             Architecture arch = DataReader.Architecture;
+            RuntimeInfo? singleFileRuntimeInfo = null;
             ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
@@ -193,6 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         platform = DataReader.TargetPlatform;
                         flavor = ClrFlavor.Core;
+                        singleFileRuntimeInfo = runtimeInfo;
 
                         if (platform == OSPlatform.Windows)
                         {
@@ -242,7 +244,9 @@ namespace Microsoft.Diagnostics.Runtime
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
                 DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, runtimeFileSize, runtimeTimeStamp, version, runtimeBuildId);
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo));
+                versions.Add(new ClrInfo(this, flavor, module, dacInfo) {
+                    SingleFileRuntimeInfo = singleFileRuntimeInfo
+                });
             }
 
             _clrs = versions.MoveOrCopyToImmutable();
