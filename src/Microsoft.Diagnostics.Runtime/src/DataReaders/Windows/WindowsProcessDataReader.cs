@@ -189,6 +189,31 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
+            // We need to set the ContextFlags field to be the value of contextFlags.  For AMD64, that field is
+            // at offset 0x30. For all other platforms that field is at offset 0.  We test here whether the context
+            // is large enough to write the flags and then assign the value based on the architecture's offset.
+
+            bool amd64 = Architecture == Architecture.Amd64;
+            if (context.Length < 4 || (amd64 && context.Length < 0x34))
+                return false;
+
+            if (amd64)
+            {
+                fixed (byte* ptr = context)
+                {
+                    AMD64Context* ctx = (AMD64Context*)ptr;
+                    ctx->ContextFlags = contextFlags;
+                }
+            }
+            else
+            {
+                fixed (byte* ptr = context)
+                {
+                    uint* intPtr = (uint*)ptr;
+                    *intPtr = contextFlags;
+                }
+            }
+
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
             if (thread.IsInvalid)
                 return false;
