@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -161,12 +162,55 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_clrs.IsDefault)
                 return _clrs;
 
+            IExportReader? exportReader = DataReader as IExportReader;
             Architecture arch = DataReader.Architecture;
+            RuntimeInfo? singleFileRuntimeInfo = null;
             ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
-                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out OSPlatform platform))
-                    continue;
+                ImmutableArray<byte> runtimeBuildId = ImmutableArray<byte>.Empty;
+                int runtimeTimeStamp = 0;
+                int runtimeFileSize = 0;
+
+                if (ClrInfoProvider.IsSupportedRuntime(module, out ClrFlavor flavor, out OSPlatform platform))
+                {
+                    runtimeTimeStamp = module.IndexTimeStamp;
+                    runtimeFileSize = module.IndexFileSize;
+                    runtimeBuildId = module.BuildId;
+                }
+                else
+                {
+                    if (exportReader is null || !exportReader.TryGetSymbolAddress(module.ImageBase, RuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
+                        continue;
+
+                    if (!DataReader.Read(runtimeInfoAddress, out RuntimeInfo runtimeInfo))
+                        continue;
+
+                    unsafe
+                    {
+                        string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, RuntimeInfo.SignatureValueLength);
+                        if (signature != RuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
+                            continue;
+
+                        platform = DataReader.TargetPlatform;
+                        flavor = ClrFlavor.Core;
+                        singleFileRuntimeInfo = runtimeInfo;
+
+                        if (platform == OSPlatform.Windows)
+                        {
+                            if (runtimeInfo.RuntimeModuleIndex[0] >= sizeof(int) + sizeof(int))
+                            {
+                                runtimeTimeStamp = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte), sizeof(int)).ToArray(), 0);
+                                runtimeFileSize = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte) + sizeof(int), sizeof(int)).ToArray(), 0);
+                            }
+                        }
+                        else
+                        {
+                            // The first byte of the module indexes is the length of the build id
+                            runtimeBuildId = new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte), runtimeInfo.RuntimeModuleIndex[0]).ToArray().ToImmutableArray();
+                        }
+                    }
+                }
 
                 string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
                 string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName)!, dacFileName);
@@ -199,8 +243,10 @@ namespace Microsoft.Diagnostics.Runtime
                 string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
-                DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo));
+                DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, runtimeFileSize, runtimeTimeStamp, version, runtimeBuildId);
+                versions.Add(new ClrInfo(this, flavor, module, dacInfo) {
+                    SingleFileRuntimeInfo = singleFileRuntimeInfo
+                });
             }
 
             _clrs = versions.MoveOrCopyToImmutable();

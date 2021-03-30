@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Runtime.InteropServices;
-
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct ElfFileTableHeader64
+    internal enum ElfSymbolBind : byte
     {
-        public ulong EntryCount;
-        public ulong PageSize;
+        Local = 0,
+        Global = 1,
+        Weak = 2
     }
 }

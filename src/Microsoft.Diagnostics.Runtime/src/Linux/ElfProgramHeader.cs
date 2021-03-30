@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public bool IsWritable => (_attributes & ElfProgramHeaderAttributes.Writable) != 0;
 
-        public ElfProgramHeader(Reader reader, bool is64bit, long headerPositon, long fileOffset, bool isVirtual = false)
+        public ElfProgramHeader(Reader reader, bool is64bit, long headerPositon, long loadBias, bool isVirtual = false)
         {
             if (is64bit)
             {
@@ -47,10 +47,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 FileSize = header.FileSize;
             }
 
-            if (isVirtual && Type == ElfProgramHeaderType.Load)
-                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", VirtualAddress, VirtualSize);
+            if (isVirtual)
+                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", loadBias + VirtualAddress, VirtualSize);
             else
-                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", fileOffset + FileOffset, FileSize);
+                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", loadBias + FileOffset, FileSize);
         }
     }
 }

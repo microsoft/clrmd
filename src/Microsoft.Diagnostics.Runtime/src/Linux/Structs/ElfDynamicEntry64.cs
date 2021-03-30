@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct ElfFileTableHeader64
+    internal struct ElfDynamicEntry64
     {
-        public ulong EntryCount;
-        public ulong PageSize;
+        public long Tag;            // d_tag
+        public ulong Ptr;           // d_val/d_ptr
     }
 }

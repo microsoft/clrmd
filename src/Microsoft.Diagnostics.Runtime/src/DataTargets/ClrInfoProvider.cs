@@ -82,7 +82,8 @@ namespace Microsoft.Diagnostics.Runtime
         public static string GetDacFileName(ClrFlavor flavor, OSPlatform platform)
         {
             if (platform == OSPlatform.Linux)
-                return c_linuxCoreDacFileName;
+                // if running on Windows and the target is Linux return the cross-OS DAC name
+                return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? c_coreDacFileName : c_linuxCoreDacFileName;
 
             if (platform == OSPlatform.OSX)
                 return c_macOSCoreDacFileName;
@@ -97,7 +98,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // Linux never has a "long" named DAC
             if (platform == OSPlatform.Linux)
-                return c_linuxCoreDacFileName;
+                // if running on Windows and the target is Linux return the cross-OS DAC name
+                return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? c_coreDacFileName : c_linuxCoreDacFileName;
 
             if (platform == OSPlatform.OSX)
                 return c_macOSCoreDacFileName;

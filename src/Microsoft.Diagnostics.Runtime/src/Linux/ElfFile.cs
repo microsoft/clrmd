@@ -4,12 +4,12 @@
 
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfFile
     {
-        private readonly Reader _reader;
         private readonly long _position;
         private readonly bool _virtual;
 
@@ -17,6 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private ImmutableArray<ElfNote> _notes;
         private ImmutableArray<ElfProgramHeader> _programHeaders;
         private ImmutableArray<byte> _buildId;
+        private ElfDynamicSection? _dynamicSection;
+
+        public Reader Reader { get; }
 
         public IElfHeader Header { get; }
 
@@ -44,6 +47,26 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 CreateVirtualAddressReader();
                 return _virtualAddressReader!;
+            }
+        }
+
+        public ElfDynamicSection DynamicSection
+        {
+            get
+            {
+                if (_dynamicSection == null)
+                {
+                    foreach (ElfProgramHeader? header in ProgramHeaders)
+                    {
+                        if (header.Type == ElfProgramHeaderType.Dynamic)
+                        {
+                            _dynamicSection = new ElfDynamicSection(
+                                Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize);
+                            break;
+                        }
+                    }
+                }
+                return _dynamicSection ?? throw new InvalidDataException("No dynamic segment found");
             }
         }
 
@@ -79,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfFile(Reader reader, long position = 0, bool isVirtual = false)
         {
-            _reader = reader;
+            Reader = reader;
             _position = position;
             _virtual = isVirtual;
 
@@ -103,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool isVirtual = false)
         {
-            _reader = reader;
+            Reader = reader;
             _position = position;
             _virtual = isVirtual;
 
@@ -115,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private void CreateVirtualAddressReader()
         {
-            _virtualAddressReader ??= new Reader(new ElfVirtualAddressSpace(ProgramHeaders, _reader.DataSource));
+            _virtualAddressReader ??= new Reader(new ElfVirtualAddressSpace(ProgramHeaders, Reader.DataSource));
         }
 
         private void LoadNotes()
@@ -150,11 +173,26 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (!_programHeaders.IsDefault)
                 return;
 
+            // Calculate the loadBias. It is usually just the base address except for some executable modules.
+            long loadBias = _position;
+            if (loadBias > 0)
+            {
+                for (int i = 0; i < Header.ProgramHeaderCount; i++)
+                {
+                    var header= new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
+                    if (header.Type == ElfProgramHeaderType.Load && header.FileOffset == 0)
+                    {
+                        loadBias -= header.VirtualAddress;
+                    }
+                }
+            }
+
+            // Build the program segments using the load bias
             ImmutableArray<ElfProgramHeader>.Builder programHeaders = ImmutableArray.CreateBuilder<ElfProgramHeader>(Header.ProgramHeaderCount);
             programHeaders.Count = programHeaders.Capacity;
 
             for (int i = 0; i < programHeaders.Count; i++)
-                programHeaders[i] = new ElfProgramHeader(_reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, _position, _virtual);
+                programHeaders[i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
 
             _programHeaders = programHeaders.MoveToImmutable();
         }
