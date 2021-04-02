@@ -29,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ulong MetadataLength => _moduleData.MetadataSize;
 
         public bool IsFlatLayout { get; private set; }
+        public bool IsDynamic { get; private set; }
         public ulong Size { get; private set; }
 
         public string? Name
@@ -49,6 +50,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         }
 
         public string? SimpleName { get; private set; }
+
+        public string? FileName { get; private set; }
 
         public string? AssemblyName
         {
@@ -81,22 +84,18 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (dataModule != null && dataModule.GetModuleData(out ExtendedModuleData data))
             {
                 IsFlatLayout = data.IsFlatLayout != 0;
+                IsDynamic = data.IsDynamic != 0;
                 Size = data.LoadedPESize;
             }
             else
             {
                 IsFlatLayout = false;
+                IsDynamic = false;
                 Size = 0;
             }
 
-            if (dataModule != null)
-            {
-                SimpleName = dataModule.GetName();
-            }
-            else
-            {
-                SimpleName = null;
-            }
+            SimpleName = dataModule?.GetName();
+            FileName = dataModule?.GetFileName();
 
             return true;
         }
