@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -48,6 +49,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr ? name : null;
         }
 
+        public string? GetFileName()
+        {
+            // GetFileName will fault if buffer pointer is null. Use fixed size buffer.
+            char[] buffer = ArrayPool<char>.Shared.Rent(1024);
+            try 
+            { 
+                fixed (char* bufferPtr = buffer)
+                {
+                    HResult hr = VTable.GetFileName(Self, buffer.Length, out int nameLength, bufferPtr);
+                    return hr && nameLength > 0 ? new string(buffer, 0, nameLength - 1) : null;
+                }
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct IClrDataModuleVTable
         {
@@ -78,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             private readonly IntPtr EnumDataByName;
             private readonly IntPtr EndEnumDataByName;
             public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, HResult> GetName;
-            private readonly IntPtr GetFileName;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, HResult> GetFileName;
             private readonly IntPtr GetFlags;
             private readonly IntPtr IsSameObject;
             private readonly IntPtr StartEnumExtents;

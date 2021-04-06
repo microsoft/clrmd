@@ -441,6 +441,7 @@ Microsoft.Diagnostics.Runtime.DacInterface.ClrDataMethod.ClrDataMethod(Microsoft
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataMethod.GetILToNativeMap() -> Microsoft.Diagnostics.Runtime.ILToNativeMap[]?
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataModule
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataModule.ClrDataModule(Microsoft.Diagnostics.Runtime.DacLibrary! library, System.IntPtr pUnknown) -> void
+Microsoft.Diagnostics.Runtime.DacInterface.ClrDataModule.GetFileName() -> string?
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataModule.GetModuleData(out Microsoft.Diagnostics.Runtime.DacInterface.ExtendedModuleData data) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataModule.GetName() -> string?
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess
@@ -645,6 +646,7 @@ Microsoft.Diagnostics.Runtime.DacInterface.WorkRequestData.WorkRequestData() -> 
 Microsoft.Diagnostics.Runtime.DacLibrary
 Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, System.IntPtr pClrDataProcess) -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, string! dacPath) -> void
+Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, string! dacPath, ulong runtimeBaseAddress) -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.DacPrivateInterface.get -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess!
 Microsoft.Diagnostics.Runtime.DacLibrary.Dispose() -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.GetInterface<T>(in System.Guid riid) -> T?
@@ -885,8 +887,10 @@ Microsoft.Diagnostics.Runtime.Implementation.IModuleData
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.Address.get -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.AssemblyAddress.get -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.AssemblyName.get -> string?
+Microsoft.Diagnostics.Runtime.Implementation.IModuleData.FileName.get -> string?
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers!
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.ILImageBase.get -> ulong
+Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsDynamic.get -> bool
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsFlatLayout.get -> bool
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsPEFile.get -> bool
 Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsReflection.get -> bool

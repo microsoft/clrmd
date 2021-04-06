@@ -20,9 +20,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         private static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
+        private static readonly Guid IID_ICLRRuntimeLocator = new Guid("b760bf44-9377-4597-8be7-58083bdc5146");
 
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;
+        private readonly ulong _runtimeBaseAddress;
         private volatile ModuleInfo[]? _modules;
 
         private Action? _callback;
@@ -30,10 +32,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IntPtr IDacDataTarget { get; }
 
-        public DacDataTargetWrapper(DataTarget dataTarget)
+        public DacDataTargetWrapper(DataTarget dataTarget, ulong runtimeBaseAddress = 0)
         {
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
+            _runtimeBaseAddress = runtimeBaseAddress;
 
             VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
@@ -51,6 +54,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder = AddInterface(IID_IMetadataLocator, false);
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
+
+            if (runtimeBaseAddress != 0)
+            {
+                builder = AddInterface(IID_ICLRRuntimeLocator, false);
+                builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
+                builder.Complete();
+            }
         }
 
         public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
@@ -295,6 +305,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.S_OK;
         }
 
+        private HResult GetRuntimeBase(
+            IntPtr self,
+            out ulong address)
+        {
+            Debug.Assert(_runtimeBaseAddress != 0);
+            address = _runtimeBaseAddress;
+            return HResult.S_OK;
+        }
+
         private delegate HResult GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
                                                      IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
         private delegate HResult GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
@@ -308,5 +327,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate HResult GetThreadContextDelegate(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context);
         private delegate HResult SetThreadContextDelegate(IntPtr self, uint threadID, uint contextSize, IntPtr context);
         private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer);
+
+        private delegate HResult GetRuntimeBaseDelegate([In] IntPtr self, [Out] out ulong address);
     }
 }

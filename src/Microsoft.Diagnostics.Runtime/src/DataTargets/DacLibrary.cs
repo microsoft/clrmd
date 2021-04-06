@@ -86,7 +86,12 @@ namespace Microsoft.Diagnostics.Runtime
             DacDataTarget = new DacDataTargetWrapper(dataTarget);
         }
 
-        public unsafe DacLibrary(DataTarget dataTarget, string dacPath)
+        public DacLibrary(DataTarget dataTarget, string dacPath)
+            : this(dataTarget, dacPath, runtimeBaseAddress: 0)
+        {
+        }
+
+        public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
@@ -124,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (addr == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
 
-            DacDataTarget = new DacDataTargetWrapper(dataTarget);
+            DacDataTarget = new DacDataTargetWrapper(dataTarget, runtimeBaseAddress);
 
             var func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");

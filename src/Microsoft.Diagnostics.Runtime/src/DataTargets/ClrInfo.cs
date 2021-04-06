@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
 
-            DacLibrary dacLibrary = new DacLibrary(DataTarget, dac);
+            DacLibrary dacLibrary = new DacLibrary(DataTarget, dac, ModuleInfo.ImageBase);
             DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface;
             if (sos is null)
                 throw new InvalidOperationException($"Could not create a ISOSDac pointer from this dac library: {dac}");
