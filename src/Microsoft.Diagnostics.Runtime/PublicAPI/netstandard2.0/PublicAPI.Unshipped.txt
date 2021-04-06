@@ -646,6 +646,7 @@ Microsoft.Diagnostics.Runtime.DacInterface.WorkRequestData.WorkRequestData() -> 
 Microsoft.Diagnostics.Runtime.DacLibrary
 Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, System.IntPtr pClrDataProcess) -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, string! dacPath) -> void
+Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, string! dacPath, ulong runtimeBaseAddress) -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.DacPrivateInterface.get -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess!
 Microsoft.Diagnostics.Runtime.DacLibrary.Dispose() -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.GetInterface<T>(in System.Guid riid) -> T?

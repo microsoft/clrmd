@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        internal unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress)
+        public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));

@@ -55,9 +55,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
 
-            builder = AddInterface(IID_ICLRRuntimeLocator, false);
-            builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
-            builder.Complete();
+            if (runtimeBaseAddress != 0)
+            {
+                builder = AddInterface(IID_ICLRRuntimeLocator, false);
+                builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
+                builder.Complete();
+            }
         }
 
         public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
@@ -306,8 +309,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             out ulong address)
         {
+            Debug.Assert(_runtimeBaseAddress != 0);
             address = _runtimeBaseAddress;
-            return _runtimeBaseAddress != 0 ? HResult.S_OK : HResult.E_FAIL;
+            return HResult.S_OK;
         }
 
         private delegate HResult GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,

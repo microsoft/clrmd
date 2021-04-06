@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -51,11 +52,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public string? GetFileName()
         {
             // GetFileName will fault if buffer pointer is null. Use fixed size buffer.
-            char[] buffer = new char[1024];
-            fixed (char* bufferPtr = buffer)
+            char[] buffer = ArrayPool<char>.Shared.Rent(1024);
+            try 
+            { 
+                fixed (char* bufferPtr = buffer)
+                {
+                    HResult hr = VTable.GetFileName(Self, buffer.Length, out int nameLength, bufferPtr);
+                    return hr && nameLength > 0 ? new string(buffer, 0, nameLength - 1) : null;
+                }
+            }
+            finally
             {
-                HResult hr = VTable.GetFileName(Self, 1024, out int nameLength, bufferPtr);
-                return hr && nameLength > 0 ? new string(buffer, 0, nameLength - 1) : null;
+                ArrayPool<char>.Shared.Return(buffer);
             }
         }
 
