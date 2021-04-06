@@ -138,18 +138,7 @@ namespace Microsoft.Diagnostics.Runtime
         [DllImport("dbgeng.dll")]
         public static extern int DebugCreate(in Guid InterfaceId, out IntPtr Interface);
 
-        public override int PointerSize
-        {
-            get
-            {
-                _pointerSize = IntPtr.Size;
-                if (_pointerSize is int pointerSize)
-                    return pointerSize;
-
-                _pointerSize = pointerSize = _control.IsPointer64Bit() ? sizeof(long) : sizeof(int);
-                return pointerSize;
-            }
-        }
+        public override int PointerSize => _pointerSize ??= _control.IsPointer64Bit() ? sizeof(long) : sizeof(int);
 
         public void FlushCachedData()
         {
