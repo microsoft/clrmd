@@ -4,7 +4,10 @@
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal enum ElfHeaderType : ushort
+    /// <summary>
+    /// The type of ELF file.
+    /// </summary>
+    public enum ElfHeaderType : ushort
     {
         Relocatable = 1,
         Executable = 2,

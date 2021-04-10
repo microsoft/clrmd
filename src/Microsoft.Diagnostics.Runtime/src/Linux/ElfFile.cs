@@ -4,11 +4,13 @@
 
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfFile
+    /// <summary>
+    /// A helper class to read ELF files.
+    /// </summary>
+    public sealed class ElfFile
     {
         private readonly long _position;
         private readonly bool _virtual;
@@ -19,10 +21,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private ImmutableArray<byte> _buildId;
         private ElfDynamicSection? _dynamicSection;
 
-        public Reader Reader { get; }
+        internal Reader Reader { get; }
 
+        /// <summary>
+        /// The ElfHeader of this file.
+        /// </summary>
         public IElfHeader Header { get; }
 
+        /// <summary>
+        /// The list of ElfNotes for this file.
+        /// </summary>
         public ImmutableArray<ElfNote> Notes
         {
             get
@@ -32,6 +40,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
+        /// <summary>
+        /// The list of ProgramHeaders for this file.
+        /// </summary>
         public ImmutableArray<ElfProgramHeader> ProgramHeaders
         {
             get
@@ -41,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public Reader VirtualAddressReader
+        internal Reader VirtualAddressReader
         {
             get
             {
@@ -50,11 +61,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public ElfDynamicSection DynamicSection
+        /// <summary>
+        /// The ELFDynamicSection for this file, if it exists.
+        /// </summary>
+        internal ElfDynamicSection? DynamicSection
         {
             get
             {
-                if (_dynamicSection == null)
+                if (_dynamicSection is null)
                 {
                     foreach (ElfProgramHeader? header in ProgramHeaders)
                     {
@@ -66,10 +80,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                         }
                     }
                 }
-                return _dynamicSection ?? throw new InvalidDataException("No dynamic segment found");
+                return _dynamicSection;
             }
         }
 
+        /// <summary>
+        /// Returns the build id of this ELF module (or ImmutableArray.Default if it doesn't exist).
+        /// </summary>
         public ImmutableArray<byte> BuildId
         {
             get
@@ -100,10 +117,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public ElfFile(Reader reader, long position = 0, bool isVirtual = false)
+        internal ElfFile(Reader reader, ulong position = 0, bool isVirtual = false)
         {
             Reader = reader;
-            _position = position;
+            _position = (long)position;
             _virtual = isVirtual;
 
             if (isVirtual)
@@ -112,14 +129,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ElfHeaderCommon common;
             try
             {
-                common = reader.Read<ElfHeaderCommon>(position);
+                common = reader.Read<ElfHeaderCommon>(_position);
             }
             catch (IOException e)
             {
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.", e);
             }
 
-            Header = common.GetHeader(reader, position)!;
+            Header = common.GetHeader(reader, _position)!;
             if (Header is null)
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }

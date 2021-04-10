@@ -7,24 +7,40 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfLoadedImage
+    /// <summary>
+    /// A representation of an ELF loaded image section.
+    /// </summary>
+    public class ElfLoadedImage
     {
         private readonly List<ElfFileTableEntryPointers64> _fileTable = new(4);
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
         private long _end;
 
-        public string Path { get; }
+        // The path of the image on disk.
+        public string FileName { get; }
+
+        /// <summary>
+        /// The BaseAddress of this image
+        /// </summary>
         public long BaseAddress { get; private set; }
+
+        /// <summary>
+        /// The size of this image in memory.
+        /// </summary>
         public long Size => _end - BaseAddress;
 
-        public ElfLoadedImage(Reader virtualAddressReader, bool is64bit, string path)
+        internal ElfLoadedImage(Reader virtualAddressReader, bool is64bit, string path)
         {
             _vaReader = virtualAddressReader;
             _is64bit = is64bit;
-            Path = path;
+            FileName = path;
         }
 
+        /// <summary>
+        /// Open the loaded image as an ELFFile.
+        /// </summary>
+        /// <returns>An ELFFile if this is a valid ELF image, null otherwise.</returns>
         public ElfFile? Open()
         {
             IElfHeader? header;
@@ -40,7 +56,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return new ElfFile(header, _vaReader, BaseAddress, true);
         }
 
-        public Stream CreateStream()
+        /// <summary>
+        /// Returns this ELF loaded image as a stream.
+        /// </summary>
+        /// <returns></returns>
+        public Stream AsStream()
         {
             Stream stream = new ReaderStream(BaseAddress, Size, _vaReader);
             return stream;
@@ -59,6 +79,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 _end = end;
         }
 
-        public override string ToString() => Path;
+        /// <summary>
+        /// Returns <see cref="FileName"/>.
+        /// </summary>
+        /// <returns><see cref="FileName"/></returns>
+        public override string ToString() => FileName;
     }
 }

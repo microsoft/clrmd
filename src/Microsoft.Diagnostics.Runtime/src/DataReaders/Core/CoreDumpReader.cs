@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _modules = new List<ModuleInfo>();
                 foreach (ElfLoadedImage image in _core.LoadedImages.Values)
-                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev", StringComparison.Ordinal))
+                    if ((ulong)image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
                         _modules.Add(CreateModuleInfo(image));
             }
 
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is null)
             {
-                using Stream stream = image.CreateStream();
+                using Stream stream = image.AsStream();
                 PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
             }
 
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime
 #pragma warning disable CA1307 // Specify StringComparison
 
             // This substitution is for unloaded modules for which Linux appends " (deleted)" to the module name.
-            string path = image.Path.Replace(" (deleted)", "");
+            string path = image.FileName.Replace(" (deleted)", "");
 
 #pragma warning restore CA1307 // Specify StringComparison
 
@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
             Dictionary<uint, IElfPRStatus> threads = LoadThreads();
 
             if (threads.TryGetValue(threadID, out IElfPRStatus? status))
-                return status.CopyContext(contextFlags, context);
+                return status.CopyRegistersAsContext(context);
 
             return false;
         }
@@ -182,7 +182,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 try
                 {
-                    if (elfFile.DynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
+                    ElfDynamicSection? dynamicSection = elfFile.DynamicSection;
+                    if (dynamicSection is not null && dynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
                     {
                         offset = baseAddress + (ulong)symbol.Value;
                         return true;

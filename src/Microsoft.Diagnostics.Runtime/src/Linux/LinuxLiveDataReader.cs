@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
             try
             {
-                return new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+                return new ElfFile(new Reader(memoryAddressSpace), baseAddress);
             }
             catch (InvalidDataException)
             {

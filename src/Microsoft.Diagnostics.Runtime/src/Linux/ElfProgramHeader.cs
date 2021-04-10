@@ -4,27 +4,51 @@
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfProgramHeader
+    /// <summary>
+    /// A helper class to represent ELF program headers.
+    /// </summary>
+    public sealed class ElfProgramHeader
     {
         private readonly ElfProgramHeaderAttributes _attributes;
 
-        public IAddressSpace AddressSpace { get; }
+        internal IAddressSpace AddressSpace { get; }
 
+        /// <summary>
+        /// The type of header this is.
+        /// </summary>
         public ElfProgramHeaderType Type { get; }
 
+        /// <summary>
+        /// The VirtualAddress of this header.
+        /// </summary>
         public long VirtualAddress { get; }
 
+        /// <summary>
+        /// The size of this header.
+        /// </summary>
         public long VirtualSize { get; }
 
+        /// <summary>
+        /// The offset of this header within the file.
+        /// </summary>
         public long FileOffset { get; }
 
+        /// <summary>
+        /// The size of this header within the file.
+        /// </summary>
         public long FileSize { get; }
 
+        /// <summary>
+        /// Whether this section of memory is executable.
+        /// </summary>
         public bool IsExecutable => (_attributes & ElfProgramHeaderAttributes.Executable) != 0;
 
+        /// <summary>
+        /// Whether this section of memory is writable.
+        /// </summary>
         public bool IsWritable => (_attributes & ElfProgramHeaderAttributes.Writable) != 0;
 
-        public ElfProgramHeader(Reader reader, bool is64bit, long headerPositon, long loadBias, bool isVirtual = false)
+        internal ElfProgramHeader(Reader reader, bool is64bit, long headerPositon, long loadBias, bool isVirtual = false)
         {
             if (is64bit)
             {

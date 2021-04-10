@@ -1003,6 +1003,97 @@ Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetAssemblyLoadContext
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetLoaderAllocatorHandle(ulong mt) -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData?
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetTypeName(ulong mt, out string? name) -> bool
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.ElfCoreFile(System.IO.Stream! stream) -> void
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.ElfFile.get -> Microsoft.Diagnostics.Runtime.Linux.ElfFile!
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.EnumeratePRStatus() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus!>!
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.GetAuxvValue(Microsoft.Diagnostics.Runtime.Linux.ElfAuxvType type) -> ulong
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.LoadedImages.get -> System.Collections.Immutable.ImmutableDictionary<ulong, Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage!>!
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.ReadMemory(long address, System.Span<byte> buffer) -> int
+Microsoft.Diagnostics.Runtime.Linux.ElfFile
+Microsoft.Diagnostics.Runtime.Linux.ElfFile.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
+Microsoft.Diagnostics.Runtime.Linux.ElfFile.Header.get -> Microsoft.Diagnostics.Runtime.Linux.IElfHeader!
+Microsoft.Diagnostics.Runtime.Linux.ElfFile.Notes.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Linux.ElfNote!>
+Microsoft.Diagnostics.Runtime.Linux.ElfFile.ProgramHeaders.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader!>
+Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType.Core = 4 -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType.Executable = 2 -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType.Relocatable = 1 -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType.Shared = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.AsStream() -> System.IO.Stream!
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.BaseAddress.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.FileName.get -> string!
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.Open() -> Microsoft.Diagnostics.Runtime.Linux.ElfFile?
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.Size.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_386 = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_AARCH64 = 183 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_ARM = 40 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_AVR32 = 6317 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_BLACKFIN = 106 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_CRIS = 76 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_FRV = 21569 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_H8_300 = 46 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_IA_64 = 50 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_M32R = 88 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_MN10300 = 89 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_NONE = 0 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_PARISC = 15 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_PPC = 20 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_PPC64 = 21 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_S390 = 22 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_SH = 42 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_SPARC32PLUS = 18 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_SPARCV9 = 43 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_SPU = 23 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_V850 = 87 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_X86_64 = 62 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.ElfNote
+Microsoft.Diagnostics.Runtime.Linux.ElfNote.ContentSize.get -> int
+Microsoft.Diagnostics.Runtime.Linux.ElfNote.Name.get -> string!
+Microsoft.Diagnostics.Runtime.Linux.ElfNote.ReadContents(ulong position, System.Span<byte> buffer) -> int
+Microsoft.Diagnostics.Runtime.Linux.ElfNote.ReadContents<T>(ulong position) -> T
+Microsoft.Diagnostics.Runtime.Linux.ElfNote.Type.get -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.Aux = 6 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.File = 1179208773 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.PrpsFpreg = 2 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.PrpsInfo = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.PrpsStatus = 1 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.TASKSTRUCT = 4 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.FileOffset.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.FileSize.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.IsExecutable.get -> bool
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.IsWritable.get -> bool
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.Type.get -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.VirtualAddress.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.VirtualSize.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Dynamic = 2 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Interp = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Load = 1 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Note = 4 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Null = 0 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Phdr = 6 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Shlib = 5 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.Architecture.get -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.Is64Bit.get -> bool
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.IsValid.get -> bool
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderCount.get -> ushort
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderEntrySize.get -> ushort
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderOffset.get -> long
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderCount.get -> ushort
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderEntrySize.get -> ushort
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderOffset.get -> long
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderStringIndex.get -> ushort
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.Type.get -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
+Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus
+Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus.CopyRegistersAsContext(System.Span<byte> context) -> bool
+Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus.ProcessId.get -> uint
+Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus.ThreadId.get -> uint
 Microsoft.Diagnostics.Runtime.M128A
 Microsoft.Diagnostics.Runtime.M128A.Clear() -> void
 Microsoft.Diagnostics.Runtime.M128A.Equals(Microsoft.Diagnostics.Runtime.M128A other) -> bool
@@ -1896,6 +1987,7 @@ override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsMonitorHel
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsRuntimeCallWrapper.get -> bool
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.RecursionCount.get -> int
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.WaitingThreadCount.get -> int
+override Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.M128A.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.M128A.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.MemoryRange.ToString() -> string!

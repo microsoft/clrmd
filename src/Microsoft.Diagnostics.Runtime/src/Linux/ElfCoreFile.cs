@@ -12,15 +12,25 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfCoreFile
+    /// <summary>
+    /// A helper class to read linux coredumps.
+    /// </summary>
+    public class ElfCoreFile
     {
         private readonly Reader _reader;
-        private IReadOnlyDictionary<long, ElfLoadedImage>? _loadedImages;
+        private ImmutableDictionary<long, ElfLoadedImage>? _loadedImages;
         private readonly Dictionary<ulong, ulong> _auxvEntries = new();
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
+        /// <summary>
+        /// All coredumps are themselves ELF files.  This property returns the ElfFile that represents this coredump.  
+        /// </summary>
         public ElfFile ElfFile { get; }
 
+        /// <summary>
+        /// Enumerates all prstatus notes contained within this coredump.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<IElfPRStatus> EnumeratePRStatus()
         {
             ElfMachine architecture = ElfFile.Header.Architecture;
@@ -38,6 +48,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             });
         }
 
+        /// <summary>
+        /// Returns the Auxv value of the given type.
+        /// </summary>
         public ulong GetAuxvValue(ElfAuxvType type)
         {
             LoadAuxvTable();
@@ -45,7 +58,10 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return value;
         }
 
-        public IReadOnlyDictionary<long, ElfLoadedImage> LoadedImages => LoadFileTable();
+        /// <summary>
+        /// A mapping of all loaded images in the process.  The key is the base address that the module is loaded at.
+        /// </summary>
+        public ImmutableDictionary<long, ElfLoadedImage> LoadedImages => _loadedImages ??= LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -56,10 +72,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 throw new InvalidDataException($"{stream.GetFilename() ?? "The given stream"} is not a coredump");
 
 #if DEBUG
-            LoadFileTable();
+            _loadedImages = LoadFileTable();
 #endif
         }
 
+        /// <summary>
+        /// Reads memory from the given coredump's virtual address space.
+        /// </summary>
+        /// <param name="address">An address in the target program's virtual address space.</param>
+        /// <param name="buffer">The buffer to fill.</param>
+        /// <returns>The number of bytes written into the buffer.</returns>
         public int ReadMemory(long address, Span<byte> buffer)
         {
             _virtualAddressSpace ??= new ElfVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
@@ -107,11 +129,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private IReadOnlyDictionary<long, ElfLoadedImage> LoadFileTable()
+        private ImmutableDictionary<long, ElfLoadedImage> LoadFileTable()
         {
-            if (_loadedImages is not null)
-                return _loadedImages;
-
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
             long position = 0;
@@ -149,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
             try
             {
-                int read = fileNote.ReadContents(position, bytes);
+                int read = fileNote.ReadContents((ulong)position, bytes);
                 int start = 0;
                 for (int i = 0; i < fileTable.Length; i++)
                 {
@@ -171,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            return _loadedImages = lookup.Values.ToImmutableDictionary(i => i.BaseAddress);
+            return lookup.Values.ToImmutableDictionary(i => i.BaseAddress);
         }
     }
 }

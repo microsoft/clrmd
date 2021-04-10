@@ -4,7 +4,10 @@
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal enum ElfMachine : ushort
+    /// <summary>
+    /// The ELF machine type
+    /// </summary>
+    public enum ElfMachine : ushort
     {
         EM_NONE = 0,            /* No machine */
         EM_386 = 3,	            /* Intel 80386 */

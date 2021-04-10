@@ -7,16 +7,30 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal class ElfNote
+    /// <summary>
+    /// A helper class to represent an ELF note section.
+    /// </summary>
+    public sealed class ElfNote
     {
         private readonly Reader _reader;
         private readonly long _position;
         private string? _name;
 
-        public ElfNoteHeader Header { get; }
+        internal ElfNoteHeader Header { get; }
 
+        /// <summary>
+        /// The content size of the data stored within this note.
+        /// </summary>
+        public int ContentSize => Header.ContentSize > int.MaxValue ? int.MaxValue : (int)Header.ContentSize;
+
+        /// <summary>
+        /// The type of note this is.
+        /// </summary>
         public ElfNoteType Type => Header.Type;
 
+        /// <summary>
+        /// The note's name.
+        /// </summary>
         public string Name
         {
             get
@@ -30,17 +44,23 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public long TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
+        internal long TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
 
         private static int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
 
-        public int ReadContents(long position, Span<byte> buffer)
+        /// <summary>
+        /// Reads the contents of this note file.
+        /// </summary>
+        /// <param name="position">The position within the note to read from.</param>
+        /// <param name="buffer">The buffer to read the note into.</param>
+        /// <returns>The number of bytes read written to buffer.</returns>
+        public int ReadContents(ulong position, Span<byte> buffer)
         {
             long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
-            return _reader.ReadBytes(position + contentsoffset, buffer);
+            return _reader.ReadBytes((long)position + contentsoffset, buffer);
         }
 
-        public T ReadContents<T>(ref long position)
+        internal T ReadContents<T>(ref long position)
             where T : unmanaged
         {
             long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
@@ -52,16 +72,22 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        public T ReadContents<T>(long position)
+        /// <summary>
+        /// Reads the contents of this note file.
+        /// </summary>
+        /// <param name="position">The position within the note to read from.</param>
+        /// <exception cref="System.IO.IOException">If the data could not be read.</exception>
+        /// <returns>The data at the given position.</returns>
+        public T ReadContents<T>(ulong position)
             where T : unmanaged
         {
             long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
-            long location = contentsOffset + position;
+            long location = contentsOffset + (long)position;
             T result = _reader.Read<T>(location);
             return result;
         }
 
-        public ElfNote(Reader reader, long position)
+        internal ElfNote(Reader reader, long position)
         {
             _position = position;
             _reader = reader;

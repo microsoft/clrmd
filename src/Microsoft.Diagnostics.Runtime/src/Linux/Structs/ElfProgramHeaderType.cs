@@ -4,7 +4,10 @@
 
 namespace Microsoft.Diagnostics.Runtime.Linux
 {
-    internal enum ElfProgramHeaderType : uint
+    /// <summary>
+    /// The type of program header.
+    /// </summary>
+    public enum ElfProgramHeaderType : uint
     {
         Null = 0,
         Load = 1,
