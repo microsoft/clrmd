@@ -37,9 +37,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfData Data => _common.Data;
 
-        public long ProgramHeaderOffset => _programHeaderOffset;
+        public ulong ProgramHeaderOffset => _programHeaderOffset;
 
-        public long SectionHeaderOffset => _sectionHeaderOffset;
+        public ulong SectionHeaderOffset => _sectionHeaderOffset;
 
         public ushort ProgramHeaderEntrySize => _programHeaderEntrySize;
 

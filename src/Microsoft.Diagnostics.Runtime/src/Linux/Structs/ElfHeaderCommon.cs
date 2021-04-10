@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfData Data => (ElfData)_data;
 
-        public IElfHeader? GetHeader(Reader reader, long position)
+        public IElfHeader? GetHeader(Reader reader, ulong position)
         {
             if (IsValid)
             {

@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private readonly List<ElfFileTableEntryPointers64> _fileTable = new(4);
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
-        private long _end;
+        private ulong _end;
 
         // The path of the image on disk.
         public string FileName { get; }
@@ -23,12 +23,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// <summary>
         /// The BaseAddress of this image
         /// </summary>
-        public long BaseAddress { get; private set; }
+        public ulong BaseAddress { get; private set; }
 
         /// <summary>
         /// The size of this image in memory.
         /// </summary>
-        public long Size => _end - BaseAddress;
+        public ulong Size => _end - BaseAddress;
 
         internal ElfLoadedImage(Reader virtualAddressReader, bool is64bit, string path)
         {
@@ -70,13 +70,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         {
             _fileTable.Add(pointers);
 
-            long start = checked((long)pointers.Start);
-            if (BaseAddress == 0 || start < BaseAddress)
-                BaseAddress = start;
+            if (BaseAddress == 0 || pointers.Start < BaseAddress)
+                BaseAddress = pointers.Start;
 
-            long end = checked((long)pointers.Stop);
-            if (_end < end)
-                _end = end;
+            if (_end < pointers.Stop)
+                _end = pointers.Stop;
         }
 
         /// <summary>

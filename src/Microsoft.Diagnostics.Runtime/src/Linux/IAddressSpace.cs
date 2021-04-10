@@ -8,8 +8,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal interface IAddressSpace
     {
-        int Read(long position, Span<byte> buffer);
-        long Length { get; }
+        int Read(ulong position, Span<byte> buffer);
+        ulong Length { get; }
         string Name { get; }
     }
 }

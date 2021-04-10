@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     public sealed class ElfNote
     {
         private readonly Reader _reader;
-        private readonly long _position;
+        private readonly ulong _position;
         private string? _name;
 
         internal ElfNoteHeader Header { get; }
@@ -38,15 +38,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (_name != null)
                     return _name;
 
-                long namePosition = _position + HeaderSize;
+                ulong namePosition = _position + HeaderSize;
                 _name = _reader.ReadNullTerminatedAscii(namePosition, (int)Header.NameSize);
                 return _name;
             }
         }
 
-        internal long TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
+        internal ulong TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
 
-        private static int HeaderSize => Marshal.SizeOf(typeof(ElfNoteHeader));
+        private static uint HeaderSize => (uint)Marshal.SizeOf(typeof(ElfNoteHeader));
 
         /// <summary>
         /// Reads the contents of this note file.
@@ -56,16 +56,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// <returns>The number of bytes read written to buffer.</returns>
         public int ReadContents(ulong position, Span<byte> buffer)
         {
-            long contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
-            return _reader.ReadBytes((long)position + contentsoffset, buffer);
+            ulong contentsoffset = _position + HeaderSize + Align4(Header.NameSize);
+            return _reader.ReadBytes(position + contentsoffset, buffer);
         }
 
-        internal T ReadContents<T>(ref long position)
+        internal T ReadContents<T>(ref ulong position)
             where T : unmanaged
         {
-            long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
-            long locationOrig = contentsOffset + position;
-            long location = locationOrig;
+            ulong contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
+            ulong locationOrig = contentsOffset + position;
+            ulong location = locationOrig;
             T result = _reader.Read<T>(ref location);
 
             position += location - locationOrig;
@@ -81,13 +81,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         public T ReadContents<T>(ulong position)
             where T : unmanaged
         {
-            long contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
-            long location = contentsOffset + (long)position;
+            ulong contentsOffset = _position + HeaderSize + Align4(Header.NameSize);
+            ulong location = contentsOffset + position;
             T result = _reader.Read<T>(location);
             return result;
         }
 
-        internal ElfNote(Reader reader, long position)
+        internal ElfNote(Reader reader, ulong position)
         {
             _position = position;
             _reader = reader;

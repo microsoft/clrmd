@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     public class ElfCoreFile
     {
         private readonly Reader _reader;
-        private ImmutableDictionary<long, ElfLoadedImage>? _loadedImages;
+        private ImmutableDictionary<ulong, ElfLoadedImage>? _loadedImages;
         private readonly Dictionary<ulong, ulong> _auxvEntries = new();
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// <summary>
         /// A mapping of all loaded images in the process.  The key is the base address that the module is loaded at.
         /// </summary>
-        public ImmutableDictionary<long, ElfLoadedImage> LoadedImages => _loadedImages ??= LoadFileTable();
+        public ImmutableDictionary<ulong, ElfLoadedImage> LoadedImages => _loadedImages ??= LoadFileTable();
 
         public ElfCoreFile(Stream stream)
         {
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// <param name="address">An address in the target program's virtual address space.</param>
         /// <param name="buffer">The buffer to fill.</param>
         /// <returns>The number of bytes written into the buffer.</returns>
-        public int ReadMemory(long address, Span<byte> buffer)
+        public int ReadMemory(ulong address, Span<byte> buffer)
         {
             _virtualAddressSpace ??= new ElfVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
             return _virtualAddressSpace.Read(address, buffer);
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (auxvNote is null)
                 throw new BadImageFormatException($"No auxv entries in coredump");
 
-            long position = 0;
+            ulong position = 0;
             while (true)
             {
                 ulong type;
@@ -129,11 +129,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        private ImmutableDictionary<long, ElfLoadedImage> LoadFileTable()
+        private ImmutableDictionary<ulong, ElfLoadedImage> LoadFileTable()
         {
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
-            long position = 0;
+            ulong position = 0;
             ulong entryCount = 0;
             if (ElfFile.Header.Is64Bit)
             {

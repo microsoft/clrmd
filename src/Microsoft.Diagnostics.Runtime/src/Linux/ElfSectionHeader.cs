@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         public ElfSectionHeaderType Type { get; }
 
-        public int NameIndex { get; }
+        public uint NameIndex { get; }
 
         public ulong VirtualAddress { get; }
 
@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ulong FileSize { get; }
 
-        public ElfSectionHeader(Reader reader, bool is64bit, long headerPositon)
+        public ElfSectionHeader(Reader reader, bool is64bit, ulong headerPositon)
         {
             if (is64bit)
             {

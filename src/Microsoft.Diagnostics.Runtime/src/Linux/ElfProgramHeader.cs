@@ -21,22 +21,22 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// <summary>
         /// The VirtualAddress of this header.
         /// </summary>
-        public long VirtualAddress { get; }
+        public ulong VirtualAddress { get; }
 
         /// <summary>
         /// The size of this header.
         /// </summary>
-        public long VirtualSize { get; }
+        public ulong VirtualSize { get; }
 
         /// <summary>
         /// The offset of this header within the file.
         /// </summary>
-        public long FileOffset { get; }
+        public ulong FileOffset { get; }
 
         /// <summary>
         /// The size of this header within the file.
         /// </summary>
-        public long FileSize { get; }
+        public ulong FileSize { get; }
 
         /// <summary>
         /// Whether this section of memory is executable.
@@ -48,17 +48,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// </summary>
         public bool IsWritable => (_attributes & ElfProgramHeaderAttributes.Writable) != 0;
 
-        internal ElfProgramHeader(Reader reader, bool is64bit, long headerPositon, long loadBias, bool isVirtual = false)
+        internal ElfProgramHeader(Reader reader, bool is64bit, ulong headerPositon, long loadBias, bool isVirtual = false)
         {
             if (is64bit)
             {
                 var header = reader.Read<ElfProgramHeader64>(headerPositon);
                 _attributes = (ElfProgramHeaderAttributes)header.Flags;
                 Type = header.Type;
-                VirtualAddress = unchecked((long)header.VirtualAddress);
-                VirtualSize = unchecked((long)header.VirtualSize);
-                FileOffset = unchecked((long)header.FileOffset);
-                FileSize = unchecked((long)header.FileSize);
+                VirtualAddress = header.VirtualAddress;
+                VirtualSize = header.VirtualSize;
+                FileOffset = header.FileOffset;
+                FileSize = header.FileSize;
             }
             else
             {
@@ -72,9 +72,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
 
             if (isVirtual)
-                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", loadBias + VirtualAddress, VirtualSize);
+            {
+                ulong offset = (loadBias < 0) ? (ulong)((long)VirtualAddress + loadBias) : VirtualAddress + (ulong)loadBias;
+                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", offset, VirtualSize);
+            }
             else
-                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", loadBias + FileOffset, FileSize);
+            {
+                ulong offset = (loadBias < 0) ? (ulong)((long)FileOffset + loadBias) : FileOffset + (ulong)loadBias;
+                AddressSpace = new RelativeAddressSpace(reader.DataSource, "ProgramHeader", offset, FileSize);
+            }
         }
     }
 }

@@ -10,11 +10,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     {
         private readonly Reader _reader;
 
-        public ElfStringTable(Reader reader, long address, long size)
+        public ElfStringTable(Reader reader, ulong address, ulong size)
         {
             _reader = new Reader(new RelativeAddressSpace(reader.DataSource, "StringTable", address, size));
         }
 
-        public string GetStringAtIndex(int index) => _reader.ReadNullTerminatedAscii(index);
+        public string GetStringAtIndex(uint index) => _reader.ReadNullTerminatedAscii(index);
     }
 }

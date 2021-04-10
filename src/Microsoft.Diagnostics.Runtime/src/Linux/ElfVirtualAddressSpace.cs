@@ -24,9 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _addressSpace = addressSpace;
         }
 
-        public long Length { get; }
+        public ulong Length { get; }
 
-        public int Read(long address, Span<byte> buffer)
+        public int Read(ulong address, Span<byte> buffer)
         {
             if (address == 0 || buffer.Length == 0)
                 return 0;
@@ -39,8 +39,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             for (; i < _segments.Length; i++)
             {
                 ElfProgramHeader segment = _segments[i];
-                long virtualAddress = segment.VirtualAddress;
-                long virtualSize = segment.VirtualSize;
+                ulong virtualAddress = segment.VirtualAddress;
+                ulong virtualSize = segment.VirtualSize;
 
                 if (virtualAddress > address)
                     break;
@@ -48,8 +48,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (address >= virtualAddress + virtualSize)
                     continue;
 
-                long offset = address - virtualAddress;
-                int toRead = (int)Math.Min(buffer.Length - bytesRead, virtualSize - offset);
+                ulong offset = address - virtualAddress;
+                int toRead = Math.Min(buffer.Length - bytesRead, (int)(virtualSize - offset));
 
                 Span<byte> slice = buffer.Slice(bytesRead, toRead);
                 int read = segment.AddressSpace.Read(offset, slice);
@@ -60,13 +60,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 if (bytesRead == buffer.Length)
                     break;
 
-                address += read;
+                address += (uint)read;
             }
 
             return bytesRead;
         }
 
-        private int GetFirstSegmentContaining(long address)
+        private int GetFirstSegmentContaining(ulong address)
         {
             int lower = 0;
             int upper = _segments.Length - 1;
@@ -75,8 +75,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 int mid = (lower + upper) >> 1;
                 ElfProgramHeader segment = _segments[mid];
-                long virtualAddress = segment.VirtualAddress;
-                long virtualSize = segment.VirtualSize;
+                ulong virtualAddress = segment.VirtualAddress;
+                ulong virtualSize = segment.VirtualSize;
 
                 if (virtualAddress <= address && address < virtualAddress + virtualSize)
                 {

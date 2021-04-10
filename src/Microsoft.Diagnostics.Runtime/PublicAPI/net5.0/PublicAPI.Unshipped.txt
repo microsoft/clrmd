@@ -1009,7 +1009,7 @@ Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.ElfFile.get -> Microsoft.Diagnos
 Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.EnumeratePRStatus() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus!>!
 Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.GetAuxvValue(Microsoft.Diagnostics.Runtime.Linux.ElfAuxvType type) -> ulong
 Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.LoadedImages.get -> System.Collections.Immutable.ImmutableDictionary<ulong, Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage!>!
-Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.ReadMemory(long address, System.Span<byte> buffer) -> int
+Microsoft.Diagnostics.Runtime.Linux.ElfCoreFile.ReadMemory(ulong address, System.Span<byte> buffer) -> int
 Microsoft.Diagnostics.Runtime.Linux.ElfFile
 Microsoft.Diagnostics.Runtime.Linux.ElfFile.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 Microsoft.Diagnostics.Runtime.Linux.ElfFile.Header.get -> Microsoft.Diagnostics.Runtime.Linux.IElfHeader!
@@ -1022,10 +1022,10 @@ Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType.Relocatable = 1 -> Microsoft.D
 Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType.Shared = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
 Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage
 Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.AsStream() -> System.IO.Stream!
-Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.BaseAddress.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.BaseAddress.get -> ulong
 Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.FileName.get -> string!
 Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.Open() -> Microsoft.Diagnostics.Runtime.Linux.ElfFile?
-Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.Size.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfLoadedImage.Size.get -> ulong
 Microsoft.Diagnostics.Runtime.Linux.ElfMachine
 Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_386 = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
 Microsoft.Diagnostics.Runtime.Linux.ElfMachine.EM_AARCH64 = 183 -> Microsoft.Diagnostics.Runtime.Linux.ElfMachine
@@ -1063,13 +1063,13 @@ Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.PrpsInfo = 3 -> Microsoft.Diagno
 Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.PrpsStatus = 1 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
 Microsoft.Diagnostics.Runtime.Linux.ElfNoteType.TASKSTRUCT = 4 -> Microsoft.Diagnostics.Runtime.Linux.ElfNoteType
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader
-Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.FileOffset.get -> long
-Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.FileSize.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.FileOffset.get -> ulong
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.FileSize.get -> ulong
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.IsExecutable.get -> bool
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.IsWritable.get -> bool
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.Type.get -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.VirtualAddress.get -> long
-Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.VirtualSize.get -> long
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.VirtualAddress.get -> ulong
+Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeader.VirtualSize.get -> ulong
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Dynamic = 2 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
 Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType.Interp = 3 -> Microsoft.Diagnostics.Runtime.Linux.ElfProgramHeaderType
@@ -1084,10 +1084,10 @@ Microsoft.Diagnostics.Runtime.Linux.IElfHeader.Is64Bit.get -> bool
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.IsValid.get -> bool
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderCount.get -> ushort
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderEntrySize.get -> ushort
-Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderOffset.get -> long
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.ProgramHeaderOffset.get -> ulong
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderCount.get -> ushort
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderEntrySize.get -> ushort
-Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderOffset.get -> long
+Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderOffset.get -> ulong
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.SectionHeaderStringIndex.get -> ushort
 Microsoft.Diagnostics.Runtime.Linux.IElfHeader.Type.get -> Microsoft.Diagnostics.Runtime.Linux.ElfHeaderType
 Microsoft.Diagnostics.Runtime.Linux.IElfPRStatus

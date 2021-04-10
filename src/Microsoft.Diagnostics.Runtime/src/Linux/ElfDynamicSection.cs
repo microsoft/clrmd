@@ -8,9 +8,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 {
     internal class ElfDynamicSection
     {
-        public ElfDynamicSection(Reader reader, bool is64Bit, long address, long size)
+        public ElfDynamicSection(Reader reader, bool is64Bit, ulong address, ulong size)
         {
-            long endAddress = address + size;
+            ulong endAddress = address + size;
             while (address < endAddress)
             {
                 ElfDynamicEntryTag tag;
@@ -33,19 +33,19 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 }
                 else if (tag == ElfDynamicEntryTag.GnuHash)
                 {
-                    GnuHashTableVA = (long)ptr;
+                    GnuHashTableVA = ptr;
                 }
                 else if (tag == ElfDynamicEntryTag.StrTab)
                 {
-                    StringTableVA = (long)ptr;
+                    StringTableVA = ptr;
                 }
                 else if (tag == ElfDynamicEntryTag.SymTab)
                 {
-                    SymbolTableVA = (long)ptr;
+                    SymbolTableVA = ptr;
                 }
                 else if (tag == ElfDynamicEntryTag.StrSz)
                 {
-                    StringTableSize = (long)ptr;
+                    StringTableSize = ptr;
                 }
             }
 
@@ -65,17 +65,17 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             GnuHash = new ElfSymbolGnuHash(reader, is64Bit, GnuHashTableVA);
         }
 
-        public long GnuHashTableVA { get; }
+        public ulong GnuHashTableVA { get; }
 
         public ElfSymbolGnuHash GnuHash { get; }
 
-        public long StringTableVA { get; }
+        public ulong StringTableVA { get; }
 
-        public long StringTableSize { get; }
+        public ulong StringTableSize { get; }
 
         public ElfStringTable StringTable { get; }
 
-        public long SymbolTableVA { get; }
+        public ulong SymbolTableVA { get; }
 
         public ElfSymbolTable SymbolTable {get; }
 
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return false;
             }
 
-            foreach (int possibleLocation in GnuHash.GetPossibleSymbolIndex(symbolName))
+            foreach (uint possibleLocation in GnuHash.GetPossibleSymbolIndex(symbolName))
             {
                 ElfSymbol s = SymbolTable.GetSymbol(possibleLocation);
                 if(s.Name == symbolName)

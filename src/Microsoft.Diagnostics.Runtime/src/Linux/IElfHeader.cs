@@ -32,12 +32,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         /// <summary>
         /// The offset of the program header.
         /// </summary>
-        long ProgramHeaderOffset { get; }
+        ulong ProgramHeaderOffset { get; }
 
         /// <summary>
         /// The offset of the section header.
         /// </summary>
-        long SectionHeaderOffset { get; }
+        ulong SectionHeaderOffset { get; }
 
         /// <summary>
         /// The size of program headers.

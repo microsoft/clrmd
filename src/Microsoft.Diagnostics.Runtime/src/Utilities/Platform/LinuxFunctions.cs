@@ -64,12 +64,12 @@ namespace Microsoft.Diagnostics.Runtime
             ElfFile file = new ElfFile(streamReader);
             IElfHeader header = file.Header;
 
-            ElfSectionHeader headerStringHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + header.SectionHeaderStringIndex * header.SectionHeaderEntrySize);
-            long headerStringOffset = (long)headerStringHeader.FileOffset;
+            ElfSectionHeader headerStringHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + (ulong)header.SectionHeaderStringIndex * header.SectionHeaderEntrySize);
+            ulong headerStringOffset = headerStringHeader.FileOffset;
 
-            long dataOffset = 0;
-            long dataSize = 0;
-            for (int i = 0; i < header.SectionHeaderCount; i++)
+            ulong dataOffset = 0;
+            ulong dataSize = 0;
+            for (uint i = 0; i < header.SectionHeaderCount; i++)
             {
                 if (i == header.SectionHeaderStringIndex)
                 {
@@ -82,8 +82,8 @@ namespace Microsoft.Diagnostics.Runtime
                     string sectionName = streamReader.ReadNullTerminatedAscii(headerStringOffset + sectionHeader.NameIndex * sizeof(byte));
                     if (sectionName == ".data")
                     {
-                        dataOffset = (long)sectionHeader.FileOffset;
-                        dataSize = (long)sectionHeader.FileSize;
+                        dataOffset = sectionHeader.FileOffset;
+                        dataSize = sectionHeader.FileSize;
                         break;
                     }
                 }
@@ -93,8 +93,8 @@ namespace Microsoft.Diagnostics.Runtime
             DebugOnly.Assert(dataSize != 0);
 
             Span<byte> buffer = stackalloc byte[s_versionLength];
-            long address = dataOffset;
-            long endAddress = address + dataSize;
+            ulong address = dataOffset;
+            ulong endAddress = address + dataSize;
 
             Span<byte> bytes = stackalloc byte[1];
             Span<char> chars = stackalloc char[1];
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
                 }
 
-                address += s_versionLength;
+                address += (uint)s_versionLength;
 
                 // TODO:  This should be cleaned up to not read byte by byte in the future.  Leaving it here
                 // until we decide whether to rewrite the Linux coredumpreader or not.

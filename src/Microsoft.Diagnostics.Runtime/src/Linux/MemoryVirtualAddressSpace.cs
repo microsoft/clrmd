@@ -15,13 +15,13 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _dataReader = dataReader;
         }
 
-        public long Length => throw new NotImplementedException();
+        public ulong Length => throw new NotImplementedException();
 
         public string Name => nameof(MemoryVirtualAddressSpace);
 
-        public int Read(long position, Span<byte> buffer)
+        public int Read(ulong position, Span<byte> buffer)
         {
-            return _dataReader.Read((ulong)position, buffer);
+            return _dataReader.Read(position, buffer);
         }
     }
 }

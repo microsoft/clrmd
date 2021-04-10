@@ -10,11 +10,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
     internal class ReaderStream : Stream
     {
         private readonly Reader _reader;
-        private readonly long _baseAddress;
-        private readonly long _length;
+        private readonly ulong _baseAddress;
+        private readonly ulong _length;
         private long _position;
 
-        public ReaderStream(long baseAddress, long length, Reader reader)
+        public ReaderStream(ulong baseAddress, ulong length, Reader reader)
         {
             _reader = reader;
             _length = length;
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public override bool CanWrite => false;
 
-        public override long Length => _length;
+        public override long Length => (long)_length;
 
         public override long Position { get => _position; set => _position = value; }
 
@@ -40,7 +40,8 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (offset != 0)
                 throw new NotImplementedException();
 
-            int read = _reader.ReadBytes(_baseAddress + _position, new Span<byte>(buffer, 0, count));
+            ulong readOffset = (_position < 0) ? (ulong)((long)_baseAddress + _position) : _baseAddress + (ulong)_position;
+            int read = _reader.ReadBytes(readOffset, new Span<byte>(buffer, 0, count));
             DebugOnly.Assert(read >= 0);
             _position += read;
 

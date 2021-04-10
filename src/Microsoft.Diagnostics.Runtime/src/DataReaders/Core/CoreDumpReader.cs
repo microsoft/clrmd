@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ElfFile? GetElfFile(ulong baseAddress)
         {
-            return _core.LoadedImages.TryGetValue((long)baseAddress, out ElfLoadedImage? image) ? image?.Open() : null;
+            return _core.LoadedImages.TryGetValue(baseAddress, out ElfLoadedImage? image) ? image?.Open() : null;
         }
 
         private PEImage? GetPEImage(ulong baseAddress)
@@ -210,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
-            return address > long.MaxValue ? 0 : _core.ReadMemory((long)address, buffer);
+            return address > long.MaxValue ? 0 : _core.ReadMemory(address, buffer);
         }
 
         private Dictionary<uint, IElfPRStatus> LoadThreads()
