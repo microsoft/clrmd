@@ -1003,6 +1003,9 @@ Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetAssemblyLoadContext
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetLoaderAllocatorHandle(ulong mt) -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData?
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetTypeName(ulong mt, out string? name) -> bool
+Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
+Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType.Base = 7 -> Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
+Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType.Null = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(System.IO.Stream! stream) -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfFile.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfFile!
