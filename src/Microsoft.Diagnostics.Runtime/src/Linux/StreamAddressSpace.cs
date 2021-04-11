@@ -9,6 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class StreamAddressSpace : IAddressSpace
     {
+        private readonly object _sync = new();
         private readonly Stream _stream;
 
         public StreamAddressSpace(Stream stream)
@@ -21,8 +22,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int Read(ulong position, Span<byte> buffer)
         {
-            _stream.Seek((long)position, SeekOrigin.Begin);
-            return _stream.Read(buffer);
+            lock (_sync)
+            {
+                _stream.Seek((long)position, SeekOrigin.Begin);
+                return _stream.Read(buffer);
+            }
         }
     }
 }
