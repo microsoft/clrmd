@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 throw new InvalidDataException("ELF dump's hash bucket count or symbol offset invalid");
             }
 
-            uint sizeTSize = is64Bit ? 8 : 4;
+            uint sizeTSize = is64Bit ? 8u : 4u;
             address += sizeTSize * BloomSize;
 
             Buckets = new uint[BucketCount];

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _reader = reader;
             _address = address;
             _is64Bit = is64Bit;
-            _symSize = is64Bit ? 24 : 16;
+            _symSize = is64Bit ? 24u : 16u;
             _stringTable = stringTable;
         }
 
