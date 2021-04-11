@@ -19,46 +19,46 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             _reader = reader;
 
-            BucketCount = reader.Read<uint>(ref address);
-            SymbolOffset = reader.Read<uint>(ref address);
-            BloomSize = reader.Read<uint>(ref address);
-            BloomShift = reader.Read<uint>(ref address);
+            BucketCount = reader.Read<int>(ref address);
+            SymbolOffset = reader.Read<int>(ref address);
+            BloomSize = reader.Read<int>(ref address);
+            BloomShift = reader.Read<int>(ref address);
 
             if (BucketCount <= 0 || SymbolOffset == 0)
             {
                 throw new InvalidDataException("ELF dump's hash bucket count or symbol offset invalid");
             }
 
-            uint sizeTSize = is64Bit ? 8u : 4u;
-            address += sizeTSize * BloomSize;
+            int sizeTSize = is64Bit ? 8 : 4;
+            address += (ulong)((long)address + (sizeTSize * BloomSize));
 
-            Buckets = new uint[BucketCount];
+            Buckets = new int[BucketCount];
             byte[] buffer = new byte[BucketCount * Marshal.SizeOf<int>()];
             if (reader.ReadBytes(address, new Span<byte>(buffer)) != buffer.Length)
                 throw new InvalidDataException("Error reading ELF dump's bucket array");
 
             for (int i = 0; i < BucketCount; i++)
-                Buckets[i] = BitConverter.ToUInt32(buffer, i * Marshal.SizeOf<int>());
+                Buckets[i] = BitConverter.ToInt32(buffer, i * Marshal.SizeOf<int>());
 
-            _chainsAddress = address + (BucketCount * (uint)Marshal.SizeOf<int>());
+            _chainsAddress = address + (ulong)(BucketCount * (uint)Marshal.SizeOf<int>());
         }
 
-        public uint BucketCount { get; }
+        public int BucketCount { get; }
 
-        public uint SymbolOffset { get; }
+        public int SymbolOffset { get; }
 
-        public uint BloomSize { get; }
+        public int BloomSize { get; }
 
-        public uint BloomShift { get; }
+        public int BloomShift { get; }
 
-        public uint[] Buckets { get; }
+        public int[] Buckets { get; }
 
-        public IEnumerable<uint> GetPossibleSymbolIndex(string symbolName)
+        public IEnumerable<int> GetPossibleSymbolIndex(string symbolName)
         {
             // This implementation completely ignores the bloom filter. The results should still be correct, but may
             // be slower to determine that a missing symbol isn't in the table.
             uint hash = Hash(symbolName);
-            uint i = Buckets[hash % BucketCount] - SymbolOffset;
+            int i = Buckets[hash % BucketCount] - SymbolOffset;
             for (;; i++)
             {
                 int chainVal = GetChain(i);
@@ -84,9 +84,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return h;
         }
 
-        private int GetChain(uint index)
+        private int GetChain(int index)
         {
-            return _reader.Read<int>(_chainsAddress + (index * 4));
+            return _reader.Read<int>(_chainsAddress + (ulong)(index * 4));
         }
     }
 }
