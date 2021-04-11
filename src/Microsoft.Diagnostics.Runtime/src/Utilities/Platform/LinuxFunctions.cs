@@ -6,7 +6,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {

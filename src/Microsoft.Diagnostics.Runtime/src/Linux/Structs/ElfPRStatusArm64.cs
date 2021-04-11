@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct ElfPRStatusArm64 : IElfPRStatus

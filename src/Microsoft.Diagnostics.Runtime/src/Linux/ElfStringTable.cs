@@ -4,7 +4,7 @@
 
 using System.Drawing;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class ElfStringTable
     {

@@ -5,7 +5,7 @@
 using System.Collections.Immutable;
 using System.IO;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A helper class to read ELF files.

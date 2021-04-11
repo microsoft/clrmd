@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// An abstraction of the ELF PRStatus view.

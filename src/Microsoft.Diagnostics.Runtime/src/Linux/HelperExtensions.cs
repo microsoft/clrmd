@@ -4,7 +4,7 @@
 
 using System.IO;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal static class HelperExtensions
     {

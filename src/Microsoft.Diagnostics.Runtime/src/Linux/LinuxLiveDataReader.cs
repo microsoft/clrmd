@@ -14,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A data reader that targets a Linux process.

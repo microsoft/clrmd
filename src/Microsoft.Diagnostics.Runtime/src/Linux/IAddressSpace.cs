@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal interface IAddressSpace
     {

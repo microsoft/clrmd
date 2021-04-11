@@ -6,7 +6,7 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal sealed class ElfVirtualAddressSpace : IAddressSpace
     {

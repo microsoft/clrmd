@@ -8,7 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class ElfSymbolGnuHash
     {

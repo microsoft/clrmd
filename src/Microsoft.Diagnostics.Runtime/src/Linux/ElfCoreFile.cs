@@ -10,7 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A helper class to read linux coredumps.
