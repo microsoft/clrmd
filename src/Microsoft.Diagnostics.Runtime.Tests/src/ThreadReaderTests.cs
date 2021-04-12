@@ -4,8 +4,11 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Xunit;
@@ -69,6 +72,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             uint mainThreadId = runtime.GetMainThread().OSThreadId;
             Assert.Equal(mainThreadId, threadReader.EnumerateOSThreadIds().First());
+        }
+
+        [Fact]
+        public void ElfCoreSymbolTests()
+        {
+            ElfCoreFile dump = new ElfCoreFile(File.OpenRead(@"D:\linux_core\GCRoot_wks.dmp"));
+            ElfLoadedImage image = dump.LoadedImages.Values.FirstOrDefault((image) => image.Path.Contains("libcoreclr.so"));
+            Assert.NotNull(image);
+
+            ElfFile file = image.Open();
+            Assert.NotNull(file);
+
+            Assert.True(file.DynamicSection.TryLookupSymbol("g_dacTable", out ElfSymbol symbol));
+            Assert.NotEqual(0, symbol.Value);
         }
     }
 }

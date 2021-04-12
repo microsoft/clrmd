@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
             using FileStream stream = File.OpenRead(dll);
             StreamAddressSpace streamAddressSpace = new StreamAddressSpace(stream);
             Reader streamReader = new Reader(streamAddressSpace);
-            ElfFile file = new ElfFile(streamReader);
+            using ElfFile file = new ElfFile(streamReader);
             IElfHeader header = file.Header;
 
             ElfSectionHeader headerStringHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + (ulong)header.SectionHeaderStringIndex * header.SectionHeaderEntrySize);
