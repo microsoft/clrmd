@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -15,7 +16,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly Reader _reader;
         private readonly ulong _chainsAddress;
 
-        public ElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address)
+        internal static ElfSymbolGnuHash? TryGetElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address)
+        {
+            try
+            {
+                return new ElfSymbolGnuHash(reader, is64Bit, address);
+            }
+            catch (IOException)
+            {
+            }
+            catch (InvalidDataException)
+            {
+            }
+
+            return null;
+        }
+
+        private ElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address)
         {
             _reader = reader;
 
@@ -25,12 +42,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             BloomShift = reader.Read<int>(ref address);
 
             if (BucketCount <= 0 || SymbolOffset == 0)
-            {
-                throw new InvalidDataException("ELF dump's hash bucket count or symbol offset invalid");
-            }
+                throw new InvalidDataException("ELF file has a hash bucket count or symbol offset invalid");
 
-            int sizeTSize = is64Bit ? 8 : 4;
-            address += (ulong)((long)address + (sizeTSize * BloomSize));
+            if (BloomSize < 0)
+                throw new InvalidDataException("ELF file has a negative BloomSize.");
+
+            long sizeTSize = is64Bit ? 8 : 4;
+            address += (ulong)(sizeTSize * BloomSize);
 
             Buckets = new int[BucketCount];
             byte[] buffer = new byte[BucketCount * Marshal.SizeOf<int>()];

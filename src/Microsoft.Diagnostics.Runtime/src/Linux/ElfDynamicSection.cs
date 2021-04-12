@@ -62,12 +62,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // In a loaded image the loader does fixups so StringTableVA and StringTableSize now store final VAs
             StringTable = new ElfStringTable(reader, StringTableVA, StringTableSize);
             SymbolTable = new ElfSymbolTable(reader, is64Bit, SymbolTableVA, StringTable);
-            GnuHash = new ElfSymbolGnuHash(reader, is64Bit, GnuHashTableVA);
+            GnuHash = ElfSymbolGnuHash.TryGetElfSymbolGnuHash(reader, is64Bit, GnuHashTableVA);
         }
 
         public ulong GnuHashTableVA { get; }
 
-        public ElfSymbolGnuHash GnuHash { get; }
+        public ElfSymbolGnuHash? GnuHash { get; }
 
         public ulong StringTableVA { get; }
 
