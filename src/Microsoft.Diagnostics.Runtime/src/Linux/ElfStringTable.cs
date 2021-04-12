@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Drawing;
+using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -16,5 +18,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         public string GetStringAtIndex(uint index) => _reader.ReadNullTerminatedAscii(index);
+
+        internal static ElfStringTable? Create(Reader reader, ulong stringTableVA, ulong stringTableSize)
+        {
+            if (stringTableVA == 0 || stringTableSize == 0)
+                return null;
+
+            try
+            {
+                return new ElfStringTable(reader, stringTableVA, stringTableSize);
+            }
+            catch (IOException)
+            {
+            }
+            catch (InvalidDataException)
+            {
+            }
+
+            return null;
+        }
     }
 }

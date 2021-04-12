@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+using System.IO;
+
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class ElfSymbolTable
@@ -39,6 +42,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ElfSymbolType t = (ElfSymbolType)(s.Info & 0xF);
                 return new ElfSymbol(name, b, t, (long)s.Value, s.Size);
             }
+        }
+
+        internal static ElfSymbolTable? Create(Reader reader, bool is64Bit, ulong symbolTableVA, ElfStringTable? stringTable)
+        {
+            if (symbolTableVA == 0 || stringTable is null)
+                return null;
+
+            try
+            {
+                return new ElfSymbolTable(reader, is64Bit, symbolTableVA, stringTable);
+            }
+            catch (IOException)
+            {
+            }
+            catch (InvalidDataException)
+            {
+            }
+
+            return null;
         }
     }
 }

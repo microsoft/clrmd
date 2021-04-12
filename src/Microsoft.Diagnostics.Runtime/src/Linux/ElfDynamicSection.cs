@@ -49,20 +49,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
             }
 
-            if (StringTableVA == 0 || StringTableSize == 0)
-            {
-                throw new InvalidDataException("The ELF dump string table is invalid");
-            }
-
-            if (SymbolTableVA == 0 || GnuHashTableVA == 0)
-            {
-                throw new InvalidDataException("The ELF dump symbol or hash table is invalid");
-            }
-
-            // In a loaded image the loader does fixups so StringTableVA and StringTableSize now store final VAs
-            StringTable = new ElfStringTable(reader, StringTableVA, StringTableSize);
-            SymbolTable = new ElfSymbolTable(reader, is64Bit, SymbolTableVA, StringTable);
-            GnuHash = ElfSymbolGnuHash.TryGetElfSymbolGnuHash(reader, is64Bit, GnuHashTableVA);
+            StringTable = ElfStringTable.Create(reader, StringTableVA, StringTableSize);
+            SymbolTable = ElfSymbolTable.Create(reader, is64Bit, SymbolTableVA, StringTable);
+            GnuHash = ElfSymbolGnuHash.Create(reader, is64Bit, GnuHashTableVA);
         }
 
         public ulong GnuHashTableVA { get; }
@@ -73,11 +62,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public ulong StringTableSize { get; }
 
-        public ElfStringTable StringTable { get; }
+        public ElfStringTable? StringTable { get; }
 
         public ulong SymbolTableVA { get; }
 
-        public ElfSymbolTable SymbolTable {get; }
+        public ElfSymbolTable? SymbolTable {get; }
 
         public bool TryLookupSymbol(string symbolName, out ElfSymbol? symbol)
         {

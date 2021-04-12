@@ -76,12 +76,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         if (header.Type == ElfProgramHeaderType.Dynamic)
                         {
-                            _dynamicSection = new ElfDynamicSection(
-                                Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize);
+                            _dynamicSection = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize);
                             break;
                         }
                     }
                 }
+
                 return _dynamicSection;
             }
         }

@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly Reader _reader;
         private readonly ulong _chainsAddress;
 
-        internal static ElfSymbolGnuHash? TryGetElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address)
+        internal static ElfSymbolGnuHash? Create(Reader reader, bool is64Bit, ulong address)
         {
             try
             {
