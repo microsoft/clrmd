@@ -5,10 +5,11 @@
 using System;
 using System.IO;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class StreamAddressSpace : IAddressSpace
     {
+        private readonly object _sync = new();
         private readonly Stream _stream;
 
         public StreamAddressSpace(Stream stream)
@@ -16,13 +17,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             _stream = stream;
         }
 
-        public long Length => _stream.Length;
+        public ulong Length => (uint)_stream.Length;
         public string Name => _stream.GetFilename() ?? _stream.GetType().Name;
 
-        public int Read(long position, Span<byte> buffer)
+        public int Read(ulong position, Span<byte> buffer)
         {
-            _stream.Seek(position, SeekOrigin.Begin);
-            return _stream.Read(buffer);
+            lock (_sync)
+            {
+                _stream.Seek((long)position, SeekOrigin.Begin);
+                return _stream.Read(buffer);
+            }
         }
     }
 }

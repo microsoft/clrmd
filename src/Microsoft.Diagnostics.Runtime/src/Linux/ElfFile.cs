@@ -2,27 +2,37 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfFile
+    /// <summary>
+    /// A helper class to read ELF files.
+    /// </summary>
+    public sealed class ElfFile : IDisposable
     {
-        private readonly long _position;
+        private readonly ulong _position;
         private readonly bool _virtual;
-
+        private readonly Stream? _stream;
+        private readonly bool _leaveOpen;
         private Reader? _virtualAddressReader;
         private ImmutableArray<ElfNote> _notes;
         private ImmutableArray<ElfProgramHeader> _programHeaders;
         private ImmutableArray<byte> _buildId;
         private ElfDynamicSection? _dynamicSection;
 
-        public Reader Reader { get; }
+        internal Reader Reader { get; }
 
+        /// <summary>
+        /// The ElfHeader of this file.
+        /// </summary>
         public IElfHeader Header { get; }
 
+        /// <summary>
+        /// The list of ElfNotes for this file.
+        /// </summary>
         public ImmutableArray<ElfNote> Notes
         {
             get
@@ -32,6 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
+        /// <summary>
+        /// The list of ProgramHeaders for this file.
+        /// </summary>
         public ImmutableArray<ElfProgramHeader> ProgramHeaders
         {
             get
@@ -41,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public Reader VirtualAddressReader
+        internal Reader VirtualAddressReader
         {
             get
             {
@@ -50,26 +63,32 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public ElfDynamicSection DynamicSection
+        /// <summary>
+        /// The ELFDynamicSection for this file, if it exists.
+        /// </summary>
+        internal ElfDynamicSection? DynamicSection
         {
             get
             {
-                if (_dynamicSection == null)
+                if (_dynamicSection is null)
                 {
                     foreach (ElfProgramHeader? header in ProgramHeaders)
                     {
                         if (header.Type == ElfProgramHeaderType.Dynamic)
                         {
-                            _dynamicSection = new ElfDynamicSection(
-                                Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize);
+                            _dynamicSection = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize);
                             break;
                         }
                     }
                 }
-                return _dynamicSection ?? throw new InvalidDataException("No dynamic segment found");
+
+                return _dynamicSection;
             }
         }
 
+        /// <summary>
+        /// Returns the build id of this ELF module (or ImmutableArray.Default if it doesn't exist).
+        /// </summary>
         public ImmutableArray<byte> BuildId
         {
             get
@@ -100,7 +119,30 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
-        public ElfFile(Reader reader, long position = 0, bool isVirtual = false)
+        /// <summary>
+        /// Creates an ElfFile from a file on disk.
+        /// </summary>
+        /// <param name="filename">A full path of an elf file on disk.</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf coredump.</exception>
+        public ElfFile(string filename)
+            : this(File.OpenRead(filename))
+        {
+        }
+
+        /// <summary>
+        /// Creates an ElfFile from a file on disk.
+        /// </summary>
+        /// <param name="stream">The Elf stream to read the Elf file from.</param>
+        /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf file.</exception>
+        public ElfFile(Stream stream, bool leaveOpen = false)
+            : this(new Reader(new StreamAddressSpace(stream)))
+        {
+            _stream = stream;
+            _leaveOpen = leaveOpen;
+        }
+
+        internal ElfFile(Reader reader, ulong position = 0, bool isVirtual = false)
         {
             Reader = reader;
             _position = position;
@@ -112,19 +154,19 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ElfHeaderCommon common;
             try
             {
-                common = reader.Read<ElfHeaderCommon>(position);
+                common = reader.Read<ElfHeaderCommon>(_position);
             }
             catch (IOException e)
             {
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.", e);
             }
 
-            Header = common.GetHeader(reader, position)!;
+            Header = common.GetHeader(reader, _position)!;
             if (Header is null)
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
-        internal ElfFile(IElfHeader header, Reader reader, long position = 0, bool isVirtual = false)
+        internal ElfFile(IElfHeader header, Reader reader, ulong position = 0, bool isVirtual = false)
         {
             Reader = reader;
             _position = position;
@@ -153,11 +195,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 if (programHeader.Type == ElfProgramHeaderType.Note)
                 {
-                    Reader reader = new Reader(programHeader.AddressSpace);
-                    long position = 0;
+                    Reader reader = new(programHeader.AddressSpace);
+                    ulong position = 0;
                     while (position < reader.DataSource.Length)
                     {
-                        ElfNote note = new ElfNote(reader, position);
+                        ElfNote note = new(reader, position);
                         notes.Add(note);
 
                         position += note.TotalSize;
@@ -174,15 +216,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                 return;
 
             // Calculate the loadBias. It is usually just the base address except for some executable modules.
-            long loadBias = _position;
+            long loadBias = (long)_position;
             if (loadBias > 0)
             {
-                for (int i = 0; i < Header.ProgramHeaderCount; i++)
+                for (uint i = 0; i < Header.ProgramHeaderCount; i++)
                 {
-                    var header= new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
+                    var header = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
                     if (header.Type == ElfProgramHeaderType.Load && header.FileOffset == 0)
                     {
-                        loadBias -= header.VirtualAddress;
+                        loadBias -= (long)header.VirtualAddress;
                     }
                 }
             }
@@ -191,10 +233,16 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             ImmutableArray<ElfProgramHeader>.Builder programHeaders = ImmutableArray.CreateBuilder<ElfProgramHeader>(Header.ProgramHeaderCount);
             programHeaders.Count = programHeaders.Capacity;
 
-            for (int i = 0; i < programHeaders.Count; i++)
-                programHeaders[i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
+            for (uint i = 0; i < programHeaders.Count; i++)
+                programHeaders[(int)i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
 
             _programHeaders = programHeaders.MoveToImmutable();
+        }
+
+        public void Dispose()
+        {
+            if (!_leaveOpen)
+                _stream?.Dispose();
         }
     }
 }

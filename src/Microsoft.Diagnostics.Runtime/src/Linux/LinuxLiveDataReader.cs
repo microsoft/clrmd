@@ -11,10 +11,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A data reader that targets a Linux process.
@@ -134,11 +133,15 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return (0, 0);
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
+        {
+            using ElfFile? elfFile = GetElfFile(baseAddress);
+            return elfFile?.BuildId ?? ImmutableArray<byte>.Empty;
+        }
 
         public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            ElfFile? file = GetElfFile(baseAddress);
+            using ElfFile? file = GetElfFile(baseAddress);
             if (file is null)
             {
                 version = default;
@@ -155,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
             try
             {
-                return new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+                return new ElfFile(new Reader(memoryAddressSpace), baseAddress);
             }
             catch (InvalidDataException)
             {

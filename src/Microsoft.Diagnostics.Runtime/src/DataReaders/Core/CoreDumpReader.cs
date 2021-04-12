@@ -9,15 +9,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IExportReader
     {
-        private readonly Stream _stream;
-        private readonly bool _leaveOpen;
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
@@ -28,9 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
         public CoredumpReader(string path, Stream stream, bool leaveOpen)
         {
             DisplayName = path ?? throw new ArgumentNullException(nameof(path));
-            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
-            _leaveOpen = leaveOpen;
-            _core = new ElfCoreFile(_stream);
+            _core = new ElfCoreFile(stream ?? throw new ArgumentNullException(nameof(stream)), leaveOpen);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
             (PointerSize, Architecture) = architecture switch
@@ -47,8 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Dispose()
         {
-            if (!_leaveOpen)
-                _stream.Dispose();
+            _core.Dispose();
         }
 
         public int ProcessId
@@ -73,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _modules = new List<ModuleInfo>();
                 foreach (ElfLoadedImage image in _core.LoadedImages.Values)
-                    if ((ulong)image.BaseAddress != interpreter && !image.Path.StartsWith("/dev", StringComparison.Ordinal))
+                    if ((ulong)image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
                         _modules.Add(CreateModuleInfo(image));
             }
 
@@ -82,14 +76,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
-            ElfFile? file = image.Open();
+            using ElfFile? file = image.Open();
 
             int filesize = 0;
             int timestamp = 0;
 
             if (file is null)
             {
-                using Stream stream = image.CreateStream();
+                using Stream stream = image.AsStream();
                 PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
             }
 
@@ -104,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
 #pragma warning disable CA1307 // Specify StringComparison
 
             // This substitution is for unloaded modules for which Linux appends " (deleted)" to the module name.
-            string path = image.Path.Replace(" (deleted)", "");
+            string path = image.FileName.Replace(" (deleted)", "");
 
 #pragma warning restore CA1307 // Specify StringComparison
 
@@ -135,19 +129,20 @@ namespace Microsoft.Diagnostics.Runtime
             Dictionary<uint, IElfPRStatus> threads = LoadThreads();
 
             if (threads.TryGetValue(threadID, out IElfPRStatus? status))
-                return status.CopyContext(contextFlags, context);
+                return status.CopyRegistersAsContext(context);
 
             return false;
         }
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress)
         {
-            return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+            using ElfFile? elfFile = GetElfFile(baseAddress);
+            return elfFile?.BuildId ?? ImmutableArray<byte>.Empty;
         }
 
         public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            ElfFile? file = GetElfFile(baseAddress);
+            using ElfFile? file = GetElfFile(baseAddress);
             if (file is not null)
             {
                 return this.GetVersionInfo(baseAddress, file, out version);
@@ -177,28 +172,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>true if found</returns>
         public bool TryGetSymbolAddress(ulong baseAddress, string name, out ulong offset)
         {
-            ElfFile? elfFile = GetElfFile(baseAddress);
-            if (elfFile is not null)
+            using ElfFile? elfFile = GetElfFile(baseAddress);
+            ElfDynamicSection? dynamicSection = elfFile?.DynamicSection;
+
+            if (dynamicSection is not null && dynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
             {
-                try
-                {
-                    if (elfFile.DynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
-                    {
-                        offset = baseAddress + (ulong)symbol.Value;
-                        return true;
-                    }
-                }
-                catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
-                {
-                }
+                offset = baseAddress + (ulong)symbol.Value;
+                return true;
             }
+
             offset = 0;
             return false;
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)
         {
-            return _core.LoadedImages.TryGetValue((long)baseAddress, out ElfLoadedImage? image) ? image?.Open() : null;
+            return _core.LoadedImages.TryGetValue(baseAddress, out ElfLoadedImage? image) ? image?.Open() : null;
         }
 
         private PEImage? GetPEImage(ulong baseAddress)
@@ -209,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
-            return address > long.MaxValue ? 0 : _core.ReadMemory((long)address, buffer);
+            return address > long.MaxValue ? 0 : _core.ReadMemory(address, buffer);
         }
 
         private Dictionary<uint, IElfPRStatus> LoadThreads()

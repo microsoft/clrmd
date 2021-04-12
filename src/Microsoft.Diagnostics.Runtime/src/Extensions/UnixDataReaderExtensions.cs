@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using Microsoft.Diagnostics.Runtime.Linux;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -14,11 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
-                {
-                    long loadAddress = programHeader.VirtualAddress;
-                    long loadSize = programHeader.VirtualSize;
-                    return GetVersionInfo(dataReader, baseAddress + (ulong)loadAddress, (ulong)loadSize, out version);
-                }
+                    return GetVersionInfo(dataReader, baseAddress + programHeader.VirtualAddress, programHeader.VirtualSize, out version);
             }
 
             version = default;

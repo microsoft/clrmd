@@ -4,7 +4,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct ElfHeaderCommon
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfData Data => (ElfData)_data;
 
-        public IElfHeader? GetHeader(Reader reader, long position)
+        public IElfHeader? GetHeader(Reader reader, ulong position)
         {
             if (IsValid)
             {
