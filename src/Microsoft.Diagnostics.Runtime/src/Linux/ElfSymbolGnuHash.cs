@@ -104,7 +104,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private int GetChain(int index)
         {
-            return _reader.Read<int>(_chainsAddress + (ulong)(index * 4));
+            ulong address = (ulong)((long)_chainsAddress + index * 4);
+            return _reader.Read<int>(address);
         }
     }
 }
