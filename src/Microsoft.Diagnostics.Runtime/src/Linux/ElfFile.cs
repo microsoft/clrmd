@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Immutable;
 using System.IO;
 
@@ -10,11 +11,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A helper class to read ELF files.
     /// </summary>
-    public sealed class ElfFile
+    public sealed class ElfFile : IDisposable
     {
         private readonly ulong _position;
         private readonly bool _virtual;
-
+        private readonly Stream? _stream;
+        private readonly bool _leaveOpen;
         private Reader? _virtualAddressReader;
         private ImmutableArray<ElfNote> _notes;
         private ImmutableArray<ElfProgramHeader> _programHeaders;
@@ -117,6 +119,29 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
+        /// <summary>
+        /// Creates an ElfFile from a file on disk.
+        /// </summary>
+        /// <param name="filename">A full path of an elf file on disk.</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf coredump.</exception>
+        public ElfFile(string filename)
+            : this(File.OpenRead(filename))
+        {
+        }
+
+        /// <summary>
+        /// Creates an ElfFile from a file on disk.
+        /// </summary>
+        /// <param name="stream">The Elf stream to read the Elf file from.</param>
+        /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf file.</exception>
+        public ElfFile(Stream stream, bool leaveOpen = false)
+            : this(new Reader(new StreamAddressSpace(stream)))
+        {
+            _stream = stream;
+            _leaveOpen = leaveOpen;
+        }
+
         internal ElfFile(Reader reader, ulong position = 0, bool isVirtual = false)
         {
             Reader = reader;
@@ -212,6 +237,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 programHeaders[(int)i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
 
             _programHeaders = programHeaders.MoveToImmutable();
+        }
+
+        public void Dispose()
+        {
+            if (!_leaveOpen)
+                _stream?.Dispose();
         }
     }
 }

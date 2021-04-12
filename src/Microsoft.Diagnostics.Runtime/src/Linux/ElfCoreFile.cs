@@ -15,8 +15,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A helper class to read linux coredumps.
     /// </summary>
-    public class ElfCoreFile
+    public sealed class ElfCoreFile : IDisposable
     {
+        private readonly Stream _stream;
+        private readonly bool _leaveOpen;
         private readonly Reader _reader;
         private ImmutableDictionary<ulong, ElfLoadedImage>? _loadedImages;
         private readonly Dictionary<ulong, ulong> _auxvEntries = new();
@@ -63,8 +65,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public ImmutableDictionary<ulong, ElfLoadedImage> LoadedImages => _loadedImages ??= LoadFileTable();
 
-        public ElfCoreFile(Stream stream)
+        /// <summary>
+        /// Creates an ElfCoreFile from a file on disk.
+        /// </summary>
+        /// <param name="coredump">A full path to a coredump on disk.</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf coredump.</exception>
+        public ElfCoreFile(string coredump)
+            : this(File.OpenRead(coredump))
         {
+        }
+
+        /// <summary>
+        /// Creates an ElfCoreFile from a file on disk.
+        /// </summary>
+        /// <param name="stream">The Elf stream to read the coredump from.</param>
+        /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf coredump.</exception>
+        public ElfCoreFile(Stream stream, bool leaveOpen = false)
+        {
+            _stream = stream;
+            _leaveOpen = leaveOpen;
+
             _reader = new Reader(new StreamAddressSpace(stream));
             ElfFile = new ElfFile(_reader);
 
@@ -191,6 +212,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return lookup.Values.ToImmutableDictionary(i => i.BaseAddress);
+        }
+
+        public void Dispose()
+        {
+            if (!_leaveOpen)
+                _stream.Dispose();
         }
     }
 }

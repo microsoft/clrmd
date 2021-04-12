@@ -1014,6 +1014,12 @@ Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.GetAuxvValue(Microsoft.Diagn
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.LoadedImages.get -> System.Collections.Immutable.ImmutableDictionary<ulong, Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage!>!
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ReadMemory(ulong address, System.Span<byte> buffer) -> int
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile
+Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.Dispose() -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(string! coredump) -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Dispose() -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(string! filename) -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Header.get -> Microsoft.Diagnostics.Runtime.Utilities.IElfHeader!
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Notes.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfNote!>

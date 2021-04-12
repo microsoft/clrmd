@@ -15,8 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IExportReader
     {
-        private readonly Stream _stream;
-        private readonly bool _leaveOpen;
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
@@ -27,9 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
         public CoredumpReader(string path, Stream stream, bool leaveOpen)
         {
             DisplayName = path ?? throw new ArgumentNullException(nameof(path));
-            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
-            _leaveOpen = leaveOpen;
-            _core = new ElfCoreFile(_stream);
+            _core = new ElfCoreFile(stream ?? throw new ArgumentNullException(nameof(stream)), leaveOpen);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
             (PointerSize, Architecture) = architecture switch
@@ -46,8 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void Dispose()
         {
-            if (!_leaveOpen)
-                _stream.Dispose();
+            _core.Dispose();
         }
 
         public int ProcessId
@@ -81,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
         {
-            ElfFile? file = image.Open();
+            using ElfFile? file = image.Open();
 
             int filesize = 0;
             int timestamp = 0;
@@ -141,12 +136,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ImmutableArray<byte> GetBuildId(ulong baseAddress)
         {
-            return GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
+            using ElfFile? elfFile = GetElfFile(baseAddress);
+            return elfFile?.BuildId ?? ImmutableArray<byte>.Empty;
         }
 
         public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
         {
-            ElfFile? file = GetElfFile(baseAddress);
+            using ElfFile? file = GetElfFile(baseAddress);
             if (file is not null)
             {
                 return this.GetVersionInfo(baseAddress, file, out version);
@@ -176,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>true if found</returns>
         public bool TryGetSymbolAddress(ulong baseAddress, string name, out ulong offset)
         {
-            ElfFile? elfFile = GetElfFile(baseAddress);
+            using ElfFile? elfFile = GetElfFile(baseAddress);
             if (elfFile is not null)
             {
                 try
