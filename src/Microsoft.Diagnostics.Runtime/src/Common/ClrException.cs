@@ -64,8 +64,14 @@ namespace Microsoft.Diagnostics.Runtime
                     return null;
 
                 ulong address = _helpers.DataReader.ReadPointer(Address + offset);
+                if (address == 0)
+                    return null;
+
                 ClrObject obj = Type.Heap.GetObject(address);
-                return obj.AsString();
+                if (obj.IsValid)
+                    return obj.AsString();
+
+                return null;
             }
         }
 
