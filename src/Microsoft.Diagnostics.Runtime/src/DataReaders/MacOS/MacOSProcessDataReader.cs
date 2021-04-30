@@ -6,14 +6,16 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal sealed class MacOSProcessDataReader : CommonMemoryReader, IDataReader, IDisposable
+    internal sealed class MacOSProcessDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private readonly int _task;
 
@@ -224,6 +226,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             address += (uint)sizeof(T);
             return result;
         }
+
+        public IEnumerable<uint> EnumerateOSThreadIds()
+        {
+            LoadThreads();
+            return _threadActs.Keys.Select(threadID => checked((uint)threadID));
+        }
+
+        public ulong GetThreadTeb(uint _) => 0;
 
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
