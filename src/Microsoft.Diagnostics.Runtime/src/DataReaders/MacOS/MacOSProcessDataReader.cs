@@ -3,10 +3,13 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -15,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private readonly int _task;
 
         private ImmutableArray<MemoryRegion>.Builder _memoryRegions;
+        private readonly Dictionary<ulong, uint> _threadActs = new(); // map of thread id (uint64_t) -> thread (thread_act_t)
 
         private bool _suspended;
         private bool _disposed;
@@ -221,10 +225,62 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return result;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            // TODO
-            return false;
+            LoadThreads();
+            if (!_threadActs.TryGetValue(threadID, out var threadAct))
+                return false;
+
+            int regSize = sizeof(x86_thread_state64_t);
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
+            try
+            {
+                fixed (byte* data = buffer)
+                {
+                    int stateCount = Native.x86_THREAD_STATE64_COUNT;
+                    int kr = Native.thread_get_state(threadAct, Native.x86_THREAD_STATE64, new IntPtr(data), ref stateCount);
+                    if (kr != 0)
+                        return false;
+                }
+
+                Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+            return true;
+        }
+
+        private unsafe void LoadThreads()
+        {
+            if (_threadActs.Count == 0)
+            {
+                uint* threads;
+                uint threadsCount;
+                int kr = Native.task_threads(_task, &threads, out threadsCount);
+                if (kr != 0)
+                    throw new ClrDiagnosticsException($"task_threads failed with status code 0x{kr:x}");
+
+                try
+                {
+                    for (uint i = 0; i < threadsCount; ++i)
+                    {
+                        int threadInfoCount = Native.THREAD_IDENTIFIER_INFO_COUNT;
+                        kr = Native.thread_info(threads[i], Native.THREAD_IDENTIFIER_INFO, out Native.thread_identifier_info identifierInfo, ref threadInfoCount);
+                        if (kr != 0)
+                            continue;
+
+                        _threadActs.Add(identifierInfo.thread_id, threads[i]);
+                    }
+                }
+                finally
+                {
+                    _ = Native.mach_vm_deallocate(_task, (ulong)threads, threadsCount * sizeof(uint));
+                }
+            }
         }
 
         private ImmutableArray<MemoryRegion>.Builder LoadMemoryRegions()
@@ -268,9 +324,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             internal const int PT_DETACH = 11;
 
             internal const int TASK_DYLD_INFO = 17;
+            internal const int THREAD_IDENTIFIER_INFO = 4;
+            internal const int x86_THREAD_STATE64 = 4;
             internal const int VM_REGION_BASIC_INFO_64 = 9;
 
             internal static readonly unsafe int TASK_DYLD_INFO_COUNT = sizeof(task_dyld_info) / sizeof(uint);
+            internal static readonly unsafe int THREAD_IDENTIFIER_INFO_COUNT = sizeof(thread_identifier_info) / sizeof(uint);
+            internal static readonly unsafe int x86_THREAD_STATE64_COUNT = sizeof(x86_thread_state64_t) / sizeof(uint);
             internal static readonly unsafe int VM_REGION_BASIC_INFO_COUNT_64 = sizeof(vm_region_basic_info_64) / sizeof(int);
 
             private const string LibSystem = "libSystem.dylib";
@@ -291,10 +351,22 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             internal static extern int task_info(int target_task, uint flavor, out /*int*/task_dyld_info task_info, ref /*uint*/int task_info_count);
 
             [DllImport(LibSystem)]
+            internal static extern unsafe int task_threads(int target_task, uint** act_list, out uint act_list_count);
+
+            [DllImport(LibSystem)]
+            internal static extern int thread_info(uint target_act, uint flavor, out /*int*/thread_identifier_info thread_info, ref /*uint*/int thread_info_count);
+
+            [DllImport(LibSystem)]
+            internal static extern int thread_get_state(uint target_act, int flavor, /*uint**/IntPtr old_state, ref /*uint*/int old_state_count);
+
+            [DllImport(LibSystem)]
             internal static extern unsafe int vm_read_overwrite(int target_task, /*UIntPtr*/ulong address, /*UIntPtr*/long size, /*UIntPtr*/void* data, out /*UIntPtr*/long data_size);
 
             [DllImport(LibSystem)]
             internal static extern int mach_vm_region(int target_task, ref /*UIntPtr*/ulong address, out /*UIntPtr*/ulong size, int flavor, out /*int*/vm_region_basic_info_64 info, ref /*uint*/int info_count, out int object_name);
+
+            [DllImport(LibSystem)]
+            internal static extern int mach_vm_deallocate(int target_task, /*UIntPtr*/ulong address, /*UIntPtr*/ulong size);
 
             [DllImport(LibSystem)]
             internal static extern int waitpid(int pid, IntPtr status, int options);
@@ -320,6 +392,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 internal readonly ulong all_image_info_addr;
                 internal readonly ulong all_image_info_size;
                 internal readonly int all_image_info_format;
+            }
+
+            internal readonly struct thread_identifier_info
+            {
+                internal readonly ulong thread_id;
+                internal readonly ulong thread_handle;
+                internal readonly ulong dispatch_qaddr;
             }
 
             internal readonly struct vm_region_basic_info_64
