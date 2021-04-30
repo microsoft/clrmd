@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -56,6 +57,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                 _suspended = true;
             }
+
+            Architecture = RuntimeInformation.ProcessArchitecture switch
+            {
+                ProcessArchitecture.X64 => Architecture.Amd64,
+                ProcessArchitecture.Arm64 => Architecture.Arm64,
+                _ => Architecture.Unknown
+            };
         }
 
         ~MacOSProcessDataReader() => Dispose(false);
@@ -66,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public OSPlatform TargetPlatform => OSPlatform.OSX;
 
-        public Architecture Architecture => Architecture.Amd64;
+        public Architecture Architecture { get; }
 
         public int ProcessId { get; }
 
@@ -241,20 +249,37 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (!_threadActs.TryGetValue(threadID, out var threadAct))
                 return false;
 
-            int regSize = sizeof(x86_thread_state64_t);
+            int stateFlavor;
+            int stateCount;
+            int regSize;
+            (stateFlavor, stateCount, regSize) = Architecture switch
+            {
+                Architecture.Amd64 => (Native.x86_THREAD_STATE64, Native.x86_THREAD_STATE64_COUNT, sizeof(x86_thread_state64_t)),
+                Architecture.Arm64 => (Native.ARM_THREAD_STATE64, Native.ARM_THREAD_STATE64_COUNT, sizeof(arm_thread_state64_t)),
+                _ => throw new PlatformNotSupportedException()
+            };
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
             try
             {
                 fixed (byte* data = buffer)
                 {
-                    int stateCount = Native.x86_THREAD_STATE64_COUNT;
-                    int kr = Native.thread_get_state(threadAct, Native.x86_THREAD_STATE64, new IntPtr(data), ref stateCount);
+                    int kr = Native.thread_get_state(threadAct, stateFlavor, new IntPtr(data), ref stateCount);
                     if (kr != 0)
                         return false;
                 }
 
-                Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                switch (Architecture)
+                {
+                    case Architecture.Amd64:
+                        Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case Architecture.Arm64:
+                        Unsafe.As<byte, arm_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    default:
+                        throw new PlatformNotSupportedException();
+                }
             }
             finally
             {
@@ -336,11 +361,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             internal const int TASK_DYLD_INFO = 17;
             internal const int THREAD_IDENTIFIER_INFO = 4;
             internal const int x86_THREAD_STATE64 = 4;
+            internal const int ARM_THREAD_STATE64 = 6;
             internal const int VM_REGION_BASIC_INFO_64 = 9;
 
             internal static readonly unsafe int TASK_DYLD_INFO_COUNT = sizeof(task_dyld_info) / sizeof(uint);
             internal static readonly unsafe int THREAD_IDENTIFIER_INFO_COUNT = sizeof(thread_identifier_info) / sizeof(uint);
             internal static readonly unsafe int x86_THREAD_STATE64_COUNT = sizeof(x86_thread_state64_t) / sizeof(uint);
+            internal static readonly unsafe int ARM_THREAD_STATE64_COUNT = sizeof(arm_thread_state64_t) / sizeof(uint);
             internal static readonly unsafe int VM_REGION_BASIC_INFO_COUNT_64 = sizeof(vm_region_basic_info_64) / sizeof(int);
 
             private const string LibSystem = "libSystem.dylib";
