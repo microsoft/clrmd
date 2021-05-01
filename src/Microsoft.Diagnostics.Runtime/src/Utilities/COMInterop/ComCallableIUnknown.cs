@@ -115,6 +115,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 // Only free memory the first time we reach here.
                 if (_handle.IsAllocated)
                 {
+                    try
+                    {
+                        Destroy();
+                    }
+                    catch
+                    {
+                    }
+
                     foreach (IntPtr ptr in _interfaces.Values)
                     {
                         IntPtr* val = (IntPtr*)ptr;
@@ -132,5 +140,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private int AddRefImpl(IntPtr self) => Interlocked.Increment(ref _refCount);
+
+        protected virtual void Destroy()
+        {
+        }
     }
 }
