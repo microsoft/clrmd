@@ -119,20 +119,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         Destroy();
                     }
-                    catch
+                    finally
                     {
-                    }
+                        foreach (IntPtr ptr in _interfaces.Values)
+                        {
+                            IntPtr* val = (IntPtr*)ptr;
+                            Marshal.FreeHGlobal(*val);
+                            Marshal.FreeHGlobal(ptr);
+                        }
 
-                    foreach (IntPtr ptr in _interfaces.Values)
-                    {
-                        IntPtr* val = (IntPtr*)ptr;
-                        Marshal.FreeHGlobal(*val);
-                        Marshal.FreeHGlobal(ptr);
+                        _handle.Free();
+                        _interfaces.Clear();
+                        _delegates.Clear();
                     }
-
-                    _handle.Free();
-                    _interfaces.Clear();
-                    _delegates.Clear();
                 }
             }
 
