@@ -1218,6 +1218,7 @@ Microsoft.Diagnostics.Runtime.Utilities.COMCallableIUnknown.COMCallableIUnknown(
 Microsoft.Diagnostics.Runtime.Utilities.COMCallableIUnknown.IUnknown.get -> Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable
 Microsoft.Diagnostics.Runtime.Utilities.COMCallableIUnknown.IUnknownObject.get -> System.IntPtr
 Microsoft.Diagnostics.Runtime.Utilities.COMCallableIUnknown.Release() -> int
+virtual Microsoft.Diagnostics.Runtime.Utilities.COMCallableIUnknown.Destroy() -> void
 Microsoft.Diagnostics.Runtime.Utilities.COMHelper
 Microsoft.Diagnostics.Runtime.Utilities.COMHelper.AddRefDelegate
 Microsoft.Diagnostics.Runtime.Utilities.COMHelper.COMHelper() -> void

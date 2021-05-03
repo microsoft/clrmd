@@ -115,16 +115,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 // Only free memory the first time we reach here.
                 if (_handle.IsAllocated)
                 {
-                    foreach (IntPtr ptr in _interfaces.Values)
+                    try
                     {
-                        IntPtr* val = (IntPtr*)ptr;
-                        Marshal.FreeHGlobal(*val);
-                        Marshal.FreeHGlobal(ptr);
+                        Destroy();
                     }
+                    finally
+                    {
+                        foreach (IntPtr ptr in _interfaces.Values)
+                        {
+                            IntPtr* val = (IntPtr*)ptr;
+                            Marshal.FreeHGlobal(*val);
+                            Marshal.FreeHGlobal(ptr);
+                        }
 
-                    _handle.Free();
-                    _interfaces.Clear();
-                    _delegates.Clear();
+                        _handle.Free();
+                        _interfaces.Clear();
+                        _delegates.Clear();
+                    }
                 }
             }
 
@@ -132,5 +139,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private int AddRefImpl(IntPtr self) => Interlocked.Increment(ref _refCount);
+
+        protected virtual void Destroy()
+        {
+        }
     }
 }
