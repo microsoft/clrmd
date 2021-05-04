@@ -75,15 +75,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 symbol = null;
                 return false;
             }
-
-            foreach (uint possibleLocation in GnuHash.GetPossibleSymbolIndex(symbolName))
+            try
             {
-                ElfSymbol s = SymbolTable.GetSymbol(possibleLocation);
-                if(s.Name == symbolName)
+                foreach (uint possibleLocation in GnuHash.GetPossibleSymbolIndex(symbolName))
                 {
-                    symbol = s;
-                    return true;
+                    ElfSymbol s = SymbolTable.GetSymbol(possibleLocation);
+                    if (s.Name == symbolName)
+                    {
+                        symbol = s;
+                        return true;
+                    }
                 }
+            }
+            catch (IOException)
+            {
             }
             symbol = null;
             return false;
