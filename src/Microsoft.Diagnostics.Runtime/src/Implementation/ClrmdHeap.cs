@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             uint minObjSize = (uint)IntPtr.Size * 3;
             while (AllocationContexts.TryGetValue(address, out ulong nextObj))
             {
-                nextObj += Align(minObjSize, seg.IsLargeObjectSegment);
+                nextObj += Align(minObjSize, seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment);
 
                 if (address >= nextObj || address >= seg.End)
                     return 0;
@@ -283,7 +283,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (carefully)
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
-                        if (seg is null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
+                        if (seg is null)
+                            yield break;
+
+                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
 
@@ -342,7 +346,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (carefully)
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
-                        if (seg is null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
+                        if (seg is null)
+                            yield break;
+
+                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
 
