@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrObject> EnumerateObjects()
         {
-            bool large = IsLargeObjectSegment;
+            bool large = IsLargeObjectSegment || IsPinnedObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
             ulong obj = FirstObjectAddress;
             IDataReader dataReader = _helpers.DataReader;
