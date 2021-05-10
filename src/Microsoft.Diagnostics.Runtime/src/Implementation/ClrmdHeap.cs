@@ -350,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             yield break;
 
                         bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
-                        if (seg is null || obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
 
