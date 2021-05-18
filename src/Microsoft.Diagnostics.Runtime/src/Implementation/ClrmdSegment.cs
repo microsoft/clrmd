@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!ObjectRange.Contains(addr))
                 throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain object {addr:x}");
 
-            bool large = IsLargeObjectSegment;
+            bool large = IsLargeObjectSegment || IsPinnedObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
             IMemoryReader memoryReader = _helpers.DataReader;
             ulong mt = memoryReader.ReadPointer(addr);
