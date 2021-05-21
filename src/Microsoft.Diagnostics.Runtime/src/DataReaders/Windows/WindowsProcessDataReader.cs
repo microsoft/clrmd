@@ -99,8 +99,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (_originalPid != 0)
                 {
-                    // Kill the cloned process as we don't need it anymore
-                    Process.GetProcessById(ProcessId)?.Kill();
+                    try
+                    {
+                        // Kill the cloned process as we don't need it anymore
+                        Process.GetProcessById(ProcessId).Kill();
+                    }
+                    catch (Win32Exception)
+                    {
+                    }
                 }
 
                 _disposed = true;
