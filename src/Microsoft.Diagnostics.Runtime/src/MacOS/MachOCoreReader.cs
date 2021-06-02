@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
@@ -30,27 +31,21 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
-            throw new NotImplementedException();
+            return _core.Modules.Select(m => new ModuleInfo(this, m.BaseAddress, m.FileName, true, 0, 0, default));
         }
 
         public void FlushCachedData()
         {
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
-        {
-            throw new NotImplementedException();
-        }
+        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => default;
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             throw new NotImplementedException();
         }
 
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
-        {
-            throw new NotImplementedException();
-        }
+        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version) { version = default; return false; }
 
         public override int Read(ulong address, Span<byte> buffer) => _core.ReadMemory(address, buffer);
 
