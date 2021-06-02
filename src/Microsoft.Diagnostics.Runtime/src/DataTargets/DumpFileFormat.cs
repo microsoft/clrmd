@@ -11,5 +11,6 @@ namespace Microsoft.Diagnostics.Runtime
         Userdump64,
         ElfCoredump,
         CompressedArchive,
+        MachOCoredump,
     }
 }
