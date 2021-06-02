@@ -9,6 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct MachHeader64
     {
+        public static unsafe uint Size => (uint)sizeof(MachHeader64);
         public const uint Magic64 = 0xfeedfacf;
 
         public uint Magic { get; }

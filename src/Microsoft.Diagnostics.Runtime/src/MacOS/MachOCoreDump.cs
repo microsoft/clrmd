@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -18,22 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private readonly MachOSegment[] _segments;
         private readonly MachOModule? _dylinker;
 
-        private ImmutableArray<MachOModule> _modules;
+        private volatile Dictionary<ulong, MachOModule>? _modules;
 
-        public ImmutableArray<MachOModule> Modules
-        {
-            get
-            {
-                if (_modules.IsDefault)
-                {
-                    ImmutableArray<MachOModule> modules = ReadModules();
-                    _modules = modules;
-                    return modules;
-                }
-
-                return _modules;
-            }
-        }
 
         public MachOCoreDump(Stream stream, bool leaveOpen, string displayName)
         {
@@ -84,6 +71,19 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     break;
                 }
             }
+        }
+
+        public MachOModule? GetModuleByBaseAddress(ulong baseAddress)
+        {
+            var modules = ReadModules();
+
+            modules.TryGetValue(baseAddress, out MachOModule? result);
+            return result;
+        }
+
+        public IEnumerable<MachOModule> EnumerateModules()
+        {
+            return ReadModules().Values;
         }
 
         public T ReadMemory<T>(ulong address)
@@ -164,8 +164,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        private ImmutableArray<MachOModule> ReadModules()
+        private Dictionary<ulong, MachOModule> ReadModules()
         {
+            if (_modules != null)
+                return _modules;
+
             if (_dylinker != null && _dylinker.TryLookupSymbol("_dyld_all_image_infos", out ulong dyld_allImage_address))
             {
                 DyldAllImageInfos allImageInfo = ReadMemory<DyldAllImageInfos>(dyld_allImage_address);
@@ -175,21 +178,22 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 {
                     int count = ReadMemory(allImageInfo.infoArray.ToUInt64(), new Span<byte>(ptr, sizeof(DyldImageInfo) * allImages.Length)) / sizeof(DyldImageInfo);
 
-                    List<MachOModule> modules = new List<MachOModule>(count);
-
+                    Dictionary<ulong, MachOModule> modules = new Dictionary<ulong, MachOModule>(count);
                     for (int i = 0; i < count; i++)
                     {
                         ref DyldImageInfo image = ref allImages[i];
 
                         string path = ReadAscii(image.ImageFilePath.ToUInt64());
-                        modules.Add(new MachOModule(this, image.ImageLoadAddress.ToUInt64(), path));
+                        ulong baseAddress = image.ImageLoadAddress.ToUInt64();
+                        modules[baseAddress] = new MachOModule(this, baseAddress, path);
                     }
 
-                    return modules.ToImmutableArray();
+                    _modules = modules;
+                    return modules;
                 }
             }
 
-            return ImmutableArray<MachOModule>.Empty;
+            return _modules = new Dictionary<ulong, MachOModule>();
         }
 
 

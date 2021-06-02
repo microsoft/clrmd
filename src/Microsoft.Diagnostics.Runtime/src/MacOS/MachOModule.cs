@@ -133,5 +133,24 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             return 0;
         }
+
+        public IEnumerable<Segment64LoadCommand> EnumerateSegments(string name)
+        {
+            uint offset = MachHeader64.Size;
+            for (int i = 0; i < _header.NumberCommands; i++)
+            {
+                ulong cmdAddress = BaseAddress + offset;
+                LoadCommandHeader cmd = _parent.ReadMemory<LoadCommandHeader>(cmdAddress);
+
+                if (cmd.Kind == LoadCommandType.Segment64)
+                {
+                    Segment64LoadCommand seg64 = _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
+                    if (seg64.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                        yield return seg64;
+                }
+
+                offset += cmd.Size;
+            }
+        }
     }
 }

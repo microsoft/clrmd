@@ -29,10 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _core = new MachOCoreDump(stream, leaveOpen, DisplayName);
         }
 
-        public IEnumerable<ModuleInfo> EnumerateModules()
-        {
-            return _core.Modules.Select(m => new ModuleInfo(this, m.BaseAddress, m.FileName, true, 0, 0, default));
-        }
+        public IEnumerable<ModuleInfo> EnumerateModules() => _core.EnumerateModules().Select(m => new ModuleInfo(this, m.BaseAddress, m.FileName, true, 0, 0, default));
 
         public void FlushCachedData()
         {
@@ -45,7 +42,17 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             throw new NotImplementedException();
         }
 
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version) { version = default; return false; }
+        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        {
+            MachOModule? module = _core.GetModuleByBaseAddress(baseAddress);
+            if (module != null)
+                foreach (var data in module.EnumerateSegments("__DATA"))
+                    if (this.GetVersionInfo(module.BaseAddress + data.VMAddr, data.VMSize, out version))
+                        return true;
+
+            version = default;
+            return false;
+        }
 
         public override int Read(ulong address, Span<byte> buffer) => _core.ReadMemory(address, buffer);
 
