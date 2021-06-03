@@ -104,8 +104,9 @@ namespace Microsoft.Diagnostics.Runtime
                         // Kill the cloned process as we don't need it anymore
                         Process.GetProcessById(ProcessId).Kill();
                     }
-                    catch (Win32Exception)
+                    catch (Exception e)
                     {
+                        Trace.WriteLine($"Unable to kill the target process: {e}");
                     }
                 }
 
