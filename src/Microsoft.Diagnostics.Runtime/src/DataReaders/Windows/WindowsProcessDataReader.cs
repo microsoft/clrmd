@@ -97,6 +97,19 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_process != IntPtr.Zero)
                     WindowsFunctions.NativeMethods.CloseHandle(_process);
 
+                if (_originalPid != 0)
+                {
+                    try
+                    {
+                        // Kill the cloned process as we don't need it anymore
+                        Process.GetProcessById(ProcessId).Kill();
+                    }
+                    catch (Exception e)
+                    {
+                        Trace.WriteLine($"Unable to kill the target process: {e}");
+                    }
+                }
+
                 _disposed = true;
             }
         }
