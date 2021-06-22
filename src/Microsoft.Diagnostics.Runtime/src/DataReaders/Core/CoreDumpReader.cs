@@ -173,12 +173,18 @@ namespace Microsoft.Diagnostics.Runtime
         public bool TryGetSymbolAddress(ulong baseAddress, string name, out ulong offset)
         {
             using ElfFile? elfFile = GetElfFile(baseAddress);
-            ElfDynamicSection? dynamicSection = elfFile?.DynamicSection;
-
-            if (dynamicSection is not null && dynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
+            try
             {
-                offset = baseAddress + (ulong)symbol.Value;
-                return true;
+                ElfDynamicSection? dynamicSection = elfFile?.DynamicSection;
+
+                if (dynamicSection is not null && dynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
+                {
+                    offset = baseAddress + (ulong)symbol.Value;
+                    return true;
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            {
             }
 
             offset = 0;
