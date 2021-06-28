@@ -1,4 +1,5 @@
 ﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -11,10 +12,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal unsafe sealed class MachOCoreDump : IDisposable
     {
-        private readonly object _sync = new object();
+        const uint X86_THREAD_STATE64 = 4;
+
+        private readonly object _sync = new();
         private readonly Stream _stream;
         private readonly bool _leaveOpen;
 
+        private readonly x86_thread_state64_t[] _threadContexts;
         private readonly MachHeader64 _header;
         private readonly MachOSegment[] _segments;
         private readonly MachOModule? _dylinker;
@@ -34,6 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _stream = stream;
             _leaveOpen = leaveOpen;
 
+            List<x86_thread_state64_t> threads = new List<x86_thread_state64_t>();
             List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
 
             Console.WriteLine($"Commands: {_header.NumberCommands}");
@@ -42,25 +47,55 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 LoadCommandHeader loadCommand = new LoadCommandHeader();
                 stream.Read(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
 
-                if (loadCommand.Kind == LoadCommandType.Segment64)
-                {
-                    Segment64LoadCommand seg = new Segment64LoadCommand();
-                    stream.Read(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
 
-                    Console.WriteLine($"    cmd:{i} name:{seg.Name} addr:{seg.VMAddr:x} size:{seg.VMSize:x}");
-                    stream.Seek(loadCommand.Size - sizeof(LoadCommandHeader) - sizeof(Segment64LoadCommand), SeekOrigin.Current);
-
-                    segments.Add(new MachOSegment(seg));
-                }
-                else
+                switch (loadCommand.Kind)
                 {
-                    Console.WriteLine($"    cmd:{i} kind:{loadCommand.Kind} size:{loadCommand.Size:x}");
-                    stream.Seek(loadCommand.Size - sizeof(LoadCommandHeader), SeekOrigin.Current);
+                    case LoadCommandType.Segment64:
+                        Segment64LoadCommand seg = new Segment64LoadCommand();
+                        stream.Read(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
+
+                        Console.WriteLine($"    cmd:{i} name:{seg.Name} addr:{seg.VMAddr:x} size:{seg.VMSize:x}");
+                        stream.Seek(loadCommand.Size - sizeof(LoadCommandHeader) - sizeof(Segment64LoadCommand), SeekOrigin.Current);
+
+                        segments.Add(new MachOSegment(seg));
+                        break;
+
+                    case LoadCommandType.Thread:
+                        long threadEnd = stream.Position + loadCommand.Size - sizeof(LoadCommandHeader);
+
+                        switch (_header.CpuType)
+                        {
+                            case MachOCpuType.X86_64:
+                                uint flavor = Read<uint>(stream);
+                                uint count = Read<uint>(stream);
+
+                                if (flavor == X86_THREAD_STATE64)
+                                {
+                                    x86_thread_state64_t threadState = Read<x86_thread_state64_t>(stream);
+                                    Console.WriteLine($"flavor:{flavor:x} count:{count} sp:{threadState.__rsp:x} ip:{threadState.__rip:x}");
+                                    threads.Add(threadState);
+                                }
+
+                                break;
+
+                            default:
+                                Console.WriteLine($"Unsupported CPU type: {_header.CpuType}");
+                                break;
+                        }
+
+                        stream.Seek(threadEnd, SeekOrigin.Begin);
+                        break;
+
+                    default:
+                        Console.WriteLine($"    cmd:{i} kind:{loadCommand.Kind} size:{loadCommand.Size:x}");
+                        stream.Seek(loadCommand.Size - sizeof(LoadCommandHeader), SeekOrigin.Current);
+                        break;
                 }
             }
 
             segments.Sort((x, y) => x.Address.CompareTo(y.Address));
             _segments = segments.ToArray();
+            _threadContexts = threads.ToArray();
 
             foreach (MachOSegment seg in _segments)
             {
@@ -71,6 +106,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     break;
                 }
             }
+        }
+
+        private static T Read<T>(Stream stream) where T: unmanaged
+        {
+            T value;
+            stream.Read(new Span<byte>(&value, sizeof(T)));
+            return value;
         }
 
         public MachOModule? GetModuleByBaseAddress(ulong baseAddress)

@@ -41,16 +41,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 ulong cmdAddress = BaseAddress + offset;
                 LoadCommandHeader cmd = _parent.ReadMemory<LoadCommandHeader>(cmdAddress);
-                Console.WriteLine($"header: {i} address: {cmdAddress} kind: {cmd.Kind}");
 
                 switch (cmd.Kind)
                 {
                     case LoadCommandType.Segment64:
                         Segment64LoadCommand seg64LoadCmd = _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
                         segments.Add(new MachOSegment(seg64LoadCmd));
-
-
-                        Console.WriteLine($"       seg-cmd:{i} name:{seg64LoadCmd.Name} addr:{seg64LoadCmd.VMAddr:x} size:{seg64LoadCmd.VMSize:x}");
                         break;
 
                     case LoadCommandType.SymTab:
