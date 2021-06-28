@@ -31,7 +31,12 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual bool IsEqualFileVersion(string file, VersionInfo version)
         {
             if (!GetFileVersion(file, out int major, out int minor, out int revision, out int patch))
+            {
+                if (version == default)
+                    return true;  // the runtime module has no version info either
+
                 return false;
+            }
 
             return major == version.Major && minor == version.Minor && revision == version.Revision && patch == version.Patch;
         }
