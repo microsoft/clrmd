@@ -27,6 +27,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public uint ProcessId { get; }
 
+        public Architecture Architecture => _header.CpuType switch
+        {
+            MachOCpuType.X86 => Architecture.X86,
+            MachOCpuType.X86_64 => Architecture.Amd64,
+            _ => Architecture.Unknown
+        };
 
         public MachOCoreDump(Stream stream, bool leaveOpen, string displayName)
         {

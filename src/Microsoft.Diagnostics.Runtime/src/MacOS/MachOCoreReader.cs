@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public OSPlatform TargetPlatform => OSPlatform.OSX;
 
-        public Architecture Architecture { get; }
+        public Architecture Architecture => _core.Architecture;
 
         public int ProcessId { get; }
 
