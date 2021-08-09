@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    locator = new MacOSDefaultSymbolLocator();
+                    locator = new LinuxDefaultSymbolLocator(DataReader);
                 }
             }
 
