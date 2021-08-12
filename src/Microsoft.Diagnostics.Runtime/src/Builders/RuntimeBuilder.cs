@@ -207,14 +207,21 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             ImmutableArray<FinalizerQueueSegment>.Builder fqRoots,
             ImmutableArray<FinalizerQueueSegment>.Builder fqObjects)
         {
+            bool regions = heap.SavedSweepEphemeralSeg.Value == -1;
+
             if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
                 allocationContexts.Add(new MemoryRange(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
 
             fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
             fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));
 
-            AddSegments(segBuilder, clrHeap, large: true, pinned: false, heap, segments, heap.GenerationTable[3].StartSegment);
-            AddSegments(segBuilder, clrHeap, large: false, pinned: false, heap, segments, heap.GenerationTable[2].StartSegment);
+            AddSegments(segBuilder, clrHeap, 3, heap, segments, heap.GenerationTable[3].StartSegment);
+            AddSegments(segBuilder, clrHeap, 2, heap, segments, heap.GenerationTable[2].StartSegment);
+            if (regions)
+            {
+                AddSegments(segBuilder, clrHeap, 1, heap, segments, heap.GenerationTable[1].StartSegment);
+                AddSegments(segBuilder, clrHeap, 0, heap, segments, heap.GenerationTable[0].StartSegment);
+            }
 
             if (_sos8 != null)
             {
@@ -227,18 +234,18 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         genData = _sos8.GetGenerationTable();
 
                     if (genData != null && genData.Length > 3)
-                        AddSegments(segBuilder, clrHeap, large: false, pinned: true, heap, segments, genData[4].StartSegment);
+                        AddSegments(segBuilder, clrHeap, 4, heap, segments, genData[4].StartSegment);
                 }
             }
         }
 
-        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, bool pinned, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, int generation, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
-            segBuilder.IsLargeObjectSegment = large;
-            segBuilder.IsPinnedObjectSegment = pinned;
+            segBuilder.IsLargeObjectSegment = (generation == 3);
+            segBuilder.IsPinnedObjectSegment = (generation == 4);
 
-            while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
+            while (seenSegments.Add(address) && segBuilder.Initialize(address, generation, heap))
             {
                 // Unfortunately ClrmdSegment is tightly coupled to ClrmdHeap to make implementation vastly simpler and it can't
                 // be used with any generic ClrHeap.  There should be no way that this runtime builder ever mismatches the two
