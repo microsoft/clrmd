@@ -21,10 +21,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         // Regions only
         private int _generation;
+        private ulong _sizeofPlugAndGap;
 
-        public SegmentBuilder(SOSDac sos)
+        public SegmentBuilder(SOSDac sos, int pointerSize)
         {
             _sos = sos;
+            _sizeofPlugAndGap = (ulong)pointerSize * 4;
         }
 
         public bool Initialize(ulong address, int generation, in HeapDetails heap)
@@ -48,9 +50,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         #region ISegmentData
         public int LogicalHeap { get; set; }
-        
-        // 0x20 is sizeof(aligned_plug_and_gap)
-        public ulong BaseAddress => _regions ? (_segment.Start - 0x20) : _segment.Address;
+
+        public ulong BaseAddress => _regions ? (_segment.Start - _sizeofPlugAndGap) : _segment.Address;
 
         public ulong Start => _segment.Start;
 

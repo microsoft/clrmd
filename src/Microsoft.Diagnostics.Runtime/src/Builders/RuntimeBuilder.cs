@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
 
             bool result = false;
-            SegmentBuilder segBuilder = new SegmentBuilder(_sos);
+            SegmentBuilder segBuilder = new SegmentBuilder(_sos, DataReader.PointerSize);
             if (clrHeap.IsServer)
             {
                 ClrDataAddress[] heapList = _sos.GetHeapList(clrHeap.LogicalHeapCount);
