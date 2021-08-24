@@ -105,6 +105,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrSegment seg in heap.Segments)
             {
+                if (seg.Length == 0)
+                {
+                    continue;
+                }
                 ulong nextObj = seg.GetNextObjectAddress(seg.FirstObjectAddress);
                 foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
                 {
@@ -123,6 +127,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrSegment seg in heap.Segments)
             {
+                if (seg.Length == 0)
+                {
+                    continue;
+                }
                 ClrObject prev = heap.GetObject(seg.FirstObjectAddress);
                 Assert.Equal(0ul, seg.GetPreviousObjectAddress(prev));
 
@@ -181,20 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(heap.Segments.Length > 0);
 
-            CheckSorted(heap.Segments);
             CheckSegments(heap);
-        }
-
-        private void CheckSorted(ImmutableArray<ClrSegment> segments)
-        {
-            ClrSegment last = null;
-            foreach (ClrSegment seg in segments)
-            {
-                if (last != null)
-                    Assert.True(last.Start < seg.Start);
-
-                last = seg;
-            }
         }
 
         private static void CheckSegments(ClrHeap heap)
@@ -208,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(seg.Start < seg.CommittedMemory.End);
                 Assert.True(seg.CommittedMemory.End < seg.ReservedMemory.End);
                 Assert.False(seg.CommittedMemory.Overlaps(seg.ReservedMemory));
-                Assert.True(seg.CommittedMemory.Contains(seg.ObjectRange));
+                Assert.True(seg.Length == 0 || seg.CommittedMemory.Contains(seg.ObjectRange));
 
                 if (seg.Generation0.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation0));
@@ -219,12 +214,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (seg.Generation2.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
-                if (!seg.IsEphemeralSegment)
+                if (seg.Length == 0)
                 {
-                    Assert.Equal(0ul, seg.Generation0.Length);
-                    Assert.Equal(0ul, seg.Generation1.Length);
+                    continue;
                 }
-
                 int count = 0;
                 foreach (ulong obj in seg.EnumerateObjects())
                 {
