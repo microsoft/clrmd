@@ -211,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            return lookup.Values.ToImmutableDictionary(i => i.BaseAddress != 0 ? i.BaseAddress : throw new InvalidDataException($"Module {i} has no base address"));
+            return lookup.Values.Where(i => i.BaseAddress != 0).ToImmutableDictionary(i => i.BaseAddress);
         }
 
         public void Dispose()
