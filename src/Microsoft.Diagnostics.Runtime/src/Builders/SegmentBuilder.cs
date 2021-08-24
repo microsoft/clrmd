@@ -10,22 +10,39 @@ namespace Microsoft.Diagnostics.Runtime.Builders
     internal sealed class SegmentBuilder : ISegmentData
     {
         private SegmentData _segment;
+        private bool _regions;
         private ulong _heapAllocated;
-        private ulong _ephemGen0Start;
-        private ulong _ephemGen1Start;
         private ulong _ephemAddress;
         private readonly SOSDac _sos;
 
-        public SegmentBuilder(SOSDac sos)
+        // Segments only
+        private ulong _ephemGen0Start;
+        private ulong _ephemGen1Start;
+
+        // Regions only
+        private int _generation;
+        private ulong _sizeofPlugAndGap;
+
+        public SegmentBuilder(SOSDac sos, int pointerSize)
         {
             _sos = sos;
+            _sizeofPlugAndGap = (ulong)pointerSize * 4;
         }
 
-        public bool Initialize(ulong address, in HeapDetails heap)
+        public bool Initialize(ulong address, int generation, in HeapDetails heap)
         {
+            _regions = heap.SavedSweepEphemeralSeg.Value == -1;
+
             _heapAllocated = heap.Allocated;
-            _ephemGen0Start = heap.GenerationTable[0].AllocationStart;
-            _ephemGen1Start = heap.GenerationTable[1].AllocationStart;
+            if (_regions)
+            {
+                _generation = generation;
+            }
+            else
+            {
+                _ephemGen0Start = heap.GenerationTable[0].AllocationStart;
+                _ephemGen1Start = heap.GenerationTable[1].AllocationStart;
+            }
             _ephemAddress = heap.EphemeralHeapSegment;
 
             return _sos.GetSegmentData(address, out _segment);
@@ -34,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         #region ISegmentData
         public int LogicalHeap { get; set; }
 
-        public ulong BaseAddress => _segment.Address;
+        public ulong BaseAddress => _regions ? (_segment.Start - _sizeofPlugAndGap) : _segment.Address;
 
         public ulong Start => _segment.Start;
 
@@ -44,17 +61,82 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public ulong CommittedEnd => _segment.Committed;
 
-        public ulong Gen0Start => IsEphemeralSegment ? _ephemGen0Start : End;
+        public ulong Gen0Start
+        {
+            get
+            {
+                if (_regions)
+                {
+                    return (_generation == 0) ? Start : End;
+                }
+                else
+                {
+                    return IsEphemeralSegment ? _ephemGen0Start : End;
+                }
+            }
+        }
 
         public ulong Gen0Length => End - Gen0Start;
 
-        public ulong Gen1Start => IsEphemeralSegment ? _ephemGen1Start : End;
+        public ulong Gen1Start
+        {
+            get
+            {
+                if (_regions)
+                {
+                    return (_generation == 1) ? Start : End;
+                }
+                else
+                {
+                    return IsEphemeralSegment ? _ephemGen1Start : End;
+                }
+            }
+        }
 
-        public ulong Gen1Length => Gen0Start - Gen1Start;
+        public ulong Gen1Length
+        {
+            get
+            {
+                if (_regions)
+                {
+                    return End - Gen1Start;
+                }
+                else
+                {
+                    return Gen0Start - Gen1Start;
+                }
+            }
+        }
 
-        public ulong Gen2Start => Start;
+        public ulong Gen2Start
+        {
+            get
+            {
+                if (_regions)
+                {
+                    return (_generation >= 2) ? Start : End;
+                }
+                else
+                {
+                    return Start;
+                }
+            }
+        }
 
-        public ulong Gen2Length => Gen1Start - Start;
+        public ulong Gen2Length
+        {
+            get
+            {
+                if (_regions)
+                {
+                    return End - Gen2Start;
+                }
+                else
+                {
+                    return Gen1Start - Start;
+                }
+            }
+        }
 
         public bool IsLargeObjectSegment { get; set; }
 
