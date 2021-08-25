@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + pageAlignedOffset), EntryPageSize);
 
             uint readSize;
-            if ((pageAlignedOffset + EntryPageSize) <= (int)_segmentData.Size)
+            if ((pageAlignedOffset + EntryPageSize) <= (uint)_segmentData.Size)
             {
                 readSize = EntryPageSize;
             }
