@@ -70,7 +70,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             _fileTable.Add(pointers);
 
-            if (BaseAddress == 0 || pointers.Start < BaseAddress)
+            // There are cases (like .NET single-file modules) where the first NT_FILE entry isn't the ELF
+            // or PE header (i.e the base address). The header is the first entry with PageOffset == 0. For
+            // ELF modules there should only be one PageOffset == 0 entry but with the memory mapped PE
+            // assemblies, there can be more than one PageOffset == 0 entry and the first one is the base
+            // address.
+            if (BaseAddress == 0 && pointers.PageOffset == 0)
                 BaseAddress = pointers.Start;
 
             if (_end < pointers.Stop)
