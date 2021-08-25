@@ -211,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            return lookup.Values.ToImmutableDictionary(i => i.BaseAddress);
+            return lookup.Values.Where(i => i.BaseAddress != 0).ToImmutableDictionary(i => i.BaseAddress);
         }
 
         public void Dispose()
