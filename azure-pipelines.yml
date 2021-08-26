@@ -9,9 +9,8 @@ pr:
     - release/*
   paths:
     exclude:
-    - docs/*
-    - THIRD-PARTY-NOTICES.TXT
-    - License.txt
+    - doc/*
+    - LICENSE
 
 variables:
   - name: _TeamName
@@ -20,11 +19,9 @@ variables:
     value: real
   - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
     # DotNet-Blob-Feed provides: dotnetfeed-storage-access-key-1
-    # DotNet-Diagnostics-SDL-Params provides Tsa* variables for SDL checks.
     # DotNet-Symbol-Server-Pats provides: provides microsoft-symbol-server-pat and symweb-symbol-server-pat
     # Publish-Build-Assets provides: MaestroAccessToken, BotAccount-dotnet-maestro-bot-PAT
     - group: DotNet-Blob-Feed
-    - group: DotNet-Diagnostics-SDL-Params
     - group: DotNet-Symbol-Server-Pats
     - group: Publish-Build-Assets
   
@@ -35,7 +32,7 @@ resources:
 
 stages:
   - stage: build
-    displayName: Build and Test SymStore
+    displayName: Build and Test
 
     # Three jobs for each of the three OSes we want to run on
     jobs:
@@ -45,7 +42,7 @@ stages:
         enableTelemetry: true
         enablePublishBuildArtifacts: true
         enablePublishTestResults: true
-        helixRepo: dotnet/symstore
+        helixRepo: Microsoft/clrmd
 
         jobs:
         - job: Windows_NT
@@ -71,7 +68,7 @@ stages:
                 ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
                   _InternalBuildArgs: /p:DotNetSignType=$(_SignType) 
                                       /p:TeamName=$(_TeamName)
-                                      /p:DotNetPublishUsingPipelines=$(PublishPackages)
+                                      /p:DotNetPublishUsingPipelines=true
                                       /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
 
           steps:
@@ -144,20 +141,4 @@ stages:
         enableSigningValidation: true
         enableSymbolValidation: false
         enableNugetValidation: true
-        symbolPublishingAdditionalParameters: '/p:PublishSpecialClrFiles=false'
         publishInstallersAndChecksums: true
-        SDLValidationParameters:
-          enable: true
-          continueOnError: false
-          params: ' -SourceToolsList @("policheck","credscan")
-          -TsaInstanceURL $(_TsaInstanceURL)
-          -TsaProjectName $(_TsaProjectName)
-          -TsaNotificationEmail $(_TsaNotificationEmail)
-          -TsaCodebaseAdmin $(_TsaCodebaseAdmin)
-          -TsaBugAreaPath $(_TsaBugAreaPath)
-          -TsaIterationPath $(_TsaIterationPath)
-          -TsaRepositoryName "symstore"
-          -TsaCodebaseName "symstore"
-          -TsaPublish $True'
-          artifactNames:
-          - 'PackageArtifacts'
