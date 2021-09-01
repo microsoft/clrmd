@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -12,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class ElfLoadedImage
     {
-        private readonly List<ElfFileTableEntryPointers64> _fileTable = new(4);
+        private readonly SortedList<ulong, ElfFileTableEntryPointers64> _fileTable = new(4);
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
         private ulong _end;
@@ -68,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
         {
-            _fileTable.Add(pointers);
+            _fileTable.Add(pointers.Start, pointers);
 
             // There are cases (like .NET single-file modules) where the first NT_FILE entry isn't the ELF
             // or PE header (i.e the base address). The header is the first entry with PageOffset == 0. For
@@ -80,6 +81,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (_end < pointers.Stop)
                 _end = pointers.Stop;
+        }
+
+        internal void FixBaseAddress()
+        {
+            // If no base address was found in AddTableEntryPointers, use the lowest start address in
+            // the sorted list. There has to be at least one entry. This fixes the .NET 5.0 MacOS ELF
+            // dumps which have modules with no PageOffset == 0 entries.
+            if (BaseAddress == 0)
+                BaseAddress = _fileTable.Keys.First();
         }
 
         /// <summary>
