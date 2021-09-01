@@ -211,7 +211,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ArrayPool<byte>.Shared.Return(bytes);
             }
 
-            return lookup.Values.Where(i => i.BaseAddress != 0).ToImmutableDictionary(i => i.BaseAddress);
+            ImmutableDictionary<ulong, ElfLoadedImage>.Builder result = ImmutableDictionary.CreateBuilder<ulong, ElfLoadedImage>();
+            foreach (ElfLoadedImage image in lookup.Values)
+            {
+                image.FixBaseAddress();
+                result.Add(image.BaseAddress, image);
+            }
+
+            return result.ToImmutable();
         }
 
         public void Dispose()
