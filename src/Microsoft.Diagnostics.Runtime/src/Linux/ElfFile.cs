@@ -64,6 +64,29 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
+        /// Returns the address of a module export symbol if found
+        /// </summary>
+        /// <param name="symbolName">symbol name (without the module name prepended)</param>
+        /// <param name="offset">symbol offset returned</param>
+        /// <returns>true if found</returns>
+        public bool TryGetExportSymbol(string symbolName, out ulong offset)
+        {
+            try
+            {
+                if (DynamicSection is not null && DynamicSection.TryLookupSymbol(symbolName, out ElfSymbol? symbol) && symbol is not null)
+                {
+                    offset = (ulong)symbol.Value;
+                    return true;
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            {
+            }
+            offset = 0;
+            return false;
+        }
+
+        /// <summary>
         /// The ELFDynamicSection for this file, if it exists.
         /// </summary>
         internal ElfDynamicSection? DynamicSection
@@ -136,7 +159,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
         /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf file.</exception>
         public ElfFile(Stream stream, bool leaveOpen = false)
-            : this(new Reader(new StreamAddressSpace(stream)))
+            : this(stream, position: 0, leaveOpen, isVirtual: false)
+        {
+        }
+
+        /// <summary>
+        /// Creates an ElfFile from a file on disk.
+        /// </summary>
+        /// <param name="stream">The Elf stream to read the Elf file from.</param>
+        /// <param name="position">Base position of streawm</param>
+        /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
+        /// <param name="isVirtual">Whether stream points to a ELF image mapped into an address space (such as in a live process or crash dump).</param>
+        /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf file.</exception>
+        public ElfFile(Stream stream, ulong position, bool leaveOpen, bool isVirtual)
+            : this(new Reader(new RelativeAddressSpace(new StreamAddressSpace(stream), "ElfFile", startOffset: 0, (ulong)(stream ?? throw new ArgumentNullException(nameof(stream))).Length, (long)position)), position, isVirtual)
         {
             _stream = stream;
             _leaveOpen = leaveOpen;
