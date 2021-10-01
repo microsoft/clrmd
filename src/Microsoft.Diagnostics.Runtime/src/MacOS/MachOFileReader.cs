@@ -7,11 +7,11 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal readonly struct MachOReader
+    internal readonly struct MachOFileReader
     {
         private readonly Stream _stream;
 
-        internal MachOReader(Stream stream)
+        internal MachOFileReader(Stream stream)
         {
             _stream = stream;
         }
