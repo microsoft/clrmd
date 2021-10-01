@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             using FileStream stream = File.OpenRead(dll);
-            MachOReader reader = new MachOReader(stream);
+            MachOFileReader reader = new MachOFileReader(stream);
 
             MachOHeader64 header = reader.Read<MachOHeader64>();
             if (header.Magic != MachOHeader64.ExpectedMagic)
