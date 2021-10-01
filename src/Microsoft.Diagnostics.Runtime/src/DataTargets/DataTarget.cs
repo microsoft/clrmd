@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    locator = new MacOSDefaultSymbolLocator();
+                    locator = new LinuxDefaultSymbolLocator(DataReader);
                 }
             }
 
@@ -316,6 +316,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, cacheOptions, leaveOpen),
                     DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream, leaveOpen),
+                    DumpFileFormat.MachOCoredump => new MachOCoreReader(displayName, stream, leaveOpen),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
@@ -372,6 +373,8 @@ namespace Microsoft.Diagnostics.Runtime
                 0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
                 0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
                 0x4643534D => DumpFileFormat.CompressedArchive, // CAB
+                0xfeedfacf => DumpFileFormat.MachOCoredump,
+                0xfeedface => DumpFileFormat.MachOCoredump,
                 _ => DumpFileFormat.Unknown,
             };
 
