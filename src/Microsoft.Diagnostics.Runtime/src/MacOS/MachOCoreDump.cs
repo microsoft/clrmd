@@ -50,7 +50,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             List<x86_thread_state64_t> contexts = new List<x86_thread_state64_t>();
             List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
 
-            Console.WriteLine($"Commands: {_header.NumberCommands}");
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 long position = stream.Position;
@@ -65,8 +64,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                         Segment64LoadCommand seg = new Segment64LoadCommand();
                         stream.Read(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
-
-                        Console.WriteLine($"    cmd:{i} pos:{position:x} name:{seg.Name} addr:{seg.VMAddr:x} size:{seg.VMSize:x}");
 
                         if (seg.VMAddr == SpecialThreadInfoHeader.SpecialThreadInfoAddress)
                         {
@@ -105,20 +102,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                                 if (flavor == X86_THREAD_STATE64)
                                 {
                                     x86_thread_state64_t threadState = Read<x86_thread_state64_t>(stream);
-                                    Console.WriteLine($"flavor:{flavor:x} count:{count} sp:{threadState.__rsp:x} ip:{threadState.__rip:x}");
                                     contexts.Add(threadState);
                                 }
 
                                 break;
-
-                            default:
-                                Console.WriteLine($"Unsupported CPU type: {_header.CpuType}");
-                                break;
                         }
-                        break;
-
-                    default:
-                        Console.WriteLine($"    cmd:{i} kind:{loadCommand.Kind} size:{loadCommand.Size:x}");
                         break;
                 }
 
