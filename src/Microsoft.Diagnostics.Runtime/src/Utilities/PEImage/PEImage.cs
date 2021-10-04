@@ -269,7 +269,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                if (_exportDirectory is null)
+                if (!_exportDirectory.HasValue)
                 {
                     if (PEHeader is not null)
                     {
@@ -280,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         }
                     }
                 }
-                if (_exportDirectory is not null)
+                if (_exportDirectory.HasValue)
                 {
                     IMAGE_EXPORT_DIRECTORY exportDirectory = _exportDirectory.Value;
 
@@ -289,7 +289,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         int namePointerRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfNames + (sizeof(uint) * nameIndex)));
                         if (namePointerRVA != 0)
                         {
-                            string name = ReadNullTerminatedAscii(namePointerRVA);
+                            string name = ReadNullTerminatedAscii(namePointerRVA, maxLength: 4096);
                             if (name == symbolName)
                             {
                                 ushort ordinalForNamedExport = Read<ushort>(RvaToOffset(exportDirectory.AddressOfNameOrdinals + (sizeof(ushort) * nameIndex)));
@@ -308,20 +308,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return false;
         }
 
-        private string ReadNullTerminatedAscii(int rva)
+        private string ReadNullTerminatedAscii(int rva, int maxLength)
         {
             StringBuilder builder = new(64);
             Span<byte> bytes = stackalloc byte[64];
 
             bool done = false;
-            int read;
+            int read, totalRead = 0;
             while (!done && (read = Read(rva, bytes)) != 0)
             {
                 rva += read;
-                for (int i = 0; !done && i < read; i++)
+                for (int i = 0; !done && i < read; i++, totalRead++)
                 {
-                    if (bytes[i] != 0)
-                        builder.Append((char)bytes[i]);
+                    if (totalRead < maxLength)
+                    {
+                        if (bytes[i] != 0)
+                            builder.Append((char)bytes[i]);
+                        else
+                            done = true;
+                    }
                     else
                         done = true;
                 }
