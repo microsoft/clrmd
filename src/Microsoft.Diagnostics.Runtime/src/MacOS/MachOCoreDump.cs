@@ -258,7 +258,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return _modules = new Dictionary<ulong, MachOModule>();
         }
 
-
         private bool FindSegmentContaining(ulong address, out MachOSegment seg)
         {
             int lower = 0;
@@ -287,7 +286,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             seg = new MachOSegment();
             return false;
         }
-
 
         public void Dispose()
         {
