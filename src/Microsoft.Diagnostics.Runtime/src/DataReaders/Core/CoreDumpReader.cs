@@ -168,26 +168,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="baseAddress">module base address</param>
         /// <param name="name">symbol name (without the module name prepended)</param>
-        /// <param name="offset">address returned</param>
+        /// <param name="address">address returned</param>
         /// <returns>true if found</returns>
-        public bool TryGetSymbolAddress(ulong baseAddress, string name, out ulong offset)
+        bool IExportReader.TryGetSymbolAddress(ulong baseAddress, string name, out ulong address)
         {
             using ElfFile? elfFile = GetElfFile(baseAddress);
-            try
+            if (elfFile is not null && elfFile.TryGetExportSymbol(name, out ulong offset))
             {
-                ElfDynamicSection? dynamicSection = elfFile?.DynamicSection;
-
-                if (dynamicSection is not null && dynamicSection.TryLookupSymbol(name, out ElfSymbol? symbol) && symbol is not null)
-                {
-                    offset = baseAddress + (ulong)symbol.Value;
-                    return true;
-                }
+                address = baseAddress + offset;
+                return true;
             }
-            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
-            {
-            }
-
-            offset = 0;
+            address = 0;
             return false;
         }
 

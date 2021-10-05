@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -33,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ImmutableArray<SectionHeader> _sections;
         private ImmutableArray<PdbInfo> _pdbs;
         private ResourceEntry? _resources;
+        private IMAGE_EXPORT_DIRECTORY? _exportDirectory;
 
         private bool _disposed;
 
@@ -257,6 +259,82 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
+        /// <summary>
+        /// Returns the address of a module export symbol if found
+        /// </summary>
+        /// <param name="symbolName">symbol name (without the module name prepended)</param>
+        /// <param name="offset">symbol offset returned</param>
+        /// <returns>true if found</returns>
+        public bool TryGetExportSymbol(string symbolName, out ulong offset)
+        {
+            try
+            {
+                if (!_exportDirectory.HasValue)
+                {
+                    if (PEHeader is not null)
+                    {
+                        DirectoryEntry exportTableDirectory = PEHeader.ExportTableDirectory;
+                        if (exportTableDirectory.RelativeVirtualAddress != 0 && exportTableDirectory.Size != 0)
+                        {
+                            _exportDirectory = Read<IMAGE_EXPORT_DIRECTORY>(RvaToOffset(exportTableDirectory.RelativeVirtualAddress));
+                        }
+                    }
+                }
+                if (_exportDirectory.HasValue)
+                {
+                    IMAGE_EXPORT_DIRECTORY exportDirectory = _exportDirectory.Value;
+
+                    for (int nameIndex = 0; nameIndex < exportDirectory.NumberOfNames; nameIndex++)
+                    {
+                        int namePointerRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfNames + (sizeof(uint) * nameIndex)));
+                        if (namePointerRVA != 0)
+                        {
+                            string name = ReadNullTerminatedAscii(namePointerRVA, maxLength: 4096);
+                            if (name == symbolName)
+                            {
+                                ushort ordinalForNamedExport = Read<ushort>(RvaToOffset(exportDirectory.AddressOfNameOrdinals + (sizeof(ushort) * nameIndex)));
+                                int exportRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfFunctions + (sizeof(uint) * ordinalForNamedExport)));
+                                offset = (uint)RvaToOffset(exportRVA);
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            {
+            }
+            offset = 0;
+            return false;
+        }
+
+        private string ReadNullTerminatedAscii(int rva, int maxLength)
+        {
+            StringBuilder builder = new(64);
+            Span<byte> bytes = stackalloc byte[64];
+
+            bool done = false;
+            int read, totalRead = 0;
+            while (!done && (read = Read(rva, bytes)) != 0)
+            {
+                rva += read;
+                for (int i = 0; !done && i < read; i++, totalRead++)
+                {
+                    if (totalRead < maxLength)
+                    {
+                        if (bytes[i] != 0)
+                            builder.Append((char)bytes[i]);
+                        else
+                            done = true;
+                    }
+                    else
+                        done = true;
+                }
+            }
+
+            return builder.ToString();
+        }
+
         private ResourceEntry CreateResourceRoot()
         {
             return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
@@ -344,7 +422,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 return result.MoveOrCopyToImmutable();
             }
-            catch (IOException)
+            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
             {
                 return ImmutableArray<PdbInfo>.Empty;
             }
