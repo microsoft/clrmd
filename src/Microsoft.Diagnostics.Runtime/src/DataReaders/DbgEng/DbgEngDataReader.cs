@@ -17,7 +17,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
+    internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IExportReader
     {
         private static int s_totalInstanceCount;
 
@@ -189,6 +189,25 @@ namespace Microsoft.Diagnostics.Runtime
 
             _modules = modules;
             return modules;
+        }
+
+        /// <summary>
+        /// Returns the address of a module export symbol if found
+        /// </summary>
+        /// <param name="baseAddress">module base address</param>
+        /// <param name="name">symbol name (without the module name prepended)</param>
+        /// <param name="address">address returned</param>
+        /// <returns>true if found</returns>
+        bool IExportReader.TryGetSymbolAddress(ulong baseAddress, string name, out ulong address)
+        {
+            using PEImage? image = EnumerateModules().First(mod => mod.ImageBase == baseAddress).GetPEImage();
+            if (image is not null && image.TryGetExportSymbol(name, out ulong offset))
+            {
+                address = baseAddress + offset;
+                return true;
+            }
+            address = 0;
+            return false;
         }
 
         private static IntPtr CreateIDebugClient()

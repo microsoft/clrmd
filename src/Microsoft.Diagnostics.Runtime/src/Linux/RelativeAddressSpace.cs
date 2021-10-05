@@ -32,6 +32,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int Read(ulong position, Span<byte> buffer)
         {
+            if ((long)position < _baseToRelativeShift)
+                return 0;
+
             ulong basePosition = (ulong)((long)position - _baseToRelativeShift);
             if (basePosition < _baseStart)
                 return 0;

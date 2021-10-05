@@ -16,8 +16,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="baseAddress">module base address</param>
         /// <param name="name">symbol name (without the module name prepended)</param>
-        /// <param name="offset">address returned</param>
+        /// <param name="address">symbol address returned</param>
         /// <returns>true if found</returns>
-        bool TryGetSymbolAddress(ulong baseAddress, string name, out ulong offset);
+        bool TryGetSymbolAddress(ulong baseAddress, string name, out ulong address);
     }
 }
