@@ -740,7 +740,7 @@ Microsoft.Diagnostics.Runtime.ILToNativeMap.ILOffset -> int
 Microsoft.Diagnostics.Runtime.ILToNativeMap.ILToNativeMap() -> void
 Microsoft.Diagnostics.Runtime.ILToNativeMap.StartAddress -> ulong
 Microsoft.Diagnostics.Runtime.IExportReader
-Microsoft.Diagnostics.Runtime.IExportReader.TryGetSymbolAddress(ulong baseAddress, string! name, out ulong offset) -> bool
+Microsoft.Diagnostics.Runtime.IExportReader.TryGetSymbolAddress(ulong baseAddress, string! name, out ulong address) -> bool
 Microsoft.Diagnostics.Runtime.IMemoryReader
 Microsoft.Diagnostics.Runtime.IMemoryReader.PointerSize.get -> int
 Microsoft.Diagnostics.Runtime.IMemoryReader.Read(ulong address, System.Span<byte> buffer) -> int
@@ -1017,12 +1017,14 @@ Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.Dispose() -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(string! coredump) -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(string! filename) -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
+Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, ulong position, bool leaveOpen, bool isVirtual) -> void
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Header.get -> Microsoft.Diagnostics.Runtime.Utilities.IElfHeader!
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Notes.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfNote!>
 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ProgramHeaders.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader!>
+Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(string! symbolName, out ulong offset) -> bool
 Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
 Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Core = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
 Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Executable = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
@@ -1269,6 +1271,7 @@ Microsoft.Diagnostics.Runtime.Utilities.PEImage.Reader.get -> System.Reflection.
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.Resources.get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.RvaToOffset(int virtualAddress) -> int
 Microsoft.Diagnostics.Runtime.Utilities.PEImage.Sections.get -> System.Collections.Immutable.ImmutableArray<System.Reflection.PortableExecutable.SectionHeader>
+Microsoft.Diagnostics.Runtime.Utilities.PEImage.TryGetExportSymbol(string! symbolName, out ulong offset) -> bool
 Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry
 Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.ChildCount.get -> int
 Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Children.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!>

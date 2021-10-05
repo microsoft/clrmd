@@ -38,5 +38,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(imgPdb);
             Assert.NotNull(imgPdb.Path);
         }
+
+        [Fact]
+        public void ExportSymbolTest()
+        {
+            // Load Windows' ntdll.dll
+            var dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
+            using PEImage img = new PEImage(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
+            Assert.NotNull(img);
+
+            Assert.True(img.TryGetExportSymbol("DbgBreakPoint", out ulong offset));
+            Assert.NotEqual(0UL, offset);
+        }
     }
 }
