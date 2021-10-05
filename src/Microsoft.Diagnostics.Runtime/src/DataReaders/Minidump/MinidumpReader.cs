@@ -2,18 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IExportReader
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
@@ -107,6 +108,25 @@ namespace Microsoft.Diagnostics.Runtime
 
             version = module.VersionInfo.AsVersionInfo();
             return true;
+        }
+
+        /// <summary>
+        /// Returns the address of a module export symbol if found
+        /// </summary>
+        /// <param name="baseAddress">module base address</param>
+        /// <param name="name">symbol name (without the module name prepended)</param>
+        /// <param name="address">address returned</param>
+        /// <returns>true if found</returns>
+        bool IExportReader.TryGetSymbolAddress(ulong baseAddress, string name, out ulong address)
+        {
+            using PEImage? image = EnumerateModules().First(mod => mod.ImageBase == baseAddress).GetPEImage();
+            if (image is not null && image.TryGetExportSymbol(name, out ulong offset))
+            {
+                address = baseAddress + offset;
+                return true;
+            }
+            address = 0;
+            return false;
         }
 
         public int Read(ulong address, Span<byte> buffer) => MemoryReader.Read(address, buffer);
