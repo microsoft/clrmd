@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 return module.BuildId;
             }
-            return default;
+            return ImmutableArray<byte>.Empty;
         }
 
         public IEnumerable<uint> EnumerateOSThreadIds() => _core.Threads.Keys;
