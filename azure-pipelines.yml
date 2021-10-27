@@ -84,7 +84,7 @@ stages:
         - job: Linux
           container: LinuxContainer
           pool:
-            name: Hosted Ubuntu 1604
+            vmImage: ubuntu-20.04
 
           strategy:
             matrix:
