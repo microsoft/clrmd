@@ -4,26 +4,26 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal unsafe sealed class MachOCoreDump : IDisposable
     {
         const uint X86_THREAD_STATE64 = 4;
+        const uint ARM_THREAD_STATE64 = 6;
 
         private readonly object _sync = new();
         private readonly Stream _stream;
         private readonly bool _leaveOpen;
 
-        private readonly x86_thread_state64_t[] _threadContexts;
         private readonly MachHeader64 _header;
         private readonly MachOSegment[] _segments;
         private readonly MachOModule? _dylinker;
 
         private volatile Dictionary<ulong, MachOModule>? _modules;
+
+        public ImmutableDictionary<uint, thread_state_t> Threads { get; }
 
         public uint ProcessId { get; }
 
@@ -31,6 +31,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             MachOCpuType.X86 => Architecture.X86,
             MachOCpuType.X86_64 => Architecture.Amd64,
+            MachOCpuType.ARM => Architecture.Arm,
+            MachOCpuType.ARM64 => Architecture.Arm64,
             _ => Architecture.Unknown
         };
 
@@ -47,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _leaveOpen = leaveOpen;
 
             Dictionary<ulong, uint> threadIds = new Dictionary<ulong, uint>();
-            List<x86_thread_state64_t> contexts = new List<x86_thread_state64_t>();
+            List<thread_state_t> contexts = new List<thread_state_t>();
             List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
 
             for (int i = 0; i < _header.NumberCommands; i++)
@@ -61,8 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 switch (loadCommand.Kind)
                 {
                     case LoadCommandType.Segment64:
-
-                        Segment64LoadCommand seg = new Segment64LoadCommand();
+                        Segment64LoadCommand seg = default;
                         stream.Read(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
 
                         if (seg.VMAddr == SpecialThreadInfoHeader.SpecialThreadInfoAddress)
@@ -87,26 +88,30 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         {
                             segments.Add(new MachOSegment(seg));
                         }
-
                         break;
-
+                    
                     case LoadCommandType.Thread:
-                        long threadEnd = stream.Position + loadCommand.Size - sizeof(LoadCommandHeader);
+                        thread_state_t threadState = default;
+                        uint flavor = Read<uint>(stream);
+                        uint count = Read<uint>(stream);
 
                         switch (_header.CpuType)
                         {
                             case MachOCpuType.X86_64:
-                                uint flavor = Read<uint>(stream);
-                                uint count = Read<uint>(stream);
-
                                 if (flavor == X86_THREAD_STATE64)
                                 {
-                                    x86_thread_state64_t threadState = Read<x86_thread_state64_t>(stream);
-                                    contexts.Add(threadState);
+                                    threadState.x64 = Read<x86_thread_state64_t>(stream);
                                 }
+                                break;
 
+                            case MachOCpuType.ARM64:
+                                if (flavor == ARM_THREAD_STATE64)
+                                {
+                                    threadState.arm = Read<arm_thread_state64_t>(stream);
+                                }
                                 break;
                         }
+                        contexts.Add(threadState);
                         break;
                 }
 
@@ -115,7 +120,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             segments.Sort((x, y) => x.Address.CompareTo(y.Address));
             _segments = segments.ToArray();
-            _threadContexts = contexts.ToArray();
 
             foreach (MachOSegment seg in _segments)
             {
@@ -126,6 +130,31 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     break;
                 }
             }
+
+            Dictionary<uint, thread_state_t> threadContexts = new();
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                ulong esp = default;
+                switch (_header.CpuType)
+                {
+                    case MachOCpuType.X86_64:
+                        esp = contexts[i].x64.__rsp;
+                        break;
+                    case MachOCpuType.ARM64:
+                        esp = contexts[i].arm.__sp;
+                        break;
+                }
+                if (threadIds.TryGetValue(esp, out uint threadId))
+                {
+                    threadContexts.Add(threadId, contexts[i]);
+                }
+                else
+                {
+                    // Use the index as the thread id if the special thread info memory section doesn't exists
+                    threadContexts.Add((uint)i, contexts[i]);
+                }
+            }
+            Threads = threadContexts.ToImmutableDictionary();
         }
 
         private static T Read<T>(Stream stream) where T: unmanaged
@@ -182,6 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         break;
                     
                     read += count;
+                    address += (uint)count;
                     buffer = buffer.Slice(count);
                 }
             }
@@ -231,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_modules != null)
                 return _modules;
 
-            if (_dylinker != null && _dylinker.TryLookupSymbol("_dyld_all_image_infos", out ulong dyld_allImage_address))
+            if (_dylinker != null && _dylinker.TryLookupSymbol("dyld_all_image_infos", out ulong dyld_allImage_address))
             {
                 DyldAllImageInfos allImageInfo = ReadMemory<DyldAllImageInfos>(dyld_allImage_address);
                 DyldImageInfo[] allImages = new DyldImageInfo[allImageInfo.infoArrayCount];

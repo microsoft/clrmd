@@ -29,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
         SubLibrary,
         TwoLevelHints,
         PrebindChksum,
-        Segment64 = 0x19
+        Segment64 = 0x19,
+        Uuid = 0x1b,
     }
 }
