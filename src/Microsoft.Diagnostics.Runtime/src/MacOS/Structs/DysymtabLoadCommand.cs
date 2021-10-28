@@ -4,10 +4,9 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    readonly struct DysymtabCommand
+    readonly struct DysymtabLoadCommand
     {
-        public LoadCommandType cmd { get; }
-        public uint cmdsize { get; }
+        public LoadCommandHeader Header { get; }
         public uint ilocalsym { get; }
         public uint nlocalsym { get; }
         public uint iextdefsym { get; }
