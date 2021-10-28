@@ -1,7 +1,10 @@
 ﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -10,11 +13,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private readonly MachOCoreDump _parent;
 
         public ulong BaseAddress { get; }
+        public ulong ImageSize { get; }
         public string FileName { get; }
+        public ulong LoadBias { get; }
+        public ImmutableArray<byte> BuildId { get; }
 
         private readonly MachHeader64 _header;
-        private readonly SymtabCommand _symtab;
-        private readonly DysymtabCommand _dysymtab;
+        private readonly SymtabLoadCommand _symtab;
+        private readonly DysymtabLoadCommand _dysymtab;
         private readonly MachOSegment[] _segments;
         private readonly ulong _stringTableAddress;
         private volatile NList64[]? _symTable;
@@ -34,6 +40,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (header.Magic != MachHeader64.Magic64)
                 throw new InvalidDataException($"Module at {address:x} does not contain the expected Mach-O header.");
 
+            // Since MachO segments are not contiguous the image size is just the headers/commands
+            ImageSize = MachHeader64.Size + _header.SizeOfCommands;
+
             List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
 
             uint offset = (uint)sizeof(MachHeader64);
@@ -47,14 +56,26 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     case LoadCommandType.Segment64:
                         Segment64LoadCommand seg64LoadCmd = _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
                         segments.Add(new MachOSegment(seg64LoadCmd));
+                        if (seg64LoadCmd.FileOffset == 0 && seg64LoadCmd.FileSize > 0)
+                        {
+                            LoadBias = BaseAddress - seg64LoadCmd.VMAddr;
+                        }
                         break;
 
                     case LoadCommandType.SymTab:
-                        _symtab = _parent.ReadMemory<SymtabCommand>(cmdAddress);
+                        _symtab = _parent.ReadMemory<SymtabLoadCommand>(cmdAddress);
                         break;
 
                     case LoadCommandType.DysymTab:
-                        _dysymtab = _parent.ReadMemory<DysymtabCommand>(cmdAddress);
+                        _dysymtab = _parent.ReadMemory<DysymtabLoadCommand>(cmdAddress);
+                        break;
+
+                    case LoadCommandType.Uuid:
+                        var uuid = _parent.ReadMemory<UuidLoadCommand>(cmdAddress);
+                        if (uuid.Header.Kind == LoadCommandType.Uuid)
+                        {
+                            BuildId = uuid.BuildId.ToImmutableArray();
+                        }
                         break;
                 }
 
@@ -85,10 +106,18 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _dysymtab.nextdefsym; i++)
             {
                 string name = GetSymbolName(symTable[i], symbol.Length + 1);
-                if (name == symbol)
+                if (name.Length > 0)
                 {
-                    address = BaseAddress + symTable[i].n_value;
-                    return true;
+                    // Skip the leading underscores to match Linux externs
+                    if (name[0] == '_')
+                    {
+                        name = name.Substring(1);
+                    }
+                    if (name == symbol)
+                    {
+                        address = BaseAddress + symTable[i].n_value;
+                        return true;
+                    }
                 }
             }
 
@@ -106,12 +135,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_symTable != null)
                 return _symTable;
 
-            if (_dysymtab.cmd != LoadCommandType.DysymTab || _symtab.Kind != LoadCommandType.SymTab)
+            if (_dysymtab.Header.Kind != LoadCommandType.DysymTab || _symtab.Header.Kind != LoadCommandType.SymTab)
                 return null;
 
             ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff) + _dysymtab.iextdefsym * (uint)sizeof(NList64);
 
-            NList64[] symTable = new NList64[_dysymtab.iextdefsym];
+            NList64[] symTable = new NList64[_dysymtab.nextdefsym];
 
             int count;
             fixed (NList64* ptr = symTable)
@@ -125,12 +154,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             foreach (var seg in _segments)
                 if (seg.FileOffset <= fileOffset && fileOffset < seg.FileOffset + seg.FileSize)
-                    return BaseAddress + fileOffset + seg.Address - seg.FileOffset;
-
-            return 0;
+                    return LoadBias + fileOffset + seg.Address - seg.FileOffset;
+            
+            return LoadBias + fileOffset;
         }
 
-        public IEnumerable<Segment64LoadCommand> EnumerateSegments(string name)
+        public IEnumerable<Segment64LoadCommand> EnumerateSegments()
         {
             uint offset = MachHeader64.Size;
             for (int i = 0; i < _header.NumberCommands; i++)
@@ -139,11 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 LoadCommandHeader cmd = _parent.ReadMemory<LoadCommandHeader>(cmdAddress);
 
                 if (cmd.Kind == LoadCommandType.Segment64)
-                {
-                    Segment64LoadCommand seg64 = _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
-                    if (seg64.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                        yield return seg64;
-                }
+                    yield return _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
 
                 offset += cmd.Size;
             }

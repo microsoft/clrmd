@@ -8,6 +8,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal unsafe struct Segment64LoadCommand
     {
+        // MachO writable segment attribute
+        public const uint VmProtWrite = 0x02;
+
         private fixed byte SegName[16];
         public ulong VMAddr { get; }
         public ulong VMSize { get; }
