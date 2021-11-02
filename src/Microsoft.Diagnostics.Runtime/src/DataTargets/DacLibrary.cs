@@ -58,22 +58,6 @@ namespace Microsoft.Diagnostics.Runtime
             return t;
         }
 
-        internal static IntPtr TryGetDacPtr(object ix)
-        {
-            if (!(ix is IntPtr pUnk))
-            {
-                if (Marshal.IsComObject(ix))
-                    pUnk = Marshal.GetIUnknownForObject(ix);
-                else
-                    pUnk = IntPtr.Zero;
-            }
-
-            if (pUnk == IntPtr.Zero)
-                throw new ArgumentException("clrDataProcess not an instance of IXCLRDataProcess");
-
-            return pUnk;
-        }
-
         public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
             if (dataTarget is null)
