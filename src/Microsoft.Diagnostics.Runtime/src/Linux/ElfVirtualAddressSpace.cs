@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     continue;
 
                 ulong offset = address - virtualAddress;
-                int toRead = Math.Min(buffer.Length - bytesRead, (int)(virtualSize - offset));
+                int toRead = (int)Math.Min((ulong)(buffer.Length - bytesRead), virtualSize - offset);
 
                 Span<byte> slice = buffer.Slice(bytesRead, toRead);
                 int read = segment.AddressSpace.Read(offset, slice);

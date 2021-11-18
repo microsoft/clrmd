@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (basePosition < _baseStart)
                 return 0;
 
-            if ((int)_length < buffer.Length)
+            if (_length < (ulong)buffer.Length)
                 buffer = buffer.Slice(0, (int)_length);
 
             return _baseAddressSpace.Read(basePosition, buffer);
