@@ -313,7 +313,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 }
                 finally
                 {
-                    _ = Native.mach_vm_deallocate(_task, (ulong)threads, threadsCount * sizeof(uint));
+                    _ = Native.mach_vm_deallocate(Native.mach_task_self(), (ulong)threads, threadsCount * sizeof(uint));
                 }
             }
         }
