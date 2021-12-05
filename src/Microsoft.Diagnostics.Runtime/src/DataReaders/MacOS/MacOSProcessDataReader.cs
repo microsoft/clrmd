@@ -84,10 +84,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool _)
+        private void Dispose(bool disposing)
         {
+            _ = disposing;
             if (_disposed)
                 return;
+
+            foreach (uint threadAct in _threadActs.Values)
+                _ = Native.mach_port_deallocate(Native.mach_task_self(), threadAct);
 
             if (_suspended)
             {
@@ -100,6 +104,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                 _suspended = false;
             }
+
+            _ = Native.mach_port_deallocate(Native.mach_task_self(), (uint)_task);
 
             _disposed = true;
         }
@@ -404,6 +410,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             [DllImport(LibSystem)]
             internal static extern int mach_vm_deallocate(int target_task, /*UIntPtr*/ulong address, /*UIntPtr*/ulong size);
+
+            [DllImport(LibSystem)]
+            internal static extern int mach_port_deallocate(/*uint*/int task, uint name);
 
             [DllImport(LibSystem)]
             internal static extern int waitpid(int pid, IntPtr status, int options);
