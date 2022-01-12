@@ -40,8 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             _task = task;
 
-            _memoryRegions = LoadMemoryRegions();
-
             if (suspend)
             {
                 status = Native.ptrace(Native.PT_ATTACH, processId);
@@ -57,6 +55,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                 _suspended = true;
             }
+
+            _memoryRegions = LoadMemoryRegions();
 
             Architecture = RuntimeInformation.ProcessArchitecture switch
             {
@@ -313,7 +313,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 }
                 finally
                 {
-                    _ = Native.mach_vm_deallocate(_task, (ulong)threads, threadsCount * sizeof(uint));
+                    _ = Native.mach_vm_deallocate(Native.mach_task_self(), (ulong)threads, threadsCount * sizeof(uint));
                 }
             }
         }
