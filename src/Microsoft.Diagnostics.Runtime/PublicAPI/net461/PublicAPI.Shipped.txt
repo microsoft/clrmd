@@ -2377,3 +2377,20 @@ virtual Microsoft.Diagnostics.Runtime.SyncBlock.IsRuntimeCallWrapper.get -> bool
 virtual Microsoft.Diagnostics.Runtime.SyncBlock.RecursionCount.get -> int
 virtual Microsoft.Diagnostics.Runtime.SyncBlock.WaitingThreadCount.get -> int
 virtual Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.Dispose(bool disposing) -> void
+Microsoft.Diagnostics.Runtime.ClrArray.ClrArray() -> void
+Microsoft.Diagnostics.Runtime.ClrGenericParameter.ClrGenericParameter() -> void
+Microsoft.Diagnostics.Runtime.ClrObject.ClrObject() -> void
+Microsoft.Diagnostics.Runtime.ClrReference.ClrReference() -> void
+Microsoft.Diagnostics.Runtime.ClrStackRoot.ClrStackRoot() -> void
+Microsoft.Diagnostics.Runtime.ClrValueType.ClrValueType() -> void
+Microsoft.Diagnostics.Runtime.ComInterfaceData.ComInterfaceData() -> void
+Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress.ClrDataAddress() -> void
+Microsoft.Diagnostics.Runtime.GCDesc.GCDesc() -> void
+Microsoft.Diagnostics.Runtime.GCRootPath.GCRootPath() -> void
+Microsoft.Diagnostics.Runtime.HotColdRegions.HotColdRegions() -> void
+Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment.FinalizerQueueSegment() -> void
+Microsoft.Diagnostics.Runtime.MemoryRange.MemoryRange() -> void
+Microsoft.Diagnostics.Runtime.Utilities.HResult.HResult() -> void
+Microsoft.Diagnostics.Runtime.Utilities.SigParser.SigParser() -> void
+Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea() -> void
+Microsoft.Diagnostics.Runtime.VersionInfo.VersionInfo() -> void
