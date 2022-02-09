@@ -103,7 +103,7 @@ stages:
 
         - job: MacOS
           pool:
-            name: Hosted macOS
+            vmImage: macos-11
 
           strategy:
             matrix:
