@@ -94,18 +94,36 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (symbol is null)
                 throw new ArgumentNullException(nameof(symbol));
 
-            address = 0;
+            if (_stringTableAddress != 0)
+            {
+                // First, search just the "external" export symbols 
+                if (TryLookupSymbol(_dysymtab.iextdefsym, _dysymtab.nextdefsym, symbol, out address))
+                {
+                    return true;
+                }
 
-            if (_stringTableAddress == 0)
-                return false;
+                // If not found in external symbols, search all of them
+                if (TryLookupSymbol(0, _symtab.NSyms, symbol, out address))
+                {
+                    return true;
+                }
+            }
+
+            address = 0;
+            return false;
+        }
+
+        private bool TryLookupSymbol(uint start, uint nsyms, string symbol, out ulong address)
+        {
+            address = 0;
 
             NList64[]? symTable = ReadSymbolTable();
             if (symTable is null)
                 return false;
 
-            for (int i = 0; i < _dysymtab.nextdefsym; i++)
+            for (uint i = 0; i < nsyms; i++)
             {
-                string name = GetSymbolName(symTable[i], symbol.Length + 1);
+                string name = GetSymbolName(symTable[start + i], symbol.Length + 1);
                 if (name.Length > 0)
                 {
                     // Skip the leading underscores to match Linux externs
@@ -115,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     }
                     if (name == symbol)
                     {
-                        address = BaseAddress + symTable[i].n_value;
+                        address = BaseAddress + symTable[start + i].n_value;
                         return true;
                     }
                 }
@@ -138,9 +156,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_dysymtab.Header.Kind != LoadCommandType.DysymTab || _symtab.Header.Kind != LoadCommandType.SymTab)
                 return null;
 
-            ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff) + _dysymtab.iextdefsym * (uint)sizeof(NList64);
-
-            NList64[] symTable = new NList64[_dysymtab.nextdefsym];
+            ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff);
+            NList64[] symTable = new NList64[_symtab.NSyms];
 
             int count;
             fixed (NList64* ptr = symTable)
