@@ -121,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (symTable is null)
                 return false;
 
-            for (uint i = 0; i < nsyms; i++)
+            for (uint i = 0; i < nsyms && start + i < symTable.Length; i++)
             {
                 string name = GetSymbolName(symTable[start + i], symbol.Length + 1);
                 if (name.Length > 0)
