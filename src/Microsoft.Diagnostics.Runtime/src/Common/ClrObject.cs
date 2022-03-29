@@ -221,9 +221,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field to retrieve.</param>
         /// <param name="result">True if the field was found and the field's type is an object.  Returns false otherwise.</param>
         /// <returns>A ClrObject of the given field.</returns>
-        public bool TryReadObjectField(string fieldName!!, out ClrObject result)
+        public bool TryReadObjectField(string fieldName, out ClrObject result)
         {
             result = default;
+            if (fieldName is null)
+                return false;
 
             ClrType? type = Type;
             if (type is null)
@@ -254,7 +256,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A ClrObject of the given field.</returns>
         /// <exception cref="ArgumentException">The given field does not exist in the object.</exception>
         /// <exception cref="InvalidOperationException"><see cref="IsNull"/> is <see langword="true"/>.</exception>
-        public ClrObject ReadObjectField(string fieldName!!)
+        public ClrObject ReadObjectField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
             ClrInstanceField? field = type.GetFieldByName(fieldName);
@@ -273,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime
             return heap.GetObject(obj);
         }
 
-        public ClrValueType ReadValueTypeField(string fieldName!!)
+        public ClrValueType ReadValueTypeField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
 
@@ -341,10 +343,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="fieldName">The name of the field.</param>
         /// <param name="result">The value of the missing field.</param>
         /// <returns>True if we obtained this field and read its value, false otherwise.</returns>
-        public bool TryReadField<T>(string fieldName!!, out T result)
+        public bool TryReadField<T>(string fieldName, out T result)
             where T : unmanaged
         {
             result = default;
+
+            if (fieldName is null)
+                return false;
 
             ClrType? type = Type;
             if (type is null)
