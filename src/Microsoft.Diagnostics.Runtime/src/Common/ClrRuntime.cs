@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the <see cref="DataTarget"/> associated with this runtime.
         /// </summary>
-        public abstract DataTarget? DataTarget { get; }
+        public abstract DataTarget DataTarget { get; }
 
         /// <summary>
         /// Returns whether you are allowed to call into the transitive closure of ClrMD objects created from
