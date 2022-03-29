@@ -1482,7 +1482,7 @@ abstract Microsoft.Diagnostics.Runtime.ClrRuntime.AppDomains.get -> System.Colle
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.BaseClassLibrary.get -> Microsoft.Diagnostics.Runtime.ClrModule!
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.ClrInfo.get -> Microsoft.Diagnostics.Runtime.ClrInfo!
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.DacLibrary.get -> Microsoft.Diagnostics.Runtime.DacLibrary!
-abstract Microsoft.Diagnostics.Runtime.ClrRuntime.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget?
+abstract Microsoft.Diagnostics.Runtime.ClrRuntime.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.Dispose(bool disposing) -> void
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateHandles() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrHandle!>!
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateModules() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrModule!>!
@@ -1876,7 +1876,7 @@ override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.AppDomains.ge
 override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.BaseClassLibrary.get -> Microsoft.Diagnostics.Runtime.ClrModule!
 override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.ClrInfo.get -> Microsoft.Diagnostics.Runtime.ClrInfo!
 override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.DacLibrary.get -> Microsoft.Diagnostics.Runtime.DacLibrary!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget?
+override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
 override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.EnumerateHandles() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrHandle!>!
 override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.EnumerateModules() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrModule!>!
 override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.FlushCachedData() -> void
