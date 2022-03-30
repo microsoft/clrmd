@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
 
                 curr++;
-                if (curr >= max)
+                if (curr > max)
                     break;
 
                 hr = _sos.GetSyncBlockData(curr, out data);

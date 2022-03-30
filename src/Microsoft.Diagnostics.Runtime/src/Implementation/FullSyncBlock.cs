@@ -27,7 +27,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IsMonitorHeld = syncBlk.MonitorHeld != 0;
             HoldingThreadAddress = syncBlk.HoldingThread;
             RecursionCount = syncBlk.Recursion >= int.MaxValue ? int.MaxValue : (int)syncBlk.Recursion;
-            WaitingThreadCount = (int)syncBlk.AdditionalThreadCount;
+            // https://stackoverflow.com/questions/2203000/windbg-sos-explanation-of-syncblk-output
+            WaitingThreadCount = IsMonitorHeld ? (int)((syncBlk.MonitorHeld - 1) / 2) : (int)syncBlk.AdditionalThreadCount;
         }
     }
 }
