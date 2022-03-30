@@ -1,4 +1,21 @@
 #nullable enable
+Microsoft.Diagnostics.Runtime.ClrDelegate
+Microsoft.Diagnostics.Runtime.ClrDelegate.ClrDelegate() -> void
+Microsoft.Diagnostics.Runtime.ClrDelegate.ClrDelegate(Microsoft.Diagnostics.Runtime.ClrObject obj) -> void
+Microsoft.Diagnostics.Runtime.ClrDelegate.EnumerateDelegateTargets() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrDelegateTarget!>!
+Microsoft.Diagnostics.Runtime.ClrDelegate.GetDelegateTarget() -> Microsoft.Diagnostics.Runtime.ClrDelegateTarget?
+Microsoft.Diagnostics.Runtime.ClrDelegate.HasMultipleTargets.get -> bool
+Microsoft.Diagnostics.Runtime.ClrDelegate.Object.get -> Microsoft.Diagnostics.Runtime.ClrObject
+Microsoft.Diagnostics.Runtime.ClrDelegateTarget
+Microsoft.Diagnostics.Runtime.ClrDelegateTarget.ClrDelegateTarget(Microsoft.Diagnostics.Runtime.ClrDelegate del, Microsoft.Diagnostics.Runtime.ClrObject target, Microsoft.Diagnostics.Runtime.ClrMethod! method) -> void
+Microsoft.Diagnostics.Runtime.ClrDelegateTarget.Method.get -> Microsoft.Diagnostics.Runtime.ClrMethod!
+Microsoft.Diagnostics.Runtime.ClrDelegateTarget.Parent.get -> Microsoft.Diagnostics.Runtime.ClrDelegate
+Microsoft.Diagnostics.Runtime.ClrDelegateTarget.TargetObject.get -> Microsoft.Diagnostics.Runtime.ClrObject
+Microsoft.Diagnostics.Runtime.ClrObject.AsDelegate() -> Microsoft.Diagnostics.Runtime.ClrDelegate
+Microsoft.Diagnostics.Runtime.ClrObject.IsDelegate.get -> bool
+Microsoft.Diagnostics.Runtime.ClrObject.TryReadField<T>(string! fieldName, out T result) -> bool
+Microsoft.Diagnostics.Runtime.ClrObject.TryReadObjectField(string! fieldName, out Microsoft.Diagnostics.Runtime.ClrObject result) -> bool
+Microsoft.Diagnostics.Runtime.ClrObject.TryReadValueTypeField(string! fieldName, out Microsoft.Diagnostics.Runtime.ClrValueType result) -> bool
 Microsoft.Diagnostics.Runtime.AMD64Context
 Microsoft.Diagnostics.Runtime.AMD64Context.AMD64Context() -> void
 Microsoft.Diagnostics.Runtime.AMD64Context.ContextFlags -> uint
