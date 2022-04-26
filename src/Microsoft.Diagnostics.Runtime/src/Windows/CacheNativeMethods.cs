@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [return: MarshalAs(UnmanagedType.Bool)]
             private static extern bool AllocateUserPhysicalPages(IntPtr processHandle, ref UIntPtr numberOfPages, UIntPtr pageArray);
 
-            internal static bool MapUserPhysicalPages(UIntPtr virtualAddress, uint numberOfPages, UIntPtr pageArray)
+            internal static bool MapUserPhysicalPages(UIntPtr virtualAddress, ulong numberOfPages, UIntPtr pageArray)
             {
                 UIntPtr numberOfPagesToMap = new UIntPtr(numberOfPages);
                 return MapUserPhysicalPages(virtualAddress, numberOfPagesToMap, pageArray);

@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal class CachePage<T>
     {
-        internal CachePage(T data, uint dataExtent)
+        internal CachePage(T data, ulong dataExtent)
         {
             Data = data;
             DataExtent = dataExtent;
@@ -17,6 +17,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public T Data { get; }
 
-        public uint DataExtent { get; }
+        public ulong DataExtent { get; }
     }
 }
