@@ -43,12 +43,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 
-            return data.DataRemoved;
+            return (long)data.DataRemoved;
         }
 
         protected override uint EntryPageSize => SystemPageSize;
 
-        protected override (byte[] Data, uint DataExtent) GetPageDataAtOffset(uint pageAlignedOffset)
+        protected override (byte[] Data, ulong DataExtent) GetPageDataAtOffset(ulong pageAlignedOffset)
         {
             // NOTE: The caller ensures this method is not called concurrently
 
@@ -56,17 +56,17 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + pageAlignedOffset), EntryPageSize);
 
             uint readSize;
-            if ((pageAlignedOffset + EntryPageSize) <= (uint)_segmentData.Size)
+            if (pageAlignedOffset + EntryPageSize <= _segmentData.Size)
             {
                 readSize = EntryPageSize;
             }
             else
             {
-                readSize = (uint)_segmentData.Size - pageAlignedOffset;
+                readSize = (uint)(_segmentData.Size - pageAlignedOffset);
             }
 
             bool pageInFailed = false;
-            using (MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + pageAlignedOffset, size: (long)readSize, MemoryMappedFileAccess.Read))
+            using (MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + (long)pageAlignedOffset, size: readSize, MemoryMappedFileAccess.Read))
             {
                 try
                 {
@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        protected override uint InvokeCallbackWithDataPtr(CachePage<byte[]> page, Func<UIntPtr, uint, uint> callback)
+        protected override uint InvokeCallbackWithDataPtr(CachePage<byte[]> page, Func<UIntPtr, ulong, uint> callback)
         {
             unsafe
             {
@@ -130,10 +130,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        protected override uint CopyDataFromPage(CachePage<byte[]> page, IntPtr buffer, uint inPageOffset, uint byteCount)
+        protected override uint CopyDataFromPage(CachePage<byte[]> page, IntPtr buffer, ulong inPageOffset, uint byteCount)
         {
             // Calculate how much of the requested read can be satisfied by the page
-            uint sizeRead = Math.Min(page.DataExtent - inPageOffset, byteCount);
+            uint sizeRead = (uint)Math.Min(page.DataExtent - inPageOffset, byteCount);
 
             unsafe
             {
@@ -157,10 +157,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        private (uint DataRemoved, uint ItemsSkipped) TryRemoveAllPagesFromCache(bool disposeLocks)
+        private (ulong DataRemoved, uint ItemsSkipped) TryRemoveAllPagesFromCache(bool disposeLocks)
         {
             // Assume we will be able to evict all non-null pages
-            uint dataRemoved = 0;
+            ulong dataRemoved = 0;
             uint itemsSkipped = 0;
 
             for (int i = 0; i < _pages.Length; i++)
