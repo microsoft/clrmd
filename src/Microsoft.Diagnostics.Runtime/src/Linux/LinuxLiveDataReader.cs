@@ -41,17 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (suspend)
             {
-                status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
-
-                if (status >= 0)
-                    status = waitpid(processId, IntPtr.Zero, 0);
-
-                if (status < 0)
-                {
-                    int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", errno);
-                }
-
+                LoadThreadsAndAttach();
                 _suspended = true;
             }
 
@@ -84,13 +74,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (_suspended)
             {
-                int status = (int)ptrace(PTRACE_DETACH, ProcessId, IntPtr.Zero, IntPtr.Zero);
-                if (status < 0)
+                ClrDiagnosticsException? error = null;
+                foreach (var tid in _threadIDs)
                 {
-                    int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
+                    var status = (int)ptrace(PTRACE_DETACH, (int) tid, IntPtr.Zero, IntPtr.Zero);
+                    if (status < 0 && error == null)
+                    {
+                        var errno = Marshal.GetLastWin32Error();
+                        // remember the first error and throw it later; we should still try to detach from other tids
+                        error = new ClrDiagnosticsException($"Could not detach from process {tid}, errno: {errno}", errno);
+                    }
                 }
-
+                if (error != null)
+                {
+                    throw error;
+                }
                 _suspended = false;
             }
 
@@ -261,18 +259,47 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
+        private void LoadThreadsAndAttach()
+        {
+            foreach (var tid in GetThreads(ProcessId))
+            {
+                var status = (int)ptrace(PTRACE_ATTACH, (int) tid, IntPtr.Zero, IntPtr.Zero);
+                if (status >= 0)
+                {
+                    status = waitpid((int)tid, IntPtr.Zero, 0);
+                }
+                if (status >= 0)
+                {
+                    // Remember the threads we managed to attach to
+                    _threadIDs.Add(tid);
+                }
+
+                // Only throw if we can't attach to the main thread as some threads could exit in the meantime
+                if (status < 0 && tid == ProcessId)
+                {
+                    var errno = Marshal.GetLastWin32Error();
+                    throw new ClrDiagnosticsException($"Could not attach to thread {tid}, errno: {errno}", errno);
+                }
+            }
+        }
+
         private void LoadThreads()
         {
             if (_threadIDs.Count == 0)
             {
-                string taskDirPath = $"/proc/{ProcessId}/task";
-                foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
+                _threadIDs.AddRange(GetThreads(ProcessId));
+            }
+        }
+
+        private static IEnumerable<uint> GetThreads(int pid)
+        {
+            string taskDirPath = $"/proc/{pid}/task";
+            foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
+            {
+                string dirName = Path.GetFileName(taskDir);
+                if (uint.TryParse(dirName, out uint taskId))
                 {
-                    string dirName = Path.GetFileName(taskDir);
-                    if (uint.TryParse(dirName, out uint taskId))
-                    {
-                        _threadIDs.Add(taskId);
-                    }
+                    yield return taskId;
                 }
             }
         }
