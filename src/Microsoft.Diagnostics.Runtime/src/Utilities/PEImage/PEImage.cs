@@ -229,6 +229,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return _stream.Read(dest);
         }
 
+        internal int ReadFromOffset(int offset, Span<byte> dest)
+        {
+            SeekTo(offset);
+            return _stream.Read(dest);
+        }
+
         /// <summary>
         /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
         /// version tab a file's property page is populated with).
