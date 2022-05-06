@@ -202,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             try
             {
                 Span<char> span = new Span<char>(buffer, 0, len);
-                int count = Image.Read(offset, MemoryMarshal.AsBytes(span)) >> 1;
+                int count = Image.ReadFromOffset(offset, MemoryMarshal.AsBytes(span)) >> 1;
 
                 int i = 0;
                 while (i < len && buffer[i] != 0)

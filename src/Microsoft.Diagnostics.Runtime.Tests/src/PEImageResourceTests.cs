@@ -37,14 +37,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrInfo clr = dt.ClrVersions.Single();
             using PEImage image = clr.ModuleInfo.GetPEImage();
             ResourceEntry entry = image.Resources;
-            WalkEntry(entry);
+
+            bool found = false;
+            WalkEntry(entry, ref found);
+            Assert.True(found);
         }
 
-        private static void WalkEntry(ResourceEntry entry, int depth = 0)
+        private static void WalkEntry(ResourceEntry entry, ref bool found, int depth = 0)
         {
             foreach (var child in entry.Children)
             {
-                WalkEntry(child, depth + 1);
+                WalkEntry(child, ref found, depth + 1);
 
                 if (child.Name == "CLRDEBUGINFO")
                 {
@@ -58,6 +61,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                     Assert.Equal(0, dbg.dwDacSizeOfImage & 0xf);
                     Assert.Equal(0, dbg.dwDbiSizeOfImage & 0xf);
+
+                    found = true;
                 }
             }
         }
