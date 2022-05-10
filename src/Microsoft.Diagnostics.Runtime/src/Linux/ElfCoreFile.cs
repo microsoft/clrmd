@@ -214,7 +214,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ImmutableDictionary<ulong, ElfLoadedImage>.Builder result = ImmutableDictionary.CreateBuilder<ulong, ElfLoadedImage>();
             foreach (ElfLoadedImage image in lookup.Values)
             {
-                image.FixBaseAddress();
                 result.Add(image.BaseAddress, image);
             }
 
