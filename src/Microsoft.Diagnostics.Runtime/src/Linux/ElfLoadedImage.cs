@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,9 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public class ElfLoadedImage
     {
-        private readonly SortedList<ulong, ElfFileTableEntryPointers64> _fileTable = new(4);
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
+        private ulong _baseAddress;
+        private ulong _minimumPointer = ulong.MaxValue;
         private ulong _end;
 
         // The path of the image on disk.
@@ -24,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// The BaseAddress of this image
         /// </summary>
-        public ulong BaseAddress { get; private set; }
+        public ulong BaseAddress => _baseAddress == 0 ? _minimumPointer : _baseAddress;
 
         /// <summary>
         /// The size of this image in memory.
@@ -69,27 +71,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
         {
-            _fileTable.Add(pointers.Start, pointers);
+            if (_end < pointers.Stop)
+                _end = pointers.Stop;
 
             // There are cases (like .NET single-file modules) where the first NT_FILE entry isn't the ELF
             // or PE header (i.e the base address). The header is the first entry with PageOffset == 0. For
             // ELF modules there should only be one PageOffset == 0 entry but with the memory mapped PE
             // assemblies, there can be more than one PageOffset == 0 entry and the first one is the base
             // address.
-            if (BaseAddress == 0 && pointers.PageOffset == 0)
-                BaseAddress = pointers.Start;
+            if (_baseAddress == 0 && pointers.PageOffset == 0)
+                _baseAddress = pointers.Start;
 
-            if (_end < pointers.Stop)
-                _end = pointers.Stop;
-        }
-
-        internal void FixBaseAddress()
-        {
-            // If no base address was found in AddTableEntryPointers, use the lowest start address in
-            // the sorted list. There has to be at least one entry. This fixes the .NET 5.0 MacOS ELF
-            // dumps which have modules with no PageOffset == 0 entries.
-            if (BaseAddress == 0)
-                BaseAddress = _fileTable.Keys.First();
+            // If no load address was found, will use the lowest start address. There has to be at least one
+            // entry. This fixes the .NET 5.0 MacOS ELF dumps which have modules with no PageOffset == 0 entries.
+            _minimumPointer = Math.Min(pointers.Start, _minimumPointer);
         }
 
         /// <summary>
