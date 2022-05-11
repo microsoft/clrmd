@@ -170,29 +170,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             bytesRead = 0;
             ModuleInfo? info = GetModule(address);
-            if (info != null)
+            if (info != null && info.FileName != null)
             {
-                string? filePath = null;
-                if (!string.IsNullOrEmpty(info.FileName))
-                {
-                    if (info.FileName!.EndsWith(".so", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // TODO
-                        Debug.WriteLine($"TODO: Implement reading from module '{info.FileName}'");
-                        return HResult.E_NOTIMPL;
-                    }
-
-                    filePath = _dataTarget.BinaryLocator?.FindBinary(info.FileName!, info.IndexTimeStamp, info.IndexFileSize, true);
-                }
-
-                if (filePath is null)
-                {
-                    bytesRead = 0;
-                    return HResult.E_FAIL;
-                }
-
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEImage? peimage = _dataTarget.LoadPEImage(filePath);
+                PEImage? peimage = _dataTarget.LoadPEImage(info.FileName, info.IndexTimeStamp, info.IndexFileSize, checkProperties: true);
                 if (peimage != null)
                 {
                     lock (peimage)
@@ -265,12 +246,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (buffer == IntPtr.Zero)
                 return HResult.E_INVALIDARG;
 
-            string? filePath = _dataTarget.BinaryLocator?.FindBinary(fileName, imageTimestamp, imageSize, true);
-            if (filePath is null)
-                return HResult.E_FAIL;
-
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEImage? peimage = _dataTarget.LoadPEImage(filePath);
+            PEImage? peimage = _dataTarget.LoadPEImage(fileName, imageTimestamp, imageSize, checkProperties: true);
             if (peimage is null)
                 return HResult.E_FAIL;
 

@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
-        public IBinaryLocator? BinaryLocator { get => _target.BinaryLocator; set => _target.BinaryLocator = value; }
+        public IFileLocator? FileLocator { get => _target.FileLocator; set => _target.FileLocator = value; }
 
         /// <summary>
         /// Creates a DataTarget from the given reader.
@@ -57,25 +57,14 @@ namespace Microsoft.Diagnostics.Runtime
             DataReader = _target.DataReader;
             CacheOptions = _target.CacheOptions ?? new CacheOptions();
 
-            IBinaryLocator? locator = _target.BinaryLocator;
+            IFileLocator? locator = _target.FileLocator;
             if (locator == null)
             {
-                if (DataReader.TargetPlatform == OSPlatform.Windows)
-                {
-                    string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "http://msdl.microsoft.com/download/symbols";
-                    locator = new SymbolServerLocator(sympath);
-                }
-                else if (DataReader.TargetPlatform == OSPlatform.Linux)
-                {
-                    locator = new LinuxDefaultSymbolLocator(DataReader);
-                }
-                else
-                {
-                    locator = new LinuxDefaultSymbolLocator(DataReader);
-                }
+                string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "";
+                locator = SymbolGroup.CreateFromSymbolPath(sympath);
             }
 
-            BinaryLocator = locator;
+            FileLocator = locator;
         }
 
         public void Dispose()
@@ -106,37 +95,47 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal PEImage? LoadPEImage(string path)
+        internal PEImage? LoadPEImage(string fileName, int timeStamp, int fileSize, bool checkProperties)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (string.IsNullOrEmpty(path))
+            if (string.IsNullOrEmpty(fileName))
                 return null;
+
+            string key = $"{fileName}/{timeStamp:x}{fileSize:x}";
 
             PEImage? result;
 
             lock (_pefileCache)
             {
-                if (_pefileCache.TryGetValue(path, out result))
+                if (_pefileCache.TryGetValue(key, out result))
                     return result;
             }
 
-            result = new PEImage(File.OpenRead(path));
+            string? path = FileLocator?.FindPEImage(fileName, timeStamp, fileSize, checkProperties);
 
-            if (!result.IsValid)
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                result = new PEImage(File.OpenRead(fileName));
+                if (!result.IsValid)
+                    result = null;
+            }
+            else
+            {
                 result = null;
+            }
 
             lock (_pefileCache)
             {
                 // We may have raced with another thread and that thread put a value here first
-                if (_pefileCache.TryGetValue(path, out PEImage? cached) && cached != null)
+                if (_pefileCache.TryGetValue(key, out PEImage? cached) && cached != null)
                 {
                     result?.Dispose(); // We don't need this instance now.
                     return cached;
                 }
 
-                return _pefileCache[path] = result;
+                return _pefileCache[fileName] = result;
             }
         }
 

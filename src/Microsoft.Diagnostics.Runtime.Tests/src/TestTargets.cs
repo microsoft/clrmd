@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 DataTarget dataTarget = DataTarget.LoadDump(path);
-                dataTarget.BinaryLocator = new SymbolServerLocator(string.Empty);
+                dataTarget.FileLocator = SymbolGroup.CreateFromSymbolPath(string.Empty);
                 return dataTarget;
             }
             else

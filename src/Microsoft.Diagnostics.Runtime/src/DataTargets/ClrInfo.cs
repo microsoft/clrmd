@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime
                 dac = null;
 
             if (DacInfo.PlatformSpecificFileName != null)
-                dac ??= DataTarget.BinaryLocator?.FindBinary(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
+                dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
 
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
