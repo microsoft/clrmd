@@ -286,7 +286,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             IntPtr self,
             out ulong address)
         {
-            Debug.Assert(_runtimeBaseAddress != 0);
+            DebugOnly.Assert(_runtimeBaseAddress != 0);
             address = _runtimeBaseAddress;
             return HResult.S_OK;
         }
