@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Builders;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -84,16 +85,49 @@ namespace Microsoft.Diagnostics.Runtime
             if (dac != null && !File.Exists(dac))
                 dac = null;
 
-            if (DacInfo.PlatformSpecificFileName != null)
-                dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
-
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
+
+            if (DataTarget.DataReader.TargetPlatform == OSPlatform.Windows)
+            {
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    ThrowCrossDebugError();
+
+                dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, DacInfo.IndexTimeStamp, DacInfo.IndexFileSize, checkProperties: false);
+            }
+            else if (DataTarget.DataReader.TargetPlatform == OSPlatform.Linux)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    dac ??= DataTarget.FileLocator?.FindElfImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, checkProperties: false);
+                else
+                    ThrowCrossDebugError();
+            }
+            else if (DataTarget.DataReader.TargetPlatform == OSPlatform.OSX)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    dac ??= DataTarget.FileLocator?.FindMachOImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, checkProperties: false);
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                else
+                    ThrowCrossDebugError();
+            }
+            else
+            {
+                ThrowCrossDebugError();
+            }
+
 
             if (!File.Exists(dac))
                 throw new FileNotFoundException("Could not find matching DAC for this runtime.", DacInfo.PlatformSpecificFileName);
 
             return ConstructRuntime(dac!);
+        }
+
+        private void ThrowCrossDebugError()
+        {
+            throw new InvalidOperationException($"Debugging a {DataTarget.DataReader.TargetPlatform} crash is not supported on this operating system.");
         }
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
