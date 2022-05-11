@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="archivedUnder">The file or keyword that this binary is archived under.</param>
         /// <param name="buildIdOrUUID">The buildId or UUID of the binary specified by <paramref name="archivedUnder"/>.</param>
         /// <param name="originalPlatform">The platform of the binary specified by <paramref name="archivedUnder"/>.</param>
+        /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to or <see langword="null"/> if it was not found.</returns>
         string? FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties);
 
