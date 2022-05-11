@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (key is null)
                 return null;
 
-            string fullPath = Path.Combine(Path.GetTempPath(), key);
+            string fullPath = Path.Combine(Location, key);
             return File.Exists(fullPath) ? fullPath : null;
         }
 
