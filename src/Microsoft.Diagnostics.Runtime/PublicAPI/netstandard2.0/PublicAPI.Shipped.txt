@@ -1214,7 +1214,7 @@ Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.WinRTObject.get -> ulong
 Microsoft.Diagnostics.Runtime.ClrRuntimeInfo
 Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DacModuleIndex -> byte*
 Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DbiModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.RuntimeInfo() -> void
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.ClrRuntimeInfo() -> void
 Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.RuntimeModuleIndex -> byte*
 Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Signature -> byte*
 Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Version -> int
