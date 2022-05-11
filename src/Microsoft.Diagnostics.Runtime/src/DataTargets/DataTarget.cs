@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return cached;
                 }
 
-                return _pefileCache[fileName] = result;
+                return _pefileCache[key] = result;
             }
         }
 
