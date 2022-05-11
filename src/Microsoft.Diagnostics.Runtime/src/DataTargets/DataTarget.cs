@@ -162,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return _clrs;
 
             Architecture arch = DataReader.Architecture;
-            RuntimeInfo? singleFileRuntimeInfo = null;
+            ClrRuntimeInfo? singleFileRuntimeInfo = null;
             ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
@@ -179,16 +179,16 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    if (DataReader is not IExportReader exportReader || !exportReader.TryGetSymbolAddress(module.ImageBase, RuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
+                    if (DataReader is not IExportReader exportReader || !exportReader.TryGetSymbolAddress(module.ImageBase, ClrRuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
                         continue;
 
-                    if (!DataReader.Read(runtimeInfoAddress, out RuntimeInfo runtimeInfo))
+                    if (!DataReader.Read(runtimeInfoAddress, out ClrRuntimeInfo runtimeInfo))
                         continue;
 
                     unsafe
                     {
-                        string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, RuntimeInfo.SignatureValueLength);
-                        if (signature != RuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
+                        string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, ClrRuntimeInfo.SignatureValueLength);
+                        if (signature != ClrRuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
                             continue;
 
                         platform = DataReader.TargetPlatform;
