@@ -185,15 +185,11 @@ namespace Microsoft.Diagnostics.Runtime
                     if (!DataReader.Read(runtimeInfoAddress, out RuntimeInfo runtimeInfo))
                         continue;
 
-
                     unsafe
                     {
-                        // 
                         string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, RuntimeInfo.SignatureValueLength);
                         if (signature != RuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
                             continue;
-
-                        using PEImage? clrPE = module.GetPEImage();
 
                         platform = DataReader.TargetPlatform;
                         flavor = ClrFlavor.Core;
@@ -203,8 +199,8 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             if (runtimeInfo.RuntimeModuleIndex[0] >= sizeof(int) + sizeof(int))
                             {
-                                runtimeTimeStamp = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte), sizeof(int)).ToArray(), 0);
-                                runtimeFileSize = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte) + sizeof(int), sizeof(int)).ToArray(), 0);
+                                runtimeTimeStamp = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.DacModuleIndex + sizeof(byte), sizeof(int)).ToArray(), 0);
+                                runtimeFileSize = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.DacModuleIndex + sizeof(byte) + sizeof(int), sizeof(int)).ToArray(), 0);
                                 dacAgnosticName = ClrInfoProvider.GetDacFileName(flavor, platform);
                             }
                         }
