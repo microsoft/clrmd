@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -25,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private bool _suspended;
         private bool _disposed;
+        private readonly int _machTaskSelf;
 
         public MacOSProcessDataReader(int processId, bool suspend)
         {
@@ -34,7 +36,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             ProcessId = processId;
 
-            int kr = Native.task_for_pid(Native.mach_task_self(), processId, out int task);
+            _machTaskSelf = Native.mach_task_self();
+
+            int kr = Native.task_for_pid(_machTaskSelf, processId, out int task);
             if (kr != 0)
                 throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
 
@@ -86,12 +90,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private void Dispose(bool disposing)
         {
-            _ = disposing;
             if (_disposed)
                 return;
 
             foreach (uint threadAct in _threadActs.Values)
-                _ = Native.mach_port_deallocate(Native.mach_task_self(), threadAct);
+                _ = Native.mach_port_deallocate(_machTaskSelf, threadAct);
 
             if (_suspended)
             {
@@ -99,13 +102,19 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
+
+                    // We don't want to bring down the process from the finalizer thread.
+                    // We'll only throw here if we are in a dispose call.
+                    if (disposing)
+                        throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}");
+                    else
+                        Trace.WriteLine($"Could not detach from process {ProcessId}, errno: {errno}");
                 }
 
                 _suspended = false;
             }
 
-            _ = Native.mach_port_deallocate(Native.mach_task_self(), (uint)_task);
+            _ = Native.mach_port_deallocate(_machTaskSelf, (uint)_task);
 
             _disposed = true;
         }
