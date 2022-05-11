@@ -3,16 +3,13 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    public class BinaryLocatorTests
+    public class FileLocatorTests
     {
         public static readonly string WellKnownDac = "mscordacwks_X86_X86_4.6.96.00.dll";
         public static readonly int WellKnownDacTimeStamp = 0x55b96946;
@@ -27,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return SymbolGroup.CreateFromSymbolPath($"srv*{Helpers.TestWorkingDirectory}*http://msdl.microsoft.com/download/symbols");
         }
 
-        [Fact]//(Skip = "Touches network, don't run regularly.")]
+        [Fact(Skip = "Touches network, don't run regularly.")]
         public void FindBinaryNegativeTest()
         {
             IFileLocator locator = GetLocator();
@@ -36,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        [Fact]//(Skip = "Touches network, don't run regularly.")]
+        [Fact(Skip = "Touches network, don't run regularly.")]
         public void FindBinaryTest()
         {
             IFileLocator locator = GetLocator();
