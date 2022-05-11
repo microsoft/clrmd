@@ -296,7 +296,7 @@ Microsoft.Diagnostics.Runtime.ClrInfo.DacInfo.get -> Microsoft.Diagnostics.Runti
 Microsoft.Diagnostics.Runtime.ClrInfo.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
 Microsoft.Diagnostics.Runtime.ClrInfo.Flavor.get -> Microsoft.Diagnostics.Runtime.ClrFlavor
 Microsoft.Diagnostics.Runtime.ClrInfo.ModuleInfo.get -> Microsoft.Diagnostics.Runtime.ModuleInfo!
-Microsoft.Diagnostics.Runtime.ClrInfo.SingleFileRuntimeInfo.get -> Microsoft.Diagnostics.Runtime.RuntimeInfo?
+Microsoft.Diagnostics.Runtime.ClrInfo.SingleFileRuntimeInfo.get -> Microsoft.Diagnostics.Runtime.ClrRuntimeInfo?
 Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> Microsoft.Diagnostics.Runtime.VersionInfo
 Microsoft.Diagnostics.Runtime.ClrInfoProvider
 Microsoft.Diagnostics.Runtime.ClrInstanceField
@@ -1211,13 +1211,13 @@ Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RefCount.get -> int
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RuntimeCallableWrapper(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IRcwData! data) -> void
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.VTablePointer.get -> ulong
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.WinRTObject.get -> ulong
-Microsoft.Diagnostics.Runtime.RuntimeInfo
-Microsoft.Diagnostics.Runtime.RuntimeInfo.DacModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.RuntimeInfo.DbiModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.RuntimeInfo.RuntimeInfo() -> void
-Microsoft.Diagnostics.Runtime.RuntimeInfo.RuntimeModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.RuntimeInfo.Signature -> byte*
-Microsoft.Diagnostics.Runtime.RuntimeInfo.Version -> int
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DacModuleIndex -> byte*
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DbiModuleIndex -> byte*
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.RuntimeInfo() -> void
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.RuntimeModuleIndex -> byte*
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Signature -> byte*
+Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Version -> int
 Microsoft.Diagnostics.Runtime.StringCaching
 Microsoft.Diagnostics.Runtime.StringCaching.Cache = 1 -> Microsoft.Diagnostics.Runtime.StringCaching
 Microsoft.Diagnostics.Runtime.StringCaching.Intern = 2 -> Microsoft.Diagnostics.Runtime.StringCaching
@@ -1618,9 +1618,9 @@ const Microsoft.Diagnostics.Runtime.ArmContext.ContextControl = 2097153 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextDebugRegisters = 2097160 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextFloatingPoint = 2097156 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextInteger = 2097154 -> uint
-const Microsoft.Diagnostics.Runtime.RuntimeInfo.SignatureValue = "DotNetRuntimeInfo\0" -> string!
-const Microsoft.Diagnostics.Runtime.RuntimeInfo.SignatureValueLength = 18 -> int
-const Microsoft.Diagnostics.Runtime.RuntimeInfo.SymbolValue = "DotNetRuntimeInfo" -> string!
+const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SignatureValue = "DotNetRuntimeInfo\0" -> string!
+const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SignatureValueLength = 18 -> int
+const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SymbolValue = "DotNetRuntimeInfo" -> string!
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_FAIL = -2147467259 -> int
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_INVALIDARG = -2147024809 -> int
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_NOINTERFACE = -2147467262 -> int
