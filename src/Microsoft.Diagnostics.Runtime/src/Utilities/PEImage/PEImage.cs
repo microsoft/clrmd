@@ -7,9 +7,7 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -22,20 +20,28 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const ushort ExpectedDosHeaderMagic = 0x5A4D;   // MZ
         private const int PESignatureOffsetLocation = 0x3C;
         private const uint ExpectedPESignature = 0x00004550;    // PE00
+        private const int ImageDataDirectoryCount = 15;
+        private const int OptionalMagic32 = 0x010b;
 
-        private readonly bool _isVirtual;
-        private int _offset;
+        private int HeaderOffset => _peHeaderOffset + sizeof(uint);
+        private int OptionalHeaderOffset => HeaderOffset + sizeof(IMAGE_FILE_HEADER);
+        internal int SpecificHeaderOffset => OptionalHeaderOffset + sizeof(IMAGE_OPTIONAL_HEADER_AGNOSTIC);
+        private int DataDirectoryOffset => SpecificHeaderOffset + (IsPE64 ? 5 * 8 : 6 * 4);
+        private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(IMAGE_DATA_DIRECTORY);
 
         private readonly Stream _stream;
-        private readonly PEHeaders? _peHeaders;
-        private CoffHeader? _coffHeader;
-        private PEHeader? _peHeader;
-        private CorHeader? _corHeader;
-        private ImmutableArray<SectionHeader> _sections;
+        private int _offset;
+        private readonly bool _leaveOpen;
+        private readonly bool _isVirtual;
+
+        private readonly int _peHeaderOffset;
+
         private ImmutableArray<PdbInfo> _pdbs;
         private ResourceEntry? _resources;
-        private IMAGE_EXPORT_DIRECTORY? _exportDirectory;
-
+        private readonly IMAGE_DATA_DIRECTORY[] _directories = new IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
+        private readonly int _sectionCount;
+        private IMAGE_SECTION_HEADER[]? _sections;
+        private IMAGE_DATA_DIRECTORY _metadata;
         private bool _disposed;
 
         /// <summary>
@@ -60,6 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             _isVirtual = isVirtual;
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _leaveOpen = leaveOpen;
 
             if (!stream.CanSeek)
                 throw new ArgumentException($"{nameof(stream)} is not seekable.");
@@ -67,54 +74,44 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
             {
-                if (!leaveOpen)
-                    stream.Dispose();
-
+                IsValid = false;
                 return;
             }
 
-            int peHeaderOffset = Read<int>(PESignatureOffsetLocation);
-            if (peHeaderOffset == 0)
+            _peHeaderOffset = Read<int>(PESignatureOffsetLocation);
+            if (_peHeaderOffset == 0)
             {
-                if (!leaveOpen)
-                    stream.Dispose();
-
+                IsValid = false;
                 return;
             }
 
-            uint peSignature = Read<uint>(peHeaderOffset);
+            uint peSignature = Read<uint>(_peHeaderOffset);
             if (peSignature != ExpectedPESignature)
             {
-                if (!leaveOpen)
-                    stream.Dispose();
-
+                IsValid = false;
                 return;
             }
 
-            SeekTo(0);
+            // Read image_file_header
+            IMAGE_FILE_HEADER header = Read<IMAGE_FILE_HEADER>(HeaderOffset);
+            _sectionCount = header.NumberOfSections;
+            IndexTimeStamp = header.TimeDateStamp;
 
-            PEStreamOptions options = PEStreamOptions.Default;
-            if (leaveOpen)
-                options |= PEStreamOptions.LeaveOpen;
+            if (TryRead(OptionalHeaderOffset, out IMAGE_OPTIONAL_HEADER_AGNOSTIC optional))
+            {
+                IsPE64 = optional.Magic != OptionalMagic32;
+                IndexFileSize = optional.SizeOfImage;
 
-            if (isVirtual)
-                options |= PEStreamOptions.IsLoadedImage;
-
-            try
-            {
-                var reader = new PEReader(stream, options);
-                _peHeaders = reader.PEHeaders;
-                Reader = reader;
-            }
-            catch (BadImageFormatException)
-            {
-            }
-            catch (EndOfStreamException)
-            {
+                // Read directories.  In order for us to read directories, we need to know if
+                // this is a x64 image or not, hence why this is wrapped in the above TryRead
+                SeekTo(DataDirectoryOffset);
+                for (int i = 0; i < _directories.Length; i++)
+                    if (!TryRead(out _directories[i]))
+                        break;
             }
         }
 
-        internal int ResourceVirtualAddress => PEHeader?.ResourceTableDirectory.RelativeVirtualAddress ?? 0;
+        internal int ResourceVirtualAddress => ResourceDirectory.VirtualAddress;
 
         /// <summary>
         /// Gets the root resource node of this PEImage.
@@ -124,47 +121,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Gets a value indicating whether the given Stream contains a valid DOS header and PE signature.
         /// </summary>
-        public bool IsValid => Reader != null;
+        public bool IsValid { get; } = true;
 
         /// <summary>
         /// Gets a value indicating whether this image is for a 64bit processor.
         /// </summary>
-        public bool IsPE64 => PEHeader != null && PEHeader.Magic != PEMagic.PE32;
+        public bool IsPE64 { get; }
 
         /// <summary>
         /// Gets a value indicating whether this image is managed. (.NET image)
         /// </summary>
-        public bool IsManaged => PEHeader != null && PEHeader.CorHeaderTableDirectory.RelativeVirtualAddress != 0;
+        public bool IsManaged => ComDescriptorDirectory.VirtualAddress != 0;
+
+        private IMAGE_DATA_DIRECTORY ExportDirectory => _directories[0];
+        private IMAGE_DATA_DIRECTORY DebugDataDirectory => _directories[6];
+        private IMAGE_DATA_DIRECTORY ComDescriptorDirectory => _directories[14];
+        internal IMAGE_DATA_DIRECTORY MetadataDirectory => _directories[14];
+        private IMAGE_DATA_DIRECTORY ResourceDirectory => _directories[2];
 
         /// <summary>
         /// Gets the timestamp that this PE image is indexed under.
         /// </summary>
-        public int IndexTimeStamp => CoffHeader?.TimeDateStamp ?? 0;
+        public int IndexTimeStamp { get; }
 
         /// <summary>
         /// Gets the file size that this PE image is indexed under.
         /// </summary>
-        public int IndexFileSize => PEHeader?.SizeOfImage ?? 0;
-
-        /// <summary>
-        /// Gets the managed header information for this image.  Undefined behavior if IsValid is <see langword="false"/>.
-        /// </summary>
-        public CorHeader? CorHeader => _corHeader ??= ReadCorHeader();
-
-        /// <summary>
-        /// Gets a wrapper over this PE image's IMAGE_FILE_HEADER structure.  Undefined behavior if IsValid is <see langword="false"/>.
-        /// </summary>
-        public CoffHeader? CoffHeader => _coffHeader ??= ReadCoffHeader();
-
-        /// <summary>
-        /// Gets a wrapper over this PE image's IMAGE_OPTIONAL_HEADER.  Undefined behavior if IsValid is <see langword="false"/>.
-        /// </summary>
-        public PEHeader? PEHeader => _peHeader ??= ReadPEHeader();
-
-        /// <summary>
-        /// Gets a collection of IMAGE_SECTION_HEADERs in the PE image.  Undefined behavior if IsValid is <see langword="false"/>.
-        /// </summary>
-        public ImmutableArray<SectionHeader> Sections => !_sections.IsDefault ? _sections : (_sections = ReadSections());
+        public int IndexFileSize { get; }
 
         /// <summary>
         /// Gets a list of PDBs associated with this PE image.  PE images can contain multiple PDB entries,
@@ -172,7 +155,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// all PDBs for some reason, you should use DefaultPdb instead.
         /// Undefined behavior if IsValid is <see langword="false"/>.
         /// </summary>
-        public ImmutableArray<PdbInfo> Pdbs => !_pdbs.IsDefault ? _pdbs : (_pdbs = ReadPdbs());
+        public ImmutableArray<PdbInfo> Pdbs
+        {
+            get
+            {
+                if (!_pdbs.IsDefault)
+                    return _pdbs;
+
+                var pdbs = ReadPdbs();
+                _pdbs = pdbs;
+                return pdbs;
+            }
+        }
 
         /// <summary>
         /// Gets the PDB information for this module.  If this image does not contain PDB info (or that information
@@ -181,13 +175,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public PdbInfo? DefaultPdb => Pdbs.LastOrDefault();
 
-        public PEReader? Reader { get; }
 
         public void Dispose()
         {
             if (!_disposed)
             {
-                Reader?.Dispose();
+                if (!_leaveOpen)
+                    _stream.Dispose();
+
                 _disposed = true;
             }
         }
@@ -202,12 +197,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_isVirtual)
                 return virtualAddress;
 
-            ImmutableArray<SectionHeader> sections = Sections;
+            IMAGE_SECTION_HEADER[] sections = ReadSections();
             for (int i = 0; i < sections.Length; i++)
             {
-                SectionHeader section = sections[i];
+                ref IMAGE_SECTION_HEADER section = ref sections[i];
                 if (section.VirtualAddress <= virtualAddress && virtualAddress < section.VirtualAddress + section.VirtualSize)
-                    return section.PointerToRawData + (virtualAddress - section.VirtualAddress);
+                    return (int)(section.PointerToRawData + ((uint)virtualAddress - section.VirtualAddress));
             }
 
             return -1;
@@ -275,41 +270,36 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             try
             {
-                if (!_exportDirectory.HasValue)
+                IMAGE_DATA_DIRECTORY exportTableDirectory = ExportDirectory;
+                if (exportTableDirectory.VirtualAddress != 0 && exportTableDirectory.Size != 0)
                 {
-                    if (PEHeader is not null)
+                    if (TryRead(RvaToOffset(exportTableDirectory.VirtualAddress), out IMAGE_EXPORT_DIRECTORY exportDirectory))
                     {
-                        DirectoryEntry exportTableDirectory = PEHeader.ExportTableDirectory;
-                        if (exportTableDirectory.RelativeVirtualAddress != 0 && exportTableDirectory.Size != 0)
+                        for (int nameIndex = 0; nameIndex < exportDirectory.NumberOfNames; nameIndex++)
                         {
-                            _exportDirectory = Read<IMAGE_EXPORT_DIRECTORY>(RvaToOffset(exportTableDirectory.RelativeVirtualAddress));
-                        }
-                    }
-                }
-                if (_exportDirectory.HasValue)
-                {
-                    IMAGE_EXPORT_DIRECTORY exportDirectory = _exportDirectory.Value;
-
-                    for (int nameIndex = 0; nameIndex < exportDirectory.NumberOfNames; nameIndex++)
-                    {
-                        int namePointerRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfNames + (sizeof(uint) * nameIndex)));
-                        if (namePointerRVA != 0)
-                        {
-                            string name = ReadNullTerminatedAscii(namePointerRVA, maxLength: 4096);
-                            if (name == symbolName)
+                            int namePointerRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfNames + (sizeof(uint) * nameIndex)));
+                            if (namePointerRVA != 0)
                             {
-                                ushort ordinalForNamedExport = Read<ushort>(RvaToOffset(exportDirectory.AddressOfNameOrdinals + (sizeof(ushort) * nameIndex)));
-                                int exportRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfFunctions + (sizeof(uint) * ordinalForNamedExport)));
-                                offset = (uint)RvaToOffset(exportRVA);
-                                return true;
+                                string name = ReadNullTerminatedAscii(namePointerRVA, maxLength: 4096);
+                                if (name == symbolName)
+                                {
+                                    ushort ordinalForNamedExport = Read<ushort>(RvaToOffset(exportDirectory.AddressOfNameOrdinals + (sizeof(ushort) * nameIndex)));
+                                    int exportRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfFunctions + (sizeof(uint) * ordinalForNamedExport)));
+                                    offset = (uint)RvaToOffset(exportRVA);
+                                    return true;
+                                }
                             }
                         }
                     }
                 }
             }
-            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            catch (IOException)
             {
             }
+            catch (InvalidDataException)
+            {
+            }
+
             offset = 0;
             return false;
         }
@@ -343,7 +333,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private ResourceEntry CreateResourceRoot()
         {
-            return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
+            return new ResourceEntry(this, null, "root", false, RvaToOffset((int)ResourceVirtualAddress));
         }
 
         internal T Read<T>(int offset) where T : unmanaged => Read<T>(ref offset);
@@ -384,6 +374,44 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
+        internal unsafe bool TryRead<T>(int offset, out T result) where T : unmanaged
+        {
+            int size = Unsafe.SizeOf<T>();
+            T t = default;
+
+            SeekTo(offset);
+            int read = _stream.Read(new Span<byte>(&t, size));
+            offset += read;
+            _offset = offset;
+
+            if (read != size)
+            {
+                result = default;
+                return false;
+            }
+
+            result = t;
+            return true;
+        }
+
+        internal unsafe bool TryRead<T>(out T result) where T : unmanaged
+        {
+            int size = Unsafe.SizeOf<T>();
+            T t = default;
+
+            int read = _stream.Read(new Span<byte>(&t, size));
+            _offset += read;
+
+            if (read != size)
+            {
+                result = default;
+                return false;
+            }
+
+            result = t;
+            return true;
+        }
+
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
 
         private void SeekTo(int offset)
@@ -395,68 +423,120 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private CoffHeader? ReadCoffHeader() => _peHeaders?.CoffHeader;
+        private IMAGE_SECTION_HEADER[] ReadSections()
+        {
+            if (_sections is not null)
+                return _sections;
 
-        private PEHeader? ReadPEHeader() => _peHeaders?.PEHeader;
 
-        private CorHeader? ReadCorHeader() => _peHeaders?.CorHeader;
+            IMAGE_SECTION_HEADER[] sections = new IMAGE_SECTION_HEADER[_sectionCount];
 
-        private ImmutableArray<SectionHeader> ReadSections() => _peHeaders?.SectionHeaders ?? ImmutableArray<SectionHeader>.Empty;
+            SeekTo(ImageDataDirectoryOffset);
+
+            // Sanity check, there's a null row at the end of the data directory table
+            if (!TryRead(out ulong zero) || zero != 0)
+                return sections;
+
+            for (int i = 0; i < sections.Length; i++)
+            {
+                if (!TryRead(out sections[i]))
+                    break;
+            }
+
+            // We don't care about a race here
+            _sections = sections;
+            return sections;
+        }
+
+
+        private bool Read64Bit()
+        {
+            if (!IsValid)
+                return false;
+
+            int offset = OptionalHeaderOffset;
+            if (!TryRead(ref offset, out ushort magic))
+                return false;
+
+            return magic != OptionalMagic32;
+        }
+
 
         private ImmutableArray<PdbInfo> ReadPdbs()
         {
-            if (Reader == null)
-                return ImmutableArray<PdbInfo>.Empty;
-
             try
             {
-                ImmutableArray<DebugDirectoryEntry> debugDirectories = Reader.ReadDebugDirectory();
-                if (debugDirectories.IsEmpty)
-                    return ImmutableArray<PdbInfo>.Empty;
-
-                ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(debugDirectories.Length);
-
-                foreach (DebugDirectoryEntry entry in debugDirectories)
+                IMAGE_DATA_DIRECTORY debugDirectory = DebugDataDirectory;
+                if (debugDirectory.VirtualAddress != 0 && debugDirectory.Size != 0)
                 {
-                    if (entry.Type == DebugDirectoryEntryType.CodeView)
-                    {
-                        CodeViewDebugDirectoryData data = Reader.ReadCodeViewDebugDirectoryData(entry);
-                        PdbInfo pdb = new PdbInfo(data.Path, data.Guid, data.Age);
-                        result.Add(pdb);
-                    }
-                }
+                    int count = (int)(debugDirectory.Size / sizeof(IMAGE_DEBUG_DIRECTORY));
+                    int offset = RvaToOffset(debugDirectory.VirtualAddress);
+                    if (offset == -1)
+                        return ImmutableArray<PdbInfo>.Empty;
 
-                return result.MoveOrCopyToImmutable();
+                    SeekTo(offset);
+                    var result = ImmutableArray.CreateBuilder<PdbInfo>(count);
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (!TryRead(ref offset, out IMAGE_DEBUG_DIRECTORY directory))
+                            break;
+
+                        if (directory.Type == IMAGE_DEBUG_TYPE.CODEVIEW && directory.SizeOfData >= sizeof(CV_INFO_PDB70))
+                        {
+                            int ptr = _isVirtual ? directory.AddressOfRawData : directory.PointerToRawData;
+                            if (TryRead(ptr, out int sig) && sig == CV_INFO_PDB70.PDB70CvSignature)
+                            {
+                                Guid guid = Read<Guid>();
+                                int age = Read<int>();
+
+                                // sizeof(sig) + sizeof(guid) + sizeof(age) - [null char] = 0x18 - 1
+                                int nameLen = directory.SizeOfData - 0x18 - 1;
+                                string? path = ReadString(nameLen);
+
+                                if (path != null)
+                                {
+                                    PdbInfo pdb = new PdbInfo(path, guid, age);
+                                    result.Add(pdb);
+                                }
+                            }
+
+                        }
+                    }
+
+                    return result.MoveOrCopyToImmutable();
+                }
             }
-            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            catch (IOException)
             {
-                return ImmutableArray<PdbInfo>.Empty;
             }
+            catch (InvalidDataException)
+            {
+            }
+
+            return ImmutableArray<PdbInfo>.Empty;
         }
 
-        internal static bool ReadIndexProperties(Stream stream, out int buildTimeStamp, out int imageSize)
+        private string? ReadString(int len)
         {
-            buildTimeStamp = 0;
-            imageSize = 0;
+            if (len > 4096)
+                len = 4096;
 
-            if (Read<ushort>(stream, 0) != ExpectedDosHeaderMagic)
-                return false;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
+            try
+            {
+                if (_stream.Read(buffer, 0, len) != len)
+                    return null;
 
-            int peHeaderOffset = Read<int>(stream, PESignatureOffsetLocation);
-            ImageFileHeader header = Read<ImageFileHeader>(stream, peHeaderOffset);
-            if (header.Magic != ExpectedPESignature)
-                return false;
+                int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
+                if (index >= 0)
+                    len = index;
 
-            buildTimeStamp = header.TimeDateStamp;
-
-            int optionalHeaderOffset = peHeaderOffset + sizeof(ImageFileHeader);
-            ImageOptionalHeader optional = Read<ImageOptionalHeader>(stream, optionalHeaderOffset);
-            if (optional.Magic != 0x010b && optional.Magic != 0x020b)
-                return false;
-
-            imageSize = optional.SizeOfImage;
-
-            return true;
+                return Encoding.ASCII.GetString(buffer, 0, len);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         private static T Read<T>(Stream stream) where T: unmanaged
@@ -476,28 +556,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             stream.Seek(offset, SeekOrigin.Begin);
             return Read<T>(stream);
-        }
-
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        private struct ImageFileHeader
-        {
-            public uint Magic;
-            public ushort Machine;
-            public ushort NumberOfSections;
-            public int TimeDateStamp;
-            public uint PointerToSymbolTable;
-            public uint NumberOfSymbols;
-            public ushort SizeOfOptionalHeader;
-            public ushort Characteristics;
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        private struct ImageOptionalHeader
-        {
-            [FieldOffset(0)]
-            public ushort Magic;
-            [FieldOffset(56)]
-            public int SizeOfImage;
         }
     }
 }
