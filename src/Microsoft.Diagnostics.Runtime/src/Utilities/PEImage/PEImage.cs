@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A class to read information out of PE images (dll/exe).
     /// </summary>
-    public sealed unsafe class PEImage : IDisposable
+    internal sealed unsafe class PEImage : IDisposable
     {
         private const ushort ExpectedDosHeaderMagic = 0x5A4D;   // MZ
         private const int PESignatureOffsetLocation = 0x3C;
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly IMAGE_DATA_DIRECTORY[] _directories = new IMAGE_DATA_DIRECTORY[ImageDataDirectoryCount];
         private readonly int _sectionCount;
         private IMAGE_SECTION_HEADER[]? _sections;
-        private IMAGE_DATA_DIRECTORY _metadata;
+        private object? _metadata;
         private bool _disposed;
 
         /// <summary>
@@ -136,7 +136,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private IMAGE_DATA_DIRECTORY ExportDirectory => _directories[0];
         private IMAGE_DATA_DIRECTORY DebugDataDirectory => _directories[6];
         private IMAGE_DATA_DIRECTORY ComDescriptorDirectory => _directories[14];
-        internal IMAGE_DATA_DIRECTORY MetadataDirectory => _directories[14];
+        internal IMAGE_DATA_DIRECTORY MetadataDirectory
+        {
+            get
+            {
+                // _metadata is an object to preserve atomicity
+                if (_metadata is not null)
+                    return (IMAGE_DATA_DIRECTORY)_metadata;
+
+                IMAGE_DATA_DIRECTORY result = default;
+                IMAGE_DATA_DIRECTORY corHdr = ComDescriptorDirectory;
+                if (corHdr.VirtualAddress != 0 && corHdr.Size != 0)
+                {
+                    int offset = RvaToOffset(corHdr.VirtualAddress);
+                    if (offset > 0)
+                        result = Read<IMAGE_COR20_HEADER>(offset).MetaData;
+                }
+
+                _metadata = result;
+                return result;
+            }
+        }
         private IMAGE_DATA_DIRECTORY ResourceDirectory => _directories[2];
 
         /// <summary>

@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// If the PEImage cannot be constructed, <see langword="null"/> is returned.
         /// </summary>
         /// <returns></returns>
-        public PEImage? GetPEImage()
+        internal PEImage? GetPEImage()
         {
             try
             {
