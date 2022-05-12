@@ -419,8 +419,6 @@ Microsoft.Diagnostics.Runtime.ComInterfaceData.ComInterfaceData(Microsoft.Diagno
 Microsoft.Diagnostics.Runtime.ComInterfaceData.InterfacePointer.get -> ulong
 Microsoft.Diagnostics.Runtime.ComInterfaceData.Type.get -> Microsoft.Diagnostics.Runtime.ClrType?
 Microsoft.Diagnostics.Runtime.CustomDataTarget
-Microsoft.Diagnostics.Runtime.CustomDataTarget.BinaryLocator.get -> Microsoft.Diagnostics.Runtime.IBinaryLocator?
-Microsoft.Diagnostics.Runtime.CustomDataTarget.BinaryLocator.set -> void
 Microsoft.Diagnostics.Runtime.CustomDataTarget.CacheOptions.get -> Microsoft.Diagnostics.Runtime.CacheOptions?
 Microsoft.Diagnostics.Runtime.CustomDataTarget.CacheOptions.set -> void
 Microsoft.Diagnostics.Runtime.CustomDataTarget.CustomDataTarget(Microsoft.Diagnostics.Runtime.IDataReader! reader) -> void
@@ -675,8 +673,6 @@ Microsoft.Diagnostics.Runtime.DataReaders.Implementation.IThreadReader
 Microsoft.Diagnostics.Runtime.DataReaders.Implementation.IThreadReader.EnumerateOSThreadIds() -> System.Collections.Generic.IEnumerable<uint>!
 Microsoft.Diagnostics.Runtime.DataReaders.Implementation.IThreadReader.GetThreadTeb(uint osThreadId) -> ulong
 Microsoft.Diagnostics.Runtime.DataTarget
-Microsoft.Diagnostics.Runtime.DataTarget.BinaryLocator.get -> Microsoft.Diagnostics.Runtime.IBinaryLocator?
-Microsoft.Diagnostics.Runtime.DataTarget.BinaryLocator.set -> void
 Microsoft.Diagnostics.Runtime.DataTarget.CacheOptions.get -> Microsoft.Diagnostics.Runtime.CacheOptions!
 Microsoft.Diagnostics.Runtime.DataTarget.ClrVersions.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrInfo!>
 Microsoft.Diagnostics.Runtime.DataTarget.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
@@ -721,11 +717,6 @@ Microsoft.Diagnostics.Runtime.IAddressableTypedEntity.ReadStringField(string! fi
 Microsoft.Diagnostics.Runtime.IAddressableTypedEntity.ReadValueTypeField(string! fieldName) -> Microsoft.Diagnostics.Runtime.ClrValueType
 Microsoft.Diagnostics.Runtime.IAddressableTypedEntity.Type.get -> Microsoft.Diagnostics.Runtime.ClrType?
 Microsoft.Diagnostics.Runtime.IAddressableTypedEntityExtensions
-Microsoft.Diagnostics.Runtime.IBinaryLocator
-Microsoft.Diagnostics.Runtime.IBinaryLocator.FindBinary(string! fileName, System.Collections.Immutable.ImmutableArray<byte> buildId, bool checkProperties = true) -> string?
-Microsoft.Diagnostics.Runtime.IBinaryLocator.FindBinary(string! fileName, int buildTimeStamp, int imageSize, bool checkProperties = true) -> string?
-Microsoft.Diagnostics.Runtime.IBinaryLocator.FindBinaryAsync(string! fileName, System.Collections.Immutable.ImmutableArray<byte> buildId, bool checkProperties = true) -> System.Threading.Tasks.Task<string?>!
-Microsoft.Diagnostics.Runtime.IBinaryLocator.FindBinaryAsync(string! fileName, int buildTimeStamp, int imageSize, bool checkProperties = true) -> System.Threading.Tasks.Task<string?>!
 Microsoft.Diagnostics.Runtime.IClrRoot
 Microsoft.Diagnostics.Runtime.IClrRoot.Address.get -> ulong
 Microsoft.Diagnostics.Runtime.IClrRoot.IsInterior.get -> bool
@@ -2411,3 +2402,15 @@ Microsoft.Diagnostics.Runtime.Utilities.HResult.HResult() -> void
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.SigParser() -> void
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea() -> void
 Microsoft.Diagnostics.Runtime.VersionInfo.VersionInfo() -> void
+Microsoft.Diagnostics.Runtime.IFileLocator
+Microsoft.Diagnostics.Runtime.IFileLocator.FindPEImage(string! fileName, int buildTimeStamp, int imageSize, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.CustomDataTarget.FileLocator.get -> Microsoft.Diagnostics.Runtime.IFileLocator?
+Microsoft.Diagnostics.Runtime.CustomDataTarget.FileLocator.set -> void
+Microsoft.Diagnostics.Runtime.DataTarget.FileLocator.get -> Microsoft.Diagnostics.Runtime.IFileLocator?
+Microsoft.Diagnostics.Runtime.DataTarget.FileLocator.set -> void
+Microsoft.Diagnostics.Runtime.IFileLocator.FindElfImage(string! fileName, Microsoft.Diagnostics.Runtime.SymbolProperties archivedUnder, System.Collections.Immutable.ImmutableArray<byte> buildId, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.IFileLocator.FindMachOImage(string! fileName, Microsoft.Diagnostics.Runtime.SymbolProperties archivedUnder, System.Collections.Immutable.ImmutableArray<byte> uuid, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.IFileLocator.FindPEImage(string! fileName, Microsoft.Diagnostics.Runtime.SymbolProperties archivedUnder, System.Collections.Immutable.ImmutableArray<byte> buildIdOrUUID, System.Runtime.InteropServices.OSPlatform originalPlatform, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.SymbolProperties
+Microsoft.Diagnostics.Runtime.SymbolProperties.Coreclr = 1 -> Microsoft.Diagnostics.Runtime.SymbolProperties
+Microsoft.Diagnostics.Runtime.SymbolProperties.Self = 0 -> Microsoft.Diagnostics.Runtime.SymbolProperties

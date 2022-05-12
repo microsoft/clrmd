@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                         break;
                     }
                 }
-                Debug.Assert(targetSegmentIndex != -1, "Ended resolving generic arg list but failed to find any top-level types marked as having unfulfilled generic args to propagate them to.");
+                DebugOnly.Assert(targetSegmentIndex != -1, "Ended resolving generic arg list but failed to find any top-level types marked as having unfulfilled generic args to propagate them to.");
 
                 if (targetSegmentIndex != -1)
                 {
@@ -398,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     // list this came from.
                     nameSegments[targetSegmentIndex] = targetSegment;
 
-                    Debug.Assert(genericArgs.Count == 0, "Back-propagation to top-level generic types ended with generic args still in the genericArgs list.");
+                    DebugOnly.Assert(genericArgs.Count == 0, "Back-propagation to top-level generic types ended with generic args still in the genericArgs list.");
 
                     return DetermineNextStateAndPos(name, currentPosition);
                 }
@@ -416,7 +416,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private static bool TryPatchUnfulfilledGenericArgs(int genericTargetIndex, List<TypeNameSegment> genericArgs)
         {
             TypeNameSegment targetTypeToPatch = genericArgs[genericTargetIndex];
-            Debug.Assert(targetTypeToPatch.HasUnfulfilledGenericArgs, "Called TryPatchUnfulfilledGenericArgs with an index pointing at a TypeNameSegment that does not have unfulfilled generic params");
+            DebugOnly.Assert(targetTypeToPatch.HasUnfulfilledGenericArgs, "Called TryPatchUnfulfilledGenericArgs with an index pointing at a TypeNameSegment that does not have unfulfilled generic params");
 
             // Patch ALL missing args from the target type, but no more. Any types before the target that need filling in will trigger another ResolveParsedGenericList state
             // to be entered as we unwind the parse, and at that point we will progate types back another level. This is very important to correctly parse horrific types like:
@@ -425,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             int nextTargetFulfillmentIndex = -1;
             while (targetTypeToPatch.HasUnfulfilledGenericArgs)
             {
-                Debug.Assert(genericTargetIndex + 1 != genericArgs.Count, "There are no arguments parsed following the target type for our generic arg back-propagation code. What do we patch with?");
+                DebugOnly.Assert(genericTargetIndex + 1 != genericArgs.Count, "There are no arguments parsed following the target type for our generic arg back-propagation code. What do we patch with?");
                 if (genericTargetIndex + 1 == genericArgs.Count)
                     return false;
 
@@ -483,7 +483,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     }
                 }
 
-                Debug.Assert(nextTargetFulfillmentIndex != genericTargetIndex, "Ran out of args to back-propagate to satisfy generic requirements of earlier generic parameter.");
+                DebugOnly.Assert(nextTargetFulfillmentIndex != genericTargetIndex, "Ran out of args to back-propagate to satisfy generic requirements of earlier generic parameter.");
                 if (nextTargetFulfillmentIndex == genericTargetIndex)
                     return false;
 
@@ -584,7 +584,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private static (int Count, int Pos) ParseGenericArityCountFromStringInPlace(string input, int curPos)
         {
-            Debug.Assert(char.IsDigit(input[curPos]));
+            DebugOnly.Assert(char.IsDigit(input[curPos]));
 
             int digitSpanStart = curPos;
             while (curPos < input.Length && char.IsDigit(input[curPos]))
@@ -737,7 +737,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             public void AddGenericArg(TypeNameSegment arg)
             {
-                Debug.Assert(_expectedGenericArgCount != 0, $"{Name} did not expect any generic arguments");
+                DebugOnly.Assert(_expectedGenericArgCount != 0, $"{Name} did not expect any generic arguments");
 
                 if (_expectedGenericArgCount == 0)
                     return;
@@ -750,7 +750,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             public void UnifyNestedClass(TypeNameSegment nestedClass)
             {
-                Debug.Assert(nestedClass.IsNestedClass);
+                DebugOnly.Assert(nestedClass.IsNestedClass);
                 _nestedClass = new[] { nestedClass };
             }
 
