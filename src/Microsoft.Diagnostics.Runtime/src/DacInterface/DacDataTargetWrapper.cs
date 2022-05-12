@@ -48,6 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new SetTLSValueDelegate(SetTLSValue));
             builder.AddMethod(new GetCurrentThreadIDDelegate(GetCurrentThreadID));
             builder.AddMethod(new GetThreadContextDelegate(GetThreadContext));
+            builder.AddMethod(new SetThreadContextDelegate(SetThreadContext));
             builder.AddMethod(new RequestDelegate(Request));
             IDacDataTarget = builder.Complete();
 
@@ -243,6 +244,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return HResult.E_FAIL;
         }
+
+        private HResult SetThreadContext(IntPtr self, uint threadID, uint contextSize, IntPtr context) => HResult.S_OK;
 
         public HResult Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
         {
